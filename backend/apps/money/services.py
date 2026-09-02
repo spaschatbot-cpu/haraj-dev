@@ -20,7 +20,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import IntegrityError, transaction as db_transaction
+from django.db import IntegrityError
+from django.db import transaction as db_transaction
 from django.db.models import Sum
 from django.utils import timezone
 
