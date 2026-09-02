@@ -1,0 +1,63 @@
+name: mobile
+
+# بوابة تطبيق Flutter. مقصورة على mobile/ عمداً كي لا تتصادم مع بوابة الخلفية.
+#
+# ترتيب الخطوات هو ترتيب الميثاق (خطة الفريق §4): تنسيق ← تحليل ← اختبارات،
+# ثم فحص أن العميل المولَّد يطابق المخطط.
+
+on:
+  push:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          # نسخة مثبَّتة لا `stable`: ترقية غير مقصودة للأدوات تكسر البناء
+          # بلا تغيير سطر واحد عندنا.
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: تنسيق
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: تحليل ساكن
+        run: flutter analyze
+
+      - name: اختبارات
+        run: flutter test
+
+  generated-client-matches-schema:
+    # معيار قبول T702: كسر المخطط أو تعديل المولَّد بيد يُسقط الـCI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - name: إعادة التوليد من المخطط
+        run: bash tool/regenerate_api_client.sh
+
+      - name: الفرق يعني أن المرفوع لا يطابق المخطط
+        run: git diff --exit-code -- lib/data/api/generated

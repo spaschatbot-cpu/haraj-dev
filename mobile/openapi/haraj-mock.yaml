@@ -1,0 +1,929 @@
+openapi: 3.0.3
+
+# ⚠️ مخطط **مؤقّت** — ليس العقد.
+#
+# العقد الحقيقي هو ‎/api/schema/‎ الذي يولّده drf-spectacular، ويُثبَّت في التاسك
+# T621 من الفيز 007 (نقطة التزامن «ب» في خطة الفريق). هذا الملف موجود لسبب واحد:
+# أن يعمل **خط التوليد** (T702) قبل تثبيت المخطط، فيبدأ م3 بذرة التطبيق مبكراً.
+#
+# ما يمثّله: ما نعرفه من specs/007-client-api/spec.md و tasks.md فقط — لا اختراع
+# لنقاط لم يذكرها الفيز 007.
+#
+# عند تثبيت T621: بدّل `schema_path` في swagger_parser.yaml إلى ملف المخطط
+# المُنزَّل من ‎/api/schema/‎، أعد التوليد، واحذف هذا الملف. لا تحرّر المولَّد.
+#
+# قاعدة لا تُكسر هنا: **كل مبلغ نصّ عشري** (`type: string`) لا `number` —
+# المادة ٣-٢ من الدستور تسري على Dart كما تسري على بايثون.
+
+info:
+  title: حراج واحد — API العميل (مخطط مؤقّت)
+  version: 0.0.0-mock
+  description: >
+    مخطط تمثيلي لبذرة تطبيق Flutter. يُستبدل بمخطط الخادم المثبَّت في T621.
+
+servers:
+  - url: https://api.example.invalid
+    description: عنوان صوري — العنوان الحقيقي يأتي من --dart-define
+
+tags:
+  - name: auth
+    description: المصادقة بالجوال وOTP
+  - name: profile
+    description: الملف الشخصي
+  - name: auctions
+    description: المزادات
+  - name: vehicles
+    description: المركبات
+  - name: bids
+    description: المزايدة
+  - name: wallet
+    description: المحفظة والحركات
+  - name: invoices
+    description: المشتريات والفواتير
+  - name: devices
+    description: تسجيل أجهزة الإشعارات
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/auth/otp/request:
+    post:
+      tags: [auth]
+      operationId: authOtpRequest
+      summary: إرسال رمز تحقق إلى جوال
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpRequest"
+      responses:
+        "200":
+          description: أُرسل الرمز
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtpChallenge"
+        "429":
+          $ref: "#/components/responses/Error"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/auth/otp/verify:
+    post:
+      tags: [auth]
+      operationId: authOtpVerify
+      summary: التحقق من الرمز وإصدار الرموز
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtpVerification"
+      responses:
+        "200":
+          description: تم الدخول
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "400":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/auth/token/refresh:
+    post:
+      tags: [auth]
+      operationId: authTokenRefresh
+      summary: تجديد رمز الوصول
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: رموز جديدة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenPair"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/profile:
+    get:
+      tags: [profile]
+      operationId: profileRetrieve
+      summary: الملف الشخصي للمستخدم صاحب الرمز
+      responses:
+        "200":
+          description: الملف
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/auctions:
+    get:
+      tags: [auctions]
+      operationId: auctionsList
+      summary: المزادات الجارية والقادمة
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AuctionStatus"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مزادات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedAuctionList"
+
+  /api/v1/auctions/{auctionId}:
+    get:
+      tags: [auctions]
+      operationId: auctionsRetrieve
+      summary: تفاصيل مزاد
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: المزاد
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Auction"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/auctions/{auctionId}/vehicles:
+    get:
+      tags: [vehicles]
+      operationId: auctionVehiclesList
+      summary: مركبات المزاد — بحث وترشيح
+      parameters:
+        - name: auctionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مركبات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedVehicleCardList"
+
+  /api/v1/vehicles/{vehicleId}:
+    get:
+      tags: [vehicles]
+      operationId: vehiclesRetrieve
+      summary: تفاصيل مركبة
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: المركبة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vehicle"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/vehicles/{vehicleId}/bids:
+    post:
+      tags: [bids]
+      operationId: bidsPlace
+      summary: وضع مزايدة — الخفض يحتاج تأكيداً صريحاً
+      description: >
+        الخفض يُرفض بـ409 ورمز BID_LOWER_NEEDS_CONFIRMATION، ويُعاد إرساله
+        بـconfirm_lower=true بعد تأكيد المستخدم.
+      parameters:
+        - name: vehicleId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BidSubmission"
+      responses:
+        "201":
+          description: سُجّلت المزايدة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bid"
+        "403":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/bids/mine:
+    get:
+      tags: [bids]
+      operationId: bidsMineList
+      summary: مزايداتي
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مزايدات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedBidList"
+
+  /api/v1/wallet:
+    get:
+      tags: [wallet]
+      operationId: walletRetrieve
+      summary: المحفظة — الدلاء مفصَّلة بأسبابها
+      description: >
+        لا مجموع واحد. كل دلو ببيانه وسببه (أي مزاد، أي فاتورة) — قاعدة G5 في
+        الفيز 007 وقاعدة العرض 2 في الفيز 008.
+      responses:
+        "200":
+          description: الدلاء
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Wallet"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/wallet/transactions:
+    get:
+      tags: [wallet]
+      operationId: walletTransactionsList
+      summary: كشف الحركات من القيود مباشرةً
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة حركات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedLedgerEntryList"
+
+  /api/v1/wallet/topup-intents:
+    post:
+      tags: [wallet]
+      operationId: walletTopUpIntentCreate
+      summary: نيّة شحن — المبلغ من الخادم لا من الطلب
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TopUpIntentRequest"
+      responses:
+        "201":
+          description: نيّة الشحن ورابط البوابة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopUpIntent"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/wallet/refund-requests:
+    post:
+      tags: [wallet]
+      operationId: walletRefundRequestCreate
+      summary: طلب استرداد من المتاح فقط
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefundRequestInput"
+      responses:
+        "201":
+          description: سُجّل الطلب
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefundRequest"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/invoices:
+    get:
+      tags: [invoices]
+      operationId: invoicesList
+      summary: فواتيري
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة فواتير
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedInvoiceList"
+
+  /api/v1/devices:
+    post:
+      tags: [devices]
+      operationId: devicesRegister
+      summary: تسجيل جهاز للإشعارات — يُربط بالمستخدم من الرمز
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceRegistration"
+      responses:
+        "201":
+          description: سُجّل الجهاز
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "403":
+          $ref: "#/components/responses/Error"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+
+  responses:
+    Error:
+      description: الشكل الموحّد للأخطاء — الرسالة عربية جاهزة للعرض
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ApiErrorEnvelope"
+
+  schemas:
+    # ---------- الشكل الموحّد للأخطاء (الفيز 001 / T705) ----------
+    ApiErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/ApiErrorBody"
+
+    ApiErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: رمز ثابت يفهمه العميل — لا يُترجم ولا يُعرض
+          example: BID_BELOW_MINIMUM
+        message:
+          type: string
+          description: >
+            رسالة عربية جاهزة للعرض كما جاءت. **ممنوع** على التطبيق استبدالها
+            بنصّ محلي لحالة يعرفها الخادم.
+          example: مبلغ المزايدة أقل من الحد الأدنى المسموح.
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+          description: بيانات إضافية للتشخيص — لا تُعرض للمستخدم
+
+    # ---------- المصادقة ----------
+    OtpRequest:
+      type: object
+      required: [phone]
+      properties:
+        phone:
+          type: string
+          example: "0512345678"
+
+    OtpChallenge:
+      type: object
+      required: [expires_at, resend_after_seconds]
+      properties:
+        expires_at:
+          type: string
+          format: date-time
+        resend_after_seconds:
+          type: integer
+
+    OtpVerification:
+      type: object
+      required: [phone, code]
+      properties:
+        phone:
+          type: string
+        code:
+          type: string
+
+    RefreshRequest:
+      type: object
+      required: [refresh]
+      properties:
+        refresh:
+          type: string
+
+    TokenPair:
+      type: object
+      required: [access, refresh, access_expires_at, is_new_user]
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        access_expires_at:
+          type: string
+          format: date-time
+        is_new_user:
+          type: boolean
+
+    # ---------- الملف الشخصي ----------
+    Profile:
+      type: object
+      required: [id, phone, full_name, locked_fields]
+      properties:
+        id:
+          type: string
+        phone:
+          type: string
+        full_name:
+          type: string
+        national_id:
+          type: string
+          nullable: true
+        company_name:
+          type: string
+          nullable: true
+        locked_fields:
+          type: array
+          description: الحقول المقفولة وسبب قفلها العربي
+          items:
+            $ref: "#/components/schemas/LockedField"
+
+    LockedField:
+      type: object
+      required: [field, reason]
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+          description: سبب عربي جاهز للعرض
+
+    # ---------- المزادات ----------
+    AuctionStatus:
+      type: string
+      enum: [draft, scheduled, running, ended, settled, cancelled]
+
+    Auction:
+      type: object
+      required: [id, title, status, starts_at, ends_at, vehicles_count]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          $ref: "#/components/schemas/AuctionStatus"
+        starts_at:
+          type: string
+          format: date-time
+          description: ISO-8601 بتوقيت UTC — التحويل للعرض في التطبيق
+        ends_at:
+          type: string
+          format: date-time
+        vehicles_count:
+          type: integer
+
+    PaginatedAuctionList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Auction"
+
+    # ---------- المركبات ----------
+    VehicleCard:
+      type: object
+      required: [id, lot_number, title, thumbnail_url, current_bid_amount, currency, bids_count]
+      properties:
+        id:
+          type: string
+        lot_number:
+          type: string
+        title:
+          type: string
+        thumbnail_url:
+          type: string
+          nullable: true
+          description: مصغَّرة فقط في القوائم — الحجم الكامل عند الفتح
+        current_bid_amount:
+          type: string
+          description: نصّ عشري — يُعرض كما وصل
+          example: "12500.00"
+        currency:
+          type: string
+          example: SAR
+        bids_count:
+          type: integer
+
+    Vehicle:
+      type: object
+      required: [id, lot_number, title, images, specifications, current_bid_amount, currency, bidding_open]
+      properties:
+        id:
+          type: string
+        lot_number:
+          type: string
+        title:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        specifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Specification"
+        current_bid_amount:
+          type: string
+          example: "12500.00"
+        minimum_next_bid_amount:
+          type: string
+          example: "12600.00"
+        currency:
+          type: string
+        bidding_open:
+          type: boolean
+
+    Specification:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+          description: تسمية عربية من الخادم
+        value:
+          type: string
+
+    PaginatedVehicleCardList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleCard"
+
+    # ---------- المزايدة ----------
+    BidSubmission:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: string
+          description: نصّ عشري كما يُدخله المستخدم — لا حساب في التطبيق
+          example: "12600.00"
+        confirm_lower:
+          type: boolean
+          description: تأكيد صريح لخفض المزايدة بعد 409
+
+    BidStatus:
+      type: string
+      enum: [placed, outbid, leading, withdrawn, won, lost]
+
+    Bid:
+      type: object
+      required: [id, vehicle_id, amount, currency, status, status_label, placed_at]
+      properties:
+        id:
+          type: string
+        vehicle_id:
+          type: string
+        vehicle_title:
+          type: string
+          nullable: true
+        amount:
+          type: string
+          example: "12600.00"
+        currency:
+          type: string
+        status:
+          $ref: "#/components/schemas/BidStatus"
+        status_label:
+          type: string
+          description: وصف عربي من الخادم — لا خريطة حالات في التطبيق
+        placed_at:
+          type: string
+          format: date-time
+
+    PaginatedBidList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bid"
+
+    # ---------- المحفظة ----------
+    WalletBucketKind:
+      type: string
+      enum: [wallet, insurance_free, insurance_held, insurance_locked]
+
+    WalletBucket:
+      type: object
+      required: [kind, label, amount, currency]
+      properties:
+        kind:
+          $ref: "#/components/schemas/WalletBucketKind"
+        label:
+          type: string
+          description: اسم الدلو بالعربية من الخادم
+        amount:
+          type: string
+          description: نصّ عشري — **ممنوع جمع الدلاء في التطبيق**
+          example: "10000.00"
+        currency:
+          type: string
+        holds:
+          type: array
+          description: سبب كل حجز — أي مزاد، أي فاتورة
+          items:
+            $ref: "#/components/schemas/WalletHold"
+
+    WalletHold:
+      type: object
+      required: [reference, reason, amount, currency]
+      properties:
+        reference:
+          type: string
+          description: معرّف المزاد أو الفاتورة
+        reason:
+          type: string
+          description: سبب عربي جاهز للعرض
+        amount:
+          type: string
+          example: "2500.00"
+        currency:
+          type: string
+
+    Wallet:
+      type: object
+      required: [buckets, as_of]
+      properties:
+        buckets:
+          type: array
+          items:
+            $ref: "#/components/schemas/WalletBucket"
+        as_of:
+          type: string
+          format: date-time
+
+    LedgerEntry:
+      type: object
+      required: [id, description, amount, currency, direction, occurred_at]
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+          description: وصف عربي لنوع المعاملة — لا مفتاح إنجليزي
+        amount:
+          type: string
+          example: "500.00"
+        currency:
+          type: string
+        direction:
+          type: string
+          enum: [debit, credit]
+        occurred_at:
+          type: string
+          format: date-time
+        reference:
+          type: string
+          nullable: true
+
+    PaginatedLedgerEntryList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/LedgerEntry"
+
+    TopUpIntentRequest:
+      type: object
+      required: [preset]
+      properties:
+        preset:
+          type: string
+          description: مفتاح مبلغ معرَّف في الخادم — التطبيق لا يرسل مبلغاً
+
+    TopUpIntent:
+      type: object
+      required: [reference, amount, currency, redirect_url, status]
+      properties:
+        reference:
+          type: string
+        amount:
+          type: string
+          description: المبلغ يحدّده الخادم ويُعرض كما وصل
+          example: "1000.00"
+        currency:
+          type: string
+        redirect_url:
+          type: string
+        status:
+          type: string
+          enum: [pending, succeeded, cancelled, failed]
+
+    RefundRequestInput:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: string
+          example: "1000.00"
+
+    RefundRequest:
+      type: object
+      required: [reference, amount, currency, status, status_label, requested_at]
+      properties:
+        reference:
+          type: string
+        amount:
+          type: string
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [requested, sent, confirmed, rejected]
+        status_label:
+          type: string
+        requested_at:
+          type: string
+          format: date-time
+
+    # ---------- الفواتير ----------
+    Invoice:
+      type: object
+      required: [id, number, total_amount, paid_amount, due_amount, currency, status, status_label, issued_at]
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        total_amount:
+          type: string
+          example: "12600.00"
+        paid_amount:
+          type: string
+          example: "0.00"
+        due_amount:
+          type: string
+          description: يأتي محسوباً من الخادم — التطبيق لا يطرح
+          example: "12600.00"
+        currency:
+          type: string
+        status:
+          type: string
+          enum: [open, partially_paid, paid, cancelled]
+        status_label:
+          type: string
+        issued_at:
+          type: string
+          format: date-time
+
+    PaginatedInvoiceList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invoice"
+
+    # ---------- الإشعارات ----------
+    DeviceRegistration:
+      type: object
+      required: [token, platform]
+      properties:
+        token:
+          type: string
+        platform:
+          type: string
+          enum: [android, ios]
+
+    Device:
+      type: object
+      required: [id, platform, registered_at]
+      properties:
+        id:
+          type: string
+        platform:
+          type: string
+          enum: [android, ios]
+        registered_at:
+          type: string
+          format: date-time
