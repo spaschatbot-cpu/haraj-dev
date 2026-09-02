@@ -316,3 +316,184 @@ def test_a_revoked_grant_closes_the_screens_immediately(client, operator, live):
     )
 
     assert client.get(reverse("console:auctions")).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Creating and editing — and the v1 lesson about how a save fails
+# ---------------------------------------------------------------------------
+
+
+def auction_payload(**extra) -> dict:
+    fields = {
+        "number": "777",
+        "title": "مزاد جديد",
+        "starts_at": "2026-10-01T10:00",
+        "ends_at": "2026-10-02T10:00",
+        "deposit_required": "10000.00",
+        "reason": "مزاد الربع الأخير",
+    }
+    fields.update(extra)
+    return fields
+
+
+def vehicle_payload(auction: Auction, **extra) -> dict:
+    fields = {
+        "auction": auction.pk,
+        "lot_number": "12",
+        "make": "هوندا",
+        "model": "أكورد",
+        "year": "2021",
+        "plate_type": "private",
+        "transmission": "unknown",
+        "fuel_type": "unknown",
+        "condition": "unknown",
+        "reserve_price": "42000.00",
+        "reason": "وصلت من الشريك",
+    }
+    fields.update(extra)
+    return fields
+
+
+def test_an_auction_can_be_created_and_is_born_a_draft(client, operator):
+    """The state is not a field: an auction reaches every other state through
+    the service, whose guards refuse — among other things — scheduling one with
+    no cars in it."""
+    response = client.post(reverse("console:auction-new"), auction_payload(), follow=True)
+
+    auction = Auction.objects.get(number=777)
+    assert response.status_code == 200
+    assert auction.state == AuctionState.DRAFT
+    assert AuditLog.objects.filter(action="console.create_auction").exists()
+
+
+def test_creating_records_who_did_it_and_why(client, operator):
+    client.post(reverse("console:auction-new"), auction_payload())
+
+    entry = AuditLog.objects.get(action="console.create_auction")
+
+    assert entry.actor_id == operator.pk
+    assert entry.note == "مزاد الربع الأخير"
+
+
+def test_a_creation_without_a_reason_is_refused(client, operator):
+    client.post(reverse("console:auction-new"), auction_payload(reason="  "))
+
+    assert not Auction.objects.filter(number=777).exists()
+
+
+def test_the_times_are_read_as_riyadh_wall_clocks(client, operator):
+    """An operator typing 10:00 means 10:00 in Riyadh (Article 3-1)."""
+    client.post(reverse("console:auction-new"), auction_payload())
+
+    auction = Auction.objects.get(number=777)
+    # 10:00 Riyadh is 07:00 UTC, and the stored value is UTC.
+    assert auction.starts_at.hour == 7
+
+
+def test_an_end_before_a_start_is_named_on_the_field(client, operator):
+    """An operator fixing a date wants to know which box is wrong."""
+    response = client.post(
+        reverse("console:auction-new"),
+        auction_payload(starts_at="2026-10-05T10:00", ends_at="2026-10-01T10:00"),
+    )
+
+    body = response.content.decode()
+    assert "وقت الانتهاء لازم يكون بعد وقت البدء" in body
+    assert not Auction.objects.filter(number=777).exists()
+
+
+def test_a_duplicate_auction_number_is_a_message_not_a_500(client, operator, live):
+    response = client.post(
+        reverse("console:auction-new"), auction_payload(number=str(live.number))
+    )
+
+    assert response.status_code == 200
+    assert "مستعمل" in response.content.decode()
+
+
+def test_editing_an_auction_keeps_the_before_and_after(client, operator, live):
+    client.post(
+        reverse("console:auction-edit", args=[live.pk]),
+        auction_payload(number=str(live.number), title="عنوان مصحَّح"),
+    )
+
+    live.refresh_from_db()
+    entry = AuditLog.objects.get(action="console.edit_auction")
+
+    assert live.title == "عنوان مصحَّح"
+    assert entry.before["title"] == "مزاد الرياض"
+    assert entry.after["title"] == "عنوان مصحَّح"
+
+
+def test_one_bad_field_does_not_abort_the_whole_edit(client, operator, live):
+    """The v1 failure, checked as a property of the form.
+
+    Under `STRICT_TRANS_TABLES` v1 aborted the *entire* update when one value
+    did not fit its column, so an operator correcting six fields lost all six
+    because the seventh had a stray character — and the message named the
+    statement, not the box.
+
+    Here the bad field is named, nothing is written, and every good value the
+    operator typed is still in the form waiting for them.
+    """
+    response = client.post(
+        reverse("console:auction-edit", args=[live.pk]),
+        auction_payload(number="ليس رقماً", title="عنوان مصحَّح"),
+    )
+    body = response.content.decode()
+
+    live.refresh_from_db()
+    assert live.title == "مزاد الرياض", "حُفظ جزء من التعديل رغم خطأ في حقل"
+    assert "عنوان مصحَّح" in body, "ضاع ما كتبه المشغّل في الحقول السليمة"
+    assert not AuditLog.objects.filter(action="console.edit_auction").exists()
+
+
+def test_a_vehicle_can_be_created(client, operator, live):
+    client.post(reverse("console:vehicle-new"), vehicle_payload(live), follow=True)
+
+    vehicle = Vehicle.objects.get(auction=live, lot_number=12)
+    assert vehicle.make == "هوندا"
+    assert vehicle.state == VehicleState.DRAFT
+    assert AuditLog.objects.filter(action="console.create_vehicle").exists()
+
+
+def test_a_repeated_lot_number_is_a_sentence_beside_the_box(client, operator, live):
+    """The database refuses it too (T405); this is so the operator sees why."""
+    a_car(live, 12)
+
+    response = client.post(reverse("console:vehicle-new"), vehicle_payload(live))
+
+    assert response.status_code == 200
+    assert "رقم اللوت مستعمل" in response.content.decode()
+
+
+def test_the_edit_form_offers_no_way_to_type_an_award(client, operator, live):
+    """An award typed by hand is an award with no bid behind it.
+
+    Correcting one is `replace_winner`, which moves the invoice and the deposit
+    with it.
+    """
+    car = a_car(live, 3)
+
+    body = body_of(client, reverse("console:vehicle-edit", args=[car.pk]))
+
+    assert "awarded_to" not in body
+    assert "awarded_price" not in body
+    assert 'name="state"' not in body
+
+
+def test_the_auction_form_offers_no_way_to_type_a_state(client, operator, live):
+    body = body_of(client, reverse("console:auction-edit", args=[live.pk]))
+
+    assert 'name="state"' not in body
+
+
+def test_reading_the_screens_does_not_admit_you_to_the_forms(client, live):
+    reader = staff(Role.SUPPORT, phone="966500000013")
+    client.force_login(reader)
+
+    assert client.get(reverse("console:auction-new")).status_code == 403
+    assert (
+        client.post(reverse("console:auction-new"), auction_payload()).status_code == 403
+    )
+    assert not Auction.objects.filter(number=777).exists()

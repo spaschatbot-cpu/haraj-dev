@@ -23,6 +23,8 @@ somebody went looking for it.
     من {{ auction.starts_at }} إلى {{ auction.ends_at }}
   </p>
 
+  <p><a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a></p>
+
   <table>
     <thead>
       <tr><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الفائز</th></tr>

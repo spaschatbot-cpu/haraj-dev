@@ -36,6 +36,8 @@ and v1's screens were full of them.
     <tr><th>سعر الرسو</th><td class="money">{{ vehicle.awarded_price|unlocalize|default:"—" }}</td></tr>
   </table>
 
+  <p><a href="{% url 'console:vehicle-edit' vehicle.pk %}">تعديل البيانات</a></p>
+
   <h2>تغيير الحالة</h2>
   {% if moves %}
     <form method="post" action="{% url 'console:vehicle-state' vehicle.pk %}">

@@ -1,0 +1,19 @@
+{% comment %}
+One form renderer for the console. Errors are shown **next to their field**,
+because v1's aborted-update problem was as much about the message as the abort:
+"Incorrect integer value for column" named the statement, not the box the
+operator had typed into.
+{% endcomment %}
+{% if form.non_field_errors %}
+  <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
+{% endif %}
+
+{% for field in form %}
+  <p>
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
+    {{ field }}
+    {% if field.errors %}
+      <br><strong>{{ field.errors|join:" · " }}</strong>
+    {% endif %}
+  </p>
+{% endfor %}

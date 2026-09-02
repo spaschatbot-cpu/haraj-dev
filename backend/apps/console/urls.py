@@ -18,8 +18,12 @@ urlpatterns = [
     # a URL somebody had to be told about.
     path("why-no-bid/", bidding_views.why_no_bid, name="why-no-bid"),
     path("auctions/", auctions.auctions, name="auctions"),
+    path("auctions/new/", auctions.auction_new, name="auction-new"),
+    path("auctions/<int:pk>/edit/", auctions.auction_edit, name="auction-edit"),
     path("auctions/<int:pk>/", auctions.auction_detail, name="auction-detail"),
     path("vehicles/", auctions.vehicles, name="vehicles"),
+    path("vehicles/new/", auctions.vehicle_new, name="vehicle-new"),
+    path("vehicles/<int:pk>/edit/", auctions.vehicle_edit, name="vehicle-edit"),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
 ]
