@@ -120,7 +120,7 @@ class TestSignature:
 
     def test_an_expired_timestamp_is_401_and_still_stored(self, post_webhook):
         response = post_webhook(
-            {"event": "x", "delivery_id": "S/3"}, timestamp=time.time() - 3600
+            {"event": "x", "delivery_id": "S/3"}, timestamp=str(time.time() - 3600)
         )
 
         assert response.status_code == 401

@@ -160,3 +160,6 @@ class VehicleImage(models.Model):
                 name="one_cover_image_per_vehicle",
             ),
         ]
+
+    def __str__(self) -> str:
+        return f"صورة {self.position} للوت {self.vehicle_id}"

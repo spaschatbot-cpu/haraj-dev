@@ -21,11 +21,14 @@ def odoo_settings(settings):
 def signed():
     """Build a correctly signed request body and its headers."""
 
-    def build(payload: dict, *, secret: str = SECRET, timestamp: float | None = None):
+    # The stamp is a string on the wire, and it stays a string here: the
+    # no-float guard reads this tree, and a `float` in a signature it cannot
+    # tell from a riyal is a guard people learn to route around.
+    def build(payload: dict, *, secret: str = SECRET, timestamp: str | None = None):
         from apps.odoo.signing import expected_signature
 
         body = json.dumps(payload).encode()
-        stamp = str(timestamp if timestamp is not None else time.time())
+        stamp = timestamp if timestamp is not None else str(time.time())
         return body, {
             "HTTP_X_ODOO_SIGNATURE": expected_signature(body, stamp, secret),
             "HTTP_X_ODOO_TIMESTAMP": stamp,

@@ -27,24 +27,37 @@
 **القبول:** `test.py` يستورد من `prod` لا من `dev` (تحقق نصّي)؛ الثلاثة تمرّ `check`.
 **التحقق:** `for s in dev test prod; do DJANGO_SETTINGS_MODULE=config.settings.$s uv run python manage.py check; done`
 
-### ⬜ T003 [P] — ops/compose.yaml لـPostgreSQL 17 وRedis
+### ✅ T003 [P] — ops/compose.yaml لـPostgreSQL 17 وRedis
 **الملفات:** `ops/compose.yaml`
 **المطلوب:** خدمتان بنسختين مثبّتتين (لا `latest`)، مجلدات بيانات دائمة، منافذ
 غير قياسية لتفادي التعارض، و`healthcheck` لكل واحدة.
 **القبول:** `docker compose up -d` ثم اتصال ناجح من `manage.py dbshell`.
 **ملاحظة:** لو Docker غير متاح على الجهاز، وثّق البديل (تثبيت مباشر) في نفس الملف.
+**ما تحقّق فعلاً:** Docker **غير مثبّت** على جهاز التطوير، فلم يُشغَّل الملف ولا
+مرة — هذا مذكور داخل الملف نفسه لا هنا فقط. المسار البديل (تثبيت مباشر) هو الذي
+اختُبر: `just dbshell` وصل إلى PostgreSQL 17.11 محلياً. النسخ مثبّتة على
+`postgres:17.11-bookworm` و`redis:7.4.2-alpine`، والمنافذ 55432 و56379.
 
-### ⬜ T004 [P] — أدوات الجودة
+### ✅ T004 [P] — أدوات الجودة
 **الملفات:** `backend/pyproject.toml`، `.pre-commit-config.yaml`
 **المطلوب:** ruff (lint + format)، mypy مع django-stubs، pre-commit يشغّلهما.
 **القبول:** `ruff check .` و`mypy .` نظيفان على الكود الحالي.
 **التحقق:** `cd backend && uv run ruff check . && uv run mypy .`
+**ما تحقّق فعلاً:** الاثنان نظيفان (`41 source files`)، و`pre-commit run
+--all-files` أخضر بكل خطافه. الهجرات مستثناة من ruff ومن mypy لأنها مولَّدة.
+**ناقص بوعي:** `mypy` الصارم على `apps.money` **مُعرَّف ومعطَّل بسطر واحد**
+(`ignore_errors`) لأن النموذج الأولي بلا تعليقات نوع وفيه العطل المعروف F-001
+(`specs/002-money-engine/findings.md`). حذف السطر مهمة T108 عند م1، لا مهمتي —
+وإسكات العطل ليرضى فاحص الأنواع كان سيكون أسوأ من عدم تشغيله.
 
-### ⬜ T005 [P] — Makefile/justfile بالأوامر اليومية
+### ✅ T005 [P] — Makefile/justfile بالأوامر اليومية
 **الملفات:** `justfile` في الجذر
 **المطلوب:** `just setup` · `just up` · `just test` · `just lint` · `just migrate`
 · `just run` · `just verify` (يشغّل verify_ledger).
 **القبول:** كل أمر يعمل من مجلد فارغ بعد `git clone`.
+**ما تحقّق فعلاً:** `setup` و`lint` و`test` و`check` و`check-migrations`
+و`dbshell` شُغِّلت ونجحت على Windows. `up`/`down`/`nuke` **لم تُشغَّل** — تحتاج
+Docker. `verify` يفشل بـ"Unknown command" لأن الأمر الإداري نفسه تاسك T120.
 
 ---
 
@@ -119,16 +132,26 @@ naive تُرفض بـ`ValueError` لا تُخمَّن.
 **القبول:** الاختباران يمرّان.
 **لماذا:** المادة ٢-٦ و٥-٣.
 
-### ⬜ T015 — GitHub Actions
-**الملفات:** `.github/workflows/ci.yml`
+### 🟡 T015 — GitHub Actions
+**الملفات:** `.github/workflows/ci.yml`، `ops/checks/no_float_in_money.py`
 **المطلوب:** الخطوات الخمس بالترتيب المذكور في `plan.md`، على خدمة PostgreSQL 17،
-مع تخزين مؤقت لـuv. كل خطوة مانعة.
+مع تخزين مؤقت لـuv. كل خطوة مانعة. وخطوة سادسة: فحص `float` في مسارات المال.
 **القبول:** الـworkflow أخضر على PR تجريبي، وأحمر عند كسر أي خطوة عمداً.
+**لماذا 🟡 لا ✅:** الملف مكتوب وكل خطوة من الست شُغِّلت **محلياً** بنفس الأوامر
+والمتغيرات، لكن الـworkflow **لم يعمل ولا مرة على GitHub Actions** — لا يوجد
+push من هذه البيئة. لا يُغلق التاسك إلا بعد أول تشغيل أخضر فعلي.
+**ومتوقَّع أن يكون أحمر عند أول تشغيل:** خطوة `pytest` تفشل باختبار واحد،
+`test_a_transaction_cannot_be_reversed_twice` — وهو العطل F-001 المسجَّل في
+`specs/002-money-engine/findings.md` والمجدول للإصلاح في T108. البوابة تعمل
+كما ينبغي؛ الأحمر هنا نتيجة صحيحة لا خلل في الـworkflow.
 
-### ⬜ T016 — فحص الهجرات الناقصة
+### ✅ T016 — فحص الهجرات الناقصة
 **الملفات:** ضمن `ci.yml`
 **المطلوب:** `makemigrations --check --dry-run` كخطوة مستقلة.
 **القبول:** إضافة حقل بلا هجرة تُسقط الـCI.
+**ما تحقّق فعلاً:** أُضيف حقل إلى `Notification` بلا هجرة، فخرج الأمر بكود 1
+وسمّى الحقل والملف الناقص؛ ثم أُعيد الملف كما كان والفحص عاد نظيفاً. متاح
+محلياً أيضاً كـ`just check-migrations`.
 
 ---
 

@@ -1,0 +1,139 @@
+# The gate. Every step blocks the merge, and they run in the order phase 001's
+# plan.md fixes: style, types, migrations, tests, deployment audit, and the
+# no-float guard.
+#
+# The order is cheapest-first on purpose. A formatting failure should cost
+# fifteen seconds, not the two minutes it takes to bring up a database — and a
+# reviewer reading a red run should be able to tell what broke from the name of
+# the step that stopped it.
+#
+# One job, not six parallel ones. Six jobs would each pay the setup cost, and
+# the feedback that matters here is "is this branch mergeable", which is a
+# single answer.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A second push to the same branch makes the first run's answer irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # T002 has landed: the settings are a package now. `test` inherits `prod`,
+  # so the suite and the deployment audit below are both looking at the strict
+  # environment, which is the whole point of running them here.
+  DJANGO_SETTINGS_MODULE: config.settings.test
+
+  # Not a secret, and deliberately not shaped like one: nothing in CI reaches
+  # any real system. Article 5-3 keeps real keys in the environment of the
+  # environment that owns them, never in a file like this.
+  # Long and varied enough to clear Django's own security.W009, so the
+  # deployment audit below reports real findings and not this line.
+  SECRET_KEY: ci-only-3f8b2Qz7Kx91Lm4Vt6Hd0Rn5Yp3Wc8Ju2Ae7Bg1Sv4Nz9Xq6Tf5Mk
+  # False, so CI exercises the strict branch of the settings module rather
+  # than the forgiving one. v1's money bugs lived exactly in the gap between
+  # a lenient local configuration and a strict deployed one.
+  DEBUG: "False"
+  ALLOWED_HOSTS: localhost,127.0.0.1
+
+  # Odoo stays off. Article 2-6: nothing reaches a real accounting system
+  # without a deliberate decision for that specific environment, and CI is
+  # never that environment.
+  ODOO_ENABLED: "False"
+
+  DATABASE_URL: postgres://haraj:haraj@127.0.0.1:5432/haraj2
+  CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+  CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
+
+jobs:
+  checks:
+    name: lint · types · migrations · tests
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        # Pinned to the same patch release ops/compose.yaml starts locally.
+        # The whole point of phase 001 is that what passes here is what runs
+        # in production; two different database builds would quietly undo it.
+        image: postgres:17.11
+        env:
+          POSTGRES_DB: haraj2
+          POSTGRES_USER: haraj
+          POSTGRES_PASSWORD: haraj
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U haraj -d haraj2"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        working-directory: backend
+        # --frozen: install exactly what uv.lock says and fail if the lock is
+        # out of date, rather than resolving something newer here that nobody
+        # has run locally.
+        run: uv sync --frozen
+
+      # ---- 1. style -----------------------------------------------------
+      - name: ruff check
+        working-directory: backend
+        run: uv run ruff check --output-format=github .
+
+      - name: ruff format
+        working-directory: backend
+        run: uv run ruff format --check .
+
+      # ---- 2. types -----------------------------------------------------
+      - name: mypy
+        working-directory: backend
+        run: uv run mypy .
+
+      # ---- 3. missing migrations (T016) ---------------------------------
+      # Its own step, so a model that drifted from its migrations is named as
+      # that and not discovered as a confusing test failure later.
+      - name: no missing migrations
+        working-directory: backend
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      # ---- 4. tests -----------------------------------------------------
+      # On PostgreSQL, under the same settings as production. Article 4-2:
+      # a constraint that is not tested under production settings does not
+      # exist.
+      - name: pytest
+        working-directory: backend
+        run: uv run pytest
+
+      # ---- 5. deployment audit ------------------------------------------
+      # Explicitly against `prod`: auditing `test` would audit the two
+      # relaxations test makes (no SSL redirect, a known key) and report them
+      # as production findings, which is the opposite of useful.
+      - name: manage.py check --deploy
+        working-directory: backend
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+        run: uv run python manage.py check --deploy
+
+      # ---- 6. no float on any money path --------------------------------
+      # Article 3-2. Last because the steps above will have caught anything
+      # cheaper first.
+      - name: no float in money
+        working-directory: backend
+        run: uv run python ../ops/checks/no_float_in_money.py

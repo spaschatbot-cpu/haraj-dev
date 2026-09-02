@@ -18,7 +18,7 @@ saudi_mobile = RegexValidator(
 )
 
 
-class UserManager(BaseUserManager):
+class UserManager(BaseUserManager["User"]):
     def create_user(self, phone: str, password: str | None = None, **extra):
         if not phone:
             raise ValueError("phone is required")
