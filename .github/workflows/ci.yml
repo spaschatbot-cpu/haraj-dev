@@ -50,6 +50,13 @@ env:
   ODOO_ENABLED: "False"
 
   DATABASE_URL: postgres://haraj:haraj@127.0.0.1:5432/haraj2
+
+  # `settings.test` reads this one, and it must name a database that exists.
+  # The service container above creates haraj2 and nothing else; left at its
+  # default this points at haraj2_test, which is never created, so every step
+  # that opens a connection outside pytest dies on connect before it checks
+  # anything. pytest is unaffected either way - it derives `test_<name>`.
+  TEST_DATABASE_URL: postgres://haraj:haraj@127.0.0.1:5432/haraj2
   CELERY_BROKER_URL: redis://127.0.0.1:6379/0
   CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/1
 
@@ -139,13 +146,28 @@ jobs:
         working-directory: backend
         run: uv run pytest
 
-      # ---- 4b. the ledger re-derives (Article 3-4) -----------------------
-      # Every balance recomputed from the entries, every hold matched against
-      # the bucket it claims. The suite leaves rows behind; this asserts they
-      # still add up when nothing is holding a lock. The same command runs
-      # after a deploy and nightly, so one check covers all three rather than
-      # three that drift apart.
-      - name: the ledger re-derives
+      # ---- 4b. the ledger's self-check runs (Article 3-4) ---------------
+      # This step used to claim it re-derived the balances the suite had left
+      # behind. It did not, and could not: the money and bidding tests are
+      # `django_db(transaction=True)`, so each one truncates its tables on the
+      # way out, and pytest-django drops the whole test database at the end of
+      # the session. Nothing is left for a later step to inspect.
+      #
+      # What actually guards the ledger in CI is the suite itself - eleven
+      # assertions of `verify_ledger() == []` across apps/bidding, each made
+      # inside the transaction that just moved the money, which is the only
+      # moment those rows exist. They run in the `pytest` step above.
+      #
+      # So this step is a smoke test, and is named as one: it proves the
+      # management command still imports, connects, queries and exits zero.
+      # That wrapper is what the deploy step and the nightly cron both call,
+      # and no test covers it. Against production data the same command is a
+      # real check; here the ledger is empty, and clean by construction.
+      - name: migrate the check database
+        working-directory: backend
+        run: uv run python manage.py migrate --noinput
+
+      - name: the ledger's self-check runs
         working-directory: backend
         run: uv run python manage.py verify_ledger
 
