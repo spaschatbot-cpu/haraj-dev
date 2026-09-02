@@ -275,3 +275,45 @@ class AuthToken(models.Model):
     @property
     def is_live(self) -> bool:
         return self.revoked_at is None and self.expires_at > timezone.now()
+
+
+class SmsFailure(models.Model):
+    """A message the provider would not carry, kept so nobody diagnoses it twice.
+
+    In v1 "تعذّر إرسال رمز التحقق" was the only visible symptom of an SMS
+    balance running out, and it was traced from scratch every time — the
+    provider's dashboard on one screen, the application log on another, and no
+    row anywhere saying *when it started*. This table is that row.
+
+    Written **after** the transaction that tried to send has rolled back, never
+    inside it: `send_verification_code` sends inside its atomic block on purpose,
+    so a failure takes the unsent code's row with it. A failure record written in
+    the same block would be taken with it too — the evidence would vanish at
+    exactly the moment it was worth having. See `services.send_verification_code`.
+    """
+
+    #: The dotted path that was configured, not a friendly name: when two
+    #: providers are being A/B'd, the setting is the thing that identifies which.
+    provider = models.CharField(max_length=200)
+
+    #: Which number the message was for. Support's first question is whether one
+    #: customer is affected or everybody.
+    phone = models.CharField(max_length=12, validators=[saudi_mobile])
+
+    purpose = models.CharField(
+        max_length=16, choices=OtpPurpose.choices, default=OtpPurpose.LOGIN
+    )
+
+    #: The provider's own words, as given. Never parsed into a status enum: the
+    #: reason a provider refuses is its vocabulary, not ours (Article 2-3).
+    reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["-created_at"], name="sms_failure_recent"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.phone} · {self.provider}"

@@ -27,6 +27,14 @@ class DomainError(Exception):
     #: Shown to the customer when the raiser does not supply a better sentence.
     default_message = "تعذّر تنفيذ العملية."
 
+    #: 409 by default: a refusal is an answer, and the caller can do something
+    #: about it. A subclass overrides this only when that sentence stops being
+    #: true — a third party being down is not the caller's request being
+    #: refused, and telling the client 409 for it invites the app to give up
+    #: rather than retry. `apps.core.exceptions` reads this and nothing else
+    #: decides the status of a domain refusal.
+    status_code = 409
+
     def __init__(
         self,
         message: str = "",
