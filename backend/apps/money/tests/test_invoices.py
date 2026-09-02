@@ -316,3 +316,179 @@ class TestOneLiveInvoicePerVehicle:
         )
 
         assert second.pk != invoice.pk
+
+
+# ---------------------------------------------------------------------------
+# A lock is a claim on money that is there
+# ---------------------------------------------------------------------------
+
+
+class TestTheClaimShrinksWithTheMoneyItClaims:
+    """Paying part of a debt out of the locked bucket must shrink the lock.
+
+    Every one of these was measured on PostgreSQL before the fix, and each is a
+    refusal a customer would have met with no way round it.
+    """
+
+    def test_a_partial_insurance_payment_leaves_the_hold_matching_the_bucket(
+        self, customer, invoice
+    ):
+        fund(customer)
+        hold = services.lock_for_invoice(user=customer, invoice=invoice)
+
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("3000.00"),
+            source="insurance",
+            reference="p1",
+        )
+
+        hold.refresh_from_db()
+        assert locked(customer) == Decimal("4000.00")
+        assert hold.amount == Decimal("4000.00")
+        assert hold.state == HoldState.ACTIVE
+        # The drift used to be reported here and nowhere else, after the money
+        # had already moved.
+        assert verify_ledger() == []
+
+    def test_settling_the_rest_in_cash_is_not_refused(self, customer, invoice):
+        """The whole atomic block used to roll back.
+
+        `_release_holds_on` released the hold's *original* figure out of a
+        bucket the partial payment had already drained, `post` refused with
+        InsufficientFunds, and a legitimate cash payment was rejected — leaving
+        an invoice that could never reach `paid`.
+        """
+        fund(customer)
+        services.lock_for_invoice(user=customer, invoice=invoice)
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("3000.00"),
+            source="insurance",
+            reference="p1",
+        )
+
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("4000.00"),
+            source="cash",
+            reference="p2",
+        )
+
+        invoice.refresh_from_db()
+        assert invoice.state == InvoiceState.PAID
+        assert locked(customer) == Decimal("0.00")
+        # The 4,000 that was locked comes back; the 3,000 went to revenue.
+        assert free(customer) == Decimal("7000.00")
+        assert verify_ledger() == []
+
+    def test_a_fully_spent_hold_names_the_payment_that_ended_it(self, customer, invoice):
+        fund(customer, SEVEN_K)
+        hold = services.lock_for_invoice(user=customer, invoice=invoice)
+
+        txn = services.record_payment(
+            invoice=invoice, amount=SEVEN_K, source="insurance", reference="p1"
+        )
+
+        hold.refresh_from_db()
+        assert hold.state == HoldState.CONSUMED
+        assert hold.ended_by_transaction_id == txn.pk
+        assert verify_ledger() == []
+
+    def test_a_second_deposit_can_still_settle_what_is_left(self, customer, invoice):
+        """The permanent failure: an invoice that could never be paid.
+
+        The customer could only cover 4,000 at first, so that is what was
+        locked and spent. `lock_for_invoice` then found the exhausted hold still
+        ACTIVE, returned it having locked nothing, and every later insurance
+        payment failed on an empty bucket — on the first attempt and on every
+        retry after it.
+        """
+        fund(customer, Decimal("4000.00"))
+        services.lock_for_invoice(user=customer, invoice=invoice)
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("4000.00"),
+            source="insurance",
+            reference="p1",
+        )
+
+        services.deposit_insurance(
+            user=customer, amount=Decimal("3000.00"), source="cash", reference="SEED-2"
+        )
+        services.lock_for_invoice(user=customer, invoice=invoice)
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("3000.00"),
+            source="insurance",
+            reference="p2",
+        )
+
+        invoice.refresh_from_db()
+        assert invoice.state == InvoiceState.PAID
+        assert invoice.amount_paid == SEVEN_K
+        assert free(customer) == Decimal("0.00")
+        assert verify_ledger() == []
+
+    def test_an_existing_lock_is_topped_up_to_the_debt_and_no_further(
+        self, customer, invoice
+    ):
+        """Locking more than the debt would be a penalty; this bucket is a
+        guarantee. So the top-up stops at what is still owed."""
+        fund(customer, Decimal("2000.00"))
+        hold = services.lock_for_invoice(user=customer, invoice=invoice)
+        assert hold.amount == Decimal("2000.00")
+
+        services.deposit_insurance(
+            user=customer, amount=TEN_K, source="cash", reference="SEED-TOPUP"
+        )
+        services.lock_for_invoice(user=customer, invoice=invoice)
+
+        hold.refresh_from_db()
+        assert hold.amount == SEVEN_K
+        assert locked(customer) == SEVEN_K
+        assert verify_ledger() == []
+
+
+class TestPayingFromBalanceReadsTheRowItPaysFor:
+    def test_a_concurrently_settled_invoice_is_not_paid_twice(self, customer, invoice):
+        """The view loads the invoice when the request arrives; an Odoo webhook
+        can settle it before the service runs.
+
+        Without the re-read under the row lock, `outstanding` came off the stale
+        copy, a second full payment went to revenue, and the write-back
+        overwrote the webhook's — so 14,000 was taken for a 7,000 invoice that
+        then read exactly 7,000 paid, with no trace of the over-payment on it.
+        """
+        fund(customer, Decimal("20000.00"))
+        as_the_view_loaded_it = Invoice.objects.get(pk=invoice.pk)
+
+        services.record_payment(
+            invoice=invoice, amount=SEVEN_K, source="cash", reference="odoo-webhook"
+        )
+
+        with pytest.raises(MoneyError, match="nothing outstanding") as refused:
+            services.pay_invoice_from_balance(
+                user=customer, invoice=as_the_view_loaded_it
+            )
+        assert "لا يوجد مبلغ مستحق" in refused.value.user_message
+
+        invoice.refresh_from_db()
+        assert invoice.amount_paid == SEVEN_K
+        assert services.system_account(AccountKind.REVENUE).balance == SEVEN_K
+        assert free(customer) == Decimal("20000.00")
+        assert verify_ledger() == []
+
+    def test_the_state_it_writes_is_the_derived_one(self, customer, invoice):
+        """One function decides this column, whoever paid.
+
+        The branch that used to stand here knew neither CANCELLED nor DRAFT, so
+        the two payment paths were two decision points for one rule.
+        """
+        fund(customer)
+
+        services.pay_invoice_from_balance(user=customer, invoice=invoice)
+
+        invoice.refresh_from_db()
+        assert invoice.state == derive_invoice_state(invoice)
+        assert invoice.state == InvoiceState.PAID

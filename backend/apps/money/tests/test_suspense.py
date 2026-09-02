@@ -123,9 +123,7 @@ class TestSuspenseCannotGoNegative:
             with transaction.atomic():
                 Account.objects.filter(pk=account.pk).update(balance=Decimal("-1.00"))
 
-    def test_two_operators_attributing_one_receipt_credit_it_once(
-        self, customer, staff
-    ):
+    def test_two_operators_attributing_one_receipt_credit_it_once(self, customer, staff):
         """The check-then-write that the row lock closes.
 
         Both callers are held at the posting step until the other has reached
@@ -152,9 +150,7 @@ class TestSuspenseCannotGoNegative:
         with mock.patch.object(services, "post", paused_post):
 
             def worker(i):
-                return services.attribute(
-                    user=users[i], amount=TEN_K, reference=f"r{i}"
-                )
+                return services.attribute(user=users[i], amount=TEN_K, reference=f"r{i}")
 
             results, errors = run_in_threads(worker, 2)
 

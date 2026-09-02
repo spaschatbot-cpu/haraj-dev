@@ -156,6 +156,15 @@ jobs:
         working-directory: backend
         run: uv run python ../ops/checks/no_float_in_money.py
 
+      # ---- 6b. one writer of the ledger (Article 1-2) --------------------
+      # The sharpest rule in the constitution, and until now the only one with
+      # no automated guard: auction state had one, the vehicle price had one,
+      # the vehicle card had one, spreadsheets had one, floats had one, and the
+      # ledger they all exist to protect had none.
+      - name: only money.services writes the ledger
+        working-directory: backend
+        run: uv run python ../ops/checks/money_single_writer.py
+
       # ---- 7. one decision point each (Article 4-5) ----------------------
       # Phase 005's four guards. Named individually rather than looped, so a
       # red run says which rule broke without anyone opening the log.

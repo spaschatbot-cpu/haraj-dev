@@ -216,3 +216,61 @@ class TestNoCardForPurchases:
         assert response.json()["error"]["code"] == "unsupported_payment_method"
         invoice.refresh_from_db()
         assert invoice.amount_paid == Decimal("0.00")
+
+
+# ---------------------------------------------------------------------------
+# The invoice list — an endpoint that had no test of any kind
+# ---------------------------------------------------------------------------
+
+
+class TestTheInvoiceList:
+    """`InvoiceListView.get_queryset` filters by the caller and drops drafts,
+    and until now deleting either clause left the whole suite green.
+
+    That is the v1 shape spelled out in the brief: a page ships rendering an
+    empty list, or somebody else's invoices, and every check reads «سليم».
+    """
+
+    def test_it_returns_the_callers_own_invoices(self, as_bidder, invoice):
+        body = parsed_without_floats(as_bidder.get(reverse("money:invoice-list")))
+        rows = body["results"] if isinstance(body, dict) else body
+
+        assert [row["number"] for row in rows] == ["INV/2026/044"]
+        assert rows[0]["amount"] == "50000.00"
+        assert rows[0]["state"] == InvoiceState.OPEN
+
+    def test_a_draft_invoice_is_not_shown(self, as_bidder, bidder, invoice):
+        """A draft is not yet a demand for money, so it is not a bill."""
+        Invoice.objects.create(
+            customer=bidder,
+            number="INV/2026/045",
+            amount=Decimal("10.00"),
+            state=InvoiceState.DRAFT,
+            issued_at="2026-02-01T00:00:00Z",
+        )
+
+        body = parsed_without_floats(as_bidder.get(reverse("money:invoice-list")))
+        rows = body["results"] if isinstance(body, dict) else body
+
+        assert [row["number"] for row in rows] == ["INV/2026/044"]
+
+    def test_a_strangers_invoice_is_not_shown(self, as_bidder, stranger, invoice):
+        """G3 — the ownership test the sibling endpoints have and this one
+        did not."""
+        Invoice.objects.create(
+            customer=stranger,
+            number="INV/2026/046",
+            amount=Decimal("99.00"),
+            state=InvoiceState.OPEN,
+            issued_at="2026-02-01T00:00:00Z",
+        )
+
+        body = parsed_without_floats(as_bidder.get(reverse("money:invoice-list")))
+        rows = body["results"] if isinstance(body, dict) else body
+
+        assert [row["number"] for row in rows] == ["INV/2026/044"]
+
+    def test_it_needs_a_signed_in_customer(self, api_client, invoice):
+        response = api_client.get(reverse("money:invoice-list"))
+
+        assert response.status_code in (401, 403)

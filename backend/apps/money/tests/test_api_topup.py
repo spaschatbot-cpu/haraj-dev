@@ -13,6 +13,7 @@ from __future__ import annotations
 import hmac
 import json
 from decimal import Decimal
+from unittest import mock
 
 import pytest
 from django.urls import reverse
@@ -261,3 +262,120 @@ class TestTheCallback:
         assert response.status_code == 503
         assert response.json()["error"]["code"] == "payments_disabled"
         assert free_balance(bidder) == Decimal("0.00")
+
+
+class TestACallbackThatBeatItsOwnIntent:
+    """The gateway can be faster than our own row.
+
+    T615 was marked done with no test for this ordering, and the ordering was
+    the bug: the suspense receipt and the attributed deposit shared one
+    idempotency key, so the retry marked the intent SUCCEEDED while the money
+    stayed in suspense. Measured before the fix: disposition `credited`, intent
+    `succeeded`, resulting transaction kind `unattributed_receipt`, customer
+    free 0.00, suspense 10000.00 — and `verify_ledger` stayed clean throughout,
+    because suspense is a platform bucket and nothing in the system reports it.
+    """
+
+    def test_the_customer_ends_up_credited_exactly_once(
+        self, api_client, payments_on, bidder
+    ):
+        """Two deliveries about one payment, the intent created between them.
+
+        The gateway sends no payment id of its own here, so `apply_gateway_payment`
+        falls back to our reference — and the blank delivery id is tolerated by
+        the partial index on purpose («better a duplicate row than a collapsed
+        one»), which is what lets both deliveries be interpreted.
+        """
+        reference = f"topup-{bidder.pk}-early"
+        payload = {
+            "status": "paid",
+            "amount": "10000.00",
+            "currency": "SAR",
+            "metadata": {"reference": reference},
+        }
+
+        # Delivery one: the intent is not visible yet, so the money is kept.
+        send_callback(api_client, payload)
+        assert services.system_account(AccountKind.SUSPENSE).balance == TEN_K
+        assert free_balance(bidder) == Decimal("0.00")
+
+        intent = PaymentIntent.objects.create(
+            reference=reference,
+            user=bidder,
+            amount=TEN_K,
+            purpose="insurance_deposit",
+            gateway=payments_on.PAYMENT_GATEWAY,
+        )
+
+        # Delivery two: the same payment, now placeable.
+        send_callback(api_client, payload)
+
+        intent.refresh_from_db()
+        assert free_balance(bidder) == TEN_K
+        assert services.system_account(AccountKind.SUSPENSE).balance == Decimal("0.00")
+        assert intent.state == PaymentIntentState.SUCCEEDED
+        assert intent.resulting_transaction is not None
+        assert intent.resulting_transaction.kind != "unattributed_receipt"
+        # One payment arrived, so the card account is charged once.
+        assert services.system_account(AccountKind.EXTERNAL_CARD).balance == -TEN_K
+        assert verify_ledger() == []
+
+
+class TestWhatTheStoredMessageKeeps:
+    def test_an_unparseable_body_is_stored_whole_so_it_can_be_reread(
+        self, api_client, payments_on
+    ):
+        """Article 2-2. Before this the row existed in name only: `payload={}`,
+        no `raw_body`, blank event, blank delivery id — money arrived and left
+        nothing behind that a fixed parser could ever read again."""
+        raw = b'{"amount": 10000.00, "status": "paid"'  # truncated on the wire
+        signature = hmac.new(SECRET.encode(), raw, "sha256").hexdigest()
+
+        response = api_client.post(
+            reverse(CALLBACK),
+            data=raw,
+            content_type="application/json",
+            HTTP_X_SIGNATURE=signature,
+        )
+
+        assert response.status_code == 200
+        message = InboundMessage.objects.get()
+        assert message.raw_body == raw.decode()
+        assert message.state == InboundState.FAILED
+        assert message.note
+
+    def test_the_signature_is_not_stored_beside_the_body_it_signs(
+        self, api_client, payments_on, bidder
+    ):
+        """Keeping a verified digest next to the bytes it authenticates hands
+        anyone who can read this table an unlimited supply of working samples —
+        which is exactly why the Odoo boundary strips its own."""
+        intent = services.start_topup(user=bidder)
+
+        send_callback(api_client, gateway_says(intent.reference, amount="10000.00"))
+
+        message = InboundMessage.objects.get()
+        assert "X-Signature" not in message.headers
+        assert SECRET not in json.dumps(message.headers)
+        assert message.headers["signature_ok"] is True
+
+    def test_a_raise_while_interpreting_leaves_a_failed_row_not_a_silent_one(
+        self, api_client, payments_on, bidder
+    ):
+        """A raise used to escape before state, note and attempts were written,
+        so the row stayed RECEIVED with an empty note — and nothing in the
+        system ever looks at a gateway message again."""
+        intent = services.start_topup(user=bidder)
+
+        with mock.patch.object(
+            services, "apply_gateway_payment", side_effect=RuntimeError("قاعدة سقطت")
+        ):
+            response = send_callback(
+                api_client, gateway_says(intent.reference, amount="10000.00")
+            )
+
+        assert response.status_code == 200
+        message = InboundMessage.objects.get()
+        assert message.state == InboundState.FAILED
+        assert "RuntimeError" in message.note
+        assert message.attempts == 1

@@ -247,9 +247,7 @@ class TestPartialPaymentReferences:
         ]
 
         assert len(set(references)) == 3
-        assert references == [
-            f"{invoice.number}/P{payment.uuid}" for payment in payments
-        ]
+        assert references == [f"{invoice.number}/P{payment.uuid}" for payment in payments]
 
     def test_two_payments_recorded_at_once_still_get_two_references(
         self, invoice, a_payment
@@ -273,9 +271,7 @@ class TestPartialPaymentReferences:
             outbox.payment_reference(invoice, second),
         ]
         rows = [
-            outbox.enqueue(
-                endpoint="payments", payload={"n": i}, reference=reference
-            )
+            outbox.enqueue(endpoint="payments", payload={"n": i}, reference=reference)
             for i, reference in enumerate(references)
         ]
 

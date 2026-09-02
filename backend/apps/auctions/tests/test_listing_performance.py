@@ -26,8 +26,8 @@ pytestmark = pytest.mark.django_db
 #: Whole milliseconds, not fractional seconds. This tree now carries money
 #: columns and is scanned by `no_float_in_money`, and a budget written as
 #: `0.3` is a float literal on a money path's file — the guard cannot tell a
-#: page budget from a riyal, and teaching it to would teach people to write
-#: `# noqa` beside it.
+#: page budget from a riyal, and teaching it to would only teach people to
+#: silence it here.
 BUDGET_MILLISECONDS = 300
 FLEET = 1_000
 

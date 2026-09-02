@@ -145,9 +145,7 @@ def send(message: OutboxMessage) -> OutboxMessage:
     return message
 
 
-def queue_payment(
-    invoice: Invoice, amount: Decimal, *, source_transaction: Transaction
-):
+def queue_payment(invoice: Invoice, amount: Decimal, *, source_transaction: Transaction):
     """Tell Odoo about a payment we recorded, with its own reference.
 
     ``source_transaction`` has no default on purpose: it is what the reference

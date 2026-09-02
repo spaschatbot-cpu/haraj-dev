@@ -154,9 +154,7 @@ def _handle_payment(message: InboundMessage) -> Outcome:
     if user is None:
         # A suspense receipt lives in its own key namespace, so this asks about
         # the receipt itself and not about a deposit that was never made.
-        in_suspense = services.find_transaction(
-            services.suspense_key("cash", reference)
-        )
+        in_suspense = services.find_transaction(services.suspense_key("cash", reference))
         if in_suspense is not None:
             return Outcome(
                 InboundState.PROCESSED,
@@ -355,9 +353,11 @@ def _close_refund_request(user, payload: dict, txn: Transaction) -> str:
     if not reference:
         return " — بلا مرجع طلب، فلم يُغلق أي طلب"
 
-    request = RefundRequest.objects.select_for_update().filter(
-        user=user, reference=reference
-    ).first()
+    request = (
+        RefundRequest.objects.select_for_update()
+        .filter(user=user, reference=reference)
+        .first()
+    )
     if request is None:
         return f" — لا يوجد طلب بالمرجع {reference!r}"
     if request.state == RefundRequestState.CONFIRMED:
