@@ -281,6 +281,19 @@ INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 # pins a full deposit and says nothing about the car.
 MINIMUM_BID = env.int("MINIMUM_BID", default=1_000)
 
+# How often one signed-in bidder may act (T611). Not about cost — a bid sends
+# no message — but about a script racing the close (fifty transactions the rest
+# of the auction queues behind) and about reading somebody's deposit balance off
+# the refusals, which name their numbers because a customer is entitled to know.
+#
+# Sixty an hour is a bidder revising often on a busy day; it is not a loop.
+# Read by `apps.bidding.throttling`, and off when unset, for the same reason
+# OTP_THROTTLE_RATES above is: `settings/test.py` empties DRF's throttle
+# configuration so the suite is not order-dependent.
+BID_THROTTLE_RATES: dict[str, str] = {
+    "bid_caller": env("BID_RATE_PER_CALLER", default="60/hour"),
+}
+
 # --------------------------------------------------------------------------
 # Card payments — off by default, like every other integration.
 #

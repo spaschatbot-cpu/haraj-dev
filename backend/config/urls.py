@@ -15,6 +15,8 @@ urlpatterns = [
     # around this page rather than replace it.
     path("support/", include("apps.bidding.urls")),
     path("api/v1/", include("apps.accounts.api.urls")),
+    path("api/v1/", include("apps.auctions.api.urls")),
+    path("api/v1/", include("apps.bidding.api.urls")),
     path("api/v1/", include("apps.money.api.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
