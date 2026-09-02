@@ -8,7 +8,7 @@ from django.urls import path
 
 from apps.bidding import views as bidding_views
 
-from . import auctions, views
+from . import auctions, importexport, views
 
 app_name = "console"
 
@@ -23,6 +23,13 @@ urlpatterns = [
     path("auctions/<int:pk>/", auctions.auction_detail, name="auction-detail"),
     path("vehicles/", auctions.vehicles, name="vehicles"),
     path("vehicles/new/", auctions.vehicle_new, name="vehicle-new"),
+    path("vehicles/export/", importexport.export, name="vehicles-export"),
+    path("vehicles/import/", importexport.upload, name="vehicles-import"),
+    path(
+        "vehicles/import/rejections/",
+        importexport.rejections,
+        name="vehicles-import-errors",
+    ),
     path("vehicles/<int:pk>/edit/", auctions.vehicle_edit, name="vehicle-edit"),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),

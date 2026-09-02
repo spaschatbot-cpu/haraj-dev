@@ -1,0 +1,62 @@
+{% extends "console/base.html" %}
+{% comment %}
+Every rejected row is listed, not the first five. v1 stopped after five and said
+"and 95 more errors", so a file went round the office one fix at a time — and
+the rejections download as a sheet the operator can work from rather than read
+off a screen.
+{% endcomment %}
+
+{% block title %}استيراد المركبات{% endblock %}
+{% block heading %}استيراد المركبات{% endblock %}
+
+{% block content %}
+  {% for message in messages %}<p><strong>{{ message }}</strong></p>{% endfor %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <p><input type="file" name="sheet" accept=".xlsx,.csv" required></p>
+    <p><input type="text" name="reason" placeholder="سبب الاستيراد"></p>
+    <p>
+      {# A preview runs the same code and rolls it back, so what it reports is
+         what would actually happen. #}
+      <button type="submit" name="dry_run" value="1">معاينة بلا حفظ</button>
+      <button type="submit">استيراد</button>
+    </p>
+  </form>
+
+  <p><a href="{% url 'console:vehicles-export' %}">تصدير المركبات الحالية</a></p>
+
+  {% if report %}
+    <h2>{% if dry_run %}معاينة (لم يُحفظ شيء){% else %}نتيجة الاستيراد{% endif %}</h2>
+    <p>{{ report.summary }}</p>
+
+    {% if report.ignored_headers %}
+      <p>أعمدة غير معروفة تُجوهلت: {{ report.ignored_headers|join:"، " }}</p>
+    {% endif %}
+
+    {% if report.rejections %}
+      <h3>الصفوف المرفوضة ({{ report.rejections|length }})</h3>
+      <form method="post" action="{% url 'console:vehicles-import-errors' %}"
+            enctype="multipart/form-data">
+        {% csrf_token %}
+        <p><input type="file" name="sheet" accept=".xlsx,.csv" required>
+           <button type="submit">نزّل الأسباب كجدول</button></p>
+      </form>
+
+      <table>
+        <thead><tr><th>الصف</th><th>اللوت</th><th>السبب</th></tr></thead>
+        <tbody>
+          {% for rejection in report.rejections %}
+            <tr>
+              <td>{{ rejection.row }}</td>
+              <td>{{ rejection.lot|default:"—" }}</td>
+              <td>{{ rejection.reason }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="empty">لا صفوف مرفوضة.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

@@ -65,6 +65,12 @@ PAGES: tuple[Page, ...] = (
     Page("console:auctions", "المزادات", Capability.AUCTIONS_VIEW, "daily"),
     Page("console:vehicles", "المركبات", Capability.AUCTIONS_VIEW, "daily"),
     Page(
+        "console:vehicles-import",
+        "استيراد المركبات",
+        Capability.AUCTIONS_IMPORT,
+        "daily",
+    ),
+    Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,
@@ -90,6 +96,20 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-new", "مركبة جديدة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-edit", "تعديل مركبة", Capability.AUCTIONS_MANAGE, ""),
+    # Downloads, not pages: a sidebar entry that starts a file download is a
+    # link an operator clicks by accident.
+    Page(
+        "console:vehicles-export",
+        "تصدير المركبات",
+        Capability.AUCTIONS_IMPORT,
+        "",
+    ),
+    Page(
+        "console:vehicles-import-errors",
+        "الصفوف المرفوضة",
+        Capability.AUCTIONS_IMPORT,
+        "",
+    ),
 )
 
 
