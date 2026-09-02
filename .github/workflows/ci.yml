@@ -137,3 +137,22 @@ jobs:
       - name: no float in money
         working-directory: backend
         run: uv run python ../ops/checks/no_float_in_money.py
+
+      # ---- 7. one decision point each (Article 4-5) ----------------------
+      # Phase 005's four guards. Named individually rather than looped, so a
+      # red run says which rule broke without anyone opening the log.
+      - name: only auctions.services moves a state
+        working-directory: backend
+        run: uv run python ../ops/checks/auction_state_single_writer.py
+
+      - name: a vehicle has one price
+        working-directory: backend
+        run: uv run python ../ops/checks/one_vehicle_price.py
+
+      - name: one serializer builds the vehicle card
+        working-directory: backend
+        run: uv run python ../ops/checks/one_vehicle_card.py
+
+      - name: one reader and writer of spreadsheets
+        working-directory: backend
+        run: uv run python ../ops/checks/one_sheet_writer.py

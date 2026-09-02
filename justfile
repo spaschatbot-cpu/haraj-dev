@@ -77,7 +77,7 @@ test *args:
     uv run pytest {{ args }}
 
 # Everything CI checks before it runs a single test, in the same order.
-lint: lint-style lint-format lint-types lint-money
+lint: lint-style lint-format lint-types lint-money lint-rules
 
 [working-directory('backend')]
 lint-style:
@@ -95,6 +95,16 @@ lint-types:
 [working-directory('backend')]
 lint-money:
     uv run python ../ops/checks/no_float_in_money.py
+
+# Article 4-5 — one decision point each. Phase 005's four guards: one writer
+# of auction state, one price on a vehicle, one builder of the vehicle card,
+# one reader and writer of spreadsheets.
+[working-directory('backend')]
+lint-rules:
+    uv run python ../ops/checks/auction_state_single_writer.py
+    uv run python ../ops/checks/one_vehicle_price.py
+    uv run python ../ops/checks/one_vehicle_card.py
+    uv run python ../ops/checks/one_sheet_writer.py
 
 # Rewrite what ruff can rewrite. CI never runs this — CI only ever checks.
 fmt: _fix _format

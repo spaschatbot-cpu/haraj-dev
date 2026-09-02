@@ -55,3 +55,34 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      # Article 4-5 — one decision point each. Phase 005 wrote these four and
+      # its own tests exercise them; they run here too, so the answer arrives
+      # before the commit rather than inside a test report.
+      - id: auction-state-single-writer
+        name: only auctions.services moves a state
+        entry: uv run --directory backend python ../ops/checks/auction_state_single_writer.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: one-vehicle-price
+        name: a vehicle has one price
+        entry: uv run --directory backend python ../ops/checks/one_vehicle_price.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: one-vehicle-card
+        name: one serializer builds the vehicle card
+        entry: uv run --directory backend python ../ops/checks/one_vehicle_card.py
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: one-sheet-writer
+        name: one reader and writer of spreadsheets
+        entry: uv run --directory backend python ../ops/checks/one_sheet_writer.py
+        language: system
+        types: [python]
+        pass_filenames: false
