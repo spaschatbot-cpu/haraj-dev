@@ -30,6 +30,7 @@ from django.utils import timezone
 from apps.auctions import services as auctions
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
+from apps.core import audit
 from apps.core.errors import DomainError
 from apps.money import services as money
 from apps.money.models import MONEY, ZERO, Hold, HoldReason, HoldState
@@ -42,6 +43,7 @@ __all__ = [
     "BiddingError",
     "LowerBidNeedsConfirmation",
     "NotYourBid",
+    "grant_bidding_exception",
     "is_competing_in",
     "place_bid",
     "record_refusal",
@@ -348,3 +350,68 @@ def withdraw_bid(*, user, bid: Bid, now: datetime | None = None) -> Bid:
     bid.is_withdrawn = True
     bid.withdrawn_at = now
     return locked_bid
+
+
+# ---------------------------------------------------------------------------
+# T515 — the owner's exception
+# ---------------------------------------------------------------------------
+
+
+def grant_bidding_exception(*, hold: Hold, note: str, by) -> Hold:
+    """Let one debtor bid despite one unpaid invoice, by a named decision.
+
+    Neither argument has a default, for the same reason
+    :func:`apps.money.services.confiscate` has none: this is a decision that
+    costs the platform its security on a debt, so it may never happen as the
+    side effect of a cron, a retry, or a convenient default. In v1 it was
+    granted by editing two columns by hand and left no trace at all — nobody
+    could say afterwards who had allowed it or why.
+
+    No money moves. The lock stays exactly where it is and the debt stays a
+    debt; what changes is that :func:`check_eligibility` stops counting this
+    invoice against the bidder.
+    """
+    if not note or not note.strip():
+        raise BiddingError(
+            "a bidding exception needs a written reason",
+            user_message="الاستثناء يحتاج سبباً مكتوباً.",
+        )
+    if by is None:
+        raise BiddingError(
+            "a bidding exception needs a named grantor",
+            user_message="الاستثناء يحتاج مانحاً مسمّى.",
+        )
+    if hold.reason != HoldReason.DUES or hold.invoice_id is None:
+        raise BiddingError(
+            f"hold {hold.pk} does not secure an invoice",
+            user_message="الاستثناء يُمنح على قفل مستحقات فقط.",
+        )
+    if hold.state != HoldState.ACTIVE:
+        raise BiddingError(
+            f"hold {hold.pk} is {hold.state}",
+            user_message="هذا القفل لم يعد قائماً.",
+        )
+
+    fields = ["exception_note", "exception_granted_by"]
+    reason = note.strip()
+
+    with transaction.atomic():
+        locked = Hold.objects.select_for_update().get(pk=hold.pk)
+        before = audit.snapshot(locked, fields)
+
+        locked.exception_note = reason
+        locked.exception_granted_by = by
+        locked.save(update_fields=fields)
+
+        audit.record(
+            action="bidding.exception_granted",
+            entity=locked,
+            actor=by,
+            before=before,
+            after=audit.snapshot(locked, fields),
+            note=reason,
+        )
+
+    hold.exception_note = reason
+    hold.exception_granted_by = by
+    return locked
