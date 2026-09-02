@@ -116,3 +116,35 @@ class VerificationCodeUndeliverable(DomainError):
     code = "sms_undeliverable"
     status_code = 503
     default_message = "تعذّر إرسال رمز التحقق الآن. جرّب بعد قليل."
+
+
+class PhoneChangeNeedsBothCodes(DomainError):
+    """One of the two codes was wrong, and one right code changes nothing.
+
+    The refusal deliberately does **not** say *which* one. Telling a caller
+    "the code sent to the old number was correct, the new one was not" hands an
+    attacker holding one of the two phones a way to test the other half of the
+    pair one guess at a time. Both halves fail together or neither does.
+    """
+
+    code = "phone_change_needs_both_codes"
+    default_message = "لازم الرمزين الصحيحين — المرسَل للرقم القديم والمرسَل للجديد."
+
+
+class PhoneAlreadyRegistered(DomainError):
+    """The number being moved to already opens somebody else's account.
+
+    Refused before a single code is sent. Sending one would ring a stranger's
+    phone with a code for a change they never asked about, which is a way to
+    harass a number and a way to phish its owner.
+    """
+
+    code = "phone_already_registered"
+    default_message = "هذا الرقم مسجَّل على حساب آخر."
+
+
+class PhoneUnchanged(DomainError):
+    """A change to the number the account already has."""
+
+    code = "phone_unchanged"
+    default_message = "هذا هو رقمك الحالي."

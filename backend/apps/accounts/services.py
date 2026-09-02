@@ -19,6 +19,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts import otp as otp_module
+from apps.accounts import tokens as token_service
 from apps.accounts.errors import (
     OtpAlreadyUsed,
     OtpExpired,
@@ -26,6 +27,9 @@ from apps.accounts.errors import (
     OtpNotFound,
     OtpResendTooSoon,
     OtpTooManyAttempts,
+    PhoneAlreadyRegistered,
+    PhoneChangeNeedsBothCodes,
+    PhoneUnchanged,
     RegistrationNeedsName,
     VerificationCodeUndeliverable,
 )
@@ -37,6 +41,7 @@ from apps.accounts.models import (
     User,
 )
 from apps.accounts.sms import SmsSendFailed, send_sms
+from apps.core import audit
 
 log = logging.getLogger(__name__)
 
@@ -294,3 +299,161 @@ def sign_in_with_code(*, phone: str, code: str, full_name: str = "") -> tuple[Us
 
     check_verification_code(phone=phone, code=code)
     return user_for_verified_phone(phone=phone, full_name=full_name)
+
+
+# --------------------------------------------------------------------------
+# Changing the number the account is opened with
+# --------------------------------------------------------------------------
+
+
+def start_phone_change(*, user: User, new_phone: str) -> dict:
+    """Send a code to the number being left **and** the number being moved to.
+
+    Two codes, because v1's account-takeover path needed only one. There,
+    proving the new number was enough: someone who got at a signed-in session —
+    a shared laptop, a phone handed over unlocked — moved the account onto a
+    number they controlled, and the owner's number stopped working without the
+    owner ever being asked. Requiring the old number too means the theft has to
+    survive the real owner's phone ringing.
+
+    Refused before either message goes out when the new number already opens
+    another account: sending a code there would ring a stranger's phone about a
+    change they never asked for.
+    """
+    new_phone = new_phone.strip()
+
+    if new_phone == user.phone:
+        raise PhoneUnchanged(f"{user.pk} asked to change to the number it has")
+
+    if User.objects.filter(phone=new_phone).exclude(pk=user.pk).exists():
+        raise PhoneAlreadyRegistered(f"{new_phone} already opens another account")
+
+    # The old number first. If the provider is down, `send_verification_code`
+    # raises before the new number is ever contacted — so a failure leaves the
+    # stranger's phone silent rather than half-way through the flow.
+    current = send_verification_code(phone=user.phone, purpose=OtpPurpose.CHANGE_PHONE)
+    send_verification_code(phone=new_phone, purpose=OtpPurpose.CHANGE_PHONE)
+
+    return {
+        "sent_to_current": True,
+        "sent_to_new": True,
+        "expires_at": current.expires_at,
+        "resend_after": settings.OTP_RESEND_COOLDOWN_SECONDS,
+    }
+
+
+def confirm_phone_change(
+    *, user: User, new_phone: str, current_code: str, new_code: str
+) -> User:
+    """Move the account onto ``new_phone`` once **both** codes check out.
+
+    The acceptance criterion is a negative one — the old code alone does not do
+    it, and neither does the new — so the interesting part of this function is
+    what it refuses, and in particular *how*.
+
+    **Both codes are judged before either is spent.** The obvious implementation
+    calls the existing single-code check twice, and it is wrong in a way that
+    only shows up in a customer's hands: a right first code plus a typo in the
+    second consumes the right one, and the customer starts over needing two
+    fresh messages — which T602's five-an-hour limit then meters, so a couple of
+    fumbles lock them out for an hour. Here both rows are locked and compared,
+    an attempt is counted against whichever code was wrong, and neither is
+    consumed unless both matched.
+
+    **The refusal never says which code was wrong.** A caller holding one of the
+    two phones could otherwise test the other half one guess at a time; the pair
+    fails together or not at all.
+
+    **The raise happens after the transaction closes**, for the reason T601
+    wrote down in `check_verification_code`: an exception thrown inside the block
+    that counted a wrong attempt takes the count with it, and an attempt budget
+    that never empties is not a budget.
+    """
+    new_phone = new_phone.strip()
+
+    if new_phone == user.phone:
+        raise PhoneUnchanged(f"{user.pk} asked to change to the number it has")
+
+    refusal: Exception | None = None
+    before: dict | None = None
+
+    with transaction.atomic():
+        current = _gate(user.phone, OtpPurpose.CHANGE_PHONE)
+        incoming = _gate(new_phone, OtpPurpose.CHANGE_PHONE)
+
+        # Re-read inside the lock: between `start_phone_change` and this call
+        # somebody else may have finished registering the same number.
+        if User.objects.filter(phone=new_phone).exclude(pk=user.pk).exists():
+            raise PhoneAlreadyRegistered(f"{new_phone} already opens another account")
+
+        current_ok = otp_module.codes_match(current_code, current.code_hash)
+        incoming_ok = otp_module.codes_match(new_code, incoming.code_hash)
+
+        # Counted per code, and only against the one that was actually wrong: a
+        # correct code must not lose an attempt because its partner was mistyped.
+        for verification, matched in ((current, current_ok), (incoming, incoming_ok)):
+            if matched:
+                continue
+            verification.attempts += 1
+            if verification.attempts >= settings.OTP_MAX_ATTEMPTS:
+                verification.voided_at = timezone.now()
+            verification.save(update_fields=["attempts", "voided_at"])
+
+        if not (current_ok and incoming_ok):
+            refusal = PhoneChangeNeedsBothCodes(
+                f"phone change for {user.pk} had "
+                f"current_ok={current_ok} incoming_ok={incoming_ok}"
+            )
+        else:
+            spent = timezone.now()
+            for verification in (current, incoming):
+                verification.consumed_at = spent
+                verification.save(update_fields=["consumed_at"])
+
+            before = audit.snapshot(user, ["phone", "phone_verified_at"])
+            user.phone = new_phone
+            user.phone_verified_at = spent
+            user.save(update_fields=["phone", "phone_verified_at"])
+
+    if refusal is not None:
+        raise refusal
+
+    # Outside the transaction, after the change: every other session is signed
+    # in under a number this account no longer answers on. If the change *was* a
+    # takeover, this is what ends it; if it was the owner, it costs them one
+    # sign-in on their other devices. The trade is not close.
+    revoked = token_service.revoke_all_for(user)
+
+    audit.record(
+        action="accounts.change_phone",
+        entity=user,
+        actor=user,
+        before=before,
+        after=audit.snapshot(user, ["phone", "phone_verified_at"]),
+        note=f"{revoked} sessions revoked",
+    )
+    return user
+
+
+def _gate(phone: str, purpose: str) -> PhoneVerification:
+    """The outstanding code for ``phone``, or the named reason there is none.
+
+    Everything here refuses *without writing*, so it is safe to call for both
+    numbers before either code has been compared. The writes — counting a wrong
+    attempt, consuming a right one — belong to the caller, which is the only
+    place that knows whether the pair as a whole succeeded.
+    """
+    verification = _latest_for(phone, purpose, for_update=True)
+
+    if verification is None:
+        raise OtpNotFound(f"no code was ever sent to {phone} for {purpose}")
+    if verification.consumed_at is not None:
+        raise OtpAlreadyUsed(f"code for {phone} was consumed")
+    if verification.voided_at is not None:
+        raise OtpExpired(f"code for {phone} was voided")
+    if verification.expires_at <= timezone.now():
+        raise OtpExpired(f"code for {phone} expired at {verification.expires_at}")
+    if verification.attempts >= settings.OTP_MAX_ATTEMPTS:
+        raise OtpTooManyAttempts(f"code for {phone} has no attempts left")
+
+    return verification

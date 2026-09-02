@@ -19,7 +19,7 @@ from __future__ import annotations
 from django.conf import settings
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,9 +27,13 @@ from rest_framework.views import APIView
 from apps.accounts import services
 from apps.accounts import tokens as token_service
 from apps.accounts.api.serializers import (
+    AuthenticatedUserSerializer,
+    ConfirmPhoneChangeSerializer,
     RefreshSerializer,
     SendCodeResponseSerializer,
     SendCodeSerializer,
+    StartPhoneChangeResponseSerializer,
+    StartPhoneChangeSerializer,
     TokenPairSerializer,
     VerifyCodeSerializer,
 )
@@ -99,6 +103,73 @@ class VerifyCodeView(APIView):
             "is_new": created,
         }
         return Response(TokenPairSerializer(pair).data, status=status.HTTP_200_OK)
+
+
+class StartPhoneChangeView(APIView):
+    """`POST /api/v1/auth/phone/change/` — send a code to both numbers.
+
+    The only path in this file that requires a signed-in caller, and the number
+    being left is read **off the token**, never off the request body. Letting the
+    body name the current number would make this endpoint a way to move somebody
+    else's account, which is the shape of the takeover it exists to close.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = OTP_SEND_THROTTLES
+
+    @extend_schema(
+        request=StartPhoneChangeSerializer,
+        responses={200: StartPhoneChangeResponseSerializer},
+        summary="بدء تغيير رقم الجوال",
+    )
+    def post(self, request: Request) -> Response:
+        payload = StartPhoneChangeSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        result = services.start_phone_change(
+            user=request.user,
+            new_phone=payload.validated_data["new_phone"],
+        )
+        return Response(
+            StartPhoneChangeResponseSerializer(result).data, status=status.HTTP_200_OK
+        )
+
+
+class ConfirmPhoneChangeView(APIView):
+    """`POST /api/v1/auth/phone/change/confirm/` — both codes, or nothing.
+
+    Answers 200 with the caller's own account, whose `phone` is the new number.
+    Every session — this one included — is revoked by the service, so the client
+    signs in again on the new number; that is deliberate, and
+    `services.confirm_phone_change` says why.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = OTP_VERIFY_THROTTLES
+
+    @extend_schema(
+        request=ConfirmPhoneChangeSerializer,
+        responses={200: AuthenticatedUserSerializer},
+        summary="تأكيد تغيير الجوال بالرمزين",
+    )
+    def post(self, request: Request) -> Response:
+        payload = ConfirmPhoneChangeSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        user = services.confirm_phone_change(
+            user=request.user,
+            new_phone=payload.validated_data["new_phone"],
+            current_code=payload.validated_data["current_code"],
+            new_code=payload.validated_data["new_code"],
+        )
+        body = {
+            "id": user.pk,
+            "phone": user.phone,
+            "display_name": services.display_name(user),
+            "account_type": user.account_type,
+            "is_new": False,
+        }
+        return Response(AuthenticatedUserSerializer(body).data, status=status.HTTP_200_OK)
 
 
 class RefreshView(APIView):

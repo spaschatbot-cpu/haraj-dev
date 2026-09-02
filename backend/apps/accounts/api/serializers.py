@@ -46,6 +46,53 @@ class RefreshSerializer(serializers.Serializer):
     refresh = serializers.CharField()
 
 
+class StartPhoneChangeSerializer(serializers.Serializer):
+    """Ask for the pair of codes that a phone change needs."""
+
+    new_phone = serializers.RegexField(
+        PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR}
+    )
+
+
+class StartPhoneChangeResponseSerializer(serializers.Serializer):
+    """That both messages went, and when they stop working.
+
+    Two booleans rather than one, because the screen has to tell the customer to
+    go and look at two phones — one of which may be in a drawer.
+    """
+
+    sent_to_current = serializers.BooleanField()
+    sent_to_new = serializers.BooleanField()
+    expires_at = serializers.DateTimeField()
+    resend_after = serializers.IntegerField(help_text="ثوانٍ حتى يُسمح بطلب رمز جديد")
+
+
+class ConfirmPhoneChangeSerializer(serializers.Serializer):
+    """Both codes, in one request.
+
+    One request, not two, and that is the rule rather than a convenience: two
+    requests would mean a server-side half-finished state in which one number is
+    proven and the other is not — which is exactly the single-proof change that
+    T604 exists to make impossible.
+    """
+
+    new_phone = serializers.RegexField(
+        PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR}
+    )
+    current_code = serializers.CharField(
+        min_length=4,
+        max_length=8,
+        trim_whitespace=True,
+        help_text="الرمز المُرسَل إلى الرقم الحالي",
+    )
+    new_code = serializers.CharField(
+        min_length=4,
+        max_length=8,
+        trim_whitespace=True,
+        help_text="الرمز المُرسَل إلى الرقم الجديد",
+    )
+
+
 class AuthenticatedUserSerializer(serializers.Serializer):
     """The caller's own account. Never anybody else's — the view reads it off
     the token, never off a request field."""
