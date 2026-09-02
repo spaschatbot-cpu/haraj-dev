@@ -157,6 +157,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        # Bearer first: the customer apps carry a token and nothing else, and
+        # trying it first keeps the common path one lookup long. Session stays
+        # for the staff pages and the browsable schema.
+        "apps.accounts.authentication.BearerTokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
@@ -190,6 +194,43 @@ CELERY_TIMEZONE = "UTC"
 # --------------------------------------------------------------------------
 # Domain constants
 # --------------------------------------------------------------------------
+
+# --------------------------------------------------------------------------
+# Signing in — one-time code, then two tokens.
+#
+# The numbers are settings, not literals in the code, because they are the knobs
+# support asks to turn ("customers say the code expires too fast") and because
+# a test needs to shorten them without editing a rule.
+# --------------------------------------------------------------------------
+
+OTP_CODE_DIGITS = env.int("OTP_CODE_DIGITS", default=6)
+
+# Five minutes. Long enough for a delayed SMS on a bad connection, short enough
+# that a code left visible on a lock screen is worthless by the time anyone
+# reads it.
+OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
+
+# Five guesses against a six-digit code. Brute force needs 100,000 on average;
+# this budget is spent long before that, and spending it voids the code rather
+# than merely pausing it.
+OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
+
+# The courtesy limit on one number: no second message while the first is this
+# young. The limit that protects the SMS bill across all callers is T602.
+OTP_RESEND_COOLDOWN_SECONDS = env.int("OTP_RESEND_COOLDOWN_SECONDS", default=60)
+
+# Fifteen minutes on the access token, thirty days on the refresh. Short access
+# is what makes a stolen token expire on its own; long refresh is what keeps a
+# customer from signing in every morning.
+ACCESS_TOKEN_TTL_SECONDS = env.int("ACCESS_TOKEN_TTL_SECONDS", default=900)
+REFRESH_TOKEN_TTL_SECONDS = env.int(
+    "REFRESH_TOKEN_TTL_SECONDS", default=60 * 60 * 24 * 30
+)
+
+# The seam, not the provider. `apps.accounts.checks` refuses the console backend
+# under `check --deploy`, so a real environment cannot quietly log codes instead
+# of sending them.
+SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.sms.console_backend")
 
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
