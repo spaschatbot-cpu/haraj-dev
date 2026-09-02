@@ -1,0 +1,1109 @@
+openapi: 3.0.3
+info:
+  title: Haraj One API
+  version: 2.0.0
+paths:
+  /api/v1/auth/code/:
+    post:
+      operationId: v1_auth_code_create
+      description: '`POST /api/v1/auth/code/` — send a one-time code to a mobile number.'
+      summary: إرسال رمز تحقق
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendCode'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendCode'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendCode'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendCodeResponse'
+          description: ''
+  /api/v1/auth/phone/change/:
+    post:
+      operationId: v1_auth_phone_change_create
+      description: |-
+        `POST /api/v1/auth/phone/change/` — send a code to both numbers.
+
+        The only path in this file that requires a signed-in caller, and the number
+        being left is read **off the token**, never off the request body. Letting the
+        body name the current number would make this endpoint a way to move somebody
+        else's account, which is the shape of the takeover it exists to close.
+      summary: بدء تغيير رقم الجوال
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPhoneChange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/StartPhoneChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/StartPhoneChange'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartPhoneChangeResponse'
+          description: ''
+  /api/v1/auth/phone/change/confirm/:
+    post:
+      operationId: v1_auth_phone_change_confirm_create
+      description: |-
+        `POST /api/v1/auth/phone/change/confirm/` — both codes, or nothing.
+
+        Answers 200 with the caller's own account, whose `phone` is the new number.
+        Every session — this one included — is revoked by the service, so the client
+        signs in again on the new number; that is deliberate, and
+        `services.confirm_phone_change` says why.
+      summary: تأكيد تغيير الجوال بالرمزين
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmPhoneChange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConfirmPhoneChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConfirmPhoneChange'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticatedUser'
+          description: ''
+  /api/v1/auth/refresh/:
+    post:
+      operationId: v1_auth_refresh_create
+      description: '`POST /api/v1/auth/refresh/` — spend a refresh token for a fresh
+        pair.'
+      summary: تجديد رمز الوصول
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Refresh'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Refresh'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Refresh'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+          description: ''
+  /api/v1/auth/verify/:
+    post:
+      operationId: v1_auth_verify_create
+      description: '`POST /api/v1/auth/verify/` — exchange a correct code for a token
+        pair.'
+      summary: التحقق من الرمز وإصدار الرموز
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyCode'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyCode'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyCode'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenPair'
+          description: ''
+  /api/v1/invoices/:
+    get:
+      operationId: v1_invoices_list
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: الفهرس الأولي الذي يجب البدء منه لإرجاع النتائج.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvoiceList'
+          description: ''
+  /api/v1/invoices/{id}/:
+    get:
+      operationId: v1_invoices_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/invoices/{id}/pay/:
+    post:
+      operationId: v1_invoices_pay_create
+      description: |-
+        Settle one invoice from the balance the customer already has with us.
+
+        There is no card branch here and no card purpose to reach for: a purchase is
+        paid from deposited money or by a bank transfer the bank confirms.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoicePay'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InvoicePay'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InvoicePay'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoice'
+          description: ''
+  /api/v1/payments/callback/:
+    post:
+      operationId: v1_payments_callback_create
+      description: |-
+        The gateway telling us what happened. The only path that credits a card.
+
+        Stored raw and acknowledged before anything interprets it (Article 2-1), and
+        never dropped: a message we cannot use is kept with the reason written on it
+        (Article 2-2).
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/purchases/:
+    get:
+      operationId: v1_purchases_list
+      description: Vehicles awarded to the caller, each with its live invoice.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: الفهرس الأولي الذي يجب البدء منه لإرجاع النتائج.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPurchaseList'
+          description: ''
+  /api/v1/wallet/:
+    get:
+      operationId: v1_wallet_retrieve
+      description: The customer's money, split by the pot it is actually sitting in.
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+          description: ''
+  /api/v1/wallet/refund-requests/:
+    get:
+      operationId: v1_wallet_refund_requests_list
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RefundRequest'
+          description: ''
+    post:
+      operationId: v1_wallet_refund_requests_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefundRequestCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefundRequestCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefundRequestCreate'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundRequest'
+          description: ''
+  /api/v1/wallet/topups/:
+    get:
+      operationId: v1_wallet_topups_list
+      description: Start a card top-up, or list the ones this customer started.
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentIntent'
+          description: ''
+    post:
+      operationId: v1_wallet_topups_create
+      description: Start a card top-up, or list the ones this customer started.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopupCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TopupCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TopupCreate'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+          description: ''
+  /api/v1/wallet/topups/{reference}/:
+    get:
+      operationId: v1_wallet_topups_retrieve
+      description: |-
+        Where the customer lands on return from the gateway.
+
+        It reads one stored row and answers with it. Not a single query parameter is
+        consulted — a return URL is under the payer's thumb, and in v1 that was
+        enough to make the app believe a payment had succeeded. Money moves in
+        :class:`PaymentCallbackView` and nowhere else.
+      parameters:
+      - in: path
+        name: reference
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+          description: ''
+  /api/v1/wallet/transactions/:
+    get:
+      operationId: v1_wallet_transactions_list
+      description: Every ledger line belonging to the caller, newest first, paginated.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: عدد النتائج التي يجب إرجاعها في كل صفحة.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: الفهرس الأولي الذي يجب البدء منه لإرجاع النتائج.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLedgerEntryList'
+          description: ''
+components:
+  schemas:
+    AuthenticatedUser:
+      type: object
+      description: |-
+        The caller's own account. Never anybody else's — the view reads it off
+        the token, never off a request field.
+      properties:
+        id:
+          type: integer
+        phone:
+          type: string
+        display_name:
+          type: string
+        account_type:
+          type: string
+        is_new:
+          type: boolean
+      required:
+      - account_type
+      - display_name
+      - id
+      - is_new
+      - phone
+    Bucket:
+      type: object
+      description: One named pot, with the count of entries that add up to it.
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        entry_count:
+          type: integer
+        statement:
+          type: string
+          description: Where to read the exact entries behind this number (Article
+            1-6).
+          readOnly: true
+      required:
+      - amount
+      - entry_count
+      - kind
+      - label
+      - statement
+    ConfirmPhoneChange:
+      type: object
+      description: |-
+        Both codes, in one request.
+
+        One request, not two, and that is the rule rather than a convenience: two
+        requests would mean a server-side half-finished state in which one number is
+        proven and the other is not — which is exactly the single-proof change that
+        T604 exists to make impossible.
+      properties:
+        new_phone:
+          type: string
+          pattern: ^9665\d{8}$
+        current_code:
+          type: string
+          description: الرمز المُرسَل إلى الرقم الحالي
+          maxLength: 8
+          minLength: 4
+        new_code:
+          type: string
+          description: الرمز المُرسَل إلى الرقم الجديد
+          maxLength: 8
+          minLength: 4
+      required:
+      - current_code
+      - new_code
+      - new_phone
+    Hold:
+      type: object
+      description: A claim on part of the customer's insurance, and what it is claimed
+        for.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        reason:
+          $ref: '#/components/schemas/ReasonEnum'
+        reason_label:
+          type: string
+          readOnly: true
+        auction:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        invoice:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - auction
+      - created_at
+      - id
+      - invoice
+      - reason
+      - reason_label
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        number:
+          type: string
+          maxLength: 64
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        amount_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        outstanding:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        state:
+          $ref: '#/components/schemas/InvoiceStateEnum'
+        state_label:
+          type: string
+          readOnly: true
+        issued_at:
+          type: string
+          format: date-time
+        due_at:
+          type: string
+          format: date-time
+          nullable: true
+        payment_methods:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: The only two ways a purchase is ever paid for. Card is not
+            one.
+          readOnly: true
+      required:
+      - amount
+      - amount_paid
+      - id
+      - issued_at
+      - number
+      - outstanding
+      - payment_methods
+      - state_label
+    InvoicePay:
+      type: object
+      description: |-
+        ``method`` accepts only what :class:`PaymentMethod` declares.
+
+        ``card`` is not a member, so the schema itself rejects it and there is no
+        branch anywhere that could accidentally grow one.
+      properties:
+        method:
+          allOf:
+          - $ref: '#/components/schemas/MethodEnum'
+          default: balance
+    InvoiceStateEnum:
+      enum:
+      - draft
+      - open
+      - partial
+      - paid
+      - cancelled
+      type: string
+      description: |-
+        * `draft` - مسودة
+        * `open` - مستحقة
+        * `partial` - مسدَّدة جزئياً
+        * `paid` - مسدَّدة
+        * `cancelled` - ملغاة
+    LedgerEntry:
+      type: object
+      description: One line of the statement, read straight off an ``Entry`` row.
+      properties:
+        id:
+          type: integer
+        transaction:
+          type: string
+          format: uuid
+        kind:
+          type: string
+        description:
+          type: string
+          readOnly: true
+        bucket:
+          type: string
+        bucket_label:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        direction:
+          type: string
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+        memo:
+          type: string
+      required:
+      - amount
+      - bucket
+      - bucket_label
+      - description
+      - direction
+      - id
+      - kind
+      - memo
+      - occurred_at
+      - transaction
+    MethodEnum:
+      enum:
+      - balance
+      - bank_transfer
+      type: string
+      description: |-
+        * `balance` - من الرصيد
+        * `bank_transfer` - تحويل بنكي
+    PaginatedInvoiceList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invoice'
+    PaginatedLedgerEntryList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LedgerEntry'
+    PaginatedPurchaseList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Purchase'
+    PaymentIntent:
+      type: object
+      properties:
+        reference:
+          type: string
+          maxLength: 64
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          type: string
+          maxLength: 3
+        purpose:
+          $ref: '#/components/schemas/PaymentIntentPurposeEnum'
+        purpose_label:
+          type: string
+          readOnly: true
+        state:
+          $ref: '#/components/schemas/PaymentIntentStateEnum'
+        state_label:
+          type: string
+          readOnly: true
+        gateway:
+          type: string
+          maxLength: 32
+        gateway_status_raw:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - purpose
+      - purpose_label
+      - reference
+      - state_label
+      - updated_at
+    PaymentIntentPurposeEnum:
+      enum:
+      - insurance_deposit
+      type: string
+      description: '* `insurance_deposit` - إيداع تأمين'
+    PaymentIntentStateEnum:
+      enum:
+      - pending
+      - succeeded
+      - failed
+      - cancelled
+      - expired
+      - disputed
+      type: string
+      description: |-
+        * `pending` - بانتظار الدفع
+        * `succeeded` - تمت
+        * `failed` - فشلت
+        * `cancelled` - ألغاها العميل
+        * `expired` - انتهت مهلتها
+        * `disputed` - محل نزاع
+    Purchase:
+      type: object
+      description: A vehicle this customer won, with the invoice that followed it.
+      properties:
+        id:
+          type: integer
+        lot_number:
+          type: integer
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        state:
+          type: string
+        awarded_price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        awarded_at:
+          type: string
+          format: date-time
+        auction:
+          type: object
+          additionalProperties: {}
+          readOnly: true
+        invoice:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+      required:
+      - auction
+      - awarded_at
+      - awarded_price
+      - id
+      - invoice
+      - lot_number
+      - make
+      - model
+      - state
+      - year
+    ReasonEnum:
+      enum:
+      - bidding
+      - dues
+      type: string
+      description: |-
+        * `bidding` - ضمان المزايدة
+        * `dues` - مقابل مستحقات غير مسدَّدة
+    Refresh:
+      type: object
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    RefundRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        reference:
+          type: string
+          maxLength: 64
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        state:
+          $ref: '#/components/schemas/RefundRequestStateEnum'
+        state_label:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - reference
+      - state_label
+    RefundRequestCreate:
+      type: object
+      properties:
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+      required:
+      - amount
+    RefundRequestStateEnum:
+      enum:
+      - requested
+      - sent
+      - confirmed
+      - rejected
+      - cancelled
+      type: string
+      description: |-
+        * `requested` - مُقدَّم
+        * `sent` - أُرسل للمحاسبة
+        * `confirmed` - نُفِّذ
+        * `rejected` - مرفوض
+        * `cancelled` - ألغاه العميل
+    SendCode:
+      type: object
+      description: Ask for a code.
+      properties:
+        phone:
+          type: string
+          pattern: ^9665\d{8}$
+        purpose:
+          allOf:
+          - $ref: '#/components/schemas/SendCodePurposeEnum'
+          default: login
+      required:
+      - phone
+    SendCodePurposeEnum:
+      enum:
+      - login
+      - change_phone
+      - recover
+      type: string
+      description: |-
+        * `login` - دخول أو تسجيل
+        * `change_phone` - تغيير رقم الجوال
+        * `recover` - استعادة الحساب
+    SendCodeResponse:
+      type: object
+      description: 'What the caller learns: that it went, and when it stops working.'
+      properties:
+        sent:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        resend_after:
+          type: integer
+          description: ثوانٍ حتى يُسمح بطلب رمز جديد
+      required:
+      - expires_at
+      - resend_after
+      - sent
+    StartPhoneChange:
+      type: object
+      description: Ask for the pair of codes that a phone change needs.
+      properties:
+        new_phone:
+          type: string
+          pattern: ^9665\d{8}$
+      required:
+      - new_phone
+    StartPhoneChangeResponse:
+      type: object
+      description: |-
+        That both messages went, and when they stop working.
+
+        Two booleans rather than one, because the screen has to tell the customer to
+        go and look at two phones — one of which may be in a drawer.
+      properties:
+        sent_to_current:
+          type: boolean
+        sent_to_new:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        resend_after:
+          type: integer
+          description: ثوانٍ حتى يُسمح بطلب رمز جديد
+      required:
+      - expires_at
+      - resend_after
+      - sent_to_current
+      - sent_to_new
+    TokenPair:
+      type: object
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        expires_in:
+          type: integer
+          description: عمر رمز الوصول بالثواني
+        expires_at:
+          type: string
+          format: date-time
+        user:
+          $ref: '#/components/schemas/AuthenticatedUser'
+      required:
+      - access
+      - expires_at
+      - expires_in
+      - refresh
+    TopupCreate:
+      type: object
+      description: A request to start a card top-up. It carries no amount, by design.
+      properties:
+        auction:
+          type: integer
+          nullable: true
+    VerifyCode:
+      type: object
+      description: Prove the number.
+      properties:
+        phone:
+          type: string
+          pattern: ^9665\d{8}$
+        code:
+          type: string
+          maxLength: 8
+          minLength: 4
+        full_name:
+          type: string
+          description: يُستعمل عند إنشاء الحساب لأول مرة فقط
+          maxLength: 200
+      required:
+      - code
+      - phone
+    Wallet:
+      type: object
+      properties:
+        currency:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        available:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        held_for_auctions:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        locked_for_dues:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        buckets:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bucket'
+        holds:
+          type: array
+          items:
+            $ref: '#/components/schemas/Hold'
+        as_of:
+          type: string
+          format: date-time
+      required:
+      - as_of
+      - available
+      - buckets
+      - currency
+      - held_for_auctions
+      - holds
+      - locked_for_dues
+      - total
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: رمز الوصول من `/api/v1/auth/verify/`. صالح لخمس عشرة دقيقة، ويُجدَّد
+        من `/api/v1/auth/refresh/`.
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
