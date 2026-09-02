@@ -19,10 +19,12 @@ Two rules, both about the same thing — no second door:
    ``throttle_classes = OTP_SEND_THROTTLES``. The same holds for the paths that
    *spend* codes — `check_verification_code` and `sign_in_with_code` — which
    must carry ``OTP_VERIFY_THROTTLES``.
-2. **The limits are the named sets, never a hand-written list.** A view that
-   writes out ``throttle_classes = [OtpSendPerPhoneThrottle]`` is a view that
-   will not notice when a third limit joins the set. Only the two symbols are
-   accepted, so adding a limit reaches every path at once.
+2. **The limits are always a named set, never a hand-written list.** A view
+   that writes out ``throttle_classes = [OtpSendPerPhoneThrottle]`` is a view
+   that will not notice when a third limit joins the set. Any ``*_THROTTLES``
+   symbol satisfies this — bidding has its own (T611) and is not this check's
+   business — but a list literal does not, so adding a limit reaches every path
+   that carries the set at once.
 
 Test directories are skipped: a test that *proves* the limit works has to build
 throttled and unthrottled views of its own, and a check that fires on the proof
@@ -54,6 +56,17 @@ GUARDED_CALLS = {
 }
 
 ACCEPTED_SETS = frozenset(GUARDED_CALLS.values())
+
+
+def _is_a_named_set(name: str) -> bool:
+    """`OTP_SEND_THROTTLES`, `BID_THROTTLES` — a module-level set, not a literal.
+
+    Rule 2 is about the *shape* of the declaration, not about which domain owns
+    it. An earlier version of this check accepted only the two OTP sets, and it
+    fired on `apps.bidding`'s own limits the day T611 landed — a check that
+    complains about correct code is one people learn to switch off.
+    """
+    return name.isupper() and name.endswith("_THROTTLES")
 
 
 def _called_name(node: ast.Call) -> str:
@@ -118,7 +131,7 @@ def _visit(node: ast.AST, cls: ast.ClassDef | None, found: list[str], path: Path
 
         if isinstance(child, ast.ClassDef):
             declared = _declared_throttles(child)
-            stray = [name for name in declared if name not in ACCEPTED_SETS]
+            stray = [name for name in declared if not _is_a_named_set(name)]
             if stray:
                 found.append(
                     f"{path}:{child.lineno}: «{child.name}» يكتب الحدود بيده "

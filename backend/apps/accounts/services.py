@@ -378,8 +378,22 @@ def confirm_phone_change(
     before: dict | None = None
 
     with transaction.atomic():
-        current = _gate(user.phone, OtpPurpose.CHANGE_PHONE)
-        incoming = _gate(new_phone, OtpPurpose.CHANGE_PHONE)
+        # Locked in a fixed order — by the number itself, not "old then new".
+        #
+        # Two rows are locked here, and the obvious order is the order the
+        # caller thinks in: the number being left, then the number being moved
+        # to. That is a deadlock waiting for two customers swapping numbers with
+        # each other: A locks (X, Y) while B locks (Y, X), and each holds what
+        # the other needs. Sorting the pair means every caller takes the two
+        # locks in the same order, so one of them simply waits.
+        #
+        # `place_bid` writes the same rule down for the same reason (T504); it
+        # is a property of taking more than one lock, not of bidding.
+        first, second = sorted((user.phone, new_phone))
+        gated = {
+            phone: _gate(phone, OtpPurpose.CHANGE_PHONE) for phone in (first, second)
+        }
+        current, incoming = gated[user.phone], gated[new_phone]
 
         # Re-read inside the lock: between `start_phone_change` and this call
         # somebody else may have finished registering the same number.

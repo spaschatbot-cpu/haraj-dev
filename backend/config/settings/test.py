@@ -49,6 +49,7 @@ REST_FRAMEWORK = {  # noqa: F405
 # in the order they happen to run. `test_otp_rate_limit.py` switches each scope
 # on for the one test that proves it, with `override_settings`.
 OTP_THROTTLE_RATES: dict[str, str] = {}
+BID_THROTTLE_RATES: dict[str, str] = {}
 
 # Local memory, and only here. Redis is not a CI dependency, and every test that
 # needs a counter overrides this with a `locmem` cache of its own so the count

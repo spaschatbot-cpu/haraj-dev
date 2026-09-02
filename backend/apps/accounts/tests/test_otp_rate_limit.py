@@ -278,6 +278,33 @@ def test_the_check_speaks_when_a_path_goes_unmetered(tmp_path: Path, source: str
     assert found, "الفحص سكت عن مسار بلا حدّ"
 
 
+ANOTHER_DOMAINS_LIMITS = """
+from rest_framework.views import APIView
+from apps.bidding.throttling import BID_THROTTLES
+
+
+class PlaceBidView(APIView):
+    throttle_classes = BID_THROTTLES
+
+    def post(self, request):
+        return None
+"""
+
+
+def test_another_domains_named_limits_are_not_a_violation(tmp_path: Path):
+    """The check is about OTP paths, not about owning the word `throttle`.
+
+    An earlier version accepted only the two OTP sets and fired on
+    `apps.bidding`'s own limits the day T611 landed. A check that complains
+    about correct code is one people learn to switch off, so the rule is the
+    *shape* of the declaration — a named `*_THROTTLES` set rather than a list
+    written out by hand — and not which domain owns it.
+    """
+    (tmp_path / "bidding_view.py").write_text(ANOTHER_DOMAINS_LIMITS, encoding="utf-8")
+
+    assert load("one_otp_rate_limit").violations([tmp_path]) == []
+
+
 def test_the_service_layer_itself_is_not_a_violation():
     """`services.py` defines these functions and calls them from each other.
 

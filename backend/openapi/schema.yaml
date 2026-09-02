@@ -3,6 +3,182 @@ info:
   title: Haraj One API
   version: 2.0.0
 paths:
+  /api/v1/auctions/:
+    get:
+      operationId: auctions_list
+      description: '`GET /api/v1/auctions/` — the auctions a caller may see, newest
+        first.'
+      summary: قائمة المزادات
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: query
+        name: state
+        schema:
+          enum:
+          - draft
+          - scheduled
+          - live
+          - ended
+          - settled
+          - cancelled
+          - ''
+          type: string
+        description: |-
+          * `draft` - مسودة
+          * `scheduled` - مجدول
+          * `live` - جارٍ
+          * `ended` - منتهٍ
+          * `settled` - مُسوّى
+          * `cancelled` - ملغى
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionPage'
+          description: ''
+  /api/v1/auctions/{id}/:
+    get:
+      operationId: auctions_retrieve
+      description: |-
+        `GET /api/v1/auctions/{id}/` — one auction, in the list's own shape.
+
+        Built by `cards.auction_card` with the same annotations the list uses, so
+        the detail page and the row a customer tapped cannot disagree about how many
+        cars an auction holds. An auction the caller may not see is a 404: a 403
+        would confirm it exists, which is enough to enumerate auctions before they
+        open.
+      summary: تفاصيل المزاد
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuctionCard'
+          description: ''
+  /api/v1/auctions/{id}/vehicles/:
+    get:
+      operationId: auctions_vehicles_list
+      description: '`GET /api/v1/auctions/{id}/vehicles/` — one auction''s cars.'
+      summary: مركبات المزاد
+      parameters:
+      - in: query
+        name: auction
+        schema:
+          type: integer
+          minimum: 1
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+      - in: query
+        name: make
+        schema:
+          type: string
+          maxLength: 80
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 80
+      - in: query
+        name: state
+        schema:
+          enum:
+          - draft
+          - listed
+          - bidding
+          - awaiting_decision
+          - awarded
+          - rejected
+          - invoiced
+          - paid
+          - released
+          - withdrawn
+          - relisted
+          - ''
+          type: string
+        description: |-
+          * `draft` - مسودة
+          * `listed` - معروضة
+          * `bidding` - تحت المزايدة
+          * `awaiting_decision` - بانتظار قرار المالك
+          * `awarded` - مرسّاة
+          * `rejected` - مرفوضة
+          * `invoiced` - مفوترة
+          * `paid` - مسدَّدة
+          * `released` - خرجت
+          * `withdrawn` - مسحوبة
+          * `relisted` - معادة للعرض
+      - in: query
+        name: year_from
+        schema:
+          type: integer
+          maximum: 2200
+          minimum: 1900
+      - in: query
+        name: year_to
+        schema:
+          type: integer
+          maximum: 2200
+          minimum: 1900
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiclePage'
+          description: ''
   /api/v1/auth/code/:
     post:
       operationId: v1_auth_code_create
@@ -159,6 +335,71 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenPair'
           description: ''
+  /api/v1/bids/{id}/withdraw/:
+    post:
+      operationId: bids_withdraw
+      description: |-
+        `POST /api/v1/bids/{id}/withdraw/` — pull a bid back.
+
+        The bid is fetched **filtered by the caller** rather than fetched and then
+        checked, so somebody else's bid id is a 404 and not a 403. The service
+        refuses it a second time anyway (`NotYourBid`) — the two guards are not
+        redundant: this one decides what a stranger learns, that one is the rule.
+      summary: سحب مزايدة
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bid'
+          description: ''
+  /api/v1/bids/mine/:
+    get:
+      operationId: bids_mine
+      description: '`GET /api/v1/bids/mine/` — the caller''s own bids, and only those.'
+      summary: مزايداتي
+      parameters:
+      - in: query
+        name: include_history
+        schema:
+          type: boolean
+          default: false
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidPage'
+          description: ''
   /api/v1/invoices/:
     get:
       operationId: v1_invoices_list
@@ -289,6 +530,173 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaginatedPurchaseList'
+          description: ''
+  /api/v1/vehicles/:
+    get:
+      operationId: vehicles_list
+      description: '`GET /api/v1/vehicles/` — cars across auctions, searched and filtered.'
+      summary: قائمة المركبات
+      parameters:
+      - in: query
+        name: auction
+        schema:
+          type: integer
+          minimum: 1
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+      - in: query
+        name: make
+        schema:
+          type: string
+          maxLength: 80
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: query
+        name: search
+        schema:
+          type: string
+          maxLength: 80
+      - in: query
+        name: state
+        schema:
+          enum:
+          - draft
+          - listed
+          - bidding
+          - awaiting_decision
+          - awarded
+          - rejected
+          - invoiced
+          - paid
+          - released
+          - withdrawn
+          - relisted
+          - ''
+          type: string
+        description: |-
+          * `draft` - مسودة
+          * `listed` - معروضة
+          * `bidding` - تحت المزايدة
+          * `awaiting_decision` - بانتظار قرار المالك
+          * `awarded` - مرسّاة
+          * `rejected` - مرفوضة
+          * `invoiced` - مفوترة
+          * `paid` - مسدَّدة
+          * `released` - خرجت
+          * `withdrawn` - مسحوبة
+          * `relisted` - معادة للعرض
+      - in: query
+        name: year_from
+        schema:
+          type: integer
+          maximum: 2200
+          minimum: 1900
+      - in: query
+        name: year_to
+        schema:
+          type: integer
+          maximum: 2200
+          minimum: 1900
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehiclePage'
+          description: ''
+  /api/v1/vehicles/{id}/:
+    get:
+      operationId: vehicles_retrieve
+      description: |-
+        `GET /api/v1/vehicles/{id}/` — one car, through the one card builder.
+
+        T609's whole requirement is that this returns the *same* fields as the list.
+        It does so by construction rather than by discipline: both call
+        `cards.vehicle_card`, and there is no second assembly of a vehicle anywhere
+        (`ops/checks/one_vehicle_card.py` fails the build if one appears).
+
+        A car the caller may not see is a 404, not a 403. A 403 confirms the row
+        exists, which is enough to enumerate an auction before it opens.
+      summary: تفاصيل المركبة
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleCard'
+          description: ''
+  /api/v1/vehicles/{id}/bids/:
+    post:
+      operationId: bids_place
+      description: |-
+        `POST /api/v1/vehicles/{id}/bids/` — bid, or be told exactly why not.
+
+        Lowering a standing bid is refused the first time with
+        `lower_needs_confirm` and accepted when the caller comes back with
+        ``confirm_lower``. That two-step is T506: lowering is a real feature of a
+        sealed auction and also exactly what a fat finger does, so it costs one
+        deliberate extra round trip.
+
+        The car is resolved through `visible_vehicles`, so bidding on something the
+        caller cannot see is a 404 — the same answer as a car that does not exist,
+        which is what stops the endpoint being used to probe an unopened auction.
+      summary: وضع مزايدة
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceBid'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlaceBid'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlaceBid'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bid'
           description: ''
   /api/v1/wallet/:
     get:
@@ -452,6 +860,54 @@ paths:
           description: ''
 components:
   schemas:
+    AuctionCard:
+      type: object
+      description: The auction row, as `cards.auction_card` builds it.
+      properties:
+        id:
+          type: integer
+        number:
+          type: integer
+        title:
+          type: string
+        state:
+          type: string
+        state_label:
+          type: string
+        starts_at:
+          type: string
+          format: date-time
+        ends_at:
+          type: string
+          format: date-time
+        vehicle_count:
+          type: integer
+          nullable: true
+        open_vehicle_count:
+          type: integer
+          nullable: true
+      required:
+      - ends_at
+      - id
+      - number
+      - open_vehicle_count
+      - starts_at
+      - state
+      - state_label
+      - title
+      - vehicle_count
+    AuctionPage:
+      type: object
+      properties:
+        total:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuctionCard'
+      required:
+      - results
+      - total
     AuthenticatedUser:
       type: object
       description: |-
@@ -474,6 +930,56 @@ components:
       - id
       - is_new
       - phone
+    Bid:
+      type: object
+      description: |-
+        A bid as the owner of it sees it.
+
+        Never anybody else's: a sealed auction's whole property is that bidders
+        cannot see each other's numbers, so there is no endpoint here that lists the
+        bids *on* a car — only the bids *by* the caller.
+      properties:
+        id:
+          type: integer
+        vehicle_id:
+          type: integer
+        auction_id:
+          type: integer
+        lot_number:
+          type: integer
+        vehicle_title:
+          type: string
+        amount:
+          type: string
+        placed_at:
+          type: string
+          format: date-time
+        is_withdrawn:
+          type: boolean
+        is_superseded:
+          type: boolean
+      required:
+      - amount
+      - auction_id
+      - id
+      - is_superseded
+      - is_withdrawn
+      - lot_number
+      - placed_at
+      - vehicle_id
+      - vehicle_title
+    BidPage:
+      type: object
+      properties:
+        total:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bid'
+      required:
+      - results
+      - total
     Bucket:
       type: object
       description: One named pot, with the count of entries that add up to it.
@@ -830,6 +1336,18 @@ components:
         * `cancelled` - ألغاها العميل
         * `expired` - انتهت مهلتها
         * `disputed` - محل نزاع
+    PlaceBid:
+      type: object
+      description: One bid on one car.
+      properties:
+        amount:
+          type: string
+          pattern: ^\d{1,12}(\.\d{1,2})?$
+        confirm_lower:
+          type: boolean
+          default: false
+      required:
+      - amount
     Purchase:
       type: object
       description: A vehicle this customer won, with the invoice that followed it.
@@ -1038,6 +1556,102 @@ components:
         auction:
           type: integer
           nullable: true
+    VehicleCard:
+      type: object
+      description: |-
+        The vehicle card — the same fields in the list and on the detail page.
+
+        T609's acceptance criterion is that those two are identical, and
+        `test_vehicle_api.py` asserts it by comparing the key sets rather than by
+        reading this class, so the guarantee does not depend on this file being
+        kept honest by hand.
+      properties:
+        id:
+          type: integer
+        auction_number:
+          type: integer
+        auction_state:
+          type: string
+        lot_number:
+          type: integer
+        title:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+        year:
+          type: integer
+        odometer_km:
+          type: integer
+          nullable: true
+        transmission:
+          type: string
+        transmission_label:
+          type: string
+        fuel_type:
+          type: string
+        fuel_type_label:
+          type: string
+        condition:
+          type: string
+        condition_label:
+          type: string
+        plate_type:
+          type: string
+        plate_type_label:
+          type: string
+        reserve_price:
+          type: string
+          nullable: true
+        state:
+          type: string
+        state_label:
+          type: string
+        listing_state:
+          type: string
+        owner_company_name:
+          type: string
+          nullable: true
+        thumbnail_url:
+          type: string
+          nullable: true
+      required:
+      - auction_number
+      - auction_state
+      - condition
+      - condition_label
+      - fuel_type
+      - fuel_type_label
+      - id
+      - listing_state
+      - lot_number
+      - make
+      - model
+      - odometer_km
+      - owner_company_name
+      - plate_type
+      - plate_type_label
+      - reserve_price
+      - state
+      - state_label
+      - thumbnail_url
+      - title
+      - transmission
+      - transmission_label
+      - year
+    VehiclePage:
+      type: object
+      properties:
+        total:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleCard'
+      required:
+      - results
+      - total
     VerifyCode:
       type: object
       description: Prove the number.

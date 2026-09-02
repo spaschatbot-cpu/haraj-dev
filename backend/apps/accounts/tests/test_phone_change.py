@@ -319,6 +319,47 @@ def test_the_change_is_audited_with_both_numbers(user, sent):
     assert entry.actor_id == user.pk
 
 
+def test_the_two_rows_are_locked_in_a_fixed_order(user, sent, monkeypatch):
+    """Two locks means an order, and an order that varies by caller deadlocks.
+
+    Locking "the number being left, then the number being moved to" is the order
+    the caller thinks in and the wrong order to take: two callers moving in
+    opposite directions between the same pair take the locks as (X, Y) and
+    (Y, X), each holds what the other needs, and PostgreSQL kills one.
+
+    The invariant is asserted directly rather than by staging the collision,
+    and deliberately so: `PhoneAlreadyRegistered` refuses a change onto a number
+    somebody already holds, which makes the exact swap hard to stage today — but
+    only because of a check that runs *after* both locks are taken, and only
+    while that check keeps its current shape. The ordering is what makes the
+    deadlock impossible rather than merely unlikely, so the ordering is what is
+    tested. `place_bid` writes the same rule down for the same reason (T504).
+    """
+    order: list[str] = []
+    original = services._gate
+
+    def watched(phone: str, purpose: str):
+        order.append(phone)
+        return original(phone, purpose)
+
+    monkeypatch.setattr(services, "_gate", watched)
+
+    # A number that sorts *before* the account's own, so "old then new" and
+    # "sorted" would disagree if the fix were not there.
+    earlier = "966500000001"
+    assert earlier < OLD, "الاختبار يحتاج رقماً يسبق الحالي في الترتيب"
+
+    start(user, new_phone=earlier)
+    order.clear()
+
+    with pytest.raises(PhoneChangeNeedsBothCodes):
+        services.confirm_phone_change(
+            user=user, new_phone=earlier, current_code="0", new_code="0"
+        )
+
+    assert order == sorted(order), "الصفّان أُقفلا بترتيب يعتمد على اتجاه التغيير"
+
+
 def test_an_expired_code_is_named_as_expired_not_as_a_wrong_pair(user, sent, settings):
     """A stale code and a mistyped one are different problems for the customer."""
     start(user)
