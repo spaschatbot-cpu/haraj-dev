@@ -23,6 +23,7 @@ from apps.money.models import (
     InvoiceState,
     Transaction,
 )
+from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db
 
@@ -217,7 +218,7 @@ class TestVerification:
         )
         services.hold_for_auction(user=customer, auction=auction)
 
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
     def test_a_tampered_balance_is_caught(self, customer):
         services.deposit_insurance(
@@ -227,7 +228,7 @@ class TestVerification:
             balance=Decimal("99999.00")
         )
 
-        findings = services.verify_ledger()
+        findings = verify_ledger()
 
         assert any(f.check == "cached_balance" for f in findings)
 
@@ -238,6 +239,6 @@ class TestVerification:
         hold = services.hold_for_auction(user=customer, auction=auction)
         Hold.objects.filter(pk=hold.pk).update(state=HoldState.RELEASED)
 
-        findings = services.verify_ledger()
+        findings = verify_ledger()
 
         assert any(f.check == "holds_explain_bucket" for f in findings)

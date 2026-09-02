@@ -23,6 +23,7 @@ from apps.money.models import (
     TransactionKind,
 )
 from apps.money.services import MoneyError, derive_invoice_state
+from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db
 
@@ -237,7 +238,7 @@ class TestRecordPayment:
             "a replayed payment moved no money, so it must not add to the "
             "paid total either"
         )
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
     def test_the_ledger_is_clean_after_a_full_settlement(self, customer, invoice):
         fund(customer)
@@ -247,7 +248,7 @@ class TestRecordPayment:
             invoice=invoice, amount=SEVEN_K, source="insurance", reference="P/12"
         )
 
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
 
 # ---------------------------------------------------------------------------

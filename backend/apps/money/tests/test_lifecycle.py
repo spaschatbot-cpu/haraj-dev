@@ -23,6 +23,7 @@ from apps.money.models import (
 )
 from apps.money.services import InsufficientFunds, MoneyError
 from apps.money.tests.test_posting import run_in_threads
+from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -132,7 +133,7 @@ class TestHoldForAuction:
         assert len({r.pk for r in results if r is not None}) == 1
         assert Hold.objects.filter(owner=customer, auction=auction).count() == 1
         assert held(customer) == TEN_K
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
     def test_a_second_auction_takes_its_own_hold(self, customer, auction, other_auction):
         fund(customer, amount=Decimal("20000.00"))
@@ -413,7 +414,7 @@ class TestConfiscate:
 
         services.confiscate(hold, reason="سبب", by=staff)
 
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
 
 # ---------------------------------------------------------------------------

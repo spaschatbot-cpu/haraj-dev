@@ -20,6 +20,7 @@ from apps.money.models import (
     TransactionKind,
 )
 from apps.money.services import InsufficientFunds, Leg, MoneyError, Unbalanced
+from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -210,7 +211,7 @@ class TestLockOrdering:
         a.refresh_from_db()
         b.refresh_from_db()
         assert a.balance + b.balance == TEN_K * 2
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
 
 class _Recorder:
@@ -285,7 +286,7 @@ class TestIdempotency:
         assert len(pks) == 1, f"expected one transaction, got {pks}"
         assert Transaction.objects.filter(idempotency_key="cash:RACE/1").count() == 1
         assert free_account(customer).balance == TEN_K
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
 
 # ---------------------------------------------------------------------------
@@ -414,4 +415,4 @@ class TestReverse:
         )
         services.reverse(original, reason="خطأ")
 
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
