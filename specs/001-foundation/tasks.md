@@ -64,7 +64,7 @@ naive تُرفض بـ`ValueError` لا تُخمَّن.
 **لماذا:** المادة ٣-١. أغلى أعطال v1 التوقيتية كانت مقارنة عمود محوَّل بآخر غير
 محوَّل.
 
-### ⬜ T008 — سجل التدقيق
+### ✅ T008 — سجل التدقيق
 **الملفات:** `backend/apps/core/models.py`، `backend/apps/core/audit.py`
 **المطلوب:** `AuditLog(actor, action, entity_type, entity_id, before, after, at, note)`
 ودالة `record(...)` تُستدعى صراحةً من طبقة الخدمة. **ممنوع signals.**
