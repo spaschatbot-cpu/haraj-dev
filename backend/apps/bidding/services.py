@@ -1,4 +1,4 @@
-"""Placing and revising a bid — and writing down every refusal.
+"""Placing, revising and withdrawing a bid — and writing down every refusal.
 
 Everything in here obeys three rules that came out of v1's incident reviews:
 
@@ -25,13 +25,14 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.utils import timezone
 
 from apps.auctions import services as auctions
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
 from apps.core.errors import DomainError
 from apps.money import services as money
-from apps.money.models import MONEY, ZERO
+from apps.money.models import MONEY, ZERO, Hold, HoldReason, HoldState
 
 from .eligibility import Eligibility, check_eligibility
 from .models import Bid, BidRefusal
@@ -40,11 +41,28 @@ __all__ = [
     "BidRefused",
     "BiddingError",
     "LowerBidNeedsConfirmation",
+    "NotYourBid",
+    "is_competing_in",
     "place_bid",
     "record_refusal",
+    "withdraw_bid",
 ]
 
 _CENT = Decimal(1).scaleb(-MONEY["decimal_places"])
+
+#: A car whose fate is still open. A bidder with a live bid on one of these is
+#: a *competitor*, and a competitor's deposit is never released — v1's
+#: `settleAuction` released the deposits of likely winners before the award was
+#: decided, so the money left and had to be asked for again. Settlement (T508)
+#: reads the same list; it is defined once, here.
+UNDECIDED_VEHICLE_STATES = (
+    VehicleState.LISTED,
+    VehicleState.BIDDING,
+    VehicleState.AWAITING_DECISION,
+)
+
+#: A win that is not finished with the bidder's deposit yet.
+UNSETTLED_WIN_STATES = (VehicleState.AWARDED, VehicleState.INVOICED)
 
 
 class BiddingError(DomainError):
@@ -93,6 +111,11 @@ class LowerBidNeedsConfirmation(BiddingError):
 
     code = "lower_needs_confirm"
     default_message = "المبلغ أقل من مزايدتك الحالية. أكّد الخفض إن كنت متأكداً."
+
+
+class NotYourBid(BiddingError):
+    code = "not_your_bid"
+    default_message = "هذه المزايدة ليست مزايدتك."
 
 
 # ---------------------------------------------------------------------------
@@ -244,3 +267,84 @@ def _place(
         auctions.open_bidding(locked)
 
     return _Attempt(decision=decision, bid=bid)
+
+
+# ---------------------------------------------------------------------------
+# T507 — withdrawing a bid
+# ---------------------------------------------------------------------------
+
+
+def is_competing_in(user, auction) -> bool:
+    """Is this bidder still in the running anywhere in this auction?
+
+    "Competitor" is spec 006's word and it means **any bidder who has not been
+    refused** on a car whose fate is still open — plus a bidder who has already
+    won one and whose invoice is not settled. Both keep the deposit where it is.
+
+    This is the predicate the settlement engine (T508) has to apply per bidder,
+    and it lives here so that withdrawal and settlement can never drift into
+    two different answers to the same question (Article 4-5).
+    """
+    still_bidding = (
+        Bid.objects.live()
+        .filter(
+            bidder=user,
+            vehicle__auction=auction,
+            vehicle__state__in=UNDECIDED_VEHICLE_STATES,
+        )
+        .exists()
+    )
+    if still_bidding:
+        return True
+
+    return Vehicle.objects.filter(
+        auction=auction, awarded_to=user, state__in=UNSETTLED_WIN_STATES
+    ).exists()
+
+
+@transaction.atomic
+def withdraw_bid(*, user, bid: Bid, now: datetime | None = None) -> Bid:
+    """Mark a bid withdrawn — never delete it — and free the deposit if nothing
+    else in the auction is holding it.
+
+    The car is locked first, in the same order :func:`place_bid` takes its
+    locks, so a withdrawal and a bid on the same car serialise instead of
+    interleaving.
+    """
+    now = now or timezone.now()
+
+    locked_vehicle = (
+        Vehicle.objects.select_for_update(of=("self",))
+        .select_related("auction")
+        .get(pk=bid.vehicle_id)
+    )
+    locked_bid = Bid.objects.select_for_update().get(pk=bid.pk)
+
+    if locked_bid.bidder_id != user.pk:
+        raise NotYourBid(f"bid {bid.pk} belongs to user {locked_bid.bidder_id}")
+    if locked_bid.is_withdrawn:
+        return locked_bid
+    if locked_bid.is_superseded:
+        raise BiddingError(
+            f"bid {bid.pk} was already replaced by a later one",
+            user_message="هذه المزايدة استُبدلت بمزايدة أحدث.",
+        )
+
+    locked_bid.is_withdrawn = True
+    locked_bid.withdrawn_at = now
+    locked_bid.save(update_fields=["is_withdrawn", "withdrawn_at"])
+
+    auction = locked_vehicle.auction
+    if not is_competing_in(user, auction):
+        hold = Hold.objects.filter(
+            owner=user,
+            auction=auction,
+            reason=HoldReason.BIDDING,
+            state=HoldState.ACTIVE,
+        ).first()
+        if hold is not None:
+            money.release_hold(hold, memo=f"سحب المزايدة {locked_bid.pk}")
+
+    bid.is_withdrawn = True
+    bid.withdrawn_at = now
+    return locked_bid
