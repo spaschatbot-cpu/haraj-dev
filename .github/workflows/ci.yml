@@ -139,6 +139,16 @@ jobs:
         working-directory: backend
         run: uv run pytest
 
+      # ---- 4b. the ledger re-derives (Article 3-4) -----------------------
+      # Every balance recomputed from the entries, every hold matched against
+      # the bucket it claims. The suite leaves rows behind; this asserts they
+      # still add up when nothing is holding a lock. The same command runs
+      # after a deploy and nightly, so one check covers all three rather than
+      # three that drift apart.
+      - name: the ledger re-derives
+        working-directory: backend
+        run: uv run python manage.py verify_ledger
+
       # ---- 5. deployment audit ------------------------------------------
       # Explicitly against `prod`: auditing `test` would audit the two
       # relaxations test makes (no SSL redirect, a known key) and report them
@@ -155,6 +165,15 @@ jobs:
       - name: no float in money
         working-directory: backend
         run: uv run python ../ops/checks/no_float_in_money.py
+
+      # ---- 6b. one writer of the ledger (Article 1-2) --------------------
+      # The sharpest rule in the constitution, and until now the only one with
+      # no automated guard: auction state had one, the vehicle price had one,
+      # the vehicle card had one, spreadsheets had one, floats had one, and the
+      # ledger they all exist to protect had none.
+      - name: only money.services writes the ledger
+        working-directory: backend
+        run: uv run python ../ops/checks/money_single_writer.py
 
       # ---- 7. one decision point each (Article 4-5) ----------------------
       # Phase 005's four guards. Named individually rather than looped, so a

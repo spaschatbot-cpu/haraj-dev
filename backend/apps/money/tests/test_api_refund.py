@@ -128,6 +128,73 @@ class TestWhatCannotLeave:
         assert "أكبر من صفر" in response.json()["error"]["message"]
 
 
+class TestOneOpenRequestAtATime:
+    """Asking moves no money, so the balance a request is checked against does
+    not move either — which is why *checking* it was never enough."""
+
+    def test_ten_requests_for_the_whole_balance_do_not_queue_ten_payouts(
+        self, as_bidder, funded
+    ):
+        """Measured before the fix: ten rows, ten outbox messages, 100,000
+        instructed against a 10,000 deposit.
+
+        Each call took the `uuid4` branch of the reference builder, so the
+        uniqueness check never matched; and because nothing is posted,
+        `free.balance` was still 10,000 on every pass. Our own ledger could not
+        stop it either: `refund_insurance` runs later, on the inbound
+        confirmation, and the second one raises *after* the money has left the
+        bank.
+        """
+        codes = [
+            as_bidder.post(url(), {"amount": "10000.00"}, format="json").status_code
+            for _ in range(10)
+        ]
+
+        assert codes[0] == 201
+        assert set(codes[1:]) == {409}
+        assert RefundRequest.objects.count() == 1
+        assert OutboxMessage.objects.count() == 1
+
+    def test_the_refusal_names_the_request_already_standing(self, as_bidder, funded):
+        as_bidder.post(url(), {"amount": "4000.00"}, format="json")
+
+        response = as_bidder.post(url(), {"amount": "1000.00"}, format="json")
+        error = response.json()["error"]
+
+        assert response.status_code == 409
+        assert "طلب استرداد قائم" in error["message"]
+        assert error["detail"]["open_amount"] == "4000.00"
+
+    def test_the_schema_refuses_a_second_open_request(self, funded):
+        """B6, by going around the service entirely.
+
+        Without this index the only thing standing between one deposit and ten
+        payout instructions is a service that reads a number nothing moves.
+        """
+        from django.db import IntegrityError, transaction
+
+        first = services.request_refund(user=funded, amount=Decimal("1000.00"))
+
+        with pytest.raises(IntegrityError, match="one_open_refund_request"):
+            with transaction.atomic():
+                RefundRequest.objects.create(
+                    user=funded, amount=Decimal("1000.00"), reference="refund-forged"
+                )
+
+        assert first.state == "requested"
+
+    def test_a_settled_request_frees_the_customer_to_ask_again(self, as_bidder, funded):
+        """The rule is one *open* request, not one request ever."""
+        first = services.request_refund(user=funded, amount=Decimal("1000.00"))
+        first.state = "rejected"
+        first.save(update_fields=["state"])
+
+        response = as_bidder.post(url(), {"amount": "1000.00"}, format="json")
+
+        assert response.status_code == 201
+        assert RefundRequest.objects.count() == 2
+
+
 class TestOwnership:
     def test_the_list_shows_only_the_callers_own_requests(
         self, as_bidder, funded, stranger

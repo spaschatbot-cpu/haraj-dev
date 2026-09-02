@@ -260,3 +260,54 @@ def test_verify_ledger_runs_all_four_checks(customer):
     fund(customer)
 
     assert verify_ledger() == []
+
+
+class TestTheVerificationTask:
+    """Article 3-4 asks for a periodic job behind every derived column.
+
+    `Account.balance` is a cache moved by delta; `Invoice.amount_paid` and
+    `Invoice.state` are derived. `verify_ledger` was reachable from the test
+    suite and a management command and from nothing that could run after a
+    deploy, so the first report of a production drift would have been a
+    customer. The task is defined and *not* scheduled — Article 5-2 — exactly
+    as its siblings in `auctions` and `odoo` are.
+    """
+
+    def test_it_reports_a_clean_ledger(self, customer):
+        from apps.money.tasks import verify
+
+        fund(customer)
+
+        assert verify() == {"ran": True, "findings": 0}
+
+    def test_it_reports_the_drift_it_finds(self, customer):
+        from apps.money.tasks import verify
+
+        fund(customer)
+        Account.objects.filter(owner=customer, kind=AccountKind.INSURANCE_FREE).update(
+            balance=Decimal("99999.00")
+        )
+
+        assert verify()["findings"] >= 1
+
+    def test_it_holds_a_single_instance_lock(self):
+        """Article 5-1, with no exception. Asserted by reading the source,
+        because a task that quietly loses its lock in a refactor still passes
+        every behavioural test above."""
+        from apps.money import tasks
+
+        tree = ast.parse(Path(tasks.__file__).read_text(encoding="utf-8"))
+        scheduled = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef)
+            and any(
+                "shared_task" in ast.dump(decorator) for decorator in node.decorator_list
+            )
+        ]
+
+        assert scheduled, "no task defined in apps/money/tasks.py"
+        for task in scheduled:
+            assert "single_instance" in ast.dump(task), (
+                f"{task.name} runs without a single-instance lock"
+            )
