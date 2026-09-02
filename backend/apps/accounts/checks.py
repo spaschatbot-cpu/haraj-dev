@@ -59,3 +59,51 @@ def one_time_codes_are_safe_in_a_deployed_environment(app_configs, **kwargs) -> 
         )
 
     return findings
+
+
+#: Every scope `apps.accounts.throttling` can read. Listed here rather than
+#: derived from the classes so that deleting a limit is a deliberate edit in two
+#: files, not a limit that quietly stops being required.
+REQUIRED_THROTTLE_SCOPES = ("otp_send_phone", "otp_send_caller", "otp_verify_caller")
+
+LOCAL_MEMORY_CACHE = "django.core.cache.backends.locmem.LocMemCache"
+DUMMY_CACHE = "django.core.cache.backends.dummy.DummyCache"
+
+
+@register(Tags.security, deploy=True)
+def otp_rate_limits_are_real_in_a_deployed_environment(app_configs, **kwargs) -> list:
+    """A limit that is off, or that each worker counts on its own, is not a limit.
+
+    Both findings here are `Error`, not `Warning`: an unmetered send path is a
+    third party's SMS bill charged to us, and the whole reason T602 exists.
+    """
+    findings: list = []
+
+    rates = getattr(settings, "OTP_THROTTLE_RATES", {})
+    missing = [scope for scope in REQUIRED_THROTTLE_SCOPES if not rates.get(scope)]
+    if missing:
+        findings.append(
+            Error(
+                "OTP rate limits are not configured for: " + ", ".join(missing) + ".",
+                hint="Set them in OTP_THROTTLE_RATES. An unmetered send path is "
+                "a free SMS gateway for whoever finds it.",
+                id="accounts.E002",
+            )
+        )
+
+    # A per-process cache under N workers turns "5/hour" into "5N/hour", and
+    # nothing in the settings says so. This is the difference between a limit
+    # and the appearance of one.
+    backend = settings.CACHES.get("default", {}).get("BACKEND", "")
+    if backend in (LOCAL_MEMORY_CACHE, DUMMY_CACHE):
+        findings.append(
+            Error(
+                f"The default cache is {backend}, which every worker process "
+                "holds separately — so the OTP rate limits count per worker.",
+                hint="Point CACHE_URL at Redis; the limits are only shared if "
+                "the counter is.",
+                id="accounts.E003",
+            )
+        )
+
+    return findings

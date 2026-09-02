@@ -5,9 +5,13 @@ Every refusal these paths can produce is a `DomainError` subclass in
 `apps.accounts.errors`, and `apps.core.exceptions` turns it into the one
 envelope — so there is no error body written anywhere in this file.
 
-The rate limits that meter these paths are T602 and are deliberately not here
-yet; what *is* here is the per-code attempt cap and the per-number cooldown,
-which are properties of a code rather than of a caller.
+Every path here that can cause an SMS carries `OTP_SEND_THROTTLES`, and the one
+that spends codes carries `OTP_VERIFY_THROTTLES` — the per-code attempt cap and
+the per-number cooldown live in the service layer because they are properties of
+a *code*, and these are properties of a *caller*. The lists are named symbols
+rather than classes written out here, so a limit added later reaches every send
+path at once; `ops/checks/one_otp_rate_limit.py` fails the build if a path that
+sends a code is ever added without them.
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ from apps.accounts.api.serializers import (
     TokenPairSerializer,
     VerifyCodeSerializer,
 )
+from apps.accounts.throttling import OTP_SEND_THROTTLES, OTP_VERIFY_THROTTLES
 
 
 class SendCodeView(APIView):
@@ -36,6 +41,7 @@ class SendCodeView(APIView):
 
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    throttle_classes = OTP_SEND_THROTTLES
 
     @extend_schema(
         request=SendCodeSerializer,
@@ -68,6 +74,7 @@ class VerifyCodeView(APIView):
 
     authentication_classes: list = []
     permission_classes = [AllowAny]
+    throttle_classes = OTP_VERIFY_THROTTLES
 
     @extend_schema(
         request=VerifyCodeSerializer,

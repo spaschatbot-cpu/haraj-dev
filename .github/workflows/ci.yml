@@ -228,3 +228,10 @@ jobs:
       - name: only check_eligibility decides who may bid
         working-directory: backend
         run: uv run python ../ops/checks/one_eligibility_gate.py
+
+      # Phase 007's T602. One unmetered send path is somebody else's SMS bill
+      # charged to us — and the path that gets added unmetered is always the
+      # fourth one, written by someone who copied the third.
+      - name: every OTP path carries the rate limit
+        working-directory: backend
+        run: uv run python ../ops/checks/one_otp_rate_limit.py
