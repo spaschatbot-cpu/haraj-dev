@@ -179,6 +179,11 @@ jobs:
         working-directory: backend
         env:
           DJANGO_SETTINGS_MODULE: config.settings.prod
+          # A stand-in for a real provider, exactly as SECRET_KEY above stands
+          # in for a real key. It is importable and it never sends — what the
+          # audit rejects is the console backend, which would write one-time
+          # codes into the production log.
+          SMS_BACKEND: apps.accounts.sms.disabled_backend
         run: uv run python manage.py check --deploy
 
       # ---- 6. no float on any money path --------------------------------

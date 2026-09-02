@@ -146,3 +146,132 @@ class Company(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+# --------------------------------------------------------------------------
+# Authentication — a one-time code, then two tokens.
+#
+# Neither the code nor the tokens are stored as the customer sees them. What is
+# in these tables is a SHA-256 digest, so a dump of the database — a backup on a
+# laptop, a support query pasted into a chat — hands nobody a working key.
+# --------------------------------------------------------------------------
+
+
+class OtpPurpose(models.TextChoices):
+    """Why a code was sent.
+
+    A code is scoped to its purpose so one sent to confirm a phone change can
+    never be typed into the login screen instead.
+    """
+
+    LOGIN = "login", "دخول أو تسجيل"
+    CHANGE_PHONE = "change_phone", "تغيير رقم الجوال"
+    RECOVER = "recover", "استعادة الحساب"
+
+
+class PhoneVerification(models.Model):
+    """One code, sent to one number, for one purpose.
+
+    Rows are kept after use rather than deleted: "was a code ever sent to this
+    number, and what happened to it" is the first question support asks, and in
+    v1 there was no table that answered it.
+    """
+
+    phone = models.CharField(max_length=12, validators=[saudi_mobile])
+    purpose = models.CharField(
+        max_length=16, choices=OtpPurpose.choices, default=OtpPurpose.LOGIN
+    )
+
+    #: SHA-256 of the digits. The digits themselves exist in one place only —
+    #: the SMS — and never come back in any response (T601's hardest rule).
+    code_hash = models.CharField(max_length=64)
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    expires_at = models.DateTimeField()
+
+    #: Counted per code, not per request: the wall is the number of guesses this
+    #: particular code will tolerate.
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    #: Set when the whole code is written off — attempts spent, or superseded by
+    #: a newer send. Distinct from `consumed_at`, which means it worked.
+    voided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["phone", "purpose", "-created_at"],
+                name="otp_phone_purpose_recent",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(expires_at__gt=models.F("created_at")),
+                name="otp_expires_after_creation",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.phone} · {self.purpose}"
+
+    @property
+    def is_live(self) -> bool:
+        """Neither used, nor written off, nor past its expiry."""
+        return (
+            self.consumed_at is None
+            and self.voided_at is None
+            and self.expires_at > timezone.now()
+        )
+
+
+class TokenKind(models.TextChoices):
+    ACCESS = "access", "رمز وصول"
+    REFRESH = "refresh", "رمز تحديث"
+
+
+class AuthToken(models.Model):
+    """An issued token, revocable the moment support needs it revoked.
+
+    Opaque and stored, not self-describing and signed. A JWT cannot be taken
+    back before it expires; this platform moves money and v1 had an account
+    takeover path, so "log this session out now" has to be a row update rather
+    than a wait.
+    """
+
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="auth_tokens"
+    )
+    kind = models.CharField(max_length=8, choices=TokenKind.choices)
+
+    #: SHA-256 of the token string. Unique, so a lookup is one indexed read and
+    #: a collision is impossible rather than merely unlikely.
+    token_hash = models.CharField(max_length=64, unique=True)
+
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    #: The refresh token this one was minted from. The chain is what makes reuse
+    #: detectable: presenting a spent link means someone else holds it too.
+    rotated_from = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="rotated_to",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "kind"], name="authtoken_user_kind"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.kind} · {self.user_id}"
+
+    @property
+    def is_live(self) -> bool:
+        return self.revoked_at is None and self.expires_at > timezone.now()
