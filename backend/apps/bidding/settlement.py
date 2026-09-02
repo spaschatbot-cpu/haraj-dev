@@ -353,6 +353,24 @@ def _release_bidding_hold(vehicle: Vehicle) -> None:
         money.release_hold(hold, memo=f"قُفل التأمين على فاتورة المركبة {vehicle.pk}")
 
 
+def award_to(vehicle: Vehicle, *, bidder, price: Decimal) -> Vehicle:
+    """Award a car to a chosen bidder — the partner's answer, not the machine's.
+
+    `decide_vehicle` awards to the highest bid at or above the reserve. This is
+    the other case: the highest bid was *below* the reserve, the car went to its
+    owner, and the owner said yes — possibly to the second offer, which is a
+    real answer and one v1 could not record at all. There an operator cancelled
+    the auction and relisted the car, which cost every other bidder their place.
+
+    The bid is checked to be live and to belong to this car. A partner's
+    decision is still a decision about an offer that exists.
+    """
+    if not Bid.objects.live().filter(vehicle=vehicle, bidder=bidder).exists():
+        raise ValueError(f"user {bidder.pk} has no live bid on vehicle {vehicle.pk}")
+
+    return award(vehicle, bidder, price)
+
+
 def replace_winner(
     vehicle: Vehicle, *, new_winner, price: Decimal | None = None, reason: str
 ) -> Vehicle:
@@ -624,6 +642,7 @@ def close_auction(auction: Auction, *, now: datetime | None = None) -> Auction:
 
 __all__ = [
     "HoldOutcome",
+    "award_to",
     "Settlement",
     "VehicleOutcome",
     "cancel_auction",

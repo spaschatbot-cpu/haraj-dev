@@ -1,0 +1,40 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+Sorted by how long a car has been waiting, not by lot number. The question this
+page answers is "what has been sitting the longest", and a lot number answers
+nothing about that. v1 had no equivalent screen at all: a car below its reserve
+sat in the vehicle list and the partner was told by telephone.
+{% endcomment %}
+
+{% block title %}قرارات الشركاء{% endblock %}
+{% block heading %}قرارات الشركاء{% endblock %}
+
+{% block content %}
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th><th>اللوت</th><th>المركبة</th><th>الشريك</th>
+        <th>الحالة</th><th>سعر الوقوف</th><th>منذ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for vehicle in page %}
+        <tr>
+          <td>{{ vehicle.auction.number|unlocalize }}</td>
+          <td><a href="{% url 'console:partner-offers' vehicle.pk %}">
+            {{ vehicle.lot_number|unlocalize }}</a></td>
+          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
+          <td>{{ vehicle.owner_company.name|default:"—" }}</td>
+          <td>{{ vehicle.get_state_display }}</td>
+          <td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td>
+          <td>{{ vehicle.updated_at|timesince }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا مركبة تنتظر قراراً.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

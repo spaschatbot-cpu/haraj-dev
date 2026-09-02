@@ -71,6 +71,12 @@ PAGES: tuple[Page, ...] = (
         "daily",
     ),
     Page(
+        "console:partner-decisions",
+        "قرارات الشركاء",
+        Capability.PARTNERS_DECIDE,
+        "daily",
+    ),
+    Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,
@@ -110,6 +116,9 @@ DETAIL_PAGES: tuple[Page, ...] = (
         Capability.AUCTIONS_IMPORT,
         "",
     ),
+    Page("console:partner-offers", "العروض", Capability.PARTNERS_DECIDE, ""),
+    Page("console:partner-award", "الترسية", Capability.PARTNERS_DECIDE, ""),
+    Page("console:partner-reject", "رفض المالك", Capability.PARTNERS_DECIDE, ""),
 )
 
 
