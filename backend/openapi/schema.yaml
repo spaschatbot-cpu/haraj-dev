@@ -400,6 +400,55 @@ paths:
               schema:
                 $ref: '#/components/schemas/BidPage'
           description: ''
+  /api/v1/devices/:
+    get:
+      operationId: devices_list
+      description: '`POST`/`GET /api/v1/devices/` — register this handset, or list
+        mine.'
+      summary: أجهزتي
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Device'
+          description: ''
+    post:
+      operationId: devices_register
+      description: '`POST`/`GET /api/v1/devices/` — register this handset, or list
+        mine.'
+      summary: تسجيل جهاز للإشعارات
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+          description: ''
   /api/v1/invoices/:
     get:
       operationId: v1_invoices_list
@@ -502,6 +551,132 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/profile/:
+    get:
+      operationId: profile_retrieve
+      description: '`GET`/`PATCH /api/v1/profile/` — the caller''s own account.'
+      summary: ملفي الشخصي
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+    patch:
+      operationId: profile_update
+      description: '`GET`/`PATCH /api/v1/profile/` — the caller''s own account.'
+      summary: تعديل الملف الشخصي
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedProfileUpdate'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
+  /api/v1/profile/company/:
+    get:
+      operationId: profile_company_retrieve
+      description: '`GET`/`PUT /api/v1/profile/company/` — the company and its ZATCA
+        address.'
+      summary: ملف الشركة
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfileRead'
+          description: ''
+    put:
+      operationId: profile_company_save
+      description: '`GET`/`PUT /api/v1/profile/company/` — the company and its ZATCA
+        address.'
+      summary: حفظ ملف الشركة
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyProfile'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CompanyProfile'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CompanyProfile'
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyProfileRead'
+          description: ''
+  /api/v1/profile/national-id/:
+    put:
+      operationId: profile_set_national_id
+      description: |-
+        `PUT /api/v1/profile/national-id/` — set it once it is right.
+
+        A valid id already on the account is refused (`national_id_already_verified`);
+        an invalid one may be replaced. `services.set_national_id` says why at
+        length — the short version is that a customer who mistyped a digit must be
+        able to fix themselves, and a correct id must not be swappable for
+        somebody else's.
+      summary: تثبيت رقم الهوية
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NationalId'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NationalId'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NationalId'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: ''
   /api/v1/purchases/:
     get:
       operationId: v1_purchases_list
@@ -1005,6 +1180,80 @@ components:
       - kind
       - label
       - statement
+    CompanyProfile:
+      type: object
+      description: |-
+        The company and its ZATCA national address.
+
+        Nothing is `required` at this layer even though most of it is required for a
+        *new* company: the exemption for companies that predate ZATCA's national
+        address is a business rule with a date attached, and business rules live in
+        the service layer. A serializer that hard-coded `required=True` would refuse
+        an existing company its own edit form.
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        representative_name:
+          type: string
+          maxLength: 200
+        commercial_register:
+          type: string
+          maxLength: 32
+        vat_number:
+          type: string
+          maxLength: 32
+        building_number:
+          type: string
+          maxLength: 8
+        street:
+          type: string
+          maxLength: 200
+        district:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        postal_code:
+          type: string
+          maxLength: 8
+    CompanyProfileRead:
+      type: object
+      description: The same fields plus whether they add up to something invoiceable.
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        representative_name:
+          type: string
+          maxLength: 200
+        commercial_register:
+          type: string
+          maxLength: 32
+        vat_number:
+          type: string
+          maxLength: 32
+        building_number:
+          type: string
+          maxLength: 8
+        street:
+          type: string
+          maxLength: 200
+        district:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        postal_code:
+          type: string
+          maxLength: 8
+        is_complete:
+          type: boolean
+          readOnly: true
+      required:
+      - is_complete
     ConfirmPhoneChange:
       type: object
       description: |-
@@ -1032,6 +1281,37 @@ components:
       - current_code
       - new_code
       - new_phone
+    Device:
+      type: object
+      description: A registered handset, as its owner sees it.
+      properties:
+        id:
+          type: integer
+        platform:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        token_tail:
+          type: string
+          description: آخر ستة أحرف، للتمييز فقط
+      required:
+      - created_at
+      - id
+      - platform
+      - token_tail
+    DeviceRegistration:
+      type: object
+      description: One handset, identified by the token its push provider issued.
+      properties:
+        token:
+          type: string
+          maxLength: 255
+        platform:
+          $ref: '#/components/schemas/PlatformEnum'
+      required:
+      - platform
+      - token
     Hold:
       type: object
       description: A claim on part of the customer's insurance, and what it is claimed
@@ -1200,6 +1480,21 @@ components:
       description: |-
         * `balance` - من الرصيد
         * `bank_transfer` - تحويل بنكي
+    NationalId:
+      type: object
+      description: |-
+        Ten digits. Whether they are a *valid* identity is the service's call.
+
+        The length check is here because it is a property of the field; the checksum
+        is not, because T606's rule — a correct id is pinned, a wrong one may be
+        corrected — needs one definition of "correct" and it lives in
+        `apps.accounts.identity`.
+      properties:
+        national_id:
+          type: string
+          pattern: ^\d{10}$
+      required:
+      - national_id
     PaginatedInvoiceList:
       type: object
       required:
@@ -1269,6 +1564,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Purchase'
+    PatchedProfileUpdate:
+      type: object
+      description: |-
+        What a customer may change about themselves, and nothing else.
+
+        Every field here is optional, and `validate` refuses an empty body: a PATCH
+        that changes nothing is almost always a client bug, and answering 200 to it
+        hides the bug behind a success.
+
+        Unknown keys are refused rather than dropped (T605). DRF's default is to
+        ignore them, which turns a client's typo into a silent no-op — the customer
+        presses save, sees no error, and the value never changes.
+      properties:
+        full_name:
+          type: string
+          maxLength: 200
+        email:
+          oneOf:
+          - type: string
+            format: email
+          - type: string
+            maxLength: 0
     PaymentIntent:
       type: object
       properties:
@@ -1348,6 +1665,76 @@ components:
           default: false
       required:
       - amount
+    PlatformEnum:
+      enum:
+      - android
+      - ios
+      - web
+      type: string
+      description: |-
+        * `android` - android
+        * `ios` - ios
+        * `web` - web
+    Profile:
+      type: object
+      description: |-
+        The caller's own account, as a screen shows it.
+
+        Read-only fields are marked as such rather than merely ignored on write:
+        a client generated from this schema then cannot offer a form field that
+        silently does nothing, which is how v1's "edit profile" screen let people
+        type a new phone number into a box that never saved it.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        phone:
+          type: string
+          readOnly: true
+          description: يتغيّر عبر مسار خاص
+        display_name:
+          type: string
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 200
+        email:
+          oneOf:
+          - type: string
+            format: email
+          - type: string
+            maxLength: 0
+        account_type:
+          type: string
+          readOnly: true
+        national_id:
+          type: string
+          readOnly: true
+        national_id_verified:
+          type: boolean
+          readOnly: true
+        phone_verified_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        has_company_profile:
+          type: boolean
+          readOnly: true
+        company_profile_complete:
+          type: boolean
+          readOnly: true
+      required:
+      - account_type
+      - company_profile_complete
+      - display_name
+      - full_name
+      - has_company_profile
+      - id
+      - national_id
+      - national_id_verified
+      - phone
+      - phone_verified_at
     Purchase:
       type: object
       description: A vehicle this customer won, with the invoice that followed it.

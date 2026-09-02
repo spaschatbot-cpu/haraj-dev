@@ -148,3 +148,36 @@ class PhoneUnchanged(DomainError):
 
     code = "phone_unchanged"
     default_message = "هذا هو رقمك الحالي."
+
+
+class NationalIdAlreadyVerified(DomainError):
+    """The id on this account is valid, and a valid id is set once.
+
+    The asymmetry is the rule (T606). A customer who mistyped a digit must be
+    able to fix themselves — v1 made them ask support, who edited the database.
+    But a *correct* id cannot be swapped for somebody else's, because the
+    account carries obligations that belong to the person that number names.
+    """
+
+    code = "national_id_already_verified"
+    default_message = "رقم الهوية مثبَّت ولا يمكن تغييره. راجع الدعم لو فيه خطأ."
+
+
+class NationalIdInvalid(DomainError):
+    """Ten digits, starting with 1 or 2, and a checksum that holds."""
+
+    code = "national_id_invalid"
+    default_message = "رقم الهوية غير صحيح."
+
+
+class CompanyProfileIncomplete(DomainError):
+    """A company account missing what an invoice must carry.
+
+    ZATCA requires the commercial register, the VAT number and the national
+    address on a tax invoice. A company that bids without them wins a car we
+    cannot legally invoice — so the profile is refused at the point it is saved
+    rather than at the point an invoice fails to issue.
+    """
+
+    code = "company_profile_incomplete"
+    default_message = "بيانات الشركة ناقصة: السجل والرقم الضريبي والعنوان الوطني."

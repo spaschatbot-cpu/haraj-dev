@@ -51,3 +51,48 @@ class Notification(models.Model):
 
     def __str__(self) -> str:
         return f"{self.channel} → {self.user_id} ({self.state})"
+
+
+class Device(models.Model):
+    """One handset a customer receives push notifications on. T620.
+
+    **The owner is set from the caller's token, never from a request body.** In
+    v1 the client sent the account id alongside the push token, so registering
+    somebody else's handset was a form field away — and the alerts that go out
+    on this channel say what a person is bidding on and for how much.
+
+    The token is unique across the whole table rather than per user, and that is
+    the interesting constraint: a handset that changes hands re-registers with
+    the *same* provider token under a new account, and without this the previous
+    owner would keep receiving the new one's bid alerts. Re-registration moves
+    the row instead of adding one.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="devices"
+    )
+
+    #: What the push provider calls this handset. A credential for sending to
+    #: it, so it is never returned in a response — see the serializer.
+    token = models.CharField(max_length=255, unique=True)
+
+    platform = models.CharField(
+        max_length=16,
+        choices=[("android", "أندرويد"), ("ios", "آي أو إس"), ("web", "ويب")],
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="device_user_recent"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.platform} · {self.user_id}"
+
+    @property
+    def token_tail(self) -> str:
+        """The last six characters, enough to tell two handsets apart on a screen."""
+        return self.token[-6:]

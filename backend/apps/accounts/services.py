@@ -18,9 +18,13 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts import identity
 from apps.accounts import otp as otp_module
 from apps.accounts import tokens as token_service
 from apps.accounts.errors import (
+    CompanyProfileIncomplete,
+    NationalIdAlreadyVerified,
+    NationalIdInvalid,
     OtpAlreadyUsed,
     OtpExpired,
     OtpIncorrect,
@@ -34,6 +38,7 @@ from apps.accounts.errors import (
     VerificationCodeUndeliverable,
 )
 from apps.accounts.models import (
+    AccountType,
     Company,
     OtpPurpose,
     PhoneVerification,
@@ -447,6 +452,163 @@ def confirm_phone_change(
         note=f"{revoked} sessions revoked",
     )
     return user
+
+
+# --------------------------------------------------------------------------
+# The profile — what a customer may change about themselves
+# --------------------------------------------------------------------------
+
+#: The only fields on `User` a customer may edit about themselves. Named here
+#: rather than derived from the model, and that is the point: a field added to
+#: the table tomorrow — a flag, a balance, a staff note — must not become
+#: editable by everybody just by existing. `phone` is absent because changing it
+#: is T604 and needs two codes; `account_type` is absent because becoming a
+#: company is a profile with obligations, handled below.
+EDITABLE_PROFILE_FIELDS = frozenset({"full_name", "email"})
+
+
+def update_profile(*, user: User, changes: dict) -> User:
+    """Apply ``changes`` to ``user``, refusing anything not in the allowlist.
+
+    The refusal is a *validation* refusal, raised before anything is written —
+    T605's acceptance criterion is that an unknown field is a clear 400 and
+    never a 500. In v1 the profile endpoint passed the request body into
+    `Model.objects.filter(...).update(**body)`, so a typo was a database error
+    and a well-chosen key was a privilege escalation.
+    """
+    unknown = set(changes) - EDITABLE_PROFILE_FIELDS
+    if unknown:
+        raise ValueError(f"unknown profile fields: {sorted(unknown)}")
+
+    before = audit.snapshot(user, sorted(EDITABLE_PROFILE_FIELDS))
+    for field, value in changes.items():
+        setattr(user, field, value)
+    user.save(update_fields=list(changes) or None)
+
+    audit.record(
+        action="accounts.update_profile",
+        entity=user,
+        actor=user,
+        before=before,
+        after=audit.snapshot(user, sorted(EDITABLE_PROFILE_FIELDS)),
+    )
+    return user
+
+
+def set_national_id(*, user: User, national_id: str) -> User:
+    """Record the customer's identity number — once it is right, forever.
+
+    The rule reads oddly until you see both halves (T606):
+
+    * A **valid** id already on the account cannot be changed. The account
+      carries obligations — deposits, invoices, a bidding history — and those
+      belong to the person that number names.
+    * An **invalid** one can. Somebody who mistyped a digit must be able to fix
+      themselves. In v1 they could not: the first value written was final, so
+      correcting a typo meant asking support to edit the database, and support
+      editing identity columns is its own problem.
+
+    The new value must itself be valid, so the exit from the correctable state
+    is one-way.
+    """
+    national_id = (national_id or "").strip()
+
+    if user.national_id and identity.is_valid(user.national_id):
+        raise NationalIdAlreadyVerified(f"{user.pk} already carries a valid national id")
+
+    if not identity.is_valid(national_id):
+        raise NationalIdInvalid(f"{national_id!r} is not a well-formed identity")
+
+    before = audit.snapshot(user, ["national_id"])
+    user.national_id = national_id
+    user.save(update_fields=["national_id"])
+
+    audit.record(
+        action="accounts.set_national_id",
+        entity=user,
+        actor=user,
+        before=before,
+        after=audit.snapshot(user, ["national_id"]),
+    )
+    return user
+
+
+#: What ZATCA requires on a tax invoice, and therefore what a company must have
+#: before it can win one. Listed once; the serializer and the refusal below both
+#: read it, so "required" cannot mean two different things.
+REQUIRED_COMPANY_FIELDS = (
+    "name",
+    "commercial_register",
+    "vat_number",
+    "building_number",
+    "street",
+    "district",
+    "city",
+    "postal_code",
+)
+
+
+def save_company_profile(*, user: User, fields: dict) -> Company:
+    """Create or update the company profile, complete or not at all.
+
+    **New companies must be complete; existing ones are exempt.** That is not
+    leniency, it is the only migration path that works: v1's companies were
+    entered before ZATCA required a national address, and roughly a third have
+    no postal code. Refusing to let them save their phone number until they
+    produce a district would lock working accounts out of their own profile.
+    The cutoff is `COMPANY_PROFILE_REQUIRED_FROM`, a setting rather than a
+    literal, because the day the exemption ends is an owner's decision.
+
+    A company that is exempt today still cannot be *invoiced* without the
+    fields — that refusal belongs to the invoice, not to this form.
+    """
+    existing = Company.objects.filter(user=user).first()
+    is_new = existing is None
+
+    if is_new:
+        missing = [
+            field for field in REQUIRED_COMPANY_FIELDS if not (fields.get(field) or "")
+        ]
+        if missing:
+            raise CompanyProfileIncomplete(
+                f"new company for {user.pk} missing {missing}",
+                detail={"missing": missing},
+            )
+
+    before = None if is_new else audit.snapshot(existing, REQUIRED_COMPANY_FIELDS)
+    company = existing or Company(user=user)
+    for field, value in fields.items():
+        setattr(company, field, value)
+    company.save()
+
+    # The account becomes a company account by having one. Deriving it here
+    # rather than trusting a flag in the request body means nobody bids under a
+    # company name they simply claimed.
+    if user.account_type != AccountType.COMPANY:
+        user.account_type = AccountType.COMPANY
+        user.save(update_fields=["account_type"])
+
+    audit.record(
+        action="accounts.save_company_profile",
+        entity=company,
+        actor=user,
+        before=before,
+        after=audit.snapshot(company, REQUIRED_COMPANY_FIELDS),
+        note="created" if is_new else "updated",
+    )
+    return company
+
+
+def company_profile_is_complete(company: Company | None) -> bool:
+    """Whether ``company`` carries everything a tax invoice needs.
+
+    Read by screens that want to warn an exempt company before it bids, and by
+    T607's tests. Not a permission — a company missing a field may still browse
+    and still bid; what it cannot do is be invoiced.
+    """
+    if company is None:
+        return False
+    return all(getattr(company, field, "") for field in REQUIRED_COMPANY_FIELDS)
 
 
 def _gate(phone: str, purpose: str) -> PhoneVerification:
