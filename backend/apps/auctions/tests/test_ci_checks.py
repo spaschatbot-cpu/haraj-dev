@@ -196,6 +196,47 @@ def test_the_card_check_catches_a_second_field_list(tmp_path):
     assert len(check.violations([root])) == 1
 
 
+def test_the_card_check_leaves_an_edit_form_alone(tmp_path):
+    """A form is boxes somebody types into; a card is what a screen draws.
+
+    They share column names because a car has columns. The form publishes
+    nothing, omits every derived name the card computes, and cannot drift from
+    a card it never claimed to draw — so holding it to the card rule would be a
+    check complaining about correct code, which is how checks get switched off.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "forms.py",
+        "from django import forms\n"
+        "class VehicleForm(forms.ModelForm):\n"
+        "    class Meta:\n"
+        "        model = Vehicle\n"
+        "        fields = ('make', 'model', 'year', 'reserve_price')\n",
+    )
+
+    assert check.violations([root]) == []
+
+
+def test_the_form_exemption_does_not_cover_a_serializer(tmp_path):
+    """The exemption is about *input*, and an exemption nobody tests widens.
+
+    A serializer publishing the same four columns is still a second card — it
+    is read by a screen, and that is the whole difference.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "serializers.py",
+        "class VehicleSerializer(serializers.ModelSerializer):\n"
+        "    class Meta:\n"
+        "        model = Vehicle\n"
+        "        fields = ('make', 'model', 'year', 'reserve_price')\n",
+    )
+
+    assert len(check.violations([root])) == 1
+
+
 def test_the_card_check_still_catches_a_second_card_on_the_vehicle_itself(tmp_path):
     """The Meta escape hatch must not be an escape hatch for a real card."""
     check = load("one_vehicle_card")

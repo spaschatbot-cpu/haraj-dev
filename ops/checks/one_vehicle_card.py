@@ -13,7 +13,16 @@ What the check looks for, outside `cards.py`:
   the payload by hand;
 * a `fields = (...)` / `FIELDS = [...]` assignment holding three or more of
   them — a serializer's field list, which is the same drift wearing a
-  framework's clothes.
+  framework's clothes. No computed field is required here: a serializer
+  *publishes* a payload, so a list of four car columns is a second card
+  whatever it is called.
+
+An **edit form** is the one exception, and it is a real one rather than a
+convenience. A card is something a screen *reads*; a form is a set of boxes
+somebody *types into*. They share column names because a car has columns, but a
+form publishes nothing, cannot drift from the card, and deliberately omits every
+derived name the card computes. The distinction is read off the class's bases —
+a `ModelForm` is a form — not guessed from the file it lives in.
 
 A serializer's `class Meta` says which model it is for, and one for anything
 but `Vehicle` is skipped. Without that, an invoice serializer listing `id`,
@@ -98,6 +107,20 @@ def model_field_names(model: str = "Vehicle") -> set[str]:
     return names
 
 
+def _is_a_form(node: ast.ClassDef) -> bool:
+    """Does this class derive from a Django form?
+
+    `forms.ModelForm`, `ModelForm`, `AuctionForm` — anything whose base name
+    ends in `Form`. Narrow on purpose: a serializer never does, and a class that
+    genuinely draws a card has no reason to.
+    """
+    for base in node.bases:
+        name = base.attr if isinstance(base, ast.Attribute) else getattr(base, "id", "")
+        if name.endswith("Form"):
+            return True
+    return False
+
+
 def _string_elements(node: ast.AST) -> set[str]:
     if not isinstance(node, ast.List | ast.Tuple | ast.Set):
         return set()
@@ -128,7 +151,16 @@ class CardHunter(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
-        """Skip a serializer `Meta` that names a model other than `Vehicle`."""
+        """Skip a `Meta` for another model, and skip an edit form entirely.
+
+        The form case is read from the bases rather than from the file name: a
+        class deriving from something called `...Form` takes input, and a set of
+        boxes an operator types into is not a card a screen draws. Everything
+        else — serializers above all — is still held to the rule.
+        """
+        if _is_a_form(node):
+            return
+
         if node.name == "Meta":
             for statement in node.body:
                 if not isinstance(statement, ast.Assign):

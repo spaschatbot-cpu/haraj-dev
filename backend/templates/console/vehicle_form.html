@@ -1,0 +1,24 @@
+{% extends "console/base.html" %}
+{% block title %}{% if vehicle %}تعديل مركبة{% else %}مركبة جديدة{% endif %}{% endblock %}
+{% block heading %}
+  {% if vehicle %}تعديل {{ vehicle.make }} {{ vehicle.model }}{% else %}مركبة جديدة{% endif %}
+{% endblock %}
+
+{% block content %}
+  {% comment %}
+  Neither the state nor the award is a field here. An award typed by hand is an
+  award with no bid behind it and no money moved for it; correcting one is
+  `bidding.settlement.replace_winner`, which moves the invoice and the deposit
+  with it.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">حفظ</button>
+    {% if vehicle %}
+      <a href="{% url 'console:vehicle-detail' vehicle.pk %}">إلغاء</a>
+    {% else %}
+      <a href="{% url 'console:vehicles' %}">إلغاء</a>
+    {% endif %}
+  </form>
+{% endblock %}

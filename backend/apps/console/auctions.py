@@ -33,6 +33,7 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 
+from .forms import AuctionForm, VehicleForm
 from .views import console_page
 
 #: Rows per page. Twenty-five rather than the API's twenty: a console user is
@@ -227,3 +228,138 @@ def vehicle_state(request, pk: int):
     )
     messages.success(request, f"المركبة صارت «{VehicleState(vehicle.state).label}».")
     return redirect("console:vehicle-detail", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# Creating and editing. T805's other half.
+# ---------------------------------------------------------------------------
+
+
+def _save(request, form, *, action: str, fields: list[str], instance=None):
+    """Validate, save, and record — in that order, once.
+
+    Shared by the four editing views because the order is the rule and a rule
+    written four times drifts. The audit entry is written **after** the save and
+    inside no transaction of its own: the row exists by then, so a snapshot of
+    it is a snapshot of what is actually stored.
+    """
+    if not form.is_valid():
+        return None
+
+    before = audit.snapshot(instance, fields) if instance is not None else None
+    saved = form.save()
+
+    audit.record(
+        action=action,
+        entity=saved,
+        actor=request.user,
+        before=before,
+        after=audit.snapshot(saved, fields),
+        note=form.cleaned_data["reason"],
+    )
+    return saved
+
+
+AUCTION_FIELDS = ["number", "title", "starts_at", "ends_at", "deposit_required"]
+VEHICLE_FIELDS = [
+    "auction_id",
+    "lot_number",
+    "make",
+    "model",
+    "year",
+    "reserve_price",
+    "owner_company_id",
+]
+
+
+@console_page("console:auction-new")
+def auction_new(request):
+    """A new auction, born `draft`.
+
+    The state is not a field and not a choice: an auction starts as a draft and
+    reaches every other state through `apps.auctions.services`, whose guards
+    refuse — among other things — scheduling one with no cars in it.
+    """
+    form = AuctionForm(request.POST or None)
+
+    if request.method == "POST":
+        auction = _save(
+            request, form, action="console.create_auction", fields=AUCTION_FIELDS
+        )
+        if auction is not None:
+            messages.success(request, f"أُنشئ المزاد {auction.number}.")
+            return redirect("console:auction-detail", pk=auction.pk)
+
+    return render(
+        request,
+        "console/auction_form.html",
+        {"form": form, "auction": None},
+    )
+
+
+@console_page("console:auction-edit")
+def auction_edit(request, pk: int):
+    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    form = AuctionForm(request.POST or None, instance=auction)
+
+    if request.method == "POST":
+        saved = _save(
+            request,
+            form,
+            action="console.edit_auction",
+            fields=AUCTION_FIELDS,
+            instance=Auction.objects.get(pk=pk),
+        )
+        if saved is not None:
+            messages.success(request, "حُفظت التعديلات.")
+            return redirect("console:auction-detail", pk=pk)
+
+    return render(
+        request,
+        "console/auction_form.html",
+        {"form": form, "auction": auction},
+    )
+
+
+@console_page("console:vehicle-new")
+def vehicle_new(request):
+    """A new car, born `draft` and listed only through the service."""
+    form = VehicleForm(request.POST or None)
+
+    if request.method == "POST":
+        vehicle = _save(
+            request, form, action="console.create_vehicle", fields=VEHICLE_FIELDS
+        )
+        if vehicle is not None:
+            messages.success(request, f"أُنشئت المركبة (لوت {vehicle.lot_number}).")
+            return redirect("console:vehicle-detail", pk=vehicle.pk)
+
+    return render(request, "console/vehicle_form.html", {"form": form, "vehicle": None})
+
+
+@console_page("console:vehicle-edit")
+def vehicle_edit(request, pk: int):
+    """Edit a car's facts. Its state and its award are not among them.
+
+    An award typed by hand is an award with no bid behind it and no money moved
+    for it; correcting one is `bidding.settlement.replace_winner`, which moves
+    the invoice and the deposit with it.
+    """
+    vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    form = VehicleForm(request.POST or None, instance=vehicle)
+
+    if request.method == "POST":
+        saved = _save(
+            request,
+            form,
+            action="console.edit_vehicle",
+            fields=VEHICLE_FIELDS,
+            instance=Vehicle.objects.get(pk=pk),
+        )
+        if saved is not None:
+            messages.success(request, "حُفظت التعديلات.")
+            return redirect("console:vehicle-detail", pk=pk)
+
+    return render(
+        request, "console/vehicle_form.html", {"form": form, "vehicle": vehicle}
+    )

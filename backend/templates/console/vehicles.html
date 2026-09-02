@@ -10,6 +10,8 @@ have to undo one in their head.
 {% block heading %}المركبات{% endblock %}
 
 {% block content %}
+  <p><a href="{% url 'console:vehicle-new' %}">+ مركبة جديدة</a></p>
+
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="ماركة أو موديل أو رقم لوت">
     <select name="state">

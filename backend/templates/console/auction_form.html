@@ -1,0 +1,23 @@
+{% extends "console/base.html" %}
+{% block title %}{% if auction %}تعديل مزاد{% else %}مزاد جديد{% endif %}{% endblock %}
+{% block heading %}
+  {% if auction %}تعديل المزاد {{ auction.number }}{% else %}مزاد جديد{% endif %}
+{% endblock %}
+
+{% block content %}
+  {% comment %}
+  The state is deliberately absent from this form. An auction moves through
+  `apps.auctions.services`, whose guards refuse — among other things —
+  scheduling one that has no cars in it.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">حفظ</button>
+    {% if auction %}
+      <a href="{% url 'console:auction-detail' auction.pk %}">إلغاء</a>
+    {% else %}
+      <a href="{% url 'console:auctions' %}">إلغاء</a>
+    {% endif %}
+  </form>
+{% endblock %}
