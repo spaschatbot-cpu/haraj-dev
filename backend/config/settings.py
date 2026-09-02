@@ -23,6 +23,15 @@ ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 if not DEBUG and SECRET_KEY == "dev-only-insecure-key":
     raise RuntimeError("SECRET_KEY must be set outside DEBUG")
 
+# Article 5-6: every environment knows its own name, and says it on /health and
+# in anything it sends out, so a test message is recognisable before it reaches
+# a real customer.
+ENVIRONMENT_NAME = env("ENVIRONMENT_NAME", default="dev")
+
+# Stamped in at build time. Left empty locally, where /health falls back to
+# reading the checked-out git ref.
+GIT_COMMIT = env("GIT_COMMIT", default="")
+
 # --------------------------------------------------------------------------
 # Applications
 # --------------------------------------------------------------------------
