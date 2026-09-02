@@ -15,6 +15,14 @@ What the check looks for, outside `cards.py`:
   them — a serializer's field list, which is the same drift wearing a
   framework's clothes.
 
+A serializer's `class Meta` says which model it is for, and one for anything
+but `Vehicle` is skipped. Without that, an invoice serializer listing `id`,
+`state` and `state_label` looked exactly like a vehicle card: those three
+names are generic to every model in the project, and three generic names are
+not evidence of anything. The model name is read from the code rather than
+guessed from a list of "generic" field names, so the check keeps working when
+a card gains a field.
+
 Three is the threshold because one or two shared names are a coincidence
 (`state` and `year` mean things elsewhere) and three is a card. The
 "one computed field" clause is what separates a card from a plain
@@ -117,6 +125,29 @@ class CardHunter(ast.NodeVisitor):
             self.hits.append(
                 (node.lineno, "قاموس يرسم كرت مركبة: " + "، ".join(sorted(shared)))
             )
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Skip a serializer `Meta` that names a model other than `Vehicle`."""
+        if node.name == "Meta":
+            for statement in node.body:
+                if not isinstance(statement, ast.Assign):
+                    continue
+                if not any(
+                    isinstance(t, ast.Name) and t.id == "model"
+                    for t in statement.targets
+                ):
+                    continue
+                named = statement.value
+                model = (
+                    named.id
+                    if isinstance(named, ast.Name)
+                    else named.attr
+                    if isinstance(named, ast.Attribute)
+                    else ""
+                )
+                if model and model != "Vehicle":
+                    return  # not a vehicle card; do not descend
         self.generic_visit(node)
 
     def visit_Assign(self, node: ast.Assign) -> None:

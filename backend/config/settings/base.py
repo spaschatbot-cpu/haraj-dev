@@ -195,6 +195,20 @@ CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 
 # --------------------------------------------------------------------------
+# Card payments — off by default, like every other integration.
+#
+# The callback endpoint is unauthenticated by nature, so the shared secret is
+# what stands between a stranger and a credited wallet. With no secret set the
+# endpoint refuses every message rather than falling back to trusting them.
+# --------------------------------------------------------------------------
+
+PAYMENT_GATEWAY = env("PAYMENT_GATEWAY", default="moyasar")
+PAYMENT_WEBHOOK_SECRET = env("PAYMENT_WEBHOOK_SECRET", default="")
+#: The gateway's own words for "the money arrived". Kept as data, because a new
+#: word from them must never be read as success by accident.
+PAYMENT_SUCCESS_STATUSES = env.list("PAYMENT_SUCCESS_STATUSES", default=["paid"])
+
+# --------------------------------------------------------------------------
 # Odoo — off by default. Nothing reaches the accounting system until an
 # operator turns it on for this environment, deliberately.
 # --------------------------------------------------------------------------

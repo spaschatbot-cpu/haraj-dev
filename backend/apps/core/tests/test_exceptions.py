@@ -131,8 +131,20 @@ class TestDrfExceptionsKeepTheirStatus:
         assert response.status_code == 400
         body = response.json()
         assert_envelope(body)
-        assert body["error"]["code"] == "invalid"
+        # `validation_error`, not DRF's own `invalid`: the client branches on
+        # this string, and "invalid" says nothing about which of the four
+        # hundred things was invalid.
+        assert body["error"]["code"] == "validation_error"
         assert body["error"]["detail"] == {"amount": ["مبلغ غير صالح"]}
+
+    def test_the_serializers_own_arabic_reaches_the_message(self, api):
+        """A field error is the only one who knows *why*, so it is the message.
+
+        Flattening it to a generic "البيانات المرسلة غير صحيحة" and burying the
+        reason in `detail` leaves a customer with a form that says no and will
+        not say why — and the Flutter app shows `message` verbatim.
+        """
+        assert api.get("/boom/invalid").json()["error"]["message"] == "مبلغ غير صالح"
 
 
 class TestTheUnexpected:

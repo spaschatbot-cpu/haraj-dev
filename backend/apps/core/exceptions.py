@@ -30,6 +30,7 @@ import re
 import uuid
 from typing import Any
 
+from django.http import Http404
 from django.utils.module_loading import import_string
 from rest_framework import status
 from rest_framework.response import Response
@@ -43,7 +44,14 @@ log = logging.getLogger(__name__)
 #: layer everything else sits on — never imports a domain app at module load and
 #: cannot become half of an import cycle. Adding a domain's refusal base here is
 #: the whole of the work needed to give it 409s.
-EXPECTED_REFUSALS: tuple[str, ...] = ("apps.money.services.MoneyError",)
+#: `DomainError` lives in this package, so `apps.money.services.MoneyError` —
+#: which subclasses it — is covered without being named. It stays listed anyway:
+#: the tuple is the readable answer to "what returns 409 here?", and a domain
+#: that grows its own refusal base outside DomainError adds one line.
+EXPECTED_REFUSALS: tuple[str, ...] = (
+    "apps.core.errors.DomainError",
+    "apps.money.services.MoneyError",
+)
 
 #: The Arabic the user actually reads, by code. This is the single place a
 #: wording lives (Article 4-5); a screen that wants different words changes it
@@ -59,6 +67,7 @@ MESSAGES: dict[str, str] = {
     "not_authenticated": "يلزم تسجيل الدخول",
     "authentication_failed": "تعذّر التحقق من هويتك",
     "invalid": "البيانات المرسلة غير صحيحة",
+    "validation_error": "البيانات المرسلة غير صحيحة",
     "parse_error": "تعذّرت قراءة الطلب",
     "method_not_allowed": "هذه الطريقة غير مسموحة على هذا المسار",
     "not_acceptable": "الصيغة المطلوبة غير مدعومة",
@@ -105,27 +114,79 @@ def envelope(code: str, message: str = "", detail: Any = None) -> dict[str, Any]
     }
 
 
+def first_sentence(detail: Any) -> str | None:
+    """The first human sentence buried in a DRF validation detail tree.
+
+    A serializer that took the trouble to write "المبلغ يحدده النظام" should
+    have it reach the screen. Flattening it to a generic "البيانات المرسلة غير
+    صحيحة" and burying the real reason in ``detail`` leaves the customer with a
+    form that says no and will not say why.
+    """
+    if isinstance(detail, str):
+        return detail
+    if isinstance(detail, dict):
+        for value in detail.values():
+            found = first_sentence(value)
+            if found:
+                return found
+    if isinstance(detail, list):
+        for item in detail:
+            found = first_sentence(item)
+            if found:
+                return found
+    return None
+
+
 def api_exception_handler(exc: Exception, context: dict) -> Response:
     """DRF's ``EXCEPTION_HANDLER``. Returns a response for *every* exception."""
     view = context.get("view")
 
     if isinstance(exc, _refusal_classes()):
-        code = code_for(exc)
+        # A refusal may declare its own stable code; otherwise the class name
+        # gives it one, so a new refusal cannot ship wearing its parent's.
+        code = getattr(exc, "code", None) or code_for(exc)
+
+        # Three sources of wording, in order. An explicit `user_message` wins
+        # because only the raiser can say "10000.00 مقفولة على مستحقات" — a
+        # static table cannot hold a sentence with this customer's numbers in
+        # it. Otherwise MESSAGES owns the wording (Article 4-5), and a code it
+        # has never heard of falls back to the class's own default.
+        message = getattr(exc, "explicit_message", "")
+        if not message:
+            message = MESSAGES.get(code) or getattr(exc, "user_message", "")
+
         # The exception's own text is diagnostic English ("insurance_free for
         # owner 7 holds 0.00, needs 10000") — useful to an operator reading
         # logs, wrong to put in front of a customer. It stays here.
         log.warning("refused: %s: %s (view=%s)", code, exc, view)
         set_rollback()
-        return Response(envelope(code), status=status.HTTP_409_CONFLICT)
+        return Response(
+            envelope(code, message, getattr(exc, "detail", None)),
+            status=status.HTTP_409_CONFLICT,
+        )
+
+    # Django's own 404, which `get_object_or_404` raises. DRF turns it into a
+    # 404 response but leaves the exception as `Http404`, so it has no
+    # `default_code` and `code_for` would name it after its class — a client
+    # would see "http404" for a missing invoice and "not_found" for a missing
+    # payment, for the same reason.
+    if isinstance(exc, Http404):
+        return Response(envelope("not_found"), status=status.HTTP_404_NOT_FOUND)
 
     response = drf_exception_handler(exc, context)
     if response is not None:
         detail = getattr(exc, "detail", None)
         code = getattr(exc, "default_code", None) or code_for(exc)
         if isinstance(detail, dict | list):
-            # A validation error: the per-field errors are the useful part, and
-            # the top-level message stays a single sentence.
-            return Response(envelope(code, detail=detail), status=response.status_code)
+            # A validation error. `validation_error` rather than DRF's own
+            # `invalid`, because the client branches on this string and
+            # "invalid" says nothing about which of the four hundred things
+            # were invalid. The per-field errors stay in `detail`; the first
+            # Arabic sentence among them becomes the message.
+            return Response(
+                envelope("validation_error", first_sentence(detail) or "", detail),
+                status=response.status_code,
+            )
         return Response(envelope(code), status=response.status_code)
 
     # Unexpected. The client gets a random token and nothing else; the token is

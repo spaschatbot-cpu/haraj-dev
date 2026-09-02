@@ -196,6 +196,41 @@ def test_the_card_check_catches_a_second_field_list(tmp_path):
     assert len(check.violations([root])) == 1
 
 
+def test_the_card_check_still_catches_a_second_card_on_the_vehicle_itself(tmp_path):
+    """The Meta escape hatch must not be an escape hatch for a real card."""
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "serializers.py",
+        "class VehicleCardSerializer(ModelSerializer):\n"
+        "    class Meta:\n"
+        "        model = Vehicle\n"
+        "        fields = ('make', 'model', 'year', 'reserve_price')\n",
+    )
+
+    assert len(check.violations([root])) == 1
+
+
+def test_the_card_check_leaves_another_models_serializer_alone(tmp_path):
+    """`id`, `state` and `state_label` are generic to every model here.
+
+    Three generic names shared with the card is a coincidence, not a second
+    card — an invoice serializer tripped this check before the model name was
+    consulted.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "serializers.py",
+        "class InvoiceSerializer(ModelSerializer):\n"
+        "    class Meta:\n"
+        "        model = Invoice\n"
+        "        fields = ('id', 'state', 'state_label', 'number')\n",
+    )
+
+    assert check.violations([root]) == []
+
+
 def test_the_card_check_reads_its_field_list_from_the_card_module():
     """Derived, not copied: adding a card field must not need this check
     edited, or the check will be guarding last month's card."""

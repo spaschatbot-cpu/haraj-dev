@@ -10,6 +10,7 @@ urlpatterns = [
     path("health", health, name="health"),
     path("admin/", admin.site.urls),
     path("webhooks/", include("apps.odoo.urls")),
+    path("api/v1/", include("apps.money.api.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/docs/",
