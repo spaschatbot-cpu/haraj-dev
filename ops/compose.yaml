@@ -29,10 +29,12 @@
 #    able to destroy a ledger you were in the middle of inspecting. Removing
 #    the data is a separate, deliberate `docker compose down -v`.
 #
-# Redis is currently unused by the backend — the advisory locks live in
-# PostgreSQL (apps/core/locks.py), per Article 5-1 — but Celery's broker
-# (config/celery.py) needs it as soon as background work starts, so it is
-# defined here rather than discovered missing later.
+# Redis is currently unused: nothing in backend/ imports it today, and the
+# single-run locks Article 5-1 requires are meant to be PostgreSQL advisory
+# locks rather than Redis ones. It is defined here anyway because
+# config/celery.py already points CELERY_BROKER_URL at it, and a broker that is
+# missing the first time a worker starts is a worse discovery than an idle
+# container.
 
 name: haraj2
 
@@ -120,9 +122,8 @@ volumes:
 #
 # Redis without Docker
 # --------------------
-# Not needed yet. Nothing in the backend requires Redis today: the single-run
-# locks are PostgreSQL advisory locks (apps/core/locks.py), and Celery is
-# configured but not yet started. When a worker is actually run, install Redis
+# Not needed yet. Nothing in the backend imports Redis today, and Celery is
+# configured but never started. When a worker is actually run, install Redis
 # 7.4 natively (`brew install redis`, `apt install redis-server`, or Memurai on
 # Windows) and point CELERY_BROKER_URL at it.
 #
