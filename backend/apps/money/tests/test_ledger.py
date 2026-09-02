@@ -12,7 +12,6 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError, transaction
 
-from apps.auctions.models import Auction, AuctionState
 from apps.money import services
 from apps.money.models import (
     Account,
@@ -24,32 +23,17 @@ from apps.money.models import (
     InvoiceState,
     Transaction,
 )
+from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
 
 
-@pytest.fixture
-def customer(django_user_model):
-    return django_user_model.objects.create_user(
-        phone="966500000001", full_name="عميل اختبار", password="x"
-    )
-
-
-@pytest.fixture
-def auction():
-    from django.utils import timezone
-    from datetime import timedelta
-
-    now = timezone.now()
-    return Auction.objects.create(
-        number=1,
-        title="مزاد الاختبار",
-        starts_at=now,
-        ends_at=now + timedelta(hours=2),
-        state=AuctionState.LIVE,
-    )
+# fixtures ``customer`` و``staff`` و``auction`` في ``backend/conftest.py`` —
+# تعريف واحد يراه كل تطبيق، بدل نسخة في كل ملف تنحرف عن أختها. وما يخصّ المال
+# وحده (``other_customer``، ``other_auction``، ``vehicle``) في conftest.py
+# المجاور.
 
 
 def free(user) -> Decimal:
@@ -150,9 +134,7 @@ class TestHolds:
         hold = services.hold_for_auction(user=customer, auction=auction)
 
         assert free(customer) == Decimal("0.00")
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
-        )
+        assert services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
         assert hold.state == HoldState.ACTIVE
 
     def test_bidding_twice_in_one_auction_holds_once(self, customer, auction):
@@ -165,9 +147,7 @@ class TestHolds:
         second = services.hold_for_auction(user=customer, auction=auction)
 
         assert first.pk == second.pk
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
-        )
+        assert services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
         assert Hold.objects.filter(state=HoldState.ACTIVE).count() == 1
 
     def test_held_money_cannot_be_refunded_away(self, customer, auction):
@@ -189,10 +169,9 @@ class TestHolds:
         services.release_hold(hold)
 
         assert free(customer) == TEN_K
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance
-            == Decimal("0.00")
-        )
+        assert services.account_for(
+            customer, AccountKind.INSURANCE_HELD
+        ).balance == Decimal("0.00")
 
 
 class TestDues:
@@ -245,17 +224,17 @@ class TestVerification:
         )
         services.hold_for_auction(user=customer, auction=auction)
 
-        assert services.verify_ledger() == []
+        assert verify_ledger() == []
 
     def test_a_tampered_balance_is_caught(self, customer):
         services.deposit_insurance(
             user=customer, amount=TEN_K, source="cash", reference="PCSH/001"
         )
-        Account.objects.filter(
-            owner=customer, kind=AccountKind.INSURANCE_FREE
-        ).update(balance=Decimal("99999.00"))
+        Account.objects.filter(owner=customer, kind=AccountKind.INSURANCE_FREE).update(
+            balance=Decimal("99999.00")
+        )
 
-        findings = services.verify_ledger()
+        findings = verify_ledger()
 
         assert any(f.check == "cached_balance" for f in findings)
 
@@ -266,6 +245,6 @@ class TestVerification:
         hold = services.hold_for_auction(user=customer, auction=auction)
         Hold.objects.filter(pk=hold.pk).update(state=HoldState.RELEASED)
 
-        findings = services.verify_ledger()
+        findings = verify_ledger()
 
         assert any(f.check == "holds_explain_bucket" for f in findings)

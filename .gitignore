@@ -22,3 +22,6 @@ mobile/.flutter-plugins*
 .idea/
 .vscode/
 Thumbs.db
+
+# Worktrees the harness creates for parallel agents — never committed.
+.claude/worktrees/

@@ -1,0 +1,73 @@
+name: haraj_mobile
+description: "حراج واحد — تطبيق العميل"
+# تطبيق داخلي: لا يُنشر على pub.dev أبداً.
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+
+# كل النسخ مثبَّتة بحدّ أدنى صريح، والقفل الحقيقي في pubspec.lock
+# (خطة الفريق §4: «كل نسخة تُثبَّت في lock file، لا latest»).
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # الحالة (خطة الفريق §4 — التطبيق)
+  flutter_riverpod: ^3.4.2
+
+  # التنقل المُعلَن
+  go_router: ^17.5.0
+
+  # الشبكة — dio تحت عميل مولَّد من مخطط OpenAPI، لا نداءات يدوية
+  dio: ^5.11.0
+  retrofit: ^4.10.0
+
+  # النماذج (مولَّدة، لا تُكتب يدوياً)
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.12.0
+
+  # التخزين المحلي: drift للكاش، secure_storage للتوكنات وحدها
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  flutter_secure_storage: ^11.0.0
+
+  # تنسيق التواريخ فقط — ممنوع استعماله لتنسيق المبالغ (H4)
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  build_runner: ">=2.15.1 <2.15.2"
+  freezed: ">=3.2.4 <3.2.6"
+  json_serializable: ^6.14.1
+  retrofit_generator: ^10.2.9
+  drift_dev: ^2.34.0
+
+  # مولّد عميل الـAPI من مخطط OpenAPI (T702)
+  swagger_parser: ^1.44.2
+  yaml: ^3.1.4
+
+flutter:
+  uses-material-design: true
+
+  # يشغّل gen_l10n على ملفات ARB (T703)
+  generate: true
+
+  fonts:
+    - family: IBMPlexSansArabic
+      fonts:
+        - asset: assets/fonts/IBMPlexSansArabic-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSansArabic-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSansArabic-Bold.ttf
+          weight: 700

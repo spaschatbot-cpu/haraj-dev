@@ -1,13 +1,17 @@
-"""Django settings for Haraj One v2.
+"""Settings shared by every environment.
 
-Every environment-specific value is read from the environment, never hard-coded.
+This module is never used directly. Each environment imports it and then
+narrows it: `dev`, `prod`, and `test` (which inherits `prod`, not `dev` —
+see `specs/001-foundation/plan.md`).
 """
 
 from pathlib import Path
 
 import environ
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# base.py sits two packages deep (config/settings/), so BASE_DIR is the
+# third parent, not the second.
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -16,12 +20,22 @@ env = environ.Env(
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
-SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-key")
+INSECURE_SECRET_KEY = "dev-only-insecure-key"
+
+SECRET_KEY = env("SECRET_KEY", default=INSECURE_SECRET_KEY)
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-if not DEBUG and SECRET_KEY == "dev-only-insecure-key":
-    raise RuntimeError("SECRET_KEY must be set outside DEBUG")
+# The environment names itself on /health, in the UI, and in every outbound
+# message, so a test message can never look like it came from production
+# (Article 5-6). "base" is a sentinel that no running environment keeps: each
+# of dev/test/prod overrides it, and seeing it in a response means a settings
+# module was pointed at directly, which is itself the bug.
+ENVIRONMENT_NAME = "base"
+
+# Stamped in at build time. Left empty locally, where /health falls back to
+# reading the checked-out git ref.
+GIT_COMMIT = env("GIT_COMMIT", default="")
 
 # --------------------------------------------------------------------------
 # Applications
@@ -98,7 +112,9 @@ DATABASES = {
         default="postgres://haraj:haraj@127.0.0.1:5432/haraj2",
     )
 }
-DATABASES["default"].setdefault("CONN_MAX_AGE", 60)
+# Connection reuse is an environment decision: prod holds connections open,
+# dev and test do not.
+DATABASES["default"].setdefault("CONN_MAX_AGE", 0)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
@@ -150,6 +166,9 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    # One envelope for every error the API can return, so the Flutter app has a
+    # single branch to write and every message reaches the user in Arabic.
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
@@ -174,6 +193,20 @@ CELERY_TIMEZONE = "UTC"
 
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
+
+# --------------------------------------------------------------------------
+# Card payments — off by default, like every other integration.
+#
+# The callback endpoint is unauthenticated by nature, so the shared secret is
+# what stands between a stranger and a credited wallet. With no secret set the
+# endpoint refuses every message rather than falling back to trusting them.
+# --------------------------------------------------------------------------
+
+PAYMENT_GATEWAY = env("PAYMENT_GATEWAY", default="moyasar")
+PAYMENT_WEBHOOK_SECRET = env("PAYMENT_WEBHOOK_SECRET", default="")
+#: The gateway's own words for "the money arrived". Kept as data, because a new
+#: word from them must never be read as success by accident.
+PAYMENT_SUCCESS_STATUSES = env.list("PAYMENT_SUCCESS_STATUSES", default=["paid"])
 
 # --------------------------------------------------------------------------
 # Odoo — off by default. Nothing reaches the accounting system until an

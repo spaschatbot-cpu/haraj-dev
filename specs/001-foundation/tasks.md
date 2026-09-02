@@ -18,7 +18,7 @@
 **القبول:** الشجرة تطابق `plan.md` بالضبط؛ `manage.py check` يمرّ.
 **التحقق:** `cd backend && uv run python manage.py check`
 
-### ⬜ T002 — تقسيم الإعدادات إلى base/dev/test/prod
+### ✅ T002 — تقسيم الإعدادات إلى base/dev/test/prod
 **الملفات:** `backend/config/settings/{__init__,base,dev,test,prod}.py` (يحلّ محلّ `settings.py`)
 **المطلوب:** انقل الحالي إلى `base.py`. `dev.py` يفعّل DEBUG وقاعدة محلية.
 `prod.py` يشدّد الأمان (`SECURE_*`، `CONN_MAX_AGE`، لا DEBUG). `test.py` **يرث
@@ -27,36 +27,49 @@
 **القبول:** `test.py` يستورد من `prod` لا من `dev` (تحقق نصّي)؛ الثلاثة تمرّ `check`.
 **التحقق:** `for s in dev test prod; do DJANGO_SETTINGS_MODULE=config.settings.$s uv run python manage.py check; done`
 
-### ⬜ T003 [P] — ops/compose.yaml لـPostgreSQL 17 وRedis
+### ✅ T003 [P] — ops/compose.yaml لـPostgreSQL 17 وRedis
 **الملفات:** `ops/compose.yaml`
 **المطلوب:** خدمتان بنسختين مثبّتتين (لا `latest`)، مجلدات بيانات دائمة، منافذ
 غير قياسية لتفادي التعارض، و`healthcheck` لكل واحدة.
 **القبول:** `docker compose up -d` ثم اتصال ناجح من `manage.py dbshell`.
 **ملاحظة:** لو Docker غير متاح على الجهاز، وثّق البديل (تثبيت مباشر) في نفس الملف.
+**ما تحقّق فعلاً:** Docker **غير مثبّت** على جهاز التطوير، فلم يُشغَّل الملف ولا
+مرة — هذا مذكور داخل الملف نفسه لا هنا فقط. المسار البديل (تثبيت مباشر) هو الذي
+اختُبر: `just dbshell` وصل إلى PostgreSQL 17.11 محلياً. النسخ مثبّتة على
+`postgres:17.11-bookworm` و`redis:7.4.2-alpine`، والمنافذ 55432 و56379.
 
-### ⬜ T004 [P] — أدوات الجودة
+### ✅ T004 [P] — أدوات الجودة
 **الملفات:** `backend/pyproject.toml`، `.pre-commit-config.yaml`
 **المطلوب:** ruff (lint + format)، mypy مع django-stubs، pre-commit يشغّلهما.
 **القبول:** `ruff check .` و`mypy .` نظيفان على الكود الحالي.
 **التحقق:** `cd backend && uv run ruff check . && uv run mypy .`
+**ما تحقّق فعلاً:** الاثنان نظيفان (`41 source files`)، و`pre-commit run
+--all-files` أخضر بكل خطافه. الهجرات مستثناة من ruff ومن mypy لأنها مولَّدة.
+**ناقص بوعي:** `mypy` الصارم على `apps.money` **مُعرَّف ومعطَّل بسطر واحد**
+(`ignore_errors`) لأن النموذج الأولي بلا تعليقات نوع وفيه العطل المعروف F-001
+(`specs/002-money-engine/findings.md`). حذف السطر مهمة T108 عند م1، لا مهمتي —
+وإسكات العطل ليرضى فاحص الأنواع كان سيكون أسوأ من عدم تشغيله.
 
-### ⬜ T005 [P] — Makefile/justfile بالأوامر اليومية
+### ✅ T005 [P] — Makefile/justfile بالأوامر اليومية
 **الملفات:** `justfile` في الجذر
 **المطلوب:** `just setup` · `just up` · `just test` · `just lint` · `just migrate`
 · `just run` · `just verify` (يشغّل verify_ledger).
 **القبول:** كل أمر يعمل من مجلد فارغ بعد `git clone`.
+**ما تحقّق فعلاً:** `setup` و`lint` و`test` و`check` و`check-migrations`
+و`dbshell` شُغِّلت ونجحت على Windows. `up`/`down`/`nuke` **لم تُشغَّل** — تحتاج
+Docker. `verify` يفشل بـ"Unknown command" لأن الأمر الإداري نفسه تاسك T120.
 
 ---
 
 ## المجموعة ب — تطبيق core
 
-### ⬜ T006 — نموذج الأساس والطوابع الزمنية
+### ✅ T006 — نموذج الأساس والطوابع الزمنية
 **الملفات:** `backend/apps/core/models.py`
 **المطلوب:** `TimeStampedModel` (abstract): `created_at`، `updated_at`. و`UUIDMixin`
 لأي كيان يُشار إليه من الخارج.
 **القبول:** اختبار يؤكد أن الحقلين يُملآن تلقائياً وأن `updated_at` يتغيّر عند الحفظ.
 
-### ⬜ T007 — مساعدات الوقت
+### ✅ T007 — مساعدات الوقت
 **الملفات:** `backend/apps/core/time.py`، `backend/apps/core/tests/test_time.py`
 **المطلوب:** `to_display(dt)` و`from_display(dt)` فقط، تقرآن `DISPLAY_TIME_ZONE`.
 **القبول:** اختبار يغطي: منتصف الليل السعودي، تغيّر اليوم عبر التحويل، وقيمة
@@ -64,20 +77,22 @@ naive تُرفض بـ`ValueError` لا تُخمَّن.
 **لماذا:** المادة ٣-١. أغلى أعطال v1 التوقيتية كانت مقارنة عمود محوَّل بآخر غير
 محوَّل.
 
-### ⬜ T008 — سجل التدقيق
+### ✅ T008 — سجل التدقيق
 **الملفات:** `backend/apps/core/models.py`، `backend/apps/core/audit.py`
 **المطلوب:** `AuditLog(actor, action, entity_type, entity_id, before, after, at, note)`
 ودالة `record(...)` تُستدعى صراحةً من طبقة الخدمة. **ممنوع signals.**
 **القبول:** اختبار يؤكد تسجيل قيمة قبل وبعد؛ واختبار يؤكد عدم وجود أي
 `post_save` receiver في المشروع (`grep`).
 
-### ⬜ T009 — معالج الأخطاء الموحّد
+### ✅ T009 — معالج الأخطاء الموحّد
 **الملفات:** `backend/apps/core/exceptions.py`، `backend/config/settings/base.py`
+**ملاحظة تنفيذ:** التسجيل تمّ في `backend/config/settings.py` لأن T002 (تقسيم
+الإعدادات) لم يُنفَّذ بعد؛ T002 ينقل هذا الملف كما هو إلى `base.py`.
 **المطلوب:** الشكل الموصوف في `plan.md`. `MoneyError` → 409، `NotFound` → 404،
 غير المتوقَّع → 500 مع معرّف حادثة يُسجَّل ولا يُسرَّب للعميل.
 **القبول:** اختبارات لكل حالة تؤكد الشكل ورمز الحالة.
 
-### ⬜ T010 [P] — نقطة /health
+### ✅ T010 [P] — نقطة /health
 **الملفات:** `backend/apps/core/views.py`، `backend/config/urls.py`
 **المطلوب:** ترجع 200 مع: اسم البيئة، هاش الـcommit، حالة اتصال قاعدة البيانات
 وRedis. لا تكشف أي سرّ.
@@ -88,13 +103,13 @@ naive تُرفض بـ`ValueError` لا تُخمَّن.
 
 ## المجموعة ج — المستخدم
 
-### ⬜ T011 — تثبيت نموذج المستخدم
+### ✅ T011 — تثبيت نموذج المستخدم
 **الملفات:** `backend/apps/accounts/models.py`
 **المطلوب:** راجع النموذج الأولي الموجود. الجوال هو `USERNAME_FIELD`، بتحقّق
 `9665XXXXXXXX`. أضف فهارس. **لا** تضف منطق تسجيل أو OTP (فيز 007).
 **القبول:** اختبار: إنشاء مستخدم، رفض رقم بصيغة خاطئة، رفض تكرار الرقم.
 
-### ⬜ T012 — نموذج الشركة وقاعدة اسم العرض
+### ✅ T012 — نموذج الشركة وقاعدة اسم العرض
 **الملفات:** `backend/apps/accounts/models.py`، `backend/apps/accounts/services.py`
 **المطلوب:** `Company` بحقلي `name` (الشركة) و`representative_name` (الممثل)،
 ودالة واحدة `display_name(user)` تُرجع اسم الشركة إن وُجدت وإلا اسم الفرد.
@@ -105,42 +120,54 @@ naive تُرفض بـ`ValueError` لا تُخمَّن.
 
 ## المجموعة د — الاختبارات وCI
 
-### ⬜ T013 — conftest يرفض أي قاعدة غير PostgreSQL
+### ✅ T013 — conftest يرفض أي قاعدة غير PostgreSQL
 **الملفات:** `backend/conftest.py`
 **المطلوب:** عند بدء الجلسة، لو `connection.vendor != "postgresql"` أوقف التشغيل
 برسالة واضحة. أضف fixtures عامة: `customer`، `staff`، `auction`.
 **القبول:** تشغيل بإعدادات sqlite يفشل برسالة مفهومة، لا بخطأ غامض.
 **لماذا:** المادة ٤-٢.
 
-### ⬜ T014 — اختبار أن إعدادات الإنتاج ترفض الأسرار الافتراضية
+### ✅ T014 — اختبار أن إعدادات الإنتاج ترفض الأسرار الافتراضية
 **الملفات:** `backend/tests/test_settings.py`
 **المطلوب:** اختبار يؤكد رفع `RuntimeError` عند `SECRET_KEY` افتراضي بلا DEBUG،
 واختبار يؤكد أن `ODOO_ENABLED` افتراضه `False`.
 **القبول:** الاختباران يمرّان.
 **لماذا:** المادة ٢-٦ و٥-٣.
+**منفَّذ في:** `backend/tests/test_settings.py`. يضمّ كذلك فحص «`test` يرث `prod`»
+وهو **متخطّى (skipped)** حتى ينفَّذ T002، ويسري تلقائياً فور ظهور `config/settings/`.
 
-### ⬜ T015 — GitHub Actions
-**الملفات:** `.github/workflows/ci.yml`
+### 🟡 T015 — GitHub Actions
+**الملفات:** `.github/workflows/ci.yml`، `ops/checks/no_float_in_money.py`
 **المطلوب:** الخطوات الخمس بالترتيب المذكور في `plan.md`، على خدمة PostgreSQL 17،
-مع تخزين مؤقت لـuv. كل خطوة مانعة.
+مع تخزين مؤقت لـuv. كل خطوة مانعة. وخطوة سادسة: فحص `float` في مسارات المال.
 **القبول:** الـworkflow أخضر على PR تجريبي، وأحمر عند كسر أي خطوة عمداً.
+**لماذا 🟡 لا ✅:** الملف مكتوب وكل خطوة من الست شُغِّلت **محلياً** بنفس الأوامر
+والمتغيرات، لكن الـworkflow **لم يعمل ولا مرة على GitHub Actions** — لا يوجد
+push من هذه البيئة. لا يُغلق التاسك إلا بعد أول تشغيل أخضر فعلي.
+**ومتوقَّع أن يكون أحمر عند أول تشغيل:** خطوة `pytest` تفشل باختبار واحد،
+`test_a_transaction_cannot_be_reversed_twice` — وهو العطل F-001 المسجَّل في
+`specs/002-money-engine/findings.md` والمجدول للإصلاح في T108. البوابة تعمل
+كما ينبغي؛ الأحمر هنا نتيجة صحيحة لا خلل في الـworkflow.
 
-### ⬜ T016 — فحص الهجرات الناقصة
+### ✅ T016 — فحص الهجرات الناقصة
 **الملفات:** ضمن `ci.yml`
 **المطلوب:** `makemigrations --check --dry-run` كخطوة مستقلة.
 **القبول:** إضافة حقل بلا هجرة تُسقط الـCI.
+**ما تحقّق فعلاً:** أُضيف حقل إلى `Notification` بلا هجرة، فخرج الأمر بكود 1
+وسمّى الحقل والملف الناقص؛ ثم أُعيد الملف كما كان والفحص عاد نظيفاً. متاح
+محلياً أيضاً كـ`just check-migrations`.
 
 ---
 
 ## المجموعة هـ — التوثيق
 
-### ⬜ T017 [P] — README تشغيلي
+### ✅ T017 [P] — README تشغيلي
 **الملفات:** `README.md`
 **المطلوب:** ثلاثة أوامر للتشغيل، ومتطلبات النظام بنسخها، وأين يقرأ الوافد
 الجديد (الدستور ثم الخريطة).
 **القبول:** شخص لم يرَ المشروع يشغّله باتباع الملف وحده.
 
-### ⬜ T018 [P] — قالب PR وقائمة مراجعة الدستور
+### ✅ T018 [P] — قالب PR وقائمة مراجعة الدستور
 **الملفات:** `.github/pull_request_template.md`
 **المطلوب:** خانات تأكيد: أي بند دستور يمسّه هذا التغيير، هل الاختبارات على
 Postgres، هل `verify_ledger` نظيف لو التغيير يمسّ المال.

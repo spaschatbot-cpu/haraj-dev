@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "Haraj Wahed",
+  "seedTitle": "App seed",
+  "seedBody": "The foundation is in place: Arabic and direction, the generated client, local storage, and error handling. Screens start once the API schema is frozen.",
+  "environmentBanner": "{environment} build",
+  "environmentDevelopment": "Development",
+  "environmentStaging": "Staging",
+  "retry": "Retry",
+  "errorOffline": "No internet connection.",
+  "errorTimeout": "Could not reach the server. Please try again.",
+  "errorMalformedResponse": "The server returned a response we could not read.",
+  "errorUnexpected": "An unexpected error occurred in the app.",
+  "offlineDataNotice": "Saved data — last updated {date} at {time}"
+}

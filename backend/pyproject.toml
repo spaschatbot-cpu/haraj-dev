@@ -12,15 +12,18 @@ dependencies = [
     "django-filter>=26.1",
     "djangorestframework>=3.18.0",
     "drf-spectacular>=0.30.0",
+    "openpyxl>=3.1.5",
     "pillow>=12.3.0",
     "psycopg[binary]>=3.3.4",
     "redis>=6.4.0",
+    "requests>=2.34.2",
 ]
 
 [dependency-groups]
 dev = [
     "django-stubs>=6.1.0",
     "factory-boy>=3.3.3",
+    "hypothesis>=6.167.1",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "pytest-django>=4.14.0",
@@ -30,6 +33,68 @@ dev = [
 [tool.ruff]
 line-length = 90
 target-version = "py313"
+# Migrations are written by `makemigrations`, not by a person. Linting them
+# turns a generated file into a file someone edits by hand, which is exactly
+# how a migration stops describing the schema it claims to describe.
+extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "DJ"]
+
+# --------------------------------------------------------------------------
+# Types
+#
+# The whole tree is checked, but only `apps.money` is checked strictly. The
+# ledger is the one place where an unannotated argument can quietly become a
+# float, and Article 3-2 forbids that outright; everywhere else a gradual
+# ratchet is enough. Migrations are excluded for the same reason ruff skips
+# them.
+# --------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["mypy_django_plugin.main"]
+mypy_path = "."
+exclude = ['/migrations/']
+namespace_packages = true
+explicit_package_bases = true
+
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+strict_equality = true
+check_untyped_defs = true
+
+# Third-party packages that ship no types. Listed one by one rather than with
+# a blanket `ignore_missing_imports`, so a newly added untyped dependency is a
+# visible decision instead of a silent hole.
+[[tool.mypy.overrides]]
+module = ["environ.*", "celery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "apps.money.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+no_implicit_reexport = true
+extra_checks = true
+# The strict flags above are the rule; this line is the only thing keeping them
+# from blocking today. `apps/money` is still the untyped phase-002 prototype and
+# it carries one *known* open defect — F-001 in specs/002-money-engine/findings.md,
+# scheduled for T108. Silencing that defect to make a type checker quiet would be
+# worse than not running the checker at all, and pre-empting م1's rewrite of these
+# signatures would be a second task inside this one.
+#
+# REMOVE THIS LINE when T104–T108 land. Nothing else needs to change.
+ignore_errors = true
+
+[tool.django-stubs]
+# T002 has landed. `dev` rather than `test` because mypy resolves this at
+# import time on a developer's machine, where a test database need not exist.
+django_settings_module = "config.settings.dev"

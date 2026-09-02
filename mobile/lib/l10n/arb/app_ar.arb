@@ -1,0 +1,73 @@
+{
+  "@@locale": "ar",
+
+  "appTitle": "حراج واحد",
+  "@appTitle": {
+    "description": "اسم التطبيق كما يظهر في مبدّل التطبيقات"
+  },
+
+  "seedTitle": "بذرة التطبيق",
+  "@seedTitle": {
+    "description": "عنوان الشاشة المؤقّتة التي تسبق شاشات المجموعة ب"
+  },
+
+  "seedBody": "الأساس جاهز: العربية والاتجاه، والعميل المولَّد، والتخزين المحلي، ومعالجة الأخطاء. الشاشات تبدأ بعد تثبيت مخطط الـAPI.",
+  "@seedBody": {
+    "description": "شرح حالة البذرة"
+  },
+
+  "environmentBanner": "بيئة {environment}",
+  "@environmentBanner": {
+    "description": "لافتة تظهر في كل بناء غير إنتاجي — المادة ٥-٦",
+    "placeholders": {
+      "environment": {
+        "type": "String",
+        "example": "تطوير"
+      }
+    }
+  },
+
+  "environmentDevelopment": "تطوير",
+  "@environmentDevelopment": {},
+
+  "environmentStaging": "تجريب",
+  "@environmentStaging": {},
+
+  "retry": "إعادة المحاولة",
+  "@retry": {},
+
+  "errorOffline": "لا يوجد اتصال بالإنترنت.",
+  "@errorOffline": {
+    "description": "الخادم لم يُسأل أصلاً — حالة لا يعرفها الخادم، فالنصّ محلي"
+  },
+
+  "errorTimeout": "تعذّر الوصول إلى الخادم. حاول مرة أخرى.",
+  "@errorTimeout": {
+    "description": "انقضت المهلة قبل ردّ مفهوم"
+  },
+
+  "errorMalformedResponse": "وصل ردّ غير مفهوم من الخادم.",
+  "@errorMalformedResponse": {
+    "description": "ردّ لم يطابق الشكل الموحّد — لا نخترع له رسالة"
+  },
+
+  "errorUnexpected": "حدث خطأ غير متوقع في التطبيق.",
+  "@errorUnexpected": {
+    "description": "عطب في التطبيق نفسه، لا في الخادم"
+  },
+
+  "offlineDataNotice": "بيانات محفوظة — آخر تحديث {date} الساعة {time}",
+  "@offlineDataNotice": {
+    "description": "علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  }
+}

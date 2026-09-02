@@ -1,0 +1,133 @@
+# Local services for development: PostgreSQL and Redis.
+#
+#   docker compose -f ops/compose.yaml up -d      (or: just up)
+#   docker compose -f ops/compose.yaml down       (or: just down)
+#
+# Three decisions worth explaining, because each of them cost v1 something:
+#
+# 1. **Versions are pinned to a patch, never `latest`.** v1's local machines,
+#    the cron host and the web host all ran different builds of the database,
+#    and a `sql_mode` difference let money logic pass locally and fail in
+#    production. The version that runs here is the version CI runs
+#    (.github/workflows/ci.yml) and the version production runs. When one
+#    moves, all three move together, in one commit.
+#
+# 2. **Non-standard host ports.** Developers on this project already have a
+#    PostgreSQL on 5432 — the phase-002 prototype was run against a manual
+#    install on exactly that port (specs/002-money-engine/findings.md). Binding
+#    5432 here would either fail to start or, far worse, silently connect the
+#    test suite to somebody's real data. The container ports stay standard; only
+#    the host mapping moves.
+#
+#      PostgreSQL  host 55432 -> container 5432
+#      Redis       host 56379 -> container 6379
+#
+#    So DATABASE_URL in backend/.env must say 55432 when you use compose:
+#      DATABASE_URL=postgres://haraj:haraj@127.0.0.1:55432/haraj2
+#
+# 3. **Named volumes, not anonymous ones.** `docker compose down` must not be
+#    able to destroy a ledger you were in the middle of inspecting. Removing
+#    the data is a separate, deliberate `docker compose down -v`.
+#
+# Redis is currently unused: nothing in backend/ imports it today, and the
+# single-run locks Article 5-1 requires are meant to be PostgreSQL advisory
+# locks rather than Redis ones. It is defined here anyway because
+# config/celery.py already points CELERY_BROKER_URL at it, and a broker that is
+# missing the first time a worker starts is a worse discovery than an idle
+# container.
+
+name: haraj2
+
+services:
+  postgres:
+    # 17.11 is the version the phase-002 prototype was actually run against
+    # (specs/002-money-engine/findings.md), and the version CI starts.
+    image: postgres:17.11-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: haraj2
+      POSTGRES_USER: haraj
+      POSTGRES_PASSWORD: haraj
+      # The database is created once, at first start, with these settings.
+      # C collation keeps ordering identical across host platforms, so an
+      # index behaves the same on a developer's Windows box and on the server.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone answers before the database finishes its first-boot
+      # initialisation, so the user and database are named explicitly.
+      test: ["CMD-SHELL", "pg_isready -U haraj -d haraj2"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    # Celery acknowledges late and re-delivers (config/settings.py); a broker
+    # that silently evicts a queued task under memory pressure would turn that
+    # guarantee into a lie, so eviction is disabled instead of defaulted.
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "127.0.0.1:56379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  redis-data:
+
+# ---------------------------------------------------------------------------
+# If Docker is not available on this machine
+# ---------------------------------------------------------------------------
+#
+# This file has NOT been run on the development machine this was written on —
+# Docker is not installed there, and the phase-002 prototype was run against a
+# hand-installed PostgreSQL instead. The fallback below is what that machine
+# actually does, written down so it stops being a sequence of commands living
+# in a chat history (findings.md, note to phase 001).
+#
+# PostgreSQL 17 without Docker
+# ----------------------------
+# Windows: `winget install PostgreSQL.PostgreSQL.17` is known to fail with a
+# 403 from get.enterprisedb.com *and still exit 0*, so check the result rather
+# than the exit code. The portable zip from
+# https://www.enterprisedb.com/download-postgresql-binaries works:
+#
+#     # unpack to D:/pgsql17, then, once:
+#     D:/pgsql17/bin/initdb -D D:/pgsql17/data -E UTF8 --locale=C -U postgres
+#     D:/pgsql17/bin/pg_ctl -D D:/pgsql17/data -l D:/pgsql17/log.txt start
+#     D:/pgsql17/bin/createuser  -U postgres -s haraj
+#     D:/pgsql17/bin/createdb    -U postgres -O haraj haraj2
+#
+# Debian/Ubuntu: use the PGDG apt repository and install `postgresql-17`
+# explicitly — the distribution's default major version is not 17 and the
+# difference is exactly the kind of silent environment drift this file exists
+# to prevent.
+#
+# macOS: `brew install postgresql@17 && brew services start postgresql@17`.
+#
+# A direct install listens on the standard 5432, so leave DATABASE_URL at the
+# 5432 default in backend/.env.example and skip the 55432 note above.
+#
+# Redis without Docker
+# --------------------
+# Not needed yet. Nothing in the backend imports Redis today, and Celery is
+# configured but never started. When a worker is actually run, install Redis
+# 7.4 natively (`brew install redis`, `apt install redis-server`, or Memurai on
+# Windows) and point CELERY_BROKER_URL at it.
+#
+# Whichever route you take, the check is the same and it is the acceptance
+# criterion for this task:
+#
+#     cd backend && uv run python manage.py dbshell

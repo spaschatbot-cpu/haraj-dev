@@ -1,0 +1,197 @@
+#!/usr/bin/env python
+"""Fail if a vehicle card is assembled anywhere but `apps/auctions/cards.py`.
+
+v1's home page alone had four paths that drew this card and three lists of
+permitted fields. Nothing compared them, so a field added for the app appeared
+on the web, was missing in the admin, and nobody noticed until a customer
+asked why the mileage was gone (E7).
+
+What the check looks for, outside `cards.py`:
+
+* a dict literal whose keys are three or more card fields, **one of which the
+  card computes** (`title`, `thumbnail_url`, a `_label`) — someone building
+  the payload by hand;
+* a `fields = (...)` / `FIELDS = [...]` assignment holding three or more of
+  them — a serializer's field list, which is the same drift wearing a
+  framework's clothes.
+
+A serializer's `class Meta` says which model it is for, and one for anything
+but `Vehicle` is skipped. Without that, an invoice serializer listing `id`,
+`state` and `state_label` looked exactly like a vehicle card: those three
+names are generic to every model in the project, and three generic names are
+not evidence of anything. The model name is read from the code rather than
+guessed from a list of "generic" field names, so the check keeps working when
+a card gains a field.
+
+Three is the threshold because one or two shared names are a coincidence
+(`state` and `year` mean things elsewhere) and three is a card. The
+"one computed field" clause is what separates a card from a plain
+`Vehicle.objects.create(...)` payload of column values; the computed fields
+are derived by reading `models.py`, not listed here, so the check cannot end
+up guarding an older card than the one that exists.
+
+Run:  python ops/checks/one_vehicle_card.py
+"""
+
+from __future__ import annotations
+
+import ast
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+BACKEND = ROOT / "backend"
+CARDS = BACKEND / "apps" / "auctions" / "cards.py"
+MODELS = BACKEND / "apps" / "auctions" / "models.py"
+
+SKIP_PARTS = {"__pycache__", "migrations", ".venv", "node_modules"}
+THRESHOLD = 3
+
+FIELD_LIST_NAMES = {"fields", "FIELDS", "card_fields", "CARD_FIELDS"}
+
+
+def card_fields() -> set[str]:
+    """Read the field list out of `cards.py` itself.
+
+    Parsed rather than imported so the check runs without Django configured,
+    and derived rather than copied so that adding a field to the card cannot
+    leave this check guarding yesterday's list.
+    """
+    tree = ast.parse(CARDS.read_text(encoding="utf-8"), filename=str(CARDS))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AnnAssign | ast.Assign):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            names = {t.id for t in targets if isinstance(t, ast.Name)}
+            if "_BUILDERS" in names and isinstance(node.value, ast.Dict):
+                return {
+                    key.value
+                    for key in node.value.keys
+                    if isinstance(key, ast.Constant) and isinstance(key.value, str)
+                }
+    raise SystemExit(f"لم يُعثر على تعريف حقول الكرت في {CARDS}")
+
+
+def model_field_names(model: str = "Vehicle") -> set[str]:
+    """Column names on `Vehicle`, read out of `models.py`.
+
+    Used to tell a card from a row: a dict of column values is somebody
+    creating a vehicle, a dict that also carries `title` or `thumbnail_url` is
+    somebody drawing a card. Only this one class is read — `Auction.title` is
+    a column of a different table and says nothing about a vehicle card.
+    """
+    tree = ast.parse(MODELS.read_text(encoding="utf-8"), filename=str(MODELS))
+    names: set[str] = {"pk"}
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef) or node.name != model:
+            continue
+        for statement in node.body:
+            if not isinstance(statement, ast.Assign) or not isinstance(
+                statement.value, ast.Call
+            ):
+                continue
+            function = statement.value.func
+            if isinstance(function, ast.Attribute) and isinstance(
+                function.value, ast.Name
+            ):
+                if function.value.id == "models":
+                    names |= {t.id for t in statement.targets if isinstance(t, ast.Name)}
+    return names
+
+
+def _string_elements(node: ast.AST) -> set[str]:
+    if not isinstance(node, ast.List | ast.Tuple | ast.Set):
+        return set()
+    return {
+        element.value
+        for element in node.elts
+        if isinstance(element, ast.Constant) and isinstance(element.value, str)
+    }
+
+
+class CardHunter(ast.NodeVisitor):
+    def __init__(self, fields: set[str], computed: set[str]) -> None:
+        self.fields = fields
+        self.computed = computed
+        self.hits: list[tuple[int, str]] = []
+
+    def visit_Dict(self, node: ast.Dict) -> None:
+        keys = {
+            key.value
+            for key in node.keys
+            if isinstance(key, ast.Constant) and isinstance(key.value, str)
+        }
+        shared = keys & self.fields
+        if len(shared) >= THRESHOLD and shared & self.computed:
+            self.hits.append(
+                (node.lineno, "قاموس يرسم كرت مركبة: " + "، ".join(sorted(shared)))
+            )
+        self.generic_visit(node)
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Skip a serializer `Meta` that names a model other than `Vehicle`."""
+        if node.name == "Meta":
+            for statement in node.body:
+                if not isinstance(statement, ast.Assign):
+                    continue
+                if not any(
+                    isinstance(t, ast.Name) and t.id == "model"
+                    for t in statement.targets
+                ):
+                    continue
+                named = statement.value
+                model = (
+                    named.id
+                    if isinstance(named, ast.Name)
+                    else named.attr
+                    if isinstance(named, ast.Attribute)
+                    else ""
+                )
+                if model and model != "Vehicle":
+                    return  # not a vehicle card; do not descend
+        self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        names = {t.id for t in node.targets if isinstance(t, ast.Name)}
+        if names & FIELD_LIST_NAMES:
+            shared = _string_elements(node.value) & self.fields
+            if len(shared) >= THRESHOLD:
+                self.hits.append(
+                    (node.lineno, "قائمة حقول ثانية للكرت: " + "، ".join(sorted(shared)))
+                )
+        self.generic_visit(node)
+
+
+def violations(roots: list[Path], fields: set[str] | None = None) -> list[str]:
+    fields = card_fields() if fields is None else fields
+    computed = fields - model_field_names()
+    found: list[str] = []
+
+    for root in roots:
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            if SKIP_PARTS & set(path.parts) or path == CARDS:
+                continue
+            hunter = CardHunter(fields, computed)
+            hunter.visit(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
+            for line, what in hunter.hits:
+                found.append(f"{path}:{line}: {what}")
+
+    return found
+
+
+def main() -> int:
+    found = violations([BACKEND / "apps", BACKEND / "config", BACKEND / "tests"])
+    if found:
+        print("كرت المركبة يُرسم من apps/auctions/cards.py وحدها (المعيار E7):\n")
+        for item in found:
+            print(f"  {item}")
+        print(f"\n{len(found)} مخالفة. استدعِ vehicle_card().")
+        return 1
+
+    print("مسار واحد لرسم كرت المركبة.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
