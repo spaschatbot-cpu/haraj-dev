@@ -1,0 +1,24 @@
+{% extends "console/base.html" %}
+{% comment %}
+The landing page is the person's own list of what they can do, not a dashboard
+of numbers they cannot act on — which is what v1's home page was, and why
+everybody bookmarked a sub-page instead.
+{% endcomment %}
+
+{% block title %}الرئيسية{% endblock %}
+{% block heading %}أهلاً {{ request.user.full_name }}{% endblock %}
+
+{% block content %}
+  <p>الشاشات المتاحة لك:</p>
+
+  {% for section in sidebar %}
+    <h2>{{ section.label }}</h2>
+    <ul>
+      {% for page in section.pages %}
+        <li><a href="{% url page.url_name %}">{{ page.label }}</a></li>
+      {% endfor %}
+    </ul>
+  {% empty %}
+    <p class="empty">لا صلاحيات مسنَدة لهذا الحساب بعد.</p>
+  {% endfor %}
+{% endblock %}

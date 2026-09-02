@@ -243,6 +243,13 @@ jobs:
         working-directory: backend
         run: uv run python ../ops/checks/one_permission_gate.py
 
+      # Phase 009's T804. v1's console moved between prefixes three times and
+      # every hard-coded link broke silently each time — a 404 on a link nobody
+      # clicked that week is a page that has quietly stopped existing.
+      - name: every console link is resolved by name
+        working-directory: backend
+        run: uv run python ../ops/checks/console_urls_are_named.py
+
       # Phase 007's T621. Two clients are generated from this schema and
       # neither is written by hand, so a field renamed in a serializer is a
       # breaking change to both. Committing the schema makes that change a diff

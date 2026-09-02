@@ -11,14 +11,17 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from apps.bidding import services
 from apps.bidding.models import RefusalReason
 
 pytestmark = pytest.mark.django_db
 
-PAGE = "/support/why-no-bid/"
+#: The page moved into the console (T802): it is a console screen guarded by
+#: `diagnostics.view`, not a URL somebody had to be told about. `APP_BASE` owns
+#: the prefix, so the path is derived rather than written.
+PAGE = reverse_lazy("console:why-no-bid")
 
 
 @pytest.fixture
@@ -29,8 +32,8 @@ def refused(verified, vehicle):
     return verified
 
 
-def test_the_page_is_where_the_url_says(client, staff):
-    assert reverse("bidding:why-no-bid") == PAGE
+def test_the_page_is_where_the_url_says(client, staff, settings):
+    assert reverse("console:why-no-bid") == f"/{settings.APP_BASE}/why-no-bid/"
 
 
 def test_a_stranger_cannot_read_a_customers_money(client, refused):
@@ -41,9 +44,14 @@ def test_a_stranger_cannot_read_a_customers_money(client, refused):
 
 
 def test_a_customer_cannot_read_the_support_page(client, refused):
+    """403 now, not a redirect: the console refuses by capability (T801).
+
+    A customer reaching a console page is a routing problem, and bouncing them
+    to a login form they are already past says nothing about what went wrong.
+    """
     client.force_login(refused)
 
-    assert client.get(PAGE).status_code == 302
+    assert client.get(PAGE).status_code == 403
 
 
 def test_one_phone_number_gives_support_the_whole_answer(client, staff, refused):

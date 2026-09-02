@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -13,7 +14,10 @@ urlpatterns = [
     # Staff-only, read-only, and deliberately not under /api: the customer
     # apps have no business here, and the admin panel (phase 009) will grow
     # around this page rather than replace it.
-    path("support/", include("apps.bidding.urls")),
+    # The console, under APP_BASE. v1's panels each hard-coded their prefix and
+    # every link broke the three times one moved; here the prefix is a setting
+    # and every link is a `{% url %}` (T804).
+    path(f"{settings.APP_BASE}/", include("apps.console.urls")),
     path("api/v1/", include("apps.accounts.api.urls")),
     path("api/v1/", include("apps.auctions.api.urls")),
     path("api/v1/", include("apps.bidding.api.urls")),

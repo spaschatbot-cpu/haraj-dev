@@ -70,9 +70,18 @@ def customer(db, django_user_model):
 
 @pytest.fixture
 def staff(db, django_user_model):
-    """موظف. ليس superuser: الصلاحية الواسعة تخفي أخطاء التصريح."""
+    """موظف بأقلّ دور يفتح اللوحة. ليس superuser: الصلاحية الواسعة تخفي أخطاء التصريح.
+
+    الدور `support` عمداً — يقرأ ولا يكتب ولا يحرّك ريالاً. أي اختبار يحتاج
+    أكثر من ذلك يقوله صراحةً بمنح أو بدور آخر، فيبقى ما يحتاجه مكتوباً في
+    الاختبار نفسه لا مخبوءاً في فيكستشر مشترك.
+    """
     return django_user_model.objects.create_user(
-        phone="966500000099", full_name="موظف اختبار", password="x", is_staff=True
+        phone="966500000099",
+        full_name="موظف اختبار",
+        password="x",
+        is_staff=True,
+        console_role="support",
     )
 
 
