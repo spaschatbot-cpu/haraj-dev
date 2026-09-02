@@ -406,3 +406,189 @@ class Invoice(models.Model):
         if self.state == InvoiceState.CANCELLED:
             return ZERO
         return max(self.amount - self.amount_paid, ZERO)
+
+
+class PaymentMethod(models.TextChoices):
+    """How a customer may settle an invoice.
+
+    There is deliberately no card member. A purchase is settled from money the
+    customer has already deposited, or by a bank transfer the bank confirms —
+    never by a card charge that can be reversed months later against a vehicle
+    that has already left the yard.
+    """
+
+    BALANCE = "balance", "من الرصيد"
+    BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
+
+
+class PaymentPurpose(models.TextChoices):
+    """What a card payment is for.
+
+    Also deliberately narrow: topping up insurance is the only thing a card ever
+    pays for here, which is what makes "no card for purchases" a property of the
+    schema rather than a rule somebody has to keep remembering.
+    """
+
+    INSURANCE_DEPOSIT = "insurance_deposit", "إيداع تأمين"
+
+
+class PaymentIntentState(models.TextChoices):
+    PENDING = "pending", "بانتظار الدفع"
+    SUCCEEDED = "succeeded", "تمت"
+    FAILED = "failed", "فشلت"
+    CANCELLED = "cancelled", "ألغاها العميل"
+    EXPIRED = "expired", "انتهت مهلتها"
+    DISPUTED = "disputed", "محل نزاع"
+
+
+class PaymentIntent(models.Model):
+    """What we decided a customer would pay, written down before they pay it.
+
+    The row exists *before* the customer reaches the gateway, and it is the only
+    thing that says whose money a returning payment is. The gateway does not
+    carry our user id, and v1 tried to recover it from whatever came back in the
+    query string — which is both losable and forgeable. Here attribution is a
+    lookup on :attr:`reference` against a row the server wrote itself.
+
+    :attr:`amount` is likewise the server's number. A request that tries to name
+    its own amount is refused at the edge.
+    """
+
+    #: Our identifier, handed to the gateway as metadata and echoed back.
+    reference = models.CharField(max_length=64, unique=True)
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="payment_intents"
+    )
+    amount = models.DecimalField(**MONEY)
+    currency = models.CharField(max_length=3, default="SAR")
+
+    purpose = models.CharField(max_length=32, choices=PaymentPurpose.choices)
+    auction = models.ForeignKey(
+        "auctions.Auction",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="payment_intents",
+        help_text="المزاد الذي طُلب التأمين من أجله، إن وُجد",
+    )
+
+    state = models.CharField(
+        max_length=16,
+        choices=PaymentIntentState.choices,
+        default=PaymentIntentState.PENDING,
+    )
+
+    gateway = models.CharField(max_length=32, default="moyasar")
+    gateway_payment_id = models.CharField(max_length=128, blank=True, db_index=True)
+    #: The gateway's literal status word. Recorded, never branched on, never
+    #: allowed to fail the write that carries it.
+    gateway_status_raw = models.CharField(max_length=64, blank=True)
+
+    resulting_transaction = models.ForeignKey(
+        Transaction,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="payment_intents",
+    )
+    note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=ZERO), name="payment_intent_is_positive"
+            ),
+            # One gateway payment answers at most one intent, so a replayed
+            # callback cannot credit a second deposit.
+            models.UniqueConstraint(
+                fields=["gateway", "gateway_payment_id"],
+                condition=~Q(gateway_payment_id=""),
+                name="one_intent_per_gateway_payment",
+            ),
+            # Article 1-6: a succeeded payment can always be traced to the
+            # entries it created.
+            models.CheckConstraint(
+                condition=(
+                    ~Q(state="succeeded") | Q(resulting_transaction__isnull=False)
+                ),
+                name="a_succeeded_intent_names_its_transaction",
+            ),
+        ]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.reference} {self.amount} ({self.state})"
+
+
+class RefundRequestState(models.TextChoices):
+    REQUESTED = "requested", "مُقدَّم"
+    SENT = "sent", "أُرسل للمحاسبة"
+    CONFIRMED = "confirmed", "نُفِّذ"
+    REJECTED = "rejected", "مرفوض"
+    CANCELLED = "cancelled", "ألغاه العميل"
+
+
+class RefundRequest(models.Model):
+    """A customer asking for their free insurance back.
+
+    Asking moves no money. The ledger moves only when the accounting system
+    confirms the payout, through the inbound path — v1 credited optimistically
+    and then had to chase what never left the bank.
+
+    The unique :attr:`reference` is what stops a retry cron from opening a second
+    request at Odoo for one customer decision.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="refund_requests"
+    )
+    amount = models.DecimalField(**MONEY)
+    reference = models.CharField(max_length=64, unique=True)
+
+    state = models.CharField(
+        max_length=16,
+        choices=RefundRequestState.choices,
+        default=RefundRequestState.REQUESTED,
+    )
+
+    outbox_message = models.ForeignKey(
+        "odoo.OutboxMessage",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="refund_requests",
+    )
+    resulting_transaction = models.ForeignKey(
+        Transaction,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="refund_requests",
+    )
+    note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=ZERO), name="refund_request_is_positive"
+            ),
+            models.CheckConstraint(
+                condition=(
+                    ~Q(state="confirmed") | Q(resulting_transaction__isnull=False)
+                ),
+                name="a_confirmed_refund_names_its_transaction",
+            ),
+        ]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"refund {self.reference} {self.amount} ({self.state})"

@@ -39,8 +39,9 @@ def customer(django_user_model):
 
 @pytest.fixture
 def auction():
-    from django.utils import timezone
     from datetime import timedelta
+
+    from django.utils import timezone
 
     now = timezone.now()
     return Auction.objects.create(
@@ -150,9 +151,7 @@ class TestHolds:
         hold = services.hold_for_auction(user=customer, auction=auction)
 
         assert free(customer) == Decimal("0.00")
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
-        )
+        assert services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
         assert hold.state == HoldState.ACTIVE
 
     def test_bidding_twice_in_one_auction_holds_once(self, customer, auction):
@@ -165,9 +164,7 @@ class TestHolds:
         second = services.hold_for_auction(user=customer, auction=auction)
 
         assert first.pk == second.pk
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
-        )
+        assert services.account_for(customer, AccountKind.INSURANCE_HELD).balance == TEN_K
         assert Hold.objects.filter(state=HoldState.ACTIVE).count() == 1
 
     def test_held_money_cannot_be_refunded_away(self, customer, auction):
@@ -189,10 +186,9 @@ class TestHolds:
         services.release_hold(hold)
 
         assert free(customer) == TEN_K
-        assert (
-            services.account_for(customer, AccountKind.INSURANCE_HELD).balance
-            == Decimal("0.00")
-        )
+        assert services.account_for(
+            customer, AccountKind.INSURANCE_HELD
+        ).balance == Decimal("0.00")
 
 
 class TestDues:
@@ -251,9 +247,9 @@ class TestVerification:
         services.deposit_insurance(
             user=customer, amount=TEN_K, source="cash", reference="PCSH/001"
         )
-        Account.objects.filter(
-            owner=customer, kind=AccountKind.INSURANCE_FREE
-        ).update(balance=Decimal("99999.00"))
+        Account.objects.filter(owner=customer, kind=AccountKind.INSURANCE_FREE).update(
+            balance=Decimal("99999.00")
+        )
 
         findings = services.verify_ledger()
 
