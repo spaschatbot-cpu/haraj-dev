@@ -1,0 +1,49 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` on every amount: money is shown exactly as the ledger stores it.
+A thousands separator or a localised decimal comma is a display transformation
+on a money value, and an operator comparing this screen to the ledger must not
+have to undo one in their head.
+{% endcomment %}
+{% block title %}المزادات{% endblock %}
+{% block heading %}المزادات{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="رقم المزاد أو عنوانه">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>الرقم</th><th>العنوان</th><th>الحالة</th>
+        <th>يبدأ</th><th>ينتهي</th><th>المركبات</th><th>المعروضة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for auction in page %}
+        <tr>
+          <td><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.number|unlocalize }}</a></td>
+          <td>{{ auction.title }}</td>
+          <td>{{ auction.get_state_display }}</td>
+          <td>{{ auction.starts_at }}</td>
+          <td>{{ auction.ends_at }}</td>
+          <td>{{ auction.vehicle_count|unlocalize }}</td>
+          <td>{{ auction.open_vehicle_count|unlocalize }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا مزادات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

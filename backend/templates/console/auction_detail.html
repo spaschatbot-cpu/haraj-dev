@@ -1,0 +1,46 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` on every amount: money is shown exactly as the ledger stores it.
+A thousands separator or a localised decimal comma is a display transformation
+on a money value, and an operator comparing this screen to the ledger must not
+have to undo one in their head.
+{% endcomment %}
+{% comment %}
+Cars waiting on their owner's decision come first, then awarded ones, then the
+rest. That ordering is the screen's whole value: a car waiting on a decision is
+a car nobody is being paid for, and in v1 it sat in lot order on page four until
+somebody went looking for it.
+{% endcomment %}
+
+{% block title %}مزاد {{ auction.number|unlocalize }}{% endblock %}
+{% block heading %}مزاد {{ auction.number|unlocalize }} — {{ auction.title }}{% endblock %}
+
+{% block content %}
+  <p>
+    <strong>{{ auction.get_state_display }}</strong> ·
+    {{ auction.vehicle_count|unlocalize }} مركبة، منها {{ auction.open_vehicle_count|unlocalize }} معروضة ·
+    من {{ auction.starts_at }} إلى {{ auction.ends_at }}
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الفائز</th></tr>
+    </thead>
+    <tbody>
+      {% for vehicle in page %}
+        <tr>
+          <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
+          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
+          <td>{{ vehicle.get_state_display }}</td>
+          <td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td>
+          <td>{{ vehicle.awarded_to.full_name|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا مركبات في هذا المزاد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}
