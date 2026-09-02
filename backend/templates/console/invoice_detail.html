@@ -1,0 +1,54 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+"Paid" means posted payments and only those. v1 mirrored Odoo's state into a
+column written once at insert, so a bank transfer sitting in Odoo as a *draft*
+showed here as settled — and somebody released a car against it.
+
+Odoo's own word is shown, clearly marked as theirs and never as ours (Article
+2-3): it is evidence about what they think, not a fact about what we are owed.
+{% endcomment %}
+
+{% block title %}فاتورة {{ invoice.number }}{% endblock %}
+{% block heading %}فاتورة {{ invoice.number }}{% endblock %}
+
+{% block content %}
+  <table>
+    <tr><th>العميل</th><td>
+      <a href="{% url 'console:customer-detail' invoice.customer.pk %}">
+        {{ invoice.customer.full_name }}</a></td></tr>
+    {% if invoice.vehicle %}
+      <tr><th>المركبة</th><td>
+        <a href="{% url 'console:vehicle-detail' invoice.vehicle.pk %}">
+          {{ invoice.vehicle.make }} {{ invoice.vehicle.model }}</a></td></tr>
+    {% endif %}
+    <tr><th>المبلغ</th><td class="money">{{ invoice.amount|unlocalize }}</td></tr>
+    <tr><th>المسدَّد</th><td class="money">{{ invoice.amount_paid|unlocalize }}</td></tr>
+    <tr><th>المتبقّي</th><td class="money">{{ invoice.outstanding|unlocalize }}</td></tr>
+    <tr><th>الحالة</th><td><strong>{{ invoice.get_state_display }}</strong>
+      (مشتقّة من الدفعات المرحَّلة)</td></tr>
+    <tr><th>حالة أودو الخام</th><td>
+      {# Their word, marked as theirs. Never branched on. #}
+      <span class="empty">{{ invoice.odoo_state_raw|default:"—" }} — كلام أودو، لا يُبنى عليه</span>
+    </td></tr>
+    <tr><th>صدرت</th><td>{{ invoice.issued_at }}</td></tr>
+  </table>
+
+  <h2>الدفعات المرحَّلة ({{ payments|length }})</h2>
+  <table>
+    <thead><tr><th>الوقت</th><th>النوع</th><th>الملاحظة</th></tr></thead>
+    <tbody>
+      {% for payment in payments %}
+        <tr>
+          <td>{{ payment.occurred_at }}</td>
+          <td>{{ payment.get_kind_display }}</td>
+          <td>{{ payment.memo|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        {# The T809 case: a transfer Odoo holds as a draft has no posted
+           payment here, so this list is empty and the invoice reads open. #}
+        <tr><td colspan="3" class="empty">لا دفعات مرحَّلة على هذه الفاتورة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
