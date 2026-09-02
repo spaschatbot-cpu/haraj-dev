@@ -284,6 +284,22 @@ def reverse(txn: Transaction, *, reason: str, by=None) -> Transaction:
 # ---------------------------------------------------------------------------
 
 
+def deposit_key(source: str, reference: str) -> str:
+    """The idempotency key a deposit will use.
+
+    Public because callers need to ask "has this payment already been
+    recorded?" before deciding anything else, and a caller that rebuilds the
+    string itself is a second definition of the same rule (Article 4-5) —
+    which then drifts, silently, the first time the format changes.
+    """
+    return f"{source}:{reference}"
+
+
+def find_transaction(idempotency_key: str) -> Transaction | None:
+    """The transaction recorded under this key, if any."""
+    return _find_by_key(idempotency_key)
+
+
 def deposit_insurance(
     *,
     user,
@@ -308,7 +324,7 @@ def deposit_insurance(
 
     return post(
         kind=TransactionKind.INSURANCE_TOPUP,
-        idempotency_key=f"{source}:{reference}",
+        idempotency_key=deposit_key(source, reference),
         occurred_at=occurred_at,
         memo=memo,
         legs=[

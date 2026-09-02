@@ -1,0 +1,108 @@
+"""Background work on the Odoo boundary.
+
+⚠️ **Nothing here is on a schedule.** These are defined and tested, and adding
+any of them to a real beat requires explicit, per-environment permission
+(Article 5-2). In v1 scheduling one cron issued 38 unintended invoices, and
+the task itself was correct — what was missing was anyone deciding it should
+run.
+
+Every task holds a single-instance lock (Article 5-1). No exceptions.
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import timedelta
+
+from celery import shared_task
+from django.utils import timezone
+
+from apps.core.locks import single_instance
+
+from .models import InboundMessage, InboundState
+from .processing import process
+
+log = logging.getLogger(__name__)
+
+#: Give up automatic retries after this many, and leave the message for a
+#: person. A message that has failed six times is not failing for a reason
+#: another attempt will fix.
+MAX_ATTEMPTS = 6
+
+#: Backoff in minutes by attempt number: ~1m, 5m, 25m, 2h, 10h, then daily.
+BACKOFF_MINUTES = [1, 5, 25, 125, 625, 1440]
+
+
+def next_attempt_after(attempts: int) -> timedelta:
+    index = min(attempts, len(BACKOFF_MINUTES) - 1)
+    return timedelta(minutes=BACKOFF_MINUTES[index])
+
+
+def due_messages(now=None) -> list[InboundMessage]:
+    """Failed messages whose backoff has elapsed and that have attempts left."""
+    now = now or timezone.now()
+    candidates = InboundMessage.objects.filter(
+        state=InboundState.FAILED, attempts__lt=MAX_ATTEMPTS
+    ).order_by("received_at")
+
+    due = []
+    for message in candidates:
+        last = message.processed_at or message.received_at
+        if last + next_attempt_after(message.attempts) <= now:
+            due.append(message)
+    return due
+
+
+@shared_task(name="odoo.retry_failed")
+def retry_failed() -> dict:
+    """Re-interpret messages that failed, with backoff.
+
+    Retrying is safe because interpretation is idempotent: the transaction key
+    is derived from the payment's identity in Odoo, so a message processed
+    twice credits once. What retrying must never do is recreate a charge the
+    customer has since been refunded — that guard lives in `processing`, not
+    here, so it protects the admin replay button too.
+    """
+    with single_instance("odoo.retry_failed") as acquired:
+        if not acquired:
+            return {"skipped": "another instance holds the lock"}
+
+        results = {"attempted": 0, "processed": 0, "still_failing": 0}
+        for message in due_messages():
+            results["attempted"] += 1
+            process(message)
+            if message.state == InboundState.FAILED:
+                results["still_failing"] += 1
+            else:
+                results["processed"] += 1
+
+        log.info("odoo.retry_failed: %s", results)
+        return results
+
+
+@shared_task(name="odoo.abandon_exhausted")
+def abandon_exhausted() -> dict:
+    """Stop retrying what has run out of attempts, and say so in the note.
+
+    The message stays `failed` — it is not marked `ignored`, because nobody
+    decided to ignore it. It leaves the automatic queue and enters the human
+    one, and the note is what tells the difference.
+    """
+    with single_instance("odoo.abandon_exhausted") as acquired:
+        if not acquired:
+            return {"skipped": "another instance holds the lock"}
+
+        exhausted = InboundMessage.objects.filter(
+            state=InboundState.FAILED, attempts__gte=MAX_ATTEMPTS
+        ).exclude(note__contains="تحتاج مراجعة بشرية")
+
+        count = 0
+        for message in exhausted:
+            message.note = (
+                f"{message.note} — تحتاج مراجعة بشرية بعد {message.attempts} محاولات"
+            )
+            message.save(update_fields=["note"])
+            count += 1
+
+        log.info("odoo.abandon_exhausted: flagged %s messages", count)
+        return {"flagged": count}
