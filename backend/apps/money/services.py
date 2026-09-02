@@ -1280,6 +1280,68 @@ def pay_invoice_from_balance(
 # ---------------------------------------------------------------------------
 
 
+def issue_invoice(
+    *,
+    customer,
+    amount: Decimal,
+    vehicle=None,
+    due_at=None,
+    number: str = "",
+    issued_at=None,
+) -> Invoice:
+    """Create one open invoice. The only place an invoice is born (T509).
+
+    Born `OPEN`, not `DRAFT`: an invoice issued by winning a car is owed the
+    moment it exists, and a draft would be excluded from the dues that stop a
+    debtor refunding their deposit — which is the hole `derive_invoice_state`
+    above was written to close.
+
+    The number is derived from the vehicle when there is one, so the customer's
+    invoice and the car they won carry the same identifier on every screen and
+    in every message. v1 numbered invoices from a counter that reset per
+    environment, and matching a support ticket to a car meant a database query.
+
+    **A second live invoice for the same vehicle is refused by the database**
+    (`one_live_invoice_per_vehicle`), not by a check here. v1's duplication
+    incident produced 786 invoices from a retry loop; a Python guard would have
+    been just as racy as the loop that caused it.
+    """
+    issued_at = issued_at or timezone.now()
+
+    if not number:
+        if vehicle is None:
+            number = f"INV-{customer.pk}-{issued_at:%Y%m%d%H%M%S}"
+        else:
+            # A car can be invoiced more than once in its life: an award that
+            # moves to the next bidder cancels the first invoice and issues a
+            # second (T510). The cancelled one keeps its number — a report that
+            # showed an invoice which later changed identity is worse than one
+            # that shows a cancellation — so the new one is suffixed.
+            #
+            # Derived from a count and arbitrated by the unique index on
+            # `number`, not by this line: replacing a winner is an operator
+            # action rather than a concurrent path, and if two ever raced the
+            # database refuses the second instead of issuing a twin.
+            issued_before = Invoice.objects.filter(vehicle=vehicle).count()
+            number = f"V-{vehicle.pk}-{issued_at:%Y%m}"
+            if issued_before:
+                number = f"{number}-{issued_before + 1}"
+
+    invoice = Invoice.objects.create(
+        customer=customer,
+        number=number,
+        amount=Decimal(amount).quantize(Decimal(1).scaleb(-MONEY["decimal_places"])),
+        vehicle=vehicle,
+        state=InvoiceState.OPEN,
+        issued_at=issued_at,
+        due_at=due_at,
+    )
+    log.info(
+        "issued invoice %s for %s (customer %s)", invoice.number, amount, customer.pk
+    )
+    return invoice
+
+
 def derive_invoice_state(invoice: Invoice) -> str:
     """What this invoice's state *is*, computed from its own numbers.
 
