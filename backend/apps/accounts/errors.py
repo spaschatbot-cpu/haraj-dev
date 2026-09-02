@@ -95,3 +95,24 @@ class RegistrationNeedsName(DomainError):
 
     code = "registration_needs_name"
     default_message = "أدخل الاسم لإنشاء الحساب."
+
+
+class VerificationCodeUndeliverable(DomainError):
+    """We decided to send a code and the provider would not carry it.
+
+    The one refusal in this file that is **not** about something the customer
+    did. Every other class here answers "your code was wrong / late / spent";
+    this one answers "our provider is down, and no code exists for you to type".
+    Collapsing the two — which is what a bare 500 does — is why v1's support
+    started every SMS outage by asking customers to try again.
+
+    Hence ``status_code``: 503, not the 409 the rest of this file carries. A 409
+    tells the client the request was refused on its merits and invites the app
+    to show the sentence and stop; a 503 says the platform is temporarily unable
+    and this is worth retrying. And it keeps our outage out of the customer's
+    error budget, where it does not belong.
+    """
+
+    code = "sms_undeliverable"
+    status_code = 503
+    default_message = "تعذّر إرسال رمز التحقق الآن. جرّب بعد قليل."

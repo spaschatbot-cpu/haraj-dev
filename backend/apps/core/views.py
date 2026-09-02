@@ -1,7 +1,8 @@
 """Endpoints that belong to no domain.
 
-Right now that is ``/health``: the answer to "which build is this, and is it
-talking to anything?".
+Right now that is ``/health``: the answer to "which build is this, is it talking
+to anything, and is the one third party a customer cannot sign in without still
+carrying our messages?".
 """
 
 from __future__ import annotations
@@ -118,6 +119,30 @@ def _read_git_head(repo_root: Path) -> str:
     return ""
 
 
+def _check_sms() -> tuple[bool, str, int]:
+    """Has the SMS provider been refusing codes?
+
+    The health check T603 exists for. An SMS balance running out is invisible
+    from every other signal on this endpoint — the database is fine, Redis is
+    fine, and nobody can sign in. Reading the count here is what turns "a
+    customer says the code never arrived" into a start time.
+
+    Like Redis, it never makes this endpoint return 503: an SMS outage is not a
+    reason to pull the whole service out of a load balancer, and the sign-in
+    path already tells its own callers with a 503 of its own.
+    """
+    try:
+        from apps.accounts.services import recent_sms_failures
+
+        failures = recent_sms_failures()
+    except Exception as exc:  # pragma: no cover - only if the table is missing
+        log.warning("health: sms failure count unavailable: %s", exc)
+        return False, "unavailable", 0
+    if failures:
+        return False, "provider_refusing", failures
+    return True, "ok", 0
+
+
 @never_cache
 def health(request: HttpRequest) -> JsonResponse:
     """Which environment, which build, and what it can reach.
@@ -129,10 +154,11 @@ def health(request: HttpRequest) -> JsonResponse:
     """
     database_ok, database_reason = _check_database()
     redis_ok, redis_reason = _check_redis()
+    sms_ok, sms_reason, sms_failures = _check_sms()
 
     if not database_ok:
         overall = "down"
-    elif not redis_ok:
+    elif not redis_ok or not sms_ok:
         overall = "degraded"
     else:
         overall = "ok"
@@ -144,6 +170,13 @@ def health(request: HttpRequest) -> JsonResponse:
         "checks": {
             "database": {"ok": database_ok, "reason": database_reason},
             "redis": {"ok": redis_ok, "reason": redis_reason},
+            # The count, not just the flag: one refusal is a bad minute, forty
+            # in an hour is a balance that ran out at a knowable time.
+            "sms": {
+                "ok": sms_ok,
+                "reason": sms_reason,
+                "failures_last_hour": sms_failures,
+            },
         },
     }
     return JsonResponse(body, status=200 if database_ok else 503)

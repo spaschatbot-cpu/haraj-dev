@@ -11,6 +11,7 @@ below, and renders what comes back.
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -26,9 +27,18 @@ from apps.accounts.errors import (
     OtpResendTooSoon,
     OtpTooManyAttempts,
     RegistrationNeedsName,
+    VerificationCodeUndeliverable,
 )
-from apps.accounts.models import Company, OtpPurpose, PhoneVerification, User
-from apps.accounts.sms import send_sms
+from apps.accounts.models import (
+    Company,
+    OtpPurpose,
+    PhoneVerification,
+    SmsFailure,
+    User,
+)
+from apps.accounts.sms import SmsSendFailed, send_sms
+
+log = logging.getLogger(__name__)
 
 
 def display_name(user: User) -> str:
@@ -58,8 +68,64 @@ def display_name(user: User) -> str:
 OTP_MESSAGE = "رمز التحقق: {code}\nينتهي خلال {minutes} دقائق. لا تشاركه مع أحد."
 
 
-@transaction.atomic
 def send_verification_code(
+    *, phone: str, purpose: str = OtpPurpose.LOGIN
+) -> PhoneVerification:
+    """Send a fresh code to ``phone``, or say plainly that we could not.
+
+    The whole of this function is the difference between the two endings, and
+    it is a difference v1 never made: "your code is wrong" is the customer's
+    problem, "the provider would not carry it" is ours. Both looked the same
+    from the outside, so every SMS balance running out was diagnosed from
+    scratch — and the first move was always asking customers to try again.
+
+    **The failure is recorded outside the transaction, and that placement is
+    the task.** :func:`_send_verification_code` sends inside its atomic block on
+    purpose, so a provider failure takes the unsent code's row down with it. A
+    failure record written in that block would be rolled back by the very same
+    exception — the evidence would disappear at exactly the moment it was worth
+    keeping. So the block runs, fails, and rolls back; only then do we write.
+
+    This is the same shape as the bug T601 found in `check_verification_code`,
+    where a refusal raised inside the atomic block took the attempt count it had
+    just written with it. Once is an accident; writing it down here is how it
+    stops being a pattern.
+    """
+    try:
+        return _send_verification_code(phone=phone, purpose=purpose)
+    except SmsSendFailed as failure:
+        SmsFailure.objects.create(
+            provider=failure.provider or settings.SMS_BACKEND,
+            phone=phone,
+            purpose=purpose,
+            reason=str(failure),
+        )
+        # `error`, not `warning`: nobody can sign in while this is happening,
+        # and the row above is what turns a run of these into a start time.
+        log.error(
+            "sms provider refused a code for %s via %s: %s",
+            phone,
+            failure.provider or settings.SMS_BACKEND,
+            failure,
+        )
+        raise VerificationCodeUndeliverable(
+            f"provider refused the code for {phone}"
+        ) from failure
+
+
+def recent_sms_failures(*, within: timedelta | None = None) -> int:
+    """How many codes the provider has refused lately.
+
+    The number a health screen shows (T220, T813) and the reason this table
+    exists: one failure is a bad minute, forty in an hour is a balance that ran
+    out at a knowable time.
+    """
+    window = within or timedelta(hours=1)
+    return SmsFailure.objects.filter(created_at__gte=timezone.now() - window).count()
+
+
+@transaction.atomic
+def _send_verification_code(
     *, phone: str, purpose: str = OtpPurpose.LOGIN
 ) -> PhoneVerification:
     """Send a fresh code to ``phone`` and record that we did.
@@ -100,8 +166,9 @@ def send_verification_code(
     )
 
     # Sending last, inside the transaction: a provider failure must not leave a
-    # code recorded that nobody was ever told. SmsSendFailed propagates — T603
-    # gives it its own client code and puts it on the health screen.
+    # code recorded that nobody was ever told. `SmsSendFailed` propagates to the
+    # wrapper above, which records the failure *after* this block has rolled
+    # back and turns it into `VerificationCodeUndeliverable`.
     send_sms(
         phone=phone,
         body=OTP_MESSAGE.format(code=code, minutes=settings.OTP_TTL_SECONDS // 60),

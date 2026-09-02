@@ -115,6 +115,13 @@ class TestNoSecrets:
         assert "password" not in reason
 
     def test_the_response_shape_is_exactly_what_we_publish(self, client):
+        """The endpoint is public, so its shape is a decision, not an accident.
+
+        `sms` joined the set in T603 deliberately: an SMS balance running out is
+        invisible in every other signal here — the database is fine, Redis is
+        fine, and nobody can sign in. Adding a check means editing this line,
+        which is the point of asserting the whole set rather than its members.
+        """
         body = json.loads(client.get("/health").content)
         assert set(body) == {"status", "environment", "commit", "checks"}
-        assert set(body["checks"]) == {"database", "redis"}
+        assert set(body["checks"]) == {"database", "redis", "sms"}

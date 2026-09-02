@@ -162,7 +162,10 @@ def api_exception_handler(exc: Exception, context: dict) -> Response:
         set_rollback()
         return Response(
             envelope(code, message, getattr(exc, "detail", None)),
-            status=status.HTTP_409_CONFLICT,
+            # 409 unless the refusal says otherwise. The exception owns this
+            # because only it knows whether the caller was refused (409) or the
+            # platform could not answer (503) — see `DomainError.status_code`.
+            status=getattr(exc, "status_code", status.HTTP_409_CONFLICT),
         )
 
     # Django's own 404, which `get_object_or_404` raises. DRF turns it into a
