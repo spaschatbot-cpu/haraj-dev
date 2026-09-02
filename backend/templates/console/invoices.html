@@ -1,0 +1,47 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+The filter offers the *derived* states. Odoo's word is not an option: it is
+evidence about what they think, and a filter on it would answer "what does Odoo
+say" when the question was "what are we owed".
+{% endcomment %}
+
+{% block title %}الفواتير{% endblock %}
+{% block heading %}الفواتير{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="رقم الفاتورة أو اسم العميل">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>المسدَّد</th>
+          <th>المتبقّي</th><th>الحالة</th><th>صدرت</th></tr>
+    </thead>
+    <tbody>
+      {% for invoice in page %}
+        <tr>
+          <td><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
+          <td>{{ invoice.customer.full_name }}</td>
+          <td class="money">{{ invoice.amount|unlocalize }}</td>
+          <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
+          <td class="money">{{ invoice.outstanding|unlocalize }}</td>
+          <td>{{ invoice.get_state_display }}</td>
+          <td>{{ invoice.issued_at|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا فواتير مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} فاتورة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

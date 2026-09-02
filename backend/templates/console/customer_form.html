@@ -1,0 +1,16 @@
+{% extends "console/base.html" %}
+{% block title %}تعديل {{ customer.full_name }}{% endblock %}
+{% block heading %}تعديل {{ customer.full_name }}{% endblock %}
+{% block content %}
+  {% comment %}
+  The phone is not a field: changing it is T604 and needs a code to each number.
+  Neither is console access — that is a grant with its own reason and its own
+  row, and an access change buried in a profile edit is one nobody reviews.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">حفظ</button>
+    <a href="{% url 'console:customer-detail' customer.pk %}">إلغاء</a>
+  </form>
+{% endblock %}

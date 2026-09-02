@@ -1,0 +1,61 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+The wallet is itemised, never a single number. v1 showed one figure and a
+customer read "رصيدك 10,000" as money he could withdraw — it was pinned to a bid.
+{% endcomment %}
+
+{% block title %}{{ customer.full_name }}{% endblock %}
+{% block heading %}{{ customer.full_name }}{% endblock %}
+
+{% block content %}
+  {% for message in messages %}<p><strong>{{ message }}</strong></p>{% endfor %}
+
+  <p>
+    <a href="{% url 'console:customer-edit' customer.pk %}">تعديل البيانات</a> ·
+    <a href="{% url 'console:company-edit' customer.pk %}">
+      {% if company %}تعديل الشركة{% else %}إضافة شركة{% endif %}</a>
+  </p>
+
+  <table>
+    <tr><th>الجوال</th><td>{{ customer.phone }}</td></tr>
+    <tr><th>البريد</th><td>{{ customer.email|default:"—" }}</td></tr>
+    <tr><th>نوع الحساب</th><td>{{ customer.get_account_type_display }}</td></tr>
+    <tr><th>رقم الهوية</th><td>{{ customer.national_id|default:"—" }}</td></tr>
+    <tr><th>الجوال موثَّق</th><td>{{ customer.phone_verified_at|default:"لا" }}</td></tr>
+    {% if company %}
+      <tr><th>الشركة</th><td>{{ company.name }}</td></tr>
+      <tr><th>السجل التجاري</th><td>{{ company.commercial_register|default:"—" }}</td></tr>
+      <tr><th>الرقم الضريبي</th><td>{{ company.vat_number|default:"—" }}</td></tr>
+    {% endif %}
+  </table>
+
+  <h2>التأمين</h2>
+  <table>
+    <thead><tr><th>الدلو</th><th>المبلغ</th></tr></thead>
+    <tbody>
+      {% for bucket in wallet.buckets %}
+        <tr><td>{{ bucket.label }}</td>
+            <td class="money">{{ bucket.amount|unlocalize }}</td></tr>
+      {% endfor %}
+      <tr><th>الإجمالي</th><th class="money">{{ wallet.total|unlocalize }}</th></tr>
+    </tbody>
+  </table>
+
+  <h2>الفواتير</h2>
+  <table>
+    <thead><tr><th>الرقم</th><th>المبلغ</th><th>المسدَّد</th><th>الحالة</th></tr></thead>
+    <tbody>
+      {% for invoice in invoices %}
+        <tr>
+          <td><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
+          <td class="money">{{ invoice.amount|unlocalize }}</td>
+          <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
+          <td>{{ invoice.get_state_display }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="empty">لا فواتير.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
