@@ -15,6 +15,7 @@ import hashlib
 import hmac
 import time
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 
@@ -44,7 +45,7 @@ def expected_signature(raw_body: bytes, timestamp: str, secret: str) -> str:
     return hmac.new(secret.encode(), message, hashlib.sha256).hexdigest()
 
 
-def verify(raw_body: bytes, meta: dict, *, now: float | None = None) -> SignatureResult:
+def verify(raw_body: bytes, meta: dict, *, now=None) -> SignatureResult:
     """Check a request's signature and freshness.
 
     Returns a result rather than raising: the caller has to store the message
@@ -62,12 +63,17 @@ def verify(raw_body: bytes, meta: dict, *, now: float | None = None) -> Signatur
     if not provided or not timestamp:
         return SignatureResult(False, "الطلب بلا توقيع أو بلا طابع زمني")
 
+    # Decimal, not float — even though this is a timestamp and not money.
+    # The float ban is worth more as an absolute than as a rule with an
+    # exception list, because the list is where a money module eventually
+    # gets added "just this once".
     try:
-        sent_at = float(timestamp)
-    except ValueError:
+        sent_at = Decimal(timestamp)
+    except (InvalidOperation, ValueError):
         return SignatureResult(False, f"طابع زمني غير صالح: {timestamp!r}")
 
-    age = (now if now is not None else time.time()) - sent_at
+    current = Decimal(str(now)) if now is not None else Decimal(str(time.time()))
+    age = current - sent_at
     if abs(age) > MAX_AGE_SECONDS:
         return SignatureResult(False, f"طابع زمني خارج النافذة: عمره {age:.0f} ثانية")
 
