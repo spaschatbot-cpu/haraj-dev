@@ -236,6 +236,13 @@ jobs:
         working-directory: backend
         run: uv run python ../ops/checks/one_otp_rate_limit.py
 
+      # Phase 009's T801. v1's hasRole() answered "may I?" generously and
+      # "who is this?" wrongly, with the same call. The shape is banned, not
+      # the function — so the ban has to be checked rather than remembered.
+      - name: permissions are asked, roles are not
+        working-directory: backend
+        run: uv run python ../ops/checks/one_permission_gate.py
+
       # Phase 007's T621. Two clients are generated from this schema and
       # neither is written by hand, so a field renamed in a serializer is a
       # breaking change to both. Committing the schema makes that change a diff

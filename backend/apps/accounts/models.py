@@ -70,6 +70,16 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+
+    #: Which bundle of console capabilities this account starts with (T801).
+    #:
+    #: Blank for every customer, and blank is not a role — `capabilities_of`
+    #: returns nothing for it. Nothing in the codebase reads this field to
+    #: decide anything: it is an input to `apps.core.permissions`, and asking
+    #: "is this person X?" anywhere else fails a CI check. That indirection is
+    #: the whole lesson of v1's `hasRole()`.
+    console_role = models.CharField(max_length=16, blank=True)
+
     phone_verified_at = models.DateTimeField(null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
@@ -317,3 +327,67 @@ class SmsFailure(models.Model):
 
     def __str__(self) -> str:
         return f"{self.phone} · {self.provider}"
+
+
+class StaffGrant(models.Model):
+    """One capability given to — or taken from — one person, above their role.
+
+    Two reasons this exists rather than "just make another role":
+
+    * **Adding.** One operations person also handles refunds while a colleague
+      is away. Creating a fifth role for a fortnight leaves a fifth role behind
+      forever, and v1 accumulated eleven of them that way.
+    * **Taking away.** Somebody's access to one screen has to stop *today*,
+      without editing a role a dozen others share.
+
+    A revoke beats a grant and a grant beats the role — the order is in
+    `apps.core.permissions.capabilities_of`, which is the only thing that reads
+    this table.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="grants")
+
+    #: A `Capability` value. Deliberately a plain CharField and not a choices
+    #: field: `apps.core` may not import a domain enum into a model that
+    #: `apps.core` itself reads, and a grant naming a capability that no longer
+    #: exists must remain readable rather than break every query on the table.
+    capability = models.CharField(max_length=64)
+
+    #: True grants, False revokes. One row shape for both, so "what has been
+    #: done to this person's access" is one query and one screen.
+    granted = models.BooleanField(default=True)
+
+    #: Why, and who. An access change with no reason is the row nobody can
+    #: explain six months later — and access changes are exactly what an audit
+    #: asks about first.
+    reason = models.TextField()
+    granted_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="grants_given",
+    )
+
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        verbose_name = "منح صلاحية"
+        verbose_name_plural = "منح الصلاحيات"
+        constraints = [
+            # One row per (person, capability). Granting twice is the same
+            # grant; granting and then revoking must *replace* the row rather
+            # than leave two contradicting each other for the reader to resolve.
+            models.UniqueConstraint(
+                fields=["user", "capability"], name="one_grant_per_user_capability"
+            ),
+            models.CheckConstraint(
+                condition=~models.Q(reason=""),
+                name="grant_reason_not_blank",
+                violation_error_message="سبب المنح أو السحب مطلوب",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        verb = "منح" if self.granted else "سحب"
+        return f"{verb} {self.capability} → {self.user_id}"
