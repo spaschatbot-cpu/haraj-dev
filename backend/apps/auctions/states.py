@@ -196,6 +196,16 @@ VEHICLE_MOVES: tuple[Move, ...] = (
     Move(VehicleState.DRAFT, VehicleState.WITHDRAWN, "سُحبت قبل العرض"),
     Move(VehicleState.LISTED, VehicleState.BIDDING, "بدأت المزايدة عليها"),
     Move(VehicleState.LISTED, VehicleState.WITHDRAWN, "سُحبت قبل المزايدة"),
+    # A car that was offered and nobody bid on. Without this move it has no exit
+    # at all when the auction ends: `listed` leads only to `bidding` and to
+    # `withdrawn`, and withdrawn means somebody pulled it — which is a different
+    # fact and the wrong one to record. It would also leave the auction with an
+    # unresolved car forever, so settlement could never close it (T511).
+    Move(
+        VehicleState.LISTED,
+        VehicleState.REJECTED,
+        "انتهى المزاد ولم تُقدَّم عليها أي مزايدة",
+    ),
     Move(
         VehicleState.BIDDING,
         VehicleState.AWAITING_DECISION,

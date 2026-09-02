@@ -9,6 +9,11 @@ from apps.accounts.api.auth import (
     StartPhoneChangeView,
     VerifyCodeView,
 )
+from apps.accounts.api.profile import (
+    CompanyProfileView,
+    NationalIdView,
+    ProfileView,
+)
 
 app_name = "accounts_api"
 
@@ -29,4 +34,13 @@ urlpatterns = [
         ConfirmPhoneChangeView.as_view(),
         name="confirm-phone-change",
     ),
+    # The account, read off the token. No path parameter names a user here and
+    # no body field could — the v1 wallet hole was exactly that parameter.
+    path("profile/", ProfileView.as_view(), name="profile"),
+    path(
+        "profile/national-id/",
+        NationalIdView.as_view(),
+        name="profile-national-id",
+    ),
+    path("profile/company/", CompanyProfileView.as_view(), name="profile-company"),
 ]
