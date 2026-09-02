@@ -8,22 +8,29 @@ profile, national id — hangs off that.
 from __future__ import annotations
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
-saudi_mobile = RegexValidator(
-    r"^9665\d{8}$",
-    "الرقم لازم يكون بصيغة 9665XXXXXXXX",
-)
+#: The single place the shape of a Saudi mobile number is written down. The same
+#: expression backs the CHECK constraint on the table, so python and postgres can
+#: never disagree about which numbers exist.
+PHONE_PATTERN = r"^9665\d{8}$"
+PHONE_ERROR = "الرقم لازم يكون بصيغة 9665XXXXXXXX"
+
+saudi_mobile = RegexValidator(PHONE_PATTERN, PHONE_ERROR)
 
 
 class UserManager(BaseUserManager["User"]):
     def create_user(self, phone: str, password: str | None = None, **extra):
-        if not phone:
-            raise ValueError("phone is required")
         user = self.model(phone=phone, **extra)
         user.set_password(password)
+        # The CHECK and UNIQUE constraints below refuse a bad row anyway, but an
+        # IntegrityError reads as a crash and rolls back the whole transaction.
+        # Validating first turns the same refusal into the arabic message a
+        # caller can put in front of a person.
+        user.full_clean()
         user.save(using=self._db)
         return user
 
@@ -31,6 +38,10 @@ class UserManager(BaseUserManager["User"]):
         extra.setdefault("is_staff", True)
         extra.setdefault("is_superuser", True)
         extra.setdefault("is_active", True)
+        # setdefault leaves an explicit is_staff=False in place; a "superuser"
+        # that cannot open the admin is a silent lie, so say so instead.
+        if not (extra["is_staff"] and extra["is_superuser"]):
+            raise ValidationError("المدير لازم يكون is_staff و is_superuser")
         return self.create_user(phone, password, **extra)
 
 
@@ -40,9 +51,10 @@ class AccountType(models.TextChoices):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
-    phone = models.CharField(
-        max_length=15, unique=True, validators=[saudi_mobile], db_index=True
-    )
+    # unique=True already indexes the column; a second db_index would only cost
+    # writes. 12 is the exact length of 9665XXXXXXXX — the CHECK below is what
+    # actually holds the shape.
+    phone = models.CharField(max_length=12, unique=True, validators=[saudi_mobile])
     full_name = models.CharField(max_length=200)
     email = models.EmailField(blank=True)
 
@@ -52,8 +64,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     #: Set once, and only once it is valid — so a customer who typed it wrong
     #: can still correct themselves, but a correct one cannot be swapped for
-    #: somebody else's.
-    national_id = models.CharField(max_length=20, blank=True, db_index=True)
+    #: somebody else's. Blank until then; the partial unique index below indexes
+    #: it and keeps one identity on one account.
+    national_id = models.CharField(max_length=20, blank=True)
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
@@ -66,10 +79,34 @@ class User(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ["full_name"]
 
     class Meta:
-        indexes = [models.Index(fields=["account_type"])]
+        verbose_name = "مستخدم"
+        verbose_name_plural = "المستخدمون"
+        # No index on account_type on purpose: two values over the whole table,
+        # so postgres would scan instead of using it and we would pay for it on
+        # every write.
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(phone__regex=PHONE_PATTERN),
+                name="user_phone_is_saudi_mobile",
+                violation_error_message=PHONE_ERROR,
+            ),
+            # One national id belongs to one person. Partial, because every
+            # account starts with it blank and "" is not an identity.
+            models.UniqueConstraint(
+                fields=["national_id"],
+                condition=~models.Q(national_id=""),
+                name="user_national_id_unique_when_set",
+                violation_error_message="رقم الهوية مسجَّل على حساب آخر",
+            ),
+        ]
 
     def __str__(self) -> str:
-        return f"{self.full_name} ({self.phone})"
+        # Imported here because services imports this module. The admin is a
+        # screen like any other, so the name it shows comes from the one
+        # function that decides names — never assembled a second time here.
+        from apps.accounts.services import display_name
+
+        return f"{display_name(self)} ({self.phone})"
 
 
 class Company(models.Model):
@@ -93,6 +130,19 @@ class Company(models.Model):
     district = models.CharField(max_length=200, blank=True)
     city = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=8, blank=True)
+
+    class Meta:
+        verbose_name = "شركة"
+        verbose_name_plural = "الشركات"
+        constraints = [
+            # display_name() hands this straight to a screen, so an empty one
+            # would show a bidder with no name at all.
+            models.CheckConstraint(
+                condition=~models.Q(name=""),
+                name="company_name_not_blank",
+                violation_error_message="اسم الشركة مطلوب",
+            ),
+        ]
 
     def __str__(self) -> str:
         return self.name
