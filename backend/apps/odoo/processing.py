@@ -289,6 +289,20 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
             f"(حالة أودو المحفوظة: {raw_state!r})",
         )
 
+    if amount < invoice.amount_paid:
+        # Odoo lowering an invoice below what has already been paid against it
+        # would erase real dues without a reversing entry: `outstanding` clamps
+        # at zero, `derive_invoice_state` reads PAID, and the difference simply
+        # disappears from every report. The schema refuses it too
+        # (`invoice_paid_not_above_amount`); this is what makes the refusal a
+        # sentence a person can act on rather than an IntegrityError.
+        return Outcome(
+            InboundState.FAILED,
+            f"الفاتورة {invoice.number}: أودو تقول {amount} والمسدَّد عندنا "
+            f"{invoice.amount_paid} — تخفيضها تحت المسدَّد يحتاج قيداً عاكساً "
+            "وقراراً بشرياً",
+        )
+
     invoice.odoo_state_raw = raw_state
     invoice.amount = amount
     invoice.state = services.derive_invoice_state(invoice)

@@ -167,7 +167,11 @@
 
 - [x] كل التاسكات ✅ — 24/24
 - [x] معايير القبول B1–B9 مغطّاة باختبار مسمّى (الجدول أدناه)
-- [x] `verify_ledger` نظيف بعد كل اختبار يمسّ المال
+- [x] `verify_ledger` نظيف بعد كل اختبار يمسّ المال — ويعمل الآن كخطوة CI
+      بعد pytest (`manage.py verify_ledger`)، وكمهمة معرَّفة غير مجدولة
+      (`money.verify_ledger`) تحت قفل نسخة واحدة، وفاءً بالمادة ٣-٤
+  - ⚠️ لا يوجد fixture تلقائي يفرضه في نهاية كل اختبار؛ ما زال يُستدعى
+    صراحةً في الاختبارات التي تؤكّده. مذكور هنا بدل ادّعاء أشمل.
 - [x] اختبارات التزامن تعمل بخيوط حقيقية (`threading.Thread` + اتصالات
       PostgreSQL منفصلة)، لا محاكاة
 - [x] لا استيراد من `services` داخل `verification.py` — مُتحقَّق بـ`ast`
@@ -179,23 +183,23 @@
 
 | # | المعيار | الاختبار |
 |---|---|---|
-| B1 | كل معاملة متوازنة | `test_properties.py::test_any_sequence_of_movements_leaves_the_ledger_consistent` (200 سيناريو) + `test_a_balanced_movement_always_sums_to_zero_by_construction` (1000 حالة) |
+| B1 | كل معاملة متوازنة | `test_properties.py::test_any_sequence_of_movements_leaves_the_ledger_consistent` (200 سيناريو، كل واحد بمراجع خاصّة به) + `test_every_posted_transaction_sums_to_zero` (يمرّ بـ`post` ويقرأ القيود من القاعدة) + `test_an_unbalanced_movement_is_refused_and_writes_nothing` |
 | B2 | الخصم الزائد مستحيل | `test_posting.py::TestNegativeBalance` — عبر الخدمة **وبتخطّيها للجدول مباشرةً** |
 | B3 | الإعادة لا تضاعف | `TestIdempotency::test_the_same_key_twice_returns_the_first_transaction` |
 | B4 | لا سباق تحت التزامن | `test_two_threads_with_the_same_key_produce_one_transaction` (8 خيوط) · `test_twenty_concurrent_calls_produce_one_hold` (20) · `test_two_opposing_postings_on_the_same_pair_do_not_deadlock` (10) |
 | B5 | المدين لا يسترد | `test_lifecycle.py::TestRefund::test_a_debtor_cannot_be_refunded_and_no_gate_says_so` |
-| B6 | حجزان على دين واحد مستحيلان | `test_invoices` + `TestLockForInvoice::test_the_database_refuses_a_second_active_hold_on_one_invoice` (إدراج مباشر) |
+| B6 | حجزان على دين واحد مستحيلان | `TestLockForInvoice::test_the_database_refuses_a_second_active_hold_on_one_invoice` + `test_schema_refusals.py` — إدراج مباشر لكل قيد على `Hold` و`PaymentIntent` و`RefundRequest`، بمطابقة اسم القيد |
 | B7 | `verify_ledger` نظيف ويصطاد كل تلاعب | `test_verification.py` — اختباران لكل تحقّق من الأربعة |
 | B8 | العكس يُرجع الفلوس ويُبقي التاريخ | `TestReverse::test_the_original_survives_intact` |
-| B9 | لا `float` في أي مسار مالي | `ops/checks/no_float_in_money.py` — مُثبَت بزرع مخالفة |
+| B9 | لا `float` في أي مسار مالي | `ops/checks/no_float_in_money.py` — يغطّي `money` و`odoo` و`auctions`، ويرفض `json.loads` بلا `parse_float`؛ مُثبَت بزرع مخالفة تحت كل قاعدة |
 
 ### مراجعة المادة الأولى
 
 | البند | الحالة |
 |---|---|
 | ١-١ قيد مزدوج، لا تعديل رصيد | ✅ `_validate` يفرض المجموع صفراً |
-| ١-٢ كاتب واحد | ✅ `post` وحده ينشئ `Entry` |
+| ١-٢ كاتب واحد | ✅ `post` وحده ينشئ `Entry` — ويحرسه `ops/checks/money_single_writer.py` كخطوة CI، مع اختبارات تزرع كل شكل من أشكال الكتابة وتثبت أنه يمسكها |
 | ١-٣ لا رصيد سالب — قيد `CHECK` | ✅ مُختبَر بتخطّي الخدمة |
 | ١-٤ لا حذف ولا تعديل | ✅ `reverse` فقط، والأصل يبقى |
-| ١-٥ كل حركة idempotent | ✅ مفتاح مشتق + القيد الفريد هو الحكم |
+| ١-٥ كل حركة idempotent | ✅ مفتاح مشتق + القيد الفريد هو الحكم. مرجع الدفعة الصادرة صار مشتقاً من هوية الدفعة (`txn.uuid`) بدل `COUNT` قبل الإدراج، وإيصال المعلّق صار في نطاق مفاتيح خاصّ به (`suspense:`) بعد أن كان يبتلع الإيداع المنسوب |
 | ١-٦ كل رقم له مصدر | ✅ كل رصيد مشتق من قيود، و`verify_ledger` يعيد اشتقاقه |

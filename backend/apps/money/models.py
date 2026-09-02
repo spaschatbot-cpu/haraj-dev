@@ -39,7 +39,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 
 MONEY = {"max_digits": 14, "decimal_places": 2}
 ZERO = Decimal("0.00")
@@ -418,6 +418,15 @@ class Invoice(models.Model):
             ),
             models.CheckConstraint(
                 condition=Q(amount_paid__gte=ZERO), name="invoice_paid_not_negative"
+            ),
+            # And not above the invoice either. `record_payment` refuses to
+            # over-pay, but the mirror from Odoo writes `amount` without looking
+            # at what has been paid — lowering a settled 20,000 invoice to 5,000
+            # made 15,000 of real dues vanish from every report, because
+            # `outstanding` clamps at zero and the derived state reads PAID.
+            models.CheckConstraint(
+                condition=Q(amount_paid__lte=F("amount")),
+                name="invoice_paid_not_above_amount",
             ),
             # One live invoice per vehicle. v1's duplication incident produced
             # 786 invoices from a loop; this makes the 787th impossible.

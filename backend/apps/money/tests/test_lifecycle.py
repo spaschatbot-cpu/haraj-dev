@@ -465,3 +465,61 @@ class TestSuspense:
         txn = services.attribute(user=customer, amount=TEN_K, reference="U/5")
 
         assert txn.kind == TransactionKind.ATTRIBUTION
+
+
+class TestConfiscationIsAudited:
+    """The one movement that leaves a customer poorer with no service rendered.
+
+    `apps.core.audit.record` existed from the day core merged and was called
+    from nowhere in the tree, while this function still carried a TODO saying
+    "once that exists". A TODO in a docstring fails no CI step, so the condition
+    came due and nothing said so.
+    """
+
+    def test_it_writes_an_audit_row_naming_the_operator_and_the_reason(
+        self, customer, auction, staff
+    ):
+        from apps.core.models import AuditLog
+
+        fund(customer)
+        hold = services.hold_for_auction(user=customer, auction=auction)
+
+        services.confiscate(hold, reason="انسحب بعد الترسية", by=staff)
+
+        entry = AuditLog.objects.get(action="money.confiscate")
+        assert entry.actor_id == staff.pk
+        assert entry.entity_id == str(hold.pk)
+        assert "انسحب بعد الترسية" in entry.note
+
+    def test_the_row_says_what_the_hold_was_before_it_was_taken(
+        self, customer, auction, staff
+    ):
+        """A dispute asks what was taken, not only that something was.
+
+        The amounts are strings, never floats: an audit row reading
+        10000.000000000001 is worse than no row at all (Article 3-2).
+        """
+        from apps.core.models import AuditLog
+
+        fund(customer)
+        hold = services.hold_for_auction(user=customer, auction=auction)
+
+        services.confiscate(hold, reason="مخالفة", by=staff)
+
+        entry = AuditLog.objects.get(action="money.confiscate")
+        assert entry.before["state"] == HoldState.ACTIVE
+        assert entry.before["amount"] == "10000.00"
+        assert entry.after["state"] == HoldState.CONSUMED
+
+    def test_a_refused_confiscation_writes_no_audit_row(self, customer, auction, staff):
+        from apps.core.models import AuditLog
+
+        fund(customer)
+        hold = services.hold_for_auction(user=customer, auction=auction)
+        services.confiscate(hold, reason="مرة واحدة", by=staff)
+        AuditLog.objects.all().delete()
+
+        with pytest.raises(MoneyError):
+            services.confiscate(hold, reason="مرة ثانية", by=staff)
+
+        assert not AuditLog.objects.filter(action="money.confiscate").exists()

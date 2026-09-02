@@ -709,3 +709,95 @@ class TestRefundConfirmed:
         second = services.request_refund(user=linked, amount=Decimal("1000.00"))
 
         assert second.pk != first.pk
+
+
+class TestOdooCannotEraseDuesByLoweringAnInvoice:
+    def test_lowering_below_what_is_paid_is_refused_with_its_reason(self, linked):
+        """15,000 of real dues used to disappear from every report.
+
+        `_handle_invoice` wrote `amount` without looking at `amount_paid`, so a
+        20,000 invoice settled from a customer's insurance and then lowered to
+        5,000 read `outstanding = 0`, derived PAID, and left no reversing entry
+        and no note. `check_locked_not_above_dues` computed zero outstanding
+        too, so nothing reported it.
+        """
+        services.deposit_insurance(
+            user=linked, amount=Decimal("20000.00"), source="cash", reference="SEED/INV"
+        )
+        invoice = Invoice.objects.create(
+            customer=linked,
+            number="INV/LOWER/1",
+            amount=Decimal("20000.00"),
+            state=InvoiceState.OPEN,
+            issued_at=timezone.now(),
+            odoo_invoice_id="ODOO-LOWER-1",
+        )
+        services.lock_for_invoice(user=linked, invoice=invoice)
+        services.record_payment(
+            invoice=invoice,
+            amount=Decimal("20000.00"),
+            source="insurance",
+            reference="paid-in-full",
+        )
+
+        message = stored(
+            "invoice.updated",
+            {
+                "invoice_id": "ODOO-LOWER-1",
+                "amount": "5000.00",
+                "customer_id": "ODOO-1",
+                "state": "posted",
+            },
+        )
+        process(message)
+
+        invoice.refresh_from_db()
+        assert message.state == InboundState.FAILED
+        assert "تخفيضها تحت المسدَّد" in message.note
+        assert invoice.amount == Decimal("20000.00")
+        assert verify_ledger() == []
+
+    def test_the_schema_refuses_it_too(self, linked):
+        """B6 — reached by going around the interpreter entirely."""
+        from django.db import IntegrityError, transaction
+
+        invoice = Invoice.objects.create(
+            customer=linked,
+            number="INV/LOWER/2",
+            amount=Decimal("100.00"),
+            amount_paid=Decimal("100.00"),
+            state=InvoiceState.PAID,
+            issued_at=timezone.now(),
+        )
+
+        invoice.amount = Decimal("50.00")
+        with pytest.raises(IntegrityError, match="invoice_paid_not_above_amount"):
+            with transaction.atomic():
+                invoice.save(update_fields=["amount"])
+
+    def test_raising_an_invoice_is_still_allowed(self, linked):
+        """Odoo adding a line is ordinary. Only going below the paid total is
+        the thing that erases dues."""
+        invoice = Invoice.objects.create(
+            customer=linked,
+            number="INV/LOWER/3",
+            amount=Decimal("100.00"),
+            state=InvoiceState.OPEN,
+            issued_at=timezone.now(),
+            odoo_invoice_id="ODOO-LOWER-3",
+        )
+
+        message = stored(
+            "invoice.updated",
+            {
+                "invoice_id": "ODOO-LOWER-3",
+                "amount": "500.00",
+                "customer_id": "ODOO-1",
+                "state": "posted",
+            },
+        )
+        process(message)
+
+        invoice.refresh_from_db()
+        assert message.state == InboundState.PROCESSED
+        assert invoice.amount == Decimal("500.00")

@@ -139,6 +139,16 @@ jobs:
         working-directory: backend
         run: uv run pytest
 
+      # ---- 4b. the ledger re-derives (Article 3-4) -----------------------
+      # Every balance recomputed from the entries, every hold matched against
+      # the bucket it claims. The suite leaves rows behind; this asserts they
+      # still add up when nothing is holding a lock. The same command runs
+      # after a deploy and nightly, so one check covers all three rather than
+      # three that drift apart.
+      - name: the ledger re-derives
+        working-directory: backend
+        run: uv run python manage.py verify_ledger
+
       # ---- 5. deployment audit ------------------------------------------
       # Explicitly against `prod`: auditing `test` would audit the two
       # relaxations test makes (no SSL redirect, a known key) and report them

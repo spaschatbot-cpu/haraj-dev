@@ -27,6 +27,7 @@ from django.db import transaction as db_transaction
 from django.db.models import Count
 from django.utils import timezone
 
+from apps.core import audit
 from apps.core.errors import DomainError
 
 from .models import (
@@ -1450,10 +1451,13 @@ def confiscate(hold: Hold, *, reason: str, by, memo: str = "") -> Transaction:
     so it may never happen as a side effect of a cron, a retry, or a
     convenience default — someone put their name to it and wrote why.
 
-    TODO(T008): also record this through `apps.core.audit.record` once that
-    exists. Until then the transaction itself carries the two facts the audit
-    needs — `created_by` and `memo` — and `Hold.ended_by_transaction` links
-    the claim to the decision that ended it.
+    It is also the one movement that writes an :class:`~apps.core.models.AuditLog`
+    row. The transaction already carries `created_by` and `memo`, but a dispute
+    asks what the hold *was* before it was taken, and that is the before/after
+    the audit row holds. The `TODO` that stood here said "once
+    `apps.core.audit.record` exists"; it existed from the day core merged, and a
+    TODO in a docstring fails no CI step, so the condition came due and nothing
+    said so.
     """
     if not reason or not reason.strip():
         raise MoneyError("المصادرة تحتاج سبباً مكتوباً")
@@ -1467,6 +1471,9 @@ def confiscate(hold: Hold, *, reason: str, by, memo: str = "") -> Transaction:
         if hold.reason == HoldReason.BIDDING
         else AccountKind.INSURANCE_LOCKED
     )
+    audited = ("state", "amount", "reason", "auction_id", "invoice_id")
+    before = audit.snapshot(hold, audited)
+
     txn = post(
         kind=TransactionKind.INSURANCE_CONFISCATE,
         idempotency_key=f"confiscate:{hold.pk}",
@@ -1481,4 +1488,13 @@ def confiscate(hold: Hold, *, reason: str, by, memo: str = "") -> Transaction:
     hold.ended_by_transaction = txn
     hold.ended_at = timezone.now()
     hold.save(update_fields=["state", "ended_by_transaction", "ended_at"])
+
+    audit.record(
+        action="money.confiscate",
+        entity=hold,
+        actor=by,
+        before=before,
+        after=audit.snapshot(hold, audited),
+        note=f"{reason.strip()}" + (f" — {memo}" if memo else ""),
+    )
     return txn
