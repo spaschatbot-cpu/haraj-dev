@@ -26,9 +26,16 @@ SECRET_KEY = env("SECRET_KEY", default=INSECURE_SECRET_KEY)
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-# The environment names itself in the UI and in every outbound message, so a
-# test message can never look like it came from production (Article 5-6).
+# The environment names itself on /health, in the UI, and in every outbound
+# message, so a test message can never look like it came from production
+# (Article 5-6). "base" is a sentinel that no running environment keeps: each
+# of dev/test/prod overrides it, and seeing it in a response means a settings
+# module was pointed at directly, which is itself the bug.
 ENVIRONMENT_NAME = "base"
+
+# Stamped in at build time. Left empty locally, where /health falls back to
+# reading the checked-out git ref.
+GIT_COMMIT = env("GIT_COMMIT", default="")
 
 # --------------------------------------------------------------------------
 # Applications
@@ -159,6 +166,9 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    # One envelope for every error the API can return, so the Flutter app has a
+    # single branch to write and every message reaches the user in Arabic.
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
