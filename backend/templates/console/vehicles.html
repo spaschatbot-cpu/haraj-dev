@@ -1,0 +1,45 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` on every amount: money is shown exactly as the ledger stores it.
+A thousands separator or a localised decimal comma is a display transformation
+on a money value, and an operator comparing this screen to the ledger must not
+have to undo one in their head.
+{% endcomment %}
+{% block title %}المركبات{% endblock %}
+{% block heading %}المركبات{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="ماركة أو موديل أو رقم لوت">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>المزاد</th><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الشريك</th></tr>
+    </thead>
+    <tbody>
+      {% for vehicle in page %}
+        <tr>
+          <td>{{ vehicle.auction.number|unlocalize }}</td>
+          <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
+          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
+          <td>{{ vehicle.get_state_display }}</td>
+          <td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td>
+          <td>{{ vehicle.owner_company.name|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">لا مركبات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

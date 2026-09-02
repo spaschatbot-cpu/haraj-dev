@@ -62,11 +62,29 @@ SECTIONS: tuple[Section, ...] = (
 #: reachable by url is exactly the shape of an accidental leak.
 PAGES: tuple[Page, ...] = (
     Page("console:home", "الرئيسية", Capability.CONSOLE_ACCESS, "daily"),
+    Page("console:auctions", "المزادات", Capability.AUCTIONS_VIEW, "daily"),
+    Page("console:vehicles", "المركبات", Capability.AUCTIONS_VIEW, "daily"),
     Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,
         "diagnostics",
+    ),
+)
+
+
+#: Pages that take an id and therefore cannot appear in a sidebar — a link to
+#: "the vehicle" means nothing without saying which. They are still rows here
+#: because the guard reads this registry and nothing else, and a detail page
+#: with no row would be a page with no guard.
+DETAIL_PAGES: tuple[Page, ...] = (
+    Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
+    Page("console:vehicle-detail", "تفاصيل المركبة", Capability.AUCTIONS_VIEW, ""),
+    Page(
+        "console:vehicle-state",
+        "تغيير حالة المركبة",
+        Capability.AUCTIONS_MANAGE,
+        "",
     ),
 )
 
@@ -100,13 +118,14 @@ def capability_for(url_name: str) -> str | None:
     Used by the guard decorator so a view names its page rather than repeating
     the capability — repeating it is how the two drift apart.
     """
-    for page in PAGES:
+    for page in (*PAGES, *DETAIL_PAGES):
         if page.url_name == url_name:
             return page.capability
     return None
 
 
 __all__ = [
+    "DETAIL_PAGES",
     "PAGES",
     "SECTIONS",
     "Page",
