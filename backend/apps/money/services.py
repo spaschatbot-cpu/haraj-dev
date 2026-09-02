@@ -305,7 +305,7 @@ def deposit_insurance(
         "card": AccountKind.EXTERNAL_CARD,
     }.get(source)
     if external is None:
-        raise MoneyError(f"unknown funding source {source!r}")
+        raise MoneyError(f"مصدر تمويل غير معروف: {source!r}")
 
     return post(
         kind=TransactionKind.INSURANCE_TOPUP,
@@ -319,6 +319,73 @@ def deposit_insurance(
     )
 
 
+def _active_hold(*, owner, auction=None, invoice=None) -> Hold | None:
+    return Hold.objects.filter(
+        owner=owner, auction=auction, invoice=invoice, state=HoldState.ACTIVE
+    ).first()
+
+
+def _episode(*, owner, auction=None, invoice=None) -> int:
+    """How many times this customer has already been held against this subject.
+
+    The number turns a hold's idempotency key from "this customer and this
+    auction, forever" into "this customer's *n*-th hold on this auction",
+    which is what the key has to mean.
+
+    Getting this wrong is subtle and expensive. With a permanent key, a
+    customer who bids, has the hold released at settlement, then bids again in
+    a relisted round gets a `post` that recognises the old key, moves nothing,
+    and still returns — leaving a fresh Hold row claiming money that never
+    left `insurance_free`. The bucket and the holds disagree from then on.
+
+    Counting every hold regardless of state keeps the number stable for
+    concurrent callers inside one episode: they all read the same count and
+    therefore build the same key, so twenty simultaneous bids move the deposit
+    exactly once.
+    """
+    return Hold.objects.filter(owner=owner, auction=auction, invoice=invoice).count()
+
+
+def _lock_free_insurance(user) -> Account:
+    """Take the customer's `insurance_free` row lock before deciding anything.
+
+    Every hold for one customer contends on this single row, so the decision
+    (is there already a hold? which episode is this?) and the movement that
+    follows from it happen under the same lock instead of straddling it.
+
+    Without it, twenty simultaneous bids each read "no hold yet, episode 0",
+    and the ones that lose the race then recompute a *different* episode
+    number, build a fresh idempotency key, and try to move a deposit that the
+    winner has already moved. The unique index still keeps the hold rows
+    correct; it is the money that goes wrong.
+    """
+    return Account.objects.select_for_update().get(
+        pk=account_for(user, AccountKind.INSURANCE_FREE).pk
+    )
+
+
+def _create_hold(**fields) -> Hold:
+    """Create the hold, letting the partial unique index settle any race.
+
+    Twenty bidders' worth of concurrent requests all pass `_active_hold`
+    before any of them inserts. The pre-check is a shortcut; the index is the
+    guarantee. The loser reads the winner's hold rather than raising, because
+    a customer who clicked twice has one claim on their deposit, not an error.
+    """
+    try:
+        with db_transaction.atomic():
+            return Hold.objects.create(**fields)
+    except IntegrityError:
+        winner = _active_hold(
+            owner=fields["owner"],
+            auction=fields.get("auction"),
+            invoice=fields.get("invoice"),
+        )
+        if winner is None:
+            raise
+        return winner
+
+
 @db_transaction.atomic
 def hold_for_auction(*, user, auction, amount: Decimal | None = None) -> Hold:
     """Reserve a customer's insurance against one auction so they can bid.
@@ -327,23 +394,24 @@ def hold_for_auction(*, user, auction, amount: Decimal | None = None) -> Hold:
     same auction has exactly one hold, enforced by a unique constraint rather
     than by remembering to check.
     """
-    existing = Hold.objects.filter(
-        owner=user, auction=auction, state=HoldState.ACTIVE
-    ).first()
+    _lock_free_insurance(user)
+
+    existing = _active_hold(owner=user, auction=auction)
     if existing is not None:
         return existing
 
     amount = amount or Decimal(settings.INSURANCE_DEPOSIT_AMOUNT)
+    episode = _episode(owner=user, auction=auction)
     txn = post(
         kind=TransactionKind.INSURANCE_HOLD,
-        idempotency_key=f"hold:{user.pk}:{auction.pk}",
+        idempotency_key=f"hold:{user.pk}:{auction.pk}:{episode}",
         memo=f"حجز تأمين لمزاد {auction.pk}",
         legs=[
             Leg(account_for(user, AccountKind.INSURANCE_FREE), -amount),
             Leg(account_for(user, AccountKind.INSURANCE_HELD), amount),
         ],
     )
-    return Hold.objects.create(
+    return _create_hold(
         owner=user,
         auction=auction,
         amount=amount,
@@ -387,29 +455,33 @@ def lock_for_invoice(*, user, invoice: Invoice, amount: Decimal | None = None) -
     deposit look free because nothing recorded *which* debt it answered; here
     the hold names the invoice.
     """
-    existing = Hold.objects.filter(
-        owner=user, invoice=invoice, state=HoldState.ACTIVE
-    ).first()
+    free_account = _lock_free_insurance(user)
+
+    existing = _active_hold(owner=user, invoice=invoice)
     if existing is not None:
         return existing
 
-    amount = amount or min(
-        invoice.outstanding,
-        account_for(user, AccountKind.INSURANCE_FREE).balance,
-    )
+    available = free_account.balance
+    # Lock the smaller of what is owed and what is there. Locking more than
+    # the debt would be a penalty, and this bucket is a guarantee.
+    amount = amount or min(invoice.outstanding, available)
     if amount <= ZERO:
-        raise MoneyError("nothing free to lock against this invoice")
+        raise MoneyError(
+            f"لا يوجد تأمين متاح لقفله على الفاتورة {invoice.number}: "
+            f"المتاح {available} والمستحق {invoice.outstanding}"
+        )
 
+    episode = _episode(owner=user, invoice=invoice)
     txn = post(
         kind=TransactionKind.INSURANCE_LOCK,
-        idempotency_key=f"lock:{user.pk}:{invoice.pk}",
+        idempotency_key=f"lock:{user.pk}:{invoice.pk}:{episode}",
         memo=f"قفل تأمين على الفاتورة {invoice.number}",
         legs=[
             Leg(account_for(user, AccountKind.INSURANCE_FREE), -amount),
             Leg(account_for(user, AccountKind.INSURANCE_LOCKED), amount),
         ],
     )
-    return Hold.objects.create(
+    return _create_hold(
         owner=user,
         invoice=invoice,
         amount=amount,
@@ -468,16 +540,71 @@ def attribute(
     *, user, amount: Decimal, reference: str, by=None, memo: str = ""
 ) -> Transaction:
     """Move a suspense amount to the customer it turned out to belong to."""
+    suspense = system_account(AccountKind.SUSPENSE)
+    if amount > suspense.balance:
+        # Suspense is a platform bucket, so it carries no CHECK floor — an
+        # over-attribution would quietly invent money instead of failing.
+        # This is the one place that guard has to live.
+        raise MoneyError(f"المعلّق فيه {suspense.balance} ولا يكفي لنسب {amount}")
+
     return post(
         kind=TransactionKind.ATTRIBUTION,
         idempotency_key=f"attribute:{reference}",
         memo=memo,
         created_by=by,
         legs=[
-            Leg(system_account(AccountKind.SUSPENSE), -amount),
+            Leg(suspense, -amount),
             Leg(account_for(user, AccountKind.INSURANCE_FREE), amount),
         ],
     )
+
+
+# ---------------------------------------------------------------------------
+# Confiscation — the only path that takes a customer's money for good
+# ---------------------------------------------------------------------------
+
+
+@db_transaction.atomic
+def confiscate(hold: Hold, *, reason: str, by, memo: str = "") -> Transaction:
+    """Take a held or locked deposit permanently, by a named decision.
+
+    Both arguments are mandatory and neither has a default. Confiscation is
+    the one movement that ends with a customer poorer and no service rendered,
+    so it may never happen as a side effect of a cron, a retry, or a
+    convenience default — someone put their name to it and wrote why.
+
+    TODO(T008): also record this through `apps.core.audit.record` once that
+    exists. Until then the transaction itself carries the two facts the audit
+    needs — `created_by` and `memo` — and `Hold.ended_by_transaction` links
+    the claim to the decision that ended it.
+    """
+    if not reason or not reason.strip():
+        raise MoneyError("المصادرة تحتاج سبباً مكتوباً")
+    if by is None:
+        raise MoneyError("المصادرة تحتاج منفّذاً مسمّى")
+    if hold.state != HoldState.ACTIVE:
+        raise MoneyError(f"الحجز {hold.pk} ليس قائماً، فلا شيء يُصادَر")
+
+    bucket = (
+        AccountKind.INSURANCE_HELD
+        if hold.reason == HoldReason.BIDDING
+        else AccountKind.INSURANCE_LOCKED
+    )
+    txn = post(
+        kind=TransactionKind.INSURANCE_CONFISCATE,
+        idempotency_key=f"confiscate:{hold.pk}",
+        memo=f"مصادرة حجز {hold.pk}: {reason.strip()}" + (f" — {memo}" if memo else ""),
+        created_by=by,
+        legs=[
+            Leg(account_for(hold.owner, bucket), -hold.amount),
+            Leg(system_account(AccountKind.CONFISCATED), hold.amount),
+        ],
+    )
+    hold.state = HoldState.CONSUMED
+    hold.ended_by_transaction = txn
+    hold.ended_at = timezone.now()
+    hold.save(update_fields=["state", "ended_by_transaction", "ended_at"])
+    return txn
 
 
 # ---------------------------------------------------------------------------
