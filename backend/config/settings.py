@@ -150,6 +150,9 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
+    # One envelope for every error the API can return, so the Flutter app has a
+    # single branch to write and every message reaches the user in Arabic.
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
 }
 
 SPECTACULAR_SETTINGS = {
