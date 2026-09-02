@@ -235,3 +235,16 @@ jobs:
       - name: every OTP path carries the rate limit
         working-directory: backend
         run: uv run python ../ops/checks/one_otp_rate_limit.py
+
+      # Phase 007's T621. Two clients are generated from this schema and
+      # neither is written by hand, so a field renamed in a serializer is a
+      # breaking change to both. Committing the schema makes that change a diff
+      # a reviewer reads; this step is what stops it being skipped.
+      - name: the committed OpenAPI schema matches the code
+        working-directory: backend
+        run: |
+          uv run python manage.py spectacular --validate --fail-on-warn             --file "$RUNNER_TEMP/schema.yaml"
+          diff -u openapi/schema.yaml "$RUNNER_TEMP/schema.yaml" || {
+            echo "::error::المخطط المرفوع لا يطابق الكود — شغّل 'just schema' وارفع الفرق"
+            exit 1
+          }

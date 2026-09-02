@@ -162,6 +162,17 @@ verify:
 dbshell:
     uv run python manage.py dbshell
 
+# Rebuild the committed OpenAPI schema (T621).
+#
+# Run this after changing a serializer, a view or a route. The file it writes is
+# the contract two generated clients are built from — the Flutter app and the
+# web — so the diff it produces is the API change itself, in a form a reviewer
+# can read. CI fails when the committed copy and the code disagree.
+schema:
+    cd backend && uv run python manage.py spectacular --validate --fail-on-warn --file openapi/schema.yaml
+    @echo "backend/openapi/schema.yaml updated — commit the diff"
+
+
 # Django's own system check.
 [working-directory('backend')]
 check:
