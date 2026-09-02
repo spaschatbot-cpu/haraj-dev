@@ -18,6 +18,8 @@ import logging
 import requests
 from django.conf import settings
 
+from apps.core import jsonio
+
 log = logging.getLogger(__name__)
 
 TIMEOUT_SECONDS = 20
@@ -65,6 +67,12 @@ def call(endpoint: str, payload: dict, *, reference: str) -> dict:
         )
 
     try:
-        return response.json()
+        # Not `response.json()`: their reply carries their amounts —
+        # `amount_total` is read straight out of it during reconciliation — and
+        # requests' decoder would make each one a float before we saw it.
+        # Article 3-2 says «ولو في تقرير», and a reconciliation report is
+        # precisely a report (a halala lost here either invents a discrepancy
+        # or rounds a real one away).
+        return jsonio.loads(response.content)
     except ValueError:
         return {"raw": response.text[:1000]}

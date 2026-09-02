@@ -13,7 +13,6 @@ invoice is indistinguishable from asking for one that does not exist.
 from __future__ import annotations
 
 import hmac
-import json
 import logging
 from decimal import Decimal, InvalidOperation
 
@@ -30,6 +29,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.models import Auction, Vehicle
+from apps.core import jsonio
 from apps.core.exceptions import envelope
 from apps.money import services
 from apps.money.models import (
@@ -192,15 +192,15 @@ class PaymentCallbackView(APIView):
         expected = hmac.new(secret.encode(), raw, "sha256").hexdigest()
         signature_ok = hmac.compare_digest(signature, expected)
 
-        # ``parse_float=Decimal`` is the whole reason this is parsed by hand: a
-        # plain json.loads would turn an amount into a float before any of our
-        # code could refuse it.
+        # ``jsonio.loads`` is the whole reason this is parsed by hand: a plain
+        # json.loads would turn an amount into a float before any of our code
+        # could refuse it (Article 3-2, one decoder for both boundaries).
         try:
-            payload = json.loads(raw or b"{}", parse_float=Decimal)
+            payload = jsonio.loads(raw or b"{}")
         except ValueError:
             payload = {}
 
-        message = self._store(payload, signature_ok=signature_ok, headers=request.headers)
+        message = self._store(payload, raw=raw, signature_ok=signature_ok)
 
         if not signature_ok:
             log.warning("payment callback with a bad signature, stored as %s", message.pk)
@@ -212,12 +212,23 @@ class PaymentCallbackView(APIView):
         self._interpret(message, payload)
         return Response({"received": True})
 
-    def _store(self, payload: dict, *, signature_ok: bool, headers) -> InboundMessage:
+    def _store(self, payload: dict, *, raw: bytes, signature_ok: bool) -> InboundMessage:
         """Write the message down before understanding it.
 
         Deduplication is on the gateway's own delivery id, never on what the
         message is about: three notifications about one payment are three
         messages, and in v1 collapsing them swallowed the only useful one.
+
+        ``raw_body`` is stored for the same reason the Odoo boundary stores it,
+        and it matters most in exactly the case that used to lose it: a body we
+        could not parse got ``payload={}``, no ``raw_body``, and blank
+        everything else — a row that exists in name only, with nothing in it to
+        re-read after the parser is fixed. Money arrived and left no trace.
+
+        The verified signature is *not* kept. It is a keyed digest of the body
+        stored beside it, so a reader of this table who does not hold the secret
+        would be handed an unlimited supply of verified (message, MAC) pairs —
+        which is why ``apps/odoo/views._safe_headers`` strips its own.
         """
         reference = str((payload.get("metadata") or {}).get("reference", ""))[:128]
         message = InboundMessage(
@@ -225,8 +236,9 @@ class PaymentCallbackView(APIView):
             event=str(payload.get("type") or payload.get("status") or "")[:64],
             delivery_id=str(payload.get("id", ""))[:128],
             subject_ref=reference,
-            payload=json.loads(json.dumps(payload, default=str)),
-            headers={"X-Signature": headers.get("X-Signature", "")},
+            payload=payload,
+            raw_body=raw.decode("utf-8", errors="replace"),
+            headers={"signature_ok": signature_ok},
         )
         if not signature_ok:
             message.state = InboundState.FAILED
@@ -259,20 +271,30 @@ class PaymentCallbackView(APIView):
             message.state = InboundState.FAILED
             message.note = f"مبلغ غير مفهوم في الرسالة: {payload.get('amount')!r}"
         else:
-            outcome = services.apply_gateway_payment(
-                reference=reference,
-                payment_id=str(payload.get("id", "")),
-                amount=amount,
-                status_raw=status_raw,
-                succeeded=status_raw in settings.PAYMENT_SUCCESS_STATUSES,
-            )
-            message.state = {
-                "credited": InboundState.PROCESSED,
-                "suspense": InboundState.PROCESSED,
-                "ignored": InboundState.IGNORED,
-            }.get(outcome.disposition, InboundState.FAILED)
-            message.note = outcome.note
-            message.resulting_transaction = outcome.transaction
+            try:
+                outcome = services.apply_gateway_payment(
+                    reference=reference,
+                    payment_id=str(payload.get("id", "")),
+                    amount=amount,
+                    status_raw=status_raw,
+                    succeeded=status_raw in settings.PAYMENT_SUCCESS_STATUSES,
+                )
+            except Exception as exc:  # noqa: BLE001 — a failure here is data
+                # Article 2-2: a raise that escapes leaves the row RECEIVED with
+                # an empty note, and nothing in the system ever looks at a
+                # gateway message again. `processing.process` already wraps its
+                # interpreter exactly this way; this is the same shape.
+                log.exception("payment callback: message %s raised", message.pk)
+                message.state = InboundState.FAILED
+                message.note = f"{type(exc).__name__}: {exc}"
+            else:
+                message.state = {
+                    "credited": InboundState.PROCESSED,
+                    "suspense": InboundState.PROCESSED,
+                    "ignored": InboundState.IGNORED,
+                }.get(outcome.disposition, InboundState.FAILED)
+                message.note = outcome.note
+                message.resulting_transaction = outcome.transaction
 
         message.attempts += 1
         message.processed_at = timezone.now()

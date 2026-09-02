@@ -265,3 +265,99 @@ def test_the_sheet_check_catches_a_second_workbook_library(tmp_path):
     root = write(tmp_path, "report.py", "from openpyxl import Workbook\n")
 
     assert len(check.violations([root], allowed=set())) == 1
+
+
+# ---------------------------------------------------------------------------
+# Article 1-2 — one writer of the ledger
+# ---------------------------------------------------------------------------
+
+
+def test_nothing_writes_the_ledger_outside_the_money_service():
+    assert load("money_single_writer").violations(SCANNED) == []
+
+
+@pytest.mark.parametrize(
+    ("label", "source"),
+    [
+        (
+            "constructing an entry",
+            "from apps.money.models import Entry\n"
+            "def book(txn, account):\n"
+            "    Entry(transaction=txn, account=account, amount=1).save()\n",
+        ),
+        (
+            "creating through the manager",
+            "from apps.money.models import Entry\n"
+            "def book(txn):\n"
+            "    Entry.objects.create(transaction=txn, amount=1)\n",
+        ),
+        (
+            "bulk creating transactions",
+            "from apps.money.models import Transaction\n"
+            "def book(rows):\n"
+            "    Transaction.objects.bulk_create(rows)\n",
+        ),
+        (
+            "assigning a balance",
+            "def top_up(account):\n    account.balance = 10\n    account.save()\n",
+        ),
+        (
+            "adding to a balance",
+            "def top_up(account):\n    account.balance += 10\n    account.save()\n",
+        ),
+        (
+            "updating a balance in a query",
+            "def top_up(qs):\n    qs.update(balance=10)\n",
+        ),
+    ],
+)
+def test_the_ledger_check_catches_each_way_of_writing_it(tmp_path, label, source):
+    """The rule the constitution calls the sharpest of all had no guard at all
+    — while auction state, the vehicle price, the vehicle card, spreadsheets
+    and floats each had one. A guard nobody has seen refuse anything proves
+    only that it runs."""
+    check = load("money_single_writer")
+    root = write(tmp_path, "views.py", source)
+
+    found = check.violations([root], allowed=set())
+
+    assert len(found) == 1, f"{label} slipped past the guard: {found}"
+
+
+def test_reading_the_ledger_is_not_writing_it(tmp_path):
+    """Querying is how the rest of the system looks at the ledger, which is
+    the whole point of keeping one."""
+    check = load("money_single_writer")
+    root = write(
+        tmp_path,
+        "views.py",
+        "from apps.money.models import Entry, Transaction\n"
+        "def statement(user):\n"
+        "    return Entry.objects.filter(owner=user), Transaction.objects.count()\n",
+    )
+
+    assert check.violations([root], allowed=set()) == []
+
+
+def test_a_test_may_forge_a_balance_but_never_an_entry(tmp_path):
+    """The one narrowing, stated in the check rather than discovered.
+
+    Article 4-2 says an untested constraint does not exist, and the only way to
+    test `customer_buckets_never_go_negative` is to set a balance the service
+    would never set. The rows themselves stay forbidden.
+    """
+    check = load("money_single_writer")
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_thing.py").write_text(
+        "from apps.money.models import Entry\n"
+        "def test_floor(account, txn):\n"
+        "    account.balance = -1\n"
+        "    Entry.objects.create(transaction=txn, amount=1)\n",
+        encoding="utf-8",
+    )
+
+    found = check.violations([tmp_path], allowed=set())
+
+    assert len(found) == 1
+    assert "Entry" in found[0]

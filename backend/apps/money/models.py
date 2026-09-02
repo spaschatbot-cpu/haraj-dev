@@ -19,8 +19,11 @@ a transaction and see where the money went.
 
 What this design refuses to repeat, from v1
 -------------------------------------------
-* Balances are never written by ``± delta``. They are recomputed from the
-  entries by :mod:`apps.money.services`, which is the only writer.
+* A balance is a *cache*. It is moved by the difference under a row lock, by
+  :mod:`apps.money.services` and nothing else, and re-derived from the entries
+  by :func:`apps.money.verification.verify_ledger` — so the cache is checked
+  rather than trusted. v1's mistake was not the cache; it was that nothing ever
+  recomputed it, so nobody could tell a stale balance from a real one.
 * A customer bucket carries a database CHECK that it cannot go negative, so an
   over-debit aborts the transaction instead of silently creating a hole.
 * Nothing is ever updated or deleted. A mistake is corrected by a *reversing*
@@ -36,7 +39,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models import Q
+from django.db.models import F, Q
 
 MONEY = {"max_digits": 14, "decimal_places": 2}
 ZERO = Decimal("0.00")
@@ -92,8 +95,10 @@ class Account(models.Model):
     kind = models.CharField(max_length=32, choices=AccountKind.choices)
 
     #: Cached sum of this account's entries. Written only by
-    #: :func:`apps.money.services.post`, always inside the posting transaction,
-    #: always recomputed rather than adjusted.
+    #: :func:`apps.money.services.post`, always inside the posting transaction
+    #: and always under this row's ``SELECT ... FOR UPDATE`` lock, by adding the
+    #: movement's delta. :func:`apps.money.verification.check_cached_balances`
+    #: recomputes it from the entries and reports any drift.
     balance = models.DecimalField(**MONEY, default=ZERO)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -117,6 +122,16 @@ class Account(models.Model):
                     ~Q(kind__in=AccountKind.customer_owned()) | Q(balance__gte=ZERO)
                 ),
                 name="customer_buckets_never_go_negative",
+            ),
+            # Suspense holds money that arrived; it cannot hold less than none
+            # of it. Without this the only guard was a Python read-then-post in
+            # `attribute`, which two concurrent operators walked straight
+            # through — 20,000 attributed against 10,000 that had arrived, and
+            # `post`'s own floor does not apply because suspense is not a
+            # customer bucket (Article 3-3).
+            models.CheckConstraint(
+                condition=~Q(kind=AccountKind.SUSPENSE) | Q(balance__gte=ZERO),
+                name="suspense_never_goes_negative",
             ),
             models.CheckConstraint(
                 condition=(
@@ -404,6 +419,15 @@ class Invoice(models.Model):
             models.CheckConstraint(
                 condition=Q(amount_paid__gte=ZERO), name="invoice_paid_not_negative"
             ),
+            # And not above the invoice either. `record_payment` refuses to
+            # over-pay, but the mirror from Odoo writes `amount` without looking
+            # at what has been paid — lowering a settled 20,000 invoice to 5,000
+            # made 15,000 of real dues vanish from every report, because
+            # `outstanding` clamps at zero and the derived state reads PAID.
+            models.CheckConstraint(
+                condition=Q(amount_paid__lte=F("amount")),
+                name="invoice_paid_not_above_amount",
+            ),
             # One live invoice per vehicle. v1's duplication incident produced
             # 786 invoices from a loop; this makes the 787th impossible.
             models.UniqueConstraint(
@@ -548,6 +572,15 @@ class RefundRequestState(models.TextChoices):
     REJECTED = "rejected", "مرفوض"
     CANCELLED = "cancelled", "ألغاه العميل"
 
+    @classmethod
+    def open_states(cls) -> tuple[str, ...]:
+        """The states in which a request may still cost us money.
+
+        Named once, because the constraint below and the service that produces
+        the Arabic refusal must mean exactly the same set (Article 4-5).
+        """
+        return (cls.REQUESTED.value, cls.SENT.value)
+
 
 class RefundRequest(models.Model):
     """A customer asking for their free insurance back.
@@ -601,6 +634,17 @@ class RefundRequest(models.Model):
                     ~Q(state="confirmed") | Q(resulting_transaction__isnull=False)
                 ),
                 name="a_confirmed_refund_names_its_transaction",
+            ),
+            # One open request per customer. Asking moves no money, so the
+            # balance a request is checked against does not move either — ten
+            # requests each passed the same check against the same untouched
+            # 10,000 and instructed accounting to pay out 100,000. The rule
+            # lives here rather than in the service because a service check
+            # against an unchanging number is not a reservation.
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=Q(state__in=("requested", "sent")),
+                name="one_open_refund_request_per_customer",
             ),
         ]
         indexes = [models.Index(fields=["user", "-created_at"])]

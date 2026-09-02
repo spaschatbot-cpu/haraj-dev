@@ -22,6 +22,8 @@ from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
+from apps.core import jsonio
+
 from .models import InboundMessage, InboundState
 from .signing import verify
 
@@ -67,7 +69,11 @@ def odoo_webhook(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"detail": "توقيع غير صالح"}, status=401)
 
     try:
-        payload = json.loads(raw_body or b"{}")
+        # Decoded through the shared money-safe decoder: a plain json.loads
+        # here turned an amount into a float before the interpreter — which
+        # reads `payload`, not `raw_body` — ever saw it, so a halala was already
+        # gone by the time anything of ours could refuse it (Article 3-2).
+        payload = jsonio.loads(raw_body or b"{}")
         if not isinstance(payload, dict):
             raise ValueError("الجذر ليس كائناً")
     except (json.JSONDecodeError, ValueError) as exc:

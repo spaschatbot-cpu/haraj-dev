@@ -151,9 +151,9 @@ def api_exception_handler(exc: Exception, context: dict) -> Response:
         # static table cannot hold a sentence with this customer's numbers in
         # it. Otherwise MESSAGES owns the wording (Article 4-5), and a code it
         # has never heard of falls back to the class's own default.
-        message = getattr(exc, "explicit_message", "")
+        message: str = getattr(exc, "explicit_message", "") or ""
         if not message:
-            message = MESSAGES.get(code) or getattr(exc, "user_message", "")
+            message = MESSAGES.get(code) or getattr(exc, "user_message", "") or ""
 
         # The exception's own text is diagnostic English ("insurance_free for
         # owner 7 holds 0.00, needs 10000") — useful to an operator reading

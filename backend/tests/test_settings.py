@@ -22,11 +22,21 @@ from django.conf import settings
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 SETTINGS_PACKAGE_DIR = BACKEND_DIR / "config" / "settings"
-DOTENV = BACKEND_DIR / ".env"
 
 #: المتغيّرات التي تملكها هذه الاختبارات: تُحذف من بيئة المفسّر الفرعي حتى لا
 #: تتسرّب قيمة من صدفة المطوّر فتجعل الحارس يمرّ لسبب خاطئ.
-MANAGED = frozenset({"SECRET_KEY", "DEBUG", "ODOO_ENABLED", "DJANGO_SETTINGS_MODULE"})
+MANAGED = frozenset(
+    {
+        "SECRET_KEY",
+        "DEBUG",
+        "ODOO_ENABLED",
+        "DJANGO_SETTINGS_MODULE",
+        # `prod` refuses to boot without it, and that refusal is a third
+        # guard's subject. Owned here so neither test below can fail — or
+        # pass — for a reason it is not about.
+        "ALLOWED_HOSTS",
+    }
+)
 
 DEFAULT_SECRET_KEY = "dev-only-insecure-key"
 
@@ -40,26 +50,23 @@ def production_settings_module() -> str:
     return "config.settings.prod" if SETTINGS_PACKAGE_DIR.is_dir() else "config.settings"
 
 
-def dotenv_defines(name: str) -> bool:
-    """هل ملف `.env` المحلي يعرّف هذا المتغيّر؟
-
-    `django-environ` يقرأ `.env` ويملأ منه ما ليس في البيئة، فوجود المفتاح هناك
-    يبطل الاختبار. `.env` غير مرفوع (وCI بلا واحد)، فهذه حالة الجهاز المحلي وحده.
-    """
-    if not DOTENV.exists():
-        return False
-    prefix = f"{name}="
-    return any(
-        line.strip().startswith(prefix)
-        for line in DOTENV.read_text(encoding="utf-8").splitlines()
-    )
+#: Neutralises `environ.Env.read_env` in the child before the settings are
+#: imported. `read_env` is handed an absolute `BASE_DIR / ".env"`, so no cwd or
+#: environment variable can steer it away from the developer's own file — and
+#: with that file present, both guards below used to *skip*. A skipped guard
+#: reads as a single `s` in pytest's output, so the two checks the acceptance
+#: criterion calls «الاختباران يمرّان» were passing nowhere: not locally, where
+#: they skipped, and not in CI, which has never run them. Stubbing the reader is
+#: what makes them measure the thing they name — the value with no `.env` and no
+#: variable set — on every machine.
+NO_DOTENV = "import environ;environ.Env.read_env = staticmethod(lambda *a, **k: None);"
 
 
 def import_settings_in_a_fresh_process(script: str, **environment: str):
     env = {key: value for key, value in os.environ.items() if key not in MANAGED}
     env.update(environment)
     return subprocess.run(
-        [sys.executable, "-c", script],
+        [sys.executable, "-c", NO_DOTENV + script],
         cwd=BACKEND_DIR,
         env=env,
         capture_output=True,
@@ -69,13 +76,11 @@ def import_settings_in_a_fresh_process(script: str, **environment: str):
 
 def test_production_settings_refuse_the_default_secret_key():
     """A3: بلا DEBUG وبمفتاح افتراضي، العملية تموت — لا تعمل بمفتاح معروف."""
-    if dotenv_defines("SECRET_KEY"):
-        pytest.skip(f"{DOTENV} يعرّف SECRET_KEY فيغطّي الافتراضي — احذفه لتشغيل هذا الفحص")
-
     module = production_settings_module()
     result = import_settings_in_a_fresh_process(
         f"import importlib; importlib.import_module({module!r})",
         DEBUG="False",
+        ALLOWED_HOSTS="example.test",
     )
 
     assert result.returncode != 0, "الإعدادات قبلت المفتاح الافتراضي خارج DEBUG"
@@ -95,15 +100,17 @@ def test_odoo_is_off_unless_someone_turns_it_on_deliberately():
     """المادة ٢-٦: لا شيء يصل لنظام محاسبة حقيقي بلا قرار صريح لتلك البيئة."""
     assert settings.ODOO_ENABLED is False, "التكامل مفتوح تحت إعدادات الاختبار"
 
-    if dotenv_defines("ODOO_ENABLED"):
-        pytest.skip(f"{DOTENV} يعرّف ODOO_ENABLED فيغطّي الافتراضي")
-
     module = production_settings_module()
     result = import_settings_in_a_fresh_process(
         "import importlib;"
         f"m = importlib.import_module({module!r});"
         "print('ODOO_ENABLED=', repr(m.ODOO_ENABLED))",
-        DEBUG="True",
+        # A real key, because `prod` refuses the default one and that refusal is
+        # the *other* guard's subject. This one is only about the integration
+        # switch, and it must not pass or fail for the key's reasons.
+        SECRET_KEY="a-key-that-is-not-the-insecure-default",
+        DEBUG="False",
+        ALLOWED_HOSTS="example.test",
     )
 
     assert result.returncode == 0, result.stderr

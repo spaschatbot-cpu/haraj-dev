@@ -13,6 +13,17 @@ from django.db import models
 from django.db.models import Q
 
 
+class BidQuerySet(models.QuerySet):
+    def live(self):
+        """The bids that still stand.
+
+        One definition of "live", used by every reader, and the same pair of
+        columns the unique index below is built on — so what the code calls a
+        live bid and what the database refuses a second of are the same thing.
+        """
+        return self.filter(is_superseded=False, is_withdrawn=False)
+
+
 class Bid(models.Model):
     vehicle = models.ForeignKey(
         "auctions.Vehicle", on_delete=models.PROTECT, related_name="bids"
@@ -24,24 +35,45 @@ class Bid(models.Model):
 
     #: Sealed auctions let a bidder revise downward, which is a deliberate rule
     #: and not a bug. Superseded bids stay in the table so the history is whole.
-    superseded_by = models.OneToOneField(
+    #:
+    #: The link points *backwards*, from the new bid to the one it replaces,
+    #: and the old row carries its own :attr:`is_superseded` flag. Both exist
+    #: because the partial unique index below can only read columns on the row
+    #: it indexes: with the link pointing forwards, freeing the slot would need
+    #: the new row's id before the new row exists, and the index — a partial
+    #: unique index, which postgres cannot defer — refuses the two live rows
+    #: that momentarily overlap. Revising a bid is therefore: flag the old row,
+    #: insert the new one pointing at it.
+    supersedes = models.OneToOneField(
         "self",
         null=True,
         blank=True,
         on_delete=models.PROTECT,
-        related_name="supersedes",
+        related_name="superseded_by",
     )
+    is_superseded = models.BooleanField(default=False)
+
     is_withdrawn = models.BooleanField(default=False)
+    withdrawn_at = models.DateTimeField(null=True, blank=True)
 
     placed_at = models.DateTimeField(auto_now_add=True)
+
+    objects = BidQuerySet.as_manager()
 
     class Meta:
         constraints = [
             models.CheckConstraint(condition=Q(amount__gt=0), name="bid_is_positive"),
             models.UniqueConstraint(
                 fields=["vehicle", "bidder"],
-                condition=Q(superseded_by__isnull=True, is_withdrawn=False),
+                condition=Q(is_superseded=False, is_withdrawn=False),
                 name="one_live_bid_per_bidder_per_vehicle",
+            ),
+            # A withdrawal is an event with a moment, not a flag somebody set.
+            # "When did he pull out?" is the first question asked about one.
+            models.CheckConstraint(
+                condition=Q(is_withdrawn=False, withdrawn_at__isnull=True)
+                | Q(is_withdrawn=True, withdrawn_at__isnull=False),
+                name="a_withdrawn_bid_names_its_moment",
             ),
         ]
         indexes = [

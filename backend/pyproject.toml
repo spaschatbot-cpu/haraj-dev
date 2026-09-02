@@ -70,8 +70,12 @@ check_untyped_defs = true
 # Third-party packages that ship no types. Listed one by one rather than with
 # a blanket `ignore_missing_imports`, so a newly added untyped dependency is a
 # visible decision instead of a silent hole.
+# `rest_framework` and `openpyxl` join the list because phases 005 and 007
+# brought them in; neither ships a py.typed marker. DRF in particular is
+# imported by every view and serializer, so without this the type checker
+# reports the same missing marker forty times and says nothing about our code.
 [[tool.mypy.overrides]]
-module = ["environ.*", "celery.*"]
+module = ["environ.*", "celery.*", "rest_framework.*", "openpyxl.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -85,13 +89,18 @@ disallow_subclassing_any = true
 no_implicit_reexport = true
 extra_checks = true
 # The strict flags above are the rule; this line is the only thing keeping them
-# from blocking today. `apps/money` is still the untyped phase-002 prototype and
-# it carries one *known* open defect — F-001 in specs/002-money-engine/findings.md,
-# scheduled for T108. Silencing that defect to make a type checker quiet would be
-# worse than not running the checker at all, and pre-empting م1's rewrite of these
-# signatures would be a second task inside this one.
+# from blocking today.
 #
-# REMOVE THIS LINE when T104–T108 land. Nothing else needs to change.
+# The original reason is gone: T104–T124 landed and F-001 with them, so the
+# prototype this line was written about no longer exists. The line stays for a
+# different reason, measured at the merge rather than assumed — removing it
+# reports 427 errors, and all but a handful are `disallow_untyped_defs` on test
+# functions in apps/money/tests. Annotating ~200 test signatures to turn a
+# checker green is not the same thing as type-checking the ledger.
+#
+# REMOVE THIS LINE once apps/money/tests carries annotations, or narrow the
+# strict block to `apps.money` without `.tests`. Either is a task with an
+# owner; neither belongs inside a merge.
 ignore_errors = true
 
 [tool.django-stubs]
