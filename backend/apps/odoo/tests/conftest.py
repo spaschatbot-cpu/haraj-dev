@@ -5,7 +5,6 @@ import time
 
 import pytest
 
-
 WEBHOOK_URL = "/webhooks/odoo/"
 SECRET = "test-webhook-secret"
 
