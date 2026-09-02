@@ -1,0 +1,71 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+Every live bid, not just the top one: a partner refusing 45,000 usually wants to
+know what the second offer was, and in v1 that meant a database query.
+
+The accepted offer is read off the award, never recomputed. A car awarded to the
+second bidder must not display the first bidder's number — in v1 it did, and
+that number reached the invoice conversation.
+{% endcomment %}
+
+{% block title %}عروض اللوت {{ vehicle.lot_number|unlocalize }}{% endblock %}
+{% block heading %}
+  {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }} —
+  لوت {{ vehicle.lot_number|unlocalize }}
+{% endblock %}
+
+{% block content %}
+  {% for message in messages %}<p><strong>{{ message }}</strong></p>{% endfor %}
+
+  <table>
+    <tr><th>المزاد</th><td>
+      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
+        {{ vehicle.auction.number|unlocalize }}</a></td></tr>
+    <tr><th>الشريك</th><td>{{ vehicle.owner_company.name|default:"—" }}</td></tr>
+    <tr><th>الحالة</th><td>{{ vehicle.get_state_display }}</td></tr>
+    <tr><th>سعر الوقوف</th><td class="money">
+      {{ vehicle.reserve_price|unlocalize|default:"—" }}</td></tr>
+    <tr><th>العرض المقبول</th><td class="money">
+      {# The award's own number. Absent until there is an award: an unawarded
+         car has no accepted offer, and putting the highest bid in this slot is
+         exactly the v1 confusion. #}
+      {% if accepted %}{{ accepted|unlocalize }} — {{ vehicle.awarded_to.full_name }}
+      {% else %}<span class="empty">لم تُقبل بعد</span>{% endif %}</td></tr>
+  </table>
+
+  <h2>العروض ({{ bids|length }})</h2>
+  <table>
+    <thead><tr><th>المزايد</th><th>المبلغ</th><th>وقتها</th><th></th></tr></thead>
+    <tbody>
+      {% for bid in bids %}
+        <tr>
+          <td>{{ bid.bidder.full_name }}
+            {% if bid.bidder_id == vehicle.awarded_to_id %}<strong>(المقبول)</strong>{% endif %}
+          </td>
+          <td class="money">{{ bid.amount|unlocalize }}</td>
+          <td>{{ bid.placed_at }}</td>
+          <td>
+            <form method="post" action="{% url 'console:partner-award' vehicle.pk %}">
+              {% csrf_token %}
+              <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
+              <input type="text" name="reason" placeholder="سبب القرار" required>
+              <button type="submit">رسِّ على هذا</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="empty">لا عروض قائمة على هذه المركبة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>رفض المالك</h2>
+  <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}">
+    {% csrf_token %}
+    {# "Nobody offered enough" and "the owner pulled it" are different facts
+       with opposite next steps, and v1 lost the distinction. #}
+    <input type="text" name="reason" placeholder="سبب الرفض" required>
+    <button type="submit">المالك رفض كل العروض</button>
+  </form>
+{% endblock %}
