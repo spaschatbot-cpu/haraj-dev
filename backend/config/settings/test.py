@@ -43,6 +43,23 @@ REST_FRAMEWORK = {  # noqa: F405
     "DEFAULT_THROTTLE_RATES": {},
 }
 
+# The OTP limits are attached to their views rather than to DRF's defaults, so
+# emptying the dict above does not reach them. Same reason, said again where it
+# applies: 736 tests that each spend a shared hourly counter would start failing
+# in the order they happen to run. `test_otp_rate_limit.py` switches each scope
+# on for the one test that proves it, with `override_settings`.
+OTP_THROTTLE_RATES: dict[str, str] = {}
+
+# Local memory, and only here. Redis is not a CI dependency, and every test that
+# needs a counter overrides this with a `locmem` cache of its own so the count
+# it asserts on cannot be a leftover from an earlier test.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "haraj-tests",
+    }
+}
+
 CELERY_TASK_ALWAYS_EAGER = True
 CELERY_TASK_EAGER_PROPAGATES = True
 

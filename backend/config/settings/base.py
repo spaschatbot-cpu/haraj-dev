@@ -185,6 +185,23 @@ SPECTACULAR_SETTINGS = {
 # Background work
 # --------------------------------------------------------------------------
 
+# --------------------------------------------------------------------------
+# Cache
+#
+# A rate limit lives in the cache, so the cache decides whether the limit is a
+# limit. Under gunicorn each worker holds its own local memory: four workers
+# make "five an hour" mean twenty an hour, and nobody reading the setting would
+# know. Redis is therefore the deployed default and `apps.accounts.checks`
+# refuses a deployed environment still on local memory.
+#
+# Database 2 — 0 and 1 belong to Celery above, and a `FLUSHDB` aimed at a queue
+# should not silently reset everyone's rate limits.
+# --------------------------------------------------------------------------
+
+CACHES = {
+    "default": env.cache("CACHE_URL", default="redis://127.0.0.1:6379/2"),
+}
+
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="redis://127.0.0.1:6379/0")
 CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="redis://127.0.0.1:6379/1")
 CELERY_TASK_ACKS_LATE = True
@@ -216,8 +233,30 @@ OTP_TTL_SECONDS = env.int("OTP_TTL_SECONDS", default=300)
 OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
 
 # The courtesy limit on one number: no second message while the first is this
-# young. The limit that protects the SMS bill across all callers is T602.
+# young. It expires with the code, so it is not the limit that protects the
+# bill — OTP_THROTTLE_RATES below is.
 OTP_RESEND_COOLDOWN_SECONDS = env.int("OTP_RESEND_COOLDOWN_SECONDS", default=60)
+
+# How often a code may be *sent*, and how often codes may be *tried*. Read by
+# `apps.accounts.throttling`, deliberately not by DRF's DEFAULT_THROTTLE_RATES:
+# `settings/test.py` empties DRF's throttle configuration so the suite is not
+# order-dependent, and these limits must survive that decision with an off
+# switch of their own rather than an ImproperlyConfigured.
+#
+# A scope missing from this dict means that limit is off. `apps.accounts.checks`
+# refuses a deployed environment where any of them is.
+#
+# The numbers: five messages an hour to one number is more than a customer who
+# is fighting a bad signal ever needs, and far less than harassment. Twenty an
+# hour from one address covers a household or an office behind one NAT and stops
+# a script walking the numbering plan. Thirty verify attempts an hour is six
+# codes' worth of the five-guess budget — a person mistyping, not a list being
+# worked through.
+OTP_THROTTLE_RATES: dict[str, str] = {
+    "otp_send_phone": env("OTP_SEND_RATE_PER_PHONE", default="5/hour"),
+    "otp_send_caller": env("OTP_SEND_RATE_PER_CALLER", default="20/hour"),
+    "otp_verify_caller": env("OTP_VERIFY_RATE_PER_CALLER", default="30/hour"),
+}
 
 # Fifteen minutes on the access token, thirty days on the refresh. Short access
 # is what makes a stolen token expire on its own; long refresh is what keeps a
