@@ -31,12 +31,24 @@ class InboundState(models.TextChoices):
     IGNORED = "ignored", "متجاهَلة عمداً"
     FAILED = "failed", "فشلت — قابلة لإعادة التشغيل"
 
+    #: A message whose signature did not verify. It is *stored* rather than
+    #: dropped: a burst of these is how an attack or a rotated secret makes
+    #: itself visible, and there is nothing to investigate if we threw them
+    #: away (Article 2-2).
+    REJECTED_SIGNATURE = "rejected_signature", "توقيع مرفوض"
+
 
 class InboundMessage(models.Model):
     """A message from Odoo (or a payment gateway), exactly as it arrived."""
 
     source = models.CharField(max_length=32, help_text="odoo | moyasar | manual")
     event = models.CharField(max_length=64, blank=True)
+
+    #: Which Odoo database sent this. A message from the staging database
+    #: arriving at production is stored and ignored, never acted on: in v1 two
+    #: invented invoices from a test environment blocked a real bidder for
+    #: three and a half hours.
+    odoo_database = models.CharField(max_length=64, blank=True, db_index=True)
 
     #: The sender's own identifier for this delivery. Two deliveries with the
     #: same one are the same message; a *different* one about the same object is
@@ -48,10 +60,15 @@ class InboundMessage(models.Model):
     subject_ref = models.CharField(max_length=128, blank=True, db_index=True)
 
     payload = models.JSONField()
+
+    #: The body exactly as it arrived, before any parsing. Kept because a
+    #: message we could not parse is precisely the one worth re-reading after
+    #: the parser is fixed.
+    raw_body = models.TextField(blank=True)
     headers = models.JSONField(default=dict, blank=True)
 
     state = models.CharField(
-        max_length=16, choices=InboundState.choices, default=InboundState.RECEIVED
+        max_length=24, choices=InboundState.choices, default=InboundState.RECEIVED
     )
     #: Why it is in that state. For FAILED this is the error; for IGNORED it is
     #: the human decision. Never empty for either.

@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -125,9 +124,7 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "source",
-                    models.CharField(
-                        help_text="odoo | moyasar | manual", max_length=32
-                    ),
+                    models.CharField(help_text="odoo | moyasar | manual", max_length=32),
                 ),
                 ("event", models.CharField(blank=True, max_length=64)),
                 ("delivery_id", models.CharField(blank=True, max_length=128)),
