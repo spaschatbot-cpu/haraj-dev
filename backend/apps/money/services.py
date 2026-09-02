@@ -418,11 +418,15 @@ def verify_ledger() -> list[Finding]:
     findings: list[Finding] = []
 
     # 1. Every transaction sums to zero.
-    for txn in Transaction.objects.annotate(total=Sum("entries__amount")).filter(
-        total__isnull=False
-    ).exclude(total=ZERO):
+    for txn in (
+        Transaction.objects.annotate(total=Sum("entries__amount"))
+        .filter(total__isnull=False)
+        .exclude(total=ZERO)
+    ):
         findings.append(
-            Finding("balanced_transactions", f"txn {txn.pk}", f"entries sum to {txn.total}")
+            Finding(
+                "balanced_transactions", f"txn {txn.pk}", f"entries sum to {txn.total}"
+            )
         )
 
     # 2. Every cached balance equals the sum of its entries.
@@ -447,9 +451,12 @@ def verify_ledger() -> list[Finding]:
         (AccountKind.INSURANCE_LOCKED, HoldReason.DUES),
     ):
         for account in Account.objects.filter(kind=kind).exclude(balance=ZERO):
-            claimed = Hold.objects.filter(
-                owner_id=account.owner_id, reason=reason, state=HoldState.ACTIVE
-            ).aggregate(total=Sum("amount"))["total"] or ZERO
+            claimed = (
+                Hold.objects.filter(
+                    owner_id=account.owner_id, reason=reason, state=HoldState.ACTIVE
+                ).aggregate(total=Sum("amount"))["total"]
+                or ZERO
+            )
             if claimed != account.balance:
                 findings.append(
                     Finding(
@@ -460,15 +467,21 @@ def verify_ledger() -> list[Finding]:
                 )
 
     # 4. Nobody's locked insurance exceeds what they actually owe.
-    for account in Account.objects.filter(
-        kind=AccountKind.INSURANCE_LOCKED
-    ).exclude(balance=ZERO):
-        owed = Invoice.objects.filter(customer_id=account.owner_id).exclude(
-            state=InvoiceState.CANCELLED
-        ).aggregate(total=Sum("amount"))["total"] or ZERO
-        paid = Invoice.objects.filter(customer_id=account.owner_id).exclude(
-            state=InvoiceState.CANCELLED
-        ).aggregate(total=Sum("amount_paid"))["total"] or ZERO
+    for account in Account.objects.filter(kind=AccountKind.INSURANCE_LOCKED).exclude(
+        balance=ZERO
+    ):
+        owed = (
+            Invoice.objects.filter(customer_id=account.owner_id)
+            .exclude(state=InvoiceState.CANCELLED)
+            .aggregate(total=Sum("amount"))["total"]
+            or ZERO
+        )
+        paid = (
+            Invoice.objects.filter(customer_id=account.owner_id)
+            .exclude(state=InvoiceState.CANCELLED)
+            .aggregate(total=Sum("amount_paid"))["total"]
+            or ZERO
+        )
         outstanding = max(owed - paid, ZERO)
         if account.balance > outstanding:
             findings.append(
