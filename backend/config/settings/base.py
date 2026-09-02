@@ -194,6 +194,13 @@ CELERY_TIMEZONE = "UTC"
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 
+# The smallest bid the platform accepts, in riyals. Not a price the car stands
+# on — that is `Vehicle.reserve_price` and nothing else — and deliberately not
+# derived from it: a bid under the reserve is a supported outcome that sends
+# the car to its owner for a decision. This refuses the one-riyal bid, which
+# pins a full deposit and says nothing about the car.
+MINIMUM_BID = env.int("MINIMUM_BID", default=1_000)
+
 # --------------------------------------------------------------------------
 # Card payments — off by default, like every other integration.
 #

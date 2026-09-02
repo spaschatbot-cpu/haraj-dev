@@ -176,8 +176,9 @@ jobs:
         run: uv run python ../ops/checks/money_single_writer.py
 
       # ---- 7. one decision point each (Article 4-5) ----------------------
-      # Phase 005's four guards. Named individually rather than looped, so a
-      # red run says which rule broke without anyone opening the log.
+      # Phase 005's four guards and phase 006's. Named individually rather than
+      # looped, so a red run says which rule broke without anyone opening the
+      # log.
       - name: only auctions.services moves a state
         working-directory: backend
         run: uv run python ../ops/checks/auction_state_single_writer.py
@@ -193,3 +194,10 @@ jobs:
       - name: one reader and writer of spreadsheets
         working-directory: backend
         run: uv run python ../ops/checks/one_sheet_writer.py
+
+      # Phase 006's gate. v1's home page had six ways to send a bid, so every
+      # new rule had to be remembered six times; this fails the build when a
+      # seventh appears.
+      - name: only check_eligibility decides who may bid
+        working-directory: backend
+        run: uv run python ../ops/checks/one_eligibility_gate.py

@@ -1,0 +1,84 @@
+{% comment %}
+The support answer to «ليه ما يقدرش يزايد؟». Read-only: no form that writes, no
+button that decides. Every number here is the one stored at the moment of the
+refusal, never a fresh balance — the question is always about then.
+{% endcomment %}{% load l10n %}<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>ليه ما يقدرش يزايد؟ — {{ environment }}</title>
+  <style>
+    body { font-family: system-ui, "Segoe UI", Tahoma, sans-serif; margin: 2rem;
+           color: #1a1a1a; background: #fafafa; }
+    h1 { font-size: 1.25rem; }
+    form { margin: 1rem 0 1.5rem; }
+    input[type=search] { padding: .5rem; font-size: 1rem; width: 16rem; }
+    button { padding: .5rem 1rem; font-size: 1rem; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: .5rem; text-align: right;
+             font-size: .9rem; vertical-align: top; }
+    th { background: #f0f0f0; }
+    .reason { font-weight: 600; }
+    .empty { color: #666; }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <h1>ليه ما يقدرش يزايد؟ <small>({{ environment }})</small></h1>
+
+  <form method="get">
+    <input type="search" name="phone" value="{{ lookup.query }}"
+           placeholder="رقم جوال العميل" autofocus>
+    <button type="submit">ابحث</button>
+  </form>
+
+  {% if lookup.searched and not lookup.bidder %}
+    <p class="empty">لا يوجد عميل بهذا الرقم.</p>
+  {% endif %}
+
+  {% if lookup.bidder %}
+    <p>العميل: <strong>{{ lookup.bidder }}</strong></p>
+
+    {% if lookup.refusals %}
+      <table>
+        <thead>
+          <tr>
+            <th>وقت المحاولة</th>
+            <th>المركبة</th>
+            <th>المبلغ</th>
+            <th>السبب</th>
+            <th>التفصيل</th>
+            <th>متاح</th>
+            <th>محجوز</th>
+            <th>مقفول</th>
+            <th>مستحق عليه</th>
+          </tr>
+        </thead>
+        <tbody>
+          {# `unlocalize`: money is shown exactly as the ledger stores it. The
+             page exists so an agent can compare a number against a statement
+             or an Odoo invoice, and a locale that redraws the digits makes
+             that comparison a translation exercise. #}
+          {% for refusal in lookup.refusals %}
+            <tr>
+              <td class="money">{{ refusal.refused_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ refusal.vehicle }}</td>
+              <td class="money">{{ refusal.amount|unlocalize }}</td>
+              <td class="reason">{{ refusal.get_reason_display }}</td>
+              <td>{{ refusal.detail }}</td>
+              <td class="money">{{ refusal.insurance_free|unlocalize }}</td>
+              <td class="money">{{ refusal.insurance_held|unlocalize }}</td>
+              <td class="money">{{ refusal.insurance_locked|unlocalize }}</td>
+              <td class="money">{{ refusal.outstanding_dues|unlocalize }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="empty">الأرقام أعلاه هي حالة فلوسه <strong>وقت الرفض</strong>،
+        لا رصيده الآن.</p>
+    {% else %}
+      <p class="empty">لا توجد محاولات مرفوضة لهذا العميل.</p>
+    {% endif %}
+  {% endif %}
+</body>
+</html>
