@@ -81,3 +81,52 @@ if hasattr(txn, "reversed_by"):
 لا يوجد في النموذج أي اختبار تزامن بخيوط حقيقية. كل ما سبق تسلسلي. التاسكات
 T105 و T106 و T110 هي التي تغطي هذا، وهي المكان الذي تظهر فيه أخطاء القفل
 عادةً — فلا يجوز اعتبار المحرّك مُثبتاً قبلها.
+
+---
+
+# نتائج T102 — مراجعة النماذج مقابل التصميم
+
+التاريخ: 2026-09-02 · المصدر: `manage.py sqlmigrate money 0001`
+
+كل قيد في `plan.md` مقابل اسمه الفعلي في الهجرة، لا مقابل ما يقوله الكود عن نفسه.
+
+## جدول المقارنة
+
+| الجدول | القيد في التصميم | اسمه في الهجرة | الحالة |
+|---|---|---|---|
+| `Account` | فريد (مالك، نوع) | `one_account_per_owner_and_kind` | ✅ |
+| `Account` | فريد لدلاء النظام | `one_singleton_account_per_kind` (جزئي على `owner_id IS NULL`) | ✅ |
+| `Account` | `CHECK` رصيد ≥ 0 لدلاء العملاء | `customer_buckets_never_go_negative` | ✅ يغطي الدلاء الأربعة |
+| `Account` | — | `customer_buckets_must_have_an_owner` | ✅ زائد عن التصميم ومفيد |
+| `Transaction` | `idempotency_key` فريد | `UNIQUE` على العمود | ✅ |
+| `Transaction` | `reverses` واحد-لواحد | `reverses_id ... UNIQUE` | ✅ |
+| `Entry` | `CHECK` المبلغ ≠ 0 | `entry_is_not_zero` | ✅ |
+| `Entry` | فهرس (حساب، id) | `money_entry_account_15d842_idx` | ✅ |
+| `Entry` | فهرس (مالك، id) | `money_entry_owner_i_4daa88_idx` | ✅ |
+| `Hold` | فريد جزئي (مالك، مزاد) | `one_active_hold_per_customer_and_auction` | ✅ |
+| `Hold` | **فريد جزئي (مالك، فاتورة)** | **لم يكن موجوداً** | ❌ → أُضيف |
+| `Hold` | — | `hold_is_positive` · `active_hold_has_not_ended` | ✅ |
+| `Invoice` | فاتورة حية واحدة لكل مركبة | `one_live_invoice_per_vehicle` (جزئي، يستثني `cancelled`) | ✅ |
+| `Invoice` | الحالة مشتقّة | عمود عادي بلا اشتقاق | ⚠️ مؤجَّل لـT116 |
+
+## F-002 — لا قيد يمنع حجزين على نفس الفاتورة
+
+**الخطورة:** عالية · **الحالة:** أُصلح في هذا التاسك
+
+معيار القبول B6 يقول «حجزان على دين واحد مستحيلان — قيد فريد يُختبَر بمحاولة
+إدراج مباشرة». الحجوزات على **المزاد** كانت محميّة بقيد فريد جزئي، أما الحجوزات
+على **الفاتورة** — وهي «الدين» الذي يتكلم عنه المعيار — فلم يكن عليها شيء.
+
+الفحص المسبق في `lock_for_invoice` كان الحارس الوحيد، وهو بالضبط النمط الذي
+تسبّب في حادثة v1: فحص ثم إدراج، وبينهما خيط ثانٍ يمرّ.
+
+الإصلاح، في `money/0002`:
+
+```
+one_active_hold_per_customer_and_invoice   UNIQUE (owner_id, invoice_id)
+                                           WHERE invoice_id IS NOT NULL AND state = 'active'
+a_hold_names_its_subject                   CHECK (auction_id IS NOT NULL OR invoice_id IS NOT NULL)
+```
+
+القيد الثاني إضافة نابعة من المراجعة: صفّ حجز لا يشير لمزاد ولا لفاتورة هو فلوس
+مقفولة بلا سبب مذكور — وهو ما يفترض أن هذا الجدول يجعله مستحيلاً.

@@ -327,6 +327,22 @@ class Hold(models.Model):
                 condition=Q(state="active", auction__isnull=False),
                 name="one_active_hold_per_customer_and_auction",
             ),
+            # And one per (customer, invoice), for the same reason on the dues
+            # side. Without this the auction case was guarded and the debt case
+            # was not, which is exactly the asymmetry that let v1 lock one
+            # deposit against a debt twice.
+            models.UniqueConstraint(
+                fields=["owner", "invoice"],
+                condition=Q(state="active", invoice__isnull=False),
+                name="one_active_hold_per_customer_and_invoice",
+            ),
+            # A hold names what it secures. A row that points at neither an
+            # auction nor an invoice is money pinned for no stated reason —
+            # the thing this table exists to make impossible.
+            models.CheckConstraint(
+                condition=Q(auction__isnull=False) | Q(invoice__isnull=False),
+                name="a_hold_names_its_subject",
+            ),
         ]
         indexes = [models.Index(fields=["owner", "state"])]
 

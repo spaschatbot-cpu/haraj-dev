@@ -12,7 +12,6 @@ from decimal import Decimal
 import pytest
 from django.db import IntegrityError, transaction
 
-from apps.auctions.models import Auction, AuctionState
 from apps.money import services
 from apps.money.models import (
     Account,
@@ -28,28 +27,6 @@ from apps.money.models import (
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
-
-
-@pytest.fixture
-def customer(django_user_model):
-    return django_user_model.objects.create_user(
-        phone="966500000001", full_name="عميل اختبار", password="x"
-    )
-
-
-@pytest.fixture
-def auction():
-    from django.utils import timezone
-    from datetime import timedelta
-
-    now = timezone.now()
-    return Auction.objects.create(
-        number=1,
-        title="مزاد الاختبار",
-        starts_at=now,
-        ends_at=now + timedelta(hours=2),
-        state=AuctionState.LIVE,
-    )
 
 
 def free(user) -> Decimal:
