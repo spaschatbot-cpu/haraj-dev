@@ -58,14 +58,34 @@ def invoice(customer):
     )
 
 
+@pytest.fixture
+def a_payment(invoice):
+    """Record a payment and hand back its transaction.
+
+    The outbox reference is derived from this transaction rather than from a
+    count of the rows already queued, so a test that wants two references has
+    to produce two payments — which is the point: two payments that cannot name
+    themselves apart are two payments Odoo hears about once.
+    """
+
+    def make(amount=Decimal("1000.00"), reference="P/1"):
+        return services.record_payment(
+            invoice=invoice, amount=amount, source="cash", reference=reference
+        )
+
+    return make
+
+
 # ---------------------------------------------------------------------------
 # T212 — nothing calls Odoo except the sender
 # ---------------------------------------------------------------------------
 
 
 class TestOutboxTable:
-    def test_an_intention_becomes_a_row_not_a_call(self, invoice):
-        message = outbox.queue_payment(invoice, Decimal("1000.00"))
+    def test_an_intention_becomes_a_row_not_a_call(self, invoice, a_payment):
+        message = outbox.queue_payment(
+            invoice, Decimal("1000.00"), source_transaction=a_payment()
+        )
 
         assert message.state == OutboxState.PENDING
         assert message.attempts == 0
@@ -125,9 +145,11 @@ class TestOutboxTable:
 
 
 class TestSending:
-    def test_a_confirmed_send_records_the_response(self, invoice, settings):
+    def test_a_confirmed_send_records_the_response(self, invoice, a_payment, settings):
         settings.ODOO_ENABLED = True
-        message = outbox.queue_payment(invoice, Decimal("1000.00"))
+        message = outbox.queue_payment(
+            invoice, Decimal("1000.00"), source_transaction=a_payment()
+        )
 
         with mock.patch("apps.odoo.outbox.call", return_value={"id": 42}) as called:
             outbox.send(message)
@@ -137,13 +159,15 @@ class TestSending:
         assert called.call_count == 1
 
     def test_a_network_failure_then_success_makes_one_effective_call(
-        self, invoice, settings
+        self, invoice, a_payment, settings
     ):
         """C5, and the v1 incident. The reference is unchanged across attempts,
         so even if the first call did reach Odoo, the second cannot act twice.
         """
         settings.ODOO_ENABLED = True
-        message = outbox.queue_payment(invoice, Decimal("1000.00"))
+        message = outbox.queue_payment(
+            invoice, Decimal("1000.00"), source_transaction=a_payment()
+        )
         reference_first_attempt = message.reference
 
         with mock.patch("apps.odoo.outbox.call", side_effect=OdooUnreachable("timeout")):
@@ -157,11 +181,15 @@ class TestSending:
         assert ok.call_args.kwargs["reference"] == reference_first_attempt
         assert OutboxMessage.objects.count() == 1
 
-    def test_a_refusal_is_abandoned_not_retried_forever(self, invoice, settings):
+    def test_a_refusal_is_abandoned_not_retried_forever(
+        self, invoice, a_payment, settings
+    ):
         """Odoo considered it and said no. Sending the same thing again gets
         the same answer; a person has to change something."""
         settings.ODOO_ENABLED = True
-        message = outbox.queue_payment(invoice, Decimal("1000.00"))
+        message = outbox.queue_payment(
+            invoice, Decimal("1000.00"), source_transaction=a_payment()
+        )
 
         with mock.patch(
             "apps.odoo.outbox.call", side_effect=ValueError("أودو رفضت: 400")
@@ -189,8 +217,10 @@ class TestSending:
         assert unreachable.state == OutboxState.FAILED
         assert refused.state == OutboxState.ABANDONED
 
-    def test_a_message_out_of_attempts_leaves_the_queue(self, invoice):
-        message = outbox.queue_payment(invoice, Decimal("1000.00"))
+    def test_a_message_out_of_attempts_leaves_the_queue(self, invoice, a_payment):
+        message = outbox.queue_payment(
+            invoice, Decimal("1000.00"), source_transaction=a_payment()
+        )
         OutboxMessage.objects.filter(pk=message.pk).update(
             attempts=outbox.MAX_ATTEMPTS, state=OutboxState.FAILED
         )
@@ -204,29 +234,67 @@ class TestSending:
 
 
 class TestPartialPaymentReferences:
-    def test_three_partial_payments_get_three_references(self, invoice):
+    def test_three_partial_payments_get_three_references(self, invoice, a_payment):
         """223 attempts across 26 invoices were refused in v1 for exactly this:
         every partial payment reused the invoice's own memo, and Odoo rejects a
         reference it has already seen."""
+        payments = [a_payment(reference=f"P/{i}") for i in range(3)]
         references = [
-            outbox.queue_payment(invoice, Decimal("1000.00")).reference for _ in range(3)
+            outbox.queue_payment(
+                invoice, Decimal("1000.00"), source_transaction=payment
+            ).reference
+            for payment in payments
         ]
 
         assert len(set(references)) == 3
         assert references == [
-            "INV/2026/0001/P1",
-            "INV/2026/0001/P2",
-            "INV/2026/0001/P3",
+            f"{invoice.number}/P{payment.uuid}" for payment in payments
         ]
 
-    def test_the_reference_names_the_invoice_it_belongs_to(self, invoice):
-        reference = outbox.queue_payment(invoice, Decimal("1.00")).reference
+    def test_two_payments_recorded_at_once_still_get_two_references(
+        self, invoice, a_payment
+    ):
+        """The reference no longer counts rows, so it cannot count them wrongly.
+
+        This is the shape that used to lose a payment: both callers took
+        ``COUNT(*)`` before either had inserted, both built ``…/P1``, and
+        ``enqueue`` — correctly treating a repeated caller-supplied reference as
+        already queued — handed the loser the winner's row and the winner's
+        payload. Our ledger held two payments, Odoo heard about one, and there
+        was nothing left to replay. Building the reference from each payment's
+        own identity removes the shared input entirely, so this passes without
+        any ordering between the two callers.
+        """
+        first, second = a_payment(reference="P/a"), a_payment(reference="P/b")
+
+        # Both references are decided before either message is inserted.
+        references = [
+            outbox.payment_reference(invoice, first),
+            outbox.payment_reference(invoice, second),
+        ]
+        rows = [
+            outbox.enqueue(
+                endpoint="payments", payload={"n": i}, reference=reference
+            )
+            for i, reference in enumerate(references)
+        ]
+
+        assert len(set(references)) == 2
+        assert OutboxMessage.objects.count() == 2
+        assert [row.payload["n"] for row in rows] == [0, 1]
+
+    def test_the_reference_names_the_invoice_it_belongs_to(self, invoice, a_payment):
+        reference = outbox.queue_payment(
+            invoice, Decimal("1.00"), source_transaction=a_payment()
+        ).reference
 
         assert reference.startswith(invoice.number)
 
-    def test_amounts_leave_as_strings_not_floats(self, invoice):
+    def test_amounts_leave_as_strings_not_floats(self, invoice, a_payment):
         """Article 3-2 does not stop at our boundary."""
-        message = outbox.queue_payment(invoice, Decimal("10000.50"))
+        message = outbox.queue_payment(
+            invoice, Decimal("10000.50"), source_transaction=a_payment()
+        )
 
         assert message.payload["amount"] == "10000.50"
         assert isinstance(message.payload["amount"], str)

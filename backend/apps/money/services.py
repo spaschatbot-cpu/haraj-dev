@@ -45,6 +45,7 @@ from .models import (
     PaymentMethod,
     PaymentPurpose,
     RefundRequest,
+    RefundRequestState,
     Transaction,
     TransactionKind,
 )
@@ -348,6 +349,20 @@ def deposit_key(source: str, reference: str) -> str:
     return f"{source}:{reference}"
 
 
+def suspense_key(source: str, reference: str) -> str:
+    """The idempotency key an *unattributed* receipt will use.
+
+    Deliberately a different namespace from :func:`deposit_key`. The two used
+    to be the same string, and that collision was silent and expensive: a
+    payment that landed in suspense made the later attributed deposit for that
+    very payment a no-op — ``post`` recognised the key, moved nothing, and
+    handed back the suspense transaction, so the caller marked the intent
+    ``succeeded`` and told the customer they were topped up while their wallet
+    was empty and the money still sat in suspense.
+    """
+    return f"suspense:{source}:{reference}"
+
+
 def find_transaction(idempotency_key: str) -> Transaction | None:
     """The transaction recorded under this key, if any."""
     return _find_by_key(idempotency_key)
@@ -545,7 +560,7 @@ def lock_for_invoice(*, user, invoice: Invoice, amount: Decimal | None = None) -
 
     existing = _active_hold(owner=user, invoice=invoice)
     if existing is not None:
-        return existing
+        return _top_up_hold(existing, invoice=invoice, free_account=free_account)
 
     available = free_account.balance
     # Lock the smaller of what is owed and what is there. Locking more than
@@ -574,6 +589,40 @@ def lock_for_invoice(*, user, invoice: Invoice, amount: Decimal | None = None) -
         reason=HoldReason.DUES,
         created_by_transaction=txn,
     )
+
+
+def _top_up_hold(hold: Hold, *, invoice: Invoice, free_account: Account) -> Hold:
+    """Relock whatever a partly-spent hold no longer covers.
+
+    A lock is created for what the customer could cover at the time, and paying
+    part of the debt out of it shrinks it. A hold that merely *exists* is
+    therefore not a hold that still answers the debt: returning it unchanged
+    locked nothing more, and the insurance payment that followed then failed on
+    an empty bucket — and kept failing on every retry, so the invoice could
+    never be settled from insurance at all.
+
+    Runs under the ``insurance_free`` row lock its caller already took, so the
+    figure it locks is the one that was there when it decided to lock it. The
+    key names the total the hold is being brought up to, so replaying the same
+    top-up moves nothing.
+    """
+    short = min(invoice.outstanding - hold.amount, free_account.balance)
+    if short <= ZERO:
+        return hold
+
+    new_amount = hold.amount + short
+    post(
+        kind=TransactionKind.INSURANCE_LOCK,
+        idempotency_key=f"lock:{hold.pk}:up-to:{new_amount}",
+        memo=f"زيادة القفل على الفاتورة {invoice.number}",
+        legs=[
+            Leg(account_for(hold.owner, AccountKind.INSURANCE_FREE), -short),
+            Leg(account_for(hold.owner, AccountKind.INSURANCE_LOCKED), short),
+        ],
+    )
+    hold.amount = new_amount
+    hold.save(update_fields=["amount"])
+    return hold
 
 
 def refund_insurance(
@@ -612,7 +661,7 @@ def receive_unattributed(
     )
     return post(
         kind=TransactionKind.UNATTRIBUTED_RECEIPT,
-        idempotency_key=f"{source}:{reference}",
+        idempotency_key=suspense_key(source, reference),
         occurred_at=occurred_at,
         memo=memo,
         legs=[
@@ -622,15 +671,26 @@ def receive_unattributed(
     )
 
 
+@db_transaction.atomic
 def attribute(
     *, user, amount: Decimal, reference: str, by=None, memo: str = ""
 ) -> Transaction:
-    """Move a suspense amount to the customer it turned out to belong to."""
-    suspense = system_account(AccountKind.SUSPENSE)
+    """Move a suspense amount to the customer it turned out to belong to.
+
+    The suspense row is locked before the balance is read, not after. Without
+    the lock this was a check-then-write across two operators: both read
+    10,000, both passed the guard, both posted, and suspense finished at
+    -10,000 with 20,000 of insurance credited against 10,000 that had actually
+    arrived. ``post`` could not stop it either — its negative-balance refusal
+    covers customer buckets only, and suspense belongs to the platform.
+    """
+    suspense = Account.objects.select_for_update().get(
+        pk=system_account(AccountKind.SUSPENSE).pk
+    )
     if amount > suspense.balance:
-        # Suspense is a platform bucket, so it carries no CHECK floor — an
-        # over-attribution would quietly invent money instead of failing.
-        # This is the one place that guard has to live.
+        # The database now carries this floor as well (Article 3-3), but a
+        # CHECK can only produce an IntegrityError. This is what produces a
+        # sentence, and it is decided under the lock that makes it true.
         raise MoneyError(f"المعلّق فيه {suspense.balance} ولا يكفي لنسب {amount}")
 
     return post(
@@ -642,6 +702,62 @@ def attribute(
             Leg(suspense, -amount),
             Leg(account_for(user, AccountKind.INSURANCE_FREE), amount),
         ],
+    )
+
+
+@db_transaction.atomic
+def credit_payment(
+    *,
+    user,
+    amount: Decimal,
+    source: str,
+    reference: str,
+    occurred_at=None,
+    memo: str = "",
+) -> Transaction:
+    """Credit one real-world payment to a customer, exactly once.
+
+    A payment can reach us before we know whose it is — the gateway retries
+    faster than our own row becomes visible, or Odoo names a customer we have
+    not linked yet — land in suspense, and then be heard about a second time
+    once the link exists. Both tellings are the *same* money, so the second one
+    has to move it out of suspense. Posting a fresh deposit instead would take
+    the amount off the external account twice for a payment that arrived once,
+    and leave an orphan in suspense that nobody would ever claim.
+
+    Every caller that turns an inbound payment into a credit goes through here,
+    so "has this payment already been credited, and where is it sitting?" is
+    answered in one place rather than restated at each boundary (Article 4-5).
+    """
+    already = find_transaction(deposit_key(source, reference))
+    if already is not None:
+        return already
+
+    in_suspense = find_transaction(suspense_key(source, reference))
+    if in_suspense is None:
+        return deposit_insurance(
+            user=user,
+            amount=amount,
+            source=source,
+            reference=reference,
+            occurred_at=occurred_at,
+            memo=memo,
+        )
+
+    if in_suspense.total != amount:
+        # Two different numbers for one payment. Guessing which is right is how
+        # a discrepancy becomes a loss nobody notices; the money stays whole in
+        # suspense and a human decides.
+        raise MoneyError(
+            f"الدفعة {reference} محفوظة في المعلّق بمبلغ {in_suspense.total} "
+            f"والمطلوب نسبه {amount} — الفرق يحتاج قراراً بشرياً"
+        )
+
+    return attribute(
+        user=user,
+        amount=amount,
+        reference=deposit_key(source, reference),
+        memo=memo or f"نسب دفعة {reference} بعد أن عُرف صاحبها",
     )
 
 
@@ -890,7 +1006,10 @@ def apply_gateway_payment(
             intent=intent,
         )
 
-    txn = deposit_insurance(
+    # `credit_payment`, not `deposit_insurance`: this very payment may already
+    # be sitting in suspense from an earlier delivery that arrived before the
+    # intent was visible, and the customer must be credited once either way.
+    txn = credit_payment(
         user=intent.user,
         amount=intent.amount,
         source="card",
@@ -938,6 +1057,15 @@ def request_refund(
 
     Nothing is posted. The ledger moves when the payout is confirmed through the
     inbound path, never on our own optimism.
+
+    Because nothing is posted, the balance this checks against does not move
+    either — so *checking* it was never enough. Ten requests with ten different
+    idempotency keys each passed the same check against the same untouched
+    10,000 and instructed accounting to pay out 100,000 against one deposit,
+    which is the shape of the v1 duplicate-refund incident the outbox exists to
+    prevent. One open request at a time is the answer, and
+    ``one_open_refund_request_per_customer`` — not this function — is what
+    enforces it (Article 3-3).
     """
     if amount is None or amount <= ZERO:
         raise InvalidAmount(
@@ -953,6 +1081,28 @@ def request_refund(
     existing = RefundRequest.objects.filter(reference=reference).first()
     if existing is not None:
         return existing
+
+    # The `insurance_free` row lock, taken for the reason every other
+    # withdrawal takes it: the decision below and the row it writes must not
+    # straddle another request reading the same balance.
+    _lock_free_insurance(user)
+
+    open_request = RefundRequest.objects.filter(
+        user=user, state__in=RefundRequestState.open_states()
+    ).first()
+    if open_request is not None:
+        raise MoneyError(
+            f"user {user.pk} already has refund request {open_request.pk} open",
+            user_message=(
+                f"لديك طلب استرداد قائم بمبلغ {open_request.amount} ريال. "
+                "انتظر تنفيذه أو ألغه قبل طلب استرداد آخر."
+            ),
+            detail={
+                "open_request": open_request.reference,
+                "open_amount": str(open_request.amount),
+                "open_state": open_request.state,
+            },
+        )
 
     free = account_for(user, AccountKind.INSURANCE_FREE)
     if amount > free.balance:
@@ -1051,6 +1201,14 @@ def pay_invoice_from_balance(
             detail={"method": method},
         )
 
+    # The row the caller handed us was read when the request arrived, and an
+    # Odoo webhook may have settled the invoice since. Take the same lock
+    # `record_payment` takes and decide from the row under it: without this,
+    # `outstanding` was computed from a stale `amount_paid`, a second full
+    # payment went to revenue, and the write-back overwrote the webhook's —
+    # 20,000 taken for a 10,000 invoice that then read exactly 10,000 paid.
+    invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
+
     reference = reference or f"balance:{invoice.pk}"
     key = f"invoice-payment:{invoice.number}:{reference}"
     already = Transaction.objects.filter(idempotency_key=key).first()
@@ -1107,11 +1265,11 @@ def pay_invoice_from_balance(
     )
 
     invoice.amount_paid = invoice.amount_paid + outstanding
-    invoice.state = (
-        InvoiceState.PAID
-        if invoice.amount_paid >= invoice.amount
-        else InvoiceState.PARTIAL
-    )
+    # `derive_invoice_state` and nothing else. The branch that stood here
+    # agreed with it only by luck — it knew neither CANCELLED nor DRAFT — and
+    # two ways of deriving one column is exactly how v1 made an invoice read
+    # one state when the customer paid it and another when Odoo did.
+    invoice.state = derive_invoice_state(invoice)
     invoice.save(update_fields=["amount_paid", "state", "updated_at"])
     return txn
 
@@ -1208,6 +1366,9 @@ def record_payment(
         legs=[Leg(from_account, -amount), Leg(revenue, amount)],
     )
 
+    if source == "insurance":
+        _consume_locked_claim(invoice, amount, txn)
+
     invoice.amount_paid = invoice.amount_paid + amount
     invoice.state = derive_invoice_state(invoice)
     invoice.save(update_fields=["amount_paid", "state", "updated_at"])
@@ -1216,6 +1377,45 @@ def record_payment(
         _release_holds_on(invoice)
 
     return txn
+
+
+def _consume_locked_claim(invoice: Invoice, amount: Decimal, txn: Transaction) -> None:
+    """Shrink the locks by what this payment just took out of ``insurance_locked``.
+
+    A hold is a claim on money that is *there*. Spending the locked bucket
+    without shrinking the claim leaves a hold asserting more than the bucket
+    holds, and every consequence of that gap is a real refusal:
+
+    * ``verify_ledger`` reports the drift as an unexplained bucket;
+    * ``_release_holds_on`` later releases the hold's original figure out of a
+      bucket that now holds less, ``post`` refuses, and the whole settling
+      payment — a legitimate one — rolls back;
+    * ``lock_for_invoice`` finds the exhausted hold still ACTIVE and hands it
+      back having locked nothing.
+
+    A fully spent hold keeps its ``amount`` — ``hold_is_positive`` forbids zero,
+    and the figure is the record of what the claim was worth — and says it is
+    over in its state, naming the transaction that ended it.
+    """
+    remaining = amount
+    holds = (
+        Hold.objects.select_for_update()
+        .filter(invoice=invoice, state=HoldState.ACTIVE, reason=HoldReason.DUES)
+        .order_by("pk")
+    )
+    for hold in holds:
+        if remaining <= ZERO:
+            break
+        taken = min(hold.amount, remaining)
+        remaining -= taken
+        if taken >= hold.amount:
+            hold.state = HoldState.CONSUMED
+            hold.ended_by_transaction = txn
+            hold.ended_at = timezone.now()
+            hold.save(update_fields=["state", "ended_by_transaction", "ended_at"])
+        else:
+            hold.amount = hold.amount - taken
+            hold.save(update_fields=["amount"])
 
 
 def _release_holds_on(invoice: Invoice) -> None:

@@ -23,7 +23,12 @@ from apps.auctions.states import AuctionState, VehicleState
 
 pytestmark = pytest.mark.django_db
 
-BUDGET_SECONDS = 0.3
+#: Whole milliseconds, not fractional seconds. This tree now carries money
+#: columns and is scanned by `no_float_in_money`, and a budget written as
+#: `0.3` is a float literal on a money path's file — the guard cannot tell a
+#: page budget from a riyal, and teaching it to would teach people to write
+#: `# noqa` beside it.
+BUDGET_MILLISECONDS = 300
 FLEET = 1_000
 
 
@@ -77,8 +82,8 @@ def test_a_deep_page_costs_the_same_as_the_first(a_thousand_cars):
     vehicle_page(AnonymousUser(), limit=20, offset=FLEET - 20)
     late = time.perf_counter() - second
 
-    assert early < BUDGET_SECONDS
-    assert late < BUDGET_SECONDS
+    assert early * 1000 < BUDGET_MILLISECONDS
+    assert late * 1000 < BUDGET_MILLISECONDS
 
 
 def test_the_auction_list_counts_its_vehicles_in_one_query(
@@ -103,4 +108,6 @@ def test_the_listing_stays_inside_the_budget_on_a_thousand_cars(a_thousand_cars)
     elapsed = time.perf_counter() - started
 
     assert len(page["results"]) == 20
-    assert elapsed < BUDGET_SECONDS, f"{elapsed:.3f}s > {BUDGET_SECONDS}s"
+    assert elapsed * 1000 < BUDGET_MILLISECONDS, (
+        f"{elapsed * 1000:.0f}ms > {BUDGET_MILLISECONDS}ms"
+    )

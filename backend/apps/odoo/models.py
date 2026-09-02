@@ -16,6 +16,7 @@ can be re-read after the bug is fixed. A discarded one is gone.
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.db.models import Q
 
@@ -59,7 +60,12 @@ class InboundMessage(models.Model):
     #: the full conversation about one object can be read in order.
     subject_ref = models.CharField(max_length=128, blank=True, db_index=True)
 
-    payload = models.JSONField()
+    #: ``DjangoJSONEncoder`` because the body is decoded with
+    #: ``parse_float=Decimal`` (Article 3-2) and a Decimal has to survive being
+    #: written down. It stores one as a *string*, which is exactly right: the
+    #: figure that comes back out is the sender's digits, not a float's nearest
+    #: approximation of them.
+    payload = models.JSONField(encoder=DjangoJSONEncoder)
 
     #: The body exactly as it arrived, before any parsing. Kept because a
     #: message we could not parse is precisely the one worth re-reading after
@@ -121,7 +127,7 @@ class OutboxMessage(models.Model):
     """
 
     endpoint = models.CharField(max_length=120)
-    payload = models.JSONField()
+    payload = models.JSONField(encoder=DjangoJSONEncoder)
 
     #: The reference Odoo will see. Unique here so the same intent cannot be
     #: queued twice, whatever calls us.
@@ -132,7 +138,10 @@ class OutboxMessage(models.Model):
     )
     attempts = models.PositiveSmallIntegerField(default=0)
     last_error = models.TextField(blank=True)
-    response = models.JSONField(null=True, blank=True)
+    #: Odoo's reply, kept as they sent it. Same encoder as the payload: their
+    #: reply carries their amounts, and this row is read back during
+    #: reconciliation.
+    response = models.JSONField(null=True, blank=True, encoder=DjangoJSONEncoder)
 
     source_transaction = models.ForeignKey(
         "money.Transaction",

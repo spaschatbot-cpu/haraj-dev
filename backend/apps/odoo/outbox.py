@@ -61,24 +61,25 @@ def enqueue(
         return existing
 
 
-def payment_reference(invoice: Invoice, sequence: int) -> str:
+def payment_reference(invoice: Invoice, payment: Transaction) -> str:
     """The reference Odoo will see for one payment against one invoice.
 
-    The sequence number is the whole point. Odoo rejects a second payment
-    carrying a reference it has already seen, and in v1 every partial payment
-    on an invoice reused the invoice's own memo — 223 attempts across 26
-    invoices were refused for exactly this, and the money sat unapplied while
-    the log filled with retries that could never succeed.
+    Distinct per payment is the whole point. Odoo rejects a second payment
+    carrying a reference it has already seen, and in v1 every partial payment on
+    an invoice reused the invoice's own memo — 223 attempts across 26 invoices
+    were refused for exactly this, and the money sat unapplied while the log
+    filled with retries that could never succeed.
+
+    The distinguishing half is the *payment's own identity*, not a position in a
+    sequence. A counted sequence was derived from ``COUNT(*)`` taken before the
+    insert, so two payments recorded on one invoice at the same moment both read
+    the same count, both built ``INV/1/P1``, and :func:`enqueue` — right to
+    treat a repeated caller-supplied reference as already queued — handed the
+    loser the winner's row and its payload. Our ledger held two payments, Odoo
+    heard about one, and nothing was left to replay. Article 1-5 asks for a key
+    derived from the event's identity, and ``txn.uuid`` is that identity.
     """
-    return f"{invoice.number}/P{sequence}"
-
-
-def next_payment_reference(invoice: Invoice) -> str:
-    """The next free reference for a payment on this invoice."""
-    used = OutboxMessage.objects.filter(
-        reference__startswith=f"{invoice.number}/P"
-    ).count()
-    return payment_reference(invoice, used + 1)
+    return f"{invoice.number}/P{payment.uuid}"
 
 
 def due(now=None) -> list[OutboxMessage]:
@@ -144,8 +145,15 @@ def send(message: OutboxMessage) -> OutboxMessage:
     return message
 
 
-def queue_payment(invoice: Invoice, amount: Decimal, *, source_transaction=None):
-    """Tell Odoo about a payment we recorded, with its own reference."""
+def queue_payment(
+    invoice: Invoice, amount: Decimal, *, source_transaction: Transaction
+):
+    """Tell Odoo about a payment we recorded, with its own reference.
+
+    ``source_transaction`` has no default on purpose: it is what the reference
+    is built from, and without it two simultaneous payments on one invoice
+    collapse into one message.
+    """
     return enqueue(
         endpoint="payments",
         payload={
@@ -153,6 +161,6 @@ def queue_payment(invoice: Invoice, amount: Decimal, *, source_transaction=None)
             # A string, not a float. Article 3-2 does not stop at our boundary.
             "amount": str(amount),
         },
-        reference=next_payment_reference(invoice),
+        reference=payment_reference(invoice, source_transaction),
         source_transaction=source_transaction,
     )

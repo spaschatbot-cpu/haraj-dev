@@ -5,13 +5,13 @@ through this view ends with a row in the table, including the paths that
 answer with an error.
 """
 
-import json
 import time
 from unittest import mock
 
 import pytest
 from django.core.cache import cache
 
+from apps.core import jsonio
 from apps.odoo.models import InboundMessage, InboundState
 from apps.odoo.tests.conftest import SECRET, WEBHOOK_URL
 
@@ -80,7 +80,7 @@ class TestStoreAndAcknowledge:
         post_webhook(payload)
 
         message = InboundMessage.objects.get(delivery_id="D/3")
-        assert json.loads(message.raw_body) == payload
+        assert jsonio.loads(message.raw_body) == payload
 
     def test_the_signature_is_not_stored_beside_the_body(self, post_webhook):
         """Keeping a verified digest next to the bytes it signs hands anyone

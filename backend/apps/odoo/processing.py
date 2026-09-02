@@ -22,7 +22,14 @@ from django.db import transaction as db_transaction
 from django.utils import timezone
 
 from apps.money import services
-from apps.money.models import Invoice, InvoiceState, Transaction, TransactionKind
+from apps.money.models import (
+    Invoice,
+    InvoiceState,
+    RefundRequest,
+    RefundRequestState,
+    Transaction,
+    TransactionKind,
+)
 
 from .models import CustomerLink, InboundMessage, InboundState
 
@@ -145,10 +152,21 @@ def _handle_payment(message: InboundMessage) -> Outcome:
     already = services.find_transaction(services.deposit_key("cash", reference))
 
     if user is None:
-        if already is not None:
+        # A suspense receipt lives in its own key namespace, so this asks about
+        # the receipt itself and not about a deposit that was never made.
+        in_suspense = services.find_transaction(
+            services.suspense_key("cash", reference)
+        )
+        if in_suspense is not None:
             return Outcome(
                 InboundState.PROCESSED,
                 f"دفعة {payment_id} مسجَّلة سابقاً في المعلّق — {link_note}",
+                in_suspense,
+            )
+        if already is not None:
+            return Outcome(
+                InboundState.PROCESSED,
+                f"دفعة {payment_id} مقيَّدة سابقاً — {link_note}",
                 already,
             )
         # Article 2-2 and the suspense rule: money we cannot place is kept,
@@ -170,7 +188,11 @@ def _handle_payment(message: InboundMessage) -> Outcome:
         if blocked is not None:
             return Outcome(InboundState.IGNORED, blocked)
 
-        txn = services.deposit_insurance(
+        # `credit_payment`, not `deposit_insurance`: `posted` may have arrived
+        # before the customer was linked and put this very payment in suspense,
+        # and `updated` must move that money to them rather than post a second
+        # deposit for one payment.
+        txn = services.credit_payment(
             user=user,
             amount=amount,
             source="cash",
@@ -279,8 +301,15 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
     )
 
 
+@db_transaction.atomic
 def _handle_refund(message: InboundMessage) -> Outcome:
-    """Odoo confirmed a refund. Only a confirmed one moves our ledger."""
+    """Odoo confirmed a refund. Only a confirmed one moves our ledger.
+
+    Atomic like its payment sibling: the posting and the closing of the request
+    that asked for it are one fact, and half of it landing would leave a
+    customer poorer with a request still reading «مُقدَّم» — and, because one
+    open request is all a customer may have, unable to ask for anything else.
+    """
     payload = message.payload
     refund_id = str(payload.get("refund_id") or payload.get("id") or "")
     if not refund_id:
@@ -303,7 +332,41 @@ def _handle_refund(message: InboundMessage) -> Outcome:
         reference=f"odoo:{refund_id}",
         memo=f"استرداد أودو {refund_id}",
     )
-    return Outcome(InboundState.PROCESSED, f"استُرد {amount} للعميل {user.pk}", txn)
+    closed = _close_refund_request(user, payload, txn)
+    return Outcome(
+        InboundState.PROCESSED, f"استُرد {amount} للعميل {user.pk}{closed}", txn
+    )
+
+
+def _close_refund_request(user, payload: dict, txn: Transaction) -> str:
+    """Mark the request this payout answers as executed, and say which one.
+
+    Nothing else in the tree ever advanced a `RefundRequest` past `requested`,
+    so a customer's request read «مُقدَّم» forever after the money had already
+    left — and the `a_confirmed_refund_names_its_transaction` CHECK, the
+    schema's expression of Article 1-6, was unreachable.
+
+    Odoo echoes our own reference back; matching on it rather than on the
+    amount is deliberate, because two requests for the same figure are
+    indistinguishable by amount and guessing between them is how v1 closed the
+    wrong one.
+    """
+    reference = str(payload.get("reference") or "")
+    if not reference:
+        return " — بلا مرجع طلب، فلم يُغلق أي طلب"
+
+    request = RefundRequest.objects.select_for_update().filter(
+        user=user, reference=reference
+    ).first()
+    if request is None:
+        return f" — لا يوجد طلب بالمرجع {reference!r}"
+    if request.state == RefundRequestState.CONFIRMED:
+        return f" — الطلب {reference} كان منفَّذاً بالفعل"
+
+    request.state = RefundRequestState.CONFIRMED
+    request.resulting_transaction = txn
+    request.save(update_fields=["state", "resulting_transaction", "updated_at"])
+    return f" — أُغلق الطلب {reference}"
 
 
 # ---------------------------------------------------------------------------
