@@ -8,7 +8,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -459,9 +458,7 @@ class Migration(migrations.Migration):
             model_name="hold",
             constraint=models.CheckConstraint(
                 condition=models.Q(
-                    models.Q(
-                        ("ended_by_transaction__isnull", True), ("state", "active")
-                    ),
+                    models.Q(("ended_by_transaction__isnull", True), ("state", "active")),
                     models.Q(("state", "active"), _negated=True),
                     _connector="OR",
                 ),

@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction as db_transaction
+from django.db import IntegrityError, transaction as db_transaction
 from django.db.models import Sum
 from django.utils import timezone
 
@@ -42,7 +42,12 @@ log = logging.getLogger(__name__)
 
 
 class MoneyError(Exception):
-    """A refused money operation. Always safe to show to an operator."""
+    """A refused money operation.
+
+    The message is Arabic and finished: an operator reads it as-is, and the
+    API returns it under a stable ``code`` (Article 1-6 — every number shown
+    has an explanation, including the ones we refuse to produce).
+    """
 
 
 class Unbalanced(MoneyError):
@@ -50,12 +55,18 @@ class Unbalanced(MoneyError):
 
 
 class InsufficientFunds(MoneyError):
-    def __init__(self, account: Account, needed: Decimal):
+    """A customer bucket would have gone below zero.
+
+    The message names all three quantities, because "الرصيد لا يكفي" alone
+    sends support back to the database to find out by how much.
+    """
+
+    def __init__(self, account: Account, available: Decimal, needed: Decimal):
         self.account = account
+        self.available = available
         self.needed = needed
         super().__init__(
-            f"{account.kind} for owner {account.owner_id} holds {account.balance}, "
-            f"needs {needed}"
+            f"{AccountKind(account.kind).label}: المتاح {available} والمطلوب {needed}"
         )
 
 
@@ -106,22 +117,30 @@ def post(
 ) -> Transaction:
     """Record a balanced money movement, exactly once.
 
-    Calling this twice with the same ``idempotency_key`` returns the transaction
-    from the first call and moves nothing — which is what lets every webhook
-    handler, retry cron and manual replay run without fear of double-crediting.
+    Calling this twice with the same ``idempotency_key`` returns the
+    transaction from the first call and moves nothing — which is what lets
+    every webhook handler, retry cron and manual replay run without fear of
+    double-crediting.
+
+    The order of the steps below is the design, not an accident:
+
+    1. a known key short-circuits before anything is validated or locked;
+    2. the movement is validated while nothing has been written;
+    3. repeated legs for one account are collapsed, so an account is locked
+       once and its balance moves once;
+    4. accounts are locked in ascending primary-key order — the single thing
+       that keeps two concurrent postings from deadlocking against each other;
+    5. every resulting balance is checked **before** the first write, so a
+       refusal costs no rows and the caller gets a sentence instead of an
+       IntegrityError;
+    6. only then are the transaction, its entries, and the balances written.
     """
-    existing = Transaction.objects.filter(idempotency_key=idempotency_key).first()
+    existing = _find_by_key(idempotency_key)
     if existing is not None:
         log.info("post: %s already recorded as txn %s", idempotency_key, existing.pk)
         return existing
 
-    if len(legs) < 2:
-        raise Unbalanced("a movement needs at least two sides")
-    if any(leg.amount == ZERO for leg in legs):
-        raise Unbalanced("a leg of zero moves nothing")
-    total = sum((leg.amount for leg in legs), start=ZERO)
-    if total != ZERO:
-        raise Unbalanced(f"legs sum to {total}, not zero")
+    _validate(legs)
 
     # Collapse repeated accounts, then lock in a stable order.
     delta_by_account: dict[int, Decimal] = {}
@@ -136,8 +155,21 @@ def post(
         .filter(pk__in=delta_by_account)
         .order_by("pk")
     }
+    missing = set(delta_by_account) - set(locked)
+    if missing:
+        raise MoneyError(f"حسابات غير موجودة: {sorted(missing)}")
 
-    txn = Transaction.objects.create(
+    # Check every bucket before writing anything. A refusal must leave no
+    # trace, and the caller must learn which bucket was short and by how much.
+    new_balances: dict[int, Decimal] = {}
+    for pk, delta in delta_by_account.items():
+        account = locked[pk]
+        new_balance = account.balance + delta
+        if new_balance < ZERO and account.kind in AccountKind.customer_owned():
+            raise InsufficientFunds(account, available=account.balance, needed=-delta)
+        new_balances[pk] = new_balance
+
+    txn, is_ours = _create_transaction(
         kind=kind,
         idempotency_key=idempotency_key,
         occurred_at=occurred_at or timezone.now(),
@@ -145,6 +177,11 @@ def post(
         created_by=created_by,
         reverses=reverses,
     )
+    if not is_ours:
+        # Another thread won the unique key. Its transaction is the real one,
+        # complete with its entries; ours was never written.
+        log.info("post: %s was won by txn %s concurrently", idempotency_key, txn.pk)
+        return txn
 
     Entry.objects.bulk_create(
         [
@@ -158,13 +195,8 @@ def post(
         ]
     )
 
-    for pk, delta in delta_by_account.items():
+    for pk, new_balance in new_balances.items():
         account = locked[pk]
-        new_balance = account.balance + delta
-        if new_balance < ZERO and account.kind in AccountKind.customer_owned():
-            # Raised before the write so the operator sees a sentence, not an
-            # IntegrityError. The database CHECK remains as the backstop.
-            raise InsufficientFunds(account, -delta)
         account.balance = new_balance
         account.save(update_fields=["balance", "updated_at"])
 
@@ -172,21 +204,75 @@ def post(
     return txn
 
 
+def _validate(legs: list[Leg]) -> None:
+    """Refuse a movement that cannot be a movement.
+
+    Every message here is Arabic and complete, because these are the errors an
+    operator sees when a manual correction is rejected.
+    """
+    if len(legs) < 2:
+        raise Unbalanced("الحركة تحتاج طرفين على الأقل")
+    if any(leg.amount == ZERO for leg in legs):
+        raise Unbalanced("طرف بصفر لا يحرّك شيئاً")
+    total = sum((leg.amount for leg in legs), start=ZERO)
+    if total != ZERO:
+        raise Unbalanced(f"مجموع الأطراف {total} وليس صفراً")
+
+
+def _find_by_key(idempotency_key: str) -> Transaction | None:
+    return Transaction.objects.filter(idempotency_key=idempotency_key).first()
+
+
+def _create_transaction(**fields) -> tuple[Transaction, bool]:
+    """Insert the transaction, letting the unique key settle any race.
+
+    Returns the transaction and whether this call is the one that created it.
+
+    Two threads can both pass the pre-check for the same key; the pre-check is
+    a shortcut, never the guarantee. The unique index is the arbiter, and the
+    thread that loses reads the winner's row instead of raising — an inbound
+    webhook delivered twice at once must credit once and report success twice,
+    not succeed once and error once.
+
+    The loser only reaches the insert after the winner has committed, because
+    it is still waiting on the account locks the winner holds. So the row it
+    reads back is complete, entries and all.
+
+    The savepoint matters: without it the IntegrityError would poison the
+    surrounding atomic block and there would be nothing left to return into.
+    """
+    try:
+        with db_transaction.atomic():
+            return Transaction.objects.create(**fields), True
+    except IntegrityError:
+        winner = _find_by_key(fields["idempotency_key"])
+        if winner is None:
+            raise
+        return winner, False
+
+
 @db_transaction.atomic
 def reverse(txn: Transaction, *, reason: str, by=None) -> Transaction:
     """Undo a transaction by posting its mirror image.
 
-    The original stays exactly as it was. Anyone reading the history later sees
-    both what happened and that it was taken back, which is the only way an
-    audit ever reconstructs a disputed balance.
+    The original stays exactly as it was. Anyone reading the history later
+    sees both what happened and that it was taken back, which is the only way
+    an audit ever reconstructs a disputed balance.
     """
-    if hasattr(txn, "reversed_by"):
-        raise MoneyError(f"txn {txn.pk} was already reversed by {txn.reversed_by_id}")
+    already = Transaction.objects.filter(reverses=txn).first()
+    if already is not None:
+        raise MoneyError(f"المعاملة {txn.pk} معكوسة بالفعل بالمعاملة {already.pk}")
+    if txn.kind == TransactionKind.REVERSAL:
+        raise MoneyError(f"المعاملة {txn.pk} هي نفسها عكس، ولا تُعكس مرة أخرى")
+
+    entries = list(txn.entries.select_related("account"))
+    if not entries:
+        raise MoneyError(f"المعاملة {txn.pk} بلا قيود، فلا شيء يُعكس")
 
     return post(
         kind=TransactionKind.REVERSAL,
         idempotency_key=f"reversal:{txn.uuid}",
-        legs=[Leg(account=e.account, amount=-e.amount) for e in txn.entries.all()],
+        legs=[Leg(account=e.account, amount=-e.amount) for e in entries],
         memo=reason,
         created_by=by,
         reverses=txn,
@@ -418,11 +504,15 @@ def verify_ledger() -> list[Finding]:
     findings: list[Finding] = []
 
     # 1. Every transaction sums to zero.
-    for txn in Transaction.objects.annotate(total=Sum("entries__amount")).filter(
-        total__isnull=False
-    ).exclude(total=ZERO):
+    for txn in (
+        Transaction.objects.annotate(total=Sum("entries__amount"))
+        .filter(total__isnull=False)
+        .exclude(total=ZERO)
+    ):
         findings.append(
-            Finding("balanced_transactions", f"txn {txn.pk}", f"entries sum to {txn.total}")
+            Finding(
+                "balanced_transactions", f"txn {txn.pk}", f"entries sum to {txn.total}"
+            )
         )
 
     # 2. Every cached balance equals the sum of its entries.
@@ -447,9 +537,12 @@ def verify_ledger() -> list[Finding]:
         (AccountKind.INSURANCE_LOCKED, HoldReason.DUES),
     ):
         for account in Account.objects.filter(kind=kind).exclude(balance=ZERO):
-            claimed = Hold.objects.filter(
-                owner_id=account.owner_id, reason=reason, state=HoldState.ACTIVE
-            ).aggregate(total=Sum("amount"))["total"] or ZERO
+            claimed = (
+                Hold.objects.filter(
+                    owner_id=account.owner_id, reason=reason, state=HoldState.ACTIVE
+                ).aggregate(total=Sum("amount"))["total"]
+                or ZERO
+            )
             if claimed != account.balance:
                 findings.append(
                     Finding(
@@ -460,15 +553,21 @@ def verify_ledger() -> list[Finding]:
                 )
 
     # 4. Nobody's locked insurance exceeds what they actually owe.
-    for account in Account.objects.filter(
-        kind=AccountKind.INSURANCE_LOCKED
-    ).exclude(balance=ZERO):
-        owed = Invoice.objects.filter(customer_id=account.owner_id).exclude(
-            state=InvoiceState.CANCELLED
-        ).aggregate(total=Sum("amount"))["total"] or ZERO
-        paid = Invoice.objects.filter(customer_id=account.owner_id).exclude(
-            state=InvoiceState.CANCELLED
-        ).aggregate(total=Sum("amount_paid"))["total"] or ZERO
+    for account in Account.objects.filter(kind=AccountKind.INSURANCE_LOCKED).exclude(
+        balance=ZERO
+    ):
+        owed = (
+            Invoice.objects.filter(customer_id=account.owner_id)
+            .exclude(state=InvoiceState.CANCELLED)
+            .aggregate(total=Sum("amount"))["total"]
+            or ZERO
+        )
+        paid = (
+            Invoice.objects.filter(customer_id=account.owner_id)
+            .exclude(state=InvoiceState.CANCELLED)
+            .aggregate(total=Sum("amount_paid"))["total"]
+            or ZERO
+        )
         outstanding = max(owed - paid, ZERO)
         if account.balance > outstanding:
             findings.append(
