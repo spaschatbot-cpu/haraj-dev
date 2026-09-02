@@ -30,6 +30,12 @@ pytestmark = pytest.mark.django_db
 TEN_K = Decimal("10000.00")
 
 
+# fixtures ``customer`` و``staff`` و``auction`` في ``backend/conftest.py`` —
+# تعريف واحد يراه كل تطبيق، بدل نسخة في كل ملف تنحرف عن أختها. وما يخصّ المال
+# وحده (``other_customer``، ``other_auction``، ``vehicle``) في conftest.py
+# المجاور.
+
+
 def free(user) -> Decimal:
     return services.account_for(user, AccountKind.INSURANCE_FREE).balance
 
