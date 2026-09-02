@@ -18,7 +18,7 @@
 **القبول:** الشجرة تطابق `plan.md` بالضبط؛ `manage.py check` يمرّ.
 **التحقق:** `cd backend && uv run python manage.py check`
 
-### ⬜ T002 — تقسيم الإعدادات إلى base/dev/test/prod
+### ✅ T002 — تقسيم الإعدادات إلى base/dev/test/prod
 **الملفات:** `backend/config/settings/{__init__,base,dev,test,prod}.py` (يحلّ محلّ `settings.py`)
 **المطلوب:** انقل الحالي إلى `base.py`. `dev.py` يفعّل DEBUG وقاعدة محلية.
 `prod.py` يشدّد الأمان (`SECURE_*`، `CONN_MAX_AGE`، لا DEBUG). `test.py` **يرث
@@ -50,13 +50,13 @@
 
 ## المجموعة ب — تطبيق core
 
-### ⬜ T006 — نموذج الأساس والطوابع الزمنية
+### ✅ T006 — نموذج الأساس والطوابع الزمنية
 **الملفات:** `backend/apps/core/models.py`
 **المطلوب:** `TimeStampedModel` (abstract): `created_at`، `updated_at`. و`UUIDMixin`
 لأي كيان يُشار إليه من الخارج.
 **القبول:** اختبار يؤكد أن الحقلين يُملآن تلقائياً وأن `updated_at` يتغيّر عند الحفظ.
 
-### ⬜ T007 — مساعدات الوقت
+### ✅ T007 — مساعدات الوقت
 **الملفات:** `backend/apps/core/time.py`، `backend/apps/core/tests/test_time.py`
 **المطلوب:** `to_display(dt)` و`from_display(dt)` فقط، تقرآن `DISPLAY_TIME_ZONE`.
 **القبول:** اختبار يغطي: منتصف الليل السعودي، تغيّر اليوم عبر التحويل، وقيمة

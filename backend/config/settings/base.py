@@ -1,13 +1,17 @@
-"""Django settings for Haraj One v2.
+"""Settings shared by every environment.
 
-Every environment-specific value is read from the environment, never hard-coded.
+This module is never used directly. Each environment imports it and then
+narrows it: `dev`, `prod`, and `test` (which inherits `prod`, not `dev` —
+see `specs/001-foundation/plan.md`).
 """
 
 from pathlib import Path
 
 import environ
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# base.py sits two packages deep (config/settings/), so BASE_DIR is the
+# third parent, not the second.
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -16,12 +20,15 @@ env = environ.Env(
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
-SECRET_KEY = env("SECRET_KEY", default="dev-only-insecure-key")
+INSECURE_SECRET_KEY = "dev-only-insecure-key"
+
+SECRET_KEY = env("SECRET_KEY", default=INSECURE_SECRET_KEY)
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
-if not DEBUG and SECRET_KEY == "dev-only-insecure-key":
-    raise RuntimeError("SECRET_KEY must be set outside DEBUG")
+# The environment names itself in the UI and in every outbound message, so a
+# test message can never look like it came from production (Article 5-6).
+ENVIRONMENT_NAME = "base"
 
 # --------------------------------------------------------------------------
 # Applications
@@ -98,7 +105,9 @@ DATABASES = {
         default="postgres://haraj:haraj@127.0.0.1:5432/haraj2",
     )
 }
-DATABASES["default"].setdefault("CONN_MAX_AGE", 60)
+# Connection reuse is an environment decision: prod holds connections open,
+# dev and test do not.
+DATABASES["default"].setdefault("CONN_MAX_AGE", 0)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "accounts.User"
