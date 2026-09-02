@@ -560,6 +560,126 @@ def attribute(
 
 
 # ---------------------------------------------------------------------------
+# Invoices — the state is derived, and the payment is what derives it
+# ---------------------------------------------------------------------------
+
+
+def derive_invoice_state(invoice: Invoice) -> str:
+    """What this invoice's state *is*, computed from its own numbers.
+
+    One function, called after every payment, and the only thing allowed to
+    decide this field. In v1 the column was written once at insert and never
+    again, so every mirrored invoice read `draft` forever and nothing could
+    safely branch on it — including the refund gate that was supposed to stop
+    a debtor withdrawing their deposit.
+
+    Odoo's own word lives in `odoo_state_raw` and is never consulted here. It
+    is evidence about what they think, not a fact about what we are owed.
+    """
+    if invoice.state == InvoiceState.CANCELLED:
+        return InvoiceState.CANCELLED
+    if invoice.amount_paid <= ZERO:
+        # Nothing paid yet. A draft stays a draft until someone issues it;
+        # anything already issued is simply outstanding.
+        return (
+            InvoiceState.DRAFT
+            if invoice.state == InvoiceState.DRAFT
+            else InvoiceState.OPEN
+        )
+    if invoice.amount_paid >= invoice.amount:
+        return InvoiceState.PAID
+    return InvoiceState.PARTIAL
+
+
+@db_transaction.atomic
+def record_payment(
+    *,
+    invoice: Invoice,
+    amount: Decimal,
+    source: str,
+    reference: str,
+    occurred_at=None,
+    by=None,
+) -> Transaction:
+    """Record money paid against an invoice, and re-derive what that leaves.
+
+    The movement, the new `amount_paid`, the new state, and the release of any
+    insurance the debt was holding all happen inside one atomic block. Half of
+    that landing without the other half is how a paid customer keeps a locked
+    deposit, or an unpaid one gets it back.
+
+    `source` is where the money comes from:
+
+    * ``insurance`` — the deposit we are already holding for this debt
+    * ``cash`` / ``card`` — a fresh payment from outside the platform
+    """
+    invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
+    key = f"payment:{invoice.pk}:{reference}"
+
+    # `post` is idempotent, but `amount_paid` is not: without this the replay
+    # of a webhook would move no money and still add to the paid total, so the
+    # invoice would read `paid` while the ledger showed nothing paid. The
+    # cached column has to be as replay-proof as the movement it summarises.
+    already = _find_by_key(key)
+    if already is not None:
+        log.info("record_payment: %s already recorded as txn %s", key, already.pk)
+        return already
+
+    if invoice.state == InvoiceState.CANCELLED:
+        raise MoneyError(f"الفاتورة {invoice.number} ملغاة، فلا تُسدَّد")
+    if amount <= ZERO:
+        raise MoneyError("مبلغ السداد يجب أن يكون أكبر من صفر")
+    if amount > invoice.outstanding:
+        raise MoneyError(f"المطلوب سداده {invoice.outstanding} والمبلغ {amount} أكبر منه")
+
+    revenue = system_account(AccountKind.REVENUE)
+    if source == "insurance":
+        from_account = account_for(invoice.customer, AccountKind.INSURANCE_LOCKED)
+    elif source in ("cash", "card"):
+        from_account = system_account(
+            AccountKind.EXTERNAL_CASH if source == "cash" else AccountKind.EXTERNAL_CARD
+        )
+    else:
+        raise MoneyError(f"مصدر سداد غير معروف: {source!r}")
+
+    txn = post(
+        kind=TransactionKind.INVOICE_PAYMENT,
+        idempotency_key=key,
+        occurred_at=occurred_at,
+        memo=f"سداد على الفاتورة {invoice.number}",
+        created_by=by,
+        legs=[Leg(from_account, -amount), Leg(revenue, amount)],
+    )
+
+    invoice.amount_paid = invoice.amount_paid + amount
+    invoice.state = derive_invoice_state(invoice)
+    invoice.save(update_fields=["amount_paid", "state", "updated_at"])
+
+    if invoice.state == InvoiceState.PAID:
+        _release_holds_on(invoice)
+
+    return txn
+
+
+def _release_holds_on(invoice: Invoice) -> None:
+    """The debt is settled, so whatever it was holding is the customer's again.
+
+    Paying from the locked bucket has already emptied it; releasing then moves
+    nothing and the hold is simply marked consumed. Paying from outside leaves
+    the deposit intact and this is what hands it back. Either way the customer
+    is never left owing nothing while we still hold their money.
+    """
+    for hold in Hold.objects.filter(invoice=invoice, state=HoldState.ACTIVE):
+        remaining = account_for(hold.owner, AccountKind.INSURANCE_LOCKED).balance
+        if remaining <= ZERO:
+            hold.state = HoldState.CONSUMED
+            hold.ended_at = timezone.now()
+            hold.save(update_fields=["state", "ended_at"])
+            continue
+        release_hold(hold, memo=f"سُدِّدت الفاتورة {invoice.number}")
+
+
+# ---------------------------------------------------------------------------
 # Confiscation — the only path that takes a customer's money for good
 # ---------------------------------------------------------------------------
 
