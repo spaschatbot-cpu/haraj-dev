@@ -3,6 +3,11 @@
 Times are stored in UTC and entered in Saudi time. Nothing in this module ever
 compares a stored timestamp against a locally-formatted one; the conversion
 happens once, at the edge, in :mod:`apps.core.time`.
+
+State lives here as a plain column, but nothing in this module moves it. The
+table of legal moves is in :mod:`apps.auctions.states` and the only code that
+writes the column is :mod:`apps.auctions.services` — a rule a CI check
+enforces, because "we all know not to" is exactly what failed in v1.
 """
 
 from __future__ import annotations
@@ -14,14 +19,19 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from .states import AuctionState, VehicleState
 
-class AuctionState(models.TextChoices):
-    DRAFT = "draft", "مسودة"
-    SCHEDULED = "scheduled", "مجدول"
-    LIVE = "live", "جارٍ"
-    ENDED = "ended", "منتهٍ"
-    SETTLED = "settled", "مُسوّى"
-    CANCELLED = "cancelled", "ملغى"
+__all__ = [
+    "Auction",
+    "AuctionState",
+    "FuelType",
+    "PlateType",
+    "Transmission",
+    "Vehicle",
+    "VehicleCondition",
+    "VehicleImage",
+    "VehicleState",
+]
 
 
 class Auction(models.Model):
@@ -62,21 +72,36 @@ class Auction(models.Model):
         return self.state == AuctionState.LIVE and self.starts_at <= now < self.ends_at
 
 
-class VehicleState(models.TextChoices):
-    """Where a car stands. Deliberately wide — v1 squashed this enum once and
-    lost the distinctions it had been carrying."""
+class Transmission(models.TextChoices):
+    AUTOMATIC = "automatic", "أوتوماتيك"
+    MANUAL = "manual", "عادي"
+    CVT = "cvt", "CVT"
+    UNKNOWN = "unknown", "غير محدد"
 
-    DRAFT = "draft", "مسودة"
-    LISTED = "listed", "معروضة"
-    BIDDING = "bidding", "تحت المزايدة"
-    AWAITING_DECISION = "awaiting_decision", "بانتظار قرار المالك"
-    AWARDED = "awarded", "مرسّاة"
-    REJECTED = "rejected", "مرفوضة"
-    INVOICED = "invoiced", "مفوترة"
-    PAID = "paid", "مسدَّدة"
-    RELEASED = "released", "خرجت"
-    WITHDRAWN = "withdrawn", "مسحوبة"
-    RELISTED = "relisted", "معادة للعرض"
+
+class FuelType(models.TextChoices):
+    PETROL = "petrol", "بنزين"
+    DIESEL = "diesel", "ديزل"
+    HYBRID = "hybrid", "هجين"
+    ELECTRIC = "electric", "كهرباء"
+    UNKNOWN = "unknown", "غير محدد"
+
+
+class VehicleCondition(models.TextChoices):
+    RUNNING = "running", "تسير"
+    NOT_RUNNING = "not_running", "لا تسير"
+    DAMAGED = "damaged", "متضررة"
+    SALVAGE = "salvage", "تشليح"
+    UNKNOWN = "unknown", "غير محدد"
+
+
+class PlateType(models.TextChoices):
+    PRIVATE = "private", "خصوصي"
+    PUBLIC_TRANSPORT = "public_transport", "نقل عام"
+    TAXI = "taxi", "أجرة"
+    HEAVY = "heavy", "نقل ثقيل"
+    EXPORT = "export", "تصدير"
+    NONE = "none", "بدون لوحة"
 
 
 class Vehicle(models.Model):
@@ -90,8 +115,28 @@ class Vehicle(models.Model):
     year = models.PositiveSmallIntegerField()
     vin = models.CharField(max_length=32, blank=True, db_index=True)
     plate_number = models.CharField(max_length=16, blank=True)
-    plate_type = models.CharField(max_length=32, blank=True)
+
+    # ------------------------------------------------------------------
+    # Specifications — columns on this table, never a side table.
+    #
+    # v1 kept these in a `details` table joined on a different key, so a card
+    # cost a second query, half the rows had no row there at all, and adding a
+    # spec meant a backfill. Five columns and a NULL are cheaper than a join
+    # that is missing half the time.
+    # ------------------------------------------------------------------
+    plate_type = models.CharField(
+        max_length=32, choices=PlateType.choices, default=PlateType.PRIVATE
+    )
     odometer_km = models.PositiveIntegerField(null=True, blank=True)
+    transmission = models.CharField(
+        max_length=16, choices=Transmission.choices, default=Transmission.UNKNOWN
+    )
+    fuel_type = models.CharField(
+        max_length=16, choices=FuelType.choices, default=FuelType.UNKNOWN
+    )
+    condition = models.CharField(
+        max_length=16, choices=VehicleCondition.choices, default=VehicleCondition.UNKNOWN
+    )
 
     owner_company = models.ForeignKey(
         "accounts.Company",
@@ -119,6 +164,9 @@ class Vehicle(models.Model):
         on_delete=models.PROTECT,
         related_name="won_vehicles",
     )
+    #: What it actually sold for — a settlement result, not a price the car
+    #: stands on. `reserve_price` remains the only "what does this car cost"
+    #: field (T406).
     awarded_price = models.DecimalField(
         max_digits=14, decimal_places=2, null=True, blank=True
     )
@@ -138,7 +186,10 @@ class Vehicle(models.Model):
                 name="an_awarded_vehicle_names_its_winner",
             ),
         ]
-        indexes = [models.Index(fields=["auction", "state"])]
+        indexes = [
+            models.Index(fields=["auction", "state"]),
+            models.Index(fields=["owner_company", "state"]),
+        ]
         ordering = ["auction", "lot_number"]
 
     def __str__(self) -> str:
@@ -148,6 +199,12 @@ class Vehicle(models.Model):
 class VehicleImage(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to="vehicles/%Y/%m/")
+
+    #: Generated on upload and stored on disk next to the original. A list of
+    #: fifty cars must never touch the full-size files: in v1 the bottleneck
+    #: was never the request count, it was 50 × 3 MB of JPEG.
+    thumbnail = models.ImageField(upload_to="vehicles/%Y/%m/thumbs/", blank=True)
+
     position = models.PositiveSmallIntegerField(default=0)
     is_cover = models.BooleanField(default=False)
 
@@ -160,3 +217,6 @@ class VehicleImage(models.Model):
                 name="one_cover_image_per_vehicle",
             ),
         ]
+
+    def __str__(self) -> str:
+        return f"صورة {self.position} لـ{self.vehicle_id}"
