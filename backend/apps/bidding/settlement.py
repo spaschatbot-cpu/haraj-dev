@@ -440,6 +440,168 @@ def _undo_award(vehicle: Vehicle, *, reason: str) -> None:
         log.info("invoice %s cancelled: %s", invoice.number, reason)
 
 
+def cancel_auction(auction: Auction, *, reason: str, now: datetime | None = None):
+    """Call the whole auction off: free every deposit, void every unpaid bill. T513.
+
+    An auction is cancelled when it should not have run — the wrong lots were
+    loaded, a partner pulled their consignment, a date was wrong. Nobody owes us
+    anything as a result of an event that did not happen, and nobody's money may
+    stay held for it.
+
+    **Paid invoices are left alone.** A cancellation must not silently un-take
+    money a customer actually handed over; that is a refund, which is a decision
+    with a human on the other end of it (`RefundRequest`), not a side effect of
+    an operator clicking cancel. The report says which ones were left, so the
+    operator sees what still needs a person.
+
+    Order matters and is the same order settlement uses: cars first, then money.
+    A car left `bidding` in a cancelled auction is a car a settlement run would
+    later award.
+    """
+    now = now or timezone.now()
+
+    # Cancelling goes **through ending**, and the state machine says so: a live
+    # auction still has deposits held against it and releasing those is
+    # settlement's job, not a side effect of a cancel button
+    # (`test_a_live_auction_cannot_be_cancelled` in phase 005). So an auction
+    # that is still running is refused here with the next step named, rather
+    # than ended silently on the operator's behalf — ending an auction early is
+    # its own decision with its own guard.
+    if auction.state == AuctionState.LIVE:
+        raise ValueError(f"auction {auction.pk} is still live; end it before cancelling")
+
+    freed: list[HoldOutcome] = []
+    voided: list[str] = []
+    left_paid: list[str] = []
+
+    with transaction.atomic():
+        for vehicle in Vehicle.objects.filter(auction=auction).exclude(
+            state__in=[VehicleState.WITHDRAWN, VehicleState.RELISTED]
+        ):
+            _close_out(vehicle)
+
+            for invoice in Invoice.objects.filter(vehicle=vehicle).exclude(
+                state=InvoiceState.CANCELLED
+            ):
+                if invoice.amount_paid > 0:
+                    # Money really arrived. Voiding it here would make a payment
+                    # disappear from a month that has already been reported.
+                    left_paid.append(invoice.number)
+                    continue
+
+                for hold in Hold.objects.filter(invoice=invoice, state=HoldState.ACTIVE):
+                    money.release_hold(hold, memo=f"أُلغي المزاد: {reason}")
+                invoice.state = InvoiceState.CANCELLED
+                invoice.save(update_fields=["state"])
+                voided.append(invoice.number)
+
+        for hold in Hold.objects.filter(
+            auction=auction, reason=HoldReason.BIDDING, state=HoldState.ACTIVE
+        ):
+            money.release_hold(hold, memo=f"أُلغي المزاد: {reason}")
+            freed.append(
+                HoldOutcome(hold.pk, hold.owner_id, "released", f"أُلغي المزاد: {reason}")
+            )
+
+    from apps.auctions.services import cancel as mark_cancelled
+
+    mark_cancelled(auction, now=now)
+
+    log.info(
+        "cancelled auction %s (%s): %s holds freed, %s invoices voided, %s left paid",
+        auction.pk,
+        reason,
+        len(freed),
+        len(voided),
+        len(left_paid),
+    )
+    return {
+        "auction_id": auction.pk,
+        "holds_released": freed,
+        "invoices_cancelled": voided,
+        "invoices_left_paid": left_paid,
+    }
+
+
+def _close_out(vehicle: Vehicle) -> None:
+    """Take one car out of play because its auction is being cancelled.
+
+    Every car has to leave the states settlement would later act on — a car
+    left `bidding` in a cancelled auction is a car a settlement run awards.
+    Which closed state it goes to depends on where it was, and each is a real
+    transition rather than a column write:
+
+    * `listed` or `bidding` → **withdrawn**. Nothing was decided about it.
+    * `awaiting_decision` → **rejected**. The owner was being asked and the
+      question is now moot; "rejected" is the honest record of no sale.
+    * `awarded` → **relisted**. The award is being undone with the invoice, and
+      `relisted` is the state that says "goes back on offer".
+
+    Anything already resolved and paid for is left alone: cancelling an auction
+    does not un-sell a car somebody has paid for.
+    """
+    from apps.auctions.services import reject, relist, withdraw
+
+    if vehicle.state in (VehicleState.LISTED, VehicleState.BIDDING):
+        withdraw(vehicle)
+    elif vehicle.state == VehicleState.AWAITING_DECISION:
+        reject(vehicle)
+    elif vehicle.state == VehicleState.AWARDED:
+        relist(vehicle)
+
+
+def relist_vehicle(vehicle: Vehicle, *, into: Auction, lot_number: int) -> Vehicle:
+    """Move an unsold or unpaid car into a new auction cycle. T514.
+
+    The rule the acceptance criterion is about: **an exclusion belongs to the
+    cycle it happened in.** A bidder who was refused on this car in March is not
+    refused on it in April, and a cancelled invoice hides the car from *that*
+    auction and not from every auction afterwards.
+
+    v1 stored the exclusion against the car, so a lot that failed to sell once
+    carried its history forever — and the bidder who had been outbid on it could
+    not see it listed again. Here the history lives on the bid and the invoice,
+    both of which name the auction they belonged to, and a relisted car is a new
+    row in a new auction as far as every rule is concerned.
+
+    The old bids stay where they are, attached to the old auction. They are the
+    record of what happened in March, not a claim on April.
+    """
+    if vehicle.auction_id == into.pk:
+        raise ValueError("a car cannot be relisted into the auction it is already in")
+
+    from apps.auctions.services import list_for_sale, relist
+
+    with transaction.atomic():
+        if vehicle.state != VehicleState.RELISTED:
+            relist(vehicle)
+
+        vehicle.auction = into
+        vehicle.lot_number = lot_number
+        # The award is the previous cycle's outcome and must not travel: a car
+        # listed in April showing March's winner is how a customer is told they
+        # own something they do not.
+        vehicle.awarded_to = None
+        vehicle.awarded_price = None
+        vehicle.awarded_at = None
+        vehicle.save(
+            update_fields=[
+                "auction",
+                "lot_number",
+                "awarded_to",
+                "awarded_price",
+                "awarded_at",
+            ]
+        )
+        list_for_sale(vehicle)
+
+    log.info(
+        "vehicle %s relisted into auction %s as lot %s", vehicle.pk, into.pk, lot_number
+    )
+    vehicle.refresh_from_db()
+    return vehicle
+
+
 def close_auction(auction: Auction, *, now: datetime | None = None) -> Auction:
     """Mark the auction settled once every car in it is resolved.
 
@@ -464,7 +626,9 @@ __all__ = [
     "HoldOutcome",
     "Settlement",
     "VehicleOutcome",
+    "cancel_auction",
     "close_auction",
+    "relist_vehicle",
     "replace_winner",
     "competitors_in",
     "decide_vehicle",

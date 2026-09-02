@@ -48,6 +48,23 @@ def auction(db) -> Auction:
     )
 
 
+def ended(auction: Auction) -> Auction:
+    """End ``auction`` through the state machine — cancelling goes via ending.
+
+    Phase 005 refuses `live → cancelled` on purpose: deposits are held against
+    a live auction and releasing them is settlement's job, not a state flip
+    (`test_a_live_auction_cannot_be_cancelled`). So every cancellation test
+    here ends the auction first, the way an operator would.
+    """
+    from apps.auctions import services as auctions
+
+    Auction.objects.filter(pk=auction.pk).update(
+        ends_at=timezone.now() - timezone.timedelta(minutes=1)
+    )
+    auction.refresh_from_db()
+    return auctions.end(auction)
+
+
 def a_car(auction: Auction, lot: int, reserve: str = "40000.00") -> Vehicle:
     return Vehicle.objects.create(
         auction=auction,
@@ -521,3 +538,187 @@ def test_a_car_with_no_award_cannot_have_its_winner_replaced(auction, django_use
 
     with pytest.raises(ValueError):
         settlement.replace_winner(car, new_winner=somebody, reason="لا ترسية")
+
+
+# ---------------------------------------------------------------------------
+# T513 — the auction that should not have run
+# ---------------------------------------------------------------------------
+
+
+def test_cancelling_an_auction_frees_every_deposit(auction, django_user_model):
+    """The acceptance criterion: after cancelling, no hold on this auction stands."""
+    car = a_car(auction, 1)
+    first = a_bidder(django_user_model, "966501111111")
+    second = a_bidder(django_user_model, "966502222222")
+    bidding.place_bid(user=first, vehicle=car, amount=Decimal("70000.00"))
+    bidding.place_bid(user=second, vehicle=car, amount=Decimal("50000.00"))
+
+    ended(auction)
+    report = settlement.cancel_auction(auction, reason="حُمِّلت اللوتات الخطأ")
+
+    assert not Hold.objects.filter(
+        auction=auction, reason=HoldReason.BIDDING, state=HoldState.ACTIVE
+    ).exists()
+    assert len(report["holds_released"]) == 2
+    assert verify_ledger() == []
+
+
+def test_cancelling_voids_an_unpaid_invoice_and_frees_its_lock(
+    auction, django_user_model
+):
+    """Nobody owes us anything because of an event that did not happen."""
+    car = a_car(auction, 1)
+    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
+    settlement.settle_auction(auction)
+    car.refresh_from_db()
+    invoice = settlement.invoice_award(car)
+
+    ended(auction)
+    report = settlement.cancel_auction(auction, reason="سُحبت الشحنة")
+
+    invoice.refresh_from_db()
+    assert invoice.state == "cancelled"
+    assert invoice.number in report["invoices_cancelled"]
+    assert not Hold.objects.filter(invoice=invoice, state=HoldState.ACTIVE).exists()
+    assert verify_ledger() == []
+
+
+def test_a_paid_invoice_is_reported_not_silently_voided(auction, django_user_model):
+    """Un-taking money somebody handed over is a refund, and a refund needs a human."""
+    car = a_car(auction, 1)
+    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
+    settlement.settle_auction(auction)
+    car.refresh_from_db()
+    invoice = settlement.invoice_award(car)
+    money.record_payment(
+        invoice=invoice,
+        amount=Decimal("70000.00"),
+        source="cash",
+        reference="paid/1",
+    )
+
+    ended(auction)
+    report = settlement.cancel_auction(auction, reason="تأجّل المزاد")
+
+    invoice.refresh_from_db()
+    assert invoice.state != "cancelled"
+    assert invoice.number in report["invoices_left_paid"]
+    assert verify_ledger() == []
+
+
+def test_a_cancelled_auction_is_marked_cancelled(auction, django_user_model):
+    a_car(auction, 1)
+
+    ended(auction)
+    settlement.cancel_auction(auction, reason="خطأ في التاريخ")
+
+    auction.refresh_from_db()
+    assert auction.state == AuctionState.CANCELLED
+
+
+# ---------------------------------------------------------------------------
+# T514 — an exclusion belongs to the cycle it happened in
+# ---------------------------------------------------------------------------
+
+
+def a_second_auction(number: int = 901) -> Auction:
+    now = timezone.now()
+    return Auction.objects.create(
+        number=number,
+        title="الدورة التالية",
+        starts_at=now - timezone.timedelta(minutes=5),
+        ends_at=now + timezone.timedelta(days=1),
+        state=AuctionState.LIVE,
+        deposit_required=TEN_K,
+    )
+
+
+def test_a_rejected_car_can_be_offered_again_in_a_new_cycle(auction, django_user_model):
+    car = a_car(auction, 1)
+    settlement.settle_auction(auction)
+    car.refresh_from_db()
+    assert car.state == VehicleState.REJECTED
+
+    next_auction = a_second_auction()
+    settlement.relist_vehicle(car, into=next_auction, lot_number=7)
+
+    car.refresh_from_db()
+    assert car.auction_id == next_auction.pk
+    assert car.lot_number == 7
+    assert car.state == VehicleState.LISTED
+
+
+def test_the_previous_cycles_award_does_not_travel_with_the_car(
+    auction, django_user_model
+):
+    """A car listed in April showing March's winner tells somebody they own it."""
+    car = a_car(auction, 1)
+    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
+    settlement.settle_auction(auction)
+    car.refresh_from_db()
+    settlement.invoice_award(car)
+    car.refresh_from_db()
+    # The award comes undone the way a real relist begins: the invoice is
+    # voided and the car goes back on offer.
+    ended(auction)
+    settlement.cancel_auction(auction, reason="لم يُسدَّد")
+
+    next_auction = a_second_auction()
+    settlement.relist_vehicle(car, into=next_auction, lot_number=3)
+
+    car.refresh_from_db()
+    assert car.awarded_to_id is None
+    assert car.awarded_price is None
+
+
+def test_a_bidder_refused_in_one_cycle_is_not_refused_in_the_next(
+    auction, django_user_model
+):
+    """T514's acceptance criterion, across two cycles.
+
+    v1 stored the exclusion against the car, so a lot that failed once carried
+    its history forever and the bidder who had been outbid could not see it
+    listed again.
+    """
+    car = a_car(auction, 1)
+    outbid = a_bidder(django_user_model, "966502222222", funds="80000.00")
+    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
+    bidding.place_bid(user=outbid, vehicle=car, amount=Decimal("50000.00"))
+    ended(auction)
+    settlement.cancel_auction(auction, reason="أُلغيت الدورة")
+
+    next_auction = a_second_auction()
+    settlement.relist_vehicle(car, into=next_auction, lot_number=1)
+    car.refresh_from_db()
+
+    fresh = bidding.place_bid(user=outbid, vehicle=car, amount=Decimal("60000.00"))
+
+    assert fresh.amount == Decimal("60000.00")
+    assert verify_ledger() == []
+
+
+def test_the_old_bids_stay_with_the_old_auction(auction, django_user_model):
+    """They are the record of what happened in March, not a claim on April."""
+    car = a_car(auction, 1)
+    bidder = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    old_bid = bidding.place_bid(user=bidder, vehicle=car, amount=Decimal("70000.00"))
+    ended(auction)
+    settlement.cancel_auction(auction, reason="أُلغيت")
+
+    next_auction = a_second_auction()
+    settlement.relist_vehicle(car, into=next_auction, lot_number=1)
+
+    old_bid.refresh_from_db()
+    assert old_bid.vehicle_id == car.pk
+    assert settlement.competitors_in(auction) == set()
+
+
+def test_a_car_cannot_be_relisted_into_the_auction_it_is_already_in(auction):
+    car = a_car(auction, 1)
+
+    with pytest.raises(ValueError):
+        settlement.relist_vehicle(car, into=auction, lot_number=2)

@@ -142,7 +142,9 @@ def _auction_end_time_reached(auction: Auction, now: datetime) -> str | None:
 #: There is no `live → cancelled`: by the time an auction is live, bidders'
 #: deposits are held against it, and releasing them is settlement's job
 #: (phase 006), not a state flip. Cancelling a running auction therefore goes
-#: `live → ended → settled`, which is the path that returns the money.
+#: `live → ended → cancelled`, and the middle step is where the money is
+#: returned — `bidding.settlement.cancel_auction` frees every hold and voids
+#: every unpaid invoice before the last move is made.
 AUCTION_MOVES: tuple[Move, ...] = (
     Move(
         AuctionState.DRAFT,
@@ -174,6 +176,17 @@ AUCTION_MOVES: tuple[Move, ...] = (
     ),
     Move(AuctionState.DRAFT, AuctionState.CANCELLED, "أُلغي وهو مسودة"),
     Move(AuctionState.SCHEDULED, AuctionState.CANCELLED, "أُلغي قبل أن يبدأ"),
+    # Cancelling after bidding has started, which is what T513 is about: the
+    # two moves above happen before anybody has money in, so there would be
+    # nothing to free. It is reached **through ending**, never directly from
+    # `live` — `test_a_live_auction_cannot_be_cancelled` states that rule and
+    # states why: deposits are held against a live auction and releasing them
+    # is settlement's job. `bidding.settlement.cancel_auction` frees every
+    # deposit and voids every unpaid invoice before making this move.
+    Move(AuctionState.ENDED, AuctionState.CANCELLED, "أُلغي بعد انتهائه وقبل تسويته"),
+    # `settled → cancelled` is deliberately absent. A settled auction has moved
+    # money to its conclusion; undoing that is a reversal in the ledger and a
+    # refund with a human deciding it, not a state change.
 )
 
 
