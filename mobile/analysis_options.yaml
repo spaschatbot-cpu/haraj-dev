@@ -1,0 +1,37 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    # مولَّد من المخطط — يُعاد توليده ولا يُصحَّح بيد.
+    - lib/data/api/generated/**
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - lib/l10n/generated/**
+
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+  errors:
+    # `Future` مهمَل بلا انتظار في مسار مالي = حركة قد لا تحدث ولا أحد يعلم.
+    # يُرفع من تحذير إلى خطأ فيسقط `flutter analyze`.
+    unawaited_futures: error
+
+linter:
+  rules:
+    always_declare_return_types: true
+    avoid_dynamic_calls: true
+    cascade_invocations: true
+    directives_ordering: true
+    omit_local_variable_types: true
+    prefer_final_locals: true
+    prefer_single_quotes: true
+    require_trailing_commas: true
+    sort_child_properties_last: true
+    unawaited_futures: true
+    use_super_parameters: true
+
+    # مُطفأ عمداً: يقترح `this._field` لمعاملات مسمّاة، وDart يمنع معاملاً
+    # مسمّى يبدأ بشرطة سفلية — فالاقتراح غير قابل للتطبيق في هذا الملف.
+    prefer_initializing_formals: false

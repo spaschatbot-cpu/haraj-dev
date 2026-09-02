@@ -1,0 +1,32 @@
+import 'package:haraj_mobile/data/local/cache/response_cache.dart';
+
+/// كاش في الذاكرة للاختبارات.
+///
+/// يجعل اختبار سلوك «بلا اتصال» ممكناً بلا SQLite ولا محرّك أصلي — وهذا وحده
+/// سبب وجود `ResponseCache` كواجهة.
+///
+/// يخزّن النصّ كما يخزّنه تنفيذ drift بالضبط، فما يمرّ هنا يمرّ هناك.
+final class MemoryResponseCache implements ResponseCache {
+  final Map<String, CachedDocument> _documents = <String, CachedDocument>{};
+
+  int writeCount = 0;
+
+  @override
+  Future<CachedDocument?> read(String key) async => _documents[key];
+
+  @override
+  Future<void> write(
+    String key,
+    String rawJson, {
+    required DateTime fetchedAtUtc,
+  }) async {
+    writeCount++;
+    _documents[key] = CachedDocument(
+      rawJson: rawJson,
+      fetchedAtUtc: fetchedAtUtc,
+    );
+  }
+
+  @override
+  Future<void> clear() async => _documents.clear();
+}

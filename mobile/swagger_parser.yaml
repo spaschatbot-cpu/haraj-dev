@@ -1,0 +1,33 @@
+# خط توليد عميل الـAPI (T702).
+#
+# التشغيل:
+#   dart run swagger_parser        # يكتب lib/data/api/generated
+#   dart run build_runner build -d # يكمّل ملفات .g.dart لنماذج json_serializable
+#
+# ممنوع تحرير أي ملف تحت output_directory بيد. كل تعديل يبدأ من المخطط.
+#
+# schema_path يشير الآن إلى مخطط مؤقّت. عند تثبيت T621 (الفيز 007) بدّله إلى
+# ملف ‎/api/schema/‎ المُنزَّل من الخادم — لا شيء آخر يتغيّر في هذا الملف.
+
+swagger_parser:
+  schema_path: openapi/haraj-mock.yaml
+  output_directory: lib/data/api/generated
+  language: dart
+  json_serializer: json_serializable
+  default_content_type: "application/json"
+
+  # عميل جذر واحد يجمع عملاء الوسوم (auth، wallet، bids…)
+  root_client: true
+  root_client_name: HarajApiClient
+  client_postfix: Api
+  export_file: true
+  put_clients_in_folder: true
+
+  # أسماء الدوال من operationId — أوضح من المسار، وتبقى ثابتة عبر تغيّر المسارات
+  path_method_name: false
+
+  # قيمة enum لم نرها من قبل لا تُسقط الاستجابة — المادة ٢-٣ و٣-٥ من الدستور
+  unknown_enum_value: true
+  enums_parent_prefix: true
+
+  mark_files_as_generated: true

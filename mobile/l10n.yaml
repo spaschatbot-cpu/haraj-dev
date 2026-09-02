@@ -1,0 +1,14 @@
+# توليد الترجمات (T703).
+#
+# العربية هي **القالب** لا الترجمة: `template-arb-file` عربي عمداً، فأي نصّ
+# جديد يُكتب عربياً أولاً ثم يُترجم — لا العكس. الإنجليزية موجودة لفحص
+# الاتجاه (LTR) في اختبارات الـwidget، وليست لغة منتَج.
+#
+# الملفات المولَّدة تُرفع مع الكود لتبقى `flutter analyze` تعمل بلا خطوة بناء.
+
+arb-dir: lib/l10n/arb
+template-arb-file: app_ar.arb
+output-dir: lib/l10n/generated
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: false
