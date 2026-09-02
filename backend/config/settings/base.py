@@ -64,6 +64,7 @@ LOCAL_APPS = [
     "apps.auctions",
     "apps.bidding",
     "apps.notifications",
+    "apps.console",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -93,6 +94,11 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # The sidebar, built from the same rows that guard the pages
+                # (T802). A context processor rather than a per-view context
+                # entry: a view that forgets it renders a console with no
+                # navigation, and that is how a page becomes unreachable.
+                "apps.console.context.navigation",
             ],
         },
     },
@@ -145,6 +151,12 @@ TIME_ZONE = "UTC"
 DISPLAY_TIME_ZONE = "Asia/Riyadh"
 USE_I18N = True
 USE_TZ = True
+
+# Where the admin console is mounted. A setting rather than a literal because
+# the console has lived under three different prefixes across v1's four panels,
+# and every hard-coded link broke on each move. Nothing writes a console path
+# by hand — `ops/checks/console_urls_are_named.py` fails the build on one.
+APP_BASE = env("APP_BASE", default="console").strip("/")
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"

@@ -1,21 +1,25 @@
-"""The support screen. One page, read-only, staff only.
+"""The support screen. One page, read-only, guarded by a capability.
 
 It translates a query string into a call to :mod:`apps.bidding.support` and
 renders what comes back. No rule, no calculation, no write — a view's whole job
 (Article 4-4).
+
+The guard names the *page*, not a capability: `apps.console.navigation` holds
+the one row that both shows this in the sidebar and admits a caller to it
+(T802).
 """
 
 from __future__ import annotations
 
 from django.conf import settings
-from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render
+
+from apps.console.views import console_page
 
 from .support import look_up
 
 
-@login_required
-@user_passes_test(lambda user: user.is_staff)
+@console_page("console:why-no-bid")
 def why_no_bid(request):
     """«ليه ما يقدرش يزايد؟» — a phone number in, the last refusals out.
 

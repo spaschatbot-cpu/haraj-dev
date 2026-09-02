@@ -1,0 +1,58 @@
+{% comment %}
+The console frame. Every page extends this, so the sidebar is rendered in one
+place from `apps.console.navigation` — the same rows that guard the pages.
+
+Every link is a `{% url %}`. Not one path is written by hand: the console has
+lived under three prefixes across v1's panels and every hard-coded link broke on
+each move. `ops/checks/console_urls_are_named.py` fails the build on one.
+{% endcomment %}<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
+  <style>
+    :root { --ink: #1a1a1a; --line: #ddd; --panel: #fff; --ground: #fafafa; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, "Segoe UI", Tahoma, sans-serif; margin: 0;
+           color: var(--ink); background: var(--ground); display: flex;
+           min-height: 100vh; }
+    nav { width: 15rem; background: var(--panel); border-inline-start: 0;
+          border-inline-end: 1px solid var(--line); padding: 1rem; }
+    nav h2 { font-size: .75rem; text-transform: uppercase; color: #666;
+             margin: 1.25rem 0 .5rem; letter-spacing: .04em; }
+    nav a { display: block; padding: .4rem .5rem; color: var(--ink);
+            text-decoration: none; border-radius: .25rem; font-size: .9rem; }
+    nav a:hover { background: #f0f0f0; }
+    main { flex: 1; padding: 2rem; }
+    .env { display: inline-block; padding: .15rem .5rem; border-radius: .25rem;
+           background: #eee; font-size: .75rem; color: #555; }
+    table { border-collapse: collapse; width: 100%; background: var(--panel); }
+    th, td { border: 1px solid var(--line); padding: .5rem; text-align: right;
+             font-size: .9rem; vertical-align: top; }
+    th { background: #f0f0f0; }
+    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .empty { color: #666; }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="{% url 'console:home' %}"><strong>لوحة حراج</strong></a>
+    {# Article 5-6: every screen says which environment it is, so nobody
+       performs an irreversible action on production thinking it is staging. #}
+    <p><span class="env">{{ environment }}</span></p>
+
+    {% for section in sidebar %}
+      <h2>{{ section.label }}</h2>
+      {% for page in section.pages %}
+        <a href="{% url page.url_name %}">{{ page.label }}</a>
+      {% endfor %}
+    {% endfor %}
+  </nav>
+
+  <main>
+    <h1>{% block heading %}{% endblock %}</h1>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
