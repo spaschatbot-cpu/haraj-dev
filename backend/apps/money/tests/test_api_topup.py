@@ -235,6 +235,15 @@ class TestTheCallback:
     def test_a_forged_callback_is_refused_and_kept_for_investigation(
         self, api_client, payments_on, bidder
     ):
+        """Kept, and out of the retry queue — the two are not the same thing.
+
+        This test asserted `FAILED` until T913, and that one word was the whole
+        vulnerability: `failed` is what `odoo.retry_failed` picks up, so a body
+        nobody signed was re-offered to an interpreter a minute later and
+        interpreted as though it had been. `rejected_signature` keeps the
+        evidence (Article 2-2) without keeping the invitation.
+        `tests/test_pentest_T913.py` walks that attack end to end.
+        """
         intent = services.start_topup(user=bidder)
 
         response = send_callback(
@@ -246,7 +255,7 @@ class TestTheCallback:
         assert response.status_code == 401
         assert free_balance(bidder) == Decimal("0.00")
         message = InboundMessage.objects.get()
-        assert message.state == InboundState.FAILED
+        assert message.state == InboundState.REJECTED_SIGNATURE
         assert message.note
 
     def test_with_no_secret_configured_the_endpoint_refuses_everything(

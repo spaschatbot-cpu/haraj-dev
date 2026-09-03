@@ -20,7 +20,7 @@ from django.utils import timezone
 from apps.core.locks import single_instance
 
 from .models import InboundMessage, InboundState
-from .processing import process
+from .processing import INTERPRETED_SOURCE, process
 
 log = logging.getLogger(__name__)
 
@@ -39,10 +39,25 @@ def next_attempt_after(attempts: int) -> timedelta:
 
 
 def due_messages(now=None) -> list[InboundMessage]:
-    """Failed messages whose backoff has elapsed and that have attempts left."""
+    """Odoo messages that failed, whose backoff has elapsed, with attempts left.
+
+    ``source`` is part of the filter, and it is not decoration. `InboundMessage`
+    is shared with the payment gateway, and `failed` there means "we could not
+    interpret this body" — the same word, a different sender, and
+    `processing.process` reads Odoo's field names. Without this clause the
+    retry cron feeds gateway bodies to the Odoo interpreter a minute after they
+    arrive, which is exactly the path T913 found: a forged callback needs no
+    secret to be *stored*, and storage was enough.
+
+    `processing.process` refuses a foreign source as well. Two guards, because
+    this one decides what is *offered* and that one decides what is *acted on*,
+    and a queue that keeps offering a forged body is its own problem.
+    """
     now = now or timezone.now()
     candidates = InboundMessage.objects.filter(
-        state=InboundState.FAILED, attempts__lt=MAX_ATTEMPTS
+        source=INTERPRETED_SOURCE,
+        state=InboundState.FAILED,
+        attempts__lt=MAX_ATTEMPTS,
     ).order_by("received_at")
 
     due = []
@@ -93,7 +108,9 @@ def abandon_exhausted() -> dict:
             return {"skipped": "another instance holds the lock"}
 
         exhausted = InboundMessage.objects.filter(
-            state=InboundState.FAILED, attempts__gte=MAX_ATTEMPTS
+            source=INTERPRETED_SOURCE,
+            state=InboundState.FAILED,
+            attempts__gte=MAX_ATTEMPTS,
         ).exclude(note__contains="تحتاج مراجعة بشرية")
 
         count = 0
