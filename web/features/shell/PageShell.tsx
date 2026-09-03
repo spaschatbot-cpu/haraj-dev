@@ -22,9 +22,15 @@ export function PageShell({
           <Link href="/" className="text-lg font-bold">
             حراج
           </Link>
-          <nav className="text-sm">
+          <nav className="flex gap-4 text-sm">
             <Link href="/auctions" className="text-neutral-700 hover:underline">
               المزادات
+            </Link>
+            <Link href="/bids" className="text-neutral-700 hover:underline">
+              مزايداتي
+            </Link>
+            <Link href="/account" className="text-neutral-700 hover:underline">
+              حسابي
             </Link>
           </nav>
         </div>

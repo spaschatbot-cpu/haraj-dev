@@ -329,6 +329,12 @@ jobs:
       - name: no amount is computed in the web
         run: node ops/checks/web_money_is_never_computed.mjs
 
+      # T1014 / J7 — one customer, two channels, the same refusal word for word.
+      # That is not achieved by being careful in two places; it is achieved by
+      # there being one place, and this refuses a second one.
+      - name: eligibility is decided in the backend only
+        run: node ops/checks/web_no_eligibility_logic.mjs
+
       - name: build
         working-directory: web
         run: npm run build
