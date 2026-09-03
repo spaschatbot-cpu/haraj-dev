@@ -4,6 +4,8 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import 'authenticated_user.dart';
+
 part 'token_pair.g.dart';
 
 @JsonSerializable()
@@ -11,8 +13,9 @@ class TokenPair {
   const TokenPair({
     required this.access,
     required this.refresh,
-    required this.accessExpiresAt,
-    required this.isNewUser,
+    required this.expiresIn,
+    required this.expiresAt,
+    this.user,
   });
 
   factory TokenPair.fromJson(Map<String, Object?> json) =>
@@ -20,10 +23,13 @@ class TokenPair {
 
   final String access;
   final String refresh;
-  @JsonKey(name: 'access_expires_at')
-  final DateTime accessExpiresAt;
-  @JsonKey(name: 'is_new_user')
-  final bool isNewUser;
+
+  /// عمر رمز الوصول بالثواني
+  @JsonKey(name: 'expires_in')
+  final int expiresIn;
+  @JsonKey(name: 'expires_at')
+  final DateTime expiresAt;
+  final AuthenticatedUser? user;
 
   Map<String, Object?> toJson() => _$TokenPairToJson(this);
 }

@@ -29,7 +29,19 @@ final class ApiFailure extends Failure {
   final String code;
   final String message;
   final int? statusCode;
+
+  /// `error.detail` كما أرسله الخادم — أرقام الرفض بأسمائها، لا نصّ يُعرض.
   final Map<String, Object?>? details;
+
+  /// ثوانٍ ينتظرها المستخدم قبل أن يعيد المحاولة، حين يقولها الخادم.
+  ///
+  /// نقطة القراءة الوحيدة لمفتاح `retry_after`: يرسله الخادم مع حدّ المعدّل
+  /// (429) ومع «الرمز السابق ما زال حيّاً» (409)، والشاشتان تعدّان به تنازلياً.
+  /// شاشة تقرأ المفتاح بنفسها هي نسخة ثانية من قراءة العقد.
+  int? get retryAfterSeconds {
+    final value = details?['retry_after'];
+    return value is int ? value : null;
+  }
 
   @override
   String toString() => 'ApiFailure($code, http=$statusCode): $message';

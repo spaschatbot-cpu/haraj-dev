@@ -15,7 +15,7 @@ class LockedField {
 
   final String field;
 
-  /// سبب عربي جاهز للعرض
+  /// سبب عربي جاهز للعرض — لا يصوغه التطبيق
   final String reason;
 
   Map<String, Object?> toJson() => _$LockedFieldToJson(this);

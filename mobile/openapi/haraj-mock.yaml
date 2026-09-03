@@ -47,42 +47,56 @@ security:
   - bearerAuth: []
 
 paths:
-  /api/v1/auth/otp/request:
+  # ---------------------------------------------------------------------------
+  # المصادقة والملف الشخصي — **منسوخة حرفياً** من مخطط الخادم المثبَّت
+  # (`backend/openapi/schema.yaml`): نفس المسارات ونفس `operationId` ونفس أشكال
+  # الأجسام. النسخ حرفي عمداً حتى يكون التبديل في T621 بلا أثر على شيفرة
+  # التطبيق: ما يتغيّر عندها هو تجميع الوسوم في العملاء لا أسماء الدوال.
+  #
+  # ما لم يُنسخ: الوسوم (`tags`). المخطط الحقيقي يضع مسارات المصادقة والملف تحت
+  # وسم `v1` واحد فتصير كلها في عميل واحد، وهنا تبقى `auth` و`profile` كبقية
+  # هذا الملف.
+  /api/v1/auth/code/:
     post:
       tags: [auth]
-      operationId: authOtpRequest
-      summary: إرسال رمز تحقق إلى جوال
+      operationId: v1_auth_code_create
+      summary: إرسال رمز تحقق
       security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OtpRequest"
+              $ref: "#/components/schemas/SendCode"
       responses:
         "200":
           description: أُرسل الرمز
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/OtpChallenge"
+                $ref: "#/components/schemas/SendCodeResponse"
+        "409":
+          $ref: "#/components/responses/Error"
         "429":
           $ref: "#/components/responses/Error"
-        "400":
+        "503":
           $ref: "#/components/responses/Error"
 
-  /api/v1/auth/otp/verify:
+  /api/v1/auth/verify/:
     post:
       tags: [auth]
-      operationId: authOtpVerify
+      operationId: v1_auth_verify_create
       summary: التحقق من الرمز وإصدار الرموز
+      description: >
+        رقم بلا حساب يحتاج full_name، والخادم يرفض قبل أن يستهلك الرمز
+        (registration_needs_name) فلا يضيع الرمز على حقل ناقص.
       security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/OtpVerification"
+              $ref: "#/components/schemas/VerifyCode"
       responses:
         "200":
           description: تم الدخول
@@ -90,15 +104,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenPair"
-        "400":
+        "409":
           $ref: "#/components/responses/Error"
         "429":
           $ref: "#/components/responses/Error"
 
-  /api/v1/auth/token/refresh:
+  /api/v1/auth/refresh/:
     post:
       tags: [auth]
-      operationId: authTokenRefresh
+      operationId: v1_auth_refresh_create
       summary: تجديد رمز الوصول
       security: []
       requestBody:
@@ -106,7 +120,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/RefreshRequest"
+              $ref: "#/components/schemas/Refresh"
       responses:
         "200":
           description: رموز جديدة
@@ -114,14 +128,68 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TokenPair"
-        "401":
+        "409":
           $ref: "#/components/responses/Error"
 
-  /api/v1/profile:
+  /api/v1/auth/phone/change/:
+    post:
+      tags: [auth]
+      operationId: v1_auth_phone_change_create
+      summary: بدء تغيير رقم الجوال
+      description: >
+        رمزان: واحد للرقم الحالي وواحد للجديد. الرقم الحالي يُقرأ من رمز
+        الوصول لا من جسم الطلب.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartPhoneChange"
+      responses:
+        "200":
+          description: أُرسل الرمزان
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartPhoneChangeResponse"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/auth/phone/change/confirm/:
+    post:
+      tags: [auth]
+      operationId: v1_auth_phone_change_confirm_create
+      summary: تأكيد تغيير الجوال بالرمزين
+      description: >
+        الرمزان معاً أو لا شيء، والرفض لا يقول أيّهما أخطأ. النجاح يُلغي كل
+        الجلسات — بما فيها هذه — فيعود العميل إلى الدخول بالرقم الجديد.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmPhoneChange"
+      responses:
+        "200":
+          description: تغيّر الرقم
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthenticatedUser"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/profile/:
     get:
       tags: [profile]
-      operationId: profileRetrieve
-      summary: الملف الشخصي للمستخدم صاحب الرمز
+      operationId: profile_retrieve
+      summary: ملفي الشخصي
       responses:
         "200":
           description: الملف
@@ -130,6 +198,92 @@ paths:
               schema:
                 $ref: "#/components/schemas/Profile"
         "401":
+          $ref: "#/components/responses/Error"
+    patch:
+      tags: [profile]
+      operationId: profile_update
+      summary: تعديل الملف الشخصي
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchedProfileUpdate"
+      responses:
+        "200":
+          description: الملف بعد التعديل
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/Error"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/profile/national-id/:
+    put:
+      tags: [profile]
+      operationId: profile_set_national_id
+      summary: تثبيت رقم الهوية
+      description: >
+        هوية صحيحة على الحساب لا تتغيّر (national_id_already_verified)، وهوية
+        غير صحيحة يصحّحها صاحبها بنفسه.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NationalId"
+      responses:
+        "200":
+          description: الملف بعد التثبيت
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/profile/company/:
+    get:
+      tags: [profile]
+      operationId: profile_company_retrieve
+      summary: ملف الشركة
+      description: >
+        404 حين لا شركة على الحساب — «لا شركة» و«شركة بحقول فارغة» جوابان
+        مختلفان، والشاشة التي لا تفرّق بينهما تعرض نموذج تعديل لشيء غير موجود.
+      responses:
+        "200":
+          description: ملف الشركة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfileRead"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      tags: [profile]
+      operationId: profile_company_save
+      summary: حفظ ملف الشركة
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompanyProfile"
+      responses:
+        "200":
+          description: ملف الشركة بعد الحفظ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompanyProfileRead"
+        "400":
+          $ref: "#/components/responses/Error"
+        "409":
           $ref: "#/components/responses/Error"
 
   /api/v1/auctions:
@@ -432,48 +586,75 @@ components:
         code:
           type: string
           description: رمز ثابت يفهمه العميل — لا يُترجم ولا يُعرض
-          example: BID_BELOW_MINIMUM
+          example: otp_incorrect
         message:
           type: string
           description: >
             رسالة عربية جاهزة للعرض كما جاءت. **ممنوع** على التطبيق استبدالها
             بنصّ محلي لحالة يعرفها الخادم.
           example: مبلغ المزايدة أقل من الحد الأدنى المسموح.
-        details:
+        detail:
           type: object
           nullable: true
           additionalProperties: true
-          description: بيانات إضافية للتشخيص — لا تُعرض للمستخدم
+          description: >
+            بيانات مرافقة للرفض بأسمائها كما يرسلها الخادم (مثل retry_after
+            و attempts_left). ليست نصّاً يُعرض؛ منها يتفرّع سلوك الشاشة.
 
     # ---------- المصادقة ----------
-    OtpRequest:
+    # منسوخة من `backend/openapi/schema.yaml` بأسمائها وحقولها. الرمز نفسه لا
+    # يظهر في أي جسم استجابة هنا — ولا يجوز أن يظهر: جسم يستطيع حمل الأرقام
+    # يحملها يوماً.
+    SendCode:
       type: object
       required: [phone]
       properties:
         phone:
           type: string
-          example: "0512345678"
+          pattern: ^9665\d{8}$
+          example: "966501234567"
+        purpose:
+          $ref: "#/components/schemas/SendCodePurposeEnum"
 
-    OtpChallenge:
+    SendCodePurposeEnum:
+      type: string
+      default: login
+      enum: [login, change_phone, recover]
+      description: >
+        login دخول أو تسجيل · change_phone تغيير رقم الجوال · recover استعادة
+        الحساب
+
+    SendCodeResponse:
       type: object
-      required: [expires_at, resend_after_seconds]
+      required: [sent, expires_at, resend_after]
       properties:
+        sent:
+          type: boolean
         expires_at:
           type: string
           format: date-time
-        resend_after_seconds:
+          description: ISO-8601 بتوقيت UTC — التحويل للعرض عند حافة العرض وحدها
+        resend_after:
           type: integer
+          description: ثوانٍ حتى يُسمح بطلب رمز جديد
 
-    OtpVerification:
+    VerifyCode:
       type: object
       required: [phone, code]
       properties:
         phone:
           type: string
+          pattern: ^9665\d{8}$
         code:
           type: string
+          minLength: 4
+          maxLength: 8
+        full_name:
+          type: string
+          maxLength: 200
+          description: يُستعمل عند إنشاء الحساب لأول مرة فقط
 
-    RefreshRequest:
+    Refresh:
       type: object
       required: [refresh]
       properties:
@@ -482,38 +663,131 @@ components:
 
     TokenPair:
       type: object
-      required: [access, refresh, access_expires_at, is_new_user]
+      required: [access, refresh, expires_in, expires_at]
       properties:
         access:
           type: string
         refresh:
           type: string
-        access_expires_at:
+        expires_in:
+          type: integer
+          description: عمر رمز الوصول بالثواني
+        expires_at:
           type: string
           format: date-time
-        is_new_user:
+        user:
+          $ref: "#/components/schemas/AuthenticatedUser"
+
+    AuthenticatedUser:
+      type: object
+      required: [id, phone, display_name, account_type, is_new]
+      properties:
+        id:
+          type: integer
+        phone:
+          type: string
+        display_name:
+          type: string
+        account_type:
+          type: string
+        is_new:
           type: boolean
+          description: أول دخول لهذا الرقم
+
+    StartPhoneChange:
+      type: object
+      required: [new_phone]
+      properties:
+        new_phone:
+          type: string
+          pattern: ^9665\d{8}$
+
+    StartPhoneChangeResponse:
+      type: object
+      required: [sent_to_current, sent_to_new, expires_at, resend_after]
+      properties:
+        sent_to_current:
+          type: boolean
+        sent_to_new:
+          type: boolean
+        expires_at:
+          type: string
+          format: date-time
+        resend_after:
+          type: integer
+
+    ConfirmPhoneChange:
+      type: object
+      required: [new_phone, current_code, new_code]
+      properties:
+        new_phone:
+          type: string
+          pattern: ^9665\d{8}$
+        current_code:
+          type: string
+          minLength: 4
+          maxLength: 8
+          description: الرمز المُرسَل إلى الرقم الحالي
+        new_code:
+          type: string
+          minLength: 4
+          maxLength: 8
+          description: الرمز المُرسَل إلى الرقم الجديد
 
     # ---------- الملف الشخصي ----------
     Profile:
       type: object
-      required: [id, phone, full_name, locked_fields]
+      required:
+        - id
+        - phone
+        - display_name
+        - full_name
+        - account_type
+        - national_id
+        - national_id_verified
+        - phone_verified_at
+        - has_company_profile
+        - company_profile_complete
+        - locked_fields
       properties:
         id:
-          type: string
+          type: integer
         phone:
           type: string
+          readOnly: true
+          description: يتغيّر عبر مسار خاص
+        display_name:
+          type: string
+          readOnly: true
         full_name:
           type: string
+          maxLength: 200
+        email:
+          type: string
+        account_type:
+          type: string
+          readOnly: true
         national_id:
           type: string
-          nullable: true
-        company_name:
+          readOnly: true
+        national_id_verified:
+          type: boolean
+          readOnly: true
+        phone_verified_at:
           type: string
+          format: date-time
           nullable: true
+          readOnly: true
+        has_company_profile:
+          type: boolean
+          readOnly: true
+        company_profile_complete:
+          type: boolean
+          readOnly: true
         locked_fields:
           type: array
-          description: الحقول المقفولة وسبب قفلها العربي
+          readOnly: true
+          description: الحقول التي تُعرض ولا تُعدَّل، وسبب كلٍّ منها بالعربية
           items:
             $ref: "#/components/schemas/LockedField"
 
@@ -525,7 +799,97 @@ components:
           type: string
         reason:
           type: string
-          description: سبب عربي جاهز للعرض
+          description: سبب عربي جاهز للعرض — لا يصوغه التطبيق
+
+    PatchedProfileUpdate:
+      type: object
+      description: >
+        ما يملك العميل تغييره عن نفسه ولا شيء غيره. مفتاح غير معروف يُرفض ولا
+        يُهمَل.
+      properties:
+        full_name:
+          type: string
+          maxLength: 200
+        email:
+          type: string
+
+    NationalId:
+      type: object
+      required: [national_id]
+      properties:
+        national_id:
+          type: string
+          pattern: ^\d{10}$
+
+    CompanyProfile:
+      type: object
+      description: >
+        بلا حقل إلزامي في هذه الطبقة: اكتمال شركة جديدة قاعدة عمل لها تاريخ،
+        وتعيش في الخادم لا في المخطط.
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        representative_name:
+          type: string
+          maxLength: 200
+        commercial_register:
+          type: string
+          maxLength: 32
+        vat_number:
+          type: string
+          maxLength: 32
+        building_number:
+          type: string
+          maxLength: 8
+        street:
+          type: string
+          maxLength: 200
+        district:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        postal_code:
+          type: string
+          maxLength: 8
+
+    CompanyProfileRead:
+      type: object
+      required: [is_complete]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        representative_name:
+          type: string
+          maxLength: 200
+        commercial_register:
+          type: string
+          maxLength: 32
+        vat_number:
+          type: string
+          maxLength: 32
+        building_number:
+          type: string
+          maxLength: 8
+        street:
+          type: string
+          maxLength: 200
+        district:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        postal_code:
+          type: string
+          maxLength: 8
+        is_complete:
+          type: boolean
+          readOnly: true
+          description: هل تكفي هذه البيانات لإصدار فاتورة ضريبية
 
     # ---------- المزادات ----------
     AuctionStatus:

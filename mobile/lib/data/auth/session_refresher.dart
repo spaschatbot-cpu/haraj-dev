@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../api/generated/clients/auth_api.dart';
-import '../api/generated/models/refresh_request.dart';
+import '../api/generated/models/refresh.dart';
 import '../local/secure/secure_token_store.dart';
 
 /// يجدّد رمز الوصول برمز التحديث المخزَّن.
@@ -24,8 +24,8 @@ final class SessionRefresher {
     if (refreshToken == null) return false;
 
     try {
-      final pair = await _api.authTokenRefresh(
-        body: RefreshRequest(refresh: refreshToken),
+      final pair = await _api.v1AuthRefreshCreate(
+        body: Refresh(refresh: refreshToken),
       );
       await _tokens.save(access: pair.access, refresh: pair.refresh);
       return true;

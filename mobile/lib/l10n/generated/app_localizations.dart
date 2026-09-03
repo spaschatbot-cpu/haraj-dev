@@ -169,6 +169,324 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'بيانات محفوظة — آخر تحديث {date} الساعة {time}'**
   String offlineDataNotice(DateTime date, DateTime time);
+
+  /// عنوان شاشة الدخول — نفس المسار للتسجيل والدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'الدخول أو إنشاء حساب'**
+  String get signInTitle;
+
+  /// No description provided for @signInIntro.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل رقم جوالك ونرسل لك رمز تحقق.'**
+  String get signInIntro;
+
+  /// No description provided for @signInPhoneLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الجوال'**
+  String get signInPhoneLabel;
+
+  /// شكل الرقم كما يقبله الخادم — تلميح لا تحقّق
+  ///
+  /// In ar, this message translates to:
+  /// **'9665xxxxxxxx'**
+  String get signInPhoneHint;
+
+  /// No description provided for @signInSendCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال رمز التحقق'**
+  String get signInSendCode;
+
+  /// No description provided for @verifyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'رمز التحقق'**
+  String get verifyTitle;
+
+  /// No description provided for @verifySentTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرسلنا رمزاً إلى {phone}'**
+  String verifySentTo(String phone);
+
+  /// No description provided for @verifyCodeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رمز التحقق'**
+  String get verifyCodeLabel;
+
+  /// No description provided for @verifySubmit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد ودخول'**
+  String get verifySubmit;
+
+  /// No description provided for @verifyFullNameLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الكامل'**
+  String get verifyFullNameLabel;
+
+  /// No description provided for @verifyResend.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة إرسال الرمز'**
+  String get verifyResend;
+
+  /// No description provided for @verifyChangePhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الرقم'**
+  String get verifyChangePhone;
+
+  /// بالتوقيت السعودي — التحويل عند حافة العرض وحدها
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي الرمز الساعة {time}'**
+  String verifyExpiresAt(DateTime time);
+
+  /// عدّاد الانتظار قبل السماح بمحاولة جديدة — الثواني من الخادم
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد {seconds} ثانية'**
+  String waitSeconds(int seconds);
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملفي'**
+  String get profileTitle;
+
+  /// No description provided for @profileFullName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم'**
+  String get profileFullName;
+
+  /// No description provided for @profileEmail.
+  ///
+  /// In ar, this message translates to:
+  /// **'البريد الإلكتروني'**
+  String get profileEmail;
+
+  /// No description provided for @profilePhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الجوال'**
+  String get profilePhone;
+
+  /// No description provided for @profileAccountType.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الحساب'**
+  String get profileAccountType;
+
+  /// No description provided for @profileNationalId.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الهوية'**
+  String get profileNationalId;
+
+  /// No description provided for @profileNationalIdMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُدخل بعد'**
+  String get profileNationalIdMissing;
+
+  /// No description provided for @profileNationalIdSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'تثبيت رقم الهوية'**
+  String get profileNationalIdSave;
+
+  /// No description provided for @profileSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ'**
+  String get profileSave;
+
+  /// No description provided for @profileSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الحفظ'**
+  String get profileSaved;
+
+  /// No description provided for @profileCompanySection.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيانات الشركة والعنوان الوطني'**
+  String get profileCompanySection;
+
+  /// No description provided for @profileCompanyComplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتملة'**
+  String get profileCompanyComplete;
+
+  /// No description provided for @profileCompanyIncomplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'ناقصة'**
+  String get profileCompanyIncomplete;
+
+  /// No description provided for @profileCompanyMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد ملف شركة'**
+  String get profileCompanyMissing;
+
+  /// No description provided for @profileChangePhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير رقم الجوال'**
+  String get profileChangePhone;
+
+  /// No description provided for @profileSignOut.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل الخروج'**
+  String get profileSignOut;
+
+  /// No description provided for @companyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملف الشركة'**
+  String get companyTitle;
+
+  /// No description provided for @companyCreateHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد ملف شركة لهذا الحساب. املأ البيانات لإنشائه.'**
+  String get companyCreateHint;
+
+  /// No description provided for @companyName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم الشركة'**
+  String get companyName;
+
+  /// No description provided for @companyRepresentative.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المفوَّض'**
+  String get companyRepresentative;
+
+  /// No description provided for @companyRegister.
+  ///
+  /// In ar, this message translates to:
+  /// **'السجل التجاري'**
+  String get companyRegister;
+
+  /// No description provided for @companyVatNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم الضريبي'**
+  String get companyVatNumber;
+
+  /// No description provided for @companyNationalAddress.
+  ///
+  /// In ar, this message translates to:
+  /// **'العنوان الوطني'**
+  String get companyNationalAddress;
+
+  /// No description provided for @companyBuildingNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم المبنى'**
+  String get companyBuildingNumber;
+
+  /// No description provided for @companyStreet.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشارع'**
+  String get companyStreet;
+
+  /// No description provided for @companyDistrict.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحي'**
+  String get companyDistrict;
+
+  /// No description provided for @companyCity.
+  ///
+  /// In ar, this message translates to:
+  /// **'المدينة'**
+  String get companyCity;
+
+  /// No description provided for @companyPostalCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرمز البريدي'**
+  String get companyPostalCode;
+
+  /// No description provided for @companySave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ بيانات الشركة'**
+  String get companySave;
+
+  /// No description provided for @changePhoneTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير رقم الجوال'**
+  String get changePhoneTitle;
+
+  /// سبب الرمزين — الرقم الجديد وحده كان مسار الاستيلاء على الحساب في v1
+  ///
+  /// In ar, this message translates to:
+  /// **'نرسل رمزاً إلى رقمك الحالي ورمزاً إلى الرقم الجديد. التغيير يحتاج الرمزين معاً.'**
+  String get changePhoneIntro;
+
+  /// No description provided for @changePhoneNewLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم الجديد'**
+  String get changePhoneNewLabel;
+
+  /// No description provided for @changePhoneSendCodes.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال الرمزين'**
+  String get changePhoneSendCodes;
+
+  /// No description provided for @changePhoneSentNotice.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرسلنا رمزاً إلى رقمك الحالي ورمزاً إلى {phone}.'**
+  String changePhoneSentNotice(String phone);
+
+  /// No description provided for @changePhoneCurrentCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرمز المُرسَل إلى رقمك الحالي'**
+  String get changePhoneCurrentCode;
+
+  /// No description provided for @changePhoneNewCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرمز المُرسَل إلى الرقم الجديد'**
+  String get changePhoneNewCode;
+
+  /// No description provided for @changePhoneConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد التغيير'**
+  String get changePhoneConfirm;
+
+  /// الخادم يُلغي كل الجلسات عند نجاح التغيير، فالخروج جزء من النجاح لا عطل
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيّر رقمك، وانتهت الجلسات المفتوحة. سجّل الدخول بالرقم الجديد.'**
+  String get changePhoneDone;
+
+  /// يُعرض عند إعادة التوجيه بعد 401 لم ينفع معه التجديد
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهت جلستك. سجّل الدخول من جديد.'**
+  String get sessionExpiredNotice;
 }
 
 class _AppLocalizationsDelegate

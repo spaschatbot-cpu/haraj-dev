@@ -20,26 +20,26 @@ class _AuthApi implements AuthApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<OtpChallenge> authOtpRequest({required OtpRequest body}) async {
+  Future<SendCodeResponse> v1AuthCodeCreate({required SendCode body}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     final _data = <String, dynamic>{};
     _data.addAll(body.toJson());
-    final _options = _setStreamType<OtpChallenge>(
+    final _options = _setStreamType<SendCodeResponse>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auth/otp/request',
+            '/api/v1/auth/code/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late OtpChallenge _value;
+    late SendCodeResponse _value;
     try {
-      _value = OtpChallenge.fromJson(_result.data!);
+      _value = SendCodeResponse.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -48,7 +48,7 @@ class _AuthApi implements AuthApi {
   }
 
   @override
-  Future<TokenPair> authOtpVerify({required OtpVerification body}) async {
+  Future<TokenPair> v1AuthVerifyCreate({required VerifyCode body}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -58,7 +58,7 @@ class _AuthApi implements AuthApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auth/otp/verify',
+            '/api/v1/auth/verify/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -76,7 +76,7 @@ class _AuthApi implements AuthApi {
   }
 
   @override
-  Future<TokenPair> authTokenRefresh({required RefreshRequest body}) async {
+  Future<TokenPair> v1AuthRefreshCreate({required Refresh body}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -86,7 +86,7 @@ class _AuthApi implements AuthApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auth/token/refresh',
+            '/api/v1/auth/refresh/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -96,6 +96,66 @@ class _AuthApi implements AuthApi {
     late TokenPair _value;
     try {
       _value = TokenPair.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<StartPhoneChangeResponse> v1AuthPhoneChangeCreate({
+    required StartPhoneChange body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<StartPhoneChangeResponse>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/auth/phone/change/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late StartPhoneChangeResponse _value;
+    try {
+      _value = StartPhoneChangeResponse.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<AuthenticatedUser> v1AuthPhoneChangeConfirmCreate({
+    required ConfirmPhoneChange body,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body.toJson());
+    final _options = _setStreamType<AuthenticatedUser>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/auth/phone/change/confirm/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late AuthenticatedUser _value;
+    try {
+      _value = AuthenticatedUser.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

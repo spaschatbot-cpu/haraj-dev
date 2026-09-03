@@ -12,14 +12,23 @@ final class AuthInterceptor extends Interceptor {
     required SecureTokenStore tokens,
     required Future<bool> Function() refreshSession,
     required Dio retryClient,
+    required void Function() onSessionLost,
   }) : _tokens = tokens,
        _refreshSession = refreshSession,
-       _retryClient = retryClient;
+       _retryClient = retryClient,
+       _onSessionLost = onSessionLost;
 
   static const String _retriedFlag = 'haraj.retried_after_refresh';
 
   final SecureTokenStore _tokens;
   final Future<bool> Function() _refreshSession;
+
+  /// يُنادى مرة واحدة عند سقوط الجلسة، فيعيد الموجّه المستخدم إلى الدخول.
+  ///
+  /// هنا لا في الشاشات: من يعرف أن الجلسة انتهت هو هذا الاعتراض وحده، وشاشة
+  /// تكتشفها بنفسها هي شاشة تعرف 401 — ثم تكتشفها كل شاشة على حدة، وتُنسى في
+  /// واحدة.
+  final void Function() _onSessionLost;
 
   /// عميل بلا هذا الاعتراض — إعادة المحاولة لا تمرّ من هنا مرة ثانية.
   final Dio _retryClient;
@@ -49,9 +58,10 @@ final class AuthInterceptor extends Interceptor {
 
     final refreshed = await _refreshSession();
     if (!refreshed) {
-      // فشل التجديد: تُمحى الرموز فيعود المستخدم للدخول، ويمرّ الخطأ كما هو
-      // برسالة الخادم — لا رسالة نخترعها نحن.
+      // فشل التجديد: تُمحى الرموز، ويُبلَّغ الموجّه فيعيد المستخدم إلى الدخول،
+      // ويمرّ الخطأ كما هو برسالة الخادم — لا رسالة نخترعها نحن.
       await _tokens.clear();
+      _onSessionLost();
       handler.next(err);
       return;
     }

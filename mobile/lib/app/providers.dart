@@ -19,9 +19,14 @@ import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
+import '../data/profile/profile_repository_impl.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/auth/repositories/auth_repository.dart';
-import '../domain/auth/usecases/sign_in_with_otp.dart';
+import '../domain/auth/session_signal.dart';
+import '../domain/auth/usecases/change_phone_number.dart';
+import '../domain/auth/usecases/sign_in_with_code.dart';
+import '../domain/profile/repositories/profile_repository.dart';
+import '../domain/profile/usecases/manage_profile.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
 
@@ -30,6 +35,15 @@ final appConfigProvider = Provider<AppConfig>((ref) => AppConfig.fromBuild());
 final secureTokenStoreProvider = Provider<SecureTokenStore>(
   (ref) => SecureTokenStore.platformDefault(),
 );
+
+/// إشارة سقوط الجلسة: يرفعها اعتراض المصادقة، ويسمعها الموجّه.
+///
+/// تُبنى هنا لأن الطرفين لا يعرف أحدهما الآخر، وهذا الملف وحده يعرفهما معاً.
+final sessionSignalProvider = Provider<SessionSignal>((ref) {
+  final signal = SessionSignal();
+  ref.onDispose(signal.dispose);
+  return signal;
+});
 
 final cacheDatabaseProvider = Provider<CacheDatabase>((ref) {
   final database = CacheDatabase.onDevice();
@@ -64,6 +78,7 @@ final _authenticatedDioProvider = Provider<Dio>((ref) {
         tokens: ref.watch(secureTokenStoreProvider),
         refreshSession: ref.watch(_sessionRefresherProvider).refresh,
         retryClient: ref.watch(_plainDioProvider),
+        onSessionLost: ref.watch(sessionSignalProvider).reportLost,
       ),
     ],
   );
@@ -82,6 +97,13 @@ final authRepositoryProvider = Provider<AuthRepository>(
   ),
 );
 
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => ProfileRepositoryImpl(
+    api: ref.watch(apiClientProvider).profile,
+    cache: ref.watch(responseCacheProvider),
+  ),
+);
+
 final walletRepositoryProvider = Provider<WalletRepository>(
   (ref) => WalletRepositoryImpl(
     api: ref.watch(apiClientProvider).wallet,
@@ -89,8 +111,16 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
-final signInWithOtpProvider = Provider<SignInWithOtp>(
-  (ref) => SignInWithOtp(ref.watch(authRepositoryProvider)),
+final signInWithCodeProvider = Provider<SignInWithCode>(
+  (ref) => SignInWithCode(ref.watch(authRepositoryProvider)),
+);
+
+final changePhoneNumberProvider = Provider<ChangePhoneNumber>(
+  (ref) => ChangePhoneNumber(ref.watch(authRepositoryProvider)),
+);
+
+final manageProfileProvider = Provider<ManageProfile>(
+  (ref) => ManageProfile(ref.watch(profileRepositoryProvider)),
 );
 
 final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
