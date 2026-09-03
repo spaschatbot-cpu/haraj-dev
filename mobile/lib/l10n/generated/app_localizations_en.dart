@@ -54,4 +54,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return 'Saved data — last updated $dateString at $timeString';
   }
+
+  @override
+  String get bidPanelTitle => 'Bidding';
+
+  @override
+  String get bidAmountLabel => 'Bid amount';
+
+  @override
+  String get bidAmountMissing => 'Enter a bid amount.';
+
+  @override
+  String get bidSubmit => 'Bid';
+
+  @override
+  String get bidPlaced => 'Your bid was recorded.';
+
+  @override
+  String get bidServerDecides =>
+      'A bid holds a deposit for the auction. The server decides eligibility and the minimum.';
+
+  @override
+  String get bidLowerConfirmTitle => 'Confirm lowering your bid';
+
+  @override
+  String get bidLowerStandingLabel => 'Your standing bid';
+
+  @override
+  String get bidLowerRequestedLabel => 'The new amount';
+
+  @override
+  String get bidLowerConfirmCheckbox => 'Yes, I want to lower my bid.';
+
+  @override
+  String get bidLowerConfirmAction => 'Confirm the lower bid';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get myBidsTitle => 'My bids';
+
+  @override
+  String get myBidsEmpty => 'You have no bids yet.';
+
+  @override
+  String bidPlacedAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return 'On $dateString at $timeString';
+  }
+
+  @override
+  String get bidWithdrawAction => 'Withdraw bid';
+
+  @override
+  String get bidWithdrawConfirmTitle => 'Confirm withdrawing your bid';
+
+  @override
+  String bidWithdrawConfirmBody(String vehicle) {
+    return 'Your bid on $vehicle will be withdrawn. A withdrawal is marked, never deleted.';
+  }
+
+  @override
+  String get bidWithdrawn => 'Your bid was withdrawn.';
+
+  @override
+  String get liveConnecting => 'Connecting…';
+
+  @override
+  String get liveConnected => 'Live';
+
+  @override
+  String get liveLost => 'Connection lost — the amounts below are stale';
+
+  @override
+  String get liveStandingBid => 'Your standing bid';
+
+  @override
+  String get liveNoStandingBid => 'You have no standing bid on this vehicle.';
 }

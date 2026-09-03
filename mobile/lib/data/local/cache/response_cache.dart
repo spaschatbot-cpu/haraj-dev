@@ -39,4 +39,5 @@ abstract interface class ResponseCache {
 /// بصيغتين (المادة ٤-٥).
 abstract final class CacheKeys {
   static const String wallet = 'wallet.balance';
+  static const String myBids = 'bids.mine';
 }

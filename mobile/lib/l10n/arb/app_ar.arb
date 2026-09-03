@@ -69,5 +69,109 @@
         "format": "Hm"
       }
     }
-  }
+  },
+  "bidPanelTitle": "المزايدة",
+  "@bidPanelTitle": {
+    "description": "عنوان صندوق المزايدة في صفحة المركبة"
+  },
+
+  "bidAmountLabel": "مبلغ المزايدة",
+  "@bidAmountLabel": {},
+
+  "bidAmountMissing": "اكتب مبلغ المزايدة.",
+  "@bidAmountMissing": {
+    "description": "حقل فارغ — نقص في النموذج لا رفض من الخادم، فالنصّ محلي"
+  },
+
+  "bidSubmit": "زايد",
+  "@bidSubmit": {},
+
+  "bidPlaced": "سُجّلت مزايدتك.",
+  "@bidPlaced": {
+    "description": "نفس جملة الويب حرفياً — القناتان تقولان الشيء نفسه"
+  },
+
+  "bidServerDecides": "المزايدة تحجز تأميناً على المزاد. الخادم يقرّر الأهلية والحد الأدنى.",
+  "@bidServerDecides": {
+    "description": "يشرح للعميل لماذا يظهر الصندوق قبل أن يُعرف إن كان مؤهلاً"
+  },
+
+  "bidLowerConfirmTitle": "تأكيد خفض المزايدة",
+  "@bidLowerConfirmTitle": {},
+
+  "bidLowerStandingLabel": "مزايدتك القائمة",
+  "@bidLowerStandingLabel": {},
+
+  "bidLowerRequestedLabel": "المبلغ الجديد",
+  "@bidLowerRequestedLabel": {},
+
+  "bidLowerConfirmCheckbox": "نعم، أريد خفض مزايدتي.",
+  "@bidLowerConfirmCheckbox": {
+    "description": "غير مؤشَّر عند الفتح — المؤشَّر سلفاً ليس تأكيداً"
+  },
+
+  "bidLowerConfirmAction": "تأكيد الخفض",
+  "@bidLowerConfirmAction": {},
+
+  "cancel": "إلغاء",
+  "@cancel": {},
+
+  "myBidsTitle": "مزايداتي",
+  "@myBidsTitle": {},
+
+  "myBidsEmpty": "لا مزايدات لك بعد.",
+  "@myBidsEmpty": {
+    "description": "حالة فارغة صريحة — لا شاشة بيضاء"
+  },
+
+  "bidPlacedAt": "بتاريخ {date} الساعة {time}",
+  "@bidPlacedAt": {
+    "description": "لحظة المزايدة بالتوقيت السعودي",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "bidWithdrawAction": "سحب المزايدة",
+  "@bidWithdrawAction": {},
+
+  "bidWithdrawConfirmTitle": "تأكيد سحب المزايدة",
+  "@bidWithdrawConfirmTitle": {},
+
+  "bidWithdrawConfirmBody": "سيُسحب عرضك على {vehicle}. السحب يُعلَّم ولا يُحذف.",
+  "@bidWithdrawConfirmBody": {
+    "placeholders": {
+      "vehicle": {
+        "type": "String",
+        "example": "تويوتا كامري 2021"
+      }
+    }
+  },
+
+  "bidWithdrawn": "سُحبت مزايدتك.",
+  "@bidWithdrawn": {},
+
+  "liveConnecting": "جارٍ الاتصال…",
+  "@liveConnecting": {},
+
+  "liveConnected": "التحديث حي",
+  "@liveConnected": {},
+
+  "liveLost": "انقطع الاتصال — الأرقام أدناه قديمة",
+  "@liveLost": {
+    "description": "نفس جملة الويب — رقم بائت يبدو حياً أسوأ من لا رقم"
+  },
+
+  "liveStandingBid": "مزايدتك القائمة",
+  "@liveStandingBid": {},
+
+  "liveNoStandingBid": "لا مزايدة قائمة لك على هذه المركبة.",
+  "@liveNoStandingBid": {}
 }

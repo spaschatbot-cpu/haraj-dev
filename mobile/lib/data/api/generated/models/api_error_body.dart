@@ -8,7 +8,7 @@ part 'api_error_body.g.dart';
 
 @JsonSerializable()
 class ApiErrorBody {
-  const ApiErrorBody({required this.code, required this.message, this.details});
+  const ApiErrorBody({required this.code, required this.message, this.detail});
 
   factory ApiErrorBody.fromJson(Map<String, Object?> json) =>
       _$ApiErrorBodyFromJson(json);
@@ -20,8 +20,9 @@ class ApiErrorBody {
   ///
   final String message;
 
-  /// بيانات إضافية للتشخيص — لا تُعرض للمستخدم
-  final dynamic details;
+  /// بيانات الرفض نفسه — لا تُعرض نصّاً، لكن الشاشة تقتبس منها أرقاماً سألها الخادم عنها (مثل مبلغَي تأكيد الخفض).
+  ///
+  final Map<String, dynamic>? detail;
 
   Map<String, Object?> toJson() => _$ApiErrorBodyToJson(this);
 }

@@ -15,6 +15,8 @@ import '../data/api/generated/haraj_api_client.dart';
 import '../data/api/interceptors/auth_interceptor.dart';
 import '../data/auth/auth_repository_impl.dart';
 import '../data/auth/session_refresher.dart';
+import '../data/bidding/bidding_repository_impl.dart';
+import '../data/bidding/sse_channel.dart';
 import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
@@ -22,6 +24,11 @@ import '../data/local/secure/secure_token_store.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/usecases/sign_in_with_otp.dart';
+import '../domain/bidding/repositories/bidding_repository.dart';
+import '../domain/bidding/usecases/load_my_bids.dart';
+import '../domain/bidding/usecases/place_bid.dart';
+import '../domain/bidding/usecases/watch_live_bids.dart';
+import '../domain/bidding/usecases/withdraw_bid.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
 
@@ -89,10 +96,42 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
+/// قناة البثّ الحي فوق عميل dio المصادَق نفسه.
+///
+/// نفس العميل عمداً: الرمز يُلحق باعتراض المصادقة القائم، فلا يعرف مكانٌ ثانٍ
+/// في التطبيق كيف يُصادَق طلب (المادة ٤-٥).
+final _liveChannelProvider = Provider<SseChannel>(
+  (ref) => DioSseChannel(ref.watch(_authenticatedDioProvider)),
+);
+
+final biddingRepositoryProvider = Provider<BiddingRepository>(
+  (ref) => BiddingRepositoryImpl(
+    api: ref.watch(apiClientProvider).bids,
+    cache: ref.watch(responseCacheProvider),
+    live: ref.watch(_liveChannelProvider),
+  ),
+);
+
 final signInWithOtpProvider = Provider<SignInWithOtp>(
   (ref) => SignInWithOtp(ref.watch(authRepositoryProvider)),
 );
 
 final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
   (ref) => LoadWalletBalance(ref.watch(walletRepositoryProvider)),
+);
+
+final placeBidProvider = Provider<PlaceBid>(
+  (ref) => PlaceBid(ref.watch(biddingRepositoryProvider)),
+);
+
+final withdrawBidProvider = Provider<WithdrawBid>(
+  (ref) => WithdrawBid(ref.watch(biddingRepositoryProvider)),
+);
+
+final loadMyBidsProvider = Provider<LoadMyBids>(
+  (ref) => LoadMyBids(ref.watch(biddingRepositoryProvider)),
+);
+
+final watchLiveBidsProvider = Provider<WatchLiveBids>(
+  (ref) => WatchLiveBids(ref.watch(biddingRepositoryProvider)),
 );

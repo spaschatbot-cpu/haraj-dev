@@ -71,13 +71,14 @@ abstract final class ApiFailureMapper {
       );
     }
 
-    final details = exception.response?.data;
     return ApiFailure(
       code: envelope.error.code,
       // تُعرض كما جاءت. لا `if (code == ...) return 'نص عندنا'`.
       message: envelope.error.message,
       statusCode: response?.statusCode,
-      details: details is Map<String, Object?> ? details : null,
+      // `error.detail` وحده، لا جسم الردّ كله: الجسم يحمل الظرف الذي فُكَّ
+      // هنا بالفعل، وتمريره يغري كل قارئ لاحق بفكّه مرة ثانية بيده.
+      detail: envelope.error.detail,
     );
   }
 

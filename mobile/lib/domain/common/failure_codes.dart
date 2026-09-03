@@ -17,8 +17,13 @@ abstract final class FailureCodes {
   static const String tokenExpired = 'TOKEN_EXPIRED';
 
   /// المزايدة أقل من الحالية وتحتاج تأكيداً صريحاً (409 ثم تأكيد).
-  static const String bidLowerNeedsConfirmation =
-      'BID_LOWER_NEEDS_CONFIRMATION';
+  ///
+  /// القيمة هي رمز الخادم حرفياً (`BiddingError.code` في
+  /// `apps/bidding/services.py`)، لا صيغة مشتقّة منه. رمزٌ نكتبه بصياغتنا
+  /// يجعل الحوار لا يظهر أبداً أمام الخادم الحقيقي، ويظهر في كل اختبار
+  /// كتبناه نحن — وهذا بالضبط ما يجعل J7 (نفس الرفض المُعدَّد في القناتين)
+  /// يسقط عند العميل لا عندنا.
+  static const String bidLowerNeedsConfirmation = 'lower_needs_confirm';
 
   /// تجاوز حدّ المعدّل.
   static const String rateLimited = 'RATE_LIMITED';

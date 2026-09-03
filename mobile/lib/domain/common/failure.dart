@@ -23,13 +23,19 @@ final class ApiFailure extends Failure {
     required this.code,
     required this.message,
     this.statusCode,
-    this.details,
+    this.detail,
   });
 
   final String code;
   final String message;
   final int? statusCode;
-  final Map<String, Object?>? details;
+
+  /// حمولة الرفض كما أرسلها الخادم في `error.detail`.
+  ///
+  /// **لا تُعرض نصّاً.** موجودة لأن رفضاً واحداً يطلب من الشاشة أن تقتبس منه
+  /// أرقاماً سألها الخادم عنها (مبلغا تأكيد الخفض)، وقراءتها من جسم الردّ في
+  /// كل شاشة تعني ناسخين للشكل الموحّد بدل واحد (المادة ٤-٥).
+  final Map<String, Object?>? detail;
 
   @override
   String toString() => 'ApiFailure($code, http=$statusCode): $message';
