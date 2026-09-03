@@ -26,6 +26,8 @@ from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core import uploads
+
 from .models import Auction, Vehicle, VehicleImage
 from .states import (
     AuctionState,
@@ -274,8 +276,18 @@ def add_image(vehicle: Vehicle, file, *, position: int = 0, cover: bool = False)
     signals project-wide): a row saved by a fixture, a migration or a shell
     should not silently start resizing files, and a reader of this function
     can see everything that happens on upload.
+
+    **Nothing the uploader sent is stored.** `apps.core.uploads.sanitise_image`
+    decides from the bytes whether this is a picture at all, refuses it in
+    Arabic when it is not, and hands back a freshly encoded copy — so a file
+    that is a valid PNG *and* a valid PHP script arrives here and leaves as a
+    PNG only (T912). The name is minted by the field's `upload_to` callable for
+    the same reason. This is the single door: every path that stores a vehicle
+    photograph calls this function.
     """
-    from .images import build_thumbnail
+    from .images import THUMBNAIL_SUFFIX, build_thumbnail
+
+    sanitised = uploads.sanitise_image(file)
 
     with transaction.atomic():
         if cover:
@@ -283,11 +295,14 @@ def add_image(vehicle: Vehicle, file, *, position: int = 0, cover: bool = False)
                 is_cover=False
             )
 
-        image = VehicleImage(
-            vehicle=vehicle, image=file, position=position, is_cover=cover
-        )
+        image = VehicleImage(vehicle=vehicle, position=position, is_cover=cover)
+        # `save=False`: the name comes from the field's `upload_to` callable and
+        # the row is written once, below, rather than twice.
+        image.image.save(f"upload{sanitised.suffix}", sanitised.content, save=False)
         image.save()
-        image.thumbnail = build_thumbnail(image.image)
+        image.thumbnail.save(
+            f"thumb{THUMBNAIL_SUFFIX}", build_thumbnail(image.image), save=False
+        )
         image.save(update_fields=["thumbnail"])
 
     return image

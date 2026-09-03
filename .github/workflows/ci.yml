@@ -222,6 +222,14 @@ jobs:
         working-directory: backend
         run: uv run python ../ops/checks/one_sheet_writer.py
 
+      # Phase 010's T912. A webshell lived for months inside v1's photographs
+      # directory because `upload_to` was a path template — Django appends the
+      # uploader's own file name to one of those — and because every screen
+      # that touched an image decoded it its own way.
+      - name: one door for uploads, and it names the file
+        working-directory: backend
+        run: uv run python ../ops/checks/one_upload_gate.py
+
       # Phase 006's gate. v1's home page had six ways to send a bid, so every
       # new rule had to be remembered six times; this fails the build when a
       # seventh appears.
