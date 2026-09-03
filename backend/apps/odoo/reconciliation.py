@@ -201,5 +201,29 @@ def check_customer(link: CustomerLink) -> BalanceCheck:
 
 
 def open_differences():
-    """Checks that disagreed and have not been resolved by a person."""
-    return BalanceCheck.objects.filter(resolved_at__isnull=True).exclude(difference=ZERO)
+    """Customers whose **latest** comparison still disagrees, and is unresolved.
+
+    The latest one, not every one ever written. `check_customer` records a row
+    on every run, agreement or not — deliberately, so "we checked and it
+    matched" is distinguishable from "we never checked" — and reading all of
+    them back as open items means a difference that was fixed in March is still
+    reported in September, beside the agreeing rows that replaced it.
+
+    That is not a cosmetic difference on a health screen. The figure it would
+    print is a shortfall that no longer exists, and a screen that overstates
+    what is missing even once stops being read (spec 009, T813: ⚠️ لا يُبالَغ
+    في أي مبلغ معروض). So a note here closes the moment its cause does: fix the
+    customer, the next comparison writes an agreeing row, and the item is gone
+    without anybody clicking anything. `resolved_at` stays for the other case —
+    a difference a person examined and explained rather than removed.
+    """
+    latest = (
+        BalanceCheck.objects.order_by("user_id", "-checked_at")
+        .distinct("user_id")
+        .values("pk")
+    )
+    return (
+        BalanceCheck.objects.filter(pk__in=latest, resolved_at__isnull=True)
+        .exclude(difference=ZERO)
+        .select_related("user")
+    )

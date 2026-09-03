@@ -1,0 +1,89 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+Three lists, three counts, and no grand total.
+
+The missing grand total is deliberate: a drift in the cache and a difference
+against Odoo may be the same incident seen from two sides, and adding them
+reports twice what is actually missing. Every amount here is one the ledger or
+the comparison already holds — nothing on this page is arithmetic done in a
+template.
+{% endcomment %}
+{% block title %}صحة المال{% endblock %}
+{% block heading %}صحة المال{% endblock %}
+
+{% block content %}
+  {% if report.is_clean %}
+    <p class="clean"><strong>لا ملاحظات.</strong> الدفتر متّسق مع نفسه، ولا فروق
+      مفتوحة مع أودو، ولا مبلغ معلّق بلا صاحب.</p>
+  {% endif %}
+
+  <h2>١ · الدفتر مع نفسه <span class="count">{{ report.findings|length|unlocalize }}</span></h2>
+  <p class="empty">إعادة اشتقاق كل رصيد من قيوده. تُحسب الآن عند فتح الصفحة، فما
+    زال سببه يختفي من هنا وحده.</p>
+  <table>
+    <thead><tr><th>الفحص</th><th>الموضع</th><th>الملاحظة</th></tr></thead>
+    <tbody>
+      {% for finding in report.findings %}
+        <tr>
+          <td>{{ finding.check }}</td>
+          <td>{{ finding.subject }}</td>
+          <td>{{ finding.detail }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3" class="empty">الدفتر متّسق مع نفسه.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>٢ · الدفتر مع أودو <span class="count">{{ report.differences|length|unlocalize }}</span></h2>
+  <p class="empty">أودو هو دفتر القيد المعتمد. اتّساق الدفتر مع نفسه لا يقول شيئاً
+    عن هذا السؤال. المعروض هنا آخر مقارنة لكل عميل، لا كل مقارنة جرت.</p>
+  <table>
+    <thead>
+      <tr><th>العميل</th><th>عندنا</th><th>عند أودو</th><th>الفرق</th><th>متى</th><th>ملاحظة</th></tr>
+    </thead>
+    <tbody>
+      {% for difference in report.differences %}
+        <tr>
+          <td><a href="{% url 'console:money-customer' difference.user_id %}">{{ difference.user }}</a></td>
+          <td class="money">{{ difference.ours|unlocalize }}</td>
+          <td class="money">{{ difference.theirs|unlocalize }}</td>
+          <td class="money">{{ difference.difference|unlocalize }}</td>
+          <td>{{ difference.checked_at }}</td>
+          <td>{{ difference.detail.note|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">لا فروق مفتوحة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>٣ · معلّق بلا صاحب <span class="money count">{{ report.suspense.balance|unlocalize }}</span></h2>
+  <p class="empty">مبلغ وصل فعلاً ولم يُنسَب لعميل. الرقم أعلاه هو رصيد الدلو نفسه؛
+    الجدول أدناه حركات — ما دخل وما خرج — لا مطالبات قائمة.</p>
+
+  {% if not report.suspense.agrees %}
+    <div class="alarm">
+      <strong>رصيد المعلّق لا يطابق قيوده.</strong>
+      المخزَّن {{ report.suspense.balance|unlocalize }} والقيود تقول
+      {{ report.suspense.derived|unlocalize }}.
+    </div>
+  {% endif %}
+
+  <table>
+    <thead><tr><th>متى</th><th>الحركة</th><th>المبلغ</th><th>البيان</th></tr></thead>
+    <tbody>
+      {% for movement in report.suspense.movements %}
+        <tr>
+          <td>{{ movement.transaction.occurred_at }}</td>
+          <td>{{ movement.transaction.get_kind_display }}</td>
+          <td class="money">{{ movement.amount|unlocalize }}</td>
+          <td>{{ movement.transaction.memo|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="empty">لا شيء معلّق.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

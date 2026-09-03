@@ -83,6 +83,12 @@ PAGES: tuple[Page, ...] = (
         "money",
     ),
     Page(
+        "console:money-health",
+        "صحة المال",
+        Capability.DIAGNOSTICS_VIEW,
+        "diagnostics",
+    ),
+    Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,

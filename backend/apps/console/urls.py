@@ -8,7 +8,7 @@ from django.urls import path
 
 from apps.bidding import views as bidding_views
 
-from . import auctions, importexport, money, partners, views
+from . import auctions, health, importexport, money, partners, views
 
 app_name = "console"
 
@@ -39,4 +39,5 @@ urlpatterns = [
     path("partners/<int:pk>/reject/", partners.reject, name="partner-reject"),
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
+    path("health/", health.health, name="money-health"),
 ]
