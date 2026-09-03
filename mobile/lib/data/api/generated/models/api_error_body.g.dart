@@ -9,7 +9,7 @@ part of 'api_error_body.dart';
 ApiErrorBody _$ApiErrorBodyFromJson(Map<String, dynamic> json) => ApiErrorBody(
   code: json['code'] as String,
   message: json['message'] as String,
-  detail: json['detail'],
+  detail: json['detail'] as Map<String, dynamic>?,
 );
 
 Map<String, dynamic> _$ApiErrorBodyToJson(ApiErrorBody instance) =>

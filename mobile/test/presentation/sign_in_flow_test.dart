@@ -22,7 +22,7 @@ void main() {
     code: code,
     message: message,
     statusCode: status,
-    details: detail,
+    detail: detail,
   );
 
   Future<void> submitPhone(WidgetTester tester) async {

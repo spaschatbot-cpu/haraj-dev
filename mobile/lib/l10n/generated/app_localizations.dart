@@ -973,6 +973,150 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{date} الساعة {time}'**
   String dateTimeAt(DateTime date, DateTime time);
+
+  /// عنوان صندوق المزايدة في صفحة المركبة
+  ///
+  /// In ar, this message translates to:
+  /// **'المزايدة'**
+  String get bidPanelTitle;
+
+  /// No description provided for @bidAmountLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبلغ المزايدة'**
+  String get bidAmountLabel;
+
+  /// حقل فارغ — نقص في النموذج لا رفض من الخادم، فالنصّ محلي
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب مبلغ المزايدة.'**
+  String get bidAmountMissing;
+
+  /// No description provided for @bidSubmit.
+  ///
+  /// In ar, this message translates to:
+  /// **'زايد'**
+  String get bidSubmit;
+
+  /// نفس جملة الويب حرفياً — القناتان تقولان الشيء نفسه
+  ///
+  /// In ar, this message translates to:
+  /// **'سُجّلت مزايدتك.'**
+  String get bidPlaced;
+
+  /// يشرح للعميل لماذا يظهر الصندوق قبل أن يُعرف إن كان مؤهلاً
+  ///
+  /// In ar, this message translates to:
+  /// **'المزايدة تحجز تأميناً على المزاد. الخادم يقرّر الأهلية والحد الأدنى.'**
+  String get bidServerDecides;
+
+  /// No description provided for @bidLowerConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد خفض المزايدة'**
+  String get bidLowerConfirmTitle;
+
+  /// No description provided for @bidLowerStandingLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدتك القائمة'**
+  String get bidLowerStandingLabel;
+
+  /// No description provided for @bidLowerRequestedLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ الجديد'**
+  String get bidLowerRequestedLabel;
+
+  /// غير مؤشَّر عند الفتح — المؤشَّر سلفاً ليس تأكيداً
+  ///
+  /// In ar, this message translates to:
+  /// **'نعم، أريد خفض مزايدتي.'**
+  String get bidLowerConfirmCheckbox;
+
+  /// No description provided for @bidLowerConfirmAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد الخفض'**
+  String get bidLowerConfirmAction;
+
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
+  /// No description provided for @myBidsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايداتي'**
+  String get myBidsTitle;
+
+  /// حالة فارغة صريحة — لا شاشة بيضاء
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مزايدات لك بعد.'**
+  String get myBidsEmpty;
+
+  /// لحظة المزايدة بالتوقيت السعودي
+  ///
+  /// In ar, this message translates to:
+  /// **'بتاريخ {date} الساعة {time}'**
+  String bidPlacedAt(DateTime date, DateTime time);
+
+  /// No description provided for @bidWithdrawAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'سحب المزايدة'**
+  String get bidWithdrawAction;
+
+  /// No description provided for @bidWithdrawConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد سحب المزايدة'**
+  String get bidWithdrawConfirmTitle;
+
+  /// No description provided for @bidWithdrawConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُسحب عرضك على {vehicle}. السحب يُعلَّم ولا يُحذف.'**
+  String bidWithdrawConfirmBody(String vehicle);
+
+  /// No description provided for @bidWithdrawn.
+  ///
+  /// In ar, this message translates to:
+  /// **'سُحبت مزايدتك.'**
+  String get bidWithdrawn;
+
+  /// No description provided for @liveConnecting.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الاتصال…'**
+  String get liveConnecting;
+
+  /// No description provided for @liveConnected.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحديث حي'**
+  String get liveConnected;
+
+  /// نفس جملة الويب — رقم بائت يبدو حياً أسوأ من لا رقم
+  ///
+  /// In ar, this message translates to:
+  /// **'انقطع الاتصال — الأرقام أدناه قديمة'**
+  String get liveLost;
+
+  /// No description provided for @liveStandingBid.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدتك القائمة'**
+  String get liveStandingBid;
+
+  /// No description provided for @liveNoStandingBid.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مزايدة قائمة لك على هذه المركبة.'**
+  String get liveNoStandingBid;
 }
 
 class _AppLocalizationsDelegate

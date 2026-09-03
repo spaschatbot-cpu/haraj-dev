@@ -8,6 +8,8 @@ import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
 import '../presentation/auth/sign_in_screen.dart';
 import '../presentation/auth/verify_code_screen.dart';
+import '../presentation/bidding/bid_screen.dart';
+import '../presentation/bidding/my_bids_screen.dart';
 import '../presentation/catalog/auction_vehicles_screen.dart';
 import '../presentation/catalog/home_screen.dart';
 import '../presentation/catalog/vehicle_screen.dart';
@@ -39,58 +41,71 @@ export 'routes.dart' show Routes;
 /// نسخة ثانية من تعريف المسارات — نسخة الاختبار كانت ستفترق عن نسخة الإنتاج،
 /// فيمرّ اختبار على شجرة لا تُشحن.
 List<RouteBase> appRoutes() => <RouteBase>[
-    GoRoute(
-      path: Routes.homePath,
-      name: Routes.home,
-      builder: (context, state) => const HomeScreen(),
-      routes: <RouteBase>[
-        GoRoute(
-          // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه
-          // `PushLocations` لوجهة مزاد: مدخل واحد للشاشة لا مدخلان.
-          path: 'auctions/:auctionId',
-          name: Routes.auctionVehicles,
-          builder: (context, state) => AuctionVehiclesScreen(
-            auctionId: state.pathParameters['auctionId']!,
-          ),
+  GoRoute(
+    path: Routes.homePath,
+    name: Routes.home,
+    builder: (context, state) => const HomeScreen(),
+    routes: <RouteBase>[
+      GoRoute(
+        // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه
+        // `PushLocations` لوجهة مزاد: مدخل واحد للشاشة لا مدخلان.
+        path: 'auctions/:auctionId',
+        name: Routes.auctionVehicles,
+        builder: (context, state) => AuctionVehiclesScreen(
+          auctionId: state.pathParameters['auctionId']!,
         ),
-        GoRoute(
-          path: 'vehicles/:vehicleId',
-          name: Routes.vehicle,
-          builder: (context, state) =>
-              VehicleScreen(vehicleId: state.pathParameters['vehicleId']!),
-        ),
-      ],
-    ),
-    GoRoute(
-      path: Routes.signInPath,
-      name: Routes.signIn,
-      builder: (context, state) => const SignInScreen(),
-      routes: <RouteBase>[
-        GoRoute(
-          path: 'code',
-          name: Routes.verifyCode,
-          builder: (context, state) => const VerifyCodeScreen(),
-        ),
-      ],
-    ),
-    GoRoute(
-      path: Routes.profilePath,
-      name: Routes.profile,
-      builder: (context, state) => const ProfileScreen(),
-      routes: <RouteBase>[
-        GoRoute(
-          path: 'company',
-          name: Routes.companyProfile,
-          builder: (context, state) => const CompanyProfileScreen(),
-        ),
-        GoRoute(
-          path: 'phone',
-          name: Routes.changePhone,
-          builder: (context, state) => const ChangePhoneScreen(),
-        ),
-      ],
-    ),
-    GoRoute(
+      ),
+      GoRoute(
+        path: 'vehicles/:vehicleId',
+        name: Routes.vehicle,
+        builder: (context, state) =>
+            VehicleScreen(vehicleId: state.pathParameters['vehicleId']!),
+      ),
+    ],
+  ),
+  GoRoute(
+    path: Routes.signInPath,
+    name: Routes.signIn,
+    builder: (context, state) => const SignInScreen(),
+    routes: <RouteBase>[
+      GoRoute(
+        path: 'code',
+        name: Routes.verifyCode,
+        builder: (context, state) => const VerifyCodeScreen(),
+      ),
+    ],
+  ),
+  GoRoute(
+    path: Routes.profilePath,
+    name: Routes.profile,
+    builder: (context, state) => const ProfileScreen(),
+    routes: <RouteBase>[
+      GoRoute(
+        path: 'company',
+        name: Routes.companyProfile,
+        builder: (context, state) => const CompanyProfileScreen(),
+      ),
+      GoRoute(
+        path: 'phone',
+        name: Routes.changePhone,
+        builder: (context, state) => const ChangePhoneScreen(),
+      ),
+    ],
+  ),
+  GoRoute(
+    path: Routes.bidsPath,
+    name: Routes.myBids,
+    builder: (context, state) => const MyBidsScreen(),
+  ),
+  GoRoute(
+    // المزايدة تحت المركبة لا بجوارها: لا توجد مزايدة بلا مركبة، والمسار
+    // يقول ذلك بدل أن يعتمد على مُعامل يمكن أن يغيب.
+    path: Routes.bidPath,
+    name: Routes.bid,
+    builder: (context, state) =>
+        BidScreen(vehicleId: state.pathParameters['vehicleId']!),
+  ),
+  GoRoute(
     path: Routes.walletPath,
     name: Routes.wallet,
     builder: (context, state) => const WalletScreen(),
@@ -108,17 +123,18 @@ List<RouteBase> appRoutes() => <RouteBase>[
     ),
   ),
   // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
-    // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
-    // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
-    GoRoute(
-      path: Routes.myActivityPath,
-      name: Routes.myActivity,
-      builder: (context, state) => MyActivityScreen(
-        initialTab: MyActivityTab.fromSlug(
-          state.uri.queryParameters[Routes.tabQueryParameter],
-        ),
+  // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
+  // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
+  GoRoute(
+    path: Routes.myActivityPath,
+    name: Routes.myActivity,
+    builder: (context, state) => MyActivityScreen(
+      initialTab: MyActivityTab.fromSlug(
+        state.uri.queryParameters[Routes.tabQueryParameter],
       ),
-    ),];
+    ),
+  ),
+];
 
 /// يبني موجّهاً بلا إعادة توجيه — لاختبار شاشةٍ من مسارها مباشرةً.
 ///
@@ -128,7 +144,6 @@ GoRouter buildRouter({String initialLocation = '/'}) =>
     GoRouter(initialLocation: initialLocation, routes: appRoutes());
 
 final routerProvider = Provider<GoRouter>((ref) {
-
   // `refreshListenable` يحتاج `Listenable`؛ هذا الجسر يحوّل تغيّر المزوّد
   // إليه، ولا يحمل حالة من عنده.
   final sessionChanged = ValueNotifier<SessionState>(

@@ -17,7 +17,7 @@ abstract class BidsApi {
 
   /// وضع مزايدة — الخفض يحتاج تأكيداً صريحاً.
   ///
-  /// الخفض يُرفض بـ409 ورمز BID_LOWER_NEEDS_CONFIRMATION، ويُعاد إرساله بـconfirm_lower=true بعد تأكيد المستخدم.
+  /// الخفض يُرفض بـ409 ورمز lower_needs_confirm، وحمولة الرفض تحمل `standing` و`requested`. يُعاد الإرسال بـconfirm_lower=true بعد تأكيد المستخدم على المبلغين.
   @POST('/api/v1/vehicles/{vehicleId}/bids')
   Future<Bid> bidsPlace({
     @Path('vehicleId') required String vehicleId,
@@ -30,4 +30,10 @@ abstract class BidsApi {
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
   });
+
+  /// سحب مزايدة.
+  ///
+  /// السحب يُعلَّم ولا يُحذف — تعود المزايدة بحالتها الجديدة. ملكية المزايدة قرار الخادم: مزايدة غيرك ترجع 404، لا 403.
+  @POST('/api/v1/bids/{bidId}/withdraw')
+  Future<Bid> bidsWithdraw({@Path('bidId') required String bidId});
 }

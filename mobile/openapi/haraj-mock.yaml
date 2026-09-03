@@ -42,6 +42,8 @@ tags:
     description: المشتريات والفواتير
   - name: devices
     description: تسجيل أجهزة الإشعارات
+  - name: live
+    description: البثّ الحي
 
 security:
   - bearerAuth: []
@@ -402,8 +404,9 @@ paths:
       operationId: bidsPlace
       summary: وضع مزايدة — الخفض يحتاج تأكيداً صريحاً
       description: >
-        الخفض يُرفض بـ409 ورمز BID_LOWER_NEEDS_CONFIRMATION، ويُعاد إرساله
-        بـconfirm_lower=true بعد تأكيد المستخدم.
+        الخفض يُرفض بـ409 ورمز lower_needs_confirm، وحمولة الرفض تحمل
+        `standing` و`requested`. يُعاد الإرسال بـconfirm_lower=true بعد تأكيد
+        المستخدم على المبلغين.
       parameters:
         - name: vehicleId
           in: path
@@ -445,6 +448,51 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginatedBidList"
+
+  /api/v1/bids/{bidId}/withdraw:
+    post:
+      tags: [bids]
+      operationId: bidsWithdraw
+      summary: سحب مزايدة
+      description: >
+        السحب يُعلَّم ولا يُحذف — تعود المزايدة بحالتها الجديدة. ملكية المزايدة
+        قرار الخادم: مزايدة غيرك ترجع 404، لا 403.
+      parameters:
+        - name: bidId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: سُحبت المزايدة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bid"
+        "404":
+          $ref: "#/components/responses/Error"
+        "409":
+          $ref: "#/components/responses/Error"
+        "429":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/live:
+    get:
+      tags: [live]
+      operationId: liveUpdates
+      summary: البثّ الحي — مزايدات المتصل وحده
+      description: >
+        بثّ SSE (`text/event-stream`). كل إطار `event: state` يحمل في `data`
+        كائن LiveState. لا يحمل رقم أحد غيرك: المزاد مغلق ولا نقطة تسرد
+        مزايدات مركبة.
+      responses:
+        "200":
+          description: بثّ مستمر — الإطار الواحد نصّ SSE، وحمولته LiveState
+          content:
+            text/event-stream:
+              schema:
+                type: string
 
   /api/v1/wallet:
     get:
@@ -715,10 +763,11 @@ components:
         detail:
           type: object
           nullable: true
-          additionalProperties: true
+          additionalProperties:
+            nullable: true
           description: >
-            بيانات مرافقة للرفض بأسمائها كما يرسلها الخادم (مثل retry_after
-            و attempts_left). ليست نصّاً يُعرض؛ منها يتفرّع سلوك الشاشة.
+            بيانات الرفض نفسه — لا تُعرض نصّاً، لكن الشاشة تقتبس منها أرقاماً
+            سألها الخادم عنها (مثل مبلغَي تأكيد الخفض).
 
     # ---------- المصادقة ----------
     # منسوخة من `backend/openapi/schema.yaml` بأسمائها وحقولها. الرمز نفسه لا
@@ -1204,6 +1253,54 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Bid"
+
+    # ---------- حمولة البثّ الحي ----------
+    LiveState:
+      type: object
+      required: [bids, vehicles]
+      description: >
+        حمولة إطار `event: state`. مزايدات المتصل نفسه، وحالات عامة للمركبات
+        التي يزايد عليها — لا رقم منافس ولا «أنت الأعلى».
+      properties:
+        bids:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveBid"
+        vehicles:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveVehicle"
+
+    LiveBid:
+      type: object
+      required: [id, vehicle_id, amount, is_withdrawn, is_superseded]
+      properties:
+        id:
+          type: string
+        vehicle_id:
+          type: string
+        amount:
+          type: string
+          description: نصّ عشري كما في الدفتر
+          example: "12600.00"
+        is_withdrawn:
+          type: boolean
+        is_superseded:
+          type: boolean
+
+    LiveVehicle:
+      type: object
+      required: [id, state, state_label, auction_state]
+      properties:
+        id:
+          type: string
+        state:
+          type: string
+        state_label:
+          type: string
+          description: وصف عربي من الخادم — لا خريطة حالات في التطبيق
+        auction_state:
+          type: string
 
     # ---------- المحفظة ----------
     WalletBucketKind:

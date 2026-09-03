@@ -9,6 +9,7 @@ import 'clients/profile_api.dart';
 import 'clients/auctions_api.dart';
 import 'clients/vehicles_api.dart';
 import 'clients/bids_api.dart';
+import 'clients/live_api.dart';
 import 'clients/wallet_api.dart';
 import 'clients/invoices_api.dart';
 import 'clients/devices_api.dart';
@@ -30,6 +31,7 @@ class HarajApiClient {
   AuctionsApi? _auctions;
   VehiclesApi? _vehicles;
   BidsApi? _bids;
+  LiveApi? _live;
   WalletApi? _wallet;
   InvoicesApi? _invoices;
   DevicesApi? _devices;
@@ -45,6 +47,8 @@ class HarajApiClient {
       _vehicles ??= VehiclesApi(_dio, baseUrl: _baseUrl);
 
   BidsApi get bids => _bids ??= BidsApi(_dio, baseUrl: _baseUrl);
+
+  LiveApi get live => _live ??= LiveApi(_dio, baseUrl: _baseUrl);
 
   WalletApi get wallet => _wallet ??= WalletApi(_dio, baseUrl: _baseUrl);
 

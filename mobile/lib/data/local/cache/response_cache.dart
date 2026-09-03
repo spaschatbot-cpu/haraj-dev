@@ -69,4 +69,5 @@ abstract final class CacheKeys {
   /// مفتاح الكشف الكامل يُعرض لاحقاً بلا اتصال على أنه «كل الحركات»، وهو ليس.
   static String walletTransactions({String? bucket}) =>
       bucket == null ? 'wallet.transactions' : 'wallet.transactions.$bucket';
+  static const String myBids = 'bids.mine';
 }

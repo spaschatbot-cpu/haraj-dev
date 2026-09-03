@@ -23,15 +23,19 @@ final class ApiFailure extends Failure {
     required this.code,
     required this.message,
     this.statusCode,
-    this.details,
+    this.detail,
   });
 
   final String code;
   final String message;
   final int? statusCode;
 
-  /// `error.detail` كما أرسله الخادم — أرقام الرفض بأسمائها، لا نصّ يُعرض.
-  final Map<String, Object?>? details;
+  /// حمولة الرفض كما أرسلها الخادم في `error.detail`.
+  ///
+  /// **لا تُعرض نصّاً.** موجودة لأن رفضاً واحداً يطلب من الشاشة أن تقتبس منه
+  /// أرقاماً سألها الخادم عنها (مبلغا تأكيد الخفض)، وقراءتها من جسم الردّ في
+  /// كل شاشة تعني ناسخين للشكل الموحّد بدل واحد (المادة ٤-٥).
+  final Map<String, Object?>? detail;
 
   /// ثوانٍ ينتظرها المستخدم قبل أن يعيد المحاولة، حين يقولها الخادم.
   ///
@@ -39,7 +43,7 @@ final class ApiFailure extends Failure {
   /// (429) ومع «الرمز السابق ما زال حيّاً» (409)، والشاشتان تعدّان به تنازلياً.
   /// شاشة تقرأ المفتاح بنفسها هي نسخة ثانية من قراءة العقد.
   int? get retryAfterSeconds {
-    final value = details?['retry_after'];
+    final value = detail?['retry_after'];
     return value is int ? value : null;
   }
 

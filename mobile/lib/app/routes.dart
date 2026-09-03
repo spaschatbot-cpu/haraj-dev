@@ -23,6 +23,12 @@ abstract final class Routes {
   static const String auctionVehicles = 'auction-vehicles';
   static const String vehicle = 'vehicle';
   static const String bids = 'bids';
+
+  /// مزايداتي.
+  static const String myBids = 'my-bids';
+
+  /// المزايدة على مركبة بعينها.
+  static const String bid = 'bid';
   static const String wallet = 'wallet';
   static const String walletStatement = 'walletStatement';
   static const String walletTopUp = 'walletTopUp';
@@ -48,6 +54,7 @@ abstract final class Routes {
   static const String auctionPath = '/auctions/:auctionId';
   static const String vehiclePath = '/vehicles/:vehicleId';
   static const String bidsPath = '/bids';
+  static const String bidPath = '/vehicles/:vehicleId/bid';
   static const String walletPath = '/wallet';
   static const String walletTopUpPath = '/wallet/topup';
   static const String walletTransactionsPath = '/wallet/transactions';

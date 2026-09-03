@@ -20,9 +20,9 @@ class ApiErrorBody {
   ///
   final String message;
 
-  /// بيانات مرافقة للرفض بأسمائها كما يرسلها الخادم (مثل retry_after و attempts_left). ليست نصّاً يُعرض؛ منها يتفرّع سلوك الشاشة.
+  /// بيانات الرفض نفسه — لا تُعرض نصّاً، لكن الشاشة تقتبس منها أرقاماً سألها الخادم عنها (مثل مبلغَي تأكيد الخفض).
   ///
-  final dynamic detail;
+  final Map<String, dynamic>? detail;
 
   Map<String, Object?> toJson() => _$ApiErrorBodyToJson(this);
 }
