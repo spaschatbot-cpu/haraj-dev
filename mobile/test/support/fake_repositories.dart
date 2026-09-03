@@ -114,6 +114,13 @@ final class FakeProfileRepository implements ProfileRepository {
   Failure? writeFailure;
 
   CompanyProfile? savedCompany;
+  String? savedFullName;
+  String? savedEmail;
+  String? pinnedNationalId;
+
+  /// ما يردّ به الخادم **بعد** الكتابة حين يختلف عمّا قبلها — تثبيت الهوية
+  /// يقفلها مثلاً. تُترك فارغة حين لا يهمّ الفرق.
+  CustomerProfile? profileAfterWrite;
 
   @override
   Future<Snapshot<CustomerProfile>> load() async {
@@ -126,6 +133,8 @@ final class FakeProfileRepository implements ProfileRepository {
 
   @override
   Future<CustomerProfile> update({String? fullName, String? email}) async {
+    savedFullName = fullName;
+    savedEmail = email;
     final refusal = writeFailure;
     if (refusal != null) throw refusal;
     return profile;
@@ -133,9 +142,10 @@ final class FakeProfileRepository implements ProfileRepository {
 
   @override
   Future<CustomerProfile> setNationalId(String nationalId) async {
+    pinnedNationalId = nationalId;
     final refusal = writeFailure;
     if (refusal != null) throw refusal;
-    return profile;
+    return profileAfterWrite ?? profile;
   }
 
   @override

@@ -94,6 +94,56 @@ void main() {
     expect(find.text('1234567890'), findsOneWidget);
   });
 
+  testWidgets('حفظ الاسم يرسل ما في الحقل ويقول إنه حُفظ', (tester) async {
+    final profile = FakeProfileRepository(
+      profile: sampleProfile(locked: const <LockedField>[phoneLock]),
+    );
+
+    await openProfile(tester, profile: profile);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'الاسم'),
+      'الاسم الجديد',
+    );
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    expect(profile.savedFullName, 'الاسم الجديد');
+    // البريد يُرسل كما هو ولا يُمسح لأنه لم يُلمس: PATCH بحقل واحد ناقص
+    // يمسح الآخر عند الخادم.
+    expect(profile.savedEmail, 'a@b.com');
+    expect(find.text('تم الحفظ'), findsOneWidget);
+  });
+
+  testWidgets('تثبيت الهوية يرسل ما أُدخل ويعرض ما ردّ به الخادم بعده', (
+    tester,
+  ) async {
+    final profile =
+        FakeProfileRepository(
+            profile: sampleProfile(
+              locked: const <LockedField>[phoneLock],
+              nationalId: '1000000001',
+            ),
+          )
+          // القفل قرار الخادم بعد الكتابة، لا تخمين الشاشة أنها ثبّتت شيئاً.
+          ..profileAfterWrite = sampleProfile(
+            locked: const <LockedField>[phoneLock, nationalIdLock],
+            nationalId: '1000000008',
+            nationalIdVerified: true,
+          );
+
+    await openProfile(tester, profile: profile);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'رقم الهوية'),
+      '1000000008',
+    );
+    await tester.tap(find.text('تثبيت رقم الهوية'));
+    await tester.pumpAndSettle();
+
+    expect(profile.pinnedNationalId, '1000000008');
+    expect(find.text(nationalIdLock.reason), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'رقم الهوية'), findsNothing);
+  });
+
   testWidgets('بيانات من الكاش تظهر بعلامة آخر تحديث', (tester) async {
     final profile = FakeProfileRepository(
       profile: sampleProfile(locked: const <LockedField>[phoneLock]),
