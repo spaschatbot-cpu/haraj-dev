@@ -249,6 +249,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/devices/unregister/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * إلغاء تسجيل جهاز
+         * @description `POST /api/v1/devices/unregister/` — this handset stops receiving mine.
+         *
+         *     The app calls it on sign-out. Deleting the provider token on the handset is
+         *     not enough on its own: the row here would keep a stranger's account name
+         *     attached to a phone that changed hands, and a delivery report would still
+         *     read as if the previous owner were reachable — the absence of a send is not
+         *     evidence he was not told (Article 2-4).
+         *
+         *     `POST` rather than `DELETE /devices/{token}`: the token is a credential for
+         *     sending to the handset, and a path segment lands in every access log and
+         *     proxy cache on the way.
+         */
+        post: operations["devices_unregister"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/favourites/": {
         parameters: {
             query?: never;
@@ -845,6 +875,15 @@ export interface components {
         DeviceRegistration: {
             token: string;
             platform: components["schemas"]["PlatformEnum"];
+        };
+        /** @description One handset going quiet, named by the same token it registered with.
+         *
+         *     No `user` field here either, for the registration rule read backwards: a
+         *     caller who could name an account would not read somebody's bid alerts, he
+         *     would switch them off — and a bidder who stops being told he was outbid
+         *     loses the auction without ever knowing there was a reason. */
+        DeviceUnregistration: {
+            token: string;
         };
         /** @description A claim on part of the customer's insurance, and what it is claimed for. */
         Hold: {
@@ -1535,6 +1574,30 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Device"];
                 };
+            };
+        };
+    };
+    devices_unregister: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceUnregistration"];
+                "application/x-www-form-urlencoded": components["schemas"]["DeviceUnregistration"];
+                "multipart/form-data": components["schemas"]["DeviceUnregistration"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
