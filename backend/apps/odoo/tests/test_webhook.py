@@ -280,11 +280,12 @@ class TestRateLimit:
         assert InboundMessage.objects.count() == 20
 
     def test_going_over_the_ceiling_returns_429(self, post_webhook, settings):
-        with mock.patch("apps.odoo.views.RATE_LIMIT_PER_MINUTE", 3):
-            for index in range(3):
-                assert post_webhook({"delivery_id": f"L/{index}"}).status_code == 200
+        settings.EDGE_THROTTLE_RATES = {"odoo_webhook": "3/minute"}
 
-            response = post_webhook({"delivery_id": "L/over"})
+        for index in range(3):
+            assert post_webhook({"delivery_id": f"L/{index}"}).status_code == 200
+
+        response = post_webhook({"delivery_id": "L/over"})
 
         assert response.status_code == 429
         assert not InboundMessage.objects.filter(delivery_id="L/over").exists()

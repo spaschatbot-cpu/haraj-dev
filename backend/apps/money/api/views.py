@@ -30,8 +30,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.models import Auction, Vehicle
-from apps.core import jsonio
+from apps.core import jsonio, ratelimit
 from apps.core.exceptions import envelope
+from apps.core.net import client_ip
 from apps.money import gateway, services
 from apps.money.models import (
     AccountKind,
@@ -205,8 +206,27 @@ class PaymentCallbackView(APIView):
     authentication_classes: list = []
     permission_classes = [AllowAny]
 
+    #: No authentication stands in front of this endpoint by design — the
+    #: gateway holds a shared secret, not a token — so the only thing bounding
+    #: how many rows a stranger can write here is this ceiling. Until T914 there
+    #: was none: every request from anybody who could reach the path stored a
+    #: message, signature or not.
+    throttle_scope = "payment_callback"
+
+    # `responses=None`, unchanged by T914 and deliberately so. This path is
+    # called by the payment gateway, never by a generated client — the schema is
+    # the *client* contract, and widening it here would churn `web/lib/api` and
+    # the Flutter client for an endpoint neither of them can call. The 429 is
+    # described where its readers are: this docstring, and the test that proves it.
     @extend_schema(request=None, responses=None)
     def post(self, request):
+        if not ratelimit.consume(self.throttle_scope, client_ip(request)).allowed:
+            log.warning("payment callback: rate limited %s", client_ip(request))
+            return Response(
+                envelope("rate_limited", "معدّل الطلبات تجاوز الحدّ."),
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
         secret = settings.PAYMENT_WEBHOOK_SECRET
         raw = request.body
 
@@ -276,7 +296,13 @@ class PaymentCallbackView(APIView):
             headers={"signature_ok": signature_ok},
         )
         if not signature_ok:
-            message.state = InboundState.FAILED
+            # `rejected_signature`, not `failed`. The two words look
+            # interchangeable and are not: `failed` is the retry queue, and a
+            # body nobody signed sitting in the retry queue is a body the retry
+            # cron interprets a minute later as though it had been signed. That
+            # was a live, unauthenticated path from this endpoint into
+            # `apps.odoo.processing._handle_payment` — see T913.
+            message.state = InboundState.REJECTED_SIGNATURE
             message.note = "توقيع غير صحيح — محفوظة للتحقيق ولم تُفسَّر."
         try:
             # A savepoint, so a duplicate delivery costs us this insert and not
@@ -285,9 +311,26 @@ class PaymentCallbackView(APIView):
                 message.save()
         except IntegrityError:
             # Same delivery, heard twice. The first copy is the record.
-            message = InboundMessage.objects.get(
-                source="payment_gateway", delivery_id=message.delivery_id
+            #
+            # Only a *verified* row can be that record: the unique index skips
+            # rejected ones on purpose, because otherwise a stranger who posts
+            # `{"id": "<a guess>"}` here reserves that delivery id and the
+            # gateway's genuine notification for it is answered with the forged
+            # row — a payment the customer made and we never credit (T913).
+            existing = (
+                InboundMessage.objects.filter(
+                    source="payment_gateway", delivery_id=message.delivery_id
+                )
+                .exclude(state=InboundState.REJECTED_SIGNATURE)
+                .first()
             )
+            if existing is None:
+                # We collided with a row this query cannot see, which means the
+                # index and this filter disagree. Raising is the honest answer:
+                # a `None` travelling on as a message would be a 500 three
+                # frames later with nothing pointing back here.
+                raise
+            message = existing
         return message
 
     def _interpret(self, message: InboundMessage, payload: dict) -> None:

@@ -16,22 +16,18 @@ import json
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from apps.core import jsonio
+from apps.core import jsonio, ratelimit
+from apps.core.net import client_ip
 
 from .models import InboundMessage, InboundState
 from .signing import verify
 
 log = logging.getLogger(__name__)
-
-#: Odoo bursts when an operator posts a batch, so the ceiling is generous. It
-#: exists to bound a runaway loop, not to shape normal traffic.
-RATE_LIMIT_PER_MINUTE = 600
 
 
 @csrf_exempt
@@ -51,7 +47,7 @@ def odoo_webhook(request: HttpRequest) -> JsonResponse:
       slow down and retry.
     """
     if _over_rate_limit(request):
-        log.warning("odoo webhook: rate limited %s", _client_ip(request))
+        log.warning("odoo webhook: rate limited %s", client_ip(request))
         return JsonResponse({"detail": "معدّل الطلبات تجاوز الحدّ"}, status=429)
 
     raw_body = request.body
@@ -128,6 +124,14 @@ def _store(
     Odoo retries when our acknowledgement is slow, so the same delivery
     arriving twice is ordinary traffic, not an error. The unique index settles
     it and we hand back the row we already have.
+
+    **Only a verified row can be the one we hand back.** The index deliberately
+    skips `rejected_signature` (see the constraint's own comment): otherwise a
+    stranger posting `{"id": 4711}` here — no secret needed, the row is stored
+    before anything can be — reserves delivery 4711, and Odoo's genuine 4711 is
+    answered with the forged row and never interpreted. The `.exclude` below is
+    the other half of that: without it the recovery query could still hand back
+    a poisoned row (T913).
     """
     payload = payload if payload is not None else {}
     fields = {
@@ -149,9 +153,13 @@ def _store(
         with transaction.atomic():
             return InboundMessage.objects.create(**fields)
     except IntegrityError:
-        existing = InboundMessage.objects.filter(
-            source="odoo", delivery_id=fields["delivery_id"]
-        ).first()
+        existing = (
+            InboundMessage.objects.filter(
+                source="odoo", delivery_id=fields["delivery_id"]
+            )
+            .exclude(state=InboundState.REJECTED_SIGNATURE)
+            .first()
+        )
         if existing is None:
             raise
         log.info("odoo webhook: delivery %s already stored", fields["delivery_id"])
@@ -212,21 +220,13 @@ def _over_rate_limit(request: HttpRequest) -> bool:
     Deliberately coarse. Its job is to bound a runaway retry loop, not to
     police legitimate bursts — a limiter that drops real messages would break
     the one rule this whole module exists to keep.
+
+    Two things moved out of this function in T914, and both were the same bug
+    written twice. The ceiling is now a setting rather than a constant, so it
+    is turnable and testable; and the address comes from `apps.core.net`, which
+    reads `X-Forwarded-For` only as far as the number of proxies we actually
+    have. The old reading here took the header's *first* entry unconditionally
+    — a value the sender writes — so rotating it bought a fresh budget per
+    request and the ceiling was decorative.
     """
-    key = f"odoo-webhook-rate:{_client_ip(request)}"
-    try:
-        count = cache.get_or_set(key, 0, timeout=60)
-        count = cache.incr(key)
-    except ValueError:
-        # The key expired between get_or_set and incr. Treat as the first
-        # request of a new window rather than as a violation.
-        cache.set(key, 1, timeout=60)
-        return False
-    return count > RATE_LIMIT_PER_MINUTE
-
-
-def _client_ip(request: HttpRequest) -> str:
-    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR", "unknown")
+    return not ratelimit.consume("odoo_webhook", client_ip(request)).allowed

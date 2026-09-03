@@ -3,12 +3,19 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.accounts.login import throttled_staff_login
 from apps.core.views import health
 
 urlpatterns = [
     # Unauthenticated and unprefixed: a load balancer probes it before anything
     # else is known to work.
     path("health", health, name="health"),
+    # Staff sign-in, metered, mounted **before** the admin so this route wins
+    # (T914). Customers' one-time codes have been rate limited since T602;
+    # this is the password path, and it is the one that opens `money.act` and
+    # `money.exception`. `apps.accounts.login` says why it is a route rather
+    # than a decorator on Django's own view.
+    path("admin/login/", throttled_staff_login, name="admin-login"),
     path("admin/", admin.site.urls),
     path("webhooks/", include("apps.odoo.urls")),
     # Staff-only, read-only, and deliberately not under /api: the customer
