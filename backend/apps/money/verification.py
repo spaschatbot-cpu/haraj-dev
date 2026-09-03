@@ -61,6 +61,38 @@ def verify_ledger() -> list[Finding]:
     ]
 
 
+def verify_customer(owner) -> list[Finding]:
+    """Everything :func:`verify_ledger` would say about **one** customer.
+
+    The console's deposits ledger (T810) shows a customer their buckets, and the
+    number it shows has to be a number this module would stand behind. Rather
+    than let the screen re-derive its own totals — a second derivation is a
+    second thing that can be right when the first is wrong — it calls the checks
+    themselves, narrowed to one owner.
+
+    `check_transactions_balance` is not among them: a transaction spans two
+    accounts and often two parties, so "this customer's transactions" is not a
+    set that means anything. Its findings belong to the health screen, which
+    looks at the whole book.
+    """
+    return [
+        *check_cached_balances(owner=owner),
+        *check_holds_explain_buckets(owner=owner),
+        *check_locked_not_above_dues(owner=owner),
+    ]
+
+
+def _accounts(*, owner=None):
+    """Every account, or one customer's — the same rows either way.
+
+    The scoping exists so a screen about one person does not read the whole
+    table. It is a filter and nothing else: no check answers differently for a
+    narrowed set than it would for that customer inside the full run.
+    """
+    accounts = Account.objects.all()
+    return accounts if owner is None else accounts.filter(owner=owner)
+
+
 def check_transactions_balance() -> list[Finding]:
     """1. Every transaction's entries sum to exactly zero.
 
@@ -85,7 +117,7 @@ def check_transactions_balance() -> list[Finding]:
     return findings
 
 
-def check_cached_balances() -> list[Finding]:
+def check_cached_balances(*, owner=None) -> list[Finding]:
     """2. Every stored balance equals the sum of that account's entries.
 
     `Account.balance` is a cache, adjusted by delta under a row lock. This is
@@ -98,7 +130,7 @@ def check_cached_balances() -> list[Finding]:
         row["account"]: row["total"]
         for row in Entry.objects.values("account").annotate(total=Sum("amount"))
     }
-    for account in Account.objects.all().iterator():
+    for account in _accounts(owner=owner).iterator():
         actual = sums.get(account.pk, ZERO)
         if account.balance != actual:
             findings.append(
@@ -111,7 +143,7 @@ def check_cached_balances() -> list[Finding]:
     return findings
 
 
-def check_holds_explain_buckets() -> list[Finding]:
+def check_holds_explain_buckets(*, owner=None) -> list[Finding]:
     """3. Not one riyal sits in `held` or `locked` without a hold naming why.
 
     Money that is reserved but unexplained is money nobody can release,
@@ -123,13 +155,14 @@ def check_holds_explain_buckets() -> list[Finding]:
         (AccountKind.INSURANCE_HELD, HoldReason.BIDDING),
         (AccountKind.INSURANCE_LOCKED, HoldReason.DUES),
     ):
+        holds = Hold.objects.filter(reason=reason, state=HoldState.ACTIVE)
+        if owner is not None:
+            holds = holds.filter(owner=owner)
         claimed_by_owner = {
             row["owner"]: row["total"]
-            for row in Hold.objects.filter(reason=reason, state=HoldState.ACTIVE)
-            .values("owner")
-            .annotate(total=Sum("amount"))
+            for row in holds.values("owner").annotate(total=Sum("amount"))
         }
-        accounts = Account.objects.filter(kind=kind).exclude(balance=ZERO)
+        accounts = _accounts(owner=owner).filter(kind=kind).exclude(balance=ZERO)
         for account in accounts.iterator():
             claimed = claimed_by_owner.get(account.owner_id, ZERO)
             if claimed != account.balance:
@@ -155,7 +188,7 @@ def check_holds_explain_buckets() -> list[Finding]:
     return findings
 
 
-def check_locked_not_above_dues() -> list[Finding]:
+def check_locked_not_above_dues(*, owner=None) -> list[Finding]:
     """4. Nobody's locked insurance exceeds what they actually owe.
 
     A lock is a guarantee, not a penalty. Holding more than the debt is
@@ -164,18 +197,21 @@ def check_locked_not_above_dues() -> list[Finding]:
     """
     findings = []
     outstanding_by_customer: dict[int, Decimal] = {}
-    rows = (
-        Invoice.objects.exclude(state=InvoiceState.CANCELLED)
-        .values("customer")
-        .annotate(owed=Sum("amount"), paid=Sum("amount_paid"))
+    invoices = Invoice.objects.exclude(state=InvoiceState.CANCELLED)
+    if owner is not None:
+        invoices = invoices.filter(customer=owner)
+    rows = invoices.values("customer").annotate(
+        owed=Sum("amount"), paid=Sum("amount_paid")
     )
     for row in rows:
         owed = row["owed"] or ZERO
         paid = row["paid"] or ZERO
         outstanding_by_customer[row["customer"]] = max(owed - paid, ZERO)
 
-    accounts = Account.objects.filter(kind=AccountKind.INSURANCE_LOCKED).exclude(
-        balance=ZERO
+    accounts = (
+        _accounts(owner=owner)
+        .filter(kind=AccountKind.INSURANCE_LOCKED)
+        .exclude(balance=ZERO)
     )
     for account in accounts.iterator():
         outstanding = outstanding_by_customer.get(account.owner_id, ZERO)

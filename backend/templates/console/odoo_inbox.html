@@ -1,0 +1,62 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+Every message we were sent, in whatever state it reached.
+
+`failed` is one click away but is not the default view: a screen that opens on
+failures alone teaches its reader that failures are all it holds, and the
+question that actually brings people here half the time is «هل وصلتنا دفعته
+أصلاً؟» — which the processed and ignored rows answer.
+{% endcomment %}
+{% block title %}صندوق وارد أودو{% endblock %}
+{% block heading %}صندوق وارد أودو{% endblock %}
+
+{% block content %}
+  {# The url is named even here: a query string hung off a bare `?` reads as
+     harmless until the console moves under another prefix and the link starts
+     re-filtering whatever page the browser happened to be on. #}
+  <p><a href="{% url 'console:odoo-inbox' %}?state={{ failed }}">عرض الفاشلة فقط</a></p>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="رقم فاتورة أو دفعة">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="source">
+      <option value="">كل المصادر</option>
+      {% for value in sources %}
+        <option value="{{ value }}" {% if value == source %}selected{% endif %}>{{ value }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>متى</th><th>المصدر</th><th>الحدث</th><th>الموضوع</th>
+        <th>الحالة</th><th>المحاولات</th><th>الملاحظة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td><a href="{% url 'console:odoo-message' row.pk %}">{{ row.received_at }}</a></td>
+          <td>{{ row.source }}</td>
+          <td>{{ row.event|default:"—" }}</td>
+          <td>{{ row.subject_ref|default:"—" }}</td>
+          <td>{{ row.get_state_display }}</td>
+          <td class="money">{{ row.attempts|unlocalize }}</td>
+          <td>{{ row.note|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا رسائل مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} رسالة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

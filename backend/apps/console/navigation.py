@@ -79,6 +79,24 @@ PAGES: tuple[Page, ...] = (
     Page("console:customers", "المستخدمون", Capability.USERS_VIEW, "daily"),
     Page("console:invoices", "الفواتير", Capability.INVOICES_VIEW, "money"),
     Page(
+        "console:money-ledger",
+        "دفتر التأمينات",
+        Capability.MONEY_VIEW,
+        "money",
+    ),
+    Page(
+        "console:odoo-inbox",
+        "صندوق وارد أودو",
+        Capability.ODOO_INBOX,
+        "diagnostics",
+    ),
+    Page(
+        "console:money-health",
+        "صحة المال",
+        Capability.DIAGNOSTICS_VIEW,
+        "diagnostics",
+    ),
+    Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,
@@ -125,6 +143,9 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:customer-edit", "تعديل العميل", Capability.USERS_MANAGE, ""),
     Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
     Page("console:invoice-detail", "تفاصيل الفاتورة", Capability.INVOICES_VIEW, ""),
+    Page("console:money-customer", "دفتر عميل", Capability.MONEY_VIEW, ""),
+    Page("console:odoo-message", "رسالة واردة", Capability.ODOO_INBOX, ""),
+    Page("console:odoo-replay", "إعادة تشغيل رسالة", Capability.ODOO_INBOX, ""),
 )
 
 

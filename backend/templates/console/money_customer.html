@@ -1,0 +1,102 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+One customer's money. Read-only, and it says so.
+
+`unlocalize` on every amount, like every other console screen: an operator
+comparing this page against the ledger must not have to undo a thousands
+separator in their head.
+
+The disagreement banner is the point of the page as much as the numbers are.
+When the stored balance and the entries do not agree, neither figure is shown as
+though it were the answer — the screen says which two numbers disagree and by
+how much, because a screen that picks one silently is a screen that reports a
+hole in the books as a healthy balance.
+{% endcomment %}
+{% block title %}دفتر {{ ledger.name }}{% endblock %}
+{% block heading %}دفتر {{ ledger.name }}{% endblock %}
+
+{% block content %}
+  <p>
+    <span class="money">{{ ledger.customer.phone }}</span> ·
+    <a href="{% url 'console:money-ledger' %}">بحث عن عميل آخر</a>
+  </p>
+  <p class="empty">هذه الشاشة للقراءة فقط. لا يتحرك منها ريال.</p>
+
+  {% if not ledger.is_sound %}
+    <div class="alarm">
+      <strong>الأرقام أدناه لا تتفق مع القيود.</strong>
+      <ul>
+        {% for finding in ledger.findings %}
+          <li>{{ finding.subject }} — {{ finding.detail }}</li>
+        {% endfor %}
+      </ul>
+      <p>حتى تُحل هذه الملاحظات، لا يُعتمد أي رقم في هذه الصفحة.</p>
+    </div>
+  {% endif %}
+
+  <h2>الدلاء</h2>
+  <table>
+    <thead><tr><th>الدلو</th><th>المبلغ</th><th>عدد القيود</th></tr></thead>
+    <tbody>
+      {% for bucket in ledger.snapshot.buckets %}
+        <tr>
+          <td>{{ bucket.label }}</td>
+          <td class="money">{{ bucket.amount|unlocalize }}</td>
+          <td class="money">{{ bucket.entry_count|unlocalize }}</td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>المجموع</th>
+        <th class="money">{{ ledger.snapshot.total|unlocalize }}</th>
+        <th></th>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>الحجوزات القائمة</h2>
+  <table>
+    <thead>
+      <tr><th>المبلغ</th><th>السبب</th><th>على ماذا</th><th>استثناء</th><th>منذ</th></tr>
+    </thead>
+    <tbody>
+      {% for hold in ledger.snapshot.holds %}
+        <tr>
+          <td class="money">{{ hold.amount|unlocalize }}</td>
+          <td>{{ hold.get_reason_display }}</td>
+          <td>
+            {% if hold.auction %}مزاد {{ hold.auction.number|unlocalize }}
+            {% elif hold.invoice %}فاتورة {{ hold.invoice.number }}
+            {% endif %}
+          </td>
+          <td>{{ hold.exception_note|default:"—" }}</td>
+          <td>{{ hold.created_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا حجوزات قائمة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>الحركات</h2>
+  <table>
+    <thead>
+      <tr><th>التاريخ</th><th>الدلو</th><th>الحركة</th><th>المبلغ</th><th>البيان</th></tr>
+    </thead>
+    <tbody>
+      {% for entry in page %}
+        <tr>
+          <td>{{ entry.transaction.occurred_at }}</td>
+          <td>{{ entry.account.get_kind_display }}</td>
+          <td>{{ entry.transaction.get_kind_display }}</td>
+          <td class="money">{{ entry.amount|unlocalize }}</td>
+          <td>{{ entry.transaction.memo|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا حركات على هذا الحساب.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} حركة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

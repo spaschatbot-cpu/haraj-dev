@@ -129,3 +129,19 @@ class BidRefusal(models.Model):
 
     def __str__(self) -> str:
         return f"{self.bidder_id} refused: {self.reason}"
+
+    @property
+    def insurance_total(self):
+        """The three insurance buckets added up, as they stood at the refusal.
+
+        This is the number the customer says on the phone. He remembers what he
+        deposited, not how it was split — «كان عندي عشرة آلاف» is true of a
+        person holding 2,000 free and 8,000 locked against a debt, and a support
+        agent who can only see the split has to do the addition in their head
+        before they can agree with him and then explain.
+
+        Derived from this row's own stored figures and nothing else: it is a
+        different arrangement of the snapshot, never a fresh reading of a
+        balance that has moved since.
+        """
+        return self.insurance_free + self.insurance_held + self.insurance_locked

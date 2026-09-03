@@ -1,0 +1,64 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+One message, with the body it arrived carrying.
+
+`raw_body` sits above the parsed payload deliberately. When the two disagree —
+the case that brings anybody to this page — the raw text is the evidence and the
+parse is our reading of it, so the evidence goes first.
+
+There is no form here that edits anything. A message is a record of what
+somebody sent us (Article 2-2); editing it until it parses turns evidence into a
+guess, and setting its state by hand produces a `processed` row with no
+transaction behind it — a payment that exists in Odoo and nowhere here.
+{% endcomment %}
+{% block title %}رسالة {{ row.pk }}{% endblock %}
+{% block heading %}{{ row.source }}/{{ row.event|default:"—" }}{% endblock %}
+
+{% block content %}
+  {% for note in messages %}
+    <p><strong>{{ note }}</strong></p>
+  {% endfor %}
+
+  <p><a href="{% url 'console:odoo-inbox' %}">← صندوق الوارد</a></p>
+
+  <table>
+    <tr><th>الحالة</th><td>{{ row.get_state_display }}</td></tr>
+    <tr><th>الموضوع</th><td>{{ row.subject_ref|default:"—" }}</td></tr>
+    <tr><th>قاعدة أودو</th><td>{{ row.odoo_database|default:"—" }}</td></tr>
+    <tr><th>معرّف التسليم</th><td>{{ row.delivery_id|default:"—" }}</td></tr>
+    <tr><th>وصلت</th><td>{{ row.received_at }}</td></tr>
+    <tr><th>عولجت</th><td>{{ row.processed_at|default:"—" }}</td></tr>
+    <tr><th>المحاولات</th><td class="money">{{ row.attempts|unlocalize }}</td></tr>
+    <tr><th>الملاحظة</th><td>{{ row.note|default:"—" }}</td></tr>
+    <tr><th>القيد الناتج</th><td>
+      {% if row.resulting_transaction %}
+        {{ row.resulting_transaction.get_kind_display }}
+        ({{ row.resulting_transaction.idempotency_key }})
+      {% else %}—{% endif %}
+    </td></tr>
+  </table>
+
+  {% if row.state == "failed" %}
+    <h2>إعادة التشغيل</h2>
+    {% if exhausted %}
+      <p class="empty">استُنفدت المحاولات الآلية. إعادة التشغيل من هنا تمرّ على
+        المسار نفسه، ولن تنجح ما لم يتغيّر السبب.</p>
+    {% endif %}
+    <form method="post" action="{% url 'console:odoo-replay' row.pk %}">
+      {% csrf_token %}
+      <button type="submit">إعادة تشغيل هذه الرسالة</button>
+    </form>
+    <p class="empty">تمرّ على نفس الكود الذي تستدعيه المهمة الآلية بالضبط. لا شيء
+      هنا يفسّر الرسالة تفسيراً خاصاً بالشاشة.</p>
+  {% endif %}
+
+  <h2>النصّ كما وصل</h2>
+  <pre>{{ row.raw_body|default:"—" }}</pre>
+
+  <h2>الحمولة بعد القراءة</h2>
+  <pre>{{ pretty }}</pre>
+
+  <h2>الترويسات</h2>
+  <pre>{{ headers }}</pre>
+{% endblock %}

@@ -1,31 +1,22 @@
+{% extends "console/base.html" %}
+{% load l10n %}
 {% comment %}
 The support answer to «ليه ما يقدرش يزايد؟». Read-only: no form that writes, no
 button that decides. Every number here is the one stored at the moment of the
 refusal, never a fresh balance — the question is always about then.
-{% endcomment %}{% load l10n %}<!doctype html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8">
-  <title>ليه ما يقدرش يزايد؟ — {{ environment }}</title>
-  <style>
-    body { font-family: system-ui, "Segoe UI", Tahoma, sans-serif; margin: 2rem;
-           color: #1a1a1a; background: #fafafa; }
-    h1 { font-size: 1.25rem; }
-    form { margin: 1rem 0 1.5rem; }
-    input[type=search] { padding: .5rem; font-size: 1rem; width: 16rem; }
-    button { padding: .5rem 1rem; font-size: 1rem; }
-    table { border-collapse: collapse; width: 100%; background: #fff; }
-    th, td { border: 1px solid #ddd; padding: .5rem; text-align: right;
-             font-size: .9rem; vertical-align: top; }
-    th { background: #f0f0f0; }
-    .reason { font-weight: 600; }
-    .empty { color: #666; }
-    .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  </style>
-</head>
-<body>
-  <h1>ليه ما يقدرش يزايد؟ <small>({{ environment }})</small></h1>
 
+It extends the console frame rather than carrying its own page furniture (T812).
+It was written in phase 006 as a standalone page and listed in the sidebar from
+phase 009, which left it as a screen that could be reached from the console and
+offered no way back into it — an agent who followed the link had the browser's
+back button and nothing else. A screen inside a console that does not look like
+the console also reads as a different system, and people treat what it says as
+belonging to some other tool.
+{% endcomment %}
+{% block title %}ليه ما يقدرش يزايد؟{% endblock %}
+{% block heading %}ليه ما يقدرش يزايد؟{% endblock %}
+
+{% block content %}
   <form method="get">
     <input type="search" name="phone" value="{{ lookup.query }}"
            placeholder="رقم جوال العميل" autofocus>
@@ -37,7 +28,14 @@ refusal, never a fresh balance — the question is always about then.
   {% endif %}
 
   {% if lookup.bidder %}
-    <p>العميل: <strong>{{ lookup.bidder }}</strong></p>
+    <p>
+      العميل: <strong>{{ lookup.bidder }}</strong> ·
+      {# The next question is always «وكم عنده الآن؟», and it is a different
+         question from the one this page answers. So it is a link, not a column:
+         a fresh balance printed beside a snapshot is two numbers that look like
+         one, and support quotes whichever their eye lands on. #}
+      <a href="{% url 'console:money-customer' lookup.bidder.pk %}">دفتره الآن ←</a>
+    </p>
 
     {% if lookup.refusals %}
       <table>
@@ -51,6 +49,7 @@ refusal, never a fresh balance — the question is always about then.
             <th>متاح</th>
             <th>محجوز</th>
             <th>مقفول</th>
+            <th>مجموع تأمينه</th>
             <th>مستحق عليه</th>
           </tr>
         </thead>
@@ -69,6 +68,11 @@ refusal, never a fresh balance — the question is always about then.
               <td class="money">{{ refusal.insurance_free|unlocalize }}</td>
               <td class="money">{{ refusal.insurance_held|unlocalize }}</td>
               <td class="money">{{ refusal.insurance_locked|unlocalize }}</td>
+              {# The number the customer quotes on the phone. Without it the
+                 agent adds three columns in their head before they can agree
+                 with him — and «كان عندي عشرة آلاف» is true of someone holding
+                 2,000 free and 8,000 locked. #}
+              <td class="money">{{ refusal.insurance_total|unlocalize }}</td>
               <td class="money">{{ refusal.outstanding_dues|unlocalize }}</td>
             </tr>
           {% endfor %}
@@ -80,5 +84,4 @@ refusal, never a fresh balance — the question is always about then.
       <p class="empty">لا توجد محاولات مرفوضة لهذا العميل.</p>
     {% endif %}
   {% endif %}
-</body>
-</html>
+{% endblock %}
