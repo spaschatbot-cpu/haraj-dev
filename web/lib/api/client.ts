@@ -56,6 +56,14 @@ export const api = createClient<paths>({
   baseUrl: onServer ? backendUrl() : PROXY_PREFIX,
   credentials: onServer ? "omit" : "include",
   headers: { "Accept-Language": "ar" },
+  // Looked up on every call rather than captured once at module load. Without
+  // the wrapper the client closes over whatever `fetch` was when this module
+  // was first imported, which is a real behaviour difference and not only a
+  // testing inconvenience: anything that installs instrumentation after the
+  // first import — a tracing agent, a test's stub — is silently bypassed, and
+  // "the request was never made" looks identical to "the server never
+  // answered".
+  fetch: (...args) => globalThis.fetch(...args),
 });
 
 /**

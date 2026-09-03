@@ -224,9 +224,12 @@ web-check:
     npm test
     npm run build
 
-# T1004 — no session token anywhere JavaScript can read it.
-web-lint-tokens:
+# The web's constitutional guards. Node, not Python, and run from the repo root
+# because each of them walks `web/` from there.
+web-lint-rules:
     node ops/checks/web_tokens_are_httponly.mjs
+    node ops/checks/web_one_vehicle_card.mjs
+    node ops/checks/web_money_is_never_computed.mjs
 
 # What CI runs, end to end, before you ask CI to run it.
-ci: lint check-migrations test check-deploy web-lint-tokens web-check
+ci: lint check-migrations test check-deploy web-lint-rules web-check
