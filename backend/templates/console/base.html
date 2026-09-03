@@ -33,6 +33,11 @@ each move. `ops/checks/console_urls_are_named.py` fails the build on one.
     th { background: #f0f0f0; }
     .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .empty { color: #666; }
+    /* A raw body is evidence and is shown as it arrived — wrapped, never
+       truncated, and in a monospace face so a stray character is visible. */
+    pre { background: var(--panel); border: 1px solid var(--line); padding: .75rem;
+          overflow-x: auto; white-space: pre-wrap; word-break: break-word;
+          font-size: .85rem; direction: ltr; text-align: left; }
     /* A disagreement between the stored balance and the entries is not a
        styling flourish: it is the one thing on a money screen that must be
        impossible to scroll past, so it gets a border and a colour of its own. */

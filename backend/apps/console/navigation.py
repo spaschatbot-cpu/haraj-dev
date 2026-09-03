@@ -83,6 +83,12 @@ PAGES: tuple[Page, ...] = (
         "money",
     ),
     Page(
+        "console:odoo-inbox",
+        "صندوق وارد أودو",
+        Capability.ODOO_INBOX,
+        "diagnostics",
+    ),
+    Page(
         "console:money-health",
         "صحة المال",
         Capability.DIAGNOSTICS_VIEW,
@@ -132,6 +138,8 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:partner-award", "الترسية", Capability.PARTNERS_DECIDE, ""),
     Page("console:partner-reject", "رفض المالك", Capability.PARTNERS_DECIDE, ""),
     Page("console:money-customer", "دفتر عميل", Capability.MONEY_VIEW, ""),
+    Page("console:odoo-message", "رسالة واردة", Capability.ODOO_INBOX, ""),
+    Page("console:odoo-replay", "إعادة تشغيل رسالة", Capability.ODOO_INBOX, ""),
 )
 
 
