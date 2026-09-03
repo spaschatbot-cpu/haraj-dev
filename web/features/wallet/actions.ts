@@ -61,7 +61,18 @@ export async function startTopup(form: FormData): Promise<void> {
     return refuse(error, "/wallet");
   }
 
-  redirect(`/wallet/topup/${encodeURIComponent(intent.reference)}`);
+  // Straight to the gateway when the server offers a way there, and to the
+  // intent's own page when it does not. `checkout_url` is a url on *our*
+  // server that redirects onward, so this layer never learns which gateway is
+  // configured — switching one changes `apps/money/gateway.py` and rebuilds
+  // nothing here (see that module for the full reasoning).
+  //
+  // The empty string means the server has no gateway, or this intent can no
+  // longer be paid. Sending the customer to the status page is then the honest
+  // outcome: it says what state the top-up is in, in the server's own words.
+  redirect(
+    intent.checkout_url || `/wallet/topup/${encodeURIComponent(intent.reference)}`,
+  );
 }
 
 /** Ask for free insurance back. Asking moves no money; the payout is Odoo's. */

@@ -25,6 +25,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { RefundRequestForm } from "@/features/wallet/RefundRequestForm";
+import { TopupButton } from "@/features/wallet/TopupButton";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
@@ -85,6 +86,8 @@ export default async function WalletPage() {
         المجموع <span className="money font-semibold">{amount(wallet.total)}</span> ·
         بحسب الدفتر في {dateTime(wallet.as_of)}
       </p>
+
+      <TopupButton />
 
       <h2 className="mt-10 mb-3 text-lg font-semibold">الدلاء</h2>
       <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
