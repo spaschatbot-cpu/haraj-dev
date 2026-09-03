@@ -84,6 +84,7 @@ PAGES: tuple[Page, ...] = (
         Capability.MONEY_VIEW,
         "money",
     ),
+    Page("console:audit", "سجل التدقيق", Capability.AUDIT_VIEW, "admin"),
     Page(
         "console:odoo-inbox",
         "صندوق وارد أودو",

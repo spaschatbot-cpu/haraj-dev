@@ -11,6 +11,7 @@ from apps.bidding import views as bidding_views
 from . import (
     actions,
     auctions,
+    audit,
     health,
     importexport,
     inbox,
@@ -72,6 +73,7 @@ urlpatterns = [
         name="money-correct",
     ),
     path("health/", health.health, name="money-health"),
+    path("audit/", audit.audit, name="audit"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),
     path("inbox/<int:pk>/replay/", inbox.replay, name="odoo-replay"),
