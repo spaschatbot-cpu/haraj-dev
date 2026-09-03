@@ -53,4 +53,13 @@ abstract final class CacheKeys {
   /// آخر نسخة معروفة من صفحة مركبة (T709) — مفتاحٌ لكل مركبة، فالعميل الذي فتح
   /// مركبةً ثم فقد الاتصال يراها كما رآها.
   static String vehicle(String vehicleId) => 'catalog.vehicle.$vehicleId';
+
+  /// مشاركاتي — المزادات التي دخلها العميل وحالة تأمينه في كلٍّ منها.
+  static const String participations = 'activity.participations';
+
+  /// مشترياتي — ما رسا عليه ومعه فاتورته.
+  static const String purchases = 'activity.purchases';
+
+  /// فواتيري.
+  static const String invoices = 'activity.invoices';
 }

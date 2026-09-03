@@ -7,6 +7,7 @@ import 'package:haraj_mobile/data/api/generated/clients/vehicles_api.dart';
 import 'package:haraj_mobile/data/api/generated/models/auction.dart';
 import 'package:haraj_mobile/data/api/generated/models/auction_status.dart';
 import 'package:haraj_mobile/data/api/generated/models/paginated_auction_list.dart';
+import 'package:haraj_mobile/data/api/generated/models/paginated_participation_list.dart';
 import 'package:haraj_mobile/data/api/generated/models/paginated_vehicle_card_list.dart';
 import 'package:haraj_mobile/data/api/generated/models/specification.dart';
 import 'package:haraj_mobile/data/api/generated/models/vehicle.dart';
@@ -396,6 +397,14 @@ final class _FakeAuctionsApi implements AuctionsApi {
     return byStatus[status] ??
         const PaginatedAuctionList(count: 0, results: <Auction>[]);
   }
+
+  // «مشاركاتي» (T714) على نفس العميل المولَّد، ولا تعني اختبارات التصفّح في
+  // شيء. ترمي بدل أن ترجع فارغاً كي ينكشف أي استدعاء غير متوقَّع.
+  @override
+  Future<PaginatedParticipationList> participationsList({
+    int? page,
+    int? pageSize,
+  }) => throw UnimplementedError();
 
   @override
   Future<Auction> auctionsRetrieve({required String auctionId}) =>

@@ -4,6 +4,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import 'insurance_lock.dart';
 import 'invoice_status.dart';
 
 part 'invoice.g.dart';
@@ -20,6 +21,7 @@ class Invoice {
     required this.status,
     required this.statusLabel,
     required this.issuedAt,
+    this.insuranceLock,
   });
 
   factory Invoice.fromJson(Map<String, Object?> json) =>
@@ -41,6 +43,8 @@ class Invoice {
   final String statusLabel;
   @JsonKey(name: 'issued_at')
   final DateTime issuedAt;
+  @JsonKey(name: 'insurance_lock')
+  final InsuranceLock? insuranceLock;
 
   Map<String, Object?> toJson() => _$InvoiceToJson(this);
 }

@@ -27,6 +27,12 @@ abstract final class Routes {
   static const String invoices = 'invoices';
   static const String invoice = 'invoice';
 
+  /// حسابي: مشاركاتي ومشترياتي وفواتيري. التبويب في `?tab=`.
+  static const String myActivity = 'my-activity';
+
+  /// اسم مُعامل التبويب — مكتوب مرة واحدة لأن الإشعار يبنيه والشاشة تقرؤه.
+  static const String tabQueryParameter = 'tab';
+
   static const String homePath = '/';
   static const String signInPath = '/sign-in';
   static const String verifyCodePath = '/sign-in/code';
@@ -37,6 +43,7 @@ abstract final class Routes {
   static const String walletPath = '/wallet';
   static const String invoicesPath = '/invoices';
   static const String invoicePath = '/invoices/:invoiceId';
+  static const String myActivityPath = '/my-activity';
 
   // بناء العنوان يعيش مع اسمه: شاشة تبني عنوانها بنفسها تفترق عنه عند أول
   // تعديل، فتفتح شاشةً غير التي يفتحها الإشعار (معيار H6).

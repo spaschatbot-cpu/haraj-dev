@@ -401,4 +401,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleBiddingClosed => 'Bidding is closed';
+
+  @override
+  String get myActivityTitle => 'My account';
+
+  @override
+  String get tabParticipations => 'My auctions';
+
+  @override
+  String get tabPurchases => 'My purchases';
+
+  @override
+  String get tabInvoices => 'My invoices';
+
+  @override
+  String get emptyParticipations => 'You have not entered any auction yet.';
+
+  @override
+  String get emptyPurchases => 'No vehicle has been awarded to you yet.';
+
+  @override
+  String get emptyInvoices => 'There are no invoices on your account.';
+
+  @override
+  String participationBidsCount(int count) {
+    return 'My bids: $count';
+  }
+
+  @override
+  String participationEndsAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return 'Ends $dateString at $timeString';
+  }
+
+  @override
+  String get insuranceInThisAuction => 'My insurance in this auction';
+
+  @override
+  String purchaseLotNumber(String lot) {
+    return 'Lot $lot';
+  }
+
+  @override
+  String purchaseAwardedAt(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Awarded to you $dateString';
+  }
+
+  @override
+  String get purchaseNoInvoiceYet =>
+      'No invoice has been issued for this vehicle yet.';
+
+  @override
+  String invoiceNumber(String number) {
+    return 'Invoice $number';
+  }
+
+  @override
+  String invoiceIssuedAt(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Issued $dateString';
+  }
+
+  @override
+  String get invoiceTotal => 'Total';
+
+  @override
+  String get invoicePaid => 'Paid';
+
+  @override
+  String get invoiceDue => 'Outstanding';
+
+  @override
+  String get invoiceInsuranceEffect => 'What it means for my insurance';
 }

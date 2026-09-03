@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/paginated_invoice_list.dart';
+import '../models/paginated_purchase_list.dart';
 
 part 'invoices_api.g.dart';
 
@@ -16,6 +17,15 @@ abstract class InvoicesApi {
   /// فواتيري
   @GET('/api/v1/invoices')
   Future<PaginatedInvoiceList> invoicesList({
+    @Query('page') int? page,
+    @Query('page_size') int? pageSize,
+  });
+
+  /// مشترياتي — ما رسا عليّ، ومعه فاتورته.
+  ///
+  /// الفاتورة تأتي **داخل** المشترى لا بمطابقة معرّفات في التطبيق — نفس ما تفعله نقطة المشتريات في الخلفية (`PurchaseSerializer.get_invoice`).
+  @GET('/api/v1/purchases')
+  Future<PaginatedPurchaseList> purchasesList({
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
   });

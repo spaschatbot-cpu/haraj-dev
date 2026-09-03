@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/environment.dart';
+import '../data/activity/activity_repository_impl.dart';
 import '../data/api/dio_factory.dart';
 import '../data/api/generated/haraj_api_client.dart';
 import '../data/api/interceptors/auth_interceptor.dart';
@@ -24,6 +25,10 @@ import '../data/notifications/device_registry_impl.dart';
 import '../data/notifications/unconfigured_push_service.dart';
 import '../data/profile/profile_repository_impl.dart';
 import '../data/wallet/wallet_repository_impl.dart';
+import '../domain/activity/repositories/activity_repository.dart';
+import '../domain/activity/usecases/load_my_invoices.dart';
+import '../domain/activity/usecases/load_my_participations.dart';
+import '../domain/activity/usecases/load_my_purchases.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/session_signal.dart';
 import '../domain/auth/usecases/change_phone_number.dart';
@@ -137,6 +142,14 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
   (ref) => CatalogRepositoryImpl(
     auctions: ref.watch(apiClientProvider).auctions,
     vehicles: ref.watch(apiClientProvider).vehicles,
+    cache: ref.watch(responseCacheProvider),
+  ),
+);
+
+final activityRepositoryProvider = Provider<ActivityRepository>(
+  (ref) => ActivityRepositoryImpl(
+    auctions: ref.watch(apiClientProvider).auctions,
+    invoices: ref.watch(apiClientProvider).invoices,
     cache: ref.watch(responseCacheProvider),
   ),
 );
@@ -271,4 +284,16 @@ final nowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
 /// يستبدله بـ`null` مع وقتٍ ثابت من `nowProvider`.
 final countdownTickProvider = Provider<Duration?>(
   (ref) => const Duration(seconds: 1),
+);
+
+final loadMyParticipationsProvider = Provider<LoadMyParticipations>(
+  (ref) => LoadMyParticipations(ref.watch(activityRepositoryProvider)),
+);
+
+final loadMyPurchasesProvider = Provider<LoadMyPurchases>(
+  (ref) => LoadMyPurchases(ref.watch(activityRepositoryProvider)),
+);
+
+final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
+  (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
 );

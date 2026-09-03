@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../presentation/activity/my_activity_screen.dart';
 import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
 import '../presentation/auth/sign_in_screen.dart';
@@ -120,6 +121,18 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const ChangePhoneScreen(),
           ),
         ],
+      ),
+      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
+      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
+      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
+      GoRoute(
+        path: Routes.myActivityPath,
+        name: Routes.myActivity,
+        builder: (context, state) => MyActivityScreen(
+          initialTab: MyActivityTab.fromSlug(
+            state.uri.queryParameters[Routes.tabQueryParameter],
+          ),
+        ),
       ),
     ],
   );
