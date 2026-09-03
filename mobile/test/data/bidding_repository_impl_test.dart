@@ -12,6 +12,7 @@ import 'package:haraj_mobile/domain/common/snapshot.dart';
 import '../support/fake_bids_api.dart';
 import '../support/fake_sse_channel.dart';
 import '../support/memory_response_cache.dart';
+import '../support/server_refusal_reasons.dart';
 
 /// T710 — المزايدة في طبقة البيانات.
 ///
@@ -113,21 +114,16 @@ void main() {
   });
 
   group('كل سبب رفض يصل برسالته المُعدَّدة (F2 / J7)', () {
-    // الأسباب كما يعدّدها `apps/bidding/eligibility.py`، ورسائلها كما يكتبها
-    // الخادم. الاختبار لا يتحقق من صياغة عربية عندنا — يتحقق أنه **لا صياغة
-    // عندنا**: ما يصل الشاشة هو نصّ الخادم حرفاً بحرف.
-    const reasons = <String, String>{
-      'no_deposit': 'لا يوجد تأمين متاح للمزايدة.',
-      'insufficient_deposit': 'التأمين المتاح أقل من المطلوب لهذه المركبة.',
-      'unpaid_dues': 'عليك مستحقات سابقة غير مسدَّدة.',
-      'auction_not_open': 'المزاد غير مفتوح للمزايدة الآن.',
-      'vehicle_not_biddable': 'هذه المركبة لا تقبل المزايدة الآن.',
-      'own_vehicle': 'لا يمكنك المزايدة على مركبتك.',
-      'account_suspended': 'حسابك موقوف عن المزايدة.',
-      'bid_below_minimum': 'مبلغ المزايدة أقل من الحد الأدنى المسموح.',
-    };
-
-    for (final entry in reasons.entries) {
+    // القائمة تُقرأ من `test/support/server_refusal_reasons.dart` ولا تُكتب
+    // هنا. كانت مكتوبة هنا، وحملت أربعة رموز لا يرسلها الخادم أصلاً وغابت
+    // عنها خمسة يرسلها — ومرّت خضراء، لأن الاختبار كان يزوّد الواجهة المزيَّفة
+    // بالرمز الذي يتوقّعه ثم يتحقّق أنه وصل. الآن يحرس التطابقَ مع تعداد
+    // الخلفية فحصٌ يقرأ التعداد من مصدره:
+    // `test/architecture/refusal_codes_match_the_server_test.dart`.
+    //
+    // الاختبار لا يتحقق من صياغة عربية عندنا — يتحقق أنه **لا صياغة عندنا**:
+    // ما يصل الشاشة هو نصّ الخادم حرفاً بحرف.
+    for (final entry in serverRefusalReasons.entries) {
       test(entry.key, () async {
         final api = FakeBidsApi(bid: serverBid())
           ..failWith = refusal(code: entry.key, message: entry.value);

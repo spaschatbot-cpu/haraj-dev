@@ -18,14 +18,14 @@ abstract class BidsApi {
   /// وضع مزايدة — الخفض يحتاج تأكيداً صريحاً.
   ///
   /// الخفض يُرفض بـ409 ورمز lower_needs_confirm، وحمولة الرفض تحمل `standing` و`requested`. يُعاد الإرسال بـconfirm_lower=true بعد تأكيد المستخدم على المبلغين.
-  @POST('/api/v1/vehicles/{vehicleId}/bids')
+  @POST('/api/v1/vehicles/{vehicleId}/bids/')
   Future<Bid> bidsPlace({
     @Path('vehicleId') required String vehicleId,
     @Body() required BidSubmission body,
   });
 
   /// مزايداتي
-  @GET('/api/v1/bids/mine')
+  @GET('/api/v1/bids/mine/')
   Future<PaginatedBidList> bidsMineList({
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
@@ -34,6 +34,6 @@ abstract class BidsApi {
   /// سحب مزايدة.
   ///
   /// السحب يُعلَّم ولا يُحذف — تعود المزايدة بحالتها الجديدة. ملكية المزايدة قرار الخادم: مزايدة غيرك ترجع 404، لا 403.
-  @POST('/api/v1/bids/{bidId}/withdraw')
+  @POST('/api/v1/bids/{bidId}/withdraw/')
   Future<Bid> bidsWithdraw({@Path('bidId') required String bidId});
 }

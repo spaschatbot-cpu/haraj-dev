@@ -714,6 +714,60 @@ paths:
               schema:
                 type: string
           description: ''
+  /api/v1/participations/:
+    get:
+      operationId: participations_mine
+      description: |-
+        `GET /api/v1/participations/` — the auctions the caller is in.
+
+        One row per auction, carrying the two facts a «مشاركاتي» screen needs and
+        cannot combine for itself: how many of the caller's bids still stand, and
+        what their deposit for that auction is doing.
+
+        Why the server and not the screen
+        ---------------------------------
+        Both halves exist separately — `bids/mine/` and the wallet — and the app
+        could in principle match one against the other. It must not. That match is a
+        rule, and a rule in a screen is a second copy of a rule (Article 4-5): the
+        day a hold is released or consumed while the bid rows stay exactly as they
+        were, the screen's «محجوز» and the ledger's disagree, and the customer is
+        told two different things about one deposit. The hold is the only thing that
+        knows, so the hold is what this reads.
+
+        Being *in* an auction is either half on its own: a standing bid, or money
+        pinned to it. A bidder whose deposit is held but whose only bid was
+        withdrawn is still in — otherwise their wallet shows 10,000 محجوز against a
+        list that shows nothing holding it.
+
+        No eligibility is decided here and none is read. This says what is, not what
+        may be; `check_eligibility` remains the one door (T502).
+      summary: مشاركاتي
+      parameters:
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+      - in: query
+        name: offset
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParticipationPage'
+          description: ''
   /api/v1/payments/callback/:
     post:
       operationId: v1_payments_callback_create
@@ -1808,6 +1862,55 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Purchase'
+    Participation:
+      type: object
+      properties:
+        auction:
+          $ref: '#/components/schemas/AuctionCard'
+        bids_count:
+          type: integer
+        insurance:
+          $ref: '#/components/schemas/ParticipationInsurance'
+      required:
+      - auction
+      - bids_count
+      - insurance
+    ParticipationInsurance:
+      type: object
+      description: |-
+        What this bidder's deposit for this auction is doing, per the ledger.
+
+        Read off `money.Hold` and nothing else. The alternative — the app matching
+        «مزايداتي» against «المحفظة» — is a rule in a screen, and it is wrong the
+        moment a hold is released or consumed while the bids stay as they were.
+      properties:
+        state:
+          type: string
+        state_label:
+          type: string
+        amount:
+          type: string
+          nullable: true
+        currency:
+          type: string
+          nullable: true
+      required:
+      - amount
+      - currency
+      - state
+      - state_label
+    ParticipationPage:
+      type: object
+      properties:
+        total:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Participation'
+      required:
+      - results
+      - total
     PatchedProfileUpdate:
       type: object
       description: |-

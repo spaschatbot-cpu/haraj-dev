@@ -14,6 +14,6 @@ abstract class LiveApi {
   /// البثّ الحي — مزايدات المتصل وحده.
   ///
   /// بثّ SSE (`text/event-stream`). كل إطار `event: state` يحمل في `data` كائن LiveState. لا يحمل رقم أحد غيرك: المزاد مغلق ولا نقطة تسرد مزايدات مركبة.
-  @GET('/api/v1/live')
+  @GET('/api/v1/live/')
   Future<String> liveUpdates();
 }

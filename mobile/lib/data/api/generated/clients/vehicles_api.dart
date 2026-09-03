@@ -15,7 +15,7 @@ abstract class VehiclesApi {
   factory VehiclesApi(Dio dio, {String? baseUrl}) = _VehiclesApi;
 
   /// مركبات المزاد — بحث وترشيح
-  @GET('/api/v1/auctions/{auctionId}/vehicles')
+  @GET('/api/v1/auctions/{auctionId}/vehicles/')
   Future<PaginatedVehicleCardList> auctionVehiclesList({
     @Path('auctionId') required String auctionId,
     @Query('search') String? search,
@@ -27,7 +27,7 @@ abstract class VehiclesApi {
   });
 
   /// تفاصيل مركبة
-  @GET('/api/v1/vehicles/{vehicleId}')
+  @GET('/api/v1/vehicles/{vehicleId}/')
   Future<Vehicle> vehiclesRetrieve({
     @Path('vehicleId') required String vehicleId,
   });

@@ -4,15 +4,20 @@ Two screens: the messages with their states, and one message with its raw body
 laid out unparsed. The only write is **إعادة تشغيل**, and the whole design of
 this file is contained in what that button does:
 
-    process(message)
+    INTERPRETERS[message.source](message)
 
-The same call, on the same object, that `apps.odoo.tasks.retry_failed` makes.
-Not a copy of it, not a variant that skips the signature step because a human
-asked this time, and not a second interpretation written for the screen. That
-is T814's acceptance criterion stated as code, and
+The same call, on the same object, that the sender's own retry task makes —
+`process` for Odoo, `apps.money.inbound.interpret` for the payment gateway. Not
+a copy of either, not a variant that skips the signature step because a human
+asked this time, and not a second interpretation written for the screen. That is
+T814's acceptance criterion stated as code, and
 `test_the_button_and_the_cron_leave_identical_rows` holds it by running one
 message through each path and comparing the rows they leave behind, field by
 field.
+
+The table is shared and the lookup is what keeps that fact honest: the button
+must reach the interpreter that speaks the row's language, and a row nobody
+interprets is offered no button at all. See `INTERPRETERS`.
 
 Why the criterion is worth a test rather than a comment
 ------------------------------------------------------
@@ -41,6 +46,7 @@ from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.core import audit
+from apps.money.inbound import interpret as interpret_gateway
 from apps.odoo.models import InboundMessage, InboundState
 from apps.odoo.processing import process
 from apps.odoo.tasks import MAX_ATTEMPTS
@@ -55,6 +61,27 @@ PAGE_SIZE = 50
 #: The fields whose before/after a replay is recorded with. A replay can credit
 #: money, so what the message looked like beforehand is part of the record.
 AUDITED = ("state", "attempts", "note", "resulting_transaction_id")
+
+#: Which interpreter reads which sender's bodies. `InboundMessage` is one table
+#: with two boundaries writing into it, and the button has to reach the one that
+#: speaks the row's own language.
+#:
+#: The mapping is what stops the button being a trapdoor. `process` answers a
+#: foreign source with `ignored` — correctly, and *terminally* — so pressing
+#: **إعادة تشغيل** on a payment-gateway row used to end it: no cron looks at a
+#: gateway row again (`odoo.tasks.due_messages` filters on the source) and
+#: `process` refuses to re-enter a terminal state. A real card payment could
+#: arrive, fail on a lock timeout, and then be finished off by the only button
+#: support was given — money at the gateway, nothing in the ledger, and no path
+#: back by hand or by machine.
+#:
+#: A source in neither column gets no button at all rather than a guess: an
+#: interpreter that does not exist cannot be "run again", and offering the press
+#: is offering that same one-way trip.
+INTERPRETERS = {
+    "odoo": process,
+    "payment_gateway": interpret_gateway,
+}
 
 
 @console_page("console:odoo-inbox")
@@ -146,6 +173,9 @@ def message(request, pk: int):
             "pretty": json.dumps(row.payload, ensure_ascii=False, indent=2),
             "headers": json.dumps(row.headers, ensure_ascii=False, indent=2),
             "exhausted": row.attempts >= MAX_ATTEMPTS,
+            # The button is drawn from this and not from the state alone — see
+            # `INTERPRETERS` for why a source without one is offered nothing.
+            "replayable": row.source in INTERPRETERS,
         },
     )
 
@@ -167,8 +197,19 @@ def replay(request, pk: int):
     if request.method != "POST":
         return redirect("console:odoo-message", pk=pk)
 
+    interpreter = INTERPRETERS.get(row.source)
+    if interpreter is None:
+        # Nothing recorded and nothing touched: there is no path to run again,
+        # and writing a state here would be the screen deciding what a message
+        # meant — the one thing this page must never do.
+        flash.error(
+            request,
+            f"لا مفسّر لرسائل المصدر «{row.source}» — لا شيء يُعاد تشغيله.",
+        )
+        return redirect("console:odoo-message", pk=pk)
+
     before = audit.snapshot(row, AUDITED)
-    process(row)
+    interpreter(row)
 
     audit.record(
         action="console.replay_odoo_message",

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.auctions.api.serializers import AuctionCardSerializer
+
 
 class PlaceBidSerializer(serializers.Serializer):
     """One bid on one car."""
@@ -65,3 +67,51 @@ class MyBidsQuerySerializer(serializers.Serializer):
     #: point), so the default page shows only what still stands — otherwise a
     #: customer who revised five times sees six rows for one car.
     include_history = serializers.BooleanField(required=False, default=False)
+
+
+class PageQuerySerializer(serializers.Serializer):
+    limit = serializers.IntegerField(
+        required=False, min_value=1, max_value=100, default=20
+    )
+    offset = serializers.IntegerField(required=False, min_value=0, default=0)
+
+
+class ParticipationInsuranceSerializer(serializers.Serializer):
+    """What this bidder's deposit for this auction is doing, per the ledger.
+
+    Read off `money.Hold` and nothing else. The alternative — the app matching
+    «مزايداتي» against «المحفظة» — is a rule in a screen, and it is wrong the
+    moment a hold is released or consumed while the bids stay as they were.
+    """
+
+    #: A `HoldState` value, or `none` when this bidder has no hold on this
+    #: auction at all. `none` is not a `HoldState`: there is no row, and
+    #: inventing one to say so would put a hold in the ledger that holds nothing.
+    state = serializers.CharField()
+    state_label = serializers.CharField()
+
+    #: A decimal string, never a number (Article 3-2), and `null` unless the
+    #: money is actually pinned right now. A released hold still carries the
+    #: figure it once held, and showing it reads as "still held".
+    amount = serializers.CharField(allow_null=True)
+    currency = serializers.CharField(allow_null=True)
+
+
+class ParticipationSerializer(serializers.Serializer):
+    #: The auction row exactly as every other list publishes it — one builder
+    #: (`auctions.cards.auction_card`), one shape. A second field list here
+    #: would be a second card, and a field added to one would be missing from
+    #: the other silently (Article 4-5, `ops/checks/one_vehicle_card.py`).
+    #: `state_label` in particular is the auction's own Arabic word for itself:
+    #: a client that maps `live` → «جارٍ» owns a copy that drifts.
+    auction = AuctionCardSerializer()
+    #: Bids that still stand. Withdrawn and superseded rows are kept forever
+    #: (T507) and counting them would tell a customer they have five live bids
+    #: on a car they bid on five times.
+    bids_count = serializers.IntegerField()
+    insurance = ParticipationInsuranceSerializer()
+
+
+class ParticipationPageSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    results = ParticipationSerializer(many=True)

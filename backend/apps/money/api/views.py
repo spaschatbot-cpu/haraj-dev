@@ -14,14 +14,12 @@ from __future__ import annotations
 
 import hmac
 import logging
-from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -33,7 +31,7 @@ from apps.auctions.models import Auction, Vehicle
 from apps.core import jsonio, ratelimit
 from apps.core.exceptions import envelope
 from apps.core.net import client_ip
-from apps.money import gateway, services
+from apps.money import gateway, inbound, services
 from apps.money.models import (
     AccountKind,
     Entry,
@@ -334,57 +332,19 @@ class PaymentCallbackView(APIView):
         return message
 
     def _interpret(self, message: InboundMessage, payload: dict) -> None:
-        if message.state != InboundState.RECEIVED:
-            return  # already dealt with, or stored for investigation
+        """Hand the stored row to the gateway's interpreter and nothing else.
 
-        try:
-            amount = Decimal(str(payload.get("amount", "0")))
-        except (InvalidOperation, ValueError):
-            amount = None
+        The interpretation itself lives in `apps.money.inbound`, not here, and
+        that move is the fix rather than tidiness: a message stored by this
+        request has to be interpretable again later — by the console button and
+        by `tasks.retry_failed_gateway` — and code that only a view can reach is
+        code a failed payment can never come back to.
 
-        reference = str((payload.get("metadata") or {}).get("reference", ""))
-        status_raw = str(payload.get("status", ""))
-
-        if amount is None or amount <= 0:
-            message.state = InboundState.FAILED
-            message.note = f"مبلغ غير مفهوم في الرسالة: {payload.get('amount')!r}"
-        else:
-            try:
-                outcome = services.apply_gateway_payment(
-                    reference=reference,
-                    payment_id=str(payload.get("id", "")),
-                    amount=amount,
-                    status_raw=status_raw,
-                    succeeded=status_raw in settings.PAYMENT_SUCCESS_STATUSES,
-                )
-            except Exception as exc:  # noqa: BLE001 — a failure here is data
-                # Article 2-2: a raise that escapes leaves the row RECEIVED with
-                # an empty note, and nothing in the system ever looks at a
-                # gateway message again. `processing.process` already wraps its
-                # interpreter exactly this way; this is the same shape.
-                log.exception("payment callback: message %s raised", message.pk)
-                message.state = InboundState.FAILED
-                message.note = f"{type(exc).__name__}: {exc}"
-            else:
-                message.state = {
-                    "credited": InboundState.PROCESSED,
-                    "suspense": InboundState.PROCESSED,
-                    "ignored": InboundState.IGNORED,
-                }.get(outcome.disposition, InboundState.FAILED)
-                message.note = outcome.note
-                message.resulting_transaction = outcome.transaction
-
-        message.attempts += 1
-        message.processed_at = timezone.now()
-        message.save(
-            update_fields=[
-                "state",
-                "note",
-                "resulting_transaction",
-                "attempts",
-                "processed_at",
-            ]
-        )
+        `payload` is no longer read: the interpreter reads the row it was given.
+        On a duplicate delivery `message` is the *first* copy, and the body in
+        hand here never became it.
+        """
+        inbound.interpret(message)
 
 
 # ---------------------------------------------------------------------------

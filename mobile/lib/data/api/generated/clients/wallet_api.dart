@@ -22,7 +22,7 @@ abstract class WalletApi {
   /// المحفظة — الدلاء مفصَّلة بأسبابها.
   ///
   /// لا مجموع واحد. كل دلو ببيانه وسببه (أي مزاد، أي فاتورة) — قاعدة G5 في الفيز 007 وقاعدة العرض 2 في الفيز 008.
-  @GET('/api/v1/wallet')
+  @GET('/api/v1/wallet/')
   Future<Wallet> walletRetrieve();
 
   /// كشف الحركات من القيود مباشرةً.
@@ -30,7 +30,7 @@ abstract class WalletApi {
   /// الترشيح على دلو واحد هو النصف الثاني من المادة ١-٦: كل رقم في المحفظة يُفتح على القيود التي تفسّره. الترشيح يقع على الخادم لا في الشاشة — نظيره في الخلفية `bucket` في `StatementQuerySerializer`.
   ///
   /// [bucket] - دلو واحد بعينه — القيمة كما أرسلها الخادم في `WalletBucket.kind`.
-  @GET('/api/v1/wallet/transactions')
+  @GET('/api/v1/wallet/transactions/')
   Future<PaginatedLedgerEntryList> walletTransactionsList({
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
@@ -38,7 +38,7 @@ abstract class WalletApi {
   });
 
   /// نيّة شحن — المبلغ من الخادم لا من الطلب
-  @POST('/api/v1/wallet/topup-intents')
+  @POST('/api/v1/wallet/topups/')
   Future<TopUpIntent> walletTopUpIntentCreate({
     @Body() required TopUpIntentRequest body,
   });
@@ -46,13 +46,13 @@ abstract class WalletApi {
   /// حالة نيّة الشحن كما يعرفها الخادم.
   ///
   /// العودة من البوابة تُسنَد من هنا، لا من معاملات رابط العودة. المرجع ليس ادّعاءً: هو اسم صفّ كتبه الخادم قبل أن يصل العميل إلى البوابة أصلاً، والرصيد يتحرّك بتأكيد البوابة للخادم وحده. نظيره في الخلفية `GET /api/v1/wallet/topups/{reference}/`.
-  @GET('/api/v1/wallet/topup-intents/{reference}')
+  @GET('/api/v1/wallet/topups/{reference}/')
   Future<TopUpIntent> walletTopUpIntentRetrieve({
     @Path('reference') required String reference,
   });
 
   /// طلب استرداد من المتاح فقط
-  @POST('/api/v1/wallet/refund-requests')
+  @POST('/api/v1/wallet/refund-requests/')
   Future<RefundRequest> walletRefundRequestCreate({
     @Body() required RefundRequestInput body,
   });

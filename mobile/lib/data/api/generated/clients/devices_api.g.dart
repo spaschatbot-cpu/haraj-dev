@@ -30,7 +30,7 @@ class _DevicesApi implements DevicesApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/devices',
+            '/api/v1/devices/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -58,7 +58,7 @@ class _DevicesApi implements DevicesApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/devices/unregister',
+            '/api/v1/devices/unregister/',
             queryParameters: queryParameters,
             data: _data,
           )

@@ -14,6 +14,15 @@ openapi: 3.0.3
 #
 # قاعدة لا تُكسر هنا: **كل مبلغ نصّ عشري** (`type: string`) لا `number` —
 # المادة ٣-٢ من الدستور تسري على Dart كما تسري على بايثون.
+#
+# وقاعدة ثانية: **اسم المسار ليس تقريباً**. الفرق المسموح بينه وبين
+# `backend/openapi/schema.yaml` هو الشكل — معرّفات نصّية، `page`/`page_size`،
+# أسماء حقول — لا العنوان. مسارٌ لا يخدمه الخادم شاشةٌ لا تعمل، اليوم لا بعد
+# T621: كل مسار في Django معرَّف بشرطة أخيرة و`APPEND_SLASH` مفعَّل، فبلا شرطة
+# يردّ 301 بدل أن ينفّذ ويضيع جسم الـPOST في التحويل — أي أن المزايدة لا تصل
+# الخادم أصلاً. ويحرس ذلك الآن
+# `test/architecture/client_paths_exist_on_the_server_test.dart`: يقارن مسارات
+# العميل المولَّد بمسارات المخطط المثبَّت حرفاً بحرف.
 
 info:
   title: حراج واحد — API العميل (مخطط مؤقّت)
@@ -288,7 +297,7 @@ paths:
         "409":
           $ref: "#/components/responses/Error"
 
-  /api/v1/auctions:
+  /api/v1/auctions/:
     get:
       tags: [auctions]
       operationId: auctionsList
@@ -309,7 +318,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedAuctionList"
 
-  /api/v1/auctions/{auctionId}:
+  /api/v1/auctions/{auctionId}/:
     get:
       tags: [auctions]
       operationId: auctionsRetrieve
@@ -330,7 +339,7 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
-  /api/v1/auctions/{auctionId}/vehicles:
+  /api/v1/auctions/{auctionId}/vehicles/:
     get:
       tags: [vehicles]
       operationId: auctionVehiclesList
@@ -377,7 +386,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedVehicleCardList"
 
-  /api/v1/vehicles/{vehicleId}:
+  /api/v1/vehicles/{vehicleId}/:
     get:
       tags: [vehicles]
       operationId: vehiclesRetrieve
@@ -398,7 +407,7 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
-  /api/v1/vehicles/{vehicleId}/bids:
+  /api/v1/vehicles/{vehicleId}/bids/:
     post:
       tags: [bids]
       operationId: bidsPlace
@@ -433,7 +442,7 @@ paths:
         "429":
           $ref: "#/components/responses/Error"
 
-  /api/v1/bids/mine:
+  /api/v1/bids/mine/:
     get:
       tags: [bids]
       operationId: bidsMineList
@@ -449,7 +458,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedBidList"
 
-  /api/v1/bids/{bidId}/withdraw:
+  /api/v1/bids/{bidId}/withdraw/:
     post:
       tags: [bids]
       operationId: bidsWithdraw
@@ -477,7 +486,7 @@ paths:
         "429":
           $ref: "#/components/responses/Error"
 
-  /api/v1/live:
+  /api/v1/live/:
     get:
       tags: [live]
       operationId: liveUpdates
@@ -494,7 +503,7 @@ paths:
               schema:
                 type: string
 
-  /api/v1/wallet:
+  /api/v1/wallet/:
     get:
       tags: [wallet]
       operationId: walletRetrieve
@@ -512,7 +521,7 @@ paths:
         "401":
           $ref: "#/components/responses/Error"
 
-  /api/v1/wallet/transactions:
+  /api/v1/wallet/transactions/:
     get:
       tags: [wallet]
       operationId: walletTransactionsList
@@ -540,7 +549,7 @@ paths:
         "400":
           $ref: "#/components/responses/Error"
 
-  /api/v1/wallet/topup-intents:
+  /api/v1/wallet/topups/:
     post:
       tags: [wallet]
       operationId: walletTopUpIntentCreate
@@ -561,7 +570,7 @@ paths:
         "400":
           $ref: "#/components/responses/Error"
 
-  /api/v1/wallet/topup-intents/{reference}:
+  /api/v1/wallet/topups/{reference}/:
     get:
       tags: [wallet]
       operationId: walletTopUpIntentRetrieve
@@ -587,7 +596,7 @@ paths:
         "404":
           $ref: "#/components/responses/Error"
 
-  /api/v1/wallet/refund-requests:
+  /api/v1/wallet/refund-requests/:
     post:
       tags: [wallet]
       operationId: walletRefundRequestCreate
@@ -608,7 +617,7 @@ paths:
         "409":
           $ref: "#/components/responses/Error"
 
-  /api/v1/invoices:
+  /api/v1/invoices/:
     get:
       tags: [invoices]
       operationId: invoicesList
@@ -624,7 +633,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedInvoiceList"
 
-  /api/v1/participations:
+  /api/v1/participations/:
     get:
       tags: [auctions]
       operationId: participationsList
@@ -632,7 +641,8 @@ paths:
       description: >
         حالة التأمين لكل مزاد **يشتقّها الخادم** من حجوزاته. لا تُركَّب في
         التطبيق من «مزايداتي» و«المحفظة»: التركيب قاعدة عمل، وقاعدة في الشاشة
-        نسخة ثانية تفترق عن الأصل (المادة ٤-٥).
+        نسخة ثانية تفترق عن الأصل (المادة ٤-٥). نظيرها في الخلفية
+        `GET /api/v1/participations/` — `apps/bidding/api/views.py`.
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
@@ -646,7 +656,7 @@ paths:
         "401":
           $ref: "#/components/responses/Error"
 
-  /api/v1/purchases:
+  /api/v1/purchases/:
     get:
       tags: [invoices]
       operationId: purchasesList
@@ -667,7 +677,7 @@ paths:
         "401":
           $ref: "#/components/responses/Error"
 
-  /api/v1/devices:
+  /api/v1/devices/:
     post:
       tags: [devices]
       operationId: devicesRegister
@@ -688,7 +698,7 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
-  /api/v1/devices/unregister:
+  /api/v1/devices/unregister/:
     post:
       tags: [devices]
       operationId: devicesUnregister

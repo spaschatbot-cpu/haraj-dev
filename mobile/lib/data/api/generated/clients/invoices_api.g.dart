@@ -33,7 +33,7 @@ class _InvoicesApi implements InvoicesApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/invoices',
+            '/api/v1/invoices/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -67,7 +67,7 @@ class _InvoicesApi implements InvoicesApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/purchases',
+            '/api/v1/purchases/',
             queryParameters: queryParameters,
             data: _data,
           )
