@@ -21,7 +21,9 @@ hole in the books as a healthy balance.
     <span class="money">{{ ledger.customer.phone }}</span> ·
     <a href="{% url 'console:money-ledger' %}">بحث عن عميل آخر</a>
   </p>
-  <p class="empty">هذه الشاشة للقراءة فقط. لا يتحرك منها ريال.</p>
+  <p class="empty">هذه الشاشة للقراءة فقط. لا يتحرك منها ريال.{% if may_act %}
+    <a href="{% url 'console:money-actions' ledger.customer.pk %}">الأفعال المالية ←</a>
+  {% endif %}</p>
 
   {% if not ledger.is_sound %}
     <div class="alarm">

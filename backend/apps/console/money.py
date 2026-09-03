@@ -39,6 +39,7 @@ from django.shortcuts import redirect, render
 
 from apps.accounts.models import User
 from apps.accounts.services import display_name, find_by_phone
+from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money import verification
 from apps.money.models import ZERO, AccountKind, Entry, HoldState
@@ -155,6 +156,11 @@ def customer_ledger(request, pk: int):
         {
             "ledger": data,
             "page": Paginator(entries, PAGE_SIZE).get_page(request.GET.get("page")),
+            # A link, never a button. This page stays read-only by construction
+            # (T810) and the actions live on their own screen (T811); what is
+            # offered here is the way there, and only to somebody who could use
+            # it — a link that answers 403 reads as a broken console.
+            "may_act": can(request.user, Capability.MONEY_ACT),
         },
     )
 

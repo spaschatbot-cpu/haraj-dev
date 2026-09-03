@@ -9,6 +9,7 @@ from django.urls import path
 from apps.bidding import views as bidding_views
 
 from . import (
+    actions,
     auctions,
     health,
     importexport,
@@ -54,6 +55,22 @@ urlpatterns = [
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
+    path("money/<int:pk>/actions/", actions.actions, name="money-actions"),
+    path(
+        "money/holds/<int:pk>/confiscate/",
+        actions.confiscate,
+        name="money-confiscate",
+    ),
+    path(
+        "money/holds/<int:pk>/exception/",
+        actions.grant_exception,
+        name="money-exception",
+    ),
+    path(
+        "money/transactions/<int:pk>/correct/",
+        actions.correct,
+        name="money-correct",
+    ),
     path("health/", health.health, name="money-health"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),
