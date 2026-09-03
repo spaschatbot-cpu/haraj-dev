@@ -194,6 +194,54 @@ abstract class AppLocalizations {
   /// **'الحركات التي تفسّر هذا الرقم'**
   String get walletOpenStatement;
 
+  /// عنوان شاشة الشحن — T713
+  ///
+  /// In ar, this message translates to:
+  /// **'شحن التأمين بالبطاقة'**
+  String get topUpTitle;
+
+  /// No description provided for @topUpStart.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ الشحن'**
+  String get topUpStart;
+
+  /// لا خانة مبلغ: الخادم يرفض طلباً يسمّي مبلغه
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ يحدّده النظام. تُفتح لك صفحة الدفع في المتصفح، ثم نسأل الخادم عن النتيجة.'**
+  String get topUpAmountFromServer;
+
+  /// No description provided for @topUpWaiting.
+  ///
+  /// In ar, this message translates to:
+  /// **'بانتظار تأكيد البوابة للخادم.'**
+  String get topUpWaiting;
+
+  /// No description provided for @topUpCheckStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحقّق من حالة الشحن'**
+  String get topUpCheckStatus;
+
+  /// يشرح للعميل لماذا لا تتغيّر الحالة بمجرّد عودته
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالة مقروءة من سجلّ الخادم لا من رابط العودة، ورصيدك يتحرّك حين تؤكّد البوابة الدفع للخادم.'**
+  String get topUpStatusFromServer;
+
+  /// تعذّر الفتح على الجهاز — حالة لا يعرفها الخادم فالنصّ محلي
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر فتح صفحة الدفع. طلب الشحن محفوظ، وتقدر تفتحها من جديد.'**
+  String get topUpGatewayNotOpened;
+
+  /// No description provided for @topUpOpenGateway.
+  ///
+  /// In ar, this message translates to:
+  /// **'افتح صفحة الدفع'**
+  String get topUpOpenGateway;
+
   /// عنوان شاشة الحركات — T712
   ///
   /// In ar, this message translates to:

@@ -67,6 +67,33 @@ class AppLocalizationsAr extends AppLocalizations {
   String get walletOpenStatement => 'الحركات التي تفسّر هذا الرقم';
 
   @override
+  String get topUpTitle => 'شحن التأمين بالبطاقة';
+
+  @override
+  String get topUpStart => 'ابدأ الشحن';
+
+  @override
+  String get topUpAmountFromServer =>
+      'المبلغ يحدّده النظام. تُفتح لك صفحة الدفع في المتصفح، ثم نسأل الخادم عن النتيجة.';
+
+  @override
+  String get topUpWaiting => 'بانتظار تأكيد البوابة للخادم.';
+
+  @override
+  String get topUpCheckStatus => 'تحقّق من حالة الشحن';
+
+  @override
+  String get topUpStatusFromServer =>
+      'الحالة مقروءة من سجلّ الخادم لا من رابط العودة، ورصيدك يتحرّك حين تؤكّد البوابة الدفع للخادم.';
+
+  @override
+  String get topUpGatewayNotOpened =>
+      'تعذّر فتح صفحة الدفع. طلب الشحن محفوظ، وتقدر تفتحها من جديد.';
+
+  @override
+  String get topUpOpenGateway => 'افتح صفحة الدفع';
+
+  @override
   String get transactionsTitle => 'كشف الحركات';
 
   @override

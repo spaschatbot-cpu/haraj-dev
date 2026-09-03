@@ -80,6 +80,7 @@ class _Balance extends StatelessWidget {
           // لا `total` هنا ولا في أي مكان: الفيز 008 يمنع جمع الدلاء، وأي
           // مجموع يحتاجه العرض يأتي حقلاً من الخادم بقيده الذي يثبته.
           for (final bucket in balance.buckets) _BucketCard(bucket: bucket),
+        const _TopUpEntry(),
       ],
     );
   }
@@ -182,6 +183,30 @@ class _StatementLink extends StatelessWidget {
         },
       ),
       child: Text(l10n.walletOpenStatement),
+    );
+  }
+}
+
+/// مدخل الشحن بالبطاقة (T713).
+///
+/// بلا خانة مبلغ هنا أيضاً: المبلغ يحدّده الخادم، والزرّ يفتح الشاشة التي
+/// تكتب النيّة عنده قبل أن يصل العميل إلى أي بوابة.
+class _TopUpEntry extends StatelessWidget {
+  const _TopUpEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: FilledButton(
+          onPressed: () => context.pushNamed(Routes.walletTopUp),
+          child: Text(l10n.topUpTitle),
+        ),
+      ),
     );
   }
 }

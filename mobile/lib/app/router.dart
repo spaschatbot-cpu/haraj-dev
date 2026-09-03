@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../domain/wallet/entities/wallet_balance.dart';
 import '../presentation/seed/seed_screen.dart';
+import '../presentation/wallet/top_up_screen.dart';
 import '../presentation/wallet/transactions_screen.dart';
 import '../presentation/wallet/wallet_screen.dart';
 
@@ -14,6 +15,7 @@ abstract final class Routes {
   static const String seed = 'seed';
   static const String wallet = 'wallet';
   static const String walletStatement = 'walletStatement';
+  static const String walletTopUp = 'walletTopUp';
 
   /// اسم معامل الترشيح في مسار الكشف.
   ///
@@ -37,6 +39,11 @@ List<RouteBase> appRoutes() => <RouteBase>[
     path: '/wallet',
     name: Routes.wallet,
     builder: (context, state) => const WalletScreen(),
+  ),
+  GoRoute(
+    path: '/wallet/topup',
+    name: Routes.walletTopUp,
+    builder: (context, state) => const TopUpScreen(),
   ),
   GoRoute(
     path: '/wallet/transactions',

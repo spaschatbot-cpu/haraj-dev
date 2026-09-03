@@ -89,6 +89,38 @@
     "description": "المادة ١-٦: كل رقم يُفتح على قيوده"
   },
 
+  "topUpTitle": "شحن التأمين بالبطاقة",
+  "@topUpTitle": {
+    "description": "عنوان شاشة الشحن — T713"
+  },
+
+  "topUpStart": "ابدأ الشحن",
+  "@topUpStart": {},
+
+  "topUpAmountFromServer": "المبلغ يحدّده النظام. تُفتح لك صفحة الدفع في المتصفح، ثم نسأل الخادم عن النتيجة.",
+  "@topUpAmountFromServer": {
+    "description": "لا خانة مبلغ: الخادم يرفض طلباً يسمّي مبلغه"
+  },
+
+  "topUpWaiting": "بانتظار تأكيد البوابة للخادم.",
+  "@topUpWaiting": {},
+
+  "topUpCheckStatus": "تحقّق من حالة الشحن",
+  "@topUpCheckStatus": {},
+
+  "topUpStatusFromServer": "الحالة مقروءة من سجلّ الخادم لا من رابط العودة، ورصيدك يتحرّك حين تؤكّد البوابة الدفع للخادم.",
+  "@topUpStatusFromServer": {
+    "description": "يشرح للعميل لماذا لا تتغيّر الحالة بمجرّد عودته"
+  },
+
+  "topUpGatewayNotOpened": "تعذّر فتح صفحة الدفع. طلب الشحن محفوظ، وتقدر تفتحها من جديد.",
+  "@topUpGatewayNotOpened": {
+    "description": "تعذّر الفتح على الجهاز — حالة لا يعرفها الخادم فالنصّ محلي"
+  },
+
+  "topUpOpenGateway": "افتح صفحة الدفع",
+  "@topUpOpenGateway": {},
+
   "transactionsTitle": "كشف الحركات",
   "@transactionsTitle": {
     "description": "عنوان شاشة الحركات — T712"

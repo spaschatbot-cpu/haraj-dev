@@ -68,6 +68,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get walletOpenStatement => 'The entries behind this number';
 
   @override
+  String get topUpTitle => 'Top up by card';
+
+  @override
+  String get topUpStart => 'Start the top-up';
+
+  @override
+  String get topUpAmountFromServer =>
+      'The system sets the amount. The payment page opens in your browser, then we ask the server what happened.';
+
+  @override
+  String get topUpWaiting =>
+      'Waiting for the gateway to confirm to the server.';
+
+  @override
+  String get topUpCheckStatus => 'Check the top-up status';
+
+  @override
+  String get topUpStatusFromServer =>
+      'The status is read from the server\'s own record, not from the return link, and your balance moves when the gateway confirms the payment to the server.';
+
+  @override
+  String get topUpGatewayNotOpened =>
+      'The payment page could not be opened. Your top-up request is saved and you can open it again.';
+
+  @override
+  String get topUpOpenGateway => 'Open the payment page';
+
+  @override
   String get transactionsTitle => 'Statement';
 
   @override

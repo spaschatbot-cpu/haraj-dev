@@ -3,11 +3,13 @@ import 'dart:convert';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
+import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../domain/wallet/repositories/wallet_repository.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/wallet_api.dart';
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
+import '../api/generated/models/top_up_intent_request.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'wallet_mapper.dart';
@@ -79,6 +81,25 @@ final class WalletRepositoryImpl implements WalletRepository {
       if (cached != null) return cached;
       rethrow;
     }
+  }
+
+  @override
+  Future<TopUp> startTopUp() async {
+    // بلا `preset`: الخادم يحدّد المبلغ، وطلبٌ يسمّي مبلغه يُرفض عند الحافة.
+    final intent = await callApi(
+      () => _api.walletTopUpIntentCreate(body: const api.TopUpIntentRequest()),
+    );
+    return intent.toDomain();
+  }
+
+  @override
+  Future<TopUp> readTopUp(String reference) async {
+    // لا كتابة في الكاش ولا قراءة منه: حالة دفعة محفوظة تُقرأ بعد ساعة على
+    // أنها الآن. صمت الخادم هنا يبقى صمتاً، ويُعرض بوصفه انتظاراً لا نجاحاً.
+    final intent = await callApi(
+      () => _api.walletTopUpIntentRetrieve(reference: reference),
+    );
+    return intent.toDomain();
   }
 
   Future<Snapshot<WalletBalance>?> _readBalanceCache() async {

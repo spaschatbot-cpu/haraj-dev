@@ -1,5 +1,6 @@
 import '../../common/snapshot.dart';
 import '../entities/ledger_movement.dart';
+import '../entities/top_up.dart';
 import '../entities/wallet_balance.dart';
 
 /// عقد المحفظة.
@@ -19,4 +20,13 @@ abstract interface class WalletRepository {
     int page,
     WalletBucketKind? bucket,
   });
+
+  /// يفتح نيّة شحن بالبطاقة عند الخادم. بلا مبلغ: الخادم يحدّده.
+  Future<TopUp> startTopUp();
+
+  /// يقرأ حالة نيّة شحن من الخادم.
+  ///
+  /// **بلا `Snapshot` وبلا كاش عمداً.** حالة دفعة لا تُقرأ من نسخة محفوظة:
+  /// «تمّ الشحن» قديمة أسوأ من لا شيء — يقرؤها العميل على أنها الآن.
+  Future<TopUp> readTopUp(String reference);
 }

@@ -1,9 +1,12 @@
 import '../../domain/common/money.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
+import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../api/generated/models/ledger_entry.dart' as api;
 import '../api/generated/models/ledger_entry_direction.dart' as api;
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
+import '../api/generated/models/top_up_intent.dart' as api;
+import '../api/generated/models/top_up_intent_status.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../api/generated/models/wallet_bucket.dart' as api;
 import '../api/generated/models/wallet_bucket_kind.dart' as api;
@@ -94,5 +97,27 @@ extension LedgerDirectionMapper on api.LedgerEntryDirection {
     api.LedgerEntryDirection.valueIn => LedgerDirection.incoming,
     api.LedgerEntryDirection.out => LedgerDirection.outgoing,
     api.LedgerEntryDirection.$unknown => LedgerDirection.unknown,
+  };
+}
+
+extension TopUpMapper on api.TopUpIntent {
+  TopUp toDomain() => TopUp(
+    reference: reference,
+    money: Money(amount: amount, currency: currency),
+    checkoutUrl: redirectUrl,
+    status: status.toDomain(),
+    statusLabel: statusLabel,
+  );
+}
+
+extension TopUpStatusMapper on api.TopUpIntentStatus {
+  /// حالة جديدة من الخادم تصير `unknown`، ويبقى `status_label` هو ما يُعرض —
+  /// فالمستخدم يقرأ كلام الخادم حتى لو لم يعرف هذا الإصدار الحالةَ برمجياً.
+  TopUpStatus toDomain() => switch (this) {
+    api.TopUpIntentStatus.pending => TopUpStatus.pending,
+    api.TopUpIntentStatus.succeeded => TopUpStatus.succeeded,
+    api.TopUpIntentStatus.cancelled => TopUpStatus.cancelled,
+    api.TopUpIntentStatus.failed => TopUpStatus.failed,
+    api.TopUpIntentStatus.$unknown => TopUpStatus.unknown,
   };
 }

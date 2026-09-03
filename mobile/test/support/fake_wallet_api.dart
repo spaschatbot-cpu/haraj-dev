@@ -41,6 +41,9 @@ final class FakeWalletApi implements WalletApi {
   final List<String> askedReferences = <String>[];
   int topUpCreateCount = 0;
 
+  /// آخر جسم أُرسل لبدء الشحن — الدليل على أن التطبيق لم يرسل مبلغاً.
+  TopUpIntentRequest? lastTopUpRequest;
+
   int _statusReads = 0;
 
   @override
@@ -66,6 +69,7 @@ final class FakeWalletApi implements WalletApi {
     required TopUpIntentRequest body,
   }) async {
     topUpCreateCount++;
+    lastTopUpRequest = body;
     _throwIfFailing();
     return topUpIntent!;
   }

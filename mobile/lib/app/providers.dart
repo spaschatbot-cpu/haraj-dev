@@ -19,12 +19,16 @@ import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
+import '../data/wallet/url_checkout_launcher.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/usecases/sign_in_with_otp.dart';
+import '../domain/wallet/gateways/checkout_launcher.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
 import '../domain/wallet/usecases/load_wallet_transactions.dart';
+import '../domain/wallet/usecases/read_top_up_status.dart';
+import '../domain/wallet/usecases/start_card_top_up.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) => AppConfig.fromBuild());
 
@@ -100,4 +104,19 @@ final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
 
 final loadWalletTransactionsProvider = Provider<LoadWalletTransactions>(
   (ref) => LoadWalletTransactions(ref.watch(walletRepositoryProvider)),
+);
+
+final checkoutLauncherProvider = Provider<CheckoutLauncher>(
+  (ref) => const UrlCheckoutLauncher(),
+);
+
+final startCardTopUpProvider = Provider<StartCardTopUp>(
+  (ref) => StartCardTopUp(
+    repository: ref.watch(walletRepositoryProvider),
+    launcher: ref.watch(checkoutLauncherProvider),
+  ),
+);
+
+final readTopUpStatusProvider = Provider<ReadTopUpStatus>(
+  (ref) => ReadTopUpStatus(ref.watch(walletRepositoryProvider)),
 );
