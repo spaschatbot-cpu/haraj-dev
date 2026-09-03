@@ -16,6 +16,7 @@ class Vehicle {
     required this.title,
     required this.images,
     required this.specifications,
+    required this.reservePrice,
     required this.currentBidAmount,
     required this.currency,
     required this.biddingOpen,
@@ -31,6 +32,10 @@ class Vehicle {
   final String title;
   final List<String> images;
   final List<Specification> specifications;
+
+  /// نفس الحقل الذي يحمله الكرت — سعر واحد لا سعران
+  @JsonKey(name: 'reserve_price')
+  final String? reservePrice;
   @JsonKey(name: 'current_bid_amount')
   final String currentBidAmount;
   @JsonKey(name: 'minimum_next_bid_amount')

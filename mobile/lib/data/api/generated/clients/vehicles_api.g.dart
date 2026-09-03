@@ -23,12 +23,18 @@ class _VehiclesApi implements VehiclesApi {
   Future<PaginatedVehicleCardList> auctionVehiclesList({
     required String auctionId,
     String? search,
+    String? make,
+    int? yearFrom,
+    int? yearTo,
     int? page,
     int? pageSize,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
       r'search': search,
+      r'make': make,
+      r'year_from': yearFrom,
+      r'year_to': yearTo,
       r'page': page,
       r'page_size': pageSize,
     };

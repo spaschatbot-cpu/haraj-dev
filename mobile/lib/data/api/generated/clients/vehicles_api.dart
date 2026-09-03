@@ -19,6 +19,9 @@ abstract class VehiclesApi {
   Future<PaginatedVehicleCardList> auctionVehiclesList({
     @Path('auctionId') required String auctionId,
     @Query('search') String? search,
+    @Query('make') String? make,
+    @Query('year_from') int? yearFrom,
+    @Query('year_to') int? yearTo,
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
   });

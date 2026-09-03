@@ -14,6 +14,7 @@ Vehicle _$VehicleFromJson(Map<String, dynamic> json) => Vehicle(
   specifications: (json['specifications'] as List<dynamic>)
       .map((e) => Specification.fromJson(e as Map<String, dynamic>))
       .toList(),
+  reservePrice: json['reserve_price'] as String?,
   currentBidAmount: json['current_bid_amount'] as String,
   currency: json['currency'] as String,
   biddingOpen: json['bidding_open'] as bool,
@@ -26,6 +27,7 @@ Map<String, dynamic> _$VehicleToJson(Vehicle instance) => <String, dynamic>{
   'title': instance.title,
   'images': instance.images,
   'specifications': instance.specifications,
+  'reserve_price': instance.reservePrice,
   'current_bid_amount': instance.currentBidAmount,
   'minimum_next_bid_amount': instance.minimumNextBidAmount,
   'currency': instance.currency,
