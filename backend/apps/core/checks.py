@@ -43,9 +43,8 @@ def uploads_are_never_served_by_the_application(app_configs, **kwargs) -> list:
     from django.urls import get_resolver
 
     media_prefix = str(settings.MEDIA_URL).lstrip("/")
-    for pattern in get_resolver().url_patterns:
-        served = str(getattr(pattern, "pattern", ""))
-        if media_prefix and served.startswith(media_prefix):
+    for served in _routes_of(get_resolver()) if media_prefix else ():
+        if served.startswith(media_prefix):
             findings.append(
                 Error(
                     f"MEDIA_URL ({settings.MEDIA_URL}) is routed through Django "
@@ -86,6 +85,34 @@ def uploads_are_never_served_by_the_application(app_configs, **kwargs) -> list:
 
 def _is_within(candidate: Path, parent: Path) -> bool:
     return candidate == parent or parent in candidate.parents
+
+
+def _routes_of(resolver, prefix: str = ""):
+    """Every URL this resolver can reach, as the route a browser would type.
+
+    Two things the naive reading of `url_patterns` gets wrong, and both make the
+    check silent about exactly the line it was written for:
+
+    * a route is not its pattern's text. `path()` gives a `RoutePattern` whose
+      text is the route (`media/<path:path>`), but `re_path()` — and therefore
+      `django.conf.urls.static.static()`, the one-liner in the docstring above —
+      gives a `RegexPattern` whose text is `^media/(?P<path>.*)$`. Comparing
+      that to a `media/` prefix is a comparison that can never be true.
+    * `url_patterns` is one level. Nobody edits `config/urls.py` to serve their
+      uploads; they add the line to the app they already have open, and the
+      include hides it from a top-level walk.
+    """
+    from django.urls import URLResolver
+
+    for entry in resolver.url_patterns:
+        # `lstrip('^')` not `removeprefix`: an included regex contributes its
+        # own caret at every level, and what we are assembling is the route,
+        # not a regex that still has to match.
+        route = prefix + str(getattr(entry, "pattern", "")).lstrip("^")
+        if isinstance(entry, URLResolver):
+            yield from _routes_of(entry, route)
+        else:
+            yield route
 
 
 #: Every scope `apps.core.ratelimit` can be asked about. Listed here rather than
