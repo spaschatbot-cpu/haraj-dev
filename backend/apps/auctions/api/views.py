@@ -22,7 +22,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.auctions.cards import auction_card, card_queryset, vehicle_card
+from apps.auctions import favourites
+from apps.auctions.cards import (
+    auction_card,
+    card_queryset,
+    vehicle_card,
+    vehicle_cards,
+)
+from apps.auctions.favourites import Favourite
 from apps.auctions.listing import auction_page, vehicle_page, with_vehicle_counts
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.visibility import PUBLIC_AUCTION_STATES, visible_vehicles
@@ -31,6 +38,7 @@ from .serializers import (
     AuctionCardSerializer,
     AuctionPageSerializer,
     AuctionQuerySerializer,
+    PageQuerySerializer,
     VehicleCardSerializer,
     VehiclePageSerializer,
     VehicleQuerySerializer,
@@ -188,3 +196,83 @@ class VehicleDetailView(APIView):
         return Response(
             VehicleCardSerializer(vehicle_card(vehicle)).data, status=status.HTTP_200_OK
         )
+
+
+class FavouriteListView(APIView):
+    """`GET /api/v1/favourites/` — the cars this customer marked, newest first.
+
+    Rendered through `cards.vehicle_card`, like every other list of vehicles in
+    the product: a favourites screen that assembled its own row would be the
+    second card builder `ops/checks/one_vehicle_card.py` exists to refuse, and
+    the field that went missing from it would be missing only here.
+
+    The visibility rule still applies. A car marked while it was listed and
+    since withdrawn is not shown — a favourite is a bookmark, never a claim, and
+    it does not grant sight of a row its owner may no longer see.
+    """
+
+    @extend_schema(
+        operation_id="favourites_list",
+        parameters=[PageQuerySerializer],
+        responses={200: VehiclePageSerializer},
+        summary="المفضّلة",
+    )
+    def get(self, request: Request) -> Response:
+        query = _query(PageQuerySerializer, request)
+
+        marked = Favourite.objects.filter(user=request.user).values_list(
+            "vehicle_id", flat=True
+        )
+        queryset = visible_vehicles(request.user).filter(pk__in=marked)
+
+        total = queryset.count()
+        # Ordered by the mark, not by lot: this screen answers "what did I save",
+        # and the newest save is what the customer is looking for.
+        page = card_queryset(queryset).order_by("-favourited_by__created_at")[
+            query["offset"] : query["offset"] + query["limit"]
+        ]
+
+        return Response(
+            VehiclePageSerializer({"total": total, "results": vehicle_cards(page)}).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+class FavouriteView(APIView):
+    """`PUT` and `DELETE /api/v1/favourites/{id}/` — mark and unmark.
+
+    `PUT`, not `POST`, and both are idempotent: marking twice is marking once,
+    and unmarking something unmarked is not an error. That is what a
+    double-tapped heart and a retried request produce, and «هذه المركبة في
+    مفضّلتك بالفعل» is a refusal for a thing that already happened the way the
+    customer wanted.
+
+    Both answer `204`. There is nothing to return — the client already knows
+    which car it asked about, and a body here would be a second place the mark's
+    shape is described.
+    """
+
+    @extend_schema(
+        operation_id="favourites_mark",
+        request=None,
+        responses={204: None},
+        summary="إضافة إلى المفضّلة",
+    )
+    def put(self, request: Request, pk: int) -> Response:
+        vehicle = get_object_or_404(visible_vehicles(request.user), pk=pk)
+        favourites.mark(user=request.user, vehicle=vehicle)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(
+        operation_id="favourites_unmark",
+        request=None,
+        responses={204: None},
+        summary="إزالة من المفضّلة",
+    )
+    def delete(self, request: Request, pk: int) -> Response:
+        # No 404 for an unmarked car and no visibility check: removing a mark on
+        # a car that has since been withdrawn is exactly what a customer
+        # tidying their list does, and refusing it would leave a row they can
+        # see and cannot delete.
+        favourites.unmark(user=request.user, vehicle_id=pk)
+        return Response(status=status.HTTP_204_NO_CONTENT)

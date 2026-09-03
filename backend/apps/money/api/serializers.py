@@ -9,6 +9,7 @@ place that says "14 digits, 2 places".
 
 from __future__ import annotations
 
+from django.urls import reverse
 from rest_framework import serializers
 
 from apps.money.models import (
@@ -185,11 +186,13 @@ class PaymentIntentSerializer(serializers.ModelSerializer):
     amount = MoneyField(read_only=True)
     purpose_label = serializers.SerializerMethodField()
     state_label = serializers.SerializerMethodField()
+    checkout_url = serializers.SerializerMethodField()
 
     class Meta:
         model = PaymentIntent
         fields = [
             "reference",
+            "checkout_url",
             "amount",
             "currency",
             "purpose",
@@ -201,6 +204,37 @@ class PaymentIntentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_checkout_url(self, intent) -> str:
+        """Where to send this customer to pay, or `""` when nowhere.
+
+        A url on **our** server, never the gateway's. Both clients then have one
+        thing to do with it — send the customer there — and neither ever learns
+        what a Moyasar is; switching gateway changes `apps.money.gateway` and
+        rebuilds nothing (`docs` in that module say why at length).
+
+        Empty when the intent cannot be paid — because it is finished, or
+        because this environment has no gateway. A client showing a button for a
+        succeeded top-up offers to take a second deposit; one showing it with no
+        gateway sends a customer to a refusal. The absence of the control is the
+        correct interface for both, and the *server* produces that absence so
+        neither client has to remember to check.
+        """
+        from .. import gateway
+
+        try:
+            # Asked, not re-derived. The module decides whether this intent can
+            # be paid *right now* — which is two conditions, its state and
+            # whether a gateway is configured at all — and a serializer that
+            # checked one of them would offer a button in the environment that
+            # has no gateway.
+            gateway.checkout_target(intent)
+        except gateway.CheckoutUnavailable:
+            return ""
+
+        path = reverse("money:topup-checkout", args=[intent.reference])
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request is not None else path
 
     def get_purpose_label(self, intent) -> str:
         return label_for(PaymentPurpose, intent.purpose, "دفعة")

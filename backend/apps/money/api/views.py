@@ -18,6 +18,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
@@ -31,7 +32,7 @@ from rest_framework.views import APIView
 from apps.auctions.models import Auction, Vehicle
 from apps.core import jsonio
 from apps.core.exceptions import envelope
-from apps.money import services
+from apps.money import gateway, services
 from apps.money.models import (
     AccountKind,
     Entry,
@@ -157,6 +158,40 @@ class TopupDetailView(RetrieveAPIView):
 
     def get_queryset(self):
         return PaymentIntent.objects.filter(user=self.request.user)
+
+
+class TopupCheckoutView(APIView):
+    """Hand the customer over to the gateway. One hop, decided on the server.
+
+    A redirect and not a JSON body carrying a url: the client's whole job is to
+    send the customer here, and a `302` is what a browser and a webview both
+    already know how to follow. It also means the gateway's address never
+    reaches either client, which is the point of `apps.money.gateway` — see the
+    module docstring for why a "gateway url" field would have been the wrong
+    shape.
+
+    Nothing is charged here and no money moves. This is a signpost; the ledger
+    is touched by :class:`PaymentCallbackView` and by nothing else.
+    """
+
+    @extend_schema(request=None, responses={302: None, 409: None, 503: None})
+    def get(self, request, reference: str):
+        intent = get_object_or_404(PaymentIntent, reference=reference, user=request.user)
+
+        try:
+            target = gateway.checkout_target(intent)
+        except gateway.CheckoutUnavailable as refusal:
+            # 409 rather than 404: the intent exists and is this customer's, and
+            # it is the *state of the world* that refuses. A 404 would tell them
+            # their own top-up does not exist, which is both untrue and alarming
+            # when there is money involved.
+            return Response(
+                envelope("checkout_unavailable", refusal.user_message),
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        log.info("topup checkout: intent %s -> gateway", intent.reference)
+        return HttpResponseRedirect(target)
 
 
 class PaymentCallbackView(APIView):

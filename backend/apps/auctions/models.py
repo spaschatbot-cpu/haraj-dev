@@ -237,3 +237,16 @@ class VehicleImage(models.Model):
 
     def __str__(self) -> str:
         return f"صورة {self.position} للوت {self.vehicle_id}"
+
+
+# ---------------------------------------------------------------------------
+# المفضّلة — النموذج يعيش في `apps/auctions/favourites.py` مع خدماته.
+#
+# Imported here so Django's app registry finds it: a model defined outside
+# `models.py` is invisible to `makemigrations` unless something in `models.py`
+# imports it. Kept *next to its services* rather than moved here, because the
+# rules about a favourite — idempotent marking, one query for a whole page — are
+# what somebody reading it needs, and they are three lines away there.
+# ---------------------------------------------------------------------------
+
+from .favourites import Favourite  # noqa: E402,F401  (registration import)

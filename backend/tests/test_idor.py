@@ -50,6 +50,12 @@ EXEMPT = {
     # touch is a *bid*, and `bidding_api:withdraw-bid` below is the route that
     # carries one. `test_bidding_api.py` covers both directly.
     "bidding_api:place-bid",
+    # Same shape: the id names a car, and the row written or deleted is the
+    # *caller's own* mark on it. `PUT` creates a favourite belonging to whoever
+    # called; `DELETE` removes only theirs; there is no `GET`. A stranger
+    # marking a public car reaches nothing of anybody else's, and
+    # `apps/auctions/tests/test_favourites.py` covers the ownership directly.
+    "auctions_api:favourite-detail",
 }
 
 ID_IN_PATH = re.compile(r"<[^>]+>")
