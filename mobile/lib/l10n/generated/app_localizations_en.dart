@@ -30,6 +30,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get environmentStaging => 'Staging';
 
   @override
+  String get environmentProduction => 'Production';
+
+  @override
+  String environmentStampedMessage(String environment, String message) {
+    return '[$environment] $message';
+  }
+
+  @override
+  String get pushOpen => 'Open';
+
+  @override
   String get retry => 'Retry';
 
   @override

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/environment.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'environment_label.dart';
 
 /// لافتة تعرّف البيئة في كل بناء غير إنتاجي.
 ///
@@ -23,16 +24,9 @@ class EnvironmentBanner extends StatelessWidget {
     if (!environment.showsBanner) return child;
 
     final l10n = AppLocalizations.of(context);
-    final name = switch (environment) {
-      AppEnvironment.development => l10n.environmentDevelopment,
-      AppEnvironment.staging => l10n.environmentStaging,
-      // لا تصل: `showsBanner` تمنعها. الفرع مذكور كي يسقط التحويل عند إضافة
-      // بيئة جديدة بدل أن يبتلعها `default`.
-      AppEnvironment.production => l10n.environmentDevelopment,
-    };
 
     return Banner(
-      message: l10n.environmentBanner(name),
+      message: l10n.environmentBanner(environmentLabel(l10n, environment)),
       location: BannerLocation.topStart,
       child: child,
     );
