@@ -1,0 +1,31 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% block title %}المستخدمون{% endblock %}
+{% block heading %}المستخدمون{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم أو جوال أو رقم هوية">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead><tr><th>الاسم</th><th>الجوال</th><th>النوع</th><th>الهوية</th><th>مسجَّل منذ</th></tr></thead>
+    <tbody>
+      {% for customer in page %}
+        <tr>
+          <td><a href="{% url 'console:customer-detail' customer.pk %}">
+            {{ customer.full_name }}</a></td>
+          <td>{{ customer.phone }}</td>
+          <td>{{ customer.get_account_type_display }}</td>
+          <td>{{ customer.national_id|default:"—" }}</td>
+          <td>{{ customer.date_joined|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا مستخدمين مطابقين.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} مستخدماً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}
