@@ -29,6 +29,12 @@ export function PageShell({
             <Link href="/bids" className="text-neutral-700 hover:underline">
               مزايداتي
             </Link>
+            <Link href="/wallet" className="text-neutral-700 hover:underline">
+              محفظتي
+            </Link>
+            <Link href="/purchases" className="text-neutral-700 hover:underline">
+              مشترياتي
+            </Link>
             <Link href="/account" className="text-neutral-700 hover:underline">
               حسابي
             </Link>

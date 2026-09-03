@@ -44,8 +44,11 @@ const EXTENSIONS = [".ts", ".tsx"];
 const EXEMPT = new Set([
   // Generated from the schema; it declares the string types this file protects.
   join("web", "lib", "api", "schema.ts"),
-  // The guard's own test, which writes an offending file on purpose.
-  join("web", "lib", "__tests__", "money.test.ts"),
+  // The guard's own test (T1024/J4), which writes the four offending shapes as
+  // source strings and asserts each is caught. A guard nobody has watched fail
+  // is a promise, so proving it has to be possible — and the proof necessarily
+  // contains the thing being forbidden.
+  join("web", "lib", "__tests__", "wallet.test.ts"),
 ]);
 
 //: Identifiers that hold an amount. Taken from the contract's own field names,
