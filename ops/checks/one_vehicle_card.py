@@ -53,6 +53,23 @@ BACKEND = ROOT / "backend"
 CARDS = BACKEND / "apps" / "auctions" / "cards.py"
 MODELS = BACKEND / "apps" / "auctions" / "models.py"
 
+#: Files that name several card fields and are provably not building a card.
+#: Each is a decision recorded here, and each says why in a sentence somebody
+#: can disagree with at review time.
+NOT_A_CARD = {
+    # `apps/bidding/live.py` emits four *public* facts about a car on a live
+    # stream: its id, its state, that state's label, and its auction's state.
+    # It is not a card and must never become one — a card on every tick would
+    # put a price, a thumbnail url and a full specification on the wire every
+    # two seconds per connected customer, and the reason the live payload is
+    # small is the reason it is affordable at all.
+    #
+    # The guard's real subject is the *card*: one place assembles it so a field
+    # added appears everywhere. Nothing here would want a new card field, which
+    # is exactly the test of whether an exemption is honest.
+    BACKEND / "apps" / "bidding" / "live.py",
+}
+
 SKIP_PARTS = {"__pycache__", "migrations", ".venv", "node_modules"}
 THRESHOLD = 3
 
@@ -202,7 +219,7 @@ def violations(roots: list[Path], fields: set[str] | None = None) -> list[str]:
         if not root.exists():
             continue
         for path in sorted(root.rglob("*.py")):
-            if SKIP_PARTS & set(path.parts) or path == CARDS:
+            if SKIP_PARTS & set(path.parts) or path == CARDS or path in NOT_A_CARD:
                 continue
             hunter = CardHunter(fields, computed)
             hunter.visit(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))

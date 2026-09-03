@@ -20,4 +20,5 @@ urlpatterns = [
     ),
     path("bids/mine/", views.MyBidsView.as_view(), name="my-bids"),
     path("bids/<int:pk>/withdraw/", views.WithdrawBidView.as_view(), name="withdraw-bid"),
+    path("live/", views.LiveUpdatesView.as_view(), name="live-updates"),
 ]

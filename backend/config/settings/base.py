@@ -315,6 +315,17 @@ BID_THROTTLE_RATES: dict[str, str] = {
 # --------------------------------------------------------------------------
 
 PAYMENT_GATEWAY = env("PAYMENT_GATEWAY", default="moyasar")
+#: Where a customer is sent to pay, as a template the environment supplies.
+#:
+#: Empty by default, and `apps.money.gateway` refuses in Arabic when it is —
+#: an unconfigured integration must refuse rather than guess, because the guess
+#: here is a customer sent to a broken page with money in their hand.
+#:
+#: A template rather than code so that changing gateway is an environment
+#: decision. It may name `{reference}`, `{amount}` and `{currency}`; the
+#: reference is the only identifier that crosses, and the gateway never learns a
+#: user id (that is the whole reason `PaymentIntent` is written first).
+PAYMENT_CHECKOUT_TEMPLATE = env("PAYMENT_CHECKOUT_TEMPLATE", default="")
 PAYMENT_WEBHOOK_SECRET = env("PAYMENT_WEBHOOK_SECRET", default="")
 #: The gateway's own words for "the money arrived". Kept as data, because a new
 #: word from them must never be read as success by accident.
