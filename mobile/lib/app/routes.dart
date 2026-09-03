@@ -10,6 +10,12 @@ import '../domain/notifications/entities/push_destination.dart';
 /// شاشات المجموعة ب (T706–T715) تُركَّب على هذه المسارات نفسها ولا تخترع غيرها.
 abstract final class Routes {
   static const String seed = 'seed';
+  static const String home = 'home';
+  static const String signIn = 'signIn';
+  static const String verifyCode = 'verifyCode';
+  static const String profile = 'profile';
+  static const String companyProfile = 'companyProfile';
+  static const String changePhone = 'changePhone';
   static const String auction = 'auction';
   static const String vehicle = 'vehicle';
   static const String bids = 'bids';
@@ -18,6 +24,9 @@ abstract final class Routes {
   static const String invoice = 'invoice';
 
   static const String homePath = '/';
+  static const String signInPath = '/sign-in';
+  static const String verifyCodePath = '/sign-in/code';
+  static const String profilePath = '/profile';
   static const String auctionPath = '/auctions/:auctionId';
   static const String vehiclePath = '/vehicles/:vehicleId';
   static const String bidsPath = '/bids';

@@ -16,7 +16,9 @@ import pytest
 from django.urls import reverse
 from rest_framework.test import APIClient
 
+from apps.accounts import services
 from apps.accounts import tokens as token_service
+from apps.accounts.errors import NationalIdAlreadyVerified
 from apps.accounts.models import AccountType, Company, User
 
 pytestmark = pytest.mark.django_db
@@ -316,3 +318,43 @@ def test_one_customer_never_sees_anothers_company(api, user):
     Company.objects.create(user=stranger, **COMPLETE_COMPANY)
 
     assert api.get(reverse("accounts_api:profile-company")).status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# The locked fields, and why each one is locked
+# ---------------------------------------------------------------------------
+#
+# The Flutter profile screen (T715) must show a locked field *with its reason*.
+# The reason is sent from here rather than written in the client, because a
+# client that phrases the rule itself owns a second copy of it — and the copy
+# drifts the first time the rule changes here.
+
+
+def test_the_phone_is_locked_with_a_reason_that_points_at_its_own_path(api):
+    body = api.get(reverse("accounts_api:profile")).data
+
+    phone_lock = next(item for item in body["locked_fields"] if item["field"] == "phone")
+    assert phone_lock["reason"] == services.PHONE_LOCK_REASON
+    assert phone_lock["reason"].strip()
+
+
+def test_a_correctable_national_id_is_not_listed_as_locked(api, user):
+    user.national_id = MISTYPED_ID
+    user.save(update_fields=["national_id"])
+
+    body = api.get(reverse("accounts_api:profile")).data
+
+    # T606's first half: a customer who mistyped a digit finds an open field.
+    assert [item["field"] for item in body["locked_fields"]] == ["phone"]
+
+
+def test_a_verified_national_id_is_locked_with_the_refusals_own_sentence(api, user):
+    user.national_id = VALID_ID
+    user.save(update_fields=["national_id"])
+
+    body = api.get(reverse("accounts_api:profile")).data
+
+    lock = next(item for item in body["locked_fields"] if item["field"] == "national_id")
+    # The same sentence the PUT would refuse with. Two wordings for one rule is
+    # how a customer gets two different answers to the same question.
+    assert lock["reason"] == NationalIdAlreadyVerified.default_message

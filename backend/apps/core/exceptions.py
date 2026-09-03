@@ -33,6 +33,7 @@ from typing import Any
 from django.http import Http404
 from django.utils.module_loading import import_string
 from rest_framework import status
+from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 from rest_framework.views import set_rollback
@@ -175,6 +176,28 @@ def api_exception_handler(exc: Exception, context: dict) -> Response:
     # payment, for the same reason.
     if isinstance(exc, Http404):
         return Response(envelope("not_found"), status=status.HTTP_404_NOT_FOUND)
+
+    if isinstance(exc, Throttled):
+        # The seconds are the whole of what a throttled caller can act on, and
+        # the plain envelope drops them: DRF puts the wait in `Retry-After` and
+        # in an English sentence, and this handler keeps neither. So the client
+        # gets "try again later" with no later to wait for, and the only move
+        # left is to retry immediately — against the limit it just hit.
+        #
+        # `retry_after` rather than a sentence with a number in it: the wording
+        # is one thing (`MESSAGES["throttled"]`) and the countdown is another,
+        # and a screen that counts down needs the number, not a number inside a
+        # string it would have to parse back out.
+        # DRF has already rounded the wait up to whole seconds; keeping its
+        # value rather than recomputing one means the header and the envelope
+        # cannot disagree about when the window closes.
+        wait = int(exc.wait or 0)
+        log.warning("throttled: %s (view=%s, retry_after=%ss)", exc, view, wait)
+        return Response(
+            envelope("throttled", detail={"retry_after": wait}),
+            status=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(wait)},
+        )
 
     response = drf_exception_handler(exc, context)
     if response is not None:

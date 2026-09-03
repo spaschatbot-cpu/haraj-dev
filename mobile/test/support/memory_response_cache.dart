@@ -11,6 +11,9 @@ final class MemoryResponseCache implements ResponseCache {
 
   int writeCount = 0;
 
+  /// عدّاد التفريغ: «هل مُحي كاش العميل عند الخروج؟» سؤال أمني له جواب.
+  int clearCount = 0;
+
   @override
   Future<CachedDocument?> read(String key) async => _documents[key];
 
@@ -28,5 +31,8 @@ final class MemoryResponseCache implements ResponseCache {
   }
 
   @override
-  Future<void> clear() async => _documents.clear();
+  Future<void> clear() async {
+    clearCount++;
+    _documents.clear();
+  }
 }

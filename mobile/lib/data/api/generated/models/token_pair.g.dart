@@ -9,13 +9,17 @@ part of 'token_pair.dart';
 TokenPair _$TokenPairFromJson(Map<String, dynamic> json) => TokenPair(
   access: json['access'] as String,
   refresh: json['refresh'] as String,
-  accessExpiresAt: DateTime.parse(json['access_expires_at'] as String),
-  isNewUser: json['is_new_user'] as bool,
+  expiresIn: (json['expires_in'] as num).toInt(),
+  expiresAt: DateTime.parse(json['expires_at'] as String),
+  user: json['user'] == null
+      ? null
+      : AuthenticatedUser.fromJson(json['user'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$TokenPairToJson(TokenPair instance) => <String, dynamic>{
   'access': instance.access,
   'refresh': instance.refresh,
-  'access_expires_at': instance.accessExpiresAt.toIso8601String(),
-  'is_new_user': instance.isNewUser,
+  'expires_in': instance.expiresIn,
+  'expires_at': instance.expiresAt.toIso8601String(),
+  'user': instance.user,
 };

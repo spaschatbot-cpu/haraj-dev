@@ -94,5 +94,201 @@
         "format": "Hm"
       }
     }
+  },
+
+  "signInTitle": "الدخول أو إنشاء حساب",
+  "@signInTitle": {
+    "description": "عنوان شاشة الدخول — نفس المسار للتسجيل والدخول"
+  },
+
+  "signInIntro": "أدخل رقم جوالك ونرسل لك رمز تحقق.",
+  "@signInIntro": {},
+
+  "signInPhoneLabel": "رقم الجوال",
+  "@signInPhoneLabel": {},
+
+  "signInPhoneHint": "9665xxxxxxxx",
+  "@signInPhoneHint": {
+    "description": "شكل الرقم كما يقبله الخادم — تلميح لا تحقّق"
+  },
+
+  "signInSendCode": "إرسال رمز التحقق",
+  "@signInSendCode": {},
+
+  "verifyTitle": "رمز التحقق",
+  "@verifyTitle": {},
+
+  "verifySentTo": "أرسلنا رمزاً إلى {phone}",
+  "@verifySentTo": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+
+  "verifyCodeLabel": "رمز التحقق",
+  "@verifyCodeLabel": {},
+
+  "verifySubmit": "تأكيد ودخول",
+  "@verifySubmit": {},
+
+  "verifyFullNameLabel": "الاسم الكامل",
+  "@verifyFullNameLabel": {},
+
+  "verifyResend": "إعادة إرسال الرمز",
+  "@verifyResend": {},
+
+  "verifyChangePhone": "تعديل الرقم",
+  "@verifyChangePhone": {},
+
+  "verifyExpiresAt": "ينتهي الرمز الساعة {time}",
+  "@verifyExpiresAt": {
+    "description": "بالتوقيت السعودي — التحويل عند حافة العرض وحدها",
+    "placeholders": {
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "waitSeconds": "بعد {seconds} ثانية",
+  "@waitSeconds": {
+    "description": "عدّاد الانتظار قبل السماح بمحاولة جديدة — الثواني من الخادم",
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+
+  "profileTitle": "ملفي",
+  "@profileTitle": {},
+
+  "profileFullName": "الاسم",
+  "@profileFullName": {},
+
+  "profileEmail": "البريد الإلكتروني",
+  "@profileEmail": {},
+
+  "profilePhone": "رقم الجوال",
+  "@profilePhone": {},
+
+  "profileAccountType": "نوع الحساب",
+  "@profileAccountType": {},
+
+  "profileNationalId": "رقم الهوية",
+  "@profileNationalId": {},
+
+  "profileNationalIdMissing": "لم يُدخل بعد",
+  "@profileNationalIdMissing": {},
+
+  "profileNationalIdSave": "تثبيت رقم الهوية",
+  "@profileNationalIdSave": {},
+
+  "profileSave": "حفظ",
+  "@profileSave": {},
+
+  "profileSaved": "تم الحفظ",
+  "@profileSaved": {},
+
+  "profileCompanySection": "بيانات الشركة والعنوان الوطني",
+  "@profileCompanySection": {},
+
+  "profileCompanyComplete": "مكتملة",
+  "@profileCompanyComplete": {},
+
+  "profileCompanyIncomplete": "ناقصة",
+  "@profileCompanyIncomplete": {},
+
+  "profileCompanyMissing": "لا يوجد ملف شركة",
+  "@profileCompanyMissing": {},
+
+  "profileChangePhone": "تغيير رقم الجوال",
+  "@profileChangePhone": {},
+
+  "profileSignOut": "تسجيل الخروج",
+  "@profileSignOut": {},
+
+  "companyTitle": "ملف الشركة",
+  "@companyTitle": {},
+
+  "companyCreateHint": "لا يوجد ملف شركة لهذا الحساب. املأ البيانات لإنشائه.",
+  "@companyCreateHint": {},
+
+  "companyName": "اسم الشركة",
+  "@companyName": {},
+
+  "companyRepresentative": "اسم المفوَّض",
+  "@companyRepresentative": {},
+
+  "companyRegister": "السجل التجاري",
+  "@companyRegister": {},
+
+  "companyVatNumber": "الرقم الضريبي",
+  "@companyVatNumber": {},
+
+  "companyNationalAddress": "العنوان الوطني",
+  "@companyNationalAddress": {},
+
+  "companyBuildingNumber": "رقم المبنى",
+  "@companyBuildingNumber": {},
+
+  "companyStreet": "الشارع",
+  "@companyStreet": {},
+
+  "companyDistrict": "الحي",
+  "@companyDistrict": {},
+
+  "companyCity": "المدينة",
+  "@companyCity": {},
+
+  "companyPostalCode": "الرمز البريدي",
+  "@companyPostalCode": {},
+
+  "companySave": "حفظ بيانات الشركة",
+  "@companySave": {},
+
+  "changePhoneTitle": "تغيير رقم الجوال",
+  "@changePhoneTitle": {},
+
+  "changePhoneIntro": "نرسل رمزاً إلى رقمك الحالي ورمزاً إلى الرقم الجديد. التغيير يحتاج الرمزين معاً.",
+  "@changePhoneIntro": {
+    "description": "سبب الرمزين — الرقم الجديد وحده كان مسار الاستيلاء على الحساب في v1"
+  },
+
+  "changePhoneNewLabel": "الرقم الجديد",
+  "@changePhoneNewLabel": {},
+
+  "changePhoneSendCodes": "إرسال الرمزين",
+  "@changePhoneSendCodes": {},
+
+  "changePhoneSentNotice": "أرسلنا رمزاً إلى رقمك الحالي ورمزاً إلى {phone}.",
+  "@changePhoneSentNotice": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+
+  "changePhoneCurrentCode": "الرمز المُرسَل إلى رقمك الحالي",
+  "@changePhoneCurrentCode": {},
+
+  "changePhoneNewCode": "الرمز المُرسَل إلى الرقم الجديد",
+  "@changePhoneNewCode": {},
+
+  "changePhoneConfirm": "تأكيد التغيير",
+  "@changePhoneConfirm": {},
+
+  "changePhoneDone": "تغيّر رقمك، وانتهت الجلسات المفتوحة. سجّل الدخول بالرقم الجديد.",
+  "@changePhoneDone": {
+    "description": "الخادم يُلغي كل الجلسات عند نجاح التغيير، فالخروج جزء من النجاح لا عطل"
+  },
+
+  "sessionExpiredNotice": "انتهت جلستك. سجّل الدخول من جديد.",
+  "@sessionExpiredNotice": {
+    "description": "يُعرض عند إعادة التوجيه بعد 401 لم ينفع معه التجديد"
   }
 }

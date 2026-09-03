@@ -14,6 +14,12 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 flutter pub get
+
+# يُمحى المجلد قبل التوليد: swagger_parser يكتب ولا يحذف، فنموذجٌ حُذف من
+# المخطط يبقى ملفاً يتيماً يُصرَّف ويُستورَد — ولا تلتقطه بوابة `git diff` في
+# CI لأنه لم يتغيّر. المجلد كله مولَّد، فمحوه لا يفقد شيئاً.
+rm -rf lib/data/api/generated
+
 dart run swagger_parser
 dart run build_runner build
 dart format lib/data/api/generated

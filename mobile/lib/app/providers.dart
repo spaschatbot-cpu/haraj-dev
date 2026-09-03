@@ -21,15 +21,20 @@ import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
 import '../data/notifications/device_registry_impl.dart';
 import '../data/notifications/unconfigured_push_service.dart';
+import '../data/profile/profile_repository_impl.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/auth/repositories/auth_repository.dart';
-import '../domain/auth/usecases/sign_in_with_otp.dart';
+import '../domain/auth/session_signal.dart';
+import '../domain/auth/usecases/change_phone_number.dart';
+import '../domain/auth/usecases/sign_in_with_code.dart';
 import '../domain/auth/usecases/sign_out.dart';
 import '../domain/notifications/repositories/device_registry.dart';
 import '../domain/notifications/repositories/push_service.dart';
 import '../domain/notifications/usecases/forget_this_device.dart';
 import '../domain/notifications/usecases/register_this_device.dart';
 import '../domain/notifications/usecases/resolve_push_destination.dart';
+import '../domain/profile/repositories/profile_repository.dart';
+import '../domain/profile/usecases/manage_profile.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -44,6 +49,15 @@ final appConfigProvider = Provider<AppConfig>((ref) => AppConfig.fromBuild());
 final secureTokenStoreProvider = Provider<SecureTokenStore>(
   (ref) => SecureTokenStore.platformDefault(),
 );
+
+/// إشارة سقوط الجلسة: يرفعها اعتراض المصادقة، ويسمعها الموجّه.
+///
+/// تُبنى هنا لأن الطرفين لا يعرف أحدهما الآخر، وهذا الملف وحده يعرفهما معاً.
+final sessionSignalProvider = Provider<SessionSignal>((ref) {
+  final signal = SessionSignal();
+  ref.onDispose(signal.dispose);
+  return signal;
+});
 
 final cacheDatabaseProvider = Provider<CacheDatabase>((ref) {
   final database = CacheDatabase.onDevice();
@@ -78,6 +92,7 @@ final _authenticatedDioProvider = Provider<Dio>((ref) {
         tokens: ref.watch(secureTokenStoreProvider),
         refreshSession: ref.watch(_sessionRefresherProvider).refresh,
         retryClient: ref.watch(_plainDioProvider),
+        onSessionLost: ref.watch(sessionSignalProvider).reportLost,
       ),
     ],
   );
@@ -92,6 +107,13 @@ final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => AuthRepositoryImpl(
     api: ref.watch(apiClientProvider).auth,
     tokens: ref.watch(secureTokenStoreProvider),
+    cache: ref.watch(responseCacheProvider),
+  ),
+);
+
+final profileRepositoryProvider = Provider<ProfileRepository>(
+  (ref) => ProfileRepositoryImpl(
+    api: ref.watch(apiClientProvider).profile,
     cache: ref.watch(responseCacheProvider),
   ),
 );
@@ -131,8 +153,16 @@ final forgetThisDeviceProvider = Provider<ForgetThisDevice>(
   ),
 );
 
-final signInWithOtpProvider = Provider<SignInWithOtp>(
-  (ref) => SignInWithOtp(ref.watch(authRepositoryProvider)),
+final signInWithCodeProvider = Provider<SignInWithCode>(
+  (ref) => SignInWithCode(ref.watch(authRepositoryProvider)),
+);
+
+final changePhoneNumberProvider = Provider<ChangePhoneNumber>(
+  (ref) => ChangePhoneNumber(ref.watch(authRepositoryProvider)),
+);
+
+final manageProfileProvider = Provider<ManageProfile>(
+  (ref) => ManageProfile(ref.watch(profileRepositoryProvider)),
 );
 
 /// الخروج يمرّ من هنا وحده.

@@ -48,6 +48,10 @@ NOT_MONEY = {
     "open_vehicle_count",
     # How many rows the query matched — paging, not money.
     "total",
+    # Fields a customer may read and not write, each with its Arabic reason.
+    # It carries the word "locked" for the same reason `insurance_locked` does,
+    # and means the opposite kind of lock — a form field, not riyals.
+    "locked_fields",
 }
 
 

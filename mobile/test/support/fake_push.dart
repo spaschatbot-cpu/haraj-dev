@@ -110,13 +110,29 @@ final class FakeAuthRepository implements AuthRepository {
     signedIn = false;
   }
 
+  // بقية العقد لا يعني هذه الاختبارات: ما يُختبَر هنا هو تسجيل الجهاز والخروج.
+  // ترمي بدل أن ترجع فارغاً كي ينكشف أي استدعاء غير متوقَّع بدل أن يمرّ صامتاً.
   @override
-  Future<OtpChallenge> requestOtp({required String phone}) =>
+  Future<CodeDelivery> sendCode({
+    required String phone,
+    CodePurpose purpose = CodePurpose.login,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<AuthSession> verifyCode({
+    required String phone,
+    required String code,
+    String fullName = '',
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PhoneChangeCodes> startPhoneChange({required String newPhone}) =>
       throw UnimplementedError();
 
   @override
-  Future<AuthSession> verifyOtp({
-    required String phone,
-    required String code,
+  Future<void> confirmPhoneChange({
+    required String newPhone,
+    required String currentCode,
+    required String newCode,
   }) => throw UnimplementedError();
 }

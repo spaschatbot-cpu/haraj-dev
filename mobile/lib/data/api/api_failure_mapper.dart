@@ -71,13 +71,18 @@ abstract final class ApiFailureMapper {
       );
     }
 
-    final details = exception.response?.data;
+    // `error.detail` وحده، لا الجسم كله: الجسم يحمل `code` و`message` وهما
+    // حقلان قائمان بذاتهما هنا، وتمريره كاملاً يغري قارئاً لاحقاً بالتنقيب
+    // فيه عن رسالة ثانية.
+    final detail = envelope.error.detail;
     return ApiFailure(
       code: envelope.error.code,
       // تُعرض كما جاءت. لا `if (code == ...) return 'نص عندنا'`.
       message: envelope.error.message,
       statusCode: response?.statusCode,
-      details: details is Map<String, Object?> ? details : null,
+      details: detail is Map
+          ? detail.map((key, value) => MapEntry(key.toString(), value))
+          : null,
     );
   }
 
