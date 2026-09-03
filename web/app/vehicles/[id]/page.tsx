@@ -33,10 +33,12 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { BidBox } from "@/features/bidding/BidBox";
+import { LiveBids, type LiveBid } from "@/features/bidding/LiveBids";
+import { FavouriteButton } from "@/features/favourites/FavouriteButton";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { takeFlash } from "@/lib/flash";
-import { hasSession } from "@/lib/session";
+import { authHeader, hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
 import { amount, count } from "@/lib/format";
@@ -92,6 +94,50 @@ export default async function VehiclePage({ params }: Params) {
   const store = await cookies();
   const signedIn = hasSession(store);
   const flash = takeFlash(store);
+
+  // Whether *this* customer has marked this car. Read from the server rather
+  // than remembered in the browser: a heart that reflects a client-side toggle
+  // shows filled for a request that failed, and the car is missing from the
+  // list later with no clue when it went.
+  // The caller's standing bid on this car, rendered by the server so the live
+  // component has something correct to show before it connects — and so a
+  // visitor whose script never runs still sees a true number.
+  let standing: LiveBid | null = null;
+  let marked = false;
+  if (signedIn) {
+    try {
+      const mine = await request(() =>
+        api.GET("/api/v1/bids/mine/", {
+          headers: authHeader(store),
+          params: { query: { limit: 100, offset: 0 } },
+        }),
+      );
+      standing =
+        ((mine.results ?? []).find(
+          (row) => (row as { vehicle_id: number }).vehicle_id === vehicle.id,
+        ) as LiveBid | undefined) ?? null;
+    } catch {
+      standing = null;
+    }
+
+    try {
+      const saved = await request(() =>
+        api.GET("/api/v1/favourites/", {
+          headers: authHeader(store),
+          params: { query: { limit: 100, offset: 0 } },
+        }),
+      );
+      marked = (saved.results ?? []).some(
+        (row) => (row as { id: number }).id === vehicle.id,
+      );
+    } catch {
+      // A favourites read that fails must not take the page down with it. The
+      // car, its price and its specification are what this page is for, and a
+      // hollow heart is a smaller loss than a 500 on a page arriving from a
+      // search result.
+      marked = false;
+    }
+  }
 
   const structured = {
     "@context": "https://schema.org",
@@ -167,9 +213,18 @@ export default async function VehiclePage({ params }: Params) {
         <div>
           <h1 className="text-2xl font-bold">{vehicle.title}</h1>
 
-          <p className="mt-2 text-sm text-neutral-600">
-            {vehicle.state_label} · لوت {count(vehicle.lot_number)}
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p className="text-sm text-neutral-600">
+              {vehicle.state_label} · لوت {count(vehicle.lot_number)}
+            </p>
+            {signedIn ? (
+              <FavouriteButton
+                vehicleId={vehicle.id}
+                marked={marked}
+                back={`/vehicles/${vehicle.id}`}
+              />
+            ) : null}
+          </div>
 
           <p className="mt-6 flex items-baseline gap-2">
             <span className="text-neutral-500">سعر الوقوف</span>
@@ -197,7 +252,10 @@ export default async function VehiclePage({ params }: Params) {
           />
 
           {signedIn ? (
-            <BidBox vehicleId={vehicle.id} flash={flash} />
+            <>
+              <LiveBids vehicleId={vehicle.id} initial={standing} />
+              <BidBox vehicleId={vehicle.id} flash={flash} />
+            </>
           ) : (
             /*
               A link, not a disabled box. Somebody who is not signed in cannot
