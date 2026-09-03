@@ -8,26 +8,26 @@
  * `apps/bidding/eligibility.py`, which has its own guard on the backend side
  * (phase 006) refusing any second reader of the facts eligibility is decided on.
  *
- * This is the same guard pointed at `web/`. What it refuses is the web forming
- * an opinion about whether somebody may bid:
+ * This is the same rule pointed at `web/`, and it is enforced differently for a
+ * reason worth stating up front: on the backend, *reading* one of those facts
+ * outside the gate is deciding with it, so reading is what is forbidden. In the
+ * web the opposite is true — showing a deposit, a held balance or an outstanding
+ * amount is this product's wallet screen, and a guard that forbade naming them
+ * would forbid the feature.
  *
- * 1. **reading an eligibility fact** — a deposit, dues, a hold, an exception, a
- *    verification flag. The web may render a number the server sent; it may not
- *    look one up in order to decide something;
- * 2. **comparing an amount against a floor** — `amount < minimum`,
- *    `>= deposit_required`. A minimum computed here is a bid the web refuses
- *    that the server would have taken, or offers that the server will refuse;
- * 3. **naming a refusal reason** — writing `no_deposit` or `unpaid_dues` in the
- *    web is writing a second copy of a closed set, and the copy is what goes
- *    stale when a reason is added.
+ * So it refuses the two shapes that are unambiguous:
  *
- * Why (3) is worth forbidding even though it looks harmless
- * ---------------------------------------------------------
- * A screen that branches on a reason is one step from a screen that *phrases*
- * that reason, and a phrase here is a sentence that disagrees with the app's for
- * the same refusal. The server sends `message` ready to render; a channel that
- * needs to know which reason it is, to do something other than display it, is a
- * channel making a decision.
+ * 1. **two eligibility fields compared with each other** — «هل معه ما يكفي؟» has
+ *    exactly that shape and no innocent construct does. A screen that shows a
+ *    number renders it; a screen that decides weighs it against another;
+ * 2. **a refusal reason spelled out in shipped code** — `no_deposit`,
+ *    `unpaid_dues`. A screen that branches on one is a step from a screen that
+ *    *phrases* it, and a phrase here is a sentence that disagrees with the app's
+ *    about the same refusal. The server sends `message` ready to render.
+ *
+ * A price compared against a floor — `amount < minimum_bid` — is the same class
+ * of mistake and is caught by `web_money_is_never_computed.mjs`, which owns the
+ * money names. Two guards, no overlap, and neither guessing.
  *
  * Run:  node ops/checks/web_no_eligibility_logic.mjs
  */
@@ -48,6 +48,10 @@ const EXEMPT = new Set([
   join("web", "lib", "api", "schema.ts"),
   // Writes offending files on purpose, to prove this guard can fail.
   join("web", "lib", "__tests__", "bidding.test.ts"),
+  // Proves these guards can fail, by seeding each forbidden shape as a source
+  // string. A guard nobody has watched fail is a promise — and this file is
+  // where one that matched nothing was caught.
+  join("web", "lib", "__tests__", "contract.test.ts"),
 ]);
 
 //: The fields a bid's eligibility is decided from, named as the API sends them.
