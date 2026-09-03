@@ -19,7 +19,11 @@ Two things this file deliberately does *not* offer:
 
 from __future__ import annotations
 
+import time
+
+from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -28,7 +32,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.visibility import visible_vehicles
-from apps.bidding import services
+from apps.bidding import live, services
 from apps.bidding.models import Bid
 from apps.bidding.throttling import BID_THROTTLES
 
@@ -154,3 +158,91 @@ class MyBidsView(APIView):
             ).data,
             status=status.HTTP_200_OK,
         )
+
+
+class LiveUpdatesView(APIView):
+    """`GET /api/v1/live/` — server-sent events for the signed-in caller.
+
+    A long-lived `text/event-stream`: the client opens it once and is told when
+    something it may see has changed, instead of asking every two seconds. What
+    may be seen is `apps.bidding.live`'s decision — **the caller's own bids and
+    public states, never another bidder's number** — and that module's docstring
+    is where the reasoning lives.
+
+    Streaming without Channels
+    --------------------------
+    A `StreamingHttpResponse` over the ASGI application already in
+    `config/asgi.py`. No Channels, no Redis, no second process: the added
+    infrastructure would be a second thing to deploy, monitor and get wrong, and
+    what it buys — push instead of a two-second re-derivation — is not
+    perceptible to a person.
+
+    The cost is one connection held per watching customer and one small query
+    per connection per tick. That is a real cost and it is stated rather than
+    hidden: it is the number to watch when this platform gets busy, and the
+    moment it stops being acceptable is the moment Channels earns its place.
+
+    Every stream ends
+    -----------------
+    After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
+    stream that lives forever outlives the deploy that replaced the code running
+    it, and the reconnect is what gets the customer onto the current version.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="live_updates",
+        request=None,
+        responses={(200, "text/event-stream"): OpenApiTypes.STR},
+        summary="التحديث الحي",
+    )
+    def get(self, request: Request) -> StreamingHttpResponse:
+        response = StreamingHttpResponse(
+            _live_frames(request.user, since=request.headers.get("Last-Event-ID", "")),
+            content_type="text/event-stream",
+        )
+        # Buffering is what makes an event stream arrive in one lump at the end.
+        # `X-Accel-Buffering` is nginx's switch and is harmless elsewhere; the
+        # cache headers stop a proxy storing a stream that is different every
+        # time it is read.
+        response["Cache-Control"] = "no-cache, no-transform"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
+
+def _live_frames(user, *, since: str):
+    """Emit a frame when the caller's picture changes, and a heartbeat otherwise.
+
+    The first frame is always sent, even when it matches `since`: a client that
+    has just connected needs the current state to render, and «nothing changed»
+    is indistinguishable to it from «not connected yet».
+
+    The heartbeat is what lets a client show «انقطع الاتصال» honestly. Without
+    it a dead connection and a quiet one look identical, and a bid amount from
+    ten minutes ago sits on screen looking current — which the task calls out
+    directly: *رقم مزايدة قديم يبدو حياً أسوأ من لا رقم*.
+    """
+    started = time.monotonic()
+    last = since
+
+    # `: ` is an SSE comment. Sent immediately so the connection is established
+    # in the client's eyes before the first tick, rather than looking stalled
+    # for two seconds.
+    yield ": connected\n\n"
+    yield f"retry: {live.INTERVAL_SECONDS * 1000}\n\n"
+
+    first = True
+    while time.monotonic() - started < live.MAX_STREAM_SECONDS:
+        snapshot = live.snapshot_for(user)
+
+        if first or snapshot.digest != last:
+            yield snapshot.as_event()
+            last = snapshot.digest
+            first = False
+        else:
+            yield ": heartbeat\n\n"
+
+        time.sleep(live.INTERVAL_SECONDS)
+
+    yield "event: reconnect\ndata: {}\n\n"

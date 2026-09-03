@@ -635,6 +635,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/Invoice'
           description: ''
+  /api/v1/live/:
+    get:
+      operationId: live_updates
+      description: |-
+        `GET /api/v1/live/` — server-sent events for the signed-in caller.
+
+        A long-lived `text/event-stream`: the client opens it once and is told when
+        something it may see has changed, instead of asking every two seconds. What
+        may be seen is `apps.bidding.live`'s decision — **the caller's own bids and
+        public states, never another bidder's number** — and that module's docstring
+        is where the reasoning lives.
+
+        Streaming without Channels
+        --------------------------
+        A `StreamingHttpResponse` over the ASGI application already in
+        `config/asgi.py`. No Channels, no Redis, no second process: the added
+        infrastructure would be a second thing to deploy, monitor and get wrong, and
+        what it buys — push instead of a two-second re-derivation — is not
+        perceptible to a person.
+
+        The cost is one connection held per watching customer and one small query
+        per connection per tick. That is a real cost and it is stated rather than
+        hidden: it is the number to watch when this platform gets busy, and the
+        moment it stops being acceptable is the moment Channels earns its place.
+
+        Every stream ends
+        -----------------
+        After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
+        stream that lives forever outlives the deploy that replaced the code running
+        it, and the reconnect is what gets the customer onto the current version.
+      summary: التحديث الحي
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            text/event-stream:
+              schema:
+                type: string
+          description: ''
   /api/v1/payments/callback/:
     post:
       operationId: v1_payments_callback_create
