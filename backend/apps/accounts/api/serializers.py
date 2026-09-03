@@ -112,6 +112,18 @@ class TokenPairSerializer(serializers.Serializer):
     user = AuthenticatedUserSerializer(required=False)
 
 
+class LockedFieldSerializer(serializers.Serializer):
+    """A field the customer can read but not write, and why not.
+
+    `reason` is Arabic and ready to put on a screen. It is a sentence rather
+    than a code because there is no behaviour to branch on — the client shows
+    the field closed and prints this beside it.
+    """
+
+    field = serializers.CharField()
+    reason = serializers.CharField(help_text="سبب عربي جاهز للعرض")
+
+
 class ProfileSerializer(serializers.Serializer):
     """The caller's own account, as a screen shows it.
 
@@ -132,6 +144,7 @@ class ProfileSerializer(serializers.Serializer):
     phone_verified_at = serializers.DateTimeField(read_only=True, allow_null=True)
     has_company_profile = serializers.BooleanField(read_only=True)
     company_profile_complete = serializers.BooleanField(read_only=True)
+    locked_fields = LockedFieldSerializer(many=True, read_only=True)
 
 
 class ProfileUpdateSerializer(serializers.Serializer):

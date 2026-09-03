@@ -50,6 +50,7 @@ def profile_of(user) -> dict:
         "phone_verified_at": user.phone_verified_at,
         "has_company_profile": company is not None,
         "company_profile_complete": services.company_profile_is_complete(company),
+        "locked_fields": services.locked_fields(user),
     }
 
 

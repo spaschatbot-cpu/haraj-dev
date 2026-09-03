@@ -496,6 +496,41 @@ def confirm_phone_change(
 EDITABLE_PROFILE_FIELDS = frozenset({"full_name", "email"})
 
 
+#: Why the number a customer signs in with is not a box on the profile form.
+#: The sentence lives here because the *rule* lives here (T604), and a client
+#: that phrases it again is a second copy of a rule the server owns — the two
+#: wordings drift, and the customer hears two answers to one question
+#: (Article 4-5). Both clients render what this returns, unchanged.
+PHONE_LOCK_REASON = "رقم الجوال يتغيّر بتأكيد رمزين — من صفحة تغيير رقم الجوال."
+
+
+def locked_fields(user: User) -> list[dict[str, str]]:
+    """The fields this account can see but not edit here, each with its reason.
+
+    Computed per account rather than listed once, because the national id is
+    locked only when it is *right* (T606): a customer who mistyped a digit must
+    find an open field, and one whose id checks out finds a closed one carrying
+    the same sentence the refusal would have given them — the refusal's own
+    sentence, not a copy of it.
+
+    Sent to the client rather than left for it to infer, because "read-only" and
+    "read-only *because*" are different screens. The v1 app showed a greyed-out
+    phone box with no explanation, and support answered "why can't I change my
+    number" all day.
+    """
+    locked = [{"field": "phone", "reason": PHONE_LOCK_REASON}]
+
+    if identity.is_valid(user.national_id):
+        locked.append(
+            {
+                "field": "national_id",
+                "reason": NationalIdAlreadyVerified.default_message,
+            }
+        )
+
+    return locked
+
+
 def update_profile(*, user: User, changes: dict) -> User:
     """Apply ``changes`` to ``user``, refusing anything not in the allowlist.
 

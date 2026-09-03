@@ -1648,6 +1648,23 @@ components:
       - memo
       - occurred_at
       - transaction
+    LockedField:
+      type: object
+      description: |-
+        A field the customer can read but not write, and why not.
+
+        `reason` is Arabic and ready to put on a screen. It is a sentence rather
+        than a code because there is no behaviour to branch on — the client shows
+        the field closed and prints this beside it.
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
+          description: سبب عربي جاهز للعرض
+      required:
+      - field
+      - reason
     MethodEnum:
       enum:
       - balance
@@ -1918,6 +1935,11 @@ components:
         company_profile_complete:
           type: boolean
           readOnly: true
+        locked_fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/LockedField'
+          readOnly: true
       required:
       - account_type
       - company_profile_complete
@@ -1925,6 +1947,7 @@ components:
       - full_name
       - has_company_profile
       - id
+      - locked_fields
       - national_id
       - national_id_verified
       - phone

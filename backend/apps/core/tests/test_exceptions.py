@@ -13,7 +13,12 @@ from decimal import Decimal
 import pytest
 from django.urls import path
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    PermissionDenied,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIClient
 
@@ -56,6 +61,12 @@ def raise_validation_error(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def raise_throttled(request):
+    raise Throttled(wait=42.7)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def raise_unexpected(request):
     raise RuntimeError("the database password is hunter2 and the disk is on fire")
 
@@ -66,6 +77,7 @@ urlpatterns = [
     path("boom/missing", raise_not_found),
     path("boom/forbidden", raise_permission_denied),
     path("boom/invalid", raise_validation_error),
+    path("boom/throttled", raise_throttled),
     path("boom/unexpected", raise_unexpected),
 ]
 
@@ -181,3 +193,36 @@ class TestEnvelope:
         body = envelope("something_we_never_named")
         assert body["error"]["message"] == "تعذّر تنفيذ الطلب"
         assert body["error"]["detail"] == {}
+
+
+class TestAThrottledCallerIsToldHowLongToWait:
+    """The wait is the only thing a throttled caller can act on.
+
+    Without it the client's only move is to retry now, against the limit it just
+    hit — which is how a rate limit turns into a retry storm.
+    """
+
+    def test_the_seconds_travel_in_the_envelope(self, api):
+        response = api.get("/boom/throttled")
+
+        assert response.status_code == 429
+        body = response.json()
+        assert_envelope(body)
+        assert body["error"]["code"] == "throttled"
+        # Whole seconds, rounded **up** — DRF ceils the wait, and telling a
+        # caller to come back at 42 when the window closes at 42.7 is telling
+        # them to come back to a second refusal.
+        assert body["error"]["detail"] == {"retry_after": 43}
+
+    def test_the_arabic_is_the_one_in_the_wording_table(self, api):
+        body = api.get("/boom/throttled").json()
+
+        # The number lives in `detail`, never inside the sentence: one wording
+        # for the rule (Article 4-5), and a client that counts down needs the
+        # number as a number.
+        assert body["error"]["message"] == MESSAGES["throttled"]
+
+    def test_the_retry_after_header_survives(self, api):
+        # DRF sets this header and the plain envelope path drops it. Proxies and
+        # HTTP clients read it without knowing our envelope at all.
+        assert api.get("/boom/throttled")["Retry-After"] == "43"
