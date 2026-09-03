@@ -249,6 +249,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/favourites/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * المفضّلة
+         * @description `GET /api/v1/favourites/` — the cars this customer marked, newest first.
+         *
+         *     Rendered through `cards.vehicle_card`, like every other list of vehicles in
+         *     the product: a favourites screen that assembled its own row would be the
+         *     second card builder `ops/checks/one_vehicle_card.py` exists to refuse, and
+         *     the field that went missing from it would be missing only here.
+         *
+         *     The visibility rule still applies. A car marked while it was listed and
+         *     since withdrawn is not shown — a favourite is a bookmark, never a claim, and
+         *     it does not grant sight of a row its owner may no longer see.
+         */
+        get: operations["favourites_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/favourites/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * إضافة إلى المفضّلة
+         * @description `PUT` and `DELETE /api/v1/favourites/{id}/` — mark and unmark.
+         *
+         *     `PUT`, not `POST`, and both are idempotent: marking twice is marking once,
+         *     and unmarking something unmarked is not an error. That is what a
+         *     double-tapped heart and a retried request produce, and «هذه المركبة في
+         *     مفضّلتك بالفعل» is a refusal for a thing that already happened the way the
+         *     customer wanted.
+         *
+         *     Both answer `204`. There is nothing to return — the client already knows
+         *     which car it asked about, and a body here would be a second place the mark's
+         *     shape is described.
+         */
+        put: operations["favourites_mark"];
+        post?: never;
+        /**
+         * إزالة من المفضّلة
+         * @description `PUT` and `DELETE /api/v1/favourites/{id}/` — mark and unmark.
+         *
+         *     `PUT`, not `POST`, and both are idempotent: marking twice is marking once,
+         *     and unmarking something unmarked is not an error. That is what a
+         *     double-tapped heart and a retried request produce, and «هذه المركبة في
+         *     مفضّلتك بالفعل» is a refusal for a thing that already happened the way the
+         *     customer wanted.
+         *
+         *     Both answer `204`. There is nothing to return — the client already knows
+         *     which car it asked about, and a body here would be a second place the mark's
+         *     shape is described.
+         */
+        delete: operations["favourites_unmark"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/invoices/": {
         parameters: {
             query?: never;
@@ -295,6 +368,51 @@ export interface paths {
          *     There is no card branch here and no card purpose to reach for: a purchase is
          *     paid from deposited money or by a bank transfer the bank confirms. */
         post: operations["v1_invoices_pay_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/live/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * التحديث الحي
+         * @description `GET /api/v1/live/` — server-sent events for the signed-in caller.
+         *
+         *     A long-lived `text/event-stream`: the client opens it once and is told when
+         *     something it may see has changed, instead of asking every two seconds. What
+         *     may be seen is `apps.bidding.live`'s decision — **the caller's own bids and
+         *     public states, never another bidder's number** — and that module's docstring
+         *     is where the reasoning lives.
+         *
+         *     Streaming without Channels
+         *     --------------------------
+         *     A `StreamingHttpResponse` over the ASGI application already in
+         *     `config/asgi.py`. No Channels, no Redis, no second process: the added
+         *     infrastructure would be a second thing to deploy, monitor and get wrong, and
+         *     what it buys — push instead of a two-second re-derivation — is not
+         *     perceptible to a person.
+         *
+         *     The cost is one connection held per watching customer and one small query
+         *     per connection per tick. That is a real cost and it is stated rather than
+         *     hidden: it is the number to watch when this platform gets busy, and the
+         *     moment it stops being acceptable is the moment Channels earns its place.
+         *
+         *     Every stream ends
+         *     -----------------
+         *     After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
+         *     stream that lives forever outlives the deploy that replaced the code running
+         *     it, and the reconnect is what gets the customer onto the current version.
+         */
+        get: operations["live_updates"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -556,6 +674,33 @@ export interface paths {
          *     enough to make the app believe a payment had succeeded. Money moves in
          *     :class:`PaymentCallbackView` and nowhere else. */
         get: operations["v1_wallet_topups_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/wallet/topups/{reference}/checkout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Hand the customer over to the gateway. One hop, decided on the server.
+         *
+         *     A redirect and not a JSON body carrying a url: the client's whole job is to
+         *     send the customer here, and a `302` is what a browser and a webview both
+         *     already know how to follow. It also means the gateway's address never
+         *     reaches either client, which is the point of `apps.money.gateway` — see the
+         *     module docstring for why a "gateway url" field would have been the wrong
+         *     shape.
+         *
+         *     Nothing is charged here and no money moves. This is a signpost; the ledger
+         *     is touched by :class:`PaymentCallbackView` and by nothing else. */
+        get: operations["v1_wallet_topups_checkout_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -845,6 +990,20 @@ export interface components {
         };
         PaymentIntent: {
             reference: string;
+            /** @description Where to send this customer to pay, or `""` when nowhere.
+             *
+             *     A url on **our** server, never the gateway's. Both clients then have one
+             *     thing to do with it — send the customer there — and neither ever learns
+             *     what a Moyasar is; switching gateway changes `apps.money.gateway` and
+             *     rebuilds nothing (`docs` in that module say why at length).
+             *
+             *     Empty when the intent cannot be paid — because it is finished, or
+             *     because this environment has no gateway. A client showing a button for a
+             *     succeeded top-up offers to take a second deposit; one showing it with no
+             *     gateway sends a customer to a refusal. The absence of the control is the
+             *     correct interface for both, and the *server* produces that absence so
+             *     neither client has to remember to check. */
+            readonly checkout_url: string;
             /** Format: decimal */
             readonly amount: string;
             currency?: string;
@@ -1379,6 +1538,68 @@ export interface operations {
             };
         };
     };
+    favourites_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehiclePage"];
+                };
+            };
+        };
+    };
+    favourites_mark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    favourites_unmark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     v1_invoices_list: {
         parameters: {
             query?: {
@@ -1447,6 +1668,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invoice"];
+                };
+            };
+        };
+    };
+    live_updates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
                 };
             };
         };
@@ -1818,6 +2058,40 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PaymentIntent"];
                 };
+            };
+        };
+    };
+    v1_wallet_topups_checkout_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No response body */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
