@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/app/providers.dart';
+import 'package:haraj_mobile/domain/common/failure.dart';
 
 import '../support/fake_repositories.dart';
+import '../support/fake_wallet_repository.dart';
 import '../support/pump_app.dart';
 
 /// T706 — «إعادة التوجيه عند 401».
@@ -45,6 +47,63 @@ void main() {
     );
 
     expect(currentLocation(container), '/sign-in');
+  });
+
+  testWidgets('سقوط الجلسة على المحفظة ينقل إلى الدخول لا يترك دوّامة', (
+    tester,
+  ) async {
+    // الشاشة المفتوحة عند سقوط الجلسة نادراً ما تكون الملف الشخصي: إشعار شحنٍ
+    // يفتح المحفظة، وإشعار مزايدة يفتح المزايدات. حراسةُ `/profile` وحدها تترك
+    // صاحب المحفظة يشاهد فشل شبكة بلا مخرج ولا سبب.
+    final container = await pumpApp(
+      tester,
+      overrides: [
+        authRepositoryProvider.overrideWithValue(
+          FakeAuthRepository(storedSession: true),
+        ),
+        walletRepositoryProvider.overrideWithValue(
+          FakeWalletRepository(
+            balanceFailure: const TransportFailure(TransportProblem.offline),
+          ),
+        ),
+      ],
+      location: '/wallet',
+    );
+    expect(currentLocation(container), '/wallet');
+
+    container.read(sessionSignalProvider).reportLost();
+    await tester.pumpAndSettle();
+
+    expect(currentLocation(container), '/sign-in');
+    expect(find.text('انتهت جلستك. سجّل الدخول من جديد.'), findsOneWidget);
+  });
+
+  testWidgets('كل شاشة تحتاج جلسة تُغلق أمام من لا جلسة له', (tester) async {
+    // رابط عميق من إشعار قد يصل إلى جهاز خرج صاحبه منه.
+    for (final location in const <String>[
+      '/profile',
+      '/profile/company',
+      '/wallet',
+      '/wallet/topup',
+      '/wallet/transactions',
+      '/bids',
+      '/vehicles/340/bid',
+      '/my-activity',
+    ]) {
+      final container = await pumpApp(
+        tester,
+        overrides: [
+          authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
+        ],
+        location: location,
+      );
+
+      expect(
+        currentLocation(container),
+        '/sign-in',
+        reason: '«$location» فُتح بلا جلسة',
+      );
+    }
   });
 
   testWidgets('مستخدم داخل لا يرى شاشة الدخول', (tester) async {
