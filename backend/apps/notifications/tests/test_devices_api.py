@@ -131,3 +131,72 @@ def test_an_unknown_platform_is_refused(owner):
     )
 
     assert response.status_code == 400
+
+
+# --------------------------------------------------------------------------
+# Unregistering — sign-out, T716
+# --------------------------------------------------------------------------
+
+
+def unregister(client: APIClient, token: str = TOKEN, **extra):
+    return client.post(
+        reverse("notifications_api:devices-unregister"),
+        {"token": token, **extra},
+        format="json",
+    )
+
+
+def test_signing_out_stops_this_handset_receiving(owner):
+    register(signed_in(owner))
+
+    response = unregister(signed_in(owner))
+
+    assert response.status_code == 204
+    assert not Device.objects.exists()
+
+
+def test_unregistering_cannot_silence_somebody_elses_handset(owner, victim):
+    """The registration hole read backwards.
+
+    A bidder who stops being told he was outbid loses the auction without ever
+    knowing there was a reason, so «switch off his phone» is an attack, not a
+    nuisance. The scope is `user=request.user`; this test is what keeps it.
+    """
+    register(signed_in(victim))
+
+    response = unregister(signed_in(owner))
+
+    assert response.status_code == 204
+    assert Device.objects.get().user_id == victim.pk
+
+
+def test_unregistering_a_handset_that_was_never_registered_is_not_an_error(owner):
+    """Idempotent, and silent about what it did not find.
+
+    Sign-out has no use for «no such device», and answering it would make this
+    an oracle for whether a given push token is registered at all.
+    """
+    assert unregister(signed_in(owner), token="never-seen").status_code == 204
+
+
+def test_unregistering_twice_is_still_204(owner):
+    register(signed_in(owner))
+    unregister(signed_in(owner))
+
+    assert unregister(signed_in(owner)).status_code == 204
+
+
+def test_naming_an_account_when_unregistering_is_refused(owner, victim):
+    register(signed_in(victim))
+
+    response = unregister(signed_in(owner), user=victim.pk)
+
+    assert response.status_code == 400
+    assert Device.objects.count() == 1
+
+
+def test_an_anonymous_caller_cannot_unregister_anything(owner):
+    register(signed_in(owner))
+
+    assert unregister(APIClient()).status_code in (401, 403)
+    assert Device.objects.count() == 1

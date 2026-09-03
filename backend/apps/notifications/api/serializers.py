@@ -32,6 +32,26 @@ class DeviceRegistrationSerializer(serializers.Serializer):
         return attrs
 
 
+class DeviceUnregistrationSerializer(serializers.Serializer):
+    """One handset going quiet, named by the same token it registered with.
+
+    No `user` field here either, for the registration rule read backwards: a
+    caller who could name an account would not read somebody's bid alerts, he
+    would switch them off — and a bidder who stops being told he was outbid
+    loses the auction without ever knowing there was a reason.
+    """
+
+    token = serializers.CharField(max_length=255, trim_whitespace=True)
+
+    def validate(self, attrs: dict) -> dict:
+        unknown = set(self.initial_data) - set(self.fields)
+        if unknown:
+            raise serializers.ValidationError(
+                {name: "حقل غير معروف." for name in sorted(unknown)}
+            )
+        return attrs
+
+
 class DeviceSerializer(serializers.Serializer):
     """A registered handset, as its owner sees it."""
 

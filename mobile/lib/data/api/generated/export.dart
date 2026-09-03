@@ -45,6 +45,7 @@ export 'models/refund_request.dart';
 export 'models/invoice.dart';
 export 'models/paginated_invoice_list.dart';
 export 'models/device_registration.dart';
+export 'models/device_unregistration.dart';
 export 'models/device.dart';
 export 'models/ledger_entry_direction.dart';
 export 'models/top_up_intent_status.dart';

@@ -7,6 +7,7 @@ import 'package:retrofit/retrofit.dart';
 
 import '../models/device.dart';
 import '../models/device_registration.dart';
+import '../models/device_unregistration.dart';
 
 part 'devices_api.g.dart';
 
@@ -17,4 +18,8 @@ abstract class DevicesApi {
   /// تسجيل جهاز للإشعارات — يُربط بالمستخدم من الرمز
   @POST('/api/v1/devices')
   Future<Device> devicesRegister({@Body() required DeviceRegistration body});
+
+  /// إلغاء تسجيل جهاز عند الخروج — بالرمز، وبمالكه من رمز الدخول
+  @POST('/api/v1/devices/unregister')
+  Future<void> devicesUnregister({@Body() required DeviceUnregistration body});
 }

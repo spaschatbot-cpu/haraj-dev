@@ -19,11 +19,25 @@ import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
+import '../data/notifications/device_registry_impl.dart';
+import '../data/notifications/unconfigured_push_service.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/usecases/sign_in_with_otp.dart';
+import '../domain/auth/usecases/sign_out.dart';
+import '../domain/notifications/repositories/device_registry.dart';
+import '../domain/notifications/repositories/push_service.dart';
+import '../domain/notifications/usecases/forget_this_device.dart';
+import '../domain/notifications/usecases/register_this_device.dart';
+import '../domain/notifications/usecases/resolve_push_destination.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
+import '../l10n/generated/app_localizations.dart';
+import '../presentation/common/push_banner.dart';
+import 'haraj_app.dart';
+import 'push_coordinator.dart';
+import 'router.dart';
+import 'routes.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) => AppConfig.fromBuild());
 
@@ -89,10 +103,79 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
+/// خدمة الإشعارات على الجهاز (T716).
+///
+/// القيمة الافتراضية «بلا إعداد» عمداً: `main.dart` يستبدلها بتنفيذ Firebase
+/// بعد نجاح التهيئة. البناء الذي لا يجد إعداد المزوّد — وهو كل بناء محلي، لأن
+/// المادة ٥-٣ تُبقي الإعداد خارج المستودع — يعمل بلا إشعارات ولا ينهار.
+final pushServiceProvider = Provider<PushService>(
+  (ref) => const UnconfiguredPushService(),
+);
+
+final deviceRegistryProvider = Provider<DeviceRegistry>(
+  (ref) => DeviceRegistryImpl(api: ref.watch(apiClientProvider).devices),
+);
+
+final registerThisDeviceProvider = Provider<RegisterThisDevice>(
+  (ref) => RegisterThisDevice(
+    push: ref.watch(pushServiceProvider),
+    registry: ref.watch(deviceRegistryProvider),
+    auth: ref.watch(authRepositoryProvider),
+  ),
+);
+
+final forgetThisDeviceProvider = Provider<ForgetThisDevice>(
+  (ref) => ForgetThisDevice(
+    push: ref.watch(pushServiceProvider),
+    registry: ref.watch(deviceRegistryProvider),
+  ),
+);
+
 final signInWithOtpProvider = Provider<SignInWithOtp>(
   (ref) => SignInWithOtp(ref.watch(authRepositoryProvider)),
+);
+
+/// الخروج يمرّ من هنا وحده.
+///
+/// `AuthRepository.signOut` وحده يمحو الجلسة ويترك الجهاز مسجَّلاً على من خرج.
+/// الشاشات تستدعي هذا لا ذاك.
+final signOutProvider = Provider<SignOut>(
+  (ref) => SignOut(
+    auth: ref.watch(authRepositoryProvider),
+    forgetDevice: ref.watch(forgetThisDeviceProvider),
+  ),
 );
 
 final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
   (ref) => LoadWalletBalance(ref.watch(walletRepositoryProvider)),
 );
+
+/// وصل الإشعارات بالتنقّل (T716).
+///
+/// لا يبدأ من داخل شجرة الويدجت: `main.dart` يشغّله بعد `runApp`. لو بدأ في
+/// `initState` لبدأ في كل اختبار widget يبني التطبيق، فقرأ التخزين الآمن
+/// وتحدّث إلى الشبكة من داخل اختبار لا يعني الإشعارات في شيء.
+final pushCoordinatorProvider = Provider<PushCoordinator>((ref) {
+  final coordinator = PushCoordinator(
+    push: ref.watch(pushServiceProvider),
+    register: ref.watch(registerThisDeviceProvider),
+    navigate: (location) => ref.read(routerProvider).go(location),
+    onForeground: (notification) {
+      final messenger = HarajApp.messengerKey.currentState;
+      final context = HarajApp.messengerKey.currentContext;
+      if (messenger == null || context == null) return;
+
+      showPushBanner(
+        messenger,
+        notification: notification,
+        l10n: AppLocalizations.of(context),
+        environment: ref.read(appConfigProvider).environment,
+        onOpen: () => ref
+            .read(routerProvider)
+            .go(PushLocations.of(ResolvePushDestination.call(notification))),
+      );
+    },
+  );
+  ref.onDispose(coordinator.dispose);
+  return coordinator;
+});
