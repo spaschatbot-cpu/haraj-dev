@@ -195,6 +195,23 @@ class Vehicle(models.Model):
     def __str__(self) -> str:
         return f"#{self.lot_number} {self.make} {self.model} {self.year}"
 
+    @property
+    def partner_name(self) -> str:
+        """Whose car this is, for a screen or a file. Presentation, not a rule.
+
+        It exists so that showing a partner's name does not require reading
+        `owner_company` in a module that also touches bidding. That attribute is
+        an **eligibility fact** — a bidder may not bid on their own car — and
+        `ops/checks/one_eligibility_gate.py` refuses to let any file but
+        `apps/bidding/eligibility.py` read one, precisely because in v1 the same
+        column was consulted in six places and the sixth forgot what it meant.
+
+        The guard is right to refuse, and the answer is not to work around it:
+        the screen wanted a *label*, and a label is a property of the car. The
+        eligibility question keeps its single door.
+        """
+        return "" if self.owner_company is None else self.owner_company.name
+
 
 class VehicleImage(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="images")

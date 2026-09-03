@@ -33,6 +33,7 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 
+from .exports import export, wants_export
 from .forms import AuctionForm, VehicleForm
 from .views import console_page
 
@@ -79,11 +80,37 @@ def auctions(request):
             else rows.filter(number=int(search))
         )
 
+    rows = with_vehicle_counts(rows).order_by("-starts_at")
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="auctions",
+            headers=[
+                "الرقم",
+                "العنوان",
+                "الحالة",
+                "يبدأ",
+                "ينتهي",
+                "المركبات",
+                "التأمين",
+            ],
+            cell=lambda a: [
+                a.number,
+                a.title,
+                a.get_state_display(),
+                a.starts_at,
+                a.ends_at,
+                a.vehicle_count,
+                a.deposit_required,
+            ],
+        )
+
     return render(
         request,
         "console/auctions.html",
         {
-            "page": _page(request, with_vehicle_counts(rows).order_by("-starts_at")),
+            "page": _page(request, rows),
             "states": AuctionState.choices,
             "state": state,
             "q": search,
@@ -148,11 +175,23 @@ def vehicles(request):
     if state in VehicleState.values:
         rows = rows.filter(state=state)
 
+    rows = rows.order_by("auction_id", "lot_number")
+
+    if wants_export(request):
+        # Delegated to phase 005's writer rather than given a second column
+        # list here: the vehicle export is the *import's input* (T806), and a
+        # second shape would produce a file that cannot be uploaded back.
+        from apps.auctions.importexport import export_vehicles
+
+        from .exports import workbook_response
+
+        return workbook_response(export_vehicles(rows), name="vehicles")
+
     return render(
         request,
         "console/vehicles.html",
         {
-            "page": _page(request, rows.order_by("auction_id", "lot_number")),
+            "page": _page(request, rows),
             "states": VehicleState.choices,
             "state": state,
             "q": search,

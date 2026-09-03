@@ -38,6 +38,7 @@ from django.utils import timezone
 from apps.accounts.services import find_by_phone
 from apps.core.models import AuditLog
 
+from .exports import export, wants_export
 from .views import console_page
 
 #: Rows per page. An audit search is read in bulk — somebody is reconstructing a
@@ -123,6 +124,22 @@ def audit(request):
         since=request.GET.get("since", ""),
         until=request.GET.get("until", ""),
     )
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="audit",
+            headers=["متى", "المنفّذ", "الفعل", "الكيان", "قبل", "بعد", "السبب"],
+            cell=lambda r: [
+                r.at,
+                r.actor or "النظام",
+                r.action,
+                f"{r.entity_type}:{r.entity_id}",
+                r.before,
+                r.after,
+                r.note,
+            ],
+        )
 
     return render(
         request,

@@ -30,6 +30,7 @@ from apps.core import audit
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState, Transaction
 
+from .exports import export, wants_export
 from .forms import ReasonMixin
 from .views import console_page
 
@@ -115,6 +116,21 @@ def customers(request):
         if digits:
             terms = terms | Q(phone__contains=digits) | Q(national_id=digits)
         rows = rows.filter(terms)
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="customers",
+            headers=["الاسم", "الجوال", "النوع", "الهوية", "الشركة", "مسجَّل منذ"],
+            cell=lambda u: [
+                u.full_name,
+                u.phone,
+                u.get_account_type_display(),
+                u.national_id,
+                getattr(getattr(u, "company", None), "name", ""),
+                u.date_joined,
+            ],
+        )
 
     return render(
         request,
@@ -238,6 +254,32 @@ def invoices(request):
         if digits:
             terms = terms | Q(customer__phone__contains=digits)
         rows = rows.filter(terms)
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="invoices",
+            headers=[
+                "الرقم",
+                "العميل",
+                "الجوال",
+                "المبلغ",
+                "المسدَّد",
+                "المتبقّي",
+                "الحالة",
+                "صدرت",
+            ],
+            cell=lambda i: [
+                i.number,
+                i.customer.full_name,
+                i.customer.phone,
+                i.amount,
+                i.amount_paid,
+                i.outstanding,
+                i.get_state_display(),
+                i.issued_at,
+            ],
+        )
 
     return render(
         request,
