@@ -15,6 +15,7 @@ import '../data/api/generated/haraj_api_client.dart';
 import '../data/api/interceptors/auth_interceptor.dart';
 import '../data/auth/auth_repository_impl.dart';
 import '../data/auth/session_refresher.dart';
+import '../data/catalog/catalog_repository_impl.dart';
 import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
@@ -28,6 +29,13 @@ import '../domain/auth/session_signal.dart';
 import '../domain/auth/usecases/change_phone_number.dart';
 import '../domain/auth/usecases/sign_in_with_code.dart';
 import '../domain/auth/usecases/sign_out.dart';
+import '../domain/catalog/entities/auction_summary.dart';
+import '../domain/catalog/entities/vehicle_detail.dart';
+import '../domain/catalog/repositories/catalog_repository.dart';
+import '../domain/catalog/usecases/load_auction_vehicles.dart';
+import '../domain/catalog/usecases/load_home_auctions.dart';
+import '../domain/catalog/usecases/load_vehicle.dart';
+import '../domain/common/snapshot.dart';
 import '../domain/notifications/repositories/device_registry.dart';
 import '../domain/notifications/repositories/push_service.dart';
 import '../domain/notifications/usecases/forget_this_device.dart';
@@ -125,6 +133,14 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
+final catalogRepositoryProvider = Provider<CatalogRepository>(
+  (ref) => CatalogRepositoryImpl(
+    auctions: ref.watch(apiClientProvider).auctions,
+    vehicles: ref.watch(apiClientProvider).vehicles,
+    cache: ref.watch(responseCacheProvider),
+  ),
+);
+
 /// خدمة الإشعارات على الجهاز (T716).
 ///
 /// القيمة الافتراضية «بلا إعداد» عمداً: `main.dart` يستبدلها بتنفيذ Firebase
@@ -209,3 +225,50 @@ final pushCoordinatorProvider = Provider<PushCoordinator>((ref) {
   ref.onDispose(coordinator.dispose);
   return coordinator;
 });
+
+final loadHomeAuctionsProvider = Provider<LoadHomeAuctions>(
+  (ref) => LoadHomeAuctions(ref.watch(catalogRepositoryProvider)),
+);
+
+final loadAuctionVehiclesProvider = Provider<LoadAuctionVehicles>(
+  (ref) => LoadAuctionVehicles(ref.watch(catalogRepositoryProvider)),
+);
+
+final loadVehicleProvider = Provider<LoadVehicle>(
+  (ref) => LoadVehicle(ref.watch(catalogRepositoryProvider)),
+);
+
+/// **لا إعادة محاولة صامتة.**
+///
+/// Riverpod يعيد المحاولة تلقائياً عند الفشل بتباعدٍ متزايد. هنا يضرّ: خطأٌ ردّ
+/// به الخادم (403، 404) لن يتغيّر بإعادة السؤال، فتصير الشاشة تسأل عشر مرات عن
+/// جوابٍ معروف؛ ورسالة الخطأ تومض وتختفي فلا يقرؤها العميل ولا يفهم لماذا.
+/// إعادة المحاولة قرارُ من يقرأ الرسالة، وله زرّ في `FailureView`.
+Duration? _noSilentRetry(int attempt, Object error) => null;
+
+/// حالة الرئيسية (T707) — تُبطَل بـ`ref.invalidate` عند إعادة المحاولة.
+final homeAuctionsProvider = FutureProvider<Snapshot<HomeAuctions>>(
+  (ref) => ref.watch(loadHomeAuctionsProvider)(),
+  retry: _noSilentRetry,
+);
+
+/// حالة صفحة مركبة (T709)، بمعرّفها.
+final vehicleProvider = FutureProvider.family<Snapshot<VehicleDetail>, String>(
+  (ref, vehicleId) => ref.watch(loadVehicleProvider)(vehicleId),
+  retry: _noSilentRetry,
+);
+
+/// «الآن» كدالّة، لا كقراءة مباشرة لـ`DateTime.now()` في الشاشة.
+///
+/// عدّادٌ تنازلي يقرأ الساعة بنفسه لا يُختبَر: كل تشغيل يعطي نتيجة أخرى.
+/// وباستبدال هذا المزوّد يصير «كم بقي؟» سؤالاً له جواب ثابت في الاختبار.
+final nowProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
+/// نبض العدّاد التنازلي — `null` يعني «لا نبض».
+///
+/// **لماذا مزوَّد لا ثابت:** مؤقّت دوري يجعل `pumpAndSettle` لا تستقرّ أبداً،
+/// فيسقط كل اختبار شاشةٍ تحمل عدّاداً بمهلةٍ لا يفهم قارئها سببها. الاختبار
+/// يستبدله بـ`null` مع وقتٍ ثابت من `nowProvider`.
+final countdownTickProvider = Provider<Duration?>(
+  (ref) => const Duration(seconds: 1),
+);

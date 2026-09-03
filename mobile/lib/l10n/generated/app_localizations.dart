@@ -505,6 +505,216 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'انتهت جلستك. سجّل الدخول من جديد.'**
   String get sessionExpiredNotice;
+
+  /// عنوان الرئيسية — T707
+  ///
+  /// In ar, this message translates to:
+  /// **'المزادات'**
+  String get homeTitle;
+
+  /// No description provided for @homeRunningSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزادات جارية'**
+  String get homeRunningSection;
+
+  /// No description provided for @homeUpcomingSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزادات قادمة'**
+  String get homeUpcomingSection;
+
+  /// الحالة الفارغة للرئيسية — شاشة بلا حالة فارغة تبدو معطوبة
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد مزادات جارية ولا قادمة الآن.'**
+  String get homeEmpty;
+
+  /// بالتوقيت السعودي — التحويل في SaudiTime وحدها
+  ///
+  /// In ar, this message translates to:
+  /// **'يبدأ {date} الساعة {time}'**
+  String auctionStartsAt(DateTime date, DateTime time);
+
+  /// No description provided for @auctionEndsAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي {date} الساعة {time}'**
+  String auctionEndsAt(DateTime date, DateTime time);
+
+  /// عدد مركبات المزاد كما عدّه الخادم
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, zero{لا مركبات} one{مركبة واحدة} two{مركبتان} few{{count} مركبات} many{{count} مركبة} other{{count} مركبة}}'**
+  String auctionVehiclesCount(int count);
+
+  /// العدّاد التنازلي لمزاد لم يبدأ — T707
+  ///
+  /// In ar, this message translates to:
+  /// **'يبدأ بعد {remaining}'**
+  String countdownToStart(String remaining);
+
+  /// No description provided for @countdownToEnd.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي بعد {remaining}'**
+  String countdownToEnd(String remaining);
+
+  /// No description provided for @countdownDaysHours.
+  ///
+  /// In ar, this message translates to:
+  /// **'{days} يوم و{hours} ساعة'**
+  String countdownDaysHours(int days, int hours);
+
+  /// No description provided for @countdownHoursMinutes.
+  ///
+  /// In ar, this message translates to:
+  /// **'{hours} ساعة و{minutes} دقيقة'**
+  String countdownHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @countdownMinutes.
+  ///
+  /// In ar, this message translates to:
+  /// **'{minutes} دقيقة'**
+  String countdownMinutes(int minutes);
+
+  /// No description provided for @countdownLessThanMinute.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقل من دقيقة'**
+  String get countdownLessThanMinute;
+
+  /// الوقت مضى بحسب ساعة الجهاز — إخبار لا قرار: الخادم وحده يقرّر إن كانت المزايدة مفتوحة
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهى الوقت'**
+  String get countdownElapsed;
+
+  /// عنوان قائمة مركبات المزاد — T708
+  ///
+  /// In ar, this message translates to:
+  /// **'مركبات المزاد'**
+  String get vehiclesTitle;
+
+  /// No description provided for @vehiclesEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مركبات مطابقة.'**
+  String get vehiclesEmpty;
+
+  /// العدد الكلي من الخادم لا طول الصفحة
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, zero{لا نتائج} one{نتيجة واحدة} two{نتيجتان} few{{count} نتائج} many{{count} نتيجة} other{{count} نتيجة}}'**
+  String vehiclesResultsCount(int count);
+
+  /// No description provided for @searchHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ماركة أو طراز أو رقم لوت'**
+  String get searchHint;
+
+  /// No description provided for @filterMake.
+  ///
+  /// In ar, this message translates to:
+  /// **'الماركة'**
+  String get filterMake;
+
+  /// No description provided for @filterYearFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'من سنة'**
+  String get filterYearFrom;
+
+  /// No description provided for @filterYearTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلى سنة'**
+  String get filterYearTo;
+
+  /// No description provided for @filterApply.
+  ///
+  /// In ar, this message translates to:
+  /// **'طبّق الترشيح'**
+  String get filterApply;
+
+  /// No description provided for @filterClear.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة الترشيح'**
+  String get filterClear;
+
+  /// No description provided for @vehicleLot.
+  ///
+  /// In ar, this message translates to:
+  /// **'لوت {lotNumber}'**
+  String vehicleLot(String lotNumber);
+
+  /// الحقل الوحيد لسعر المركبة — دليل النظام §8-3
+  ///
+  /// In ar, this message translates to:
+  /// **'سعر الوقوف'**
+  String get vehicleReservePrice;
+
+  /// مركبة بلا سعر وقوف ليست مركبة سعرها صفر
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُحدَّد'**
+  String get vehicleReservePriceUnset;
+
+  /// عدد المزايدات لا مبلغها — المزاد مغلق
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, zero{لا مزايدات} one{مزايدة واحدة} two{مزايدتان} few{{count} مزايدات} many{{count} مزايدة} other{{count} مزايدة}}'**
+  String vehicleBidsCount(int count);
+
+  /// No description provided for @vehicleNoImage.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد صورة'**
+  String get vehicleNoImage;
+
+  /// No description provided for @vehicleNoImages.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا صور لهذه المركبة.'**
+  String get vehicleNoImages;
+
+  /// فشل صورة واحدة لا يُسقط الشاشة
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحميل الصورة'**
+  String get vehicleImageFailed;
+
+  /// No description provided for @vehicleImageCounter.
+  ///
+  /// In ar, this message translates to:
+  /// **'{index} من {total}'**
+  String vehicleImageCounter(int index, int total);
+
+  /// No description provided for @vehicleSpecifications.
+  ///
+  /// In ar, this message translates to:
+  /// **'المواصفات'**
+  String get vehicleSpecifications;
+
+  /// No description provided for @vehicleNoSpecifications.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مواصفات مسجَّلة لهذه المركبة.'**
+  String get vehicleNoSpecifications;
+
+  /// حالة يقرّرها الخادم ويعرضها التطبيق
+  ///
+  /// In ar, this message translates to:
+  /// **'المزايدة مفتوحة'**
+  String get vehicleBiddingOpen;
+
+  /// No description provided for @vehicleBiddingClosed.
+  ///
+  /// In ar, this message translates to:
+  /// **'المزايدة مقفلة'**
+  String get vehicleBiddingClosed;
 }
 
 class _AppLocalizationsDelegate

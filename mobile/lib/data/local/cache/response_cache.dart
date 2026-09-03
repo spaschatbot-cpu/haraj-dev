@@ -40,4 +40,17 @@ abstract interface class ResponseCache {
 abstract final class CacheKeys {
   static const String wallet = 'wallet.balance';
   static const String profile = 'profile.me';
+
+  /// مزادات الرئيسية (T707) — الجارية والقادمة في مستندٍ واحد، لأن الشاشة
+  /// تعرضهما معاً ونصفُ رئيسيةٍ محفوظ أسوأ من رئيسيةٍ محفوظة كاملة.
+  static const String homeAuctions = 'catalog.home-auctions';
+
+  /// الصفحة الأولى بلا ترشيح من مركبات مزاد (T708). لا يُحفظ غيرها: صفحةٌ من
+  /// بحثٍ قديم ليست «آخر ما نعرف» عن المزاد.
+  static String auctionVehicles(String auctionId) =>
+      'catalog.auction.$auctionId.vehicles';
+
+  /// آخر نسخة معروفة من صفحة مركبة (T709) — مفتاحٌ لكل مركبة، فالعميل الذي فتح
+  /// مركبةً ثم فقد الاتصال يراها كما رآها.
+  static String vehicle(String vehicleId) => 'catalog.vehicle.$vehicleId';
 }

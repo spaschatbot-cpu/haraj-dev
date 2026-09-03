@@ -1,3 +1,6 @@
+import 'package:flutter/widgets.dart';
+import 'package:go_router/go_router.dart';
+
 import '../domain/notifications/entities/push_destination.dart';
 
 /// مسارات التطبيق وأسماؤها — **تعريف واحد** يقرأ منه التوجيه والإشعارات معاً.
@@ -17,6 +20,7 @@ abstract final class Routes {
   static const String companyProfile = 'companyProfile';
   static const String changePhone = 'changePhone';
   static const String auction = 'auction';
+  static const String auctionVehicles = 'auction-vehicles';
   static const String vehicle = 'vehicle';
   static const String bids = 'bids';
   static const String wallet = 'wallet';
@@ -33,6 +37,20 @@ abstract final class Routes {
   static const String walletPath = '/wallet';
   static const String invoicesPath = '/invoices';
   static const String invoicePath = '/invoices/:invoiceId';
+
+  // بناء العنوان يعيش مع اسمه: شاشة تبني عنوانها بنفسها تفترق عنه عند أول
+  // تعديل، فتفتح شاشةً غير التي يفتحها الإشعار (معيار H6).
+  static void goToAuctionVehicles(BuildContext context, String auctionId) =>
+      GoRouter.of(context).goNamed(
+        auctionVehicles,
+        pathParameters: <String, String>{'auctionId': auctionId},
+      );
+
+  static void goToVehicle(BuildContext context, String vehicleId) =>
+      GoRouter.of(context).goNamed(
+        vehicle,
+        pathParameters: <String, String>{'vehicleId': vehicleId},
+      );
 }
 
 /// يترجم وجهة إشعار إلى عنوان يفهمه `go_router`.

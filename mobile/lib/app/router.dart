@@ -6,18 +6,22 @@ import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
 import '../presentation/auth/sign_in_screen.dart';
 import '../presentation/auth/verify_code_screen.dart';
+import '../presentation/catalog/auction_vehicles_screen.dart';
+import '../presentation/catalog/home_screen.dart';
+import '../presentation/catalog/vehicle_screen.dart';
 import '../presentation/profile/change_phone_screen.dart';
 import '../presentation/profile/company_profile_screen.dart';
 import '../presentation/profile/profile_screen.dart';
-import '../presentation/seed/seed_screen.dart';
 import 'routes.dart';
 
 export 'routes.dart' show Routes;
 
 /// التوجيه مُعلَن في مكان واحد (T701).
 ///
-/// أسماء المسارات نفسها تعيش في `routes.dart` لأن لها قارئين — جدول التوجيه هنا،
-/// ومترجم حمولة الإشعار (معيار H6).
+/// أسماء المسارات ومداخلها تعيش في `routes.dart` لأن لها قارئين — جدول التوجيه
+/// هنا، ومترجم حمولة الإشعار (معيار H6). كل مسار جديد يُضاف هنا وحده — لا
+/// `Navigator.push` بشاشة مبنية في مكان الاستدعاء، وإلا صار للشاشة الواحدة
+/// مدخلان لا يعرف الإشعار أيّهما يفتح.
 ///
 /// **إعادة التوجيه عند سقوط الجلسة تعيش هنا وحدها.** اعتراض المصادقة يرفع
 /// إشارة بعد 401 لم ينفع معه التجديد، و`SessionController` يترجمها إلى حالة،
@@ -69,9 +73,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.homePath,
         name: Routes.home,
-        // شاشة البذرة ما زالت جذر التطبيق: الرئيسية هي T707 ولم تُبنَ بعد.
-        // أول ما تُدمج تُحذف هذه ومسارها.
-        builder: (context, state) => const SeedScreen(),
+        builder: (context, state) => const HomeScreen(),
+        routes: <RouteBase>[
+          GoRoute(
+            // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه
+            // `PushLocations` لوجهة مزاد: مدخل واحد للشاشة لا مدخلان.
+            path: 'auctions/:auctionId',
+            name: Routes.auctionVehicles,
+            builder: (context, state) => AuctionVehiclesScreen(
+              auctionId: state.pathParameters['auctionId']!,
+            ),
+          ),
+          GoRoute(
+            path: 'vehicles/:vehicleId',
+            name: Routes.vehicle,
+            builder: (context, state) =>
+                VehicleScreen(vehicleId: state.pathParameters['vehicleId']!),
+          ),
+        ],
       ),
       GoRoute(
         path: Routes.signInPath,

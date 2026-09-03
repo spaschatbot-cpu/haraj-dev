@@ -1,21 +1,17 @@
 {
   "@@locale": "ar",
-
   "appTitle": "حراج واحد",
   "@appTitle": {
     "description": "اسم التطبيق كما يظهر في مبدّل التطبيقات"
   },
-
   "seedTitle": "بذرة التطبيق",
   "@seedTitle": {
     "description": "عنوان الشاشة المؤقّتة التي تسبق شاشات المجموعة ب"
   },
-
   "seedBody": "الأساس جاهز: العربية والاتجاه، والعميل المولَّد، والتخزين المحلي، ومعالجة الأخطاء. الشاشات تبدأ بعد تثبيت مخطط الـAPI.",
   "@seedBody": {
     "description": "شرح حالة البذرة"
   },
-
   "environmentBanner": "بيئة {environment}",
   "@environmentBanner": {
     "description": "لافتة تظهر في كل بناء غير إنتاجي — المادة ٥-٦",
@@ -26,18 +22,14 @@
       }
     }
   },
-
   "environmentDevelopment": "تطوير",
   "@environmentDevelopment": {},
-
   "environmentStaging": "تجريب",
   "@environmentStaging": {},
-
   "environmentProduction": "الإنتاج",
   "@environmentProduction": {
     "description": "لا يظهر في لافتة ولا ختم — موجود كي يبقى تحويل البيئات شاملاً"
   },
-
   "environmentStampedMessage": "[{environment}] {message}",
   "@environmentStampedMessage": {
     "description": "كل رسالة تُعرض للمستخدم من بناء غير إنتاجي تحمل اسم بيئتها — المادة ٥-٦",
@@ -52,35 +44,28 @@
       }
     }
   },
-
   "pushOpen": "فتح",
   "@pushOpen": {
     "description": "زرّ على لافتة الإشعار الواصل والتطبيق مفتوح — الفتح قرار المستخدم"
   },
-
   "retry": "إعادة المحاولة",
   "@retry": {},
-
   "errorOffline": "لا يوجد اتصال بالإنترنت.",
   "@errorOffline": {
     "description": "الخادم لم يُسأل أصلاً — حالة لا يعرفها الخادم، فالنصّ محلي"
   },
-
   "errorTimeout": "تعذّر الوصول إلى الخادم. حاول مرة أخرى.",
   "@errorTimeout": {
     "description": "انقضت المهلة قبل ردّ مفهوم"
   },
-
   "errorMalformedResponse": "وصل ردّ غير مفهوم من الخادم.",
   "@errorMalformedResponse": {
     "description": "ردّ لم يطابق الشكل الموحّد — لا نخترع له رسالة"
   },
-
   "errorUnexpected": "حدث خطأ غير متوقع في التطبيق.",
   "@errorUnexpected": {
     "description": "عطب في التطبيق نفسه، لا في الخادم"
   },
-
   "offlineDataNotice": "بيانات محفوظة — آخر تحديث {date} الساعة {time}",
   "@offlineDataNotice": {
     "description": "علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5",
@@ -95,29 +80,22 @@
       }
     }
   },
-
   "signInTitle": "الدخول أو إنشاء حساب",
   "@signInTitle": {
     "description": "عنوان شاشة الدخول — نفس المسار للتسجيل والدخول"
   },
-
   "signInIntro": "أدخل رقم جوالك ونرسل لك رمز تحقق.",
   "@signInIntro": {},
-
   "signInPhoneLabel": "رقم الجوال",
   "@signInPhoneLabel": {},
-
   "signInPhoneHint": "9665xxxxxxxx",
   "@signInPhoneHint": {
     "description": "شكل الرقم كما يقبله الخادم — تلميح لا تحقّق"
   },
-
   "signInSendCode": "إرسال رمز التحقق",
   "@signInSendCode": {},
-
   "verifyTitle": "رمز التحقق",
   "@verifyTitle": {},
-
   "verifySentTo": "أرسلنا رمزاً إلى {phone}",
   "@verifySentTo": {
     "placeholders": {
@@ -126,22 +104,16 @@
       }
     }
   },
-
   "verifyCodeLabel": "رمز التحقق",
   "@verifyCodeLabel": {},
-
   "verifySubmit": "تأكيد ودخول",
   "@verifySubmit": {},
-
   "verifyFullNameLabel": "الاسم الكامل",
   "@verifyFullNameLabel": {},
-
   "verifyResend": "إعادة إرسال الرمز",
   "@verifyResend": {},
-
   "verifyChangePhone": "تعديل الرقم",
   "@verifyChangePhone": {},
-
   "verifyExpiresAt": "ينتهي الرمز الساعة {time}",
   "@verifyExpiresAt": {
     "description": "بالتوقيت السعودي — التحويل عند حافة العرض وحدها",
@@ -152,7 +124,6 @@
       }
     }
   },
-
   "waitSeconds": "بعد {seconds} ثانية",
   "@waitSeconds": {
     "description": "عدّاد الانتظار قبل السماح بمحاولة جديدة — الثواني من الخادم",
@@ -162,108 +133,74 @@
       }
     }
   },
-
   "profileTitle": "ملفي",
   "@profileTitle": {},
-
   "profileFullName": "الاسم",
   "@profileFullName": {},
-
   "profileEmail": "البريد الإلكتروني",
   "@profileEmail": {},
-
   "profilePhone": "رقم الجوال",
   "@profilePhone": {},
-
   "profileAccountType": "نوع الحساب",
   "@profileAccountType": {},
-
   "profileNationalId": "رقم الهوية",
   "@profileNationalId": {},
-
   "profileNationalIdMissing": "لم يُدخل بعد",
   "@profileNationalIdMissing": {},
-
   "profileNationalIdSave": "تثبيت رقم الهوية",
   "@profileNationalIdSave": {},
-
   "profileSave": "حفظ",
   "@profileSave": {},
-
   "profileSaved": "تم الحفظ",
   "@profileSaved": {},
-
   "profileCompanySection": "بيانات الشركة والعنوان الوطني",
   "@profileCompanySection": {},
-
   "profileCompanyComplete": "مكتملة",
   "@profileCompanyComplete": {},
-
   "profileCompanyIncomplete": "ناقصة",
   "@profileCompanyIncomplete": {},
-
   "profileCompanyMissing": "لا يوجد ملف شركة",
   "@profileCompanyMissing": {},
-
   "profileChangePhone": "تغيير رقم الجوال",
   "@profileChangePhone": {},
-
   "profileSignOut": "تسجيل الخروج",
   "@profileSignOut": {},
-
   "companyTitle": "ملف الشركة",
   "@companyTitle": {},
-
   "companyCreateHint": "لا يوجد ملف شركة لهذا الحساب. املأ البيانات لإنشائه.",
   "@companyCreateHint": {},
-
   "companyName": "اسم الشركة",
   "@companyName": {},
-
   "companyRepresentative": "اسم المفوَّض",
   "@companyRepresentative": {},
-
   "companyRegister": "السجل التجاري",
   "@companyRegister": {},
-
   "companyVatNumber": "الرقم الضريبي",
   "@companyVatNumber": {},
-
   "companyNationalAddress": "العنوان الوطني",
   "@companyNationalAddress": {},
-
   "companyBuildingNumber": "رقم المبنى",
   "@companyBuildingNumber": {},
-
   "companyStreet": "الشارع",
   "@companyStreet": {},
-
   "companyDistrict": "الحي",
   "@companyDistrict": {},
-
   "companyCity": "المدينة",
   "@companyCity": {},
-
   "companyPostalCode": "الرمز البريدي",
   "@companyPostalCode": {},
-
   "companySave": "حفظ بيانات الشركة",
   "@companySave": {},
-
   "changePhoneTitle": "تغيير رقم الجوال",
   "@changePhoneTitle": {},
-
   "changePhoneIntro": "نرسل رمزاً إلى رقمك الحالي ورمزاً إلى الرقم الجديد. التغيير يحتاج الرمزين معاً.",
   "@changePhoneIntro": {
     "description": "سبب الرمزين — الرقم الجديد وحده كان مسار الاستيلاء على الحساب في v1"
   },
-
   "changePhoneNewLabel": "الرقم الجديد",
   "@changePhoneNewLabel": {},
-
   "changePhoneSendCodes": "إرسال الرمزين",
   "@changePhoneSendCodes": {},
-
   "changePhoneSentNotice": "أرسلنا رمزاً إلى رقمك الحالي ورمزاً إلى {phone}.",
   "@changePhoneSentNotice": {
     "placeholders": {
@@ -272,23 +209,201 @@
       }
     }
   },
-
   "changePhoneCurrentCode": "الرمز المُرسَل إلى رقمك الحالي",
   "@changePhoneCurrentCode": {},
-
   "changePhoneNewCode": "الرمز المُرسَل إلى الرقم الجديد",
   "@changePhoneNewCode": {},
-
   "changePhoneConfirm": "تأكيد التغيير",
   "@changePhoneConfirm": {},
-
   "changePhoneDone": "تغيّر رقمك، وانتهت الجلسات المفتوحة. سجّل الدخول بالرقم الجديد.",
   "@changePhoneDone": {
     "description": "الخادم يُلغي كل الجلسات عند نجاح التغيير، فالخروج جزء من النجاح لا عطل"
   },
-
   "sessionExpiredNotice": "انتهت جلستك. سجّل الدخول من جديد.",
   "@sessionExpiredNotice": {
     "description": "يُعرض عند إعادة التوجيه بعد 401 لم ينفع معه التجديد"
-  }
+  },
+  "homeTitle": "المزادات",
+  "@homeTitle": {
+    "description": "عنوان الرئيسية — T707"
+  },
+  "homeRunningSection": "مزادات جارية",
+  "@homeRunningSection": {},
+  "homeUpcomingSection": "مزادات قادمة",
+  "@homeUpcomingSection": {},
+  "homeEmpty": "لا توجد مزادات جارية ولا قادمة الآن.",
+  "@homeEmpty": {
+    "description": "الحالة الفارغة للرئيسية — شاشة بلا حالة فارغة تبدو معطوبة"
+  },
+  "auctionStartsAt": "يبدأ {date} الساعة {time}",
+  "@auctionStartsAt": {
+    "description": "بالتوقيت السعودي — التحويل في SaudiTime وحدها",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+  "auctionEndsAt": "ينتهي {date} الساعة {time}",
+  "@auctionEndsAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+  "auctionVehiclesCount": "{count, plural, zero{لا مركبات} one{مركبة واحدة} two{مركبتان} few{{count} مركبات} many{{count} مركبة} other{{count} مركبة}}",
+  "@auctionVehiclesCount": {
+    "description": "عدد مركبات المزاد كما عدّه الخادم",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownToStart": "يبدأ بعد {remaining}",
+  "@countdownToStart": {
+    "description": "العدّاد التنازلي لمزاد لم يبدأ — T707",
+    "placeholders": {
+      "remaining": {
+        "type": "String",
+        "example": "٣ أيام و٤ ساعات"
+      }
+    }
+  },
+  "countdownToEnd": "ينتهي بعد {remaining}",
+  "@countdownToEnd": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "countdownDaysHours": "{days} يوم و{hours} ساعة",
+  "@countdownDaysHours": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownHoursMinutes": "{hours} ساعة و{minutes} دقيقة",
+  "@countdownHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownMinutes": "{minutes} دقيقة",
+  "@countdownMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "countdownLessThanMinute": "أقل من دقيقة",
+  "@countdownLessThanMinute": {},
+  "countdownElapsed": "انتهى الوقت",
+  "@countdownElapsed": {
+    "description": "الوقت مضى بحسب ساعة الجهاز — إخبار لا قرار: الخادم وحده يقرّر إن كانت المزايدة مفتوحة"
+  },
+  "vehiclesTitle": "مركبات المزاد",
+  "@vehiclesTitle": {
+    "description": "عنوان قائمة مركبات المزاد — T708"
+  },
+  "vehiclesEmpty": "لا مركبات مطابقة.",
+  "@vehiclesEmpty": {},
+  "vehiclesResultsCount": "{count, plural, zero{لا نتائج} one{نتيجة واحدة} two{نتيجتان} few{{count} نتائج} many{{count} نتيجة} other{{count} نتيجة}}",
+  "@vehiclesResultsCount": {
+    "description": "العدد الكلي من الخادم لا طول الصفحة",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchHint": "ماركة أو طراز أو رقم لوت",
+  "@searchHint": {},
+  "filterMake": "الماركة",
+  "@filterMake": {},
+  "filterYearFrom": "من سنة",
+  "@filterYearFrom": {},
+  "filterYearTo": "إلى سنة",
+  "@filterYearTo": {},
+  "filterApply": "طبّق الترشيح",
+  "@filterApply": {},
+  "filterClear": "إزالة الترشيح",
+  "@filterClear": {},
+  "vehicleLot": "لوت {lotNumber}",
+  "@vehicleLot": {
+    "placeholders": {
+      "lotNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleReservePrice": "سعر الوقوف",
+  "@vehicleReservePrice": {
+    "description": "الحقل الوحيد لسعر المركبة — دليل النظام §8-3"
+  },
+  "vehicleReservePriceUnset": "لم يُحدَّد",
+  "@vehicleReservePriceUnset": {
+    "description": "مركبة بلا سعر وقوف ليست مركبة سعرها صفر"
+  },
+  "vehicleBidsCount": "{count, plural, zero{لا مزايدات} one{مزايدة واحدة} two{مزايدتان} few{{count} مزايدات} many{{count} مزايدة} other{{count} مزايدة}}",
+  "@vehicleBidsCount": {
+    "description": "عدد المزايدات لا مبلغها — المزاد مغلق",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "vehicleNoImage": "لا توجد صورة",
+  "@vehicleNoImage": {},
+  "vehicleNoImages": "لا صور لهذه المركبة.",
+  "@vehicleNoImages": {},
+  "vehicleImageFailed": "تعذّر تحميل الصورة",
+  "@vehicleImageFailed": {
+    "description": "فشل صورة واحدة لا يُسقط الشاشة"
+  },
+  "vehicleImageCounter": "{index} من {total}",
+  "@vehicleImageCounter": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "vehicleSpecifications": "المواصفات",
+  "@vehicleSpecifications": {},
+  "vehicleNoSpecifications": "لا مواصفات مسجَّلة لهذه المركبة.",
+  "@vehicleNoSpecifications": {},
+  "vehicleBiddingOpen": "المزايدة مفتوحة",
+  "@vehicleBiddingOpen": {
+    "description": "حالة يقرّرها الخادم ويعرضها التطبيق"
+  },
+  "vehicleBiddingClosed": "المزايدة مقفلة",
+  "@vehicleBiddingClosed": {}
 }

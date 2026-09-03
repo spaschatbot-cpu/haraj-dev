@@ -344,6 +344,27 @@ paths:
           required: false
           schema:
             type: string
+            maxLength: 80
+        - name: make
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 80
+        - name: year_from
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2200
+        - name: year_to
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2200
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
       responses:
@@ -953,7 +974,7 @@ components:
     # ---------- المركبات ----------
     VehicleCard:
       type: object
-      required: [id, lot_number, title, thumbnail_url, current_bid_amount, currency, bids_count]
+      required: [id, lot_number, title, thumbnail_url, reserve_price, current_bid_amount, currency, bids_count]
       properties:
         id:
           type: string
@@ -965,6 +986,14 @@ components:
           type: string
           nullable: true
           description: مصغَّرة فقط في القوائم — الحجم الكامل عند الفتح
+        reserve_price:
+          type: string
+          nullable: true
+          description: >
+            سعر وقوف المركبة — الحقل **الوحيد** لسعرها (المادة ٨-٣ في دليل
+            النظام، ونظيره `reserve_price` في مخطط الخادم المثبَّت). الفراغ
+            يعني أن المالك لم يحدّد سعراً، وهو غير الصفر.
+          example: "50000.00"
         current_bid_amount:
           type: string
           description: نصّ عشري — يُعرض كما وصل
@@ -977,7 +1006,7 @@ components:
 
     Vehicle:
       type: object
-      required: [id, lot_number, title, images, specifications, current_bid_amount, currency, bidding_open]
+      required: [id, lot_number, title, images, specifications, reserve_price, current_bid_amount, currency, bidding_open]
       properties:
         id:
           type: string
@@ -993,6 +1022,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Specification"
+        reserve_price:
+          type: string
+          nullable: true
+          description: نفس الحقل الذي يحمله الكرت — سعر واحد لا سعران
+          example: "50000.00"
         current_bid_amount:
           type: string
           example: "12500.00"
