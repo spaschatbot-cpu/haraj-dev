@@ -6,16 +6,6 @@
     "description": "اسم التطبيق كما يظهر في مبدّل التطبيقات"
   },
 
-  "seedTitle": "بذرة التطبيق",
-  "@seedTitle": {
-    "description": "عنوان الشاشة المؤقّتة التي تسبق شاشات المجموعة ب"
-  },
-
-  "seedBody": "الأساس جاهز: العربية والاتجاه، والعميل المولَّد، والتخزين المحلي، ومعالجة الأخطاء. الشاشات تبدأ بعد تثبيت مخطط الـAPI.",
-  "@seedBody": {
-    "description": "شرح حالة البذرة"
-  },
-
   "environmentBanner": "بيئة {environment}",
   "@environmentBanner": {
     "description": "لافتة تظهر في كل بناء غير إنتاجي — المادة ٥-٦",
@@ -69,5 +59,223 @@
         "format": "Hm"
       }
     }
-  }
+  },
+
+  "homeTitle": "المزادات",
+  "@homeTitle": {
+    "description": "عنوان الرئيسية — T707"
+  },
+
+  "homeRunningSection": "مزادات جارية",
+  "@homeRunningSection": {},
+
+  "homeUpcomingSection": "مزادات قادمة",
+  "@homeUpcomingSection": {},
+
+  "homeEmpty": "لا توجد مزادات جارية ولا قادمة الآن.",
+  "@homeEmpty": {
+    "description": "الحالة الفارغة للرئيسية — شاشة بلا حالة فارغة تبدو معطوبة"
+  },
+
+  "auctionStartsAt": "يبدأ {date} الساعة {time}",
+  "@auctionStartsAt": {
+    "description": "بالتوقيت السعودي — التحويل في SaudiTime وحدها",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "auctionEndsAt": "ينتهي {date} الساعة {time}",
+  "@auctionEndsAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "auctionVehiclesCount": "{count, plural, zero{لا مركبات} one{مركبة واحدة} two{مركبتان} few{{count} مركبات} many{{count} مركبة} other{{count} مركبة}}",
+  "@auctionVehiclesCount": {
+    "description": "عدد مركبات المزاد كما عدّه الخادم",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "countdownToStart": "يبدأ بعد {remaining}",
+  "@countdownToStart": {
+    "description": "العدّاد التنازلي لمزاد لم يبدأ — T707",
+    "placeholders": {
+      "remaining": {
+        "type": "String",
+        "example": "٣ أيام و٤ ساعات"
+      }
+    }
+  },
+
+  "countdownToEnd": "ينتهي بعد {remaining}",
+  "@countdownToEnd": {
+    "placeholders": {
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+
+  "countdownDaysHours": "{days} يوم و{hours} ساعة",
+  "@countdownDaysHours": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+
+  "countdownHoursMinutes": "{hours} ساعة و{minutes} دقيقة",
+  "@countdownHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "countdownMinutes": "{minutes} دقيقة",
+  "@countdownMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+
+  "countdownLessThanMinute": "أقل من دقيقة",
+  "@countdownLessThanMinute": {},
+
+  "countdownElapsed": "انتهى الوقت",
+  "@countdownElapsed": {
+    "description": "الوقت مضى بحسب ساعة الجهاز — إخبار لا قرار: الخادم وحده يقرّر إن كانت المزايدة مفتوحة"
+  },
+
+  "vehiclesTitle": "مركبات المزاد",
+  "@vehiclesTitle": {
+    "description": "عنوان قائمة مركبات المزاد — T708"
+  },
+
+  "vehiclesEmpty": "لا مركبات مطابقة.",
+  "@vehiclesEmpty": {},
+
+  "vehiclesResultsCount": "{count, plural, zero{لا نتائج} one{نتيجة واحدة} two{نتيجتان} few{{count} نتائج} many{{count} نتيجة} other{{count} نتيجة}}",
+  "@vehiclesResultsCount": {
+    "description": "العدد الكلي من الخادم لا طول الصفحة",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "searchHint": "ماركة أو طراز أو رقم لوت",
+  "@searchHint": {},
+
+  "filterMake": "الماركة",
+  "@filterMake": {},
+
+  "filterYearFrom": "من سنة",
+  "@filterYearFrom": {},
+
+  "filterYearTo": "إلى سنة",
+  "@filterYearTo": {},
+
+  "filterApply": "طبّق الترشيح",
+  "@filterApply": {},
+
+  "filterClear": "إزالة الترشيح",
+  "@filterClear": {},
+
+  "vehicleLot": "لوت {lotNumber}",
+  "@vehicleLot": {
+    "placeholders": {
+      "lotNumber": {
+        "type": "String"
+      }
+    }
+  },
+
+  "vehicleReservePrice": "سعر الوقوف",
+  "@vehicleReservePrice": {
+    "description": "الحقل الوحيد لسعر المركبة — دليل النظام §8-3"
+  },
+
+  "vehicleReservePriceUnset": "لم يُحدَّد",
+  "@vehicleReservePriceUnset": {
+    "description": "مركبة بلا سعر وقوف ليست مركبة سعرها صفر"
+  },
+
+  "vehicleBidsCount": "{count, plural, zero{لا مزايدات} one{مزايدة واحدة} two{مزايدتان} few{{count} مزايدات} many{{count} مزايدة} other{{count} مزايدة}}",
+  "@vehicleBidsCount": {
+    "description": "عدد المزايدات لا مبلغها — المزاد مغلق",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "vehicleNoImage": "لا توجد صورة",
+  "@vehicleNoImage": {},
+
+  "vehicleNoImages": "لا صور لهذه المركبة.",
+  "@vehicleNoImages": {},
+
+  "vehicleImageFailed": "تعذّر تحميل الصورة",
+  "@vehicleImageFailed": {
+    "description": "فشل صورة واحدة لا يُسقط الشاشة"
+  },
+
+  "vehicleImageCounter": "{index} من {total}",
+  "@vehicleImageCounter": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+
+  "vehicleSpecifications": "المواصفات",
+  "@vehicleSpecifications": {},
+
+  "vehicleNoSpecifications": "لا مواصفات مسجَّلة لهذه المركبة.",
+  "@vehicleNoSpecifications": {},
+
+  "vehicleBiddingOpen": "المزايدة مفتوحة",
+  "@vehicleBiddingOpen": {
+    "description": "حالة يقرّرها الخادم ويعرضها التطبيق"
+  },
+
+  "vehicleBiddingClosed": "المزايدة مقفلة",
+  "@vehicleBiddingClosed": {}
 }
