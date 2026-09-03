@@ -384,6 +384,23 @@ paths:
         "403":
           $ref: "#/components/responses/Error"
 
+  /api/v1/devices/unregister:
+    post:
+      tags: [devices]
+      operationId: devicesUnregister
+      summary: إلغاء تسجيل جهاز عند الخروج — بالرمز، وبمالكه من رمز الدخول
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUnregistration"
+      responses:
+        "204":
+          description: هذا الجهاز لم يعد يستقبل إشعارات هذا المستخدم
+        "403":
+          $ref: "#/components/responses/Error"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -905,6 +922,9 @@ components:
             $ref: "#/components/schemas/Invoice"
 
     # ---------- الإشعارات ----------
+    # لا حقل `user` في أيٍّ من الاثنين، وغيابه هو التصميم كله: المالك يأتي من
+    # رمز الدخول. ثغرة v1 كانت حقلاً في الجسم — تسجيل باسم عميل آخر فتصله
+    # إشعاراته، وإلغاء تسجيله فتنقطع عنه تنبيهات المزايدة بلا أن يدري.
     DeviceRegistration:
       type: object
       required: [token, platform]
@@ -914,6 +934,13 @@ components:
         platform:
           type: string
           enum: [android, ios]
+
+    DeviceUnregistration:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
 
     Device:
       type: object

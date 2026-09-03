@@ -20,11 +20,20 @@ class HarajApp extends ConsumerWidget {
   /// ولا يُغيَّر من داخل التطبيق.
   final Locale locale;
 
+  /// نافذة عرض الرسائل من خارج شجرة الويدجت.
+  ///
+  /// إشعارُ المقدمة يصل من مجرى لا من ضغطة زرّ، فلا `BuildContext` معه. المفتاح
+  /// يعطي `PushCoordinator` مكاناً واحداً معروفاً يعرض فيه، بدل تمرير سياق
+  /// عبر طبقات (T716).
+  static final GlobalKey<ScaffoldMessengerState> messengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final config = ref.watch(appConfigProvider);
 
     return MaterialApp.router(
+      scaffoldMessengerKey: messengerKey,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,

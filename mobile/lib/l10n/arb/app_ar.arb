@@ -33,6 +33,31 @@
   "environmentStaging": "تجريب",
   "@environmentStaging": {},
 
+  "environmentProduction": "الإنتاج",
+  "@environmentProduction": {
+    "description": "لا يظهر في لافتة ولا ختم — موجود كي يبقى تحويل البيئات شاملاً"
+  },
+
+  "environmentStampedMessage": "[{environment}] {message}",
+  "@environmentStampedMessage": {
+    "description": "كل رسالة تُعرض للمستخدم من بناء غير إنتاجي تحمل اسم بيئتها — المادة ٥-٦",
+    "placeholders": {
+      "environment": {
+        "type": "String",
+        "example": "تجريب"
+      },
+      "message": {
+        "type": "String",
+        "example": "زُوِّدت عليك في مركبة ٤٢"
+      }
+    }
+  },
+
+  "pushOpen": "فتح",
+  "@pushOpen": {
+    "description": "زرّ على لافتة الإشعار الواصل والتطبيق مفتوح — الفتح قرار المستخدم"
+  },
+
   "retry": "إعادة المحاولة",
   "@retry": {},
 

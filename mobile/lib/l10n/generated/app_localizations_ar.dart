@@ -30,6 +30,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get environmentStaging => 'تجريب';
 
   @override
+  String get environmentProduction => 'الإنتاج';
+
+  @override
+  String environmentStampedMessage(String environment, String message) {
+    return '[$environment] $message';
+  }
+
+  @override
+  String get pushOpen => 'فتح';
+
+  @override
   String get retry => 'إعادة المحاولة';
 
   @override

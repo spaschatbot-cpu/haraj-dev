@@ -449,6 +449,42 @@ paths:
               schema:
                 $ref: '#/components/schemas/Device'
           description: ''
+  /api/v1/devices/unregister/:
+    post:
+      operationId: devices_unregister
+      description: |-
+        `POST /api/v1/devices/unregister/` — this handset stops receiving mine.
+
+        The app calls it on sign-out. Deleting the provider token on the handset is
+        not enough on its own: the row here would keep a stranger's account name
+        attached to a phone that changed hands, and a delivery report would still
+        read as if the previous owner were reachable — the absence of a send is not
+        evidence he was not told (Article 2-4).
+
+        `POST` rather than `DELETE /devices/{token}`: the token is a credential for
+        sending to the handset, and a path segment lands in every access log and
+        proxy cache on the way.
+      summary: إلغاء تسجيل جهاز
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceUnregistration'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DeviceUnregistration'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DeviceUnregistration'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/favourites/:
     get:
       operationId: favourites_list
@@ -1487,6 +1523,21 @@ components:
           $ref: '#/components/schemas/PlatformEnum'
       required:
       - platform
+      - token
+    DeviceUnregistration:
+      type: object
+      description: |-
+        One handset going quiet, named by the same token it registered with.
+
+        No `user` field here either, for the registration rule read backwards: a
+        caller who could name an account would not read somebody's bid alerts, he
+        would switch them off — and a bidder who stops being told he was outbid
+        loses the auction without ever knowing there was a reason.
+      properties:
+        token:
+          type: string
+          maxLength: 255
+      required:
       - token
     Hold:
       type: object

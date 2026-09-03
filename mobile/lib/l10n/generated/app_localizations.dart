@@ -134,6 +134,24 @@ abstract class AppLocalizations {
   /// **'تجريب'**
   String get environmentStaging;
 
+  /// لا يظهر في لافتة ولا ختم — موجود كي يبقى تحويل البيئات شاملاً
+  ///
+  /// In ar, this message translates to:
+  /// **'الإنتاج'**
+  String get environmentProduction;
+
+  /// كل رسالة تُعرض للمستخدم من بناء غير إنتاجي تحمل اسم بيئتها — المادة ٥-٦
+  ///
+  /// In ar, this message translates to:
+  /// **'[{environment}] {message}'**
+  String environmentStampedMessage(String environment, String message);
+
+  /// زرّ على لافتة الإشعار الواصل والتطبيق مفتوح — الفتح قرار المستخدم
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح'**
+  String get pushOpen;
+
   /// No description provided for @retry.
   ///
   /// In ar, this message translates to:

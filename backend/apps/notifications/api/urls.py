@@ -8,4 +8,9 @@ app_name = "notifications_api"
 
 urlpatterns = [
     path("devices/", views.DeviceView.as_view(), name="devices"),
+    path(
+        "devices/unregister/",
+        views.DeviceUnregisterView.as_view(),
+        name="devices-unregister",
+    ),
 ]

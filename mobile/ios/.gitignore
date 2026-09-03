@@ -27,6 +27,11 @@ Flutter/flutter_export_environment.sh
 ServiceDefinitions.json
 Runner/GeneratedPluginRegistrant.*
 
+# إعداد Firebase لكل بيئة — الطرف الآخر من `android/.gitignore`، ولنفس السبب:
+# ملف يسمّي مشروع تجريب ويلتقطه بناء إنتاج يوجّه إشعارات عملاء حقيقيين إلى
+# مشروع اختبار (المادة ٥-٣).
+**/GoogleService-Info.plist
+
 # Exceptions to above rules.
 !default.mode1v3
 !default.mode2v3

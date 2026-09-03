@@ -40,6 +40,14 @@ dependencies:
   # تنسيق التواريخ فقط — ممنوع استعماله لتنسيق المبالغ (H4)
   intl: ^0.20.2
 
+  # الإشعارات (T716). **السقف عند الجيل 3/15 مقصود ومقيَّد بمعيار H1:**
+  # `firebase_core 4.x` و`firebase_messaging 16.x` يرفعان
+  # `ios.deployment_target` إلى 15.0، ومعيار القبول H1 يقول «iOS 14+». الترقية
+  # إليهما تُسقط أجهزة داخل النطاق المتعاقَد عليه بلا أن يظهر ذلك في أي اختبار،
+  # فتُتَّخذ قراراً معلناً أو لا تُتَّخذ.
+  firebase_core: ^3.15.2
+  firebase_messaging: ^15.2.10
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -16,7 +16,11 @@ from rest_framework.views import APIView
 
 from apps.notifications.models import Device
 
-from .serializers import DeviceRegistrationSerializer, DeviceSerializer
+from .serializers import (
+    DeviceRegistrationSerializer,
+    DeviceSerializer,
+    DeviceUnregistrationSerializer,
+)
 
 
 def device_row(device: Device) -> dict:
@@ -70,3 +74,41 @@ class DeviceView(APIView):
             DeviceSerializer([device_row(d) for d in devices], many=True).data,
             status=status.HTTP_200_OK,
         )
+
+
+class DeviceUnregisterView(APIView):
+    """`POST /api/v1/devices/unregister/` — this handset stops receiving mine.
+
+    The app calls it on sign-out. Deleting the provider token on the handset is
+    not enough on its own: the row here would keep a stranger's account name
+    attached to a phone that changed hands, and a delivery report would still
+    read as if the previous owner were reachable — the absence of a send is not
+    evidence he was not told (Article 2-4).
+
+    `POST` rather than `DELETE /devices/{token}`: the token is a credential for
+    sending to the handset, and a path segment lands in every access log and
+    proxy cache on the way.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="devices_unregister",
+        request=DeviceUnregistrationSerializer,
+        responses={204: None},
+        summary="إلغاء تسجيل جهاز",
+    )
+    def post(self, request: Request) -> Response:
+        payload = DeviceUnregistrationSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        # Scoped to the caller: without `user=` this endpoint would silence any
+        # handset whose token you could guess or replay.
+        Device.objects.filter(
+            user=request.user, token=payload.validated_data["token"]
+        ).delete()
+
+        # 204 whether or not a row went away, deliberately. Reporting "no such
+        # device" turns this into an oracle for whether a given push token is
+        # registered, and sign-out has no use for the answer either way.
+        return Response(status=status.HTTP_204_NO_CONTENT)

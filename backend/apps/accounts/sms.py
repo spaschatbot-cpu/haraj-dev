@@ -14,6 +14,8 @@ import logging
 from django.conf import settings
 from django.utils.module_loading import import_string
 
+from apps.core.environment import stamp_environment
+
 log = logging.getLogger(__name__)
 
 
@@ -31,9 +33,20 @@ class SmsSendFailed(Exception):
 
 
 def send_sms(*, phone: str, body: str) -> None:
-    """Hand ``body`` to the configured provider for ``phone``."""
+    """Hand ``body`` to the configured provider for ``phone``.
+
+    The environment stamps itself onto the body **here**, at the seam, rather
+    than at each call site (Article 5-6, Article 4-5). A stamp every caller has
+    to remember is a stamp that the caller written in a hurry forgets — and
+    that is precisely the caller who ships to staging while staging still
+    points at a real list of numbers. Passing through this function is the only
+    way a message reaches a provider, so passing through it is where the
+    guarantee belongs.
+
+    Production is unchanged; see :func:`apps.core.environment.stamp_environment`.
+    """
     backend = import_string(settings.SMS_BACKEND)
-    backend(phone=phone, body=body)
+    backend(phone=phone, body=stamp_environment(body))
 
 
 def console_backend(*, phone: str, body: str) -> None:
