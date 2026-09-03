@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
 import '../domain/notifications/entities/push_destination.dart';
+import '../presentation/activity/my_activity_screen.dart' show MyActivityTab;
 
 /// مسارات التطبيق وأسماؤها — **تعريف واحد** يقرأ منه التوجيه والإشعارات معاً.
 ///
@@ -38,8 +39,6 @@ abstract final class Routes {
   /// القيمة اسم عضو `WalletBucketKind` في التطبيق، لا قيمة السلك: التحويل إلى
   /// ما يفهمه الخادم يحدث في طبقة البيانات وحدها.
   static const String bucketParameter = 'bucket';
-  static const String invoices = 'invoices';
-  static const String invoice = 'invoice';
 
   /// حسابي: مشاركاتي ومشترياتي وفواتيري. التبويب في `?tab=`.
   static const String myActivity = 'my-activity';
@@ -58,9 +57,15 @@ abstract final class Routes {
   static const String walletPath = '/wallet';
   static const String walletTopUpPath = '/wallet/topup';
   static const String walletTransactionsPath = '/wallet/transactions';
-  static const String invoicesPath = '/invoices';
-  static const String invoicePath = '/invoices/:invoiceId';
   static const String myActivityPath = '/my-activity';
+
+  /// عنوان تبويبٍ في «حسابي» — يبنيه الإشعار وتقرؤه الشاشة.
+  ///
+  /// الفواتير **تبويب** لا شاشة مستقلة (`/invoices` لم يكن له مسار قط)، ولذلك
+  /// لا يُبنى عنوانها بالنصّ الحرّ: ثابتٌ اسمه `invoicesPath` يمرّ في اختبارٍ
+  /// يقارنه بنفسه ويسقط عند المستخدم وحده.
+  static String myActivityTab(MyActivityTab tab) =>
+      '$myActivityPath?$tabQueryParameter=${tab.slug}';
 
   // بناء العنوان يعيش مع اسمه: شاشة تبني عنوانها بنفسها تفترق عنه عند أول
   // تعديل، فتفتح شاشةً غير التي يفتحها الإشعار (معيار H6).
@@ -86,15 +91,16 @@ abstract final class PushLocations {
   static String of(PushDestination destination) {
     final auctionId = destination.auctionId;
     final vehicleId = destination.vehicleId;
-    final invoiceId = destination.invoiceId;
 
     return switch (destination.target) {
       PushTarget.auction when auctionId != null => '/auctions/$auctionId',
       PushTarget.vehicle when vehicleId != null => '/vehicles/$vehicleId',
       PushTarget.bids => Routes.bidsPath,
       PushTarget.wallet => Routes.walletPath,
-      PushTarget.invoice when invoiceId != null => '/invoices/$invoiceId',
-      PushTarget.invoice => Routes.invoicesPath,
+      // رقم الفاتورة يصل في الحمولة ولا يدخل العنوان: لا توجد شاشة فاتورةٍ
+      // واحدة تفتحها، والفواتير كلها تبويب. عنوانٌ لشاشة غير موجودة يهبط
+      // بالمستخدم على «مسار غير موجود»، وهو أسوأ من تبويبٍ يجد فيه فاتورته.
+      PushTarget.invoice => Routes.myActivityTab(MyActivityTab.invoices),
       // يشمل الرئيسية، ويشمل وجهةً بُنيت بلا معرّفها. الأخيرة لا تنتج من
       // المشتقّ (منشئاته تطلب المعرّف)، وتُفتح الرئيسية بدل عنوان مكسور.
       _ => Routes.homePath,

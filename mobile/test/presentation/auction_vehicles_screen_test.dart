@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_query.dart';
@@ -167,6 +169,62 @@ void main() {
 
     // الثانية أسفل الشاشة: القائمة تبني عناصرها عند الوصول إليها، وهو نصف
     // معيار H2 — فالتحقق منها يبدأ بالتمرير إليها.
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Second'), findsOneWidget);
+  });
+
+  testWidgets('ترشيحٌ أثناء تحميل صفحةٍ تالية لا يقفل الترقيم بعده', (
+    tester,
+  ) async {
+    // الطلب المعلَّق يُبطله الترشيح ويعود صامتاً عند حارس الجيل، فلا يصل إلى
+    // السطر الذي ينزل علَم «أُحمّل الآن». العلَم المرفوع يصير قفلاً: كل طلب
+    // تالٍ يرجع من أول سطر، والدوّامة في ذيل القائمة تدور على طلبٍ لن يحدث،
+    // فلا يرى العميل من نتائج ترشيحه إلا صفحتها الأولى.
+    final catalog = FakeCatalogRepository(
+      vehiclePages: <int, Snapshot<VehiclePage>>{
+        1: pageOf(<VehicleSummary>[vehicleSummary(id: 'v-1', title: 'First')]),
+        2: pageOf(<VehicleSummary>[
+          vehicleSummary(id: 'v-2', title: 'Second'),
+        ], hasMore: false),
+      },
+    );
+    catalog.heldPages[2] = Completer<void>();
+
+    // `pumpAndSettle` لا تصلح ما دامت دوّامة الذيل تدور: هي نفسها العَرَض
+    // الذي يشكو منه العميل، فالانتظار هنا بعددٍ من الإطارات لا باستقرار.
+    Future<void> pumpFrames() async {
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+    }
+
+    await pumpScreen(
+      tester,
+      const AuctionVehiclesScreen(auctionId: 'a-1'),
+      catalog: catalog,
+    );
+    await pumpFrames();
+
+    // الصفحة الثانية طُلبت وهي الآن في الطريق ولم يصل جوابها.
+    expect(catalog.receivedQueries.map((query) => query.page), <int>[1, 2]);
+
+    await tester.enterText(find.byType(TextField).first, 'لكزس');
+    await tester.tap(find.text(ar.filterApply));
+    await pumpFrames();
+
+    expect(
+      catalog.receivedQueries
+          .where((query) => query.search == 'لكزس')
+          .map((query) => query.page),
+      <int>[1, 2],
+      reason: 'الصفحة الثانية للنتائج المرشَّحة لم تُطلب',
+    );
+
+    // ووصولُ الجواب المُبطَل بعد ذلك لا يدهس النتائج الجديدة.
+    catalog.heldPages[2]!.complete();
+    await tester.pumpAndSettle();
+
     await tester.drag(find.byType(ListView), const Offset(0, -600));
     await tester.pumpAndSettle();
     expect(find.text('Second'), findsOneWidget);

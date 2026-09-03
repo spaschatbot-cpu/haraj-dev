@@ -136,6 +136,30 @@ List<RouteBase> appRoutes() => <RouteBase>[
   ),
 ];
 
+/// المسارات التي لا معنى لها بلا جلسة — **قائمة واحدة بجوار الجدول**.
+///
+/// أنماطٌ لا عناوين: `/vehicles/:vehicleId/bid` محمي و`/vehicles/:vehicleId`
+/// مفتوح للجميع، وبادئةٌ نصّية على العنوان تحرسهما معاً أو تترك أحدهما.
+/// و«بجوار الجدول» ليست ترتيباً جمالياً: شرطٌ يذكر مساراً واحداً بالاسم ينسى
+/// كل مسار يُضاف بعده، وهو ما حدث — كانت الحراسة على `/profile` وحده بينما
+/// المحفظة والمزايدات وحسابي مفتوحة، فيبقى صاحب الجلسة الساقطة على شاشته
+/// يشاهد فشل شبكة بلا سبب ولا مخرج.
+const Set<String> authenticatedRoutes = <String>{
+  Routes.profilePath,
+  Routes.walletPath,
+  Routes.bidsPath,
+  Routes.bidPath,
+  Routes.myActivityPath,
+};
+
+/// هل هذا النمط — لا العنوان — تحت الحراسة؟
+///
+/// المقارنة ببادئة النمط لا بمساواته: `/profile/company` و`/wallet/topup`
+/// أبناءُ محميّين، وسردهما واحداً واحداً يعني نسيان الثالث.
+bool requiresSession(String? matchedRoutePath) =>
+    matchedRoutePath != null &&
+    authenticatedRoutes.any(matchedRoutePath.startsWith);
+
 /// يبني موجّهاً بلا إعادة توجيه — لاختبار شاشةٍ من مسارها مباشرةً.
 ///
 /// إعادة التوجيه تحتاج `ref`، وهي في `routerProvider` وحده: اختبار شاشة واحدة
@@ -170,7 +194,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final signedIn = session == SessionState.signedIn;
 
-      if (!signedIn && location.startsWith(Routes.profilePath)) {
+      // `fullPath` هو النمط الذي طابق (`/vehicles/:vehicleId/bid`) لا العنوان
+      // المطابِق (`/vehicles/340/bid`)، فالحراسة تُسأل بلغة جدول المسارات.
+      if (!signedIn && requiresSession(state.fullPath)) {
         return Routes.signInPath;
       }
 
