@@ -29,9 +29,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
+import { BidBox } from "@/features/bidding/BidBox";
+import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
+import { takeFlash } from "@/lib/flash";
+import { hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
 import { amount, count } from "@/lib/format";
@@ -80,6 +85,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function VehiclePage({ params }: Params) {
   const { id } = await params;
   const vehicle = await vehicleOr404(readNumber(id, 0));
+
+  // Read here rather than inside the box: a server component reads cookies, and
+  // pulling the flash once at the top is what keeps it a *one-shot* message —
+  // two readers would consume it twice and show it in one place only, at random.
+  const store = await cookies();
+  const signedIn = hasSession(store);
+  const flash = takeFlash(store);
 
   const structured = {
     "@context": "https://schema.org",
@@ -179,11 +191,27 @@ export default async function VehiclePage({ params }: Params) {
             ))}
           </dl>
 
-          {/*
-            No bid box yet: placing a bid is T1014, and it is a server round trip
-            through the same eligibility gate the app uses (J7). A disabled
-            button here would be a promise this page cannot keep.
-          */}
+          <Notice
+            message={flash?.message ?? ""}
+            tone={flash?.code === "bid_placed" ? "info" : "error"}
+          />
+
+          {signedIn ? (
+            <BidBox vehicleId={vehicle.id} flash={flash} />
+          ) : (
+            /*
+              A link, not a disabled box. Somebody who is not signed in cannot
+              bid, and that is a fact about the session rather than a judgement
+              about them — so the page says what to do instead of showing a
+              control that refuses.
+            */
+            <p className="mt-8 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+              <Link href="/sign-in" className="underline">
+                سجّل دخولك
+              </Link>{" "}
+              للمزايدة على هذه المركبة.
+            </p>
+          )}
         </div>
       </div>
     </PageShell>

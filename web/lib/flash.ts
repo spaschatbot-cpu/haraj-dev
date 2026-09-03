@@ -35,6 +35,14 @@ export interface Flash {
   code: string;
   /** The backend's Arabic sentence, ready to render. */
   message: string;
+  /**
+   * The refusal's own `detail` map, when the next screen needs a number out of
+   * it — the standing bid a customer is being asked to confirm lowering below,
+   * say. Carried rather than recomputed: the figure the confirmation names has
+   * to be the figure the refusal was about, and a fresh read a second later can
+   * legitimately be a different one.
+   */
+  detail?: Record<string, unknown>;
 }
 
 export function setFlash(store: CookieStore, flash: Flash): void {
@@ -67,7 +75,14 @@ export function takeFlash(store: CookieStore): Flash | null {
       parsed !== null &&
       typeof (parsed as Flash).message === "string"
     ) {
-      return { code: String((parsed as Flash).code ?? ""), message: (parsed as Flash).message };
+      const flash = parsed as Flash;
+      return {
+        code: String(flash.code ?? ""),
+        message: flash.message,
+        ...(flash.detail && typeof flash.detail === "object"
+          ? { detail: flash.detail }
+          : {}),
+      };
     }
   } catch {
     // A cookie we cannot read is a cookie from an older version of this code,

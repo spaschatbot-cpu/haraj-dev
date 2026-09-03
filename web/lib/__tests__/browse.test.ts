@@ -19,6 +19,30 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+/*
+  The vehicle page reads the session cookie (to decide whether to offer the bid
+  box) and can call `notFound()`. Both are Next request-scoped APIs with no
+  meaning outside a request, so they are stood in for here — a signed-out
+  visitor, which is what a crawler and a first-time reader are, and which is the
+  audience every assertion in this file is about.
+*/
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: () => undefined,
+    set: () => {},
+    delete: () => {},
+  }),
+}));
+
+vi.mock("next/navigation", () => ({
+  notFound: () => {
+    throw new Error("NEXT_NOT_FOUND");
+  },
+  redirect: (to: string) => {
+    throw new Error(`NEXT_REDIRECT:${to}`);
+  },
+}));
+
 import AuctionsPage from "@/app/auctions/page";
 import AuctionPage from "@/app/auctions/[id]/page";
 import VehiclePage from "@/app/vehicles/[id]/page";

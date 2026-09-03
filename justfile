@@ -230,6 +230,7 @@ web-lint-rules:
     node ops/checks/web_tokens_are_httponly.mjs
     node ops/checks/web_one_vehicle_card.mjs
     node ops/checks/web_money_is_never_computed.mjs
+    node ops/checks/web_no_eligibility_logic.mjs
 
 # What CI runs, end to end, before you ask CI to run it.
 ci: lint check-migrations test check-deploy web-lint-rules web-check
