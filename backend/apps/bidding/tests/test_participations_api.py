@@ -114,9 +114,7 @@ def test_the_insurance_state_is_the_ledgers_and_not_derived_from_the_bids(
     assert row["insurance"]["amount"] is None, "المفكوك ليس محجوزاً، فلا يُعرض مبلغه"
 
 
-def test_holding_a_deposit_without_bidding_is_still_a_participation(
-    bidder, live_auction
-):
+def test_holding_a_deposit_without_bidding_is_still_a_participation(bidder, live_auction):
     """Money pinned to an auction is being *in* it, bid or no bid.
 
     A row omitted here is a customer looking at a wallet that says 10,000
