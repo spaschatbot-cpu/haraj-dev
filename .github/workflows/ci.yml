@@ -319,6 +319,16 @@ jobs:
       - name: session tokens are in HttpOnly cookies only
         run: node ops/checks/web_tokens_are_httponly.mjs
 
+      # T1010 — v1's home page alone drew this card four ways with three field
+      # lists, so a new field appeared in some places and vanished from the rest.
+      - name: the vehicle card is drawn in one component
+        run: node ops/checks/web_one_vehicle_card.mjs
+
+      # T1009 / J4 — the server decides an amount and the web displays it.
+      # `Number("0.1") + Number("0.2")` is not `0.3` in JavaScript either.
+      - name: no amount is computed in the web
+        run: node ops/checks/web_money_is_never_computed.mjs
+
       - name: build
         working-directory: web
         run: npm run build
