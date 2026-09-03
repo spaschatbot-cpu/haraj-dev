@@ -12,6 +12,8 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
+from apps.auctions.api.serializers import AuctionCardSerializer
+
 
 class PlaceBidSerializer(serializers.Serializer):
     """One bid on one car."""
@@ -74,21 +76,6 @@ class PageQuerySerializer(serializers.Serializer):
     offset = serializers.IntegerField(required=False, min_value=0, default=0)
 
 
-class ParticipationAuctionSerializer(serializers.Serializer):
-    """The auction, as the person who is in it needs to see it named."""
-
-    id = serializers.IntegerField()
-    number = serializers.IntegerField()
-    title = serializers.CharField()
-    state = serializers.CharField()
-    #: The auction's own Arabic word for its state. A client that maps `live`
-    #: to «جارٍ» owns a second copy of the vocabulary, and it drifts the day a
-    #: state is added (Article 4-5).
-    state_label = serializers.CharField()
-    starts_at = serializers.DateTimeField()
-    ends_at = serializers.DateTimeField()
-
-
 class ParticipationInsuranceSerializer(serializers.Serializer):
     """What this bidder's deposit for this auction is doing, per the ledger.
 
@@ -111,7 +98,13 @@ class ParticipationInsuranceSerializer(serializers.Serializer):
 
 
 class ParticipationSerializer(serializers.Serializer):
-    auction = ParticipationAuctionSerializer()
+    #: The auction row exactly as every other list publishes it — one builder
+    #: (`auctions.cards.auction_card`), one shape. A second field list here
+    #: would be a second card, and a field added to one would be missing from
+    #: the other silently (Article 4-5, `ops/checks/one_vehicle_card.py`).
+    #: `state_label` in particular is the auction's own Arabic word for itself:
+    #: a client that maps `live` → «جارٍ» owns a copy that drifts.
+    auction = AuctionCardSerializer()
     #: Bids that still stand. Withdrawn and superseded rows are kept forever
     #: (T507) and counting them would tell a customer they have five live bids
     #: on a car they bid on five times.

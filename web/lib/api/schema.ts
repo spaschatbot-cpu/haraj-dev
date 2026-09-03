@@ -1067,21 +1067,9 @@ export interface components {
             results: components["schemas"]["Purchase"][];
         };
         Participation: {
-            auction: components["schemas"]["ParticipationAuction"];
+            auction: components["schemas"]["AuctionCard"];
             bids_count: number;
             insurance: components["schemas"]["ParticipationInsurance"];
-        };
-        /** @description The auction, as the person who is in it needs to see it named. */
-        ParticipationAuction: {
-            id: number;
-            number: number;
-            title: string;
-            state: string;
-            state_label: string;
-            /** Format: date-time */
-            starts_at: string;
-            /** Format: date-time */
-            ends_at: string;
         };
         /** @description What this bidder's deposit for this auction is doing, per the ledger.
          *

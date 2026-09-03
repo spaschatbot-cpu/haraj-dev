@@ -33,8 +33,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.auctions.cards import auction_card
 from apps.auctions.models import Auction
-from apps.auctions.states import AuctionState
 from apps.auctions.visibility import visible_vehicles
 from apps.bidding import live, services
 from apps.bidding.models import Bid
@@ -261,18 +261,16 @@ class MyParticipationsView(APIView):
 
 
 def participation_row(auction, *, bids_count: int, hold) -> dict:
-    """One auction the caller is in. The single place a participation is JSON."""
+    """One auction the caller is in. The single place a participation is JSON.
+
+    The auction half is `cards.auction_card`, not a dict written here. Writing
+    one would be a second definition of what an auction row shows — the exact
+    drift `ops/checks/one_vehicle_card.py` exists to refuse, and it refuses this
+    file too until the row comes from the one builder.
+    """
     active = hold is not None and hold.state == HoldState.ACTIVE
     return {
-        "auction": {
-            "id": auction.pk,
-            "number": auction.number,
-            "title": auction.title,
-            "state": auction.state,
-            "state_label": AuctionState(auction.state).label,
-            "starts_at": auction.starts_at,
-            "ends_at": auction.ends_at,
-        },
+        "auction": auction_card(auction),
         "bids_count": bids_count,
         "insurance": {
             "state": hold.state if hold is not None else NO_HOLD,
