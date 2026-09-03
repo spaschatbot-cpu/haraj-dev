@@ -1,6 +1,525 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`التخطيط الساري على المقاسات الثلاثة > الحساب — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>section[1]>form :: أقصى-عرض=max-w-md
+05 main>section[1]>form>label[1] :: عرض=flex · محور=flex-col
+06 main>section[1]>form>label[2] :: عرض=flex · محور=flex-col
+07 main>section[2]>form :: أقصى-عرض=max-w-md
+08 main>section[2]>form>label :: عرض=flex · محور=flex-col
+09 main>section[3]>form :: عرض=grid · أعمدة=grid-cols-1 (افتراضي) · أقصى-عرض=max-w-2xl
+10 main>section[3]>form>label[1] :: عرض=flex · محور=flex-col
+11 main>section[3]>form>label[2] :: عرض=flex · محور=flex-col
+12 main>section[3]>form>label[3] :: عرض=flex · محور=flex-col
+13 main>section[3]>form>label[4] :: عرض=flex · محور=flex-col
+14 main>section[3]>form>label[5] :: عرض=flex · محور=flex-col
+15 main>section[3]>form>label[6] :: عرض=flex · محور=flex-col
+16 main>section[3]>form>label[7] :: عرض=flex · محور=flex-col
+17 main>section[3]>form>label[8] :: عرض=flex · محور=flex-col
+18 main>section[3]>form>label[9] :: عرض=flex · محور=flex-col"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الحساب — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>section[1]>form :: أقصى-عرض=max-w-md
+05 main>section[1]>form>label[1] :: عرض=flex · محور=flex-col
+06 main>section[1]>form>label[2] :: عرض=flex · محور=flex-col
+07 main>section[2]>form :: أقصى-عرض=max-w-md
+08 main>section[2]>form>label :: عرض=flex · محور=flex-col
+09 main>section[3]>form :: عرض=grid · أعمدة=grid-cols-2 · أقصى-عرض=max-w-2xl
+10 main>section[3]>form>label[1] :: عرض=flex · محور=flex-col
+11 main>section[3]>form>label[2] :: عرض=flex · محور=flex-col
+12 main>section[3]>form>label[3] :: عرض=flex · محور=flex-col
+13 main>section[3]>form>label[4] :: عرض=flex · محور=flex-col
+14 main>section[3]>form>label[5] :: عرض=flex · محور=flex-col
+15 main>section[3]>form>label[6] :: عرض=flex · محور=flex-col
+16 main>section[3]>form>label[7] :: عرض=flex · محور=flex-col
+17 main>section[3]>form>label[8] :: عرض=flex · محور=flex-col
+18 main>section[3]>form>label[9] :: عرض=flex · محور=flex-col
+19 main>section[3]>form>div :: امتداد=col-span-2"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الحساب — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>section[1]>form :: أقصى-عرض=max-w-md
+05 main>section[1]>form>label[1] :: عرض=flex · محور=flex-col
+06 main>section[1]>form>label[2] :: عرض=flex · محور=flex-col
+07 main>section[2]>form :: أقصى-عرض=max-w-md
+08 main>section[2]>form>label :: عرض=flex · محور=flex-col
+09 main>section[3]>form :: عرض=grid · أعمدة=grid-cols-2 · أقصى-عرض=max-w-2xl
+10 main>section[3]>form>label[1] :: عرض=flex · محور=flex-col
+11 main>section[3]>form>label[2] :: عرض=flex · محور=flex-col
+12 main>section[3]>form>label[3] :: عرض=flex · محور=flex-col
+13 main>section[3]>form>label[4] :: عرض=flex · محور=flex-col
+14 main>section[3]>form>label[5] :: عرض=flex · محور=flex-col
+15 main>section[3]>form>label[6] :: عرض=flex · محور=flex-col
+16 main>section[3]>form>label[7] :: عرض=flex · محور=flex-col
+17 main>section[3]>form>label[8] :: عرض=flex · محور=flex-col
+18 main>section[3]>form>label[9] :: عرض=flex · محور=flex-col
+19 main>section[3]>form>div :: امتداد=col-span-2"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الدخول — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: أقصى-عرض=max-w-sm · توسيط=mx-auto
+05 main>div>form>label :: عرض=flex · محور=flex-col
+06 main>div>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الدخول — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: أقصى-عرض=max-w-sm · توسيط=mx-auto
+05 main>div>form>label :: عرض=flex · محور=flex-col
+06 main>div>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الدخول — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: أقصى-عرض=max-w-sm · توسيط=mx-auto
+05 main>div>form>label :: عرض=flex · محور=flex-col
+06 main>div>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الرئيسية — جوال 375 1`] = `"01 main :: أقصى-عرض=max-w-3xl · توسيط=mx-auto"`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الرئيسية — سطح مكتب 1280 1`] = `"01 main :: أقصى-عرض=max-w-3xl · توسيط=mx-auto"`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > الرئيسية — لوح 768 1`] = `"01 main :: أقصى-عرض=max-w-3xl · توسيط=mx-auto"`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المحفظة — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>ul[1]>li[1] :: عرض=flex
+06 main>ul[1]>li[1]>div[2] :: عرض=flex
+07 main>ul[1]>li[2] :: عرض=flex
+08 main>ul[1]>li[2]>div[2] :: عرض=flex
+09 main>ul[2]>li :: عرض=flex
+10 main>section>form :: عرض=flex · التفاف=flex-wrap
+11 main>section>form>label :: عرض=flex · محور=flex-col"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المحفظة — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-3
+05 main>ul[1]>li[1] :: عرض=flex
+06 main>ul[1]>li[1]>div[2] :: عرض=flex
+07 main>ul[1]>li[2] :: عرض=flex
+08 main>ul[1]>li[2]>div[2] :: عرض=flex
+09 main>ul[2]>li :: عرض=flex
+10 main>section>form :: عرض=flex · التفاف=flex-wrap
+11 main>section>form>label :: عرض=flex · محور=flex-col"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المحفظة — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-3
+05 main>ul[1]>li[1] :: عرض=flex
+06 main>ul[1]>li[1]>div[2] :: عرض=flex
+07 main>ul[1]>li[2] :: عرض=flex
+08 main>ul[1]>li[2]>div[2] :: عرض=flex
+09 main>ul[2]>li :: عرض=flex
+10 main>section>form :: عرض=flex · التفاف=flex-wrap
+11 main>section>form>label :: عرض=flex · محور=flex-col"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المزايدات — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>ul>li[1] :: عرض=flex · التفاف=flex-wrap
+05 main>ul>li[1]>div[2] :: محاذاة=text-end
+06 main>ul>li[2] :: عرض=flex · التفاف=flex-wrap
+07 main>ul>li[2]>div[2] :: محاذاة=text-end
+08 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المزايدات — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>ul>li[1] :: عرض=flex · التفاف=flex-wrap
+05 main>ul>li[1]>div[2] :: محاذاة=text-end
+06 main>ul>li[2] :: عرض=flex · التفاف=flex-wrap
+07 main>ul>li[2]>div[2] :: محاذاة=text-end
+08 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المزايدات — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>ul>li[1] :: عرض=flex · التفاف=flex-wrap
+05 main>ul>li[1]>div[2] :: محاذاة=text-end
+06 main>ul>li[2] :: عرض=flex · التفاف=flex-wrap
+07 main>ul>li[2]>div[2] :: محاذاة=text-end
+08 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — بلا مركبات — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>p :: محاذاة=text-center
+05 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — بلا مركبات — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>p :: محاذاة=text-center
+05 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — بلا مركبات — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>p :: محاذاة=text-center
+05 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>article[1]>a :: عرض=block
+06 main>div>article[1]>a>div[1]>div :: عرض=flex
+07 main>div>article[1]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+08 main>div>article[1]>a>div[2]>dl>div[1] :: عرض=flex
+09 main>div>article[1]>a>div[2]>dl>div[2] :: عرض=flex
+10 main>div>article[1]>a>div[2]>dl>div[3] :: عرض=flex
+11 main>div>article[1]>a>div[2]>dl>div[4] :: عرض=flex
+12 main>div>article[1]>a>div[2]>p[2] :: عرض=flex
+13 main>div>article[2]>a :: عرض=block
+14 main>div>article[2]>a>div[1]>div :: عرض=flex
+15 main>div>article[2]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+16 main>div>article[2]>a>div[2]>dl>div[1] :: عرض=flex
+17 main>div>article[2]>a>div[2]>dl>div[2] :: عرض=flex
+18 main>div>article[2]>a>div[2]>dl>div[3] :: عرض=flex
+19 main>div>article[2]>a>div[2]>dl>div[4] :: عرض=flex
+20 main>div>article[2]>a>div[2]>p[2] :: عرض=flex
+21 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-3
+05 main>div>article[1]>a :: عرض=block
+06 main>div>article[1]>a>div[1]>div :: عرض=flex
+07 main>div>article[1]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+08 main>div>article[1]>a>div[2]>dl>div[1] :: عرض=flex
+09 main>div>article[1]>a>div[2]>dl>div[2] :: عرض=flex
+10 main>div>article[1]>a>div[2]>dl>div[3] :: عرض=flex
+11 main>div>article[1]>a>div[2]>dl>div[4] :: عرض=flex
+12 main>div>article[1]>a>div[2]>p[2] :: عرض=flex
+13 main>div>article[2]>a :: عرض=block
+14 main>div>article[2]>a>div[1]>div :: عرض=flex
+15 main>div>article[2]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+16 main>div>article[2]>a>div[2]>dl>div[1] :: عرض=flex
+17 main>div>article[2]>a>div[2]>dl>div[2] :: عرض=flex
+18 main>div>article[2]>a>div[2]>dl>div[3] :: عرض=flex
+19 main>div>article[2]>a>div[2]>dl>div[4] :: عرض=flex
+20 main>div>article[2]>a>div[2]>p[2] :: عرض=flex
+21 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > المفضّلة — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-2
+05 main>div>article[1]>a :: عرض=block
+06 main>div>article[1]>a>div[1]>div :: عرض=flex
+07 main>div>article[1]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+08 main>div>article[1]>a>div[2]>dl>div[1] :: عرض=flex
+09 main>div>article[1]>a>div[2]>dl>div[2] :: عرض=flex
+10 main>div>article[1]>a>div[2]>dl>div[3] :: عرض=flex
+11 main>div>article[1]>a>div[2]>dl>div[4] :: عرض=flex
+12 main>div>article[1]>a>div[2]>p[2] :: عرض=flex
+13 main>div>article[2]>a :: عرض=block
+14 main>div>article[2]>a>div[1]>div :: عرض=flex
+15 main>div>article[2]>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+16 main>div>article[2]>a>div[2]>dl>div[1] :: عرض=flex
+17 main>div>article[2]>a>div[2]>dl>div[2] :: عرض=flex
+18 main>div>article[2]>a>div[2]>dl>div[3] :: عرض=flex
+19 main>div>article[2]>a>div[2]>dl>div[4] :: عرض=flex
+20 main>div>article[2]>a>div[2]>p[2] :: عرض=flex
+21 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — داخل وبرفض — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div[1] :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex
+18 main>div>div[2]>form>label :: عرض=flex · محور=flex-col
+19 main>div>div[2]>form>div>label :: عرض=flex
+20 main>div>div[2]>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — داخل وبرفض — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-2
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div[1] :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex
+18 main>div>div[2]>form>label :: عرض=flex · محور=flex-col
+19 main>div>div[2]>form>div>label :: عرض=flex
+20 main>div>div[2]>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — داخل وبرفض — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div[1] :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex
+18 main>div>div[2]>form>label :: عرض=flex · محور=flex-col
+19 main>div>div[2]>form>div>label :: عرض=flex
+20 main>div>div[2]>form>button :: عرض-مطلق=w-full"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-2
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > صفحة المركبة — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>div[1]>div :: عرض=flex
+06 main>div>div[2]>div :: عرض=flex · التفاف=flex-wrap
+07 main>div>div[2]>p[1] :: عرض=flex
+08 main>div>div[2]>dl>div[1] :: عرض=flex
+09 main>div>div[2]>dl>div[2] :: عرض=flex
+10 main>div>div[2]>dl>div[3] :: عرض=flex
+11 main>div>div[2]>dl>div[4] :: عرض=flex
+12 main>div>div[2]>dl>div[5] :: عرض=flex
+13 main>div>div[2]>dl>div[6] :: عرض=flex
+14 main>div>div[2]>dl>div[7] :: عرض=flex
+15 main>div>div[2]>dl>div[8] :: عرض=flex
+16 main>div>div[2]>dl>div[9] :: عرض=flex
+17 main>div>div[2]>dl>div[10] :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > قائمة المزادات — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>div>article>a :: عرض=block
+06 main>div>article>a>div :: عرض=flex
+07 main>div>article>a>dl>div[1] :: عرض=flex
+08 main>div>article>a>dl>div[2] :: عرض=flex
+09 main>div>article>a>dl>div[3] :: عرض=flex
+10 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > قائمة المزادات — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-2
+05 main>div>article>a :: عرض=block
+06 main>div>article>a>div :: عرض=flex
+07 main>div>article>a>dl>div[1] :: عرض=flex
+08 main>div>article>a>dl>div[2] :: عرض=flex
+09 main>div>article>a>dl>div[3] :: عرض=flex
+10 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > قائمة المزادات — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>div :: عرض=grid · أعمدة=grid-cols-2
+05 main>div>article>a :: عرض=block
+06 main>div>article>a>div :: عرض=flex
+07 main>div>article>a>dl>div[1] :: عرض=flex
+08 main>div>article>a>dl>div[2] :: عرض=flex
+09 main>div>article>a>dl>div[3] :: عرض=flex
+10 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > مركبات المزاد — جوال 375 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>form :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+05 main>form>label[1] :: عرض=flex · محور=flex-col
+06 main>form>label[2] :: عرض=flex · محور=flex-col
+07 main>form>label[3] :: عرض=flex · محور=flex-col
+08 main>form>label[4] :: عرض=flex · محور=flex-col
+09 main>form>div :: عرض=flex
+10 main>div :: عرض=grid · أعمدة=grid-cols-1 (افتراضي)
+11 main>div>article>a :: عرض=block
+12 main>div>article>a>div[1]>div :: عرض=flex
+13 main>div>article>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+14 main>div>article>a>div[2]>dl>div[1] :: عرض=flex
+15 main>div>article>a>div[2]>dl>div[2] :: عرض=flex
+16 main>div>article>a>div[2]>dl>div[3] :: عرض=flex
+17 main>div>article>a>div[2]>dl>div[4] :: عرض=flex
+18 main>div>article>a>div[2]>p[2] :: عرض=flex
+19 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > مركبات المزاد — سطح مكتب 1280 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>form :: عرض=grid · أعمدة=grid-cols-5
+05 main>form>label[1] :: عرض=flex · امتداد=col-span-2 · محور=flex-col
+06 main>form>label[2] :: عرض=flex · محور=flex-col
+07 main>form>label[3] :: عرض=flex · محور=flex-col
+08 main>form>label[4] :: عرض=flex · محور=flex-col
+09 main>form>div :: عرض=flex · امتداد=col-span-5
+10 main>div :: عرض=grid · أعمدة=grid-cols-3
+11 main>div>article>a :: عرض=block
+12 main>div>article>a>div[1]>div :: عرض=flex
+13 main>div>article>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+14 main>div>article>a>div[2]>dl>div[1] :: عرض=flex
+15 main>div>article>a>div[2]>dl>div[2] :: عرض=flex
+16 main>div>article>a>div[2]>dl>div[3] :: عرض=flex
+17 main>div>article>a>div[2]>dl>div[4] :: عرض=flex
+18 main>div>article>a>div[2]>p[2] :: عرض=flex
+19 main>nav :: عرض=flex"
+`;
+
+exports[`التخطيط الساري على المقاسات الثلاثة > مركبات المزاد — لوح 768 1`] = `
+"01 header>div :: عرض=flex · أقصى-عرض=max-w-5xl · توسيط=mx-auto
+02 header>div>nav :: عرض=flex
+03 main :: أقصى-عرض=max-w-5xl · توسيط=mx-auto
+04 main>form :: عرض=grid · أعمدة=grid-cols-2
+05 main>form>label[1] :: عرض=flex · محور=flex-col
+06 main>form>label[2] :: عرض=flex · محور=flex-col
+07 main>form>label[3] :: عرض=flex · محور=flex-col
+08 main>form>label[4] :: عرض=flex · محور=flex-col
+09 main>form>div :: عرض=flex
+10 main>div :: عرض=grid · أعمدة=grid-cols-2
+11 main>div>article>a :: عرض=block
+12 main>div>article>a>div[1]>div :: عرض=flex
+13 main>div>article>a>div[2]>dl :: عرض=grid · أعمدة=grid-cols-2
+14 main>div>article>a>div[2]>dl>div[1] :: عرض=flex
+15 main>div>article>a>div[2]>dl>div[2] :: عرض=flex
+16 main>div>article>a>div[2]>dl>div[3] :: عرض=flex
+17 main>div>article>a>div[2]>dl>div[4] :: عرض=flex
+18 main>div>article>a>div[2]>p[2] :: عرض=flex
+19 main>nav :: عرض=flex"
+`;
+
+exports[`لقطات البنية > الحساب 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">حسابي</h1><section class="mb-10"><h2 class="mb-3 text-lg font-semibold">بياناتي</h2><form class="max-w-md space-y-4" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">الاسم</span><input type="text" required="" class="rounded border border-neutral-300 px-3 py-2" name="full_name" value="أحمد بن سالم"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">البريد الإلكتروني</span><input type="email" class="rounded border border-neutral-300 px-3 py-2" name="email" value="ahmad@example.com"/></label><p class="text-sm text-neutral-600">الجوال <span class="money">966500000001</span></p><button type="submit" class="rounded bg-neutral-900 px-4 py-2 text-white">حفظ</button></form></section><section class="mb-10"><h2 class="mb-3 text-lg font-semibold">رقم الهوية</h2><form class="max-w-md space-y-4" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">رقم الهوية أو الإقامة</span><input type="text" inputMode="numeric" required="" class="money rounded border border-neutral-300 px-3 py-2" name="national_id" value=""/></label><p class="text-sm text-neutral-500">يُسجَّل مرة واحدة. رقم صحيح لا يمكن تغييره بعدها.</p><button type="submit" class="rounded bg-neutral-900 px-4 py-2 text-white">حفظ</button></form></section><section><h2 class="mb-3 text-lg font-semibold">بيانات الشركة والعنوان الوطني<span class="ms-2 text-sm font-normal text-amber-700">— غير مكتملة</span></h2><form class="grid max-w-2xl gap-4 sm:grid-cols-2" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">اسم الشركة</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="name" value="معارض الرياض"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">اسم الممثّل</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="representative_name" value="أحمد بن سالم"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">السجل التجاري</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="commercial_register" value="1010101010"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">الرقم الضريبي</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="vat_number" value="300000000000003"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">رقم المبنى</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="building_number" value="1234"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">الشارع</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="street" value="طريق الملك عبدالعزيز"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">الحي</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="district" value="العليا"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">المدينة</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="city" value="الرياض"/></label><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">الرمز البريدي</span><input type="text" class="rounded border border-neutral-300 px-3 py-2" name="postal_code" value="12211"/></label><div class="sm:col-span-2"><button type="submit" class="rounded bg-neutral-900 px-4 py-2 text-white">حفظ بيانات الشركة</button></div></form></section><form class="mt-12 border-t border-neutral-200 pt-6" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><button type="submit" class="text-sm text-neutral-600 underline">تسجيل الخروج</button></form></main><script>addEventListener("submit",function(a){if(!a.defaultPrevented){var c=a.target,d=a.submitter,e=c.action,b=d;if(d){var f=d.getAttribute("formAction");null!=f&&(e=f,b=null)}"javascript:throw new Error('React form unexpectedly submitted.')"===e&&(a.preventDefault(),b?(a=document.createElement("input"),a.name=b.name,a.value=b.value,b.parentNode.insertBefore(a,b),b=new FormData(c),a.parentNode.removeChild(a)):b=new FormData(c),a=c.ownerDocument||c,(a.$$reactFormReplay=a.$$reactFormReplay||[]).push(c,d,b))}});</script>"`;
+
+exports[`لقطات البنية > الدخول 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">الدخول</h1><div class="mx-auto max-w-sm"><form class="space-y-4" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">رقم الجوال</span><input type="tel" inputMode="tel" autoComplete="tel" required="" placeholder="9665XXXXXXXX" class="money rounded border border-neutral-300 px-3 py-2 text-lg" name="phone" value=""/></label><button type="submit" class="w-full rounded bg-neutral-900 px-4 py-2 text-white">أرسل الرمز</button></form></div></main><script>addEventListener("submit",function(a){if(!a.defaultPrevented){var c=a.target,d=a.submitter,e=c.action,b=d;if(d){var f=d.getAttribute("formAction");null!=f&&(e=f,b=null)}"javascript:throw new Error('React form unexpectedly submitted.')"===e&&(a.preventDefault(),b?(a=document.createElement("input"),a.name=b.name,a.value=b.value,b.parentNode.insertBefore(a,b),b=new FormData(c),a.parentNode.removeChild(a)):b=new FormData(c),a=c.ownerDocument||c,(a.$$reactFormReplay=a.$$reactFormReplay||[]).push(c,d,b))}});</script>"`;
+
+exports[`لقطات البنية > الرئيسية 1`] = `"<main class="mx-auto max-w-3xl px-4 py-12"><h1 class="text-2xl font-bold">حراج</h1><p class="mt-4 text-neutral-600">الأساس جاهز: العربية وRTL، والعميل المولَّد من المخطط، والجلسة في كوكيز محميّة. قائمة المزادات تصل في T1007.</p></main>"`;
+
+exports[`لقطات البنية > المحفظة 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">محفظتي</h1><div class="grid gap-4 sm:grid-cols-3"><div class="rounded-lg border border-neutral-200 bg-white p-4"><p class="text-sm text-neutral-500">متاح للمزايدة والسحب</p><p class="money mt-1 text-2xl font-bold">9250.40</p><p class="text-xs text-neutral-400">SAR</p></div><div class="rounded-lg border border-neutral-200 bg-white p-4"><p class="text-sm text-neutral-500">محجوز لمزادات</p><p class="money mt-1 text-2xl font-bold">8000.00</p><p class="text-xs text-neutral-400">SAR</p></div><div class="rounded-lg border border-neutral-200 bg-white p-4"><p class="text-sm text-neutral-500">مقفول على مستحقات</p><p class="money mt-1 text-2xl font-bold">1500.75</p><p class="text-xs text-neutral-400">SAR</p></div></div><p class="mt-4 text-sm text-neutral-600">المجموع <span class="money font-semibold">19000.00</span> · بحسب الدفتر في 03‏/09‏/2026، 1:11 م</p><form class="mt-6" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><button type="submit" class="rounded bg-neutral-900 px-4 py-2 text-sm text-white">شحن التأمين بالبطاقة</button><p class="mt-2 text-xs text-neutral-500">المبلغ يحدّده النظام. يُفتح لك موقع الدفع، ويتحرّك رصيدك حين تؤكّد البوابة الدفع للخادم — لا عند عودتك من الرابط.</p></form><h2 class="mt-10 mb-3 text-lg font-semibold">الدلاء</h2><ul class="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white"><li class="flex items-center justify-between gap-4 p-4"><div><p class="font-medium">تأمين متاح</p><p class="text-sm text-neutral-500">4 حركة</p></div><div class="flex items-center gap-4"><span class="money font-semibold">9250.40</span><a class="text-sm underline" href="/wallet/statement?bucket=insurance_free">الحركات</a></div></li><li class="flex items-center justify-between gap-4 p-4"><div><p class="font-medium">تأمين محجوز لمزاد</p><p class="text-sm text-neutral-500">1 حركة</p></div><div class="flex items-center gap-4"><span class="money font-semibold">8000.00</span><a class="text-sm underline" href="/wallet/statement?bucket=insurance_held">الحركات</a></div></li></ul><h2 class="mt-10 mb-3 text-lg font-semibold">الحجوزات القائمة</h2><ul class="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white"><li class="flex items-center justify-between gap-4 p-4"><div><p class="font-medium">ضمان المزايدة</p><p class="text-sm text-neutral-500">مزاد 811 · 03‏/09‏/2026، 1:10 م</p></div><span class="money font-semibold">8000.00</span></li></ul><section class="mt-12 rounded-lg border border-neutral-200 bg-white p-4"><h2 class="mb-1 font-semibold">طلب استرداد</h2><p class="mb-4 text-sm text-neutral-600">المتاح الآن <span class="money">9250.40</span>. الطلب لا يحرّك رصيدك؛ المحاسبة تنفّذه ويظهر في حركاتك عند التنفيذ.</p><form class="flex flex-wrap items-end gap-3" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">المبلغ</span><input type="text" inputMode="decimal" required="" class="money rounded border border-neutral-300 px-3 py-2" name="amount"/></label><button type="submit" class="rounded bg-neutral-900 px-4 py-2 text-white">أرسل الطلب</button></form></section></main><script>addEventListener("submit",function(a){if(!a.defaultPrevented){var c=a.target,d=a.submitter,e=c.action,b=d;if(d){var f=d.getAttribute("formAction");null!=f&&(e=f,b=null)}"javascript:throw new Error('React form unexpectedly submitted.')"===e&&(a.preventDefault(),b?(a=document.createElement("input"),a.name=b.name,a.value=b.value,b.parentNode.insertBefore(a,b),b=new FormData(c),a.parentNode.removeChild(a)):b=new FormData(c),a=c.ownerDocument||c,(a.$$reactFormReplay=a.$$reactFormReplay||[]).push(c,d,b))}});</script>"`;
+
+exports[`لقطات البنية > المزايدات 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">مزايداتي</h1><ul class="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white"><li class="flex flex-wrap items-center gap-4 p-4"><div class="min-w-0 grow"><a class="font-medium hover:underline" href="/vehicles/91">تويوتا كامري 2022</a><p class="mt-1 text-sm text-neutral-600">لوت 14 · 03‏/09‏/2026، 1:10 م</p></div><div class="text-end"><p class="money text-lg font-semibold">50000.25 ريال</p><p class="text-sm text-neutral-500">قائمة</p></div><form action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><input type="hidden" name="bid_id" value="5"/><button type="submit" class="text-sm text-red-700 underline">سحب</button></form></li><li class="flex flex-wrap items-center gap-4 p-4"><div class="min-w-0 grow"><a class="font-medium hover:underline" href="/vehicles/92">نيسان التيما 2021</a><p class="mt-1 text-sm text-neutral-600">لوت 15 · 03‏/09‏/2026، 12:40 م</p></div><div class="text-end"><p class="money text-lg font-semibold">47250.10 ريال</p><p class="text-sm text-neutral-500">مسحوبة</p></div></li></ul><nav class="mt-8 flex items-center justify-between gap-4 text-sm" aria-label="صفحات"><span class="text-neutral-400">الصفحة السابقة</span><span class="text-neutral-600">صفحة 1 من 1 · 2 نتيجة</span><span class="text-neutral-400">الصفحة التالية</span></nav></main><script>addEventListener("submit",function(a){if(!a.defaultPrevented){var c=a.target,d=a.submitter,e=c.action,b=d;if(d){var f=d.getAttribute("formAction");null!=f&&(e=f,b=null)}"javascript:throw new Error('React form unexpectedly submitted.')"===e&&(a.preventDefault(),b?(a=document.createElement("input"),a.name=b.name,a.value=b.value,b.parentNode.insertBefore(a,b),b=new FormData(c),a.parentNode.removeChild(a)):b=new FormData(c),a=c.ownerDocument||c,(a.$$reactFormReplay=a.$$reactFormReplay||[]).push(c,d,b))}});</script>"`;
+
+exports[`لقطات البنية > المفضّلة 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">مفضّلتي</h1><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><article class="overflow-hidden rounded-lg border border-neutral-200 bg-white"><a class="block" href="/vehicles/91"><div class="relative aspect-[4/3] bg-neutral-100"><div class="flex h-full items-center justify-center text-sm text-neutral-400">لا توجد صورة</div></div><div class="p-4"><h3 class="font-semibold">تويوتا كامري 2022</h3><p class="mt-1 text-sm text-neutral-600">لوت 14 · مزاد 811</p><dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-neutral-700"><div class="flex gap-1"><dt class="text-neutral-500">الحالة</dt><dd>معروضة</dd></div><div class="flex gap-1"><dt class="text-neutral-500">الممشى</dt><dd class="money">84,000 كم</dd></div><div class="flex gap-1"><dt class="text-neutral-500">ناقل الحركة</dt><dd>أوتوماتيك</dd></div><div class="flex gap-1"><dt class="text-neutral-500">الوقود</dt><dd>بنزين</dd></div></dl><p class="mt-3 flex items-baseline gap-2"><span class="text-sm text-neutral-500">سعر الوقوف</span><span class="money text-lg font-semibold">48500.75 ريال</span></p></div></a></article><article class="overflow-hidden rounded-lg border border-neutral-200 bg-white"><a class="block" href="/vehicles/92"><div class="relative aspect-[4/3] bg-neutral-100"><div class="flex h-full items-center justify-center text-sm text-neutral-400">لا توجد صورة</div></div><div class="p-4"><h3 class="font-semibold">نيسان التيما 2021</h3><p class="mt-1 text-sm text-neutral-600">لوت 15 · مزاد 811</p><dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-neutral-700"><div class="flex gap-1"><dt class="text-neutral-500">الحالة</dt><dd>معروضة</dd></div><div class="flex gap-1"><dt class="text-neutral-500">الممشى</dt><dd class="money">61,000 كم</dd></div><div class="flex gap-1"><dt class="text-neutral-500">ناقل الحركة</dt><dd>أوتوماتيك</dd></div><div class="flex gap-1"><dt class="text-neutral-500">الوقود</dt><dd>بنزين</dd></div></dl><p class="mt-3 flex items-baseline gap-2"><span class="text-sm text-neutral-500">سعر الوقوف</span><span class="money text-lg font-semibold">31200.00 ريال</span></p></div></a></article></div><nav class="mt-8 flex items-center justify-between gap-4 text-sm" aria-label="صفحات"><span class="text-neutral-400">الصفحة السابقة</span><span class="text-neutral-600">صفحة 1 من 1 · 2 نتيجة</span><span class="text-neutral-400">الصفحة التالية</span></nav></main>"`;
+
+exports[`لقطات البنية > المفضّلة — بلا مركبات 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">مفضّلتي</h1><p class="py-12 text-center text-neutral-500">لم تحفظ مركبة بعد. علامة المفضّلة على أي مركبة تعيدك إليها من هنا.</p><nav class="mt-8 flex items-center justify-between gap-4 text-sm" aria-label="صفحات"><span class="text-neutral-400">الصفحة السابقة</span><span class="text-neutral-600">صفحة 1 من 1 · 0 نتيجة</span><span class="text-neutral-400">الصفحة التالية</span></nav></main>"`;
+
 exports[`لقطات البنية > صفحة المركبة 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><script type="application/ld+json">{"@context":"https://schema.org","@type":"Vehicle","name":"تويوتا كامري 2022","brand":{"@type":"Brand","name":"تويوتا"},"model":"كامري","vehicleModelDate":"2022","vehicleTransmission":"أوتوماتيك","fuelType":"بنزين","mileageFromOdometer":{"@type":"QuantitativeValue","value":84000,"unitCode":"KMT"}}</script><nav class="mb-4 text-sm text-neutral-600"><a class="hover:underline" href="/auctions">المزادات</a> · <a class="hover:underline" href="/auctions/811">مزاد 811</a></nav><div class="grid gap-8 lg:grid-cols-2"><div class="relative aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100"><div class="flex h-full items-center justify-center text-neutral-400">لا توجد صورة</div></div><div><h1 class="text-2xl font-bold">تويوتا كامري 2022</h1><div class="mt-2 flex flex-wrap items-center gap-3"><p class="text-sm text-neutral-600">معروضة · لوت 14</p></div><p class="mt-6 flex items-baseline gap-2"><span class="text-neutral-500">سعر الوقوف</span><span class="money text-2xl font-bold">48500.75 ريال</span></p><dl class="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm"><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الماركة</dt><dd class="text-neutral-900">تويوتا</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الطراز</dt><dd class="text-neutral-900">كامري</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">سنة الصنع</dt><dd class="text-neutral-900">2022</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الحالة</dt><dd class="text-neutral-900">جيدة</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">ناقل الحركة</dt><dd class="text-neutral-900">أوتوماتيك</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الوقود</dt><dd class="text-neutral-900">بنزين</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">نوع اللوحة</dt><dd class="text-neutral-900">خصوصي</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الممشى</dt><dd class="text-neutral-900">84,000 كم</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">رقم اللوت</dt><dd class="text-neutral-900">14</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">المالك</dt><dd class="text-neutral-900">شركة المعارض</dd></div></dl><p class="mt-8 rounded-lg border border-neutral-200 bg-white p-4 text-sm"><a class="underline" href="/sign-in">سجّل دخولك</a> للمزايدة على هذه المركبة.</p></div></div></main>"`;
+
+exports[`لقطات البنية > صفحة المركبة — داخل وبرفض 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><script type="application/ld+json">{"@context":"https://schema.org","@type":"Vehicle","name":"تويوتا كامري 2022","brand":{"@type":"Brand","name":"تويوتا"},"model":"كامري","vehicleModelDate":"2022","vehicleTransmission":"أوتوماتيك","fuelType":"بنزين","mileageFromOdometer":{"@type":"QuantitativeValue","value":84000,"unitCode":"KMT"}}</script><nav class="mb-4 text-sm text-neutral-600"><a class="hover:underline" href="/auctions">المزادات</a> · <a class="hover:underline" href="/auctions/811">مزاد 811</a></nav><div class="grid gap-8 lg:grid-cols-2"><div class="relative aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100"><div class="flex h-full items-center justify-center text-neutral-400">لا توجد صورة</div></div><div><h1 class="text-2xl font-bold">تويوتا كامري 2022</h1><div class="mt-2 flex flex-wrap items-center gap-3"><p class="text-sm text-neutral-600">معروضة · لوت 14</p><form action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><input type="hidden" name="vehicle_id" value="91"/><input type="hidden" name="back" value="/vehicles/91"/><button type="submit" aria-pressed="true" class="rounded border border-neutral-300 px-3 py-1.5 text-sm hover:bg-neutral-50">★ في المفضّلة</button></form></div><p class="mt-6 flex items-baseline gap-2"><span class="text-neutral-500">سعر الوقوف</span><span class="money text-2xl font-bold">48500.75 ريال</span></p><dl class="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm"><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الماركة</dt><dd class="text-neutral-900">تويوتا</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الطراز</dt><dd class="text-neutral-900">كامري</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">سنة الصنع</dt><dd class="text-neutral-900">2022</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الحالة</dt><dd class="text-neutral-900">جيدة</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">ناقل الحركة</dt><dd class="text-neutral-900">أوتوماتيك</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الوقود</dt><dd class="text-neutral-900">بنزين</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">نوع اللوحة</dt><dd class="text-neutral-900">خصوصي</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">الممشى</dt><dd class="text-neutral-900">84,000 كم</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">رقم اللوت</dt><dd class="text-neutral-900">14</dd></div><div class="flex justify-between gap-4 py-2"><dt class="text-neutral-500">المالك</dt><dd class="text-neutral-900">شركة المعارض</dd></div></dl><p role="alert" class="mb-4 rounded border px-4 py-3 text-sm border-red-300 bg-red-50 text-red-900">مزايدتك القائمة أعلى من هذا المبلغ. أكِّد الخفض إن كنت تقصده.</p><div class="mt-4 rounded border border-neutral-200 bg-neutral-50 p-3 text-sm"><p class="text-neutral-500">جارٍ الاتصال…</p><p class="mt-1">مزايدتك القائمة <span class="money font-semibold">50000.25</span> ريال</p></div><form class="mt-8 rounded-lg border border-neutral-200 bg-white p-4" action="javascript:throw new Error(&#x27;React form unexpectedly submitted.&#x27;)"><input type="hidden" name="vehicle_id" value="91"/><h2 class="mb-3 font-semibold">المزايدة</h2><label class="flex flex-col gap-1 text-sm"><span class="text-neutral-600">مبلغ المزايدة</span><input type="text" inputMode="decimal" required="" class="money rounded border border-neutral-300 px-3 py-2 text-lg" name="amount" value="45000.00"/></label><div class="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm"><p class="mb-2 text-amber-900">مزايدتك القائمة <span class="money">50000.25</span> ريال، والمبلغ الجديد أقل منها.</p><label class="flex items-center gap-2 text-amber-900"><input type="checkbox" required="" name="confirm_lower" value="1"/><span>نعم، أريد خفض مزايدتي.</span></label></div><button type="submit" class="mt-4 w-full rounded bg-neutral-900 px-4 py-2 text-white">تأكيد الخفض</button><p class="mt-3 text-xs text-neutral-500">المزايدة تحجز تأميناً على المزاد. الخادم يقرّر الأهلية والحد الأدنى.</p></form></div></div></main><script>addEventListener("submit",function(a){if(!a.defaultPrevented){var c=a.target,d=a.submitter,e=c.action,b=d;if(d){var f=d.getAttribute("formAction");null!=f&&(e=f,b=null)}"javascript:throw new Error('React form unexpectedly submitted.')"===e&&(a.preventDefault(),b?(a=document.createElement("input"),a.name=b.name,a.value=b.value,b.parentNode.insertBefore(a,b),b=new FormData(c),a.parentNode.removeChild(a)):b=new FormData(c),a=c.ownerDocument||c,(a.$$reactFormReplay=a.$$reactFormReplay||[]).push(c,d,b))}});</script>"`;
 
 exports[`لقطات البنية > قائمة المزادات 1`] = `"<header class="border-b border-neutral-200 bg-white"><div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3"><a class="text-lg font-bold" href="/">حراج</a><nav class="flex gap-4 text-sm"><a class="text-neutral-700 hover:underline" href="/auctions">المزادات</a><a class="text-neutral-700 hover:underline" href="/bids">مزايداتي</a><a class="text-neutral-700 hover:underline" href="/favourites">مفضّلتي</a><a class="text-neutral-700 hover:underline" href="/wallet">محفظتي</a><a class="text-neutral-700 hover:underline" href="/purchases">مشترياتي</a><a class="text-neutral-700 hover:underline" href="/account">حسابي</a></nav></div></header><main class="mx-auto max-w-5xl px-4 py-8"><h1 class="mb-6 text-2xl font-bold">المزادات</h1><div class="grid gap-4 sm:grid-cols-2"><article class="rounded-lg border border-neutral-200 bg-white p-4"><a class="block" href="/auctions/7"><div class="flex items-baseline justify-between gap-2"><h3 class="font-semibold">مزاد الرياض الأسبوعي</h3><span class="shrink-0 rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">جارٍ</span></div><p class="mt-1 text-sm text-neutral-600">مزاد رقم 811</p><dl class="mt-3 space-y-1 text-sm text-neutral-700"><div class="flex gap-2"><dt class="text-neutral-500">يبدأ</dt><dd>03‏/09‏/2026، 11:00 ص</dd></div><div class="flex gap-2"><dt class="text-neutral-500">ينتهي</dt><dd>03‏/09‏/2026، 7:00 م</dd></div><div class="flex gap-2"><dt class="text-neutral-500">المركبات</dt><dd class="money">12 مفتوحة من 40</dd></div></dl></a></article></div><nav class="mt-8 flex items-center justify-between gap-4 text-sm" aria-label="صفحات"><span class="text-neutral-400">الصفحة السابقة</span><span class="text-neutral-600">صفحة 1 من 1 · 1 نتيجة</span><span class="text-neutral-400">الصفحة التالية</span></nav></main>"`;
 
