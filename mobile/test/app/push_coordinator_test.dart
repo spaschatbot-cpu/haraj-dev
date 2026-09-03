@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/app/push_coordinator.dart';
+import 'package:haraj_mobile/app/router.dart' show buildRouter;
 import 'package:haraj_mobile/app/routes.dart';
 import 'package:haraj_mobile/domain/common/failure.dart';
 import 'package:haraj_mobile/domain/notifications/entities/push_destination.dart';
 import 'package:haraj_mobile/domain/notifications/entities/push_notification.dart';
 import 'package:haraj_mobile/domain/notifications/usecases/register_this_device.dart';
+import 'package:haraj_mobile/presentation/activity/my_activity_screen.dart'
+    show MyActivityTab;
 
 import '../support/fake_push.dart';
 
@@ -67,7 +70,7 @@ void main() {
 
     await it.coordinator.start();
 
-    expect(it.visited, ['/invoices/INV-9']);
+    expect(it.visited, [Routes.myActivityTab(MyActivityTab.invoices)]);
 
     await it.coordinator.dispose();
     await it.push.close();
@@ -146,7 +149,7 @@ void main() {
     expect(PushLocations.of(const PushDestination.wallet()), Routes.walletPath);
     expect(
       PushLocations.of(const PushDestination.invoice()),
-      Routes.invoicesPath,
+      Routes.myActivityTab(MyActivityTab.invoices),
     );
     expect(
       PushLocations.of(const PushDestination.auction('12')),
@@ -158,7 +161,41 @@ void main() {
     );
     expect(
       PushLocations.of(const PushDestination.invoice(invoiceId: 'INV-9')),
-      Routes.invoicePath.replaceAll(':invoiceId', 'INV-9'),
+      PushLocations.of(const PushDestination.invoice()),
     );
+  });
+
+  test('كل عنوان يبنيه الإشعار تجد له شجرة التوجيه مساراً', () {
+    // مطابقة النصّ بنصّ ثابت لا تكفي: مقارنة عنوانٍ بثابتٍ في `Routes` تمرّ
+    // وإن لم يكن لذلك الثابت مسار مسجَّل أصلاً، فيضغط المستخدم الإشعار
+    // ويهبط على صفحة «مسار غير موجود» بدل شاشته. من يسأل هنا هو الموجّه.
+    final router = buildRouter();
+
+    const destinations = <PushDestination>[
+      PushDestination.home(),
+      PushDestination.bids(),
+      PushDestination.wallet(),
+      PushDestination.invoice(),
+      PushDestination.invoice(invoiceId: 'INV-9'),
+      PushDestination.auction('12'),
+      PushDestination.vehicle('340'),
+    ];
+
+    // وجهة جديدة بلا سطر هنا تمرّ صامتة، فيبقى نوع إشعارٍ كاملٌ بلا شاشة.
+    expect(
+      destinations.map((destination) => destination.target).toSet(),
+      PushTarget.values.toSet(),
+    );
+
+    for (final destination in destinations) {
+      final location = PushLocations.of(destination);
+      expect(
+        router.configuration.findMatch(Uri.parse(location)).isError,
+        isFalse,
+        reason: '$destination بنى «$location» ولا مسار له',
+      );
+    }
+
+    router.dispose();
   });
 }
