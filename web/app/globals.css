@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/*
+  العربية وRTL من أول commit — T1003.
+
+  The direction lives on <html> in `layout.tsx`, so every logical property in
+  Tailwind (`ms-*`, `pe-*`, `text-start`) resolves the right way without a
+  single rule written twice. RTL added later means rewriting every layout, which
+  is why the task says «من أول commit» rather than «قبل الإطلاق».
+*/
+
+@theme {
+  --font-arabic: var(--font-cairo), "Segoe UI", Tahoma, system-ui, sans-serif;
+  --color-ink: #1a1a1a;
+  --color-ground: #fafafa;
+  --color-line: #e5e5e5;
+}
+
+html {
+  font-family: var(--font-arabic);
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+}
+
+/*
+  Every amount is rendered in tabular figures and never wrapped. A customer
+  comparing a balance on this page against a statement must not have to line the
+  digits up by eye — and a money value that breaks across two lines has been
+  seen read as two numbers.
+*/
+.money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: embed;
+  display: inline-block;
+}
