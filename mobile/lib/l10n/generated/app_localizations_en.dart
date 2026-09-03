@@ -46,6 +46,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnexpected => 'An unexpected error occurred in the app.';
 
   @override
+  String get walletTitle => 'My wallet';
+
+  @override
+  String walletAsOf(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return 'Per the ledger at $dateString $timeString';
+  }
+
+  @override
+  String get walletEmpty => 'No balances on your account yet.';
+
+  @override
+  String get walletHoldsTitle => 'Why this money is held';
+
+  @override
+  String get walletOpenStatement => 'The entries behind this number';
+
+  @override
   String get transactionsTitle => 'Statement';
 
   @override

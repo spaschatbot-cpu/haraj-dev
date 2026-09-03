@@ -56,6 +56,39 @@
     "description": "عطب في التطبيق نفسه، لا في الخادم"
   },
 
+  "walletTitle": "محفظتي",
+  "@walletTitle": {
+    "description": "عنوان شاشة المحفظة — T711"
+  },
+
+  "walletAsOf": "بحسب الدفتر في {date} الساعة {time}",
+  "@walletAsOf": {
+    "description": "لحظة قراءة الدفتر كما أرسلها الخادم",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "walletEmpty": "لا أرصدة على حسابك بعد.",
+  "@walletEmpty": {},
+
+  "walletHoldsTitle": "لماذا هذا المبلغ محجوز",
+  "@walletHoldsTitle": {
+    "description": "كل حجز مسمّى: أي مزاد أو أي فاتورة"
+  },
+
+  "walletOpenStatement": "الحركات التي تفسّر هذا الرقم",
+  "@walletOpenStatement": {
+    "description": "المادة ١-٦: كل رقم يُفتح على قيوده"
+  },
+
   "transactionsTitle": "كشف الحركات",
   "@transactionsTitle": {
     "description": "عنوان شاشة الحركات — T712"

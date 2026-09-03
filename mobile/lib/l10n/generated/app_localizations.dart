@@ -164,6 +164,36 @@ abstract class AppLocalizations {
   /// **'حدث خطأ غير متوقع في التطبيق.'**
   String get errorUnexpected;
 
+  /// عنوان شاشة المحفظة — T711
+  ///
+  /// In ar, this message translates to:
+  /// **'محفظتي'**
+  String get walletTitle;
+
+  /// لحظة قراءة الدفتر كما أرسلها الخادم
+  ///
+  /// In ar, this message translates to:
+  /// **'بحسب الدفتر في {date} الساعة {time}'**
+  String walletAsOf(DateTime date, DateTime time);
+
+  /// No description provided for @walletEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا أرصدة على حسابك بعد.'**
+  String get walletEmpty;
+
+  /// كل حجز مسمّى: أي مزاد أو أي فاتورة
+  ///
+  /// In ar, this message translates to:
+  /// **'لماذا هذا المبلغ محجوز'**
+  String get walletHoldsTitle;
+
+  /// المادة ١-٦: كل رقم يُفتح على قيوده
+  ///
+  /// In ar, this message translates to:
+  /// **'الحركات التي تفسّر هذا الرقم'**
+  String get walletOpenStatement;
+
   /// عنوان شاشة الحركات — T712
   ///
   /// In ar, this message translates to:
