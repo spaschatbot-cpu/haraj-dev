@@ -22,7 +22,13 @@
  * خصائص بعد فضّ البوادئ. وأي تغيير في التخطيط — عمود يُضاف، نقطة انكسار تُزاح،
  * شبكة تُستبدل بـflex — يكسر لقطة بعينها في المقاس الذي يخصّه.
  *
- * **وثلاث شاشات لقطاتها الثلاث متطابقة**، لأنها لا تعلن نقطة انكسار أصلاً.
+ * **والسجلّ حالاتٌ لا مساراتٍ.** تسعة مسارات، وإحدى عشرة شاشة: صفحة المركبة
+ * مرّتين — لأن الزائر يرى رابطاً حيث يرى الداخلُ صندوقَ مزايدة ولوحةً حيّة
+ * ورفضاً فوقهما، فالثلثان اللذان يهمّان لا يُرندَران بلا جلسة — والمفضّلة
+ * مرّتين، عامرةً وفارغةً، لأن الفارغة ليست الأقصر بل الأخرى: شبكتها الاستجابية
+ * غير موجودة أصلاً.
+ *
+ * **وأربع شاشات لقطاتها الثلاث متطابقة**، لأنها لا تعلن نقطة انكسار أصلاً.
  * التطابق هنا خبر لا حشو، ولذلك هو **مُعلَن بالاسم** في اختبار مستقلّ
  * (`SIZE_INVARIANT`): شاشة تخرج من القائمة أو تدخلها تُفشل ذلك الاختبار، فيصير
  * «هذه الشاشة واحدة على المقاسات الثلاثة» قراراً يُراجَع لا صدفةً تمرّ. وما
@@ -99,6 +105,8 @@ vi.mock("next/navigation", () => ({
     throw new Error(`NEXT_REDIRECT:${to}`);
   },
 }));
+
+import type { Flash } from "@/lib/flash";
 
 import Home from "@/app/page";
 import SignInPage from "@/app/sign-in/page";
@@ -260,6 +268,24 @@ const WALLET = {
   as_of: "2026-09-03T10:11:00Z",
 };
 
+/**
+ * الرفض كما يكتبه الخادم — جملته ورقمه، في كوكي لمرة واحدة.
+ *
+ * `lower_needs_confirm` is the one refusal that renders a different *form*
+ * rather than a sentence above the same one, and its `detail` carries the
+ * standing bid the customer is being asked to confirm going below. Both halves
+ * are layout no other fixture reaches: the confirmation block, and a decimal
+ * string that has to survive from the refusal to the screen unchanged.
+ */
+const REFUSAL: Flash = {
+  code: "lower_needs_confirm",
+  message: "مزايدتك القائمة أعلى من هذا المبلغ. أكِّد الخفض إن كنت تقصده.",
+  detail: { requested: "45000.00", standing: LIVE_BID.amount },
+};
+
+//: قوائم العميل فارغة — يُضبط لكل شاشة تطلب ذلك، ويُصفَّر قبل كل اختبار.
+let listsAreEmpty = false;
+
 function answer(body: unknown) {
   return new Response(JSON.stringify(body), {
     status: 200,
@@ -269,10 +295,16 @@ function answer(body: unknown) {
 
 beforeEach(() => {
   cookieJar.clear();
+  listsAreEmpty = false;
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
       const url = typeof input === "string" ? input : (input as Request).url;
+
+      // A new customer's lists, for the screens that ask for that state.
+      if (listsAreEmpty && /\/(?:bids\/mine|favourites)\//.test(url)) {
+        return answer({ total: 0, results: [] });
+      }
 
       if (url.includes("/bids/mine/")) return answer({ total: BIDS.length, results: BIDS });
       if (url.includes("/favourites/")) {
@@ -309,6 +341,10 @@ interface Screen {
   name: string;
   /** الشاشات خلف الدخول تُحوِّل بلا جلسة، فلا تُرندَر بلا واحدة. */
   signedIn?: boolean;
+  /** رفضٌ من الخادم ينتظر العرض — الشاشة حينها تخطيط آخر لا نصّ زائد. */
+  flash?: Flash;
+  /** قوائم العميل فارغة — أول ما يراه عميل جديد. */
+  emptyLists?: boolean;
   /** المبالغ التي يجب أن تظهر حرفاً بحرف على هذه الشاشة. */
   amounts?: string[];
   render: () => Promise<string>;
@@ -340,6 +376,26 @@ const SCREENS: Screen[] = [
     render: () => render(VehiclePage({ params: Promise.resolve({ id: "91" }) })),
   },
   {
+    /*
+     * الصفحة نفسها وقد دخل صاحبها ورُفض — وهي ثلثاها لا حالةٌ هامشية.
+     *
+     * Signed out, this page renders a link where the bidding is. So the bid box,
+     * the live panel, the favourite marker and a refusal above them — the
+     * controls the site exists for — appear in no snapshot at any size unless a
+     * screen asks for them, and the layout that goes wrong on a phone is this
+     * one: a form, a warning block and two buttons in a column 375 wide.
+     *
+     * It is also the only screen that renders a class composed at run time
+     * (`Notice` builds its own from a tone), which is what the rendered-HTML
+     * direction scan below exists to catch and had nothing to catch without it.
+     */
+    name: "صفحة المركبة — داخل وبرفض",
+    signedIn: true,
+    flash: REFUSAL,
+    amounts: [VEHICLE.reserve_price, LIVE_BID.amount, "45000.00"],
+    render: () => render(VehiclePage({ params: Promise.resolve({ id: "91" }) })),
+  },
+  {
     name: "المزايدات",
     signedIn: true,
     amounts: [LIVE_BID.amount, WITHDRAWN_BID.amount],
@@ -349,6 +405,21 @@ const SCREENS: Screen[] = [
     name: "المفضّلة",
     signedIn: true,
     amounts: [VEHICLE.reserve_price, OTHER_VEHICLE.reserve_price],
+    render: () => render(FavouritesPage({ searchParams: Promise.resolve({}) })),
+  },
+  {
+    /*
+     * القائمة الفارغة — أول ما يراه عميل جديد، وتخطيطٌ آخر لا نسخةٌ أقصر.
+     *
+     * The vehicle grid is the one element on this screen that answers the size,
+     * and here it is not rendered at all: a single centred sentence stands in
+     * its place. That is why this screen is size-invariant while the full one is
+     * not — the emptiness *is* the layout — and a snapshot of the populated list
+     * says nothing about the state most new customers open first.
+     */
+    name: "المفضّلة — بلا مركبات",
+    signedIn: true,
+    emptyLists: true,
     render: () => render(FavouritesPage({ searchParams: Promise.resolve({}) })),
   },
   {
@@ -370,7 +441,11 @@ const SCREENS: Screen[] = [
 
 async function html(screen: Screen): Promise<string> {
   cookieJar.clear();
+  listsAreEmpty = screen.emptyLists === true;
   if (screen.signedIn) cookieJar.set("haraj_access", "session-token");
+  // The flash is a cookie the server wrote and this render consumes — the same
+  // path a real refusal takes, rather than a prop handed to the component.
+  if (screen.flash) cookieJar.set("haraj_flash", JSON.stringify(screen.flash));
   return screen.render();
 }
 
@@ -396,7 +471,15 @@ const SIZES = [
 
 //: الشاشات التي تعلن صفر نقاط انكسار، فتخطيطها واحد على المقاسات الثلاثة —
 //: بترتيب `SCREENS`. القائمة تُقرأ وتُقرَّر، لا تُستنتج من تطابق ثلاثة ملفات.
-const SIZE_INVARIANT = ["الرئيسية", "المزايدات", "الدخول"];
+const SIZE_INVARIANT = [
+  "الرئيسية",
+  "المزايدات",
+  //: وهذه ليست الشاشة نفسها وقد قصُرت: الشبكة الاستجابية الوحيدة فيها غير
+  //: مرندَرة أصلاً حين لا يكون هناك ما يُعرض. المفضّلة العامرة تتّسع، والفارغة
+  //: لا شيء فيها يتّسع — وهما سطران هنا لأنهما قراران مختلفان.
+  "المفضّلة — بلا مركبات",
+  "الدخول",
+];
 
 /**
  * الأصناف السارية عند عرضٍ ما، مرتَّبةً كما ترتّبها ورقة الأنماط.
@@ -686,12 +769,13 @@ describe("J9 — الشاشة على مقاس جوال", () => {
   });
 
   it("والشاشات التي لا يتغيّر تخطيطها بالمقاس معروفة بالاسم", async () => {
-    // Three of the nine render the same layout at 375, 768 and 1280 — they
-    // declare no breakpoint at all. That is a legitimate answer for a form and a
-    // single-column list, and it is written down here rather than left to be
-    // inferred from three matching snapshot files: an identical snapshot proves
-    // nothing on its own, and a screen that quietly joins or leaves this list
-    // has had its responsive behaviour changed by somebody who should say so.
+    // Four of the eleven render the same layout at 375, 768 and 1280 — they
+    // declare no breakpoint at all. That is a legitimate answer for a form, a
+    // single-column list and a list with nothing in it, and it is written down
+    // here rather than left to be inferred from three matching snapshot files:
+    // an identical snapshot proves nothing on its own, and a screen that quietly
+    // joins or leaves this list has had its responsive behaviour changed by
+    // somebody who should say so.
     const invariant: string[] = [];
 
     for (const screen of SCREENS) {
