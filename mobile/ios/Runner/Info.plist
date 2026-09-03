@@ -49,6 +49,14 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- إشعارات المزايدة تصل والتطبيق في الخلفية. بلا هذا المفتاح يُسقط iOS
+	     رسائل البيانات وهو مُعلَّق، فيصل «زُوِّد عليك» بعد فوات المزاد.
+	     أما `aps-environment` فيضعه Xcode في Runner.entitlements مع ملف
+	     التزويد، ولا يُكتب هنا. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
