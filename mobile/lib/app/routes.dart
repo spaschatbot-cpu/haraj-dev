@@ -24,6 +24,14 @@ abstract final class Routes {
   static const String vehicle = 'vehicle';
   static const String bids = 'bids';
   static const String wallet = 'wallet';
+  static const String walletStatement = 'walletStatement';
+  static const String walletTopUp = 'walletTopUp';
+
+  /// اسم معامل الترشيح في مسار الكشف.
+  ///
+  /// القيمة اسم عضو `WalletBucketKind` في التطبيق، لا قيمة السلك: التحويل إلى
+  /// ما يفهمه الخادم يحدث في طبقة البيانات وحدها.
+  static const String bucketParameter = 'bucket';
   static const String invoices = 'invoices';
   static const String invoice = 'invoice';
 
@@ -41,6 +49,8 @@ abstract final class Routes {
   static const String vehiclePath = '/vehicles/:vehicleId';
   static const String bidsPath = '/bids';
   static const String walletPath = '/wallet';
+  static const String walletTopUpPath = '/wallet/topup';
+  static const String walletTransactionsPath = '/wallet/transactions';
   static const String invoicesPath = '/invoices';
   static const String invoicePath = '/invoices/:invoiceId';
   static const String myActivityPath = '/my-activity';

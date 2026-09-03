@@ -24,6 +24,7 @@ import '../data/local/secure/secure_token_store.dart';
 import '../data/notifications/device_registry_impl.dart';
 import '../data/notifications/unconfigured_push_service.dart';
 import '../data/profile/profile_repository_impl.dart';
+import '../data/wallet/url_checkout_launcher.dart';
 import '../data/wallet/wallet_repository_impl.dart';
 import '../domain/activity/repositories/activity_repository.dart';
 import '../domain/activity/usecases/load_my_invoices.dart';
@@ -48,8 +49,12 @@ import '../domain/notifications/usecases/register_this_device.dart';
 import '../domain/notifications/usecases/resolve_push_destination.dart';
 import '../domain/profile/repositories/profile_repository.dart';
 import '../domain/profile/usecases/manage_profile.dart';
+import '../domain/wallet/gateways/checkout_launcher.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
+import '../domain/wallet/usecases/load_wallet_transactions.dart';
+import '../domain/wallet/usecases/read_top_up_status.dart';
+import '../domain/wallet/usecases/start_card_top_up.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../presentation/common/push_banner.dart';
 import 'haraj_app.dart';
@@ -296,4 +301,23 @@ final loadMyPurchasesProvider = Provider<LoadMyPurchases>(
 
 final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
   (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
+);
+
+final loadWalletTransactionsProvider = Provider<LoadWalletTransactions>(
+  (ref) => LoadWalletTransactions(ref.watch(walletRepositoryProvider)),
+);
+
+final checkoutLauncherProvider = Provider<CheckoutLauncher>(
+  (ref) => const UrlCheckoutLauncher(),
+);
+
+final startCardTopUpProvider = Provider<StartCardTopUp>(
+  (ref) => StartCardTopUp(
+    repository: ref.watch(walletRepositoryProvider),
+    launcher: ref.watch(checkoutLauncherProvider),
+  ),
+);
+
+final readTopUpStatusProvider = Provider<ReadTopUpStatus>(
+  (ref) => ReadTopUpStatus(ref.watch(walletRepositoryProvider)),
 );

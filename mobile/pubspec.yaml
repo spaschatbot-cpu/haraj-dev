@@ -47,6 +47,9 @@ dependencies:
   # فتُتَّخذ قراراً معلناً أو لا تُتَّخذ.
   firebase_core: ^3.15.2
   firebase_messaging: ^15.2.10
+  # فتح صفحة الدفع في متصفّح خارجي (T713). خارجي لا webview: العميل يرى شريط
+  # العنوان وقفل الأمان قبل أن يكتب رقم بطاقته، ولا نملك نحن نافذة تقرأ ما فيها.
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

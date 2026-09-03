@@ -16,6 +16,7 @@ class TopUpIntent {
     required this.currency,
     required this.redirectUrl,
     required this.status,
+    required this.statusLabel,
   });
 
   factory TopUpIntent.fromJson(Map<String, Object?> json) =>
@@ -26,9 +27,16 @@ class TopUpIntent {
   /// المبلغ يحدّده الخادم ويُعرض كما وصل
   final String amount;
   final String currency;
+
+  /// عنوان البوابة — يفتحه التطبيق ولا يقرأ ما يعود منه
   @JsonKey(name: 'redirect_url')
   final String redirectUrl;
   final TopUpIntentStatus status;
+
+  /// وصف الحالة بالعربية من الخادم. موجود لأن خريطة حالات في التطبيق نسخة ثانية من قاعدة يملكها الخادم (المادة ٤-٥). نظيره في الخلفية `PaymentIntentSerializer.state_label`.
+  ///
+  @JsonKey(name: 'status_label')
+  final String statusLabel;
 
   Map<String, Object?> toJson() => _$TopUpIntentToJson(this);
 }

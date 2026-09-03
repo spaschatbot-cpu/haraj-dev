@@ -482,4 +482,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceInsuranceEffect => 'What it means for my insurance';
+
+  @override
+  String get walletTitle => 'My wallet';
+
+  @override
+  String walletAsOf(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return 'Per the ledger at $dateString $timeString';
+  }
+
+  @override
+  String get walletEmpty => 'No balances on your account yet.';
+
+  @override
+  String get walletHoldsTitle => 'Why this money is held';
+
+  @override
+  String get walletOpenStatement => 'The entries behind this number';
+
+  @override
+  String get topUpTitle => 'Top up by card';
+
+  @override
+  String get topUpStart => 'Start the top-up';
+
+  @override
+  String get topUpAmountFromServer =>
+      'The system sets the amount. The payment page opens in your browser, then we ask the server what happened.';
+
+  @override
+  String get topUpWaiting =>
+      'Waiting for the gateway to confirm to the server.';
+
+  @override
+  String get topUpCheckStatus => 'Check the top-up status';
+
+  @override
+  String get topUpStatusFromServer =>
+      'The status is read from the server\'s own record, not from the return link, and your balance moves when the gateway confirms the payment to the server.';
+
+  @override
+  String get topUpGatewayNotOpened =>
+      'The payment page could not be opened. Your top-up request is saved and you can open it again.';
+
+  @override
+  String get topUpOpenGateway => 'Open the payment page';
+
+  @override
+  String get transactionsTitle => 'Statement';
+
+  @override
+  String get transactionsAll => 'Every movement on your account, newest first.';
+
+  @override
+  String get transactionsFiltered => 'Filtered to a single bucket.';
+
+  @override
+  String get transactionsShowAll => 'Show every movement';
+
+  @override
+  String get transactionsEmpty => 'No movements.';
+
+  @override
+  String transactionsTotal(int count) {
+    return '$count movements';
+  }
+
+  @override
+  String get transactionsLoadMore => 'Load more';
+
+  @override
+  String get movementIncoming => 'In';
+
+  @override
+  String get movementOutgoing => 'Out';
+
+  @override
+  String movementReference(String reference) {
+    return 'Reference $reference';
+  }
+
+  @override
+  String dateTimeAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString at $timeString';
+  }
 }

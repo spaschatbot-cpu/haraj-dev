@@ -11,6 +11,7 @@ import '../models/refund_request_input.dart';
 import '../models/top_up_intent.dart';
 import '../models/top_up_intent_request.dart';
 import '../models/wallet.dart';
+import '../models/wallet_bucket_kind.dart';
 
 part 'wallet_api.g.dart';
 
@@ -24,17 +25,30 @@ abstract class WalletApi {
   @GET('/api/v1/wallet')
   Future<Wallet> walletRetrieve();
 
-  /// كشف الحركات من القيود مباشرةً
+  /// كشف الحركات من القيود مباشرةً.
+  ///
+  /// الترشيح على دلو واحد هو النصف الثاني من المادة ١-٦: كل رقم في المحفظة يُفتح على القيود التي تفسّره. الترشيح يقع على الخادم لا في الشاشة — نظيره في الخلفية `bucket` في `StatementQuerySerializer`.
+  ///
+  /// [bucket] - دلو واحد بعينه — القيمة كما أرسلها الخادم في `WalletBucket.kind`.
   @GET('/api/v1/wallet/transactions')
   Future<PaginatedLedgerEntryList> walletTransactionsList({
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
+    @Query('bucket') WalletBucketKind? bucket,
   });
 
   /// نيّة شحن — المبلغ من الخادم لا من الطلب
   @POST('/api/v1/wallet/topup-intents')
   Future<TopUpIntent> walletTopUpIntentCreate({
     @Body() required TopUpIntentRequest body,
+  });
+
+  /// حالة نيّة الشحن كما يعرفها الخادم.
+  ///
+  /// العودة من البوابة تُسنَد من هنا، لا من معاملات رابط العودة. المرجع ليس ادّعاءً: هو اسم صفّ كتبه الخادم قبل أن يصل العميل إلى البوابة أصلاً، والرصيد يتحرّك بتأكيد البوابة للخادم وحده. نظيره في الخلفية `GET /api/v1/wallet/topups/{reference}/`.
+  @GET('/api/v1/wallet/topup-intents/{reference}')
+  Future<TopUpIntent> walletTopUpIntentRetrieve({
+    @Path('reference') required String reference,
   });
 
   /// طلب استرداد من المتاح فقط

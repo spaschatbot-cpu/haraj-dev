@@ -62,4 +62,11 @@ abstract final class CacheKeys {
 
   /// فواتيري.
   static const String invoices = 'activity.invoices';
+
+  /// كشف الحركات — مفتاح لكل ترشيح.
+  ///
+  /// الترشيح جزء من المفتاح لأنه جزء من السؤال: كشف مرشَّح على دلو محفوظ تحت
+  /// مفتاح الكشف الكامل يُعرض لاحقاً بلا اتصال على أنه «كل الحركات»، وهو ليس.
+  static String walletTransactions({String? bucket}) =>
+      bucket == null ? 'wallet.transactions' : 'wallet.transactions.$bucket';
 }

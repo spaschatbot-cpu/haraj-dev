@@ -3,11 +3,6 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/data/api/generated/clients/wallet_api.dart';
-import 'package:haraj_mobile/data/api/generated/models/paginated_ledger_entry_list.dart';
-import 'package:haraj_mobile/data/api/generated/models/refund_request.dart';
-import 'package:haraj_mobile/data/api/generated/models/refund_request_input.dart';
-import 'package:haraj_mobile/data/api/generated/models/top_up_intent.dart';
-import 'package:haraj_mobile/data/api/generated/models/top_up_intent_request.dart';
 import 'package:haraj_mobile/data/api/generated/models/wallet.dart';
 import 'package:haraj_mobile/data/api/generated/models/wallet_bucket.dart'
     as api;
@@ -20,6 +15,7 @@ import 'package:haraj_mobile/domain/common/failure.dart';
 import 'package:haraj_mobile/domain/common/snapshot.dart';
 import 'package:haraj_mobile/domain/wallet/entities/wallet_balance.dart';
 
+import '../support/fake_wallet_api.dart';
 import '../support/memory_response_cache.dart';
 
 /// T704 — «آخر استجابة معروفة لكل شاشة، مع طابع آخر تحديث» (معيار H5).
@@ -59,7 +55,7 @@ void main() {
   test('النجاح يرجع نسخة طازجة ويكتبها في الكاش', () async {
     final cache = MemoryResponseCache();
     final repository = buildRepository(
-      _FakeWalletApi(wallet: serverWallet),
+      FakeWalletApi(wallet: serverWallet),
       cache,
     );
 
@@ -73,7 +69,7 @@ void main() {
 
   test('المبالغ تبقى نصّاً كما وصلت — بلا تنسيق ولا تحويل', () async {
     final repository = buildRepository(
-      _FakeWalletApi(wallet: serverWallet),
+      FakeWalletApi(wallet: serverWallet),
       MemoryResponseCache(),
     );
 
@@ -90,7 +86,7 @@ void main() {
 
   test('كل حجز يصل بسببه ومرجعه — لا فلوس محجوزة «كده»', () async {
     final repository = buildRepository(
-      _FakeWalletApi(wallet: serverWallet),
+      FakeWalletApi(wallet: serverWallet),
       MemoryResponseCache(),
     );
 
@@ -105,7 +101,7 @@ void main() {
 
   test('انقطاع الشبكة بعد نجاح سابق يعرض المحفوظ بطابعه', () async {
     final cache = MemoryResponseCache();
-    final api = _FakeWalletApi(wallet: serverWallet);
+    final api = FakeWalletApi(wallet: serverWallet);
     final repository = buildRepository(api, cache);
 
     await repository.loadBalance();
@@ -125,7 +121,7 @@ void main() {
   });
 
   test('انقطاع الشبكة بلا كاش يرمي العطب ولا يرجع محفظة فارغة', () async {
-    final api = _FakeWalletApi(wallet: serverWallet)
+    final api = FakeWalletApi(wallet: serverWallet)
       ..failWith = _offlineException();
     final repository = buildRepository(api, MemoryResponseCache());
 
@@ -138,7 +134,7 @@ void main() {
 
   test('خطأ ردّ به الخادم لا يُخفى خلف بيانات قديمة', () async {
     final cache = MemoryResponseCache();
-    final api = _FakeWalletApi(wallet: serverWallet);
+    final api = FakeWalletApi(wallet: serverWallet);
     final repository = buildRepository(api, cache);
 
     await repository.loadBalance();
@@ -163,7 +159,7 @@ void main() {
 
   test('كاش تالف يُعامل كغياب كاش لا كعطب', () async {
     final cache = _CorruptCache();
-    final api = _FakeWalletApi(wallet: serverWallet)
+    final api = FakeWalletApi(wallet: serverWallet)
       ..failWith = _offlineException();
     final repository = buildRepository(api, cache);
 
@@ -179,37 +175,6 @@ DioException _offlineException() => DioException(
   type: DioExceptionType.connectionError,
   error: const SocketException('offline'),
 );
-
-/// عميل محفظة مزيَّف — يرد نسخة ثابتة أو يفشل بما نضعه في `failWith`.
-final class _FakeWalletApi implements WalletApi {
-  _FakeWalletApi({required this.wallet});
-
-  final Wallet wallet;
-  DioException? failWith;
-
-  @override
-  Future<Wallet> walletRetrieve() async {
-    final failure = failWith;
-    if (failure != null) throw failure;
-    return wallet;
-  }
-
-  @override
-  Future<PaginatedLedgerEntryList> walletTransactionsList({
-    int? page,
-    int? pageSize,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<TopUpIntent> walletTopUpIntentCreate({
-    required TopUpIntentRequest body,
-  }) => throw UnimplementedError();
-
-  @override
-  Future<RefundRequest> walletRefundRequestCreate({
-    required RefundRequestInput body,
-  }) => throw UnimplementedError();
-}
 
 /// كاش يرجع محتوى لا يطابق شكل المخطط — كما يحدث بعد تغيّر المخطط.
 final class _CorruptCache implements ResponseCache {

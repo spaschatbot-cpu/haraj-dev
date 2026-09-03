@@ -829,6 +829,150 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أثرها على تأميني'**
   String get invoiceInsuranceEffect;
+
+  /// عنوان شاشة المحفظة — T711
+  ///
+  /// In ar, this message translates to:
+  /// **'محفظتي'**
+  String get walletTitle;
+
+  /// لحظة قراءة الدفتر كما أرسلها الخادم
+  ///
+  /// In ar, this message translates to:
+  /// **'بحسب الدفتر في {date} الساعة {time}'**
+  String walletAsOf(DateTime date, DateTime time);
+
+  /// No description provided for @walletEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا أرصدة على حسابك بعد.'**
+  String get walletEmpty;
+
+  /// كل حجز مسمّى: أي مزاد أو أي فاتورة
+  ///
+  /// In ar, this message translates to:
+  /// **'لماذا هذا المبلغ محجوز'**
+  String get walletHoldsTitle;
+
+  /// المادة ١-٦: كل رقم يُفتح على قيوده
+  ///
+  /// In ar, this message translates to:
+  /// **'الحركات التي تفسّر هذا الرقم'**
+  String get walletOpenStatement;
+
+  /// عنوان شاشة الشحن — T713
+  ///
+  /// In ar, this message translates to:
+  /// **'شحن التأمين بالبطاقة'**
+  String get topUpTitle;
+
+  /// No description provided for @topUpStart.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ الشحن'**
+  String get topUpStart;
+
+  /// لا خانة مبلغ: الخادم يرفض طلباً يسمّي مبلغه
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ يحدّده النظام. تُفتح لك صفحة الدفع في المتصفح، ثم نسأل الخادم عن النتيجة.'**
+  String get topUpAmountFromServer;
+
+  /// No description provided for @topUpWaiting.
+  ///
+  /// In ar, this message translates to:
+  /// **'بانتظار تأكيد البوابة للخادم.'**
+  String get topUpWaiting;
+
+  /// No description provided for @topUpCheckStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحقّق من حالة الشحن'**
+  String get topUpCheckStatus;
+
+  /// يشرح للعميل لماذا لا تتغيّر الحالة بمجرّد عودته
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالة مقروءة من سجلّ الخادم لا من رابط العودة، ورصيدك يتحرّك حين تؤكّد البوابة الدفع للخادم.'**
+  String get topUpStatusFromServer;
+
+  /// تعذّر الفتح على الجهاز — حالة لا يعرفها الخادم فالنصّ محلي
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر فتح صفحة الدفع. طلب الشحن محفوظ، وتقدر تفتحها من جديد.'**
+  String get topUpGatewayNotOpened;
+
+  /// No description provided for @topUpOpenGateway.
+  ///
+  /// In ar, this message translates to:
+  /// **'افتح صفحة الدفع'**
+  String get topUpOpenGateway;
+
+  /// عنوان شاشة الحركات — T712
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف الحركات'**
+  String get transactionsTitle;
+
+  /// No description provided for @transactionsAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الحركات على حسابك، الأحدث أولاً.'**
+  String get transactionsAll;
+
+  /// يظهر حين يُفتح الكشف من رقم في المحفظة — المادة ١-٦
+  ///
+  /// In ar, this message translates to:
+  /// **'مرشَّح على دلو واحد.'**
+  String get transactionsFiltered;
+
+  /// No description provided for @transactionsShowAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض كل الحركات'**
+  String get transactionsShowAll;
+
+  /// No description provided for @transactionsEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا حركات.'**
+  String get transactionsEmpty;
+
+  /// عدد الحركات كما قاله الخادم — عدد لا مبلغ
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} حركة'**
+  String transactionsTotal(int count);
+
+  /// No description provided for @transactionsLoadMore.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحميل المزيد'**
+  String get transactionsLoadMore;
+
+  /// اتجاه الحركة كما قاله الخادم — لقارئ الشاشة
+  ///
+  /// In ar, this message translates to:
+  /// **'وارد'**
+  String get movementIncoming;
+
+  /// No description provided for @movementOutgoing.
+  ///
+  /// In ar, this message translates to:
+  /// **'صادر'**
+  String get movementOutgoing;
+
+  /// No description provided for @movementReference.
+  ///
+  /// In ar, this message translates to:
+  /// **'المرجع {reference}'**
+  String movementReference(String reference);
+
+  /// عرض لحظة بالتوقيت السعودي — التحويل في saudi_time وحدها
+  ///
+  /// In ar, this message translates to:
+  /// **'{date} الساعة {time}'**
+  String dateTimeAt(DateTime date, DateTime time);
 }
 
 class _AppLocalizationsDelegate
