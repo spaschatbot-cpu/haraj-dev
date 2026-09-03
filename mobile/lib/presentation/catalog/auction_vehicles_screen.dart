@@ -62,6 +62,12 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
     setState(() {
       _first = const AsyncValue<Snapshot<VehiclePage>>.loading();
       _moreFailure = null;
+      // وينزل هنا علَم «أُحمّل الآن» أيضاً: الطلب الذي أبطله هذا البحث يعود
+      // صامتاً عند حارس الجيل أدناه، فلا يبلغ السطر الذي كان سينزله. علَمٌ بقي
+      // مرفوعاً يصير قفلاً — كل طلب صفحةٍ تالية يرجع من أول سطر، والدوّامة في
+      // ذيل القائمة تدور على طلبٍ لن يحدث، فلا يرى العميل من نتائج ترشيحه إلا
+      // صفحتها الأولى حتى يغلق الشاشة ويفتحها.
+      _loadingMore = false;
     });
 
     try {

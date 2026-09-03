@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:haraj_mobile/domain/catalog/entities/auction_summary.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_detail.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_query.dart';
@@ -34,6 +36,12 @@ final class FakeCatalogRepository implements CatalogRepository {
   final List<String> receivedAuctionIds = <String>[];
   int homeCalls = 0;
 
+  /// بوّابة تُبقي طلب صفحةٍ بعينها معلَّقاً حتى يفتحها الاختبار.
+  ///
+  /// بها تُختبر اللحظة التي **بين** الطلب وجوابه: ما الذي يفعله المستخدم فيها،
+  /// وما الذي يبقى معلَّقاً في الشاشة بعدها.
+  final Map<int, Completer<void>> heldPages = <int, Completer<void>>{};
+
   @override
   Future<Snapshot<HomeAuctions>> loadHomeAuctions() async {
     homeCalls++;
@@ -49,6 +57,7 @@ final class FakeCatalogRepository implements CatalogRepository {
   ) async {
     receivedAuctionIds.add(auctionId);
     receivedQueries.add(query);
+    await heldPages[query.page]?.future;
     final error = vehiclesError;
     if (error != null) throw error;
     return vehiclePages![query.page]!;
