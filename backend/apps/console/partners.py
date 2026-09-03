@@ -37,6 +37,7 @@ from apps.bidding import settlement
 from apps.bidding.models import Bid
 from apps.core import audit
 
+from .exports import export, wants_export
 from .views import console_page
 
 #: The states a partner decision is actually pending on. `awarded` is here
@@ -70,6 +71,21 @@ def decisions(request):
     partner = request.GET.get("partner")
     if partner and partner.isdigit():
         rows = rows.filter(owner_company_id=int(partner))
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="partner-decisions",
+            headers=["المزاد", "اللوت", "المركبة", "الشريك", "الحالة", "ينتظر منذ"],
+            cell=lambda v: [
+                v.auction.number,
+                v.lot_number,
+                f"{v.make} {v.model} {v.year}",
+                v.partner_name,
+                v.get_state_display(),
+                v.updated_at,
+            ],
+        )
 
     page = Paginator(rows, 25).get_page(request.GET.get("page"))
 

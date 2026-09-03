@@ -1,0 +1,60 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+The audit trail, and no way to touch it.
+
+`before` and `after` are printed as they are stored. They are already normalised
+by `apps.core.audit.snapshot` — Decimals as strings, never floats — so what is on
+the screen is exactly what is in the column, which is the only form in which an
+audit entry is worth reading during a dispute.
+{% endcomment %}
+{% block title %}سجل التدقيق{% endblock %}
+{% block heading %}سجل التدقيق{% endblock %}
+
+{% block content %}
+  {# I5: every list downloads as a real workbook, and the download carries the
+     filter that is on the screen. `export_url` is this very request with one
+     parameter added, built in `apps.console.context` — so the filter comes
+     along by construction and no template writes a path by hand. #}
+  <p><a href="{{ export_url }}">تصدير إلى إكسل</a></p>
+
+  <form method="get">
+    <input type="search" name="actor" value="{{ actor }}" placeholder="المنفّذ: جوال أو اسم">
+    <input type="search" name="entity" value="{{ entity }}" placeholder="الكيان: money.hold:41">
+    <select name="action">
+      <option value="">كل الأفعال</option>
+      {% for value in actions %}
+        <option value="{{ value }}" {% if value == action %}selected{% endif %}>{{ value }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="since" value="{{ since }}">
+    <input type="date" name="until" value="{{ until }}">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>متى</th><th>المنفّذ</th><th>الفعل</th><th>الكيان</th><th>قبل</th><th>بعد</th><th>السبب</th></tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.at }}</td>
+          {# NULL means the platform did it by itself — a cron, a webhook. That
+             is information, not a missing value, so it is said rather than left
+             as an empty cell. #}
+          <td>{{ row.actor|default:"النظام" }}</td>
+          <td>{{ row.action }}</td>
+          <td>{{ row.entity_type }}:{{ row.entity_id }}</td>
+          <td><pre>{{ row.before|default:"—" }}</pre></td>
+          <td><pre>{{ row.after|default:"—" }}</pre></td>
+          <td>{{ row.note|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا قيود مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count }} قيداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+{% endblock %}

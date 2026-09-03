@@ -334,6 +334,54 @@ def reverse(txn: Transaction, *, reason: str, by=None) -> Transaction:
     )
 
 
+def correct(txn: Transaction, *, reason: str, by) -> Transaction:
+    """An operator's correction: reverse a transaction, by a named decision.
+
+    :func:`reverse` is the mechanism and takes ``by=None``, because the platform
+    reverses things by itself — a gateway that later refuses a charge, an Odoo
+    cancellation. This is the *human* entry point, and it differs in exactly two
+    ways, both of which are the point of T811:
+
+    * neither ``reason`` nor ``by`` has a default, so a correction cannot happen
+      as the side effect of a retry or a convenience call, and
+    * it writes an :class:`~apps.core.models.AuditLog` row.
+
+    The audit row is not redundant with the reversal transaction. The reversal
+    says what moved; the audit row says **who decided it should** and what the
+    original looked like at the moment they decided — and a dispute about a
+    correction is always about the decision, never about the arithmetic.
+
+    The original transaction is untouched, as always. A correction adds a row
+    to the history; nothing in this codebase edits one.
+    """
+    if not reason or not reason.strip():
+        raise MoneyError(
+            f"correcting {txn.pk} needs a written reason",
+            user_message="التصحيح يحتاج سبباً مكتوباً.",
+        )
+    if by is None:
+        raise MoneyError(
+            f"correcting {txn.pk} needs a named operator",
+            user_message="التصحيح يحتاج منفّذاً مسمّى.",
+        )
+
+    audited = ("kind", "idempotency_key", "memo")
+    before = audit.snapshot(txn, audited)
+    reason = reason.strip()
+
+    reversal = reverse(txn, reason=reason, by=by)
+
+    audit.record(
+        action="money.correct",
+        entity=txn,
+        actor=by,
+        before=before,
+        after=audit.snapshot(reversal, audited),
+        note=reason,
+    )
+    return reversal
+
+
 # ---------------------------------------------------------------------------
 # Insurance — the deposit lifecycle
 # ---------------------------------------------------------------------------

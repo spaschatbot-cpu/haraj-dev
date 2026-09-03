@@ -17,11 +17,19 @@ hole in the books as a healthy balance.
 {% block heading %}دفتر {{ ledger.name }}{% endblock %}
 
 {% block content %}
+  {# I5: every list downloads as a real workbook, and the download carries the
+     filter that is on the screen. `export_url` is this very request with one
+     parameter added, built in `apps.console.context` — so the filter comes
+     along by construction and no template writes a path by hand. #}
+  <p><a href="{{ export_url }}">تصدير إلى إكسل</a></p>
+
   <p>
     <span class="money">{{ ledger.customer.phone }}</span> ·
     <a href="{% url 'console:money-ledger' %}">بحث عن عميل آخر</a>
   </p>
-  <p class="empty">هذه الشاشة للقراءة فقط. لا يتحرك منها ريال.</p>
+  <p class="empty">هذه الشاشة للقراءة فقط. لا يتحرك منها ريال.{% if may_act %}
+    <a href="{% url 'console:money-actions' ledger.customer.pk %}">الأفعال المالية ←</a>
+  {% endif %}</p>
 
   {% if not ledger.is_sound %}
     <div class="alarm">

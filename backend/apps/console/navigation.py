@@ -84,6 +84,7 @@ PAGES: tuple[Page, ...] = (
         Capability.MONEY_VIEW,
         "money",
     ),
+    Page("console:audit", "سجل التدقيق", Capability.AUDIT_VIEW, "admin"),
     Page(
         "console:odoo-inbox",
         "صندوق وارد أودو",
@@ -144,6 +145,19 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
     Page("console:invoice-detail", "تفاصيل الفاتورة", Capability.INVOICES_VIEW, ""),
     Page("console:money-customer", "دفتر عميل", Capability.MONEY_VIEW, ""),
+    # The three writes. `money-actions` carries `money.act`, and granting an
+    # exception carries `money.exception` on top of it — the one action that
+    # puts a bidder in an auction with nothing behind their bid is not the same
+    # trust as confiscating a deposit that is already ours to take.
+    Page("console:money-actions", "أفعال مالية", Capability.MONEY_ACT, ""),
+    Page("console:money-confiscate", "مصادرة حجز", Capability.MONEY_ACT, ""),
+    Page("console:money-correct", "تصحيح حركة", Capability.MONEY_ACT, ""),
+    Page(
+        "console:money-exception",
+        "منح استثناء مزايدة",
+        Capability.MONEY_EXCEPTION,
+        "",
+    ),
     Page("console:odoo-message", "رسالة واردة", Capability.ODOO_INBOX, ""),
     Page("console:odoo-replay", "إعادة تشغيل رسالة", Capability.ODOO_INBOX, ""),
 )

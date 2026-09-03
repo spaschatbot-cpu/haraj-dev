@@ -45,6 +45,7 @@ from apps.odoo.models import InboundMessage, InboundState
 from apps.odoo.processing import process
 from apps.odoo.tasks import MAX_ATTEMPTS
 
+from .exports import export, wants_export
 from .views import console_page
 
 #: Rows per page. The inbox is read newest-first when something is wrong, and
@@ -79,6 +80,30 @@ def inbox(request):
     search = (request.GET.get("q") or "").strip()
     if search:
         rows = rows.filter(subject_ref__icontains=search)
+
+    if wants_export(request):
+        return export(
+            rows,
+            name="odoo-inbox",
+            headers=[
+                "متى",
+                "المصدر",
+                "الحدث",
+                "الموضوع",
+                "الحالة",
+                "المحاولات",
+                "الملاحظة",
+            ],
+            cell=lambda m: [
+                m.received_at,
+                m.source,
+                m.event,
+                m.subject_ref,
+                m.get_state_display(),
+                m.attempts,
+                m.note,
+            ],
+        )
 
     return render(
         request,

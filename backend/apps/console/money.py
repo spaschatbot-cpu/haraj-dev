@@ -39,10 +39,12 @@ from django.shortcuts import redirect, render
 
 from apps.accounts.models import User
 from apps.accounts.services import display_name, find_by_phone
+from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money import verification
 from apps.money.models import ZERO, AccountKind, Entry, HoldState
 
+from .exports import export, wants_export
 from .views import console_page
 
 #: Ledger lines per page. A customer with a year of activity has hundreds, and
@@ -121,6 +123,19 @@ def ledger(request):
         ),
     ).order_by("-held_total", "phone")
 
+    if wants_export(request):
+        return export(
+            rows,
+            name="deposits",
+            headers=["العميل", "الجوال", "مجموع التأمينات", "حجوزات قائمة"],
+            cell=lambda u: [
+                display_name(u),
+                u.phone,
+                u.held_total,
+                u.active_holds,
+            ],
+        )
+
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     return render(
         request,
@@ -149,12 +164,31 @@ def customer_ledger(request, pk: int):
     data = ledger_for(customer)
     entries = money.statement_entries(customer)
 
+    if wants_export(request):
+        return export(
+            entries,
+            name=f"ledger-{customer.pk}",
+            headers=["التاريخ", "الدلو", "الحركة", "المبلغ", "البيان"],
+            cell=lambda e: [
+                e.transaction.occurred_at,
+                e.account.get_kind_display(),
+                e.transaction.get_kind_display(),
+                e.amount,
+                e.transaction.memo,
+            ],
+        )
+
     return render(
         request,
         "console/money_customer.html",
         {
             "ledger": data,
             "page": Paginator(entries, PAGE_SIZE).get_page(request.GET.get("page")),
+            # A link, never a button. This page stays read-only by construction
+            # (T810) and the actions live on their own screen (T811); what is
+            # offered here is the way there, and only to somebody who could use
+            # it — a link that answers 403 reads as a broken console.
+            "may_act": can(request.user, Capability.MONEY_ACT),
         },
     )
 
