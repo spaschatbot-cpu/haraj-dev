@@ -161,7 +161,99 @@ APP_BASE = env("APP_BASE", default="console").strip("/")
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))
+
+# --------------------------------------------------------------------------
+# Uploads — T912.
+#
+# The rules live in `apps.core.uploads`; these are the numbers it reads. They
+# are settings because they are the knobs an operator turns when a partner's
+# camera starts producing bigger files, and because a test needs to lower them
+# without editing a rule.
+#
+# In v1 a webshell lived for months inside the photographs directory, and the
+# ceilings below are only the cheap half of what stops that. The half that
+# matters is that nothing under MEDIA_ROOT is ever executed or interpreted:
+# Django does not serve it (there is no `static()` line in `config/urls.py`),
+# and the deployment serves it as inert bytes — `docs/runbooks/uploads.md`
+# carries the web-server stanza and `apps.core.checks` refuses a deployed
+# environment that hands the directory to Django or to the static files app.
+# --------------------------------------------------------------------------
+
+#: Ten megabytes. A phone photograph of a car is one to four; twice the largest
+#: real one leaves room for a partner's DSLR without leaving room for a payload.
+UPLOAD_MAX_BYTES = env.int("UPLOAD_MAX_BYTES", default=10 * 1024 * 1024)
+
+#: Read from the header **before** anything decodes the file. A 6 KB PNG can
+#: declare 40,000 × 40,000 and ask for gigabytes the moment it is opened, and no
+#: byte limit sees that coming.
+UPLOAD_MAX_IMAGE_PIXELS = env.int("UPLOAD_MAX_IMAGE_PIXELS", default=50_000_000)
+UPLOAD_MAX_IMAGE_EDGE = env.int("UPLOAD_MAX_IMAGE_EDGE", default=12_000)
+
+# Django buffers an upload in memory up to this size and spills the rest to a
+# temporary file. Kept below the upload ceiling so a large file costs disk
+# rather than resident memory in every worker at once.
+FILE_UPLOAD_MAX_MEMORY_SIZE = env.int(
+    "FILE_UPLOAD_MAX_MEMORY_SIZE", default=2 * 1024 * 1024
+)
+
+# The whole non-file request body. Django's own default; written down because
+# it is a rate limit wearing another name and reviewers should see the number.
+DATA_UPLOAD_MAX_MEMORY_SIZE = env.int(
+    "DATA_UPLOAD_MAX_MEMORY_SIZE", default=2 * 1024 * 1024
+)
+
+# Explicit rather than inherited: a stored upload is data, and a file arriving
+# with the executable bit set is one misconfigured web server away from being a
+# program. This is the mode every written file gets.
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
+# --------------------------------------------------------------------------
+# The edge — who is calling, and how often they may. T914.
+# --------------------------------------------------------------------------
+
+#: How many proxies sit in front of this process.
+#:
+#: 0 means the application is reached directly and `REMOTE_ADDR` is the truth;
+#: `X-Forwarded-For` is then a header a caller wrote and is ignored entirely. An
+#: environment behind one nginx sets 1, and only the last entry of the header is
+#: read. Both `apps.core.net.client_ip` and DRF's `NUM_PROXIES` below are this
+#: number, because two answers to "who is calling" is two different rate limits.
+#:
+#: Why it matters more than it looks: with DRF's default (unset), the *whole*
+#: forwarded header becomes the caller's identity, so writing a different value
+#: on each request buys a fresh budget each time — one header and a loop, and
+#: the metered OTP path is unmetered again.
+TRUSTED_PROXY_HOPS = env.int("TRUSTED_PROXY_HOPS", default=0)
+
+#: Limits on the paths DRF's throttles cannot reach, read by
+#: `apps.core.ratelimit`. A scope missing from this dict means that limit is
+#: off; `settings/test.py` empties it so the suite is not order-dependent, and
+#: `apps.core.checks` refuses a deployed environment where any of them is
+#: missing.
+#:
+#: The numbers:
+#:
+#: * **odoo_webhook** — Odoo bursts when an operator posts a batch, so the
+#:   ceiling is generous. It bounds a runaway retry loop; it does not shape
+#:   normal traffic, because a limiter that drops real messages would break the
+#:   one rule that boundary exists to keep.
+#: * **payment_callback** — the same shape and one sender, and until T914 it had
+#:   no limit at all: every request from anyone who could reach it wrote a row.
+#: * **staff_login_ip / staff_login_account** — the passwords behind these open
+#:   `money.act` and `money.exception`. Ten an hour from one address is a person
+#:   who forgot which password they used; five against one account is the same
+#:   person and not a list being worked through. Both, for the reason
+#:   `apps.accounts.throttling` gives at length: the per-account limit alone is
+#:   defeated by spraying one password across many accounts, and the per-address
+#:   limit alone is defeated by a botnet aimed at one account.
+EDGE_THROTTLE_RATES: dict[str, str] = {
+    "odoo_webhook": env("ODOO_WEBHOOK_RATE", default="600/minute"),
+    "payment_callback": env("PAYMENT_CALLBACK_RATE", default="600/minute"),
+    "staff_login_ip": env("STAFF_LOGIN_RATE_PER_IP", default="10/hour"),
+    "staff_login_account": env("STAFF_LOGIN_RATE_PER_ACCOUNT", default="5/hour"),
+}
 
 # --------------------------------------------------------------------------
 # API
@@ -185,6 +277,17 @@ REST_FRAMEWORK = {
     # One envelope for every error the API can return, so the Flutter app has a
     # single branch to write and every message reaches the user in Arabic.
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
+    # How many proxies in front of us DRF should believe (T914).
+    #
+    # This one number is the difference between a rate limit and the appearance
+    # of one, and DRF's default is the dangerous value: unset, `get_ident`
+    # returns the *whole* `X-Forwarded-For` header as the caller's identity, so
+    # a caller writing a different value on each request gets a fresh budget
+    # every time. One header and a loop reopens the free-SMS gateway T602
+    # closed. Read from the same setting `apps.core.net` reads, so the two
+    # cannot drift, and `apps.core.checks` fails a deployed environment where
+    # they have.
+    "NUM_PROXIES": TRUSTED_PROXY_HOPS,
 }
 
 SPECTACULAR_SETTINGS = {

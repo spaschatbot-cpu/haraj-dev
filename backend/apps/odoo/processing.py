@@ -54,16 +54,59 @@ class Outcome:
             raise ValueError("every outcome states its reason")
 
 
+#: The only source whose messages this module may interpret.
+#:
+#: `InboundMessage` is a shared table — the payment gateway writes to it too —
+#: and every handler below reads `payload` as though Odoo wrote it. Nothing
+#: stops a *different* sender's body from carrying `event: "payment.posted"`
+#: and a `customer_id`, so the source is checked here rather than assumed.
+INTERPRETED_SOURCE = "odoo"
+
+
 def process(message: InboundMessage) -> InboundMessage:
     """Interpret one stored message and record what came of it.
 
     Safe to call again on anything. A message that already reached a terminal
     state is returned untouched, which is what lets the retry task, the admin
     replay button, and a manual shell call all use this same function.
+
+    **Two things it refuses to interpret at all**, and both refusals are the
+    fix for one exploitable path found in T913's sweep:
+
+    * a message whose **signature did not verify**. It is stored — Article 2-2
+      — but a body nobody vouched for must never reach a handler that moves
+      money. In v1's shape of this bug the forged body was parked in `failed`,
+      which is the retry queue, so the retry cron interpreted it a minute later
+      as though it had been signed.
+    * a message from **any source but Odoo**. The table is shared, the handlers
+      below read Odoo's field names, and a payment-gateway body that happens to
+      carry `event: "payment.posted"` would otherwise be routed straight into
+      :func:`_handle_payment`.
+
+    Neither refusal is silent (Article 2-2), and neither leaves the message in
+    a state the retry queue picks up — so a forged body is not re-offered every
+    minute forever. They differ in *where* the reason is written: the unsigned
+    one already carries the boundary's note and its own state, and re-saving it
+    here would only spend an attempt on a message no attempt can help; the
+    foreign-source one is being judged for the first time, so it is written
+    down here.
     """
     if message.state in (InboundState.PROCESSED, InboundState.IGNORED):
         log.info("process: message %s already %s", message.pk, message.state)
         return message
+
+    if message.state == InboundState.REJECTED_SIGNATURE:
+        log.warning("process: refused to interpret unsigned message %s", message.pk)
+        return message
+
+    if message.source != INTERPRETED_SOURCE:
+        return _finish(
+            message,
+            Outcome(
+                InboundState.IGNORED,
+                f"رسالة من مصدر {message.source!r} لا يفسّرها مسار أودو",
+            ),
+        )
 
     try:
         outcome = _interpret(message)

@@ -51,6 +51,13 @@ REST_FRAMEWORK = {  # noqa: F405
 OTP_THROTTLE_RATES: dict[str, str] = {}
 BID_THROTTLE_RATES: dict[str, str] = {}
 
+# Same reason a third time, for the limits that are not DRF's (T914): the Odoo
+# webhook, the payment callback and staff sign-in. Hundreds of tests post to
+# those boundaries, and a shared per-minute counter would make them fail in the
+# order they happened to run. Each test that proves one of these limits switches
+# its own scope on with `override_settings`.
+EDGE_THROTTLE_RATES: dict[str, str] = {}
+
 # Local memory, and only here. Redis is not a CI dependency, and every test that
 # needs a counter overrides this with a `locmem` cache of its own so the count
 # it asserts on cannot be a leftover from an earlier test.

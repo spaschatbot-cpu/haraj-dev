@@ -94,9 +94,23 @@ class InboundMessage(models.Model):
 
     class Meta:
         constraints = [
+            # A delivery id identifies a delivery **the sender vouched for**.
+            #
+            # The `rejected_signature` clause is the whole of T913's finding.
+            # Both boundaries store an unsigned message rather than dropping it
+            # (Article 2-2), and both derive its delivery id from a body a
+            # stranger wrote. With that row inside the index, posting
+            # `{"id": 4711}` at either webhook *reserves* delivery 4711: when
+            # the genuine, correctly-signed 4711 arrives, the insert collides,
+            # the boundary reads "already stored", and the real message is
+            # never stored and never interpreted. Odoo's ids are small
+            # integers, so reserving a year of them is an afternoon's work —
+            # and the messages lost that way are invoices and payments.
+            #
+            # So an unverified row is kept, and owns nothing.
             models.UniqueConstraint(
                 fields=["source", "delivery_id"],
-                condition=~Q(delivery_id=""),
+                condition=~Q(delivery_id="") & ~Q(state=InboundState.REJECTED_SIGNATURE),
                 name="one_row_per_delivery",
             ),
         ]

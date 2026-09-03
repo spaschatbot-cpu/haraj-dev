@@ -19,6 +19,8 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from apps.core import uploads
+
 from .states import AuctionState, VehicleState
 
 __all__ = [
@@ -215,12 +217,19 @@ class Vehicle(models.Model):
 
 class VehicleImage(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="images")
-    image = models.ImageField(upload_to="vehicles/%Y/%m/")
+
+    #: `upload_to` is a callable from `apps.core.uploads`, not a path template,
+    #: and that is the whole of T912's name half: a template keeps the
+    #: uploader's own file name on the end, so `../../public/shell.php` and
+    #: `car.png.php` are both a stored path away. The callable throws the
+    #: submitted name away and mints one. `ops/checks/one_upload_gate.py`
+    #: refuses any file field on the project that does not use one.
+    image = models.ImageField(upload_to=uploads.vehicle_image_path)
 
     #: Generated on upload and stored on disk next to the original. A list of
     #: fifty cars must never touch the full-size files: in v1 the bottleneck
     #: was never the request count, it was 50 × 3 MB of JPEG.
-    thumbnail = models.ImageField(upload_to="vehicles/%Y/%m/thumbs/", blank=True)
+    thumbnail = models.ImageField(upload_to=uploads.vehicle_thumbnail_path, blank=True)
 
     position = models.PositiveSmallIntegerField(default=0)
     is_cover = models.BooleanField(default=False)
