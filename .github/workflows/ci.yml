@@ -335,6 +335,12 @@ jobs:
       - name: eligibility is decided in the backend only
         run: node ops/checks/web_no_eligibility_logic.mjs
 
+      # T1026 / J1 — the whole value of two channels is that a rule written once
+      # serves both. A path only the web calls is a rule only the web has, and
+      # the customer who switches device finds a different product.
+      - name: the web calls the contract and nothing else
+        run: node ops/checks/web_uses_the_contract_only.mjs
+
       - name: build
         working-directory: web
         run: npm run build

@@ -44,8 +44,15 @@ const EXTENSIONS = [".ts", ".tsx"];
 const EXEMPT = new Set([
   // Generated from the schema; it declares the string types this file protects.
   join("web", "lib", "api", "schema.ts"),
-  // The guard's own test, which writes an offending file on purpose.
-  join("web", "lib", "__tests__", "money.test.ts"),
+  // The guard's own test (T1024/J4), which writes the four offending shapes as
+  // source strings and asserts each is caught. A guard nobody has watched fail
+  // is a promise, so proving it has to be possible — and the proof necessarily
+  // contains the thing being forbidden.
+  join("web", "lib", "__tests__", "wallet.test.ts"),
+  // Proves these guards can fail, by seeding each forbidden shape as a source
+  // string. A guard nobody has watched fail is a promise — and this file is
+  // where one that matched nothing was caught.
+  join("web", "lib", "__tests__", "contract.test.ts"),
 ]);
 
 //: Identifiers that hold an amount. Taken from the contract's own field names,
@@ -80,6 +87,25 @@ const FORBIDDEN = [
   {
     pattern: new RegExp(`\\b(?:${NAMES})\\b[^\\n]{0,40}\\.toFixed\\s*\\(`),
     why: "تقريب مبلغ — يُعرض كما وصل بالضبط",
+  },
+  {
+    // T1025 / J3: **a price weighed against something.** Arithmetic is not the
+    // only way the web can reach a money decision — `amount < minimum_bid`
+    // computes nothing and decides everything. A comparison against a number
+    // literal or against another amount is the shape of «هل يكفي؟», and that
+    // question is answered in `apps/bidding` and `apps/money`, once.
+    //
+    // Comparison against a plain *variable* is deliberately not matched:
+    // `bucket.kind === filter` is routing, and a guard that cannot tell those
+    // apart is a guard people switch off.
+    //
+    // `String.raw`, because in a plain template literal `\b` is the backspace
+    // character and the pattern would silently match nothing — a check that
+    // reports green without looking, which is worse than no check at all.
+    pattern: new RegExp(
+      String.raw`\b(?:${NAMES})\b\s*(?:[<>]=?|={2,3}|!==?)\s*(?:-?\d|["']\d|\b(?:${NAMES})\b)`,
+    ),
+    why: "موازنة مبلغ برقم أو بمبلغ — «هل يكفي؟» يُجاب في الخلفية",
   },
 ];
 
