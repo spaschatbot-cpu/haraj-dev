@@ -33,6 +33,12 @@ each move. `ops/checks/console_urls_are_named.py` fails the build on one.
     th { background: #f0f0f0; }
     .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .empty { color: #666; }
+    /* A disagreement between the stored balance and the entries is not a
+       styling flourish: it is the one thing on a money screen that must be
+       impossible to scroll past, so it gets a border and a colour of its own. */
+    .alarm { border: 2px solid #b00; background: #fff5f5; padding: .75rem 1rem;
+             margin: 1rem 0; border-radius: .25rem; }
+    .alarm strong { color: #b00; }
   </style>
 </head>
 <body>

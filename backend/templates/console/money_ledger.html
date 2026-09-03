@@ -1,0 +1,47 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+Finding a customer before reading their money.
+
+Only accounts that actually hold something are listed. The question that brings
+anybody to this screen is about a balance, and a list of every account ever
+registered buries the four people the operator could have meant.
+{% endcomment %}
+{% block title %}دفتر التأمينات{% endblock %}
+{% block heading %}دفتر التأمينات{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="رقم الجوال أو الاسم" autofocus>
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if missing %}
+    <p class="empty">لا يوجد عميل بهذا الرقم ({{ missing|unlocalize }}).</p>
+  {% endif %}
+
+  {% if page %}
+    <table>
+      <thead>
+        <tr><th>العميل</th><th>الجوال</th><th>مجموع التأمينات</th><th>حجوزات قائمة</th></tr>
+      </thead>
+      <tbody>
+        {% for customer in page %}
+          <tr>
+            <td><a href="{% url 'console:money-customer' customer.pk %}">{{ customer }}</a></td>
+            <td class="money">{{ customer.phone }}</td>
+            <td class="money">{{ customer.held_total|unlocalize }}</td>
+            <td class="money">{{ customer.active_holds|unlocalize }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="empty">
+            {% if searched %}لا عميل مطابق يحمل رصيداً.{% else %}لا أرصدة بعد.{% endif %}
+          </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p>{{ page.paginator.count }} عميل · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+  {% endif %}
+{% endblock %}

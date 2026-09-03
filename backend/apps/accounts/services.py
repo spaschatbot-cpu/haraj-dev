@@ -69,6 +69,35 @@ def display_name(user: User) -> str:
     return company.name
 
 
+#: How many trailing digits of a phone number identify a person here.
+#:
+#: Nine, because a Saudi mobile is `5XXXXXXXX` however it is written in front of
+#: it — `0551234567`, `+966551234567` and `966551234567` are one number wearing
+#: three costumes, and an operator types whichever one the customer said aloud.
+#: Matching on the tail is what makes all three find the same account.
+PHONE_MATCH_DIGITS = 9
+
+
+def find_by_phone(query: str) -> User | None:
+    """The account whose number ends the way ``query`` does, or None.
+
+    A deliberately loose match, and deliberately *here*: what a phone number
+    looks like is decided on the user model, and every staff screen that takes
+    one — support's refusals lookup, the deposits ledger, the eligibility
+    screen — asks this one function. Three screens each writing their own
+    normalisation is three screens that disagree about `+966` on the day one of
+    them is edited.
+
+    Anything shorter than :data:`PHONE_MATCH_DIGITS` digits is not a search, it
+    is a prefix, and answering a prefix with "the first account that happens to
+    match" is how an operator ends up reading the wrong customer's balance.
+    """
+    digits = "".join(character for character in query if character.isdigit())
+    if len(digits) < PHONE_MATCH_DIGITS:
+        return None
+    return User.objects.filter(phone__endswith=digits[-PHONE_MATCH_DIGITS:]).first()
+
+
 # --------------------------------------------------------------------------
 # Proving a phone number
 # --------------------------------------------------------------------------

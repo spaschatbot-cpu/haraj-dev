@@ -15,6 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from apps.accounts.models import User
+from apps.accounts.services import find_by_phone
 
 from .models import BidRefusal
 
@@ -37,25 +38,17 @@ class Lookup:
         return bool(self.query.strip())
 
 
-def _digits(text: str) -> str:
-    return "".join(character for character in text if character.isdigit())
-
-
 def look_up(query: str, *, limit: int = DEFAULT_LIMIT) -> Lookup:
     """Find a bidder by whatever the support agent typed, and their refusals.
 
-    The number is matched on its **last nine digits**, so ``0551234567``,
-    ``+966551234567`` and ``966551234567`` all find the same person. That is
-    deliberately a loose match rather than a second copy of what a Saudi mobile
-    number looks like — the shape of a phone number is defined once, on the user
-    model, and a support box that only accepts the stored format is a support
-    box that gets used once.
+    The matching itself is `apps.accounts.services.find_by_phone`, not a rule
+    written here: ``0551234567``, ``+966551234567`` and ``966551234567`` are one
+    number, and every staff screen that takes a phone number has to agree about
+    that. A support box that only accepts the stored format is a support box
+    that gets used once — and a second copy of the normalisation is a second
+    screen that stops agreeing the day one of them is edited.
     """
-    digits = _digits(query)
-    if len(digits) < 9:
-        return Lookup(query=query, bidder=None, refusals=[])
-
-    bidder = User.objects.filter(phone__endswith=digits[-9:]).first()
+    bidder = find_by_phone(query)
     if bidder is None:
         return Lookup(query=query, bidder=None, refusals=[])
 
