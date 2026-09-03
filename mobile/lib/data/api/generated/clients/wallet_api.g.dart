@@ -29,7 +29,7 @@ class _WalletApi implements WalletApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/wallet',
+            '/api/v1/wallet/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -65,7 +65,7 @@ class _WalletApi implements WalletApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/wallet/transactions',
+            '/api/v1/wallet/transactions/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -95,7 +95,7 @@ class _WalletApi implements WalletApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/wallet/topup-intents',
+            '/api/v1/wallet/topups/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -124,7 +124,7 @@ class _WalletApi implements WalletApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/wallet/topup-intents/${reference}',
+            '/api/v1/wallet/topups/${reference}/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -154,7 +154,7 @@ class _WalletApi implements WalletApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/wallet/refund-requests',
+            '/api/v1/wallet/refund-requests/',
             queryParameters: queryParameters,
             data: _data,
           )

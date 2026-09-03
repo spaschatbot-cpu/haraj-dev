@@ -16,10 +16,10 @@ abstract class DevicesApi {
   factory DevicesApi(Dio dio, {String? baseUrl}) = _DevicesApi;
 
   /// تسجيل جهاز للإشعارات — يُربط بالمستخدم من الرمز
-  @POST('/api/v1/devices')
+  @POST('/api/v1/devices/')
   Future<Device> devicesRegister({@Body() required DeviceRegistration body});
 
   /// إلغاء تسجيل جهاز عند الخروج — بالرمز، وبمالكه من رمز الدخول
-  @POST('/api/v1/devices/unregister')
+  @POST('/api/v1/devices/unregister/')
   Future<void> devicesUnregister({@Body() required DeviceUnregistration body});
 }

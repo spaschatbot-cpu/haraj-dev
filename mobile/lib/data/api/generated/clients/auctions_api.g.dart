@@ -38,7 +38,7 @@ class _AuctionsApi implements AuctionsApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auctions',
+            '/api/v1/auctions/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -65,7 +65,7 @@ class _AuctionsApi implements AuctionsApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auctions/${auctionId}',
+            '/api/v1/auctions/${auctionId}/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -99,7 +99,7 @@ class _AuctionsApi implements AuctionsApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/participations',
+            '/api/v1/participations/',
             queryParameters: queryParameters,
             data: _data,
           )

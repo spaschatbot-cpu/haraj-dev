@@ -33,7 +33,7 @@ class _BidsApi implements BidsApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/vehicles/${vehicleId}/bids',
+            '/api/v1/vehicles/${vehicleId}/bids/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -64,7 +64,7 @@ class _BidsApi implements BidsApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/bids/mine',
+            '/api/v1/bids/mine/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -91,7 +91,7 @@ class _BidsApi implements BidsApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/bids/${bidId}/withdraw',
+            '/api/v1/bids/${bidId}/withdraw/',
             queryParameters: queryParameters,
             data: _data,
           )

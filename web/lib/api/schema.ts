@@ -449,6 +449,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/participations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * مشاركاتي
+         * @description `GET /api/v1/participations/` — the auctions the caller is in.
+         *
+         *     One row per auction, carrying the two facts a «مشاركاتي» screen needs and
+         *     cannot combine for itself: how many of the caller's bids still stand, and
+         *     what their deposit for that auction is doing.
+         *
+         *     Why the server and not the screen
+         *     ---------------------------------
+         *     Both halves exist separately — `bids/mine/` and the wallet — and the app
+         *     could in principle match one against the other. It must not. That match is a
+         *     rule, and a rule in a screen is a second copy of a rule (Article 4-5): the
+         *     day a hold is released or consumed while the bid rows stay exactly as they
+         *     were, the screen's «محجوز» and the ledger's disagree, and the customer is
+         *     told two different things about one deposit. The hold is the only thing that
+         *     knows, so the hold is what this reads.
+         *
+         *     Being *in* an auction is either half on its own: a standing bid, or money
+         *     pinned to it. A bidder whose deposit is held but whose only bid was
+         *     withdrawn is still in — otherwise their wallet shows 10,000 محجوز against a
+         *     list that shows nothing holding it.
+         *
+         *     No eligibility is decided here and none is read. This says what is, not what
+         *     may be; `check_eligibility` remains the one door (T502).
+         */
+        get: operations["participations_mine"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/callback/": {
         parameters: {
             query?: never;
@@ -954,6 +996,16 @@ export interface components {
             occurred_at: string;
             memo: string;
         };
+        /** @description A field the customer can read but not write, and why not.
+         *
+         *     `reason` is Arabic and ready to put on a screen. It is a sentence rather
+         *     than a code because there is no behaviour to branch on — the client shows
+         *     the field closed and prints this beside it. */
+        LockedField: {
+            field: string;
+            /** @description سبب عربي جاهز للعرض */
+            reason: string;
+        };
         /**
          * @description * `balance` - من الرصيد
          *     * `bank_transfer` - تحويل بنكي
@@ -1013,6 +1065,38 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["Purchase"][];
+        };
+        Participation: {
+            auction: components["schemas"]["ParticipationAuction"];
+            bids_count: number;
+            insurance: components["schemas"]["ParticipationInsurance"];
+        };
+        /** @description The auction, as the person who is in it needs to see it named. */
+        ParticipationAuction: {
+            id: number;
+            number: number;
+            title: string;
+            state: string;
+            state_label: string;
+            /** Format: date-time */
+            starts_at: string;
+            /** Format: date-time */
+            ends_at: string;
+        };
+        /** @description What this bidder's deposit for this auction is doing, per the ledger.
+         *
+         *     Read off `money.Hold` and nothing else. The alternative — the app matching
+         *     «مزايداتي» against «المحفظة» — is a rule in a screen, and it is wrong the
+         *     moment a hold is released or consumed while the bids stay as they were. */
+        ParticipationInsurance: {
+            state: string;
+            state_label: string;
+            amount: string | null;
+            currency: string | null;
+        };
+        ParticipationPage: {
+            total: number;
+            results: components["schemas"]["Participation"][];
         };
         /** @description What a customer may change about themselves, and nothing else.
          *
@@ -1105,6 +1189,7 @@ export interface components {
             readonly phone_verified_at: string | null;
             readonly has_company_profile: boolean;
             readonly company_profile_complete: boolean;
+            readonly locked_fields: components["schemas"]["LockedField"][];
         };
         /** @description A vehicle this customer won, with the invoice that followed it. */
         Purchase: {
@@ -1750,6 +1835,28 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
+                };
+            };
+        };
+    };
+    participations_mine: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipationPage"];
                 };
             };
         };

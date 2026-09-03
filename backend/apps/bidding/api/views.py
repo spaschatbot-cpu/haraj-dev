@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import time
 
+from django.conf import settings
+from django.db.models import Count
 from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
@@ -31,17 +33,30 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.auctions.models import Auction
+from apps.auctions.states import AuctionState
 from apps.auctions.visibility import visible_vehicles
 from apps.bidding import live, services
 from apps.bidding.models import Bid
 from apps.bidding.throttling import BID_THROTTLES
+from apps.money.models import Hold, HoldState
 
 from .serializers import (
     BidPageSerializer,
     BidSerializer,
     MyBidsQuerySerializer,
+    PageQuerySerializer,
+    ParticipationPageSerializer,
     PlaceBidSerializer,
 )
+
+#: What "this bidder has no hold on this auction" is called on the wire.
+#:
+#: Deliberately *not* a `HoldState` member. There is no row — adding a fourth
+#: state to the enum to describe the absence of a row would put it on `Hold`
+#: itself, where it would mean a hold that holds nothing.
+NO_HOLD = "none"
+NO_HOLD_LABEL = "لا تأمين محجوز لهذا المزاد"
 
 
 def bid_row(bid: Bid) -> dict:
@@ -158,6 +173,118 @@ class MyBidsView(APIView):
             ).data,
             status=status.HTTP_200_OK,
         )
+
+
+class MyParticipationsView(APIView):
+    """`GET /api/v1/participations/` — the auctions the caller is in.
+
+    One row per auction, carrying the two facts a «مشاركاتي» screen needs and
+    cannot combine for itself: how many of the caller's bids still stand, and
+    what their deposit for that auction is doing.
+
+    Why the server and not the screen
+    ---------------------------------
+    Both halves exist separately — `bids/mine/` and the wallet — and the app
+    could in principle match one against the other. It must not. That match is a
+    rule, and a rule in a screen is a second copy of a rule (Article 4-5): the
+    day a hold is released or consumed while the bid rows stay exactly as they
+    were, the screen's «محجوز» and the ledger's disagree, and the customer is
+    told two different things about one deposit. The hold is the only thing that
+    knows, so the hold is what this reads.
+
+    Being *in* an auction is either half on its own: a standing bid, or money
+    pinned to it. A bidder whose deposit is held but whose only bid was
+    withdrawn is still in — otherwise their wallet shows 10,000 محجوز against a
+    list that shows nothing holding it.
+
+    No eligibility is decided here and none is read. This says what is, not what
+    may be; `check_eligibility` remains the one door (T502).
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        operation_id="participations_mine",
+        parameters=[PageQuerySerializer],
+        responses={200: ParticipationPageSerializer},
+        summary="مشاركاتي",
+    )
+    def get(self, request: Request) -> Response:
+        query = PageQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+
+        user = request.user
+        standing = (
+            Bid.objects.live()
+            .filter(bidder=user)
+            .values_list("vehicle__auction_id", flat=True)
+        )
+        holds = {
+            hold.auction_id: hold
+            for hold in Hold.objects.filter(owner=user, auction__isnull=False).order_by(
+                "created_at"
+            )
+        }
+
+        auction_ids = set(standing) | set(holds)
+        auctions = Auction.objects.filter(pk__in=auction_ids).order_by(
+            "-starts_at", "-id"
+        )
+
+        total = auctions.count()
+        offset = query.validated_data["offset"]
+        page = list(auctions[offset : offset + query.validated_data["limit"]])
+
+        counts = dict(
+            Bid.objects.live()
+            .filter(bidder=user, vehicle__auction__in=page)
+            .values_list("vehicle__auction_id")
+            .annotate(count=Count("id"))
+        )
+
+        return Response(
+            ParticipationPageSerializer(
+                {
+                    "total": total,
+                    "results": [
+                        participation_row(
+                            auction,
+                            bids_count=counts.get(auction.pk, 0),
+                            hold=holds.get(auction.pk),
+                        )
+                        for auction in page
+                    ],
+                }
+            ).data,
+            status=status.HTTP_200_OK,
+        )
+
+
+def participation_row(auction, *, bids_count: int, hold) -> dict:
+    """One auction the caller is in. The single place a participation is JSON."""
+    active = hold is not None and hold.state == HoldState.ACTIVE
+    return {
+        "auction": {
+            "id": auction.pk,
+            "number": auction.number,
+            "title": auction.title,
+            "state": auction.state,
+            "state_label": AuctionState(auction.state).label,
+            "starts_at": auction.starts_at,
+            "ends_at": auction.ends_at,
+        },
+        "bids_count": bids_count,
+        "insurance": {
+            "state": hold.state if hold is not None else NO_HOLD,
+            "state_label": (
+                HoldState(hold.state).label if hold is not None else NO_HOLD_LABEL
+            ),
+            # A string, and only while the money is actually pinned. See
+            # `ParticipationInsuranceSerializer`.
+            "amount": str(hold.amount) if active else None,
+            "currency": settings.CURRENCY if active else None,
+        },
+    }
 
 
 class LiveUpdatesView(APIView):

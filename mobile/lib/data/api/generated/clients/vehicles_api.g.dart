@@ -45,7 +45,7 @@ class _VehiclesApi implements VehiclesApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auctions/${auctionId}/vehicles',
+            '/api/v1/auctions/${auctionId}/vehicles/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -72,7 +72,7 @@ class _VehiclesApi implements VehiclesApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/vehicles/${vehicleId}',
+            '/api/v1/vehicles/${vehicleId}/',
             queryParameters: queryParameters,
             data: _data,
           )

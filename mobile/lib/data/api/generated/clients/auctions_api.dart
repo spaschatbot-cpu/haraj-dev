@@ -17,7 +17,7 @@ abstract class AuctionsApi {
   factory AuctionsApi(Dio dio, {String? baseUrl}) = _AuctionsApi;
 
   /// المزادات الجارية والقادمة
-  @GET('/api/v1/auctions')
+  @GET('/api/v1/auctions/')
   Future<PaginatedAuctionList> auctionsList({
     @Query('status') AuctionStatus? status,
     @Query('page') int? page,
@@ -25,15 +25,15 @@ abstract class AuctionsApi {
   });
 
   /// تفاصيل مزاد
-  @GET('/api/v1/auctions/{auctionId}')
+  @GET('/api/v1/auctions/{auctionId}/')
   Future<Auction> auctionsRetrieve({
     @Path('auctionId') required String auctionId,
   });
 
   /// مشاركاتي — المزادات التي دخلتها وحالة تأميني في كل واحد.
   ///
-  /// حالة التأمين لكل مزاد **يشتقّها الخادم** من حجوزاته. لا تُركَّب في التطبيق من «مزايداتي» و«المحفظة»: التركيب قاعدة عمل، وقاعدة في الشاشة نسخة ثانية تفترق عن الأصل (المادة ٤-٥).
-  @GET('/api/v1/participations')
+  /// حالة التأمين لكل مزاد **يشتقّها الخادم** من حجوزاته. لا تُركَّب في التطبيق من «مزايداتي» و«المحفظة»: التركيب قاعدة عمل، وقاعدة في الشاشة نسخة ثانية تفترق عن الأصل (المادة ٤-٥). نظيرها في الخلفية `GET /api/v1/participations/` — `apps/bidding/api/views.py`.
+  @GET('/api/v1/participations/')
   Future<PaginatedParticipationList> participationsList({
     @Query('page') int? page,
     @Query('page_size') int? pageSize,
