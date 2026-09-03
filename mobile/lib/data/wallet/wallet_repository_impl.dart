@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
+import '../../domain/wallet/entities/ledger_movement.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../domain/wallet/repositories/wallet_repository.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/wallet_api.dart';
+import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'wallet_mapper.dart';
@@ -40,7 +42,7 @@ final class WalletRepositoryImpl implements WalletRepository {
       return Snapshot.fresh(wallet.toDomain(), at: fetchedAt);
     } on TransportFailure {
       // الخادم لم يتكلّم: نعرض آخر ما نعرف مع علامة «آخر تحديث» (H5).
-      final cached = await _readCache();
+      final cached = await _readBalanceCache();
       if (cached != null) return cached;
       // لا كاش: نرمي العطب. **لا نرجع محفظة فارغة** — «رصيدك صفر» أسوأ من
       // «تعذّر التحديث»، وقارئها يظنّ فلوسه ضاعت.
@@ -50,7 +52,36 @@ final class WalletRepositoryImpl implements WalletRepository {
     // العربية هي الحقيقة. إخفاؤها خلف بيانات قديمة يكذب على المستخدم.
   }
 
-  Future<Snapshot<WalletBalance>?> _readCache() async {
+  @override
+  Future<Snapshot<LedgerPage>> loadTransactions({
+    int page = 1,
+    WalletBucketKind? bucket,
+  }) async {
+    final key = CacheKeys.walletTransactions(bucket: bucket?.name);
+    try {
+      final response = await callApi(
+        () => _api.walletTransactionsList(page: page, bucket: bucket?.toWire()),
+      );
+      final fetchedAt = _clock().toUtc();
+      if (page == 1) {
+        await _cache.write(
+          key,
+          jsonEncode(response.toJson()),
+          fetchedAtUtc: fetchedAt,
+        );
+      }
+      return Snapshot.fresh(response.toDomain(page: page), at: fetchedAt);
+    } on TransportFailure {
+      // صفحة تالية بلا شبكة ليست حالة كاش: المحفوظ هو الصفحة الأولى وحدها،
+      // وإرجاعه هنا يعيد للمستخدم أول الكشف وكأنه آخره.
+      if (page != 1) rethrow;
+      final cached = await _readTransactionsCache(key);
+      if (cached != null) return cached;
+      rethrow;
+    }
+  }
+
+  Future<Snapshot<WalletBalance>?> _readBalanceCache() async {
     final document = await _cache.read(CacheKeys.wallet);
     if (document == null) return null;
     try {
@@ -61,6 +92,20 @@ final class WalletRepositoryImpl implements WalletRepository {
       );
     } on Object {
       // كاش من نسخة مخطط أقدم لم يعد يُفكّ: يُعامل كغياب كاش، لا كعطب.
+      return null;
+    }
+  }
+
+  Future<Snapshot<LedgerPage>?> _readTransactionsCache(String key) async {
+    final document = await _cache.read(key);
+    if (document == null) return null;
+    try {
+      final list = api.PaginatedLedgerEntryList.fromJson(document.decode());
+      return Snapshot.cached(
+        list.toDomain(page: 1),
+        storedAt: document.fetchedAtUtc,
+      );
+    } on Object {
       return null;
     }
   }

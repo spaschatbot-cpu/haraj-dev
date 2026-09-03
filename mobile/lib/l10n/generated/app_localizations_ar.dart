@@ -45,6 +45,50 @@ class AppLocalizationsAr extends AppLocalizations {
   String get errorUnexpected => 'حدث خطأ غير متوقع في التطبيق.';
 
   @override
+  String get transactionsTitle => 'كشف الحركات';
+
+  @override
+  String get transactionsAll => 'كل الحركات على حسابك، الأحدث أولاً.';
+
+  @override
+  String get transactionsFiltered => 'مرشَّح على دلو واحد.';
+
+  @override
+  String get transactionsShowAll => 'اعرض كل الحركات';
+
+  @override
+  String get transactionsEmpty => 'لا حركات.';
+
+  @override
+  String transactionsTotal(int count) {
+    return '$count حركة';
+  }
+
+  @override
+  String get transactionsLoadMore => 'تحميل المزيد';
+
+  @override
+  String get movementIncoming => 'وارد';
+
+  @override
+  String get movementOutgoing => 'صادر';
+
+  @override
+  String movementReference(String reference) {
+    return 'المرجع $reference';
+  }
+
+  @override
+  String dateTimeAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString الساعة $timeString';
+  }
+
+  @override
   String offlineDataNotice(DateTime date, DateTime time) {
     final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
     final String dateString = dateDateFormat.format(date);

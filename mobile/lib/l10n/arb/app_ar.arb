@@ -56,6 +56,70 @@
     "description": "عطب في التطبيق نفسه، لا في الخادم"
   },
 
+  "transactionsTitle": "كشف الحركات",
+  "@transactionsTitle": {
+    "description": "عنوان شاشة الحركات — T712"
+  },
+
+  "transactionsAll": "كل الحركات على حسابك، الأحدث أولاً.",
+  "@transactionsAll": {},
+
+  "transactionsFiltered": "مرشَّح على دلو واحد.",
+  "@transactionsFiltered": {
+    "description": "يظهر حين يُفتح الكشف من رقم في المحفظة — المادة ١-٦"
+  },
+
+  "transactionsShowAll": "اعرض كل الحركات",
+  "@transactionsShowAll": {},
+
+  "transactionsEmpty": "لا حركات.",
+  "@transactionsEmpty": {},
+
+  "transactionsTotal": "{count} حركة",
+  "@transactionsTotal": {
+    "description": "عدد الحركات كما قاله الخادم — عدد لا مبلغ",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "transactionsLoadMore": "تحميل المزيد",
+  "@transactionsLoadMore": {},
+
+  "movementIncoming": "وارد",
+  "@movementIncoming": {
+    "description": "اتجاه الحركة كما قاله الخادم — لقارئ الشاشة"
+  },
+
+  "movementOutgoing": "صادر",
+  "@movementOutgoing": {},
+
+  "movementReference": "المرجع {reference}",
+  "@movementReference": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+
+  "dateTimeAt": "{date} الساعة {time}",
+  "@dateTimeAt": {
+    "description": "عرض لحظة بالتوقيت السعودي — التحويل في saudi_time وحدها",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
   "offlineDataNotice": "بيانات محفوظة — آخر تحديث {date} الساعة {time}",
   "@offlineDataNotice": {
     "description": "علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5",

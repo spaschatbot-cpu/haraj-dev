@@ -39,4 +39,11 @@ abstract interface class ResponseCache {
 /// بصيغتين (المادة ٤-٥).
 abstract final class CacheKeys {
   static const String wallet = 'wallet.balance';
+
+  /// كشف الحركات — مفتاح لكل ترشيح.
+  ///
+  /// الترشيح جزء من المفتاح لأنه جزء من السؤال: كشف مرشَّح على دلو محفوظ تحت
+  /// مفتاح الكشف الكامل يُعرض لاحقاً بلا اتصال على أنه «كل الحركات»، وهو ليس.
+  static String walletTransactions({String? bucket}) =>
+      bucket == null ? 'wallet.transactions' : 'wallet.transactions.$bucket';
 }

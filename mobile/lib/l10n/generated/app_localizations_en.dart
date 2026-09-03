@@ -46,6 +46,50 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorUnexpected => 'An unexpected error occurred in the app.';
 
   @override
+  String get transactionsTitle => 'Statement';
+
+  @override
+  String get transactionsAll => 'Every movement on your account, newest first.';
+
+  @override
+  String get transactionsFiltered => 'Filtered to a single bucket.';
+
+  @override
+  String get transactionsShowAll => 'Show every movement';
+
+  @override
+  String get transactionsEmpty => 'No movements.';
+
+  @override
+  String transactionsTotal(int count) {
+    return '$count movements';
+  }
+
+  @override
+  String get transactionsLoadMore => 'Load more';
+
+  @override
+  String get movementIncoming => 'In';
+
+  @override
+  String get movementOutgoing => 'Out';
+
+  @override
+  String movementReference(String reference) {
+    return 'Reference $reference';
+  }
+
+  @override
+  String dateTimeAt(DateTime date, DateTime time) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+    final intl.DateFormat timeDateFormat = intl.DateFormat.Hm(localeName);
+    final String timeString = timeDateFormat.format(time);
+
+    return '$dateString at $timeString';
+  }
+
+  @override
   String offlineDataNotice(DateTime date, DateTime time) {
     final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
     final String dateString = dateDateFormat.format(date);

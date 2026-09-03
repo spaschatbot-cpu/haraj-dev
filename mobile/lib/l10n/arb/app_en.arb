@@ -12,5 +12,16 @@
   "errorTimeout": "Could not reach the server. Please try again.",
   "errorMalformedResponse": "The server returned a response we could not read.",
   "errorUnexpected": "An unexpected error occurred in the app.",
+  "transactionsTitle": "Statement",
+  "transactionsAll": "Every movement on your account, newest first.",
+  "transactionsFiltered": "Filtered to a single bucket.",
+  "transactionsShowAll": "Show every movement",
+  "transactionsEmpty": "No movements.",
+  "transactionsTotal": "{count} movements",
+  "transactionsLoadMore": "Load more",
+  "movementIncoming": "In",
+  "movementOutgoing": "Out",
+  "movementReference": "Reference {reference}",
+  "dateTimeAt": "{date} at {time}",
   "offlineDataNotice": "Saved data — last updated {date} at {time}"
 }

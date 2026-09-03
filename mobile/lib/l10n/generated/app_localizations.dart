@@ -164,6 +164,72 @@ abstract class AppLocalizations {
   /// **'حدث خطأ غير متوقع في التطبيق.'**
   String get errorUnexpected;
 
+  /// عنوان شاشة الحركات — T712
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف الحركات'**
+  String get transactionsTitle;
+
+  /// No description provided for @transactionsAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الحركات على حسابك، الأحدث أولاً.'**
+  String get transactionsAll;
+
+  /// يظهر حين يُفتح الكشف من رقم في المحفظة — المادة ١-٦
+  ///
+  /// In ar, this message translates to:
+  /// **'مرشَّح على دلو واحد.'**
+  String get transactionsFiltered;
+
+  /// No description provided for @transactionsShowAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض كل الحركات'**
+  String get transactionsShowAll;
+
+  /// No description provided for @transactionsEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا حركات.'**
+  String get transactionsEmpty;
+
+  /// عدد الحركات كما قاله الخادم — عدد لا مبلغ
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} حركة'**
+  String transactionsTotal(int count);
+
+  /// No description provided for @transactionsLoadMore.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحميل المزيد'**
+  String get transactionsLoadMore;
+
+  /// اتجاه الحركة كما قاله الخادم — لقارئ الشاشة
+  ///
+  /// In ar, this message translates to:
+  /// **'وارد'**
+  String get movementIncoming;
+
+  /// No description provided for @movementOutgoing.
+  ///
+  /// In ar, this message translates to:
+  /// **'صادر'**
+  String get movementOutgoing;
+
+  /// No description provided for @movementReference.
+  ///
+  /// In ar, this message translates to:
+  /// **'المرجع {reference}'**
+  String movementReference(String reference);
+
+  /// عرض لحظة بالتوقيت السعودي — التحويل في saudi_time وحدها
+  ///
+  /// In ar, this message translates to:
+  /// **'{date} الساعة {time}'**
+  String dateTimeAt(DateTime date, DateTime time);
+
   /// علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5
   ///
   /// In ar, this message translates to:

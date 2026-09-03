@@ -24,6 +24,7 @@ import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/usecases/sign_in_with_otp.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
+import '../domain/wallet/usecases/load_wallet_transactions.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) => AppConfig.fromBuild());
 
@@ -95,4 +96,8 @@ final signInWithOtpProvider = Provider<SignInWithOtp>(
 
 final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
   (ref) => LoadWalletBalance(ref.watch(walletRepositoryProvider)),
+);
+
+final loadWalletTransactionsProvider = Provider<LoadWalletTransactions>(
+  (ref) => LoadWalletTransactions(ref.watch(walletRepositoryProvider)),
 );
