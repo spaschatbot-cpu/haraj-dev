@@ -55,8 +55,14 @@ final class SessionController extends Notifier<SessionState> {
   /// بعد تحقّق ناجح: الرمزان محفوظان فعلاً في التخزين الآمن.
   void markSignedIn() => state = SessionState.signedIn;
 
+  /// الخروج يمرّ من `SignOut` لا من المستودع مباشرةً.
+  ///
+  /// `AuthRepository.signOut` يمحو الرمزين وحدهما ويترك صفّ الجهاز في الخادم
+  /// باسم من خرج، فيستقبل من يدخل بعده على نفس الجوال إشعارات مزايداته
+  /// وفواتيره. حالة الاستعمال تُبلغ الخادم أولاً — وهي ما زالت تحمل الرمز —
+  /// ثم تمحو. يحرس التوصيل `test/app/sign_out_wiring_test.dart`.
   Future<void> signOut() async {
-    await ref.read(authRepositoryProvider).signOut();
+    await ref.read(signOutProvider)();
     state = SessionState.signedOut;
   }
 }

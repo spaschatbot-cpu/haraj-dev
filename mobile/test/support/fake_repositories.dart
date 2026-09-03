@@ -11,9 +11,15 @@ import 'package:haraj_mobile/domain/profile/repositories/profile_repository.dart
 /// لا ما يفعله dio بالجسم. وأي تغيّر في العقد يسقط هنا عند التصريف.
 
 final class FakeAuthRepository implements AuthRepository {
-  FakeAuthRepository({this.storedSession = false});
+  FakeAuthRepository({this.storedSession = false, this.onSignOut});
 
   bool storedSession;
+
+  /// يُستدعى لحظة محو الرمزين — به يُرصد **ترتيب** الخروج.
+  ///
+  /// الترتيب هو المهم لا الحدث: بعد محو الرمزين لا شيء يثبت للخادم من صاحب
+  /// الجهاز، فإلغاء تسجيله بعدهما يُردّ بـ401.
+  final void Function()? onSignOut;
 
   CodeDelivery delivery = CodeDelivery(
     expiresAt: DateTime.utc(2026, 9, 1, 10, 5),
@@ -78,7 +84,10 @@ final class FakeAuthRepository implements AuthRepository {
   Future<bool> hasStoredSession() async => storedSession;
 
   @override
-  Future<void> signOut() async => storedSession = false;
+  Future<void> signOut() async {
+    onSignOut?.call();
+    storedSession = false;
+  }
 
   @override
   Future<PhoneChangeCodes> startPhoneChange({required String newPhone}) async {
