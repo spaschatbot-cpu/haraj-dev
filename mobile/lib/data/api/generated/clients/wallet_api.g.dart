@@ -50,11 +50,13 @@ class _WalletApi implements WalletApi {
   Future<PaginatedLedgerEntryList> walletTransactionsList({
     int? page,
     int? pageSize,
+    WalletBucketKind? bucket,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
       r'page': page,
       r'page_size': pageSize,
+      r'bucket': bucket,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
@@ -94,6 +96,35 @@ class _WalletApi implements WalletApi {
           .compose(
             _dio.options,
             '/api/v1/wallet/topup-intents',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late TopUpIntent _value;
+    try {
+      _value = TopUpIntent.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<TopUpIntent> walletTopUpIntentRetrieve({
+    required String reference,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<TopUpIntent>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/wallet/topup-intents/${reference}',
             queryParameters: queryParameters,
             data: _data,
           )

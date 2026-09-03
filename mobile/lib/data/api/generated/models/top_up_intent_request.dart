@@ -8,13 +8,14 @@ part 'top_up_intent_request.g.dart';
 
 @JsonSerializable()
 class TopUpIntentRequest {
-  const TopUpIntentRequest({required this.preset});
+  const TopUpIntentRequest({this.preset});
 
   factory TopUpIntentRequest.fromJson(Map<String, Object?> json) =>
       _$TopUpIntentRequestFromJson(json);
 
-  /// مفتاح مبلغ معرَّف في الخادم — التطبيق لا يرسل مبلغاً
-  final String preset;
+  /// مفتاح مبلغ معرَّف في الخادم. اختياري لأن الخادم هو من يحدّد المبلغ أصلاً (`deposit_amount_for` في الخلفية)، وطلب بلا مفتاح يعني «المبلغ الذي تقرّره أنت». التطبيق لا يرسل مبلغاً في أي حال.
+  ///
+  final String? preset;
 
   Map<String, Object?> toJson() => _$TopUpIntentRequestToJson(this);
 }

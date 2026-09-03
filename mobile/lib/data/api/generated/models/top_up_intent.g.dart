@@ -12,6 +12,7 @@ TopUpIntent _$TopUpIntentFromJson(Map<String, dynamic> json) => TopUpIntent(
   currency: json['currency'] as String,
   redirectUrl: json['redirect_url'] as String,
   status: TopUpIntentStatus.fromJson(json['status'] as String),
+  statusLabel: json['status_label'] as String,
 );
 
 Map<String, dynamic> _$TopUpIntentToJson(TopUpIntent instance) =>
@@ -21,6 +22,7 @@ Map<String, dynamic> _$TopUpIntentToJson(TopUpIntent instance) =>
       'currency': instance.currency,
       'redirect_url': instance.redirectUrl,
       'status': _$TopUpIntentStatusEnumMap[instance.status]!,
+      'status_label': instance.statusLabel,
     };
 
 const _$TopUpIntentStatusEnumMap = {

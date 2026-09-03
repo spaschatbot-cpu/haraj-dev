@@ -7,7 +7,7 @@ part of 'top_up_intent_request.dart';
 // **************************************************************************
 
 TopUpIntentRequest _$TopUpIntentRequestFromJson(Map<String, dynamic> json) =>
-    TopUpIntentRequest(preset: json['preset'] as String);
+    TopUpIntentRequest(preset: json['preset'] as String?);
 
 Map<String, dynamic> _$TopUpIntentRequestToJson(TopUpIntentRequest instance) =>
     <String, dynamic>{'preset': instance.preset};

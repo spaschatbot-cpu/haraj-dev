@@ -4,12 +4,15 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+/// اتجاه الحركة كما يقوله الخادم: دخل أم خرج. **ليست** `debit/credit` عمداً — معناهما يتبع جهة الحساب، فقراءتهما في الشاشة اجتهاد في اصطلاح محاسبي مكتوب مرة واحدة في `apps/money/models`. نظيره في الخلفية `LedgerEntrySerializer.get_direction`.
+///
 @JsonEnum()
 enum LedgerEntryDirection {
-  @JsonValue('debit')
-  debit('debit'),
-  @JsonValue('credit')
-  credit('credit'),
+  /// The name has been replaced because it contains a keyword. Original name: `in`.
+  @JsonValue('in')
+  valueIn('in'),
+  @JsonValue('out')
+  out('out'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

@@ -294,9 +294,19 @@ paths:
       tags: [wallet]
       operationId: walletTransactionsList
       summary: كشف الحركات من القيود مباشرةً
+      description: >
+        الترشيح على دلو واحد هو النصف الثاني من المادة ١-٦: كل رقم في المحفظة
+        يُفتح على القيود التي تفسّره. الترشيح يقع على الخادم لا في الشاشة —
+        نظيره في الخلفية `bucket` في `StatementQuerySerializer`.
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/PageSize"
+        - name: bucket
+          in: query
+          required: false
+          description: دلو واحد بعينه — القيمة كما أرسلها الخادم في `WalletBucket.kind`
+          schema:
+            $ref: "#/components/schemas/WalletBucketKind"
       responses:
         "200":
           description: صفحة حركات
@@ -304,6 +314,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PaginatedLedgerEntryList"
+        "400":
+          $ref: "#/components/responses/Error"
 
   /api/v1/wallet/topup-intents:
     post:
@@ -324,6 +336,32 @@ paths:
               schema:
                 $ref: "#/components/schemas/TopUpIntent"
         "400":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/wallet/topup-intents/{reference}:
+    get:
+      tags: [wallet]
+      operationId: walletTopUpIntentRetrieve
+      summary: حالة نيّة الشحن كما يعرفها الخادم
+      description: >
+        العودة من البوابة تُسنَد من هنا، لا من معاملات رابط العودة. المرجع
+        ليس ادّعاءً: هو اسم صفّ كتبه الخادم قبل أن يصل العميل إلى البوابة
+        أصلاً، والرصيد يتحرّك بتأكيد البوابة للخادم وحده. نظيره في الخلفية
+        `GET /api/v1/wallet/topups/{reference}/`.
+      parameters:
+        - name: reference
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: حالة النيّة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TopUpIntent"
+        "404":
           $ref: "#/components/responses/Error"
 
   /api/v1/wallet/refund-requests:
@@ -765,13 +803,19 @@ components:
 
     LedgerEntry:
       type: object
-      required: [id, description, amount, currency, direction, occurred_at]
+      required:
+        [id, description, bucket_label, amount, currency, direction, occurred_at]
       properties:
         id:
           type: string
         description:
           type: string
           description: وصف عربي لنوع المعاملة — لا مفتاح إنجليزي
+        bucket:
+          $ref: "#/components/schemas/WalletBucketKind"
+        bucket_label:
+          type: string
+          description: اسم الدلو بالعربية من الخادم
         amount:
           type: string
           example: "500.00"
@@ -779,7 +823,12 @@ components:
           type: string
         direction:
           type: string
-          enum: [debit, credit]
+          description: >
+            اتجاه الحركة كما يقوله الخادم: دخل أم خرج. **ليست** `debit/credit`
+            عمداً — معناهما يتبع جهة الحساب، فقراءتهما في الشاشة اجتهاد في
+            اصطلاح محاسبي مكتوب مرة واحدة في `apps/money/models`. نظيره في
+            الخلفية `LedgerEntrySerializer.get_direction`.
+          enum: [in, out]
         occurred_at:
           type: string
           format: date-time
@@ -806,15 +855,18 @@ components:
 
     TopUpIntentRequest:
       type: object
-      required: [preset]
       properties:
         preset:
           type: string
-          description: مفتاح مبلغ معرَّف في الخادم — التطبيق لا يرسل مبلغاً
+          nullable: true
+          description: >
+            مفتاح مبلغ معرَّف في الخادم. اختياري لأن الخادم هو من يحدّد المبلغ
+            أصلاً (`deposit_amount_for` في الخلفية)، وطلب بلا مفتاح يعني «المبلغ
+            الذي تقرّره أنت». التطبيق لا يرسل مبلغاً في أي حال.
 
     TopUpIntent:
       type: object
-      required: [reference, amount, currency, redirect_url, status]
+      required: [reference, amount, currency, redirect_url, status, status_label]
       properties:
         reference:
           type: string
@@ -826,9 +878,16 @@ components:
           type: string
         redirect_url:
           type: string
+          description: عنوان البوابة — يفتحه التطبيق ولا يقرأ ما يعود منه
         status:
           type: string
           enum: [pending, succeeded, cancelled, failed]
+        status_label:
+          type: string
+          description: >
+            وصف الحالة بالعربية من الخادم. موجود لأن خريطة حالات في التطبيق
+            نسخة ثانية من قاعدة يملكها الخادم (المادة ٤-٥). نظيره في الخلفية
+            `PaymentIntentSerializer.state_label`.
 
     RefundRequestInput:
       type: object
