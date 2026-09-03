@@ -50,9 +50,18 @@ const EXEMPT = new Set([
   join("web", "lib", "__tests__", "bidding.test.ts"),
 ]);
 
-//: The facts eligibility is decided on. Mirrors `FACTS` in
-//: `ops/checks/one_eligibility_gate.py`, deliberately: two channels enforcing
-//: the same rule against two different lists is the drift the rule forbids.
+//: The fields a bid's eligibility is decided from, named as the API sends them.
+//:
+//: Taken from `ops/checks/one_eligibility_gate.py`, but **not** enforced the
+//: same way, and the difference is the design of this file. The backend guard
+//: forbids *reading* these outside the gate, because on that side reading one is
+//: deciding with it. The web's relationship to them is the opposite: showing a
+//: deposit, a held balance or an outstanding amount is this product's wallet
+//: screen, and a rule that forbade naming them would forbid the feature.
+//:
+//: A text check cannot tell display from decision for a single field — and a
+//: guard that guesses produces a wall of false positives, which is a guard
+//: people switch off. So it refuses only the two shapes that are unambiguous.
 const FACTS = [
   "insurance_free",
   "insurance_held",
@@ -80,22 +89,38 @@ const REASONS = [
 ];
 
 const FACT_NAMES = FACTS.join("|");
+const COMPARISON = "(?:[<>]=?|={2,3}|!==?)";
 
 const FORBIDDEN = [
   {
-    pattern: new RegExp(`\\b(?:${FACT_NAMES})\\b`),
-    why: "قراءة شرط أهلية — القرار في apps/bidding/eligibility.py وحده",
-    // Everywhere, tests included: a test that reads a deposit in order to
-    // decide something is a test of logic that must not exist.
+    // **Two eligibility fields compared with each other.** «هل معه ما يكفي؟» has
+    // exactly this shape and no innocent one does: a screen showing a number
+    // renders it, a screen deciding weighs it against another. This is the
+    // question `check_eligibility` exists to be the only answer to.
+    // `String.raw`, not a plain template: in a template literal `\b` is the
+    // backspace character, not a word boundary, and the regex silently becomes
+    // one that matches nothing. A guard that matches nothing passes every file
+    // and reports green — the worst failure mode a check has, and one no test of
+    // the *clean* tree can detect. The test that seeds a violation is what
+    // caught it here.
+    pattern: new RegExp(
+      String.raw`\b(?:${FACT_NAMES})\b[^\n]{0,20}${COMPARISON}[^\n]{0,20}\b(?:${FACT_NAMES})\b`,
+    ),
+    why: "موازنة شرط أهلية بآخر — «هل معه ما يكفي؟» يُجاب في الخلفية وحدها",
+    // Everywhere, tests included: a test that weighs a deposit against a
+    // requirement is a test of logic that must not exist.
     inTests: true,
   },
   {
+    // **A refusal reason spelled out in shipped code.** A screen that branches on
+    // one is a step from a screen that *phrases* it, and a phrase here is a
+    // sentence that disagrees with the app's about the same refusal. The server
+    // sends `message` ready to render.
     pattern: new RegExp(`["'\`](?:${REASONS.join("|")})["'\`]`),
     why: "سببُ رفضٍ مكتوب في الويب — المجموعة مغلقة في الخلفية، والنسخة هي ما يشيخ",
-    // Shipped code only. A test proving that a refusal is passed through
-    // untouched has to name a refusal, and forbidding that would forbid testing
-    // the rule. A stale name in a test surfaces as a test that no longer matches
-    // reality — a smaller and much louder problem than a stale copy on a screen.
+    // Shipped code only. A test proving a refusal passes through untouched has
+    // to name one, and a stale name in a test surfaces as a failing test — a
+    // smaller and much louder problem than a stale copy on a screen.
     inTests: false,
   },
 ];
