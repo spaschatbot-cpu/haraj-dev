@@ -56,6 +56,119 @@
     "description": "عطب في التطبيق نفسه، لا في الخادم"
   },
 
+  "myActivityTitle": "حسابي",
+  "@myActivityTitle": {
+    "description": "عنوان شاشة مشاركاتي ومشترياتي وفواتيري"
+  },
+
+  "tabParticipations": "مشاركاتي",
+  "@tabParticipations": {},
+
+  "tabPurchases": "مشترياتي",
+  "@tabPurchases": {},
+
+  "tabInvoices": "فواتيري",
+  "@tabInvoices": {},
+
+  "emptyParticipations": "لم تدخل أي مزاد حتى الآن.",
+  "@emptyParticipations": {
+    "description": "الحالة الفارغة — قائمة بلا صفوف ليست عطلاً ولا تُترك بيضاء"
+  },
+
+  "emptyPurchases": "لم ترسُ عليك أي مركبة حتى الآن.",
+  "@emptyPurchases": {},
+
+  "emptyInvoices": "لا توجد فواتير على حسابك.",
+  "@emptyInvoices": {},
+
+  "participationBidsCount": "عدد مزايداتي: {count}",
+  "@participationBidsCount": {
+    "description": "عدد المزايدات في مزاد — يعدّها الخادم ولا تُحسب هنا",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "participationEndsAt": "ينتهي {date} الساعة {time}",
+  "@participationEndsAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      },
+      "time": {
+        "type": "DateTime",
+        "format": "Hm"
+      }
+    }
+  },
+
+  "insuranceInThisAuction": "تأميني في هذا المزاد",
+  "@insuranceInThisAuction": {
+    "description": "عنوان سطر حالة التأمين — الحالة نفسها نصّها من الخادم"
+  },
+
+  "purchaseLotNumber": "اللوت {lot}",
+  "@purchaseLotNumber": {
+    "placeholders": {
+      "lot": {
+        "type": "String"
+      }
+    }
+  },
+
+  "purchaseAwardedAt": "رسَت عليك {date}",
+  "@purchaseAwardedAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      }
+    }
+  },
+
+  "purchaseNoInvoiceYet": "لم تصدر فاتورة لهذه المركبة بعد.",
+  "@purchaseNoInvoiceYet": {
+    "description": "غياب الفاتورة حالة تُعرض، لا فراغ يُملأ باجتهاد"
+  },
+
+  "invoiceNumber": "فاتورة رقم {number}",
+  "@invoiceNumber": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+
+  "invoiceIssuedAt": "صدرت {date}",
+  "@invoiceIssuedAt": {
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      }
+    }
+  },
+
+  "invoiceTotal": "الإجمالي",
+  "@invoiceTotal": {},
+
+  "invoicePaid": "المسدَّد",
+  "@invoicePaid": {},
+
+  "invoiceDue": "المتبقّي",
+  "@invoiceDue": {
+    "description": "يصل محسوباً من الخادم — لا يُطرح في التطبيق"
+  },
+
+  "invoiceInsuranceEffect": "أثرها على تأميني",
+  "@invoiceInsuranceEffect": {
+    "description": "عنوان الشرح؛ نصّ الشرح نفسه يأتي من الخادم كما هو"
+  },
+
   "offlineDataNotice": "بيانات محفوظة — آخر تحديث {date} الساعة {time}",
   "@offlineDataNotice": {
     "description": "علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5",

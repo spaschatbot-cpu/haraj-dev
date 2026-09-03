@@ -363,6 +363,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedInvoiceList"
 
+  /api/v1/participations:
+    get:
+      tags: [auctions]
+      operationId: participationsList
+      summary: مشاركاتي — المزادات التي دخلتها وحالة تأميني في كل واحد
+      description: >
+        حالة التأمين لكل مزاد **يشتقّها الخادم** من حجوزاته. لا تُركَّب في
+        التطبيق من «مزايداتي» و«المحفظة»: التركيب قاعدة عمل، وقاعدة في الشاشة
+        نسخة ثانية تفترق عن الأصل (المادة ٤-٥).
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مشاركات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedParticipationList"
+        "401":
+          $ref: "#/components/responses/Error"
+
+  /api/v1/purchases:
+    get:
+      tags: [invoices]
+      operationId: purchasesList
+      summary: مشترياتي — ما رسا عليّ، ومعه فاتورته
+      description: >
+        الفاتورة تأتي **داخل** المشترى لا بمطابقة معرّفات في التطبيق — نفس ما
+        تفعله نقطة المشتريات في الخلفية (`PurchaseSerializer.get_invoice`).
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مشتريات
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedPurchaseList"
+        "401":
+          $ref: "#/components/responses/Error"
+
   /api/v1/devices:
     post:
       tags: [devices]
@@ -857,6 +900,120 @@ components:
           type: string
           format: date-time
 
+    # ---------- المشاركات ----------
+    InsuranceState:
+      type: string
+      description: حالة تأمين المزايد في مزاد بعينه — يشتقّها الخادم من الحجوزات
+      enum: [none, held, locked, released]
+
+    Participation:
+      type: object
+      required:
+        [auction_id, auction_title, auction_status_label, ends_at, bids_count,
+         insurance_state, insurance_state_label]
+      properties:
+        auction_id:
+          type: string
+        auction_title:
+          type: string
+        auction_status_label:
+          type: string
+          description: >
+            حالة المزاد بالعربية من الخادم. الحالة تصل **مسمّاة** لا مرمَّزة،
+            لأن خريطة حالات في التطبيق نسخة ثانية تفترق عن الأصل.
+        ends_at:
+          type: string
+          format: date-time
+        bids_count:
+          type: integer
+          description: عدد مزايداتي في هذا المزاد — يعدّها الخادم
+        insurance_state:
+          $ref: "#/components/schemas/InsuranceState"
+        insurance_state_label:
+          type: string
+          description: وصف عربي جاهز للعرض — لا خريطة حالات في التطبيق
+        insurance_amount:
+          type: string
+          nullable: true
+          description: مبلغ المحجوز أو المقفول لهذا المزاد، إن وُجد
+          example: "2500.00"
+        currency:
+          type: string
+          nullable: true
+
+    PaginatedParticipationList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Participation"
+
+    # ---------- المشتريات ----------
+    PurchaseState:
+      type: string
+      description: حالة المركبة التي رست على المشتري
+      enum: [awarded, invoiced, paid, handed_over, cancelled]
+
+    Purchase:
+      type: object
+      required:
+        [id, vehicle_id, lot_number, title, auction_title, awarded_amount,
+         currency, awarded_at, state, state_label]
+      properties:
+        id:
+          type: string
+        vehicle_id:
+          type: string
+        lot_number:
+          type: string
+        title:
+          type: string
+        auction_title:
+          type: string
+        awarded_amount:
+          type: string
+          description: سعر الرسوّ كما رحّله الخادم — نصّ عشري يُعرض كما وصل
+          example: "12600.00"
+        currency:
+          type: string
+        awarded_at:
+          type: string
+          format: date-time
+        state:
+          $ref: "#/components/schemas/PurchaseState"
+        state_label:
+          type: string
+          description: حالة المركبة بالعربية من الخادم
+        invoice:
+          $ref: "#/components/schemas/Invoice"
+
+    PaginatedPurchaseList:
+      type: object
+      required: [count, results]
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/Purchase"
+
     # ---------- الفواتير ----------
     Invoice:
       type: object
@@ -886,6 +1043,25 @@ components:
         issued_at:
           type: string
           format: date-time
+        insurance_lock:
+          $ref: "#/components/schemas/InsuranceLock"
+
+    InsuranceLock:
+      type: object
+      description: >
+        ما تعنيه هذه الفاتورة لتأمين صاحبها. يغيب حين لا يكون على التأمين قفل.
+        نصّه من الخادم لأن **من كتب القاعدة يكتب شرحها**: أكثر ما أربك عملاء v1
+        رصيد يرونه ولا يستطيعون سحبه بلا سبب معروض.
+      required: [amount, currency, note]
+      properties:
+        amount:
+          type: string
+          example: "2500.00"
+        currency:
+          type: string
+        note:
+          type: string
+          description: شرح عربي جاهز للعرض — يُعرض حرفياً
 
     PaginatedInvoiceList:
       type: object

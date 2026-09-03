@@ -39,4 +39,13 @@ abstract interface class ResponseCache {
 /// بصيغتين (المادة ٤-٥).
 abstract final class CacheKeys {
   static const String wallet = 'wallet.balance';
+
+  /// مشاركاتي — المزادات التي دخلها العميل وحالة تأمينه في كلٍّ منها.
+  static const String participations = 'activity.participations';
+
+  /// مشترياتي — ما رسا عليه ومعه فاتورته.
+  static const String purchases = 'activity.purchases';
+
+  /// فواتيري.
+  static const String invoices = 'activity.invoices';
 }

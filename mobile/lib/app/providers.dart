@@ -10,6 +10,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/environment.dart';
+import '../data/activity/activity_repository_impl.dart';
 import '../data/api/dio_factory.dart';
 import '../data/api/generated/haraj_api_client.dart';
 import '../data/api/interceptors/auth_interceptor.dart';
@@ -20,6 +21,10 @@ import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
 import '../data/wallet/wallet_repository_impl.dart';
+import '../domain/activity/repositories/activity_repository.dart';
+import '../domain/activity/usecases/load_my_invoices.dart';
+import '../domain/activity/usecases/load_my_participations.dart';
+import '../domain/activity/usecases/load_my_purchases.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/usecases/sign_in_with_otp.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
@@ -89,10 +94,30 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
+final activityRepositoryProvider = Provider<ActivityRepository>(
+  (ref) => ActivityRepositoryImpl(
+    auctions: ref.watch(apiClientProvider).auctions,
+    invoices: ref.watch(apiClientProvider).invoices,
+    cache: ref.watch(responseCacheProvider),
+  ),
+);
+
 final signInWithOtpProvider = Provider<SignInWithOtp>(
   (ref) => SignInWithOtp(ref.watch(authRepositoryProvider)),
 );
 
 final loadWalletBalanceProvider = Provider<LoadWalletBalance>(
   (ref) => LoadWalletBalance(ref.watch(walletRepositoryProvider)),
+);
+
+final loadMyParticipationsProvider = Provider<LoadMyParticipations>(
+  (ref) => LoadMyParticipations(ref.watch(activityRepositoryProvider)),
+);
+
+final loadMyPurchasesProvider = Provider<LoadMyPurchases>(
+  (ref) => LoadMyPurchases(ref.watch(activityRepositoryProvider)),
+);
+
+final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
+  (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
 );

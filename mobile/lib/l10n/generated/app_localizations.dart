@@ -164,6 +164,120 @@ abstract class AppLocalizations {
   /// **'حدث خطأ غير متوقع في التطبيق.'**
   String get errorUnexpected;
 
+  /// عنوان شاشة مشاركاتي ومشترياتي وفواتيري
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get myActivityTitle;
+
+  /// No description provided for @tabParticipations.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركاتي'**
+  String get tabParticipations;
+
+  /// No description provided for @tabPurchases.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشترياتي'**
+  String get tabPurchases;
+
+  /// No description provided for @tabInvoices.
+  ///
+  /// In ar, this message translates to:
+  /// **'فواتيري'**
+  String get tabInvoices;
+
+  /// الحالة الفارغة — قائمة بلا صفوف ليست عطلاً ولا تُترك بيضاء
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تدخل أي مزاد حتى الآن.'**
+  String get emptyParticipations;
+
+  /// No description provided for @emptyPurchases.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم ترسُ عليك أي مركبة حتى الآن.'**
+  String get emptyPurchases;
+
+  /// No description provided for @emptyInvoices.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد فواتير على حسابك.'**
+  String get emptyInvoices;
+
+  /// عدد المزايدات في مزاد — يعدّها الخادم ولا تُحسب هنا
+  ///
+  /// In ar, this message translates to:
+  /// **'عدد مزايداتي: {count}'**
+  String participationBidsCount(int count);
+
+  /// No description provided for @participationEndsAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي {date} الساعة {time}'**
+  String participationEndsAt(DateTime date, DateTime time);
+
+  /// عنوان سطر حالة التأمين — الحالة نفسها نصّها من الخادم
+  ///
+  /// In ar, this message translates to:
+  /// **'تأميني في هذا المزاد'**
+  String get insuranceInThisAuction;
+
+  /// No description provided for @purchaseLotNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللوت {lot}'**
+  String purchaseLotNumber(String lot);
+
+  /// No description provided for @purchaseAwardedAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسَت عليك {date}'**
+  String purchaseAwardedAt(DateTime date);
+
+  /// غياب الفاتورة حالة تُعرض، لا فراغ يُملأ باجتهاد
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تصدر فاتورة لهذه المركبة بعد.'**
+  String get purchaseNoInvoiceYet;
+
+  /// No description provided for @invoiceNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتورة رقم {number}'**
+  String invoiceNumber(String number);
+
+  /// No description provided for @invoiceIssuedAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'صدرت {date}'**
+  String invoiceIssuedAt(DateTime date);
+
+  /// No description provided for @invoiceTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي'**
+  String get invoiceTotal;
+
+  /// No description provided for @invoicePaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'المسدَّد'**
+  String get invoicePaid;
+
+  /// يصل محسوباً من الخادم — لا يُطرح في التطبيق
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقّي'**
+  String get invoiceDue;
+
+  /// عنوان الشرح؛ نصّ الشرح نفسه يأتي من الخادم كما هو
+  ///
+  /// In ar, this message translates to:
+  /// **'أثرها على تأميني'**
+  String get invoiceInsuranceEffect;
+
   /// علامة «آخر تحديث» فوق أي شاشة تعرض بيانات من الكاش — معيار H5
   ///
   /// In ar, this message translates to:

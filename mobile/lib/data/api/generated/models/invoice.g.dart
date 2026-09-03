@@ -16,6 +16,9 @@ Invoice _$InvoiceFromJson(Map<String, dynamic> json) => Invoice(
   status: InvoiceStatus.fromJson(json['status'] as String),
   statusLabel: json['status_label'] as String,
   issuedAt: DateTime.parse(json['issued_at'] as String),
+  insuranceLock: json['insurance_lock'] == null
+      ? null
+      : InsuranceLock.fromJson(json['insurance_lock'] as Map<String, dynamic>),
 );
 
 Map<String, dynamic> _$InvoiceToJson(Invoice instance) => <String, dynamic>{
@@ -28,6 +31,7 @@ Map<String, dynamic> _$InvoiceToJson(Invoice instance) => <String, dynamic>{
   'status': _$InvoiceStatusEnumMap[instance.status]!,
   'status_label': instance.statusLabel,
   'issued_at': instance.issuedAt.toIso8601String(),
+  'insurance_lock': instance.insuranceLock,
 };
 
 const _$InvoiceStatusEnumMap = {
