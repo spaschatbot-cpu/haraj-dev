@@ -187,5 +187,46 @@ check:
 check-deploy:
     uv run python manage.py check --deploy
 
+# ---------------------------------------------------------------------------
+# ويب العميل — الفيز 011.
+#
+# `npm ci` and not `npm install` everywhere here for the same reason CI uses it:
+# the lockfile is the input, and a command that may resolve a different tree
+# than the lockfile describes is a command that eventually explains a failure
+# nobody can reproduce.
+# ---------------------------------------------------------------------------
+
+# Install the web's dependencies exactly as the lockfile has them.
+[working-directory('web')]
+web-install:
+    npm ci
+
+# The development server, on http://localhost:3000.
+[working-directory('web')]
+web:
+    npm run dev
+
+# Regenerate the typed client from the committed schema.
+#
+# Run it after `just schema`. The two are separate steps deliberately: the
+# backend's schema is the contract and the client is derived from it, so
+# regenerating the client can never be what changes the contract.
+[working-directory('web')]
+web-schema:
+    npm run schema
+
+# Everything the web is held to, in the order CI runs it.
+[working-directory('web')]
+web-check:
+    npm run schema:check
+    npm run typecheck
+    npm run lint
+    npm test
+    npm run build
+
+# T1004 — no session token anywhere JavaScript can read it.
+web-lint-tokens:
+    node ops/checks/web_tokens_are_httponly.mjs
+
 # What CI runs, end to end, before you ask CI to run it.
-ci: lint check-migrations test check-deploy
+ci: lint check-migrations test check-deploy web-lint-tokens web-check
