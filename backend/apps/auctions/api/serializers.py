@@ -19,6 +19,7 @@ from rest_framework import serializers
 
 from apps.auctions.listing import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from apps.auctions.states import AuctionState, VehicleState
+from apps.auctions.visibility import Phase
 
 
 class PageQuerySerializer(serializers.Serializer):
@@ -56,6 +57,17 @@ class VehicleQuerySerializer(PageQuerySerializer):
     state = serializers.ChoiceField(
         choices=VehicleState.choices, required=False, allow_blank=True
     )
+
+    #: The browse page's tab. A property of the **auction**, not of the car, and
+    #: the mapping from a tab to the auction states behind it is written once in
+    #: `apps.auctions.visibility` — never here and never in a client.
+    #:
+    #: Optional on purpose: leaving it out is what the endpoint did before this
+    #: parameter existed, so no consumer breaks by not knowing about it.
+    phase = serializers.ChoiceField(
+        choices=Phase.choices, required=False, allow_blank=True
+    )
+
     make = serializers.CharField(required=False, allow_blank=True, max_length=80)
     year_from = serializers.IntegerField(required=False, min_value=1900, max_value=2200)
     year_to = serializers.IntegerField(required=False, min_value=1900, max_value=2200)
@@ -99,8 +111,17 @@ class VehicleCardSerializer(serializers.Serializer):
     """
 
     id = serializers.IntegerField()
+    auction_id = serializers.IntegerField()
     auction_number = serializers.IntegerField()
+    auction_title = serializers.CharField()
     auction_state = serializers.CharField()
+
+    #: The countdown's two ends, UTC on the wire. On the card and not behind a
+    #: second request: a grid of twenty cars would otherwise open twenty-one
+    #: connections to draw twenty clocks.
+    auction_starts_at = serializers.DateTimeField()
+    auction_ends_at = serializers.DateTimeField()
+
     lot_number = serializers.IntegerField()
     title = serializers.CharField()
     make = serializers.CharField()
@@ -133,6 +154,28 @@ class AuctionPageSerializer(serializers.Serializer):
     results = AuctionCardSerializer(many=True)
 
 
+class PhaseCountsSerializer(serializers.Serializer):
+    """The three tab counters, in the one response that carries the page.
+
+    Three named fields and not a map keyed by phase: a generated Dart or
+    TypeScript client turns the first into three typed getters and the second
+    into `Map<String, int>?`, and a screen reading `counts['activ']` compiles.
+    """
+
+    soon = serializers.IntegerField()
+    active = serializers.IntegerField()
+    ended = serializers.IntegerField()
+
+
 class VehiclePageSerializer(serializers.Serializer):
+    """A page of cars, its total, and the three tab counters.
+
+    The counters ride along on **every** vehicle page, whichever tab was asked
+    for, because all three tabs are on screen at all times. Splitting them into
+    a second endpoint is what v1 did — six requests to draw three numbers — and
+    it made the three numbers three different moments.
+    """
+
     total = serializers.IntegerField()
+    counts = PhaseCountsSerializer()
     results = VehicleCardSerializer(many=True)

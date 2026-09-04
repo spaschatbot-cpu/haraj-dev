@@ -18,7 +18,7 @@ from django.db.models import Count, Q
 from .cards import auction_card, card_queryset, vehicle_cards
 from .models import Auction
 from .states import VehicleState
-from .visibility import PUBLIC_AUCTION_STATES, visible_vehicles
+from .visibility import PUBLIC_AUCTION_STATES, Phase, phase_q, visible_vehicles
 
 DEFAULT_PAGE_SIZE = 20
 
@@ -72,12 +72,40 @@ def with_vehicle_counts(auctions):
     )
 
 
+def page_totals(queryset, *, phase: str = "") -> tuple[int, dict[str, int]]:
+    """The page's total and all three tab counts — **one** query for the four.
+
+    The tabs are drawn whichever one is selected, so all three numbers are
+    needed on every request. v1 asked for them one tab at a time (and then asked
+    again), which made the three numbers three different moments: a car whose
+    auction went live between the second request and the third was counted twice
+    or not at all, and the tabs stopped summing to anything.
+
+    One conditional aggregate answers all of it. ``total`` is read out of the
+    same row rather than costing a ``COUNT`` of its own — and when a tab is
+    selected the total *is* that tab's count, by construction, so the header and
+    the tab can never disagree.
+
+    Note the totals do not have to sum to ``total``: a staff caller or a partner
+    can see cars in a draft or cancelled auction, and those belong to no tab.
+    That is the honest answer — the three tabs are named subsets of what you may
+    see, not a partition of it.
+    """
+    row = queryset.aggregate(
+        everything=Count("id"),
+        **{name: Count("id", filter=phase_q(name)) for name in Phase.values},
+    )
+    counts = {name: row[name] for name in Phase.values}
+    return (counts[phase] if phase else row["everything"]), counts
+
+
 def vehicle_page(
     user,
     *,
     auction: Auction | None = None,
     search: str = "",
     state: str = "",
+    phase: str = "",
     make: str = "",
     year_from: int | None = None,
     year_to: int | None = None,
@@ -93,6 +121,11 @@ def vehicle_page(
 
     The visibility rule is applied first and cannot be filtered around: a caller
     who names a state they may not see gets an empty page rather than a leak.
+    The same holds for ``phase``: it narrows what the caller may already see.
+
+    ``counts`` comes back on every response, whatever tab was asked for, and it
+    respects every filter above it. A counter that ignored the search box would
+    say «١٢ في المنتهي» and then open on three, which is worse than no counter.
     """
     queryset = visible_vehicles(user)
     if auction is not None:
@@ -117,18 +150,25 @@ def vehicle_page(
             terms = terms | Q(lot_number=int(search))
         queryset = queryset.filter(terms)
 
-    total = queryset.count()
+    # The counts are taken *before* the tab narrows anything — the other two
+    # tabs still have to show a number — and after every other filter, so all
+    # three answer the same question the visible page does.
+    total, counts = page_totals(queryset, phase=phase)
+    if phase:
+        queryset = queryset.filter(phase_q(phase))
+
     page = card_queryset(queryset).order_by("auction_id", "lot_number")[
         offset : offset + limit
     ]
 
-    return {"total": total, "results": vehicle_cards(page)}
+    return {"total": total, "counts": counts, "results": vehicle_cards(page)}
 
 
 __all__ = [
     "DEFAULT_PAGE_SIZE",
     "MAX_PAGE_SIZE",
     "auction_page",
+    "page_totals",
     "vehicle_page",
     "with_vehicle_counts",
 ]

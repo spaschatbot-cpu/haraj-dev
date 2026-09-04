@@ -30,7 +30,12 @@ from apps.auctions.cards import (
     vehicle_cards,
 )
 from apps.auctions.favourites import Favourite
-from apps.auctions.listing import auction_page, vehicle_page, with_vehicle_counts
+from apps.auctions.listing import (
+    auction_page,
+    page_totals,
+    vehicle_page,
+    with_vehicle_counts,
+)
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.visibility import PUBLIC_AUCTION_STATES, visible_vehicles
 
@@ -129,6 +134,7 @@ class AuctionVehicleListView(APIView):
             auction=auction,
             search=query.get("search", ""),
             state=query.get("state", ""),
+            phase=query.get("phase", ""),
             make=query.get("make", ""),
             year_from=query.get("year_from"),
             year_to=query.get("year_to"),
@@ -161,6 +167,7 @@ class VehicleListView(APIView):
             auction=auction,
             search=query.get("search", ""),
             state=query.get("state", ""),
+            phase=query.get("phase", ""),
             make=query.get("make", ""),
             year_from=query.get("year_from"),
             year_to=query.get("year_to"),
@@ -225,7 +232,12 @@ class FavouriteListView(APIView):
         )
         queryset = visible_vehicles(request.user).filter(pk__in=marked)
 
-        total = queryset.count()
+        # The same page shape as every other list of cars, counters included —
+        # `page_totals` costs one aggregate where a bare `.count()` cost one
+        # count, so the shape is uniform for free. A favourites screen that
+        # answered in a narrower shape would be the second page format the
+        # clients have to branch on.
+        total, counts = page_totals(queryset)
         # Ordered by the mark, not by lot: this screen answers "what did I save",
         # and the newest save is what the customer is looking for.
         page = card_queryset(queryset).order_by("-favourited_by__created_at")[
@@ -233,7 +245,9 @@ class FavouriteListView(APIView):
         ]
 
         return Response(
-            VehiclePageSerializer({"total": total, "results": vehicle_cards(page)}).data,
+            VehiclePageSerializer(
+                {"total": total, "counts": counts, "results": vehicle_cards(page)}
+            ).data,
             status=status.HTTP_200_OK,
         )
 

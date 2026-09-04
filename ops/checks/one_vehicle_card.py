@@ -97,6 +97,10 @@ def card_fields() -> set[str]:
     raise SystemExit(f"لم يُعثر على تعريف حقول الكرت في {CARDS}")
 
 
+#: Django field classes that put a `<name>_id` column on the table.
+RELATION_FIELDS = {"ForeignKey", "OneToOneField"}
+
+
 def model_field_names(model: str = "Vehicle") -> set[str]:
     """Column names on `Vehicle`, read out of `models.py`.
 
@@ -104,9 +108,16 @@ def model_field_names(model: str = "Vehicle") -> set[str]:
     creating a vehicle, a dict that also carries `title` or `thumbnail_url` is
     somebody drawing a card. Only this one class is read — `Auction.title` is
     a column of a different table and says nothing about a vehicle card.
+
+    Two columns Django writes rather than the author: the implicit `id` primary
+    key, and the `<name>_id` behind every foreign key. Both are as much a plain
+    column value as `year` is, and leaving them out taught the check to read
+    `{"id": bid.pk, "auction_id": v.auction_id, "lot_number": v.lot_number}` —
+    a *bid* naming the car it is on — as a hand-drawn vehicle card. Derived
+    from the field's class, not listed, so a relation added later is covered.
     """
     tree = ast.parse(MODELS.read_text(encoding="utf-8"), filename=str(MODELS))
-    names: set[str] = {"pk"}
+    names: set[str] = {"pk", "id"}
     for node in ast.walk(tree):
         if not isinstance(node, ast.ClassDef) or node.name != model:
             continue
@@ -120,7 +131,12 @@ def model_field_names(model: str = "Vehicle") -> set[str]:
                 function.value, ast.Name
             ):
                 if function.value.id == "models":
-                    names |= {t.id for t in statement.targets if isinstance(t, ast.Name)}
+                    declared = {
+                        t.id for t in statement.targets if isinstance(t, ast.Name)
+                    }
+                    names |= declared
+                    if function.attr in RELATION_FIELDS:
+                        names |= {f"{name}_id" for name in declared}
     return names
 
 
