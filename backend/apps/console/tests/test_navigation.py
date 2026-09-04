@@ -106,9 +106,22 @@ def test_a_customer_cannot_reach_the_console_at_all(client):
 
 
 def test_an_anonymous_visitor_is_sent_to_sign_in(client):
-    response = client.get(reverse("console:home"))
+    """Sent *to sign-in* — the name is the assertion, so it must be asserted.
 
-    assert response.status_code in (302, 403)
+    This test accepted `302` to anywhere for the whole of phase 009, and stayed
+    green while the redirect landed on a 404: `LOGIN_URL` was unset, so Django
+    aimed every guarded page at its own `/accounts/login/`, which this project
+    has never routed (T821). A test whose name claims more than it checks is
+    worse than a missing one — the missing test gets written, the claiming one
+    gets believed.
+    """
+    response = client.get(reverse("console:home"), follow=True)
+
+    assert response.status_code == 200
+    landed = response.redirect_chain[-1][0]
+    assert landed.startswith(reverse("admin-login"))
+    assert f"next={reverse('console:home')}" in landed
+    assert 'name="password"' in response.content.decode()
 
 
 def test_every_page_in_the_registry_has_a_capability():

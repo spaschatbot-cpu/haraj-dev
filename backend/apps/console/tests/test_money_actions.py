@@ -42,6 +42,8 @@ from apps.money.models import (
 )
 from apps.money.verification import verify_ledger
 
+from .conftest import screen_of
+
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
@@ -427,7 +429,7 @@ def test_the_read_only_ledger_still_offers_no_button(client, finance, customer):
         reverse("console:money-customer", args=[customer.pk])
     ).content.decode()
 
-    assert 'method="post"' not in body.lower()
+    assert 'method="post"' not in screen_of(body).lower()
     assert reverse("console:money-actions", args=[customer.pk]) in body
 
 

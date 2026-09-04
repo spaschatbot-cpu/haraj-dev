@@ -53,6 +53,15 @@ chances to show it twice or not at all.
            in tests — and a filter argument (`default:request.user`) is the one
            place Django resolves strictly, so the name is guarded, not defaulted. {% endcomment %}
         {% if request.user %}<span class="user">{{ request.user.full_name }}</span>{% endif %}
+        {% comment %} A form and not a link: `LogoutView` refuses GET since Django 5.0, and a
+           URL that ends the session on GET ends it from any `<img src>` on any page
+           the operator opens next. The button is styled to read as a link. {% endcomment %}
+        {% if request.user.is_authenticated %}
+          <form class="sign-out" method="post" action="{% url 'console:sign-out' %}">
+            {% csrf_token %}
+            <button type="submit">خروج</button>
+          </form>
+        {% endif %}
       </header>
 
       <main>

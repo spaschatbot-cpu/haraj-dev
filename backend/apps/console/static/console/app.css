@@ -125,6 +125,21 @@ body {
 }
 .user { margin-inline-start: auto; color: var(--muted); font-size: .85rem; }
 
+/* الخروج نموذجٌ لأنه POST، ويُقرأ زرّاً هادئاً لا زرّ فعل — المساحة التي
+   يأخذها في الشريط يجب أن تقول «مغادرة» لا «نفّذ». */
+.sign-out { margin: 0; max-width: none; }
+.sign-out button {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .2rem .8rem;
+  color: var(--muted);
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+}
+.sign-out button:hover { color: var(--ink); border-color: var(--muted); }
+
 .env-badge {
   font-size: .75rem;
   padding: .15rem .65rem;

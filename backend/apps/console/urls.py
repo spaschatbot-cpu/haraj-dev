@@ -4,7 +4,8 @@ Every page here is a row in `apps.console.navigation.PAGES` — the sidebar and
 the guard both read it, so there is no second list to keep in step.
 """
 
-from django.urls import path
+from django.contrib.auth.views import LogoutView
+from django.urls import path, reverse_lazy
 
 from apps.bidding import views as bidding_views
 
@@ -25,6 +26,19 @@ app_name = "console"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    # The way out. Deliberately **not** a row in `navigation.PAGES`: a row there
+    # is a screen with a capability that both reveals and guards it, and signing
+    # out is neither — it is an action, and no capability gates it, because
+    # everyone who got in gets out.
+    #
+    # POST only, which `LogoutView` has enforced since Django 5.0 and which the
+    # template honours with a form rather than a link: a URL that ends a session
+    # on GET ends it from any `<img src>` on any page the operator visits next.
+    path(
+        "sign-out/",
+        LogoutView.as_view(next_page=reverse_lazy("admin-login")),
+        name="sign-out",
+    ),
     # The support answer from phase 006, now a page of the console rather than
     # a URL somebody had to be told about.
     path("why-no-bid/", bidding_views.why_no_bid, name="why-no-bid"),

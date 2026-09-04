@@ -11,6 +11,16 @@ urlpatterns = [
     # Unauthenticated and unprefixed: a load balancer probes it before anything
     # else is known to work.
     path("health", health, name="health"),
+    # The bare host. Django serves no page at "/", so an operator who typed the
+    # address without a path met the debug 404 listing every route — and in
+    # production would have met a blank one. Handing "/" to the console by name
+    # sends a signed-out operator through the console's own guard to sign-in
+    # (with `?next=`), and a signed-in one straight to work.
+    path(
+        "",
+        RedirectView.as_view(pattern_name="console:home", permanent=False),
+        name="root-to-console",
+    ),
     # Staff sign-in, metered, mounted **before** the admin so this route wins
     # (T914). Customers' one-time codes have been rate limited since T602;
     # this is the password path, and it is the one that opens `money.act` and
