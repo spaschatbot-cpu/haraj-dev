@@ -110,7 +110,6 @@ import type { Flash } from "@/lib/flash";
 
 import Home from "@/app/page";
 import SignInPage from "@/app/sign-in/page";
-import AuctionsPage from "@/app/auctions/page";
 import AuctionPage from "@/app/auctions/[id]/page";
 import VehiclePage from "@/app/vehicles/[id]/page";
 import BidsPage from "@/app/bids/page";
@@ -371,20 +370,17 @@ interface Screen {
 const SCREENS: Screen[] = [
   {
     /*
-     * الرئيسية بعد أن صارت شاشة التصفّح (T1030) — تبويبات وشبكة استجابية.
+     * المزادات هي الرئيسية: شبكة تصفّح (T1030) — تبويبات وشبكة استجابية —
+     * وقائمة المزادات المنفصلة أُحيلت إلى هنا، فلا شاشة لها في هذه القائمة.
      *
      * It used to be a paragraph, and it used to be size-invariant. Now it is
      * the screen most visitors open first, it carries the same responsive grid
      * the auction page does, and it renders a price — so it belongs in the
      * amount scan too, and it has left `SIZE_INVARIANT` deliberately.
      */
-    name: "الرئيسية",
+    name: "المزادات (الرئيسية)",
     amounts: [VEHICLE.reserve_price],
     render: () => render(Home({ searchParams: Promise.resolve({}) })),
-  },
-  {
-    name: "قائمة المزادات",
-    render: () => render(AuctionsPage({ searchParams: Promise.resolve({}) })),
   },
   {
     name: "مركبات المزاد",
@@ -499,9 +495,9 @@ const SIZES = [
 //: الشاشات التي تعلن صفر نقاط انكسار، فتخطيطها واحد على المقاسات الثلاثة —
 //: بترتيب `SCREENS`. القائمة تُقرأ وتُقرَّر، لا تُستنتج من تطابق ثلاثة ملفات.
 const SIZE_INVARIANT = [
-  //: «الرئيسية» خرجت من هنا يوم صارت شبكة تصفّح (T1030): شبكة المركبات تتّسع
-  //: من عمود إلى ثلاثة، فلقطاتها الثلاث مختلفة فعلاً — وخروجها من القائمة
-  //: قرارٌ مكتوب لا صدفةٌ مرّت.
+  //: «المزادات (الرئيسية)» خرجت من هنا يوم صارت شبكة تصفّح (T1030): شبكة
+  //: المركبات تتّسع من عمود إلى ثلاثة، فلقطاتها الثلاث مختلفة فعلاً —
+  //: وخروجها من القائمة قرارٌ مكتوب لا صدفةٌ مرّت.
   "المزايدات",
   //: وهذه ليست الشاشة نفسها وقد قصُرت: الشبكة الاستجابية الوحيدة فيها غير
   //: مرندَرة أصلاً حين لا يكون هناك ما يُعرض. المفضّلة العامرة تتّسع، والفارغة

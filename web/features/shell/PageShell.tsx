@@ -24,13 +24,11 @@ export function PageShell({
           </Link>
           <nav className="flex gap-4 text-sm">
             {/*
-              الجذر هو المدخل: شبكة المركبات وتبويبات حالة المزاد. `/auctions`
-              تبقى بعده لمن يريد المزاد بوصفه وحدة — مدخلٌ جديد لا حذفُ ما يعمل.
+              الجذر هو المدخل الوحيد: شبكة المركبات وتبويبات حالة المزاد باسم
+              «المزادات». لا رابط لقائمة مزادات — المزاد أسبوعي واحد، وقائمته
+              للإدارة لا للعميل.
             */}
             <Link href="/" className="text-neutral-700 hover:underline">
-              تصفّح
-            </Link>
-            <Link href="/auctions" className="text-neutral-700 hover:underline">
               المزادات
             </Link>
             <Link href="/bids" className="text-neutral-700 hover:underline">

@@ -183,7 +183,7 @@ export default async function VehiclePage({ params }: Params) {
       />
 
       <nav className="mb-4 text-sm text-neutral-600">
-        <Link href="/auctions" className="hover:underline">
+        <Link href="/" className="hover:underline">
           المزادات
         </Link>
         {" · "}

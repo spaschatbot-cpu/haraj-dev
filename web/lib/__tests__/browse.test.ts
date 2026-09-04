@@ -1,5 +1,7 @@
 /**
- * T1007–T1010 — التصفّح: ما يصل في الـHTML، وما لا يُحسب في الويب أبداً.
+ * T1008–T1010 — التصفّح: ما يصل في الـHTML، وما لا يُحسب في الويب أبداً.
+ * وقائمة المزادات T1007 أُحيلت إلى الجذر (لا قائمة للعميل)، فاختبارها هنا
+ * تحويلٌ لا رندرة.
  *
  * The acceptance criteria here are all about the *server-rendered* output, so
  * the pages are rendered the way a visitor without JavaScript gets them — the
@@ -137,50 +139,20 @@ async function render(element: Promise<React.ReactElement> | React.ReactElement)
 const noParams = Promise.resolve({});
 
 // ---------------------------------------------------------------------------
-// T1007 — the auctions list
+// `/auctions` تحوِّل إلى الجذر — لا قائمة مزادات للعميل
 // ---------------------------------------------------------------------------
 
-describe("قائمة المزادات", () => {
-  it("تُرجع أسماء المزادات في الـHTML بلا جافاسكربت", async () => {
-    // The acceptance criterion, word for word.
-    const html = await render(AuctionsPage({ searchParams: noParams }));
-
-    expect(html).toContain("مزاد الرياض الأسبوعي");
-    expect(html).toContain("جارٍ");
+describe("قائمة المزادات المحالة", () => {
+  it("تحوِّل إلى الجذر بدل رندرة قائمة", () => {
+    // المزاد أسبوعي واحد بحالات، فلا قائمة يختار منها العميل: رابط قديم
+    // مشارَك أو مفهرَس يهبط على المزادات لا على 404.
+    expect(() => AuctionsPage()).toThrow("NEXT_REDIRECT:/");
   });
 
-  it("تعرض المفتوح والإجمالي معاً", async () => {
-    // Only the total makes a nearly-sold auction look full, which is what v1
-    // showed and what sent people to auctions with nothing left to bid on.
-    const html = await render(AuctionsPage({ searchParams: noParams }));
+  it("لا تسأل الخادم عن شيء قبل التحويل", () => {
+    expect(() => AuctionsPage()).toThrow("NEXT_REDIRECT:/");
 
-    expect(html).toContain("12");
-    expect(html).toContain("40");
-  });
-
-  it("ترقيمها روابط تعمل بلا سكربت", async () => {
-    // Enough auctions for a page before and a page after, or there is nothing
-    // for the links to point at and the test would pass on an empty nav.
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => answer({ total: 40, results: [AUCTION] })),
-    );
-
-    const html = await render(
-      AuctionsPage({ searchParams: Promise.resolve({ offset: "12" }) }),
-    );
-
-    // A link, not a button with a handler: a "next page" that needs JavaScript
-    // is a one-page list for the visitor this page exists for.
-    expect(html).toContain('href="/auctions"');
-    expect(html).toContain('href="/auctions?offset=24"');
-    expect(html).not.toContain("onclick");
-  });
-
-  it("تطلب الصفحة بالإزاحة التي في الرابط", async () => {
-    await render(AuctionsPage({ searchParams: Promise.resolve({ offset: "24" }) }));
-
-    expect(asked[0]).toContain("offset=24");
+    expect(asked).toHaveLength(0);
   });
 });
 

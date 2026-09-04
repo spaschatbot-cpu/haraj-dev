@@ -6,8 +6,9 @@
  * مزادٌ واحد في الأسبوع يعني أن قائمة المزادات صفحةٌ فيها سطرٌ واحد، وأن
  * الزائر يدفع نقرةً كاملة ليصل إلى الشيء الوحيد الذي جاء من أجله: السيارات.
  * فصار المدخل شبكةً مسطّحة **عبر** المزادات، والتبويب هو «أيّ مزاد أنظر إليه
- * الآن»: قريباً · نشط · منتهي. و`/auctions` باقيةٌ كما هي — التبويبات مدخلٌ
- * جديد لا بديلٌ يحذف ما يعمل.
+ * الآن»: قريباً · نشط · منتهي. وهي الصفحة الرئيسية الوحيدة باسم «المزادات» —
+ * لا قائمة مزادات للعميل: المزاد أسبوعي واحد، وقائمته للإدارة لا لمن يزايد.
+ * و`/auctions` تحوِّل إلى هنا لمن يصلها برابط قديم.
  *
  * مرندَرة في الخادم — معيار J5
  * ============================
@@ -44,7 +45,7 @@ import { respondedAt } from "@/lib/format";
 import { readPaging, toParams } from "@/lib/paging";
 
 export const metadata: Metadata = {
-  title: { absolute: "حراج — تصفّح المركبات" },
+  title: { absolute: "حراج — المزادات" },
   description: "مركبات المزاد القريب والجاري والمنتهي، بعدّاد لكل حالة.",
 };
 
@@ -78,7 +79,7 @@ export default async function Home({
   }
 
   return (
-    <PageShell title="تصفّح المركبات">
+    <PageShell title="المزادات">
       <PhaseTabs current={phase} counts={page?.counts ?? null} query={query} path={PATH} />
 
       <VehicleFilters action={PATH} values={query} keep={["phase"]} />
