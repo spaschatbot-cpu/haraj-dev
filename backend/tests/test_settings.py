@@ -35,6 +35,9 @@ MANAGED = frozenset(
         # guard's subject. Owned here so neither test below can fail — or
         # pass — for a reason it is not about.
         "ALLOWED_HOSTS",
+        # The dev-cache default is measured with no server address anywhere:
+        # neither the developer's shell nor their `.env` may supply one.
+        "CACHE_URL",
     }
 )
 
@@ -137,3 +140,37 @@ def test_the_test_settings_inherit_production_not_development():
 
     assert any("prod" in line for line in import_lines), "test.py لا يرث prod"
     assert not any("dev" in line for line in import_lines), "test.py يستورد من dev"
+
+
+def test_dev_cache_defaults_to_local_memory_without_redis():
+    """بلا Redis على جهاز المطوّر، أول POST على الدخول كان 500.
+
+    القاعدة كانت تشير الكاش إلى Redis دائماً، ولا شيء في dev يشغّله — فكل لمسة
+    كاش (ومحدِّد الدخول أولها) تموت على الاتصال. الافتراضي هنا ذاكرة محلية ما
+    لم يقل CACHE_URL غير ذلك، وبوابة `--deploy` (accounts.E003) ترفضها في أي
+    بيئة منشورة.
+    """
+    script = (
+        "import importlib;"
+        "m = importlib.import_module('config.settings.dev');"
+        "print('CACHE_BACKEND=', m.CACHES['default']['BACKEND'])"
+    )
+    result = import_settings_in_a_fresh_process(script)
+
+    assert result.returncode == 0, result.stderr
+    assert "CACHE_BACKEND= django.core.cache.backends.locmem.LocMemCache" in result.stdout
+
+
+def test_dev_cache_still_honours_an_explicit_redis_address():
+    """الافتراضي أعلاه لا يقفل الباب: عنوان مكتوب يبقى عنواناً."""
+    script = (
+        "import importlib;"
+        "m = importlib.import_module('config.settings.dev');"
+        "print('CACHE_BACKEND=', m.CACHES['default']['BACKEND'])"
+    )
+    result = import_settings_in_a_fresh_process(
+        script, CACHE_URL="redis://127.0.0.1:6379/2"
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "CACHE_BACKEND= django.core.cache.backends.redis.RedisCache" in result.stdout

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.accounts.login import throttled_staff_login
@@ -16,6 +17,16 @@ urlpatterns = [
     # `money.exception`. `apps.accounts.login` says why it is a route rather
     # than a decorator on Django's own view.
     path("admin/login/", throttled_staff_login, name="admin-login"),
+    # The raw Django index shows a developer screen (login landed here via an
+    # explicit `?next=/admin/`, and no setting overrides an explicit `next`).
+    # Staff belong in the console: this exact path — and only it, everything
+    # under `/admin/` keeps working — hands them over by name, so it follows
+    # APP_BASE wherever the console moves.
+    path(
+        "admin/",
+        RedirectView.as_view(pattern_name="console:home", permanent=False),
+        name="admin-index-to-console",
+    ),
     path("admin/", admin.site.urls),
     path("webhooks/", include("apps.odoo.urls")),
     # Staff-only, read-only, and deliberately not under /api: the customer

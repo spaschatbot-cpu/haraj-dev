@@ -26,6 +26,11 @@
 `DJANGO_SETTINGS_MODULE` الافتراضي = `config.settings.dev`.
 **القبول:** `test.py` يستورد من `prod` لا من `dev` (تحقق نصّي)؛ الثلاثة تمرّ `check`.
 **التحقق:** `for s in dev test prod; do DJANGO_SETTINGS_MODULE=config.settings.$s uv run python manage.py check; done`
+**ما تحقّق فعلاً (2026-09-04):** `dev.py` يشير الكاش إلى ذاكرة محلية ما لم يقل
+`CACHE_URL` غير ذلك — القاعدة كانت Redis دائماً ولا Redis على جهاز التطوير،
+فأول POST على دخول الموظفين كان 500. الإنتاج بلا تغيير، وبوابة `--deploy`
+(accounts.E003) ترفض الذاكرة المحلية هناك. مثبّت باختبارين في
+`backend/tests/test_settings.py`.
 
 ### ✅ T003 [P] — ops/compose.yaml لـPostgreSQL 17 وRedis
 **الملفات:** `ops/compose.yaml`
