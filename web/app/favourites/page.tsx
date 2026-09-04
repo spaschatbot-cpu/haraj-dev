@@ -17,6 +17,7 @@ import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
 import { takeFlash } from "@/lib/flash";
+import { respondedAt } from "@/lib/format";
 import { readPaging, toParams } from "@/lib/paging";
 import { authHeader, hasSession } from "@/lib/session";
 
@@ -39,6 +40,7 @@ export default async function FavouritesPage({
   const headers = authHeader(store);
   const query = toParams(await searchParams);
   const { limit, offset } = readPaging(query);
+  const now = await respondedAt();
 
   let page;
   try {
@@ -61,7 +63,7 @@ export default async function FavouritesPage({
           لم تحفظ مركبة بعد. علامة المفضّلة على أي مركبة تعيدك إليها من هنا.
         </p>
       ) : (
-        <VehicleGrid vehicles={(page.results ?? []) as Vehicle[]} />
+        <VehicleGrid vehicles={(page.results ?? []) as Vehicle[]} now={now} />
       )}
 
       <Pagination

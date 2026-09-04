@@ -136,6 +136,15 @@ const AUCTION = {
 
 const VEHICLE = {
   id: 91,
+  auction_id: 7,
+  /*
+   * لحظة انتهاء المزاد على الكرت — عليها يقوم العدّاد التنازلي (T1030).
+   *
+   * بعيدةٌ في المستقبل عمداً: العدّاد يقرأ ساعة الجهاز، ولحظةٌ قريبة كانت
+   * ستجعل الشيفرة تسلك مسلكين مختلفين قبل تاريخٍ ما وبعده — أي لقطةً تنكسر
+   * يوماً بلا أن يغيّر أحد سطراً، وهو أسوأ اختبار: أخضر اليوم، أحمر بلا سبب.
+   */
+  auction_ends_at: "2099-12-31T20:00:00Z",
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
@@ -317,6 +326,15 @@ beforeEach(() => {
       if (url.includes("/vehicles/") && url.includes("/auctions/")) {
         return answer({ total: 1, results: [VEHICLE] });
       }
+      //: شبكة الجذر: `/api/v1/vehicles/?…` — صفحةٌ ومعها العدّادات الثلاثة في
+      //: الرد نفسه، وهي الطريقة الوحيدة التي تصل بها إلى الشاشة.
+      if (/\/vehicles\/(\?|$)/.test(url)) {
+        return answer({
+          total: 1,
+          results: [VEHICLE],
+          counts: { upcoming: 3, active: 41, ended: 128 },
+        });
+      }
       if (/\/auctions\/\d+\//.test(url)) return answer(AUCTION);
       if (url.includes("/auctions/")) return answer({ total: 1, results: [AUCTION] });
       return answer(VEHICLE);
@@ -352,8 +370,17 @@ interface Screen {
 
 const SCREENS: Screen[] = [
   {
+    /*
+     * الرئيسية بعد أن صارت شاشة التصفّح (T1030) — تبويبات وشبكة استجابية.
+     *
+     * It used to be a paragraph, and it used to be size-invariant. Now it is
+     * the screen most visitors open first, it carries the same responsive grid
+     * the auction page does, and it renders a price — so it belongs in the
+     * amount scan too, and it has left `SIZE_INVARIANT` deliberately.
+     */
     name: "الرئيسية",
-    render: () => render(Home()),
+    amounts: [VEHICLE.reserve_price],
+    render: () => render(Home({ searchParams: Promise.resolve({}) })),
   },
   {
     name: "قائمة المزادات",
@@ -472,7 +499,9 @@ const SIZES = [
 //: الشاشات التي تعلن صفر نقاط انكسار، فتخطيطها واحد على المقاسات الثلاثة —
 //: بترتيب `SCREENS`. القائمة تُقرأ وتُقرَّر، لا تُستنتج من تطابق ثلاثة ملفات.
 const SIZE_INVARIANT = [
-  "الرئيسية",
+  //: «الرئيسية» خرجت من هنا يوم صارت شبكة تصفّح (T1030): شبكة المركبات تتّسع
+  //: من عمود إلى ثلاثة، فلقطاتها الثلاث مختلفة فعلاً — وخروجها من القائمة
+  //: قرارٌ مكتوب لا صدفةٌ مرّت.
   "المزايدات",
   //: وهذه ليست الشاشة نفسها وقد قصُرت: الشبكة الاستجابية الوحيدة فيها غير
   //: مرندَرة أصلاً حين لا يكون هناك ما يُعرض. المفضّلة العامرة تتّسع، والفارغة

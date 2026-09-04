@@ -23,6 +23,13 @@ export function PageShell({
             حراج
           </Link>
           <nav className="flex gap-4 text-sm">
+            {/*
+              الجذر هو المدخل: شبكة المركبات وتبويبات حالة المزاد. `/auctions`
+              تبقى بعده لمن يريد المزاد بوصفه وحدة — مدخلٌ جديد لا حذفُ ما يعمل.
+            */}
+            <Link href="/" className="text-neutral-700 hover:underline">
+              تصفّح
+            </Link>
             <Link href="/auctions" className="text-neutral-700 hover:underline">
               المزادات
             </Link>
