@@ -242,13 +242,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeTitle => 'المزادات';
 
   @override
-  String get homeRunningSection => 'مزادات جارية';
+  String get homeTabUpcoming => 'قريباً';
 
   @override
-  String get homeUpcomingSection => 'مزادات قادمة';
+  String get homeTabActive => 'نشط';
 
   @override
-  String get homeEmpty => 'لا توجد مزادات جارية ولا قادمة الآن.';
+  String get homeTabEnded => 'منتهي';
+
+  @override
+  String homeTabWithCount(String label, int count) {
+    return '$label ($count)';
+  }
+
+  @override
+  String get homeEmptyUpcoming => 'لا مزاد قادم الآن.';
+
+  @override
+  String get homeEmptyActive => 'لا مزاد نشط الآن.';
+
+  @override
+  String get homeEmptyEnded => 'لا مزاد منتهٍ بعد.';
+
+  @override
+  String get vehicleAuctionEnded => 'انتهى المزاد';
 
   @override
   String auctionStartsAt(DateTime date, DateTime time) {

@@ -50,6 +50,14 @@ abstract final class CacheKeys {
   static String auctionVehicles(String auctionId) =>
       'catalog.auction.$auctionId.vehicles';
 
+  /// الصفحة الأولى بلا ترشيح من شبكة الرئيسية — **مفتاح لكل تبويب**.
+  ///
+  /// التبويب جزء من المفتاح لأنه جزء من السؤال: صفحةُ «منتهي» محفوظةً تحت
+  /// مفتاحٍ واحد تُعرض غداً بلا اتصال تحت تبويب «نشط»، فيقرأ العميل مزادات
+  /// انتهت على أنها الجارية الآن. ولأن المفتاح لكل تبويب، فالتبويب الذي فتحه
+  /// آخر مرة هو الذي يجد نفسه محفوظاً.
+  static String vehicleFeed(String phaseSlug) => 'catalog.feed.$phaseSlug';
+
   /// آخر نسخة معروفة من صفحة مركبة (T709) — مفتاحٌ لكل مركبة، فالعميل الذي فتح
   /// مركبةً ثم فقد الاتصال يراها كما رآها.
   static String vehicle(String vehicleId) => 'catalog.vehicle.$vehicleId';

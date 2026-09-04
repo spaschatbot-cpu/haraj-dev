@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:haraj_mobile/domain/catalog/entities/auction_phase.dart';
 import 'package:haraj_mobile/domain/catalog/entities/auction_summary.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_detail.dart';
+import 'package:haraj_mobile/domain/catalog/entities/vehicle_feed.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_query.dart';
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_summary.dart';
 import 'package:haraj_mobile/domain/catalog/repositories/catalog_repository.dart';
@@ -18,6 +20,8 @@ final class FakeCatalogRepository implements CatalogRepository {
     this.homeError,
     this.vehiclePages,
     this.vehiclesError,
+    this.feedPages,
+    this.feedError,
     this.vehicle,
     this.vehicleError,
   });
@@ -29,10 +33,20 @@ final class FakeCatalogRepository implements CatalogRepository {
   Map<int, Snapshot<VehiclePage>>? vehiclePages;
   Object? vehiclesError;
 
+  /// صفحات الشبكة المسطّحة، مفهرسة برقم الصفحة.
+  Map<int, Snapshot<VehicleFeed>>? feedPages;
+  Object? feedError;
+
   Snapshot<VehicleDetail>? vehicle;
   Object? vehicleError;
 
   final List<VehicleQuery> receivedQueries = <VehicleQuery>[];
+
+  /// ما وصل مستودعَ الشبكة من معايير — التبويب والبحث والصفحة.
+  ///
+  /// يُسجَّل لأن نصف ما يجب إثباته ليس ما تعرضه الشاشة بل **ما ترسله**: أن
+  /// التبويب ذهب إلى الخادم، وأن العدّادات لم تُطلب في نداء ثانٍ.
+  final List<VehicleQuery> receivedFeedQueries = <VehicleQuery>[];
   final List<String> receivedAuctionIds = <String>[];
   int homeCalls = 0;
 
@@ -64,6 +78,15 @@ final class FakeCatalogRepository implements CatalogRepository {
   }
 
   @override
+  Future<Snapshot<VehicleFeed>> loadVehicleFeed(VehicleQuery query) async {
+    receivedFeedQueries.add(query);
+    await heldPages[query.page]?.future;
+    final error = feedError;
+    if (error != null) throw error;
+    return feedPages![query.page]!;
+  }
+
+  @override
   Future<Snapshot<VehicleDetail>> loadVehicle(String vehicleId) async {
     final error = vehicleError;
     if (error != null) throw error;
@@ -80,6 +103,7 @@ FakeCatalogRepository emptyCatalogRepository() => FakeCatalogRepository(
     ),
     at: fixedNowUtc,
   ),
+  feedPages: <int, Snapshot<VehicleFeed>>{1: fresh(vehicleFeed())},
 );
 
 /// لحظة ثابتة تُبنى منها كل الأوقات في الاختبارات، بتوقيت UTC.
@@ -106,6 +130,9 @@ VehicleSummary vehicleSummary({
   String? thumbnailUrl,
   String? reservePrice = '50000.10',
   int bidsCount = 3,
+  String auctionId = 'a-1',
+  AuctionPhase phase = AuctionPhase.active,
+  DateTime? auctionEndsAt,
 }) => VehicleSummary(
   id: id,
   lotNumber: lotNumber,
@@ -115,6 +142,28 @@ VehicleSummary vehicleSummary({
       ? null
       : Money(amount: reservePrice, currency: 'SAR'),
   bidsCount: bidsCount,
+  auctionId: auctionId,
+  phase: phase,
+  auctionEndsAt: auctionEndsAt ?? fixedNowUtc.add(const Duration(hours: 5)),
+);
+
+/// عدّادات التبويبات كما ترد من الخادم.
+PhaseCounts phaseCounts({int upcoming = 0, int active = 0, int ended = 0}) =>
+    PhaseCounts(upcoming: upcoming, active: active, ended: ended);
+
+/// صفحة شبكةٍ وعدّاداتها — كما يصلان في ردٍّ واحد.
+VehicleFeed vehicleFeed({
+  List<VehicleSummary> vehicles = const <VehicleSummary>[],
+  int? totalCount,
+  bool hasMore = false,
+  PhaseCounts? counts,
+}) => VehicleFeed(
+  page: VehiclePage(
+    vehicles: vehicles,
+    totalCount: totalCount ?? vehicles.length,
+    hasMore: hasMore,
+  ),
+  counts: counts ?? phaseCounts(),
 );
 
 VehicleDetail vehicleDetail({

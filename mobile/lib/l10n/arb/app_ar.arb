@@ -227,13 +227,37 @@
   "@homeTitle": {
     "description": "عنوان الرئيسية — T707"
   },
-  "homeRunningSection": "مزادات جارية",
-  "@homeRunningSection": {},
-  "homeUpcomingSection": "مزادات قادمة",
-  "@homeUpcomingSection": {},
-  "homeEmpty": "لا توجد مزادات جارية ولا قادمة الآن.",
-  "@homeEmpty": {
-    "description": "الحالة الفارغة للرئيسية — شاشة بلا حالة فارغة تبدو معطوبة"
+  "homeTabUpcoming": "قريباً",
+  "@homeTabUpcoming": {
+    "description": "تبويب الرئيسية: المزاد مجدول ولم يبدأ"
+  },
+  "homeTabActive": "نشط",
+  "@homeTabActive": {},
+  "homeTabEnded": "منتهي",
+  "@homeTabEnded": {},
+  "homeTabWithCount": "{label} ({count})",
+  "@homeTabWithCount": {
+    "description": "العدد من الخادم، لا من طول القائمة المعروضة",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeEmptyUpcoming": "لا مزاد قادم الآن.",
+  "@homeEmptyUpcoming": {
+    "description": "التبويب الفارغ يقول لماذا هو فارغ — شبكة بيضاء تبدو عطلاً"
+  },
+  "homeEmptyActive": "لا مزاد نشط الآن.",
+  "@homeEmptyActive": {},
+  "homeEmptyEnded": "لا مزاد منتهٍ بعد.",
+  "@homeEmptyEnded": {},
+  "vehicleAuctionEnded": "انتهى المزاد",
+  "@vehicleAuctionEnded": {
+    "description": "الخادم قالها في phase — لا تُستنتج من مقارنة وقت بساعة الجهاز"
   },
   "auctionStartsAt": "يبدأ {date} الساعة {time}",
   "@auctionStartsAt": {

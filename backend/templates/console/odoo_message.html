@@ -16,10 +16,6 @@ transaction behind it — a payment that exists in Odoo and nowhere here.
 {% block heading %}{{ row.source }}/{{ row.event|default:"—" }}{% endblock %}
 
 {% block content %}
-  {% for note in messages %}
-    <p><strong>{{ note }}</strong></p>
-  {% endfor %}
-
   <p><a href="{% url 'console:odoo-inbox' %}">← صندوق الوارد</a></p>
 
   <table>
@@ -52,9 +48,9 @@ transaction behind it — a payment that exists in Odoo and nowhere here.
     <p class="empty">تمرّ على نفس الكود الذي تستدعيه المهمة الآلية بالضبط. لا شيء
       هنا يفسّر الرسالة تفسيراً خاصاً بالشاشة.</p>
   {% elif row.state == "failed" %}
-    {# A source neither boundary interprets. The button is withheld rather than
+    {% comment %} A source neither boundary interprets. The button is withheld rather than
        shown-and-refused, because pressing it used to end the row: the Odoo
-       processor answers a foreign source with `ignored`, which is terminal. #}
+       processor answers a foreign source with `ignored`, which is terminal. {% endcomment %}
     <p class="empty">لا مفسّر لرسائل المصدر «{{ row.source }}» — إعادة التشغيل
       غير متاحة، والصفّ يبقى كما وصل بانتظار من يقرّر.</p>
   {% endif %}

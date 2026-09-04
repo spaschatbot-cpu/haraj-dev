@@ -512,23 +512,53 @@ abstract class AppLocalizations {
   /// **'المزادات'**
   String get homeTitle;
 
-  /// No description provided for @homeRunningSection.
+  /// تبويب الرئيسية: المزاد مجدول ولم يبدأ
   ///
   /// In ar, this message translates to:
-  /// **'مزادات جارية'**
-  String get homeRunningSection;
+  /// **'قريباً'**
+  String get homeTabUpcoming;
 
-  /// No description provided for @homeUpcomingSection.
+  /// No description provided for @homeTabActive.
   ///
   /// In ar, this message translates to:
-  /// **'مزادات قادمة'**
-  String get homeUpcomingSection;
+  /// **'نشط'**
+  String get homeTabActive;
 
-  /// الحالة الفارغة للرئيسية — شاشة بلا حالة فارغة تبدو معطوبة
+  /// No description provided for @homeTabEnded.
   ///
   /// In ar, this message translates to:
-  /// **'لا توجد مزادات جارية ولا قادمة الآن.'**
-  String get homeEmpty;
+  /// **'منتهي'**
+  String get homeTabEnded;
+
+  /// العدد من الخادم، لا من طول القائمة المعروضة
+  ///
+  /// In ar, this message translates to:
+  /// **'{label} ({count})'**
+  String homeTabWithCount(String label, int count);
+
+  /// التبويب الفارغ يقول لماذا هو فارغ — شبكة بيضاء تبدو عطلاً
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مزاد قادم الآن.'**
+  String get homeEmptyUpcoming;
+
+  /// No description provided for @homeEmptyActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مزاد نشط الآن.'**
+  String get homeEmptyActive;
+
+  /// No description provided for @homeEmptyEnded.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مزاد منتهٍ بعد.'**
+  String get homeEmptyEnded;
+
+  /// الخادم قالها في phase — لا تُستنتج من مقارنة وقت بساعة الجهاز
+  ///
+  /// In ar, this message translates to:
+  /// **'انتهى المزاد'**
+  String get vehicleAuctionEnded;
 
   /// بالتوقيت السعودي — التحويل في SaudiTime وحدها
   ///

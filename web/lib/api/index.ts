@@ -21,6 +21,9 @@
  */
 
 export { api, backendUrl, request } from "./client";
+// طبقة مؤقّتة معلَنة — انظر `awaiting.ts` لسبب وجودها وموعد حذفها.
+export { PHASES } from "./awaiting";
+export type { Phase, PhaseCounts, Vehicle, VehiclePage } from "./awaiting";
 export { ApiError, CLIENT_CODES, messageOf, toApiError } from "./errors";
 export type { ApiErrorBody, ErrorDetail } from "./errors";
 export type { components, operations, paths } from "./schema";

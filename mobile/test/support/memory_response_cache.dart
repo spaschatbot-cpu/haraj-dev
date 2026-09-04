@@ -14,6 +14,10 @@ final class MemoryResponseCache implements ResponseCache {
   /// عدّاد التفريغ: «هل مُحي كاش العميل عند الخروج؟» سؤال أمني له جواب.
   int clearCount = 0;
 
+  /// المفاتيح المكتوبة — «تحت أي مفتاح حُفظ هذا؟» سؤالٌ له جواب أيضاً، وهو ما
+  /// يفرّق كاشاً لكل تبويب عن كاشٍ واحد يعرض تبويباً مكان آخر.
+  Iterable<String> get keys => _documents.keys;
+
   @override
   Future<CachedDocument?> read(String key) async => _documents[key];
 

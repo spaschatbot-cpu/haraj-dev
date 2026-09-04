@@ -88,7 +88,7 @@ export default async function AccountPage() {
               name="full_name"
               defaultValue={profile.full_name}
               required
-              className="rounded border border-neutral-300 px-3 py-2"
+              className="rounded border border-neutral-500 px-3 py-2"
             />
           </label>
 
@@ -98,7 +98,7 @@ export default async function AccountPage() {
               type="email"
               name="email"
               defaultValue={profile.email ?? ""}
-              className="rounded border border-neutral-300 px-3 py-2"
+              className="rounded border border-neutral-500 px-3 py-2"
             />
           </label>
 
@@ -135,7 +135,7 @@ export default async function AccountPage() {
                 inputMode="numeric"
                 defaultValue={profile.national_id}
                 required
-                className="money rounded border border-neutral-300 px-3 py-2"
+                className="money rounded border border-neutral-500 px-3 py-2"
               />
             </label>
 
@@ -169,7 +169,7 @@ export default async function AccountPage() {
                   defaultValue={
                     (company as Record<string, unknown> | null)?.[field] as string | undefined ?? ""
                   }
-                  className="rounded border border-neutral-300 px-3 py-2"
+                  className="rounded border border-neutral-500 px-3 py-2"
                 />
               </label>
             ))}

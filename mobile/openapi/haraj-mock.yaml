@@ -386,6 +386,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/PaginatedVehicleCardList"
 
+  /api/v1/vehicles/:
+    get:
+      tags: [vehicles]
+      operationId: vehiclesList
+      summary: مركبات عبر المزادات — صفحة واحدة وعدّادات التبويبات معها
+      description: >
+        طلب **واحد** يرجّع صفحة المركبات وعدّادات الأطوار الثلاثة معاً.
+
+
+        العدّادات ليست ترفاً في الاستجابة: التبويبات الثلاثة تُرسم كلها في كل
+        حال، فهي تحتاج الأرقام الثلاثة كلها في كل حال. طلبها مفرّقةً — كما في
+        v1، ستّة طلبات لثلاثة أرقام — يجعل كل رقم من لحظة، فلا يساوي مجموع
+        التبويبات شيئاً، ويظهر تبويبٌ يقول «٣» ثم يُفتح فيه صفرٌ لأن المزاد
+        أُقفل بين الطلبين.
+
+
+        و`phase` هنا هو بعينه `phase` في `?phase=` على عنوان الشاشة وفي حقل
+        الكرت: معنى واحد باسم واحد.
+      parameters:
+        - name: phase
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AuctionPhase"
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 80
+        - name: make
+          in: query
+          required: false
+          schema:
+            type: string
+            maxLength: 80
+        - name: year_from
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2200
+        - name: year_to
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1900
+            maximum: 2200
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: صفحة مركبات ومعها عدّادات الأطوار الثلاثة
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleFeedPage"
+
   /api/v1/vehicles/{vehicleId}/:
     get:
       tags: [vehicles]
@@ -1111,10 +1171,54 @@ components:
           items:
             $ref: "#/components/schemas/Auction"
 
+    AuctionPhase:
+      type: string
+      description: >
+        طور المزاد كما يقوله **الخادم**: مجدول ولم يبدأ، أو جارٍ، أو انتهى.
+
+
+        ثلاث قيم لا ستّ: `AuctionStatus` حالةُ الكيان الكاملة (مسودة، ملغى،
+        مسوّى…) ويحتاجها من يديره؛ و`AuctionPhase` هو ما يراه المتصفّح، وهو
+        الذي تُبنى عليه التبويبات. اشتقاق الثاني من الأول قرارُ خادم، وحسابه
+        في الواجهة يجعل لـ«منتهي» تعريفاً ثانياً يفترق عند أول حالة جديدة.
+      enum: [upcoming, active, ended]
+
+    PhaseCounts:
+      type: object
+      description: عدد المركبات في كل تبويب — **الثلاثة من لحظة واحدة**.
+      required: [upcoming, active, ended]
+      properties:
+        upcoming:
+          type: integer
+        active:
+          type: integer
+        ended:
+          type: integer
+
+    VehicleFeedPage:
+      type: object
+      required: [count, results, counts]
+      properties:
+        count:
+          type: integer
+          description: عدد نتائج هذا التبويب بهذه المعايير — لا مجموع الأطوار
+        next:
+          type: string
+          nullable: true
+        previous:
+          type: string
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleCard"
+        counts:
+          $ref: "#/components/schemas/PhaseCounts"
+
     # ---------- المركبات ----------
     VehicleCard:
       type: object
-      required: [id, lot_number, title, thumbnail_url, reserve_price, current_bid_amount, currency, bids_count]
+      required: [id, lot_number, title, thumbnail_url, reserve_price, current_bid_amount, currency, bids_count, auction_id, phase, auction_ends_at]
       properties:
         id:
           type: string
@@ -1143,6 +1247,22 @@ components:
           example: SAR
         bids_count:
           type: integer
+        auction_id:
+          type: string
+          description: مزاد هذه المركبة — الكرت يفتح مركبته، والتبويب يجمع عبر المزادات
+        phase:
+          $ref: "#/components/schemas/AuctionPhase"
+        auction_ends_at:
+          type: string
+          format: date-time
+          description: >
+            لحظة انتهاء **مزاد** هذه المركبة، ISO-8601 بتوقيت UTC.
+
+
+            تُرسَل مع كل مركبة عمداً: العدّاد التنازلي على الكرت فرقٌ بين هذه
+            اللحظة و«الآن»، وبلا حملها على الكرت يحتاج كل كرت طلباً ثانياً عن
+            مزاده. أما **هل انتهى؟** فجوابه `phase` لا هذا الحقل: ساعة الجهاز
+            ليست الحقيقة، وv1 قارن بها فأظهر «انتهى» لمزاد ما زال مفتوحاً.
 
     Vehicle:
       type: object

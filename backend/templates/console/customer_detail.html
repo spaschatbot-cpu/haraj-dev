@@ -9,8 +9,6 @@ customer read "رصيدك 10,000" as money he could withdraw — it was pinned t
 {% block heading %}{{ customer.full_name }}{% endblock %}
 
 {% block content %}
-  {% for message in messages %}<p><strong>{{ message }}</strong></p>{% endfor %}
-
   <p>
     <a href="{% url 'console:customer-edit' customer.pk %}">تعديل البيانات</a> ·
     <a href="{% url 'console:company-edit' customer.pk %}">

@@ -77,6 +77,90 @@ export function amount(value: string | null | undefined): string {
   return value ?? "";
 }
 
+// ---------------------------------------------------------------------------
+// المدّة الباقية — فرقٌ بين لحظتين، لا تاريخٌ يُبنى ثم يُطرح منه
+// ---------------------------------------------------------------------------
+
+const SECOND = 1000;
+const MINUTE = 60;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+/** «٣ أيام»، «يومان» — الصيغة العربية في مكان واحد بدل أن تُخمَّن في كل شاشة. */
+function plural(value: number, one: string, two: string, few: string, many: string): string {
+  if (value === 1) return one;
+  if (value === 2) return two;
+  //: بلا فاصل آلاف — المدّة عدّ لا مبلغ، وفاصلةٌ فيها تقرأ كتنسيق مالٍ تسلّل
+  //: إلى شاشة، وهو بالضبط ما تبحث عنه فحوص المبالغ.
+  return `${value} ${value <= 10 ? few : many}`;
+}
+
+/**
+ * ما بقي من الوقت حتى `endsAt`، أو `null` إن مضى أو لم يُعرف.
+ *
+ * **فرقٌ بين لحظتين UTC، وهذا هو كل شيء.** `Date.parse` يعطي لحظةً مطلقة على
+ * خط الزمن، و`now` مثلها، والطرح بينهما مدّةٌ لا منطقةَ زمنية لها ولا تتأثر
+ * بتغيّر اليوم عند منتصف الليل المحلي. الطريقة الأخرى — أن يُبنى تاريخ محلي من
+ * النصّ ثم يُطرح منه تاريخ محلي آخر — هي التي تنكسر عند تغيّر اليوم وعند
+ * اختلاف المنطقة، ولذلك لا تُكتب هنا ولا في أي مكان آخر.
+ *
+ * **و`null` ليست «انتهى المزاد».** هي «مضت اللحظة المعلَنة بحسب هذه الساعة»،
+ * وساعةُ جهاز العميل ليست الحقيقة: في v1 بُني العدّاد على هذه المقارنة، فأظهر
+ * «انتهى» لمن ساعته متقدّمة دقيقتين والمزاد ما زال مفتوحاً. من يقرّر أن المزاد
+ * انتهى هو الخادم وحده، عبر حالة الكرت وتبويبه — ومن يقرأ هذه الدالة يعرض
+ * جملةً عن **الوقت المعلَن**، لا حكماً على المزاد.
+ *
+ * الشكل: يومٌ فأكثر تُقرأ بالأيام والساعات — لا أحد يتابع الثواني قبل ثلاثة
+ * أيام — وما دون اليوم ساعةٌ ودقيقةٌ وثانية، لأن آخر ساعة هي التي تُتابَع.
+ */
+export function remaining(
+  endsAt: string | null | undefined,
+  now: number,
+): string | null {
+  if (!endsAt) return null;
+
+  const end = Date.parse(endsAt);
+  if (Number.isNaN(end)) return null;
+
+  const seconds = Math.floor((end - now) / SECOND);
+  if (seconds <= 0) return null;
+
+  const days = Math.floor(seconds / DAY);
+  if (days > 0) {
+    const hours = Math.floor((seconds % DAY) / HOUR);
+    const spelledDays = plural(days, "يوم واحد", "يومان", "أيام", "يوماً");
+    if (hours === 0) return spelledDays;
+    return `${spelledDays} و${plural(hours, "ساعة", "ساعتان", "ساعات", "ساعة")}`;
+  }
+
+  const clock = [
+    Math.floor(seconds / HOUR),
+    Math.floor((seconds % HOUR) / MINUTE),
+    seconds % MINUTE,
+  ];
+  return clock.map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+/**
+ * لحظة إنتاج هذا الرد — نقطة انطلاق كل عدّاد على الصفحة.
+ *
+ * تُقرأ **مرة واحدة لكل طلب** في طبقة البيانات، ثم تُمرَّر إلى ما يعرضها. لا
+ * تُقرأ داخل رندرة مكوّن، لسببين لكلٍّ منهما وزن:
+ *
+ * ١. رندرة المكوّن يجب أن تكون دالّة صرفة في مدخلاتها — و`react-hooks/purity`
+ *    يرفض ذلك صراحةً — لأن مكوّناً يقرأ الساعة بنفسه يُنتج شيئاً مختلفاً في
+ *    كل إعادة رندرة بلا أن يتغيّر مدخل؛
+ * ٢. واثنتا عشرة بطاقة تقرأ الساعة اثنتي عشرة مرة هي اثنتا عشرة لحظة مختلفة
+ *    في صفحة واحدة. العدّادات على صفحةٍ واحدة يجب أن تنطلق من لحظة واحدة، وإلا
+ *    اختلفت ثانيةً عن جارتها بلا سبب يراه أحد.
+ *
+ * وهي `async` لأن موضعها هو مرحلة جلب البيانات في مكوّن الخادم، حيث تُنتظَر مع
+ * ما يُنتظَر — لا مرحلة الرندرة.
+ */
+export async function respondedAt(): Promise<number> {
+  return Date.now();
+}
+
 /** An integer the server sent, for display. Never used on a money value. */
 export function count(value: number | null | undefined): string {
   return value === null || value === undefined ? "" : value.toLocaleString(LOCALE);

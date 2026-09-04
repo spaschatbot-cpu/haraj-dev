@@ -305,3 +305,17 @@ def test_deleting_a_display_loop_fails_this_file(client, viewer, world):
 
     broken = engines["django"].from_string(broken_source).render(context)
     assert "عميل الرندرة" not in broken, "a broken display loop must fail this file"
+
+
+@pytest.mark.parametrize("url_name", sorted(MUST_RENDER))
+def test_no_template_comment_leaks_onto_the_page(client, viewer, world, url_name):
+    """`{# #}` is single-line only — a multi-line one renders as literal text.
+
+    That is how two comments ended up visible in the console's topbar while
+    every check stayed green: no test read the page for what should not be
+    there. All comments are `{% comment %}` now; this test keeps them that way.
+    """
+    body = client.get(reverse(url_name)).content.decode()
+
+    assert "{#" not in body, url_name
+    assert "#}" not in body, url_name

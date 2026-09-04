@@ -1,4 +1,5 @@
 import '../../common/money.dart';
+import 'auction_phase.dart';
 
 /// المركبة كما تظهر في **كرت** — وهذه هي كل حقول الكرت.
 ///
@@ -14,6 +15,9 @@ final class VehicleSummary {
     required this.thumbnailUrl,
     required this.reservePrice,
     required this.bidsCount,
+    required this.auctionId,
+    required this.phase,
+    required this.auctionEndsAt,
   });
 
   final String id;
@@ -31,4 +35,20 @@ final class VehicleSummary {
 
   /// عدد المزايدات لا مبلغها: المزاد مغلق، ومبلغ أعلى مزايدة ليس معلومة عامة.
   final int bidsCount;
+
+  /// مزاد هذه المركبة.
+  ///
+  /// يُحمل على الكرت لأن الشبكة المسطّحة تجمع مركبات مزادات شتّى في قائمة
+  /// واحدة، فلا يكفي أن يعرفه سياق الشاشة كما كان يكفي في قائمة مزادٍ بعينه.
+  final String auctionId;
+
+  /// طور مزادها **كما قاله الخادم** — لا كما يُستنتج من `auctionEndsAt`.
+  final AuctionPhase phase;
+
+  /// لحظة انتهاء مزادها، بتوقيت UTC.
+  ///
+  /// تُحمل على الكرت لأن العدّاد التنازلي على الكرت، وطلبها لكل كرت على حدة
+  /// يعني طلباً لكل مركبة. والتحويل للعرض يبقى في `SaudiTime` وحدها
+  /// (المادة ٣-١)، والعدّ نفسه فرقٌ بين لحظتين UTC لا حسابُ تقويم.
+  final DateTime auctionEndsAt;
 }

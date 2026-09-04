@@ -5,15 +5,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/data/api/generated/clients/auctions_api.dart';
 import 'package:haraj_mobile/data/api/generated/clients/vehicles_api.dart';
 import 'package:haraj_mobile/data/api/generated/models/auction.dart';
+import 'package:haraj_mobile/data/api/generated/models/auction_phase.dart';
 import 'package:haraj_mobile/data/api/generated/models/auction_status.dart';
 import 'package:haraj_mobile/data/api/generated/models/paginated_auction_list.dart';
 import 'package:haraj_mobile/data/api/generated/models/paginated_participation_list.dart';
 import 'package:haraj_mobile/data/api/generated/models/paginated_vehicle_card_list.dart';
+import 'package:haraj_mobile/data/api/generated/models/phase_counts.dart';
 import 'package:haraj_mobile/data/api/generated/models/specification.dart';
 import 'package:haraj_mobile/data/api/generated/models/vehicle.dart';
 import 'package:haraj_mobile/data/api/generated/models/vehicle_card.dart';
+import 'package:haraj_mobile/data/api/generated/models/vehicle_feed_page.dart';
 import 'package:haraj_mobile/data/catalog/catalog_repository_impl.dart';
 import 'package:haraj_mobile/data/local/cache/response_cache.dart';
+import 'package:haraj_mobile/domain/catalog/entities/auction_phase.dart'
+    as domain;
 import 'package:haraj_mobile/domain/catalog/entities/vehicle_query.dart';
 import 'package:haraj_mobile/domain/common/failure.dart';
 import 'package:haraj_mobile/domain/common/snapshot.dart';
@@ -44,6 +49,9 @@ void main() {
         currentBidAmount: '12500.00',
         currency: 'SAR',
         bidsCount: 3,
+        auctionId: 'a-1',
+        phase: AuctionPhase.active,
+        auctionEndsAt: DateTime.utc(2026, 9, 4, 12),
       );
 
   PaginatedVehicleCardList page(
@@ -51,6 +59,18 @@ void main() {
     int count = 200,
     String? next = 'page=2',
   }) => PaginatedVehicleCardList(count: count, results: results, next: next);
+
+  VehicleFeedPage feedPage(
+    List<VehicleCard> results, {
+    int count = 200,
+    String? next = 'page=2',
+    PhaseCounts counts = const PhaseCounts(upcoming: 1, active: 2, ended: 3),
+  }) => VehicleFeedPage(
+    count: count,
+    results: results,
+    next: next,
+    counts: counts,
+  );
 
   CatalogRepositoryImpl build(
     _FakeAuctionsApi auctions,
@@ -273,6 +293,179 @@ void main() {
     });
   });
 
+  group('الشبكة المسطّحة بتبويب الطور', () {
+    test('نداء واحد يرجّع الصفحة والعدّادات الثلاثة معاً', () async {
+      final vehicles = _FakeVehiclesApi(
+        feedPages: <int, VehicleFeedPage>{
+          1: feedPage(<VehicleCard>[
+            card('v-1'),
+          ], counts: const PhaseCounts(upcoming: 4, active: 9, ended: 31)),
+        },
+      );
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        vehicles,
+        MemoryResponseCache(),
+      );
+
+      final snapshot = await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+
+      // نداء **واحد**: في v1 كانت الأرقام الثلاثة تُطلب في ستّة طلبات، فكان كل
+      // رقم من لحظة، ويقع التبويب على رقمٍ لا يصف ما يُفتح فيه.
+      expect(vehicles.feedCalls, 1);
+      expect(vehicles.lastPhase, AuctionPhase.active);
+      expect(snapshot.value.counts.upcoming, 4);
+      expect(snapshot.value.counts.active, 9);
+      expect(snapshot.value.counts.ended, 31);
+      expect(snapshot.value.page.totalCount, 200);
+    });
+
+    test('الطور والبحث والصفحة تذهب كلها إلى الخادم', () async {
+      final vehicles = _FakeVehiclesApi(
+        feedPages: <int, VehicleFeedPage>{2: feedPage(<VehicleCard>[])},
+      );
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        vehicles,
+        MemoryResponseCache(),
+      );
+
+      await repository.loadVehicleFeed(
+        const VehicleQuery(
+          phase: domain.AuctionPhase.ended,
+          search: 'camry',
+          make: 'Toyota',
+          yearFrom: 2018,
+          yearTo: 2022,
+          page: 2,
+        ),
+      );
+
+      expect(vehicles.lastPhase, AuctionPhase.ended);
+      expect(vehicles.lastSearch, 'camry');
+      expect(vehicles.lastMake, 'Toyota');
+      expect(vehicles.lastYearFrom, 2018);
+      expect(vehicles.lastYearTo, 2022);
+      expect(vehicles.lastPage, 2);
+      expect(vehicles.lastPageSize, CatalogRepositoryImpl.pageSize);
+    });
+
+    test('طور المركبة يصل كما قاله الخادم، ومعه لحظة انتهاء مزادها', () async {
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        _FakeVehiclesApi(
+          feedPages: <int, VehicleFeedPage>{
+            1: feedPage(<VehicleCard>[card('v-1')]),
+          },
+        ),
+        MemoryResponseCache(),
+      );
+
+      final snapshot = await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+      final vehicle = snapshot.value.page.vehicles.single;
+
+      expect(vehicle.phase, domain.AuctionPhase.active);
+      expect(vehicle.auctionId, 'a-1');
+      // بتوقيت UTC على السلك وفي الكيان — التحويل عند حافة العرض وحدها.
+      expect(vehicle.auctionEndsAt, DateTime.utc(2026, 9, 4, 12));
+      expect(vehicle.auctionEndsAt.isUtc, isTrue);
+    });
+
+    test('لكل تبويب مفتاح كاش خاصّ به', () async {
+      // مفتاحٌ واحد للثلاثة يعرض غداً بلا اتصال مزادات انتهت تحت تبويب «نشط».
+      final cache = MemoryResponseCache();
+      final vehicles = _FakeVehiclesApi(
+        feedPages: <int, VehicleFeedPage>{
+          1: feedPage(<VehicleCard>[card('v-1')]),
+        },
+      );
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        vehicles,
+        cache,
+      );
+
+      await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+      await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.ended),
+      );
+
+      expect(
+        cache.keys,
+        containsAll(<String>[
+          CacheKeys.vehicleFeed('active'),
+          CacheKeys.vehicleFeed('ended'),
+        ]),
+      );
+    });
+
+    test('انقطاع الشبكة يعرض التبويب المحفوظ بعدّاداته وبطابعه', () async {
+      final cache = MemoryResponseCache();
+      final vehicles = _FakeVehiclesApi(
+        feedPages: <int, VehicleFeedPage>{
+          1: feedPage(<VehicleCard>[
+            card('v-1'),
+          ], counts: const PhaseCounts(upcoming: 4, active: 9, ended: 31)),
+        },
+      );
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        vehicles,
+        cache,
+      );
+
+      await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+      vehicles.failWith = _offline('/api/v1/vehicles/');
+
+      final cached = await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+
+      // H5: آخر ما نعرف، معلَّماً بلحظته — لا شبكة فارغة ولا تبويب بلا رقم.
+      expect(cached.isStale, isTrue);
+      expect(cached.fetchedAt, fetchedAt);
+      expect(cached.value.page.vehicles.single.id, 'v-1');
+      expect(cached.value.counts.ended, 31);
+    });
+
+    test('بحثٌ بلا خادم يفشل ولا يُجاب بتبويب محفوظ لم يُبحث', () async {
+      final cache = MemoryResponseCache();
+      final vehicles = _FakeVehiclesApi(
+        feedPages: <int, VehicleFeedPage>{
+          1: feedPage(<VehicleCard>[card('v-1')]),
+        },
+      );
+      final repository = build(
+        _FakeAuctionsApi(byStatus: const {}),
+        vehicles,
+        cache,
+      );
+
+      await repository.loadVehicleFeed(
+        const VehicleQuery(phase: domain.AuctionPhase.active),
+      );
+      vehicles.failWith = _offline('/api/v1/vehicles/');
+
+      await expectLater(
+        repository.loadVehicleFeed(
+          const VehicleQuery(
+            phase: domain.AuctionPhase.active,
+            search: 'camry',
+          ),
+        ),
+        throwsA(isA<TransportFailure>()),
+      );
+    });
+  });
+
   group('المركبة', () {
     test('السعر يصل نصّاً كما هو، ومركبة بلا سعر وقوف تصل بلا سعر', () async {
       final repository = build(
@@ -412,11 +605,16 @@ final class _FakeAuctionsApi implements AuctionsApi {
 }
 
 final class _FakeVehiclesApi implements VehiclesApi {
-  _FakeVehiclesApi({this.pages, this.vehicle});
+  _FakeVehiclesApi({this.pages, this.vehicle, this.feedPages});
 
   final Map<int, PaginatedVehicleCardList>? pages;
+  final Map<int, VehicleFeedPage>? feedPages;
   final Vehicle? vehicle;
   DioException? failWith;
+
+  /// كم نداءً وصل الشبكةَ. العدّادات تصل مع الصفحة، فنداء واحد لا اثنان.
+  int feedCalls = 0;
+  AuctionPhase? lastPhase;
 
   String? lastAuctionId;
   String? lastSearch;
@@ -447,6 +645,30 @@ final class _FakeVehiclesApi implements VehiclesApi {
     final failure = failWith;
     if (failure != null) throw failure;
     return pages![page ?? 1]!;
+  }
+
+  @override
+  Future<VehicleFeedPage> vehiclesList({
+    AuctionPhase? phase,
+    String? search,
+    String? make,
+    int? yearFrom,
+    int? yearTo,
+    int? page,
+    int? pageSize,
+  }) async {
+    feedCalls++;
+    lastPhase = phase;
+    lastSearch = search;
+    lastMake = make;
+    lastYearFrom = yearFrom;
+    lastYearTo = yearTo;
+    lastPage = page;
+    lastPageSize = pageSize;
+
+    final failure = failWith;
+    if (failure != null) throw failure;
+    return feedPages![page ?? 1]!;
   }
 
   @override

@@ -8,10 +8,9 @@ import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../common/failure_view.dart';
 import '../common/snapshot_view.dart';
-import 'widgets/vehicle_card.dart';
 import 'widgets/vehicle_filters.dart';
+import 'widgets/vehicle_results.dart';
 
 /// قائمة مركبات المزاد: بحث وترشيح وترقيم صفحات — **كلها من الخادم** (T708).
 ///
@@ -148,7 +147,10 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
             child: SnapshotView<VehiclePage>(
               state: _first,
               onRetry: _reload,
-              builder: (context, snapshot) => _Results(
+              // نفس مكوّن النتائج الذي تعرضه الرئيسية، بتخطيط قائمة لا شبكة:
+              // العدّ والترقيم والحالة الفارغة وفشل الصفحة التالية سلوكٌ واحد،
+              // ونسختان منه تفترقان عند أول إصلاح يُنسى في إحداهما.
+              builder: (context, snapshot) => VehicleResults(
                 vehicles: _vehicles,
                 totalCount: _totalCount,
                 hasMore: _hasMore,
@@ -159,94 +161,15 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
                   setState(() => _moreFailure = null);
                   _loadMore();
                 },
+                onOpenVehicle: (vehicle) =>
+                    Routes.goToVehicle(context, vehicle.id),
+                emptyMessage: l10n.vehiclesEmpty,
                 prefetchThreshold: _prefetchThreshold,
               ),
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-class _Results extends StatelessWidget {
-  const _Results({
-    required this.vehicles,
-    required this.totalCount,
-    required this.hasMore,
-    required this.loadingMore,
-    required this.moreFailure,
-    required this.onLoadMore,
-    required this.onRetryMore,
-    required this.prefetchThreshold,
-  });
-
-  final List<VehicleSummary> vehicles;
-  final int totalCount;
-  final bool hasMore;
-  final bool loadingMore;
-  final Failure? moreFailure;
-  final VoidCallback onLoadMore;
-  final VoidCallback onRetryMore;
-  final int prefetchThreshold;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-
-    if (vehicles.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(l10n.vehiclesEmpty, textAlign: TextAlign.center),
-        ),
-      );
-    }
-
-    final trailing = hasMore ? 1 : 0;
-
-    // `ListView.builder` لا `ListView`: العناصر تُبنى عند ظهورها، فالمصغَّرات
-    // تُطلب عند التمرير إليها لا كلها عند الفتح — وهو نصف معيار H2.
-    return ListView.builder(
-      itemCount: vehicles.length + trailing + 1,
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text(
-              // العدد الكلي من الخادم، لا طول ما وصل: قائمةٌ من مئتي مركبة
-              // عُرض منها عشرون تقول «مئتان»، لا «عشرون».
-              l10n.vehiclesResultsCount(totalCount),
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          );
-        }
-
-        final vehicleIndex = index - 1;
-        if (vehicleIndex < vehicles.length) {
-          if (hasMore &&
-              vehicleIndex >= vehicles.length - prefetchThreshold &&
-              !loadingMore &&
-              moreFailure == null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) => onLoadMore());
-          }
-          final vehicle = vehicles[vehicleIndex];
-          return VehicleCard(
-            key: ValueKey<String>(vehicle.id),
-            vehicle: vehicle,
-            onTap: () => Routes.goToVehicle(context, vehicle.id),
-          );
-        }
-
-        final failure = moreFailure;
-        if (failure != null) {
-          return FailureView(failure: failure, onRetry: onRetryMore);
-        }
-        return const Padding(
-          padding: EdgeInsets.all(16),
-          child: Center(child: CircularProgressIndicator()),
-        );
-      },
     );
   }
 }

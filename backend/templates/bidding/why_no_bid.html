@@ -30,10 +30,10 @@ belonging to some other tool.
   {% if lookup.bidder %}
     <p>
       العميل: <strong>{{ lookup.bidder }}</strong> ·
-      {# The next question is always «وكم عنده الآن؟», and it is a different
+      {% comment %} The next question is always «وكم عنده الآن؟», and it is a different
          question from the one this page answers. So it is a link, not a column:
          a fresh balance printed beside a snapshot is two numbers that look like
-         one, and support quotes whichever their eye lands on. #}
+         one, and support quotes whichever their eye lands on. {% endcomment %}
       <a href="{% url 'console:money-customer' lookup.bidder.pk %}">دفتره الآن ←</a>
     </p>
 
@@ -54,10 +54,10 @@ belonging to some other tool.
           </tr>
         </thead>
         <tbody>
-          {# `unlocalize`: money is shown exactly as the ledger stores it. The
+          {% comment %} `unlocalize`: money is shown exactly as the ledger stores it. The
              page exists so an agent can compare a number against a statement
              or an Odoo invoice, and a locale that redraws the digits makes
-             that comparison a translation exercise. #}
+             that comparison a translation exercise. {% endcomment %}
           {% for refusal in lookup.refusals %}
             <tr>
               <td class="money">{{ refusal.refused_at|date:"Y-m-d H:i" }}</td>
@@ -68,10 +68,10 @@ belonging to some other tool.
               <td class="money">{{ refusal.insurance_free|unlocalize }}</td>
               <td class="money">{{ refusal.insurance_held|unlocalize }}</td>
               <td class="money">{{ refusal.insurance_locked|unlocalize }}</td>
-              {# The number the customer quotes on the phone. Without it the
+              {% comment %} The number the customer quotes on the phone. Without it the
                  agent adds three columns in their head before they can agree
                  with him — and «كان عندي عشرة آلاف» is true of someone holding
-                 2,000 free and 8,000 locked. #}
+                 2,000 free and 8,000 locked. {% endcomment %}
               <td class="money">{{ refusal.insurance_total|unlocalize }}</td>
               <td class="money">{{ refusal.outstanding_dues|unlocalize }}</td>
             </tr>

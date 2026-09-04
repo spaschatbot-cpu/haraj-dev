@@ -121,6 +121,19 @@ paths:
           minimum: 0
           default: 0
       - in: query
+        name: phase
+        schema:
+          enum:
+          - soon
+          - active
+          - ended
+          - ''
+          type: string
+        description: |-
+          * `soon` - قريباً
+          * `active` - نشط
+          * `ended` - منتهي
+      - in: query
         name: search
         schema:
           type: string
@@ -968,6 +981,19 @@ paths:
           type: integer
           minimum: 0
           default: 0
+      - in: query
+        name: phase
+        schema:
+          enum:
+          - soon
+          - active
+          - ended
+          - ''
+          type: string
+        description: |-
+          * `soon` - قريباً
+          * `active` - نشط
+          * `ended` - منتهي
       - in: query
         name: search
         schema:
@@ -2018,6 +2044,25 @@ components:
         * `cancelled` - ألغاها العميل
         * `expired` - انتهت مهلتها
         * `disputed` - محل نزاع
+    PhaseCounts:
+      type: object
+      description: |-
+        The three tab counters, in the one response that carries the page.
+
+        Three named fields and not a map keyed by phase: a generated Dart or
+        TypeScript client turns the first into three typed getters and the second
+        into `Map<String, int>?`, and a screen reading `counts['activ']` compiles.
+      properties:
+        soon:
+          type: integer
+        active:
+          type: integer
+        ended:
+          type: integer
+      required:
+      - active
+      - ended
+      - soon
     PlaceBid:
       type: object
       description: One bid on one car.
@@ -2326,10 +2371,20 @@ components:
       properties:
         id:
           type: integer
+        auction_id:
+          type: integer
         auction_number:
           type: integer
+        auction_title:
+          type: string
         auction_state:
           type: string
+        auction_starts_at:
+          type: string
+          format: date-time
+        auction_ends_at:
+          type: string
+          format: date-time
         lot_number:
           type: integer
         title:
@@ -2375,8 +2430,12 @@ components:
           type: string
           nullable: true
       required:
+      - auction_ends_at
+      - auction_id
       - auction_number
+      - auction_starts_at
       - auction_state
+      - auction_title
       - condition
       - condition_label
       - fuel_type
@@ -2400,14 +2459,24 @@ components:
       - year
     VehiclePage:
       type: object
+      description: |-
+        A page of cars, its total, and the three tab counters.
+
+        The counters ride along on **every** vehicle page, whichever tab was asked
+        for, because all three tabs are on screen at all times. Splitting them into
+        a second endpoint is what v1 did — six requests to draw three numbers — and
+        it made the three numbers three different moments.
       properties:
         total:
           type: integer
+        counts:
+          $ref: '#/components/schemas/PhaseCounts'
         results:
           type: array
           items:
             $ref: '#/components/schemas/VehicleCard'
       required:
+      - counts
       - results
       - total
     VerifyCode:

@@ -26,12 +26,21 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import type { components } from "@/lib/api";
-import { amount, count } from "@/lib/format";
+import type { Vehicle } from "@/lib/api";
+import { amount, count, remaining } from "@/lib/format";
 
-export type Vehicle = components["schemas"]["VehicleCard"];
+import { Countdown } from "./Countdown";
 
-export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
+export type { Vehicle };
+
+export function VehicleCard({
+  vehicle,
+  /** لحظة إنتاج الرد — منها ينطلق العدّاد. انظر `respondedAt`. */
+  now,
+}: {
+  vehicle: Vehicle;
+  now: number;
+}) {
   return (
     <article className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
       <Link href={`/vehicles/${vehicle.id}`} className="block">
@@ -45,7 +54,7 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
               className="object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+            <div className="flex h-full items-center justify-center text-sm text-neutral-500">
               لا توجد صورة
             </div>
           )}
@@ -96,22 +105,52 @@ export function VehicleCard({ vehicle }: { vehicle: Vehicle }) {
               </span>
             )}
           </p>
+
+          {/*
+            العدّاد على الكرت لأن السؤال يُسأل عند الكرت: «كم بقي لهذه؟». وهو
+            هنا لا في الصفحة، فيظهر في كل قائمة تعرض مركبة — شبكة الجذر وصفحة
+            المزاد والمفضّلة — بلا أن يتذكّره أحد.
+
+            وحين لا يرسل الخادم لحظة الانتهاء لا يُرسم شيء: عدّادٌ من لا شيء
+            كذبة، وشرطةٌ مكانه سؤالٌ بلا داعٍ.
+          */}
+          {vehicle.auction_ends_at ? (
+            <Countdown
+              endsAt={vehicle.auction_ends_at}
+              initial={remaining(vehicle.auction_ends_at, now)}
+            />
+          ) : null}
         </div>
       </Link>
     </article>
   );
 }
 
-/** The grid every list uses, so spacing is not decided per screen either. */
-export function VehicleGrid({ vehicles }: { vehicles: Vehicle[] }) {
+/**
+ * The grid every list uses, so spacing is not decided per screen either.
+ *
+ * `empty` تُمرَّر لأن **سبب** الفراغ يختلف باختلاف الشاشة: شبكةٌ فارغة في تبويب
+ * «قريباً» تعني «لا مزاد قادم»، وفي نتيجة بحث تعني «لا مطابق لبحثك»، والجملتان
+ * لا تُستنتج إحداهما من الأخرى هنا — من يعرف السياق هو من يستدعي. وما يبقى
+ * واحداً هو أن الفراغ **يُشرح** ولا يُترك شبكةً بيضاء.
+ */
+export function VehicleGrid({
+  vehicles,
+  now,
+  empty = "لا مركبات مطابقة.",
+}: {
+  vehicles: Vehicle[];
+  now: number;
+  empty?: string;
+}) {
   if (vehicles.length === 0) {
-    return <p className="py-12 text-center text-neutral-500">لا مركبات مطابقة.</p>;
+    return <p className="py-12 text-center text-neutral-500">{empty}</p>;
   }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {vehicles.map((vehicle) => (
-        <VehicleCard key={vehicle.id} vehicle={vehicle} />
+        <VehicleCard key={vehicle.id} vehicle={vehicle} now={now} />
       ))}
     </div>
   );

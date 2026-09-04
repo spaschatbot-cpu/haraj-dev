@@ -28,7 +28,7 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
     <tr><th>الحالة</th><td><strong>{{ invoice.get_state_display }}</strong>
       (مشتقّة من الدفعات المرحَّلة)</td></tr>
     <tr><th>حالة أودو الخام</th><td>
-      {# Their word, marked as theirs. Never branched on. #}
+      {% comment %} Their word, marked as theirs. Never branched on. {% endcomment %}
       <span class="empty">{{ invoice.odoo_state_raw|default:"—" }} — كلام أودو، لا يُبنى عليه</span>
     </td></tr>
     <tr><th>صدرت</th><td>{{ invoice.issued_at }}</td></tr>
@@ -45,8 +45,8 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
           <td>{{ payment.memo|default:"—" }}</td>
         </tr>
       {% empty %}
-        {# The T809 case: a transfer Odoo holds as a draft has no posted
-           payment here, so this list is empty and the invoice reads open. #}
+        {% comment %} The T809 case: a transfer Odoo holds as a draft has no posted
+           payment here, so this list is empty and the invoice reads open. {% endcomment %}
         <tr><td colspan="3" class="empty">لا دفعات مرحَّلة على هذه الفاتورة.</td></tr>
       {% endfor %}
     </tbody>

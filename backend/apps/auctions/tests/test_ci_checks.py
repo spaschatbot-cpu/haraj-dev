@@ -184,6 +184,56 @@ def test_the_card_check_leaves_a_row_of_column_values_alone(tmp_path):
     assert check.violations([root]) == []
 
 
+def test_the_card_check_leaves_a_bid_row_alone(tmp_path):
+    """A bid naming the car it is on is not a card of that car.
+
+    `id`, `auction_id` and `lot_number` are three plain column values — two of
+    them written by Django rather than by the author, which is exactly why the
+    check used to read them as *computed* and call this a hand-drawn card. It is
+    the opposite: `bid_row` deliberately carries three identifiers and no card,
+    because a live bid list that shipped a thumbnail and a specification per row
+    is the payload T624 exists to avoid.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "views.py",
+        "def bid_row(bid):\n"
+        "    vehicle = bid.vehicle\n"
+        "    return {\n"
+        "        'id': bid.pk,\n"
+        "        'auction_id': vehicle.auction_id,\n"
+        "        'lot_number': vehicle.lot_number,\n"
+        "        'amount': str(bid.amount),\n"
+        "    }\n",
+    )
+
+    assert check.violations([root]) == []
+
+
+def test_the_card_check_still_catches_a_card_that_names_the_auction(tmp_path):
+    """The widening above must not blind the check to the thing it guards.
+
+    The same three identifiers plus one field the card *computes* — the
+    auction's title, which no column on `Vehicle` carries — is somebody drawing
+    a card by hand, and it is still refused.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "views.py",
+        "def payload(vehicle):\n"
+        "    return {\n"
+        "        'id': vehicle.pk,\n"
+        "        'auction_id': vehicle.auction_id,\n"
+        "        'lot_number': vehicle.lot_number,\n"
+        "        'auction_title': vehicle.auction.title,\n"
+        "    }\n",
+    )
+
+    assert len(check.violations([root])) == 1
+
+
 def test_the_card_check_catches_a_second_field_list(tmp_path):
     check = load("one_vehicle_card")
     root = write(

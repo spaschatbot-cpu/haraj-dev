@@ -245,13 +245,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeTitle => 'Auctions';
 
   @override
-  String get homeRunningSection => 'Live auctions';
+  String get homeTabUpcoming => 'Upcoming';
 
   @override
-  String get homeUpcomingSection => 'Upcoming auctions';
+  String get homeTabActive => 'Live';
 
   @override
-  String get homeEmpty => 'There are no live or upcoming auctions right now.';
+  String get homeTabEnded => 'Ended';
+
+  @override
+  String homeTabWithCount(String label, int count) {
+    return '$label ($count)';
+  }
+
+  @override
+  String get homeEmptyUpcoming => 'No upcoming auction right now.';
+
+  @override
+  String get homeEmptyActive => 'No live auction right now.';
+
+  @override
+  String get homeEmptyEnded => 'No ended auction yet.';
+
+  @override
+  String get vehicleAuctionEnded => 'Auction ended';
 
   @override
   String auctionStartsAt(DateTime date, DateTime time) {

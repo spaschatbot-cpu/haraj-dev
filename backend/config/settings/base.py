@@ -158,7 +158,18 @@ USE_TZ = True
 # by hand — `ops/checks/console_urls_are_named.py` fails the build on one.
 APP_BASE = env("APP_BASE", default="console").strip("/")
 
-STATIC_URL = "static/"
+# Staff sign-in lands in the staff console, not Django's raw admin index. An
+# explicit `?next=` still wins — this is only the default for a bare visit to
+# the login page, which otherwise drops a freshly signed-in operator on a
+# developer screen with no way forward.
+LOGIN_REDIRECT_URL = f"/{APP_BASE}/"
+
+# Absolute, with the leading slash, deliberately. A relative "static/" makes
+# `{% static %}` emit a path resolved against the *page* — so the stylesheet of
+# `/admin/login/` was requested from `/admin/static/…` and no styled page ever
+# loaded, including Django's own admin skin. Nobody noticed because the project
+# had no static files of its own until the console gained one (T819).
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "media/"
 MEDIA_ROOT = env("MEDIA_ROOT", default=str(BASE_DIR / "media"))

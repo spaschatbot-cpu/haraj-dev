@@ -23,7 +23,12 @@ export function PageShell({
             حراج
           </Link>
           <nav className="flex gap-4 text-sm">
-            <Link href="/auctions" className="text-neutral-700 hover:underline">
+            {/*
+              الجذر هو المدخل الوحيد: شبكة المركبات وتبويبات حالة المزاد باسم
+              «المزادات». لا رابط لقائمة مزادات — المزاد أسبوعي واحد، وقائمته
+              للإدارة لا للعميل.
+            */}
+            <Link href="/" className="text-neutral-700 hover:underline">
               المزادات
             </Link>
             <Link href="/bids" className="text-neutral-700 hover:underline">
