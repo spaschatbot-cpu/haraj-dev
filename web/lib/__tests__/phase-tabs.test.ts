@@ -72,7 +72,7 @@ const OTHER_VEHICLE = { ...VEHICLE, id: 92, lot_number: 15, title: "نيسان �
  * القاعدة التي يمنعها هذا الملف. الفارق هنا هو ما يجعل «من الخادم» قابلاً
  * للإثبات: لا شيء في الصفحة يستطيع اشتقاق ٤١ من مركبتين.
  */
-const COUNTS = { upcoming: 3, active: 41, ended: 128 };
+const COUNTS = { soon: 3, active: 41, ended: 128 };
 
 let asked: string[] = [];
 let results: unknown[] = [VEHICLE, OTHER_VEHICLE];
@@ -175,10 +175,10 @@ describe("العدّادات من الخادم، وفي طلب واحد", () => 
 });
 
 describe("التبويب في العنوان", () => {
-  it("‏`?phase=upcoming` يصل إلى الخادم كما هو", async () => {
-    await render({ phase: "upcoming" });
+  it("‏`?phase=soon` يصل إلى الخادم كما هو", async () => {
+    await render({ phase: "soon" });
 
-    expect(asked[0]).toContain("phase=upcoming");
+    expect(asked[0]).toContain("phase=soon");
   });
 
   it("بلا تبويب في العنوان يُسأل الافتراضي — ولا يُترك للخادم أن يخمّن", async () => {
@@ -223,7 +223,7 @@ describe("الفراغ والفشل شاشتان، لا غياب", () => {
   it("التبويب الفارغ يقول لماذا هو فارغ", async () => {
     results = [];
 
-    expect(await render({ phase: "upcoming" })).toContain("لا مزاد قادم الآن.");
+    expect(await render({ phase: "soon" })).toContain("لا مزاد قادم الآن.");
     expect(await render({ phase: "active" })).toContain("لا مزاد جارٍ الآن");
     expect(await render({ phase: "ended" })).toContain("لا مزاد منتهٍ بعد.");
   });

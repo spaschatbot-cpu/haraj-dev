@@ -30,7 +30,7 @@
 import type { components } from "./schema";
 
 /** الحالات الثلاث كما يسمّيها الخادم. التسمية عقد، لا اختيار عرض. */
-export const PHASES = ["upcoming", "active", "ended"] as const;
+export const PHASES = ["soon", "active", "ended"] as const;
 
 export type Phase = (typeof PHASES)[number];
 

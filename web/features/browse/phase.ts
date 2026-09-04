@@ -43,7 +43,7 @@ interface Tab {
 }
 
 export const TABS: readonly Tab[] = [
-  { id: "upcoming", label: "قريباً", empty: "لا مزاد قادم الآن." },
+  { id: "soon", label: "قريباً", empty: "لا مزاد قادم الآن." },
   { id: "active", label: "نشط", empty: "لا مزاد جارٍ الآن — تابع تبويب «قريباً»." },
   { id: "ended", label: "منتهي", empty: "لا مزاد منتهٍ بعد." },
 ];

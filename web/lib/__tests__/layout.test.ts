@@ -301,9 +301,24 @@ function answer(body: unknown) {
   });
 }
 
+/**
+ * اللحظة التي تُقاس منها كل العدّادات في هذا الملف.
+ *
+ * **لماذا مثبَّتة:** العدّاد على الكرت فرقٌ بين لحظة انتهاء المزاد و«الآن»،
+ * و«الآن» في اختبارٍ غير مثبَّت هو ساعة الجهاز — فاللقطة تُسجَّل عند «و٧
+ * ساعات» وتفشل بعد ساعة عند «و٦ ساعات» بلا أن يلمس أحدٌ سطراً. وقد حدث ذلك
+ * فعلاً: ثلاث لقطات سقطت وحدها، والفرق بينها وبين المسجَّل حرفٌ واحد.
+ *
+ * والعلاج تثبيت اللحظة لا إعادة تسجيل اللقطة: إعادة التسجيل تجعلها تمرّ
+ * الآن وتسقط بعد ساعة، فتُخفي العطل بدل أن تصلحه.
+ */
+const FROZEN_NOW = new Date("2026-01-15T09:00:00Z");
+
 beforeEach(() => {
   cookieJar.clear();
   listsAreEmpty = false;
+  vi.useFakeTimers();
+  vi.setSystemTime(FROZEN_NOW);
   vi.stubGlobal(
     "fetch",
     vi.fn(async (input: RequestInfo | URL) => {
@@ -331,7 +346,7 @@ beforeEach(() => {
         return answer({
           total: 1,
           results: [VEHICLE],
-          counts: { upcoming: 3, active: 41, ended: 128 },
+          counts: { soon: 3, active: 41, ended: 128 },
         });
       }
       if (/\/auctions\/\d+\//.test(url)) return answer(AUCTION);
@@ -342,6 +357,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
