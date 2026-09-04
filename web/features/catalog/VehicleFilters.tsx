@@ -94,7 +94,7 @@ export function VehicleFilters({
           name="search"
           defaultValue={values.get("search") ?? ""}
           placeholder="ماركة أو طراز أو رقم لوت"
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded border border-neutral-500 px-3 py-2"
         />
       </label>
 
@@ -104,7 +104,7 @@ export function VehicleFilters({
           type="text"
           name="make"
           defaultValue={values.get("make") ?? ""}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded border border-neutral-500 px-3 py-2"
         />
       </label>
 
@@ -115,7 +115,7 @@ export function VehicleFilters({
           name="year_from"
           inputMode="numeric"
           defaultValue={values.get("year_from") ?? ""}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded border border-neutral-500 px-3 py-2"
         />
       </label>
 
@@ -126,7 +126,7 @@ export function VehicleFilters({
           name="year_to"
           inputMode="numeric"
           defaultValue={values.get("year_to") ?? ""}
-          className="rounded border border-neutral-300 px-3 py-2"
+          className="rounded border border-neutral-500 px-3 py-2"
         />
       </label>
 

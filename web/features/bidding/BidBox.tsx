@@ -62,7 +62,7 @@ export function BidBox({
           inputMode="decimal"
           required
           defaultValue={requested}
-          className="money rounded border border-neutral-300 px-3 py-2 text-lg"
+          className="money rounded border border-neutral-500 px-3 py-2 text-lg"
         />
       </label>
 

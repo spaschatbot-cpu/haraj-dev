@@ -77,7 +77,7 @@ export default async function WalletPage() {
           <div key={label} className="rounded-lg border border-neutral-200 bg-white p-4">
             <p className="text-sm text-neutral-500">{label}</p>
             <p className="money mt-1 text-2xl font-bold">{amount(value)}</p>
-            <p className="text-xs text-neutral-400">{wallet.currency}</p>
+            <p className="text-xs text-neutral-500">{wallet.currency}</p>
           </div>
         ))}
       </div>

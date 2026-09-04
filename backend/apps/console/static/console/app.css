@@ -13,19 +13,37 @@
   --ground: #e9f1f9;
   --panel: #ffffff;
   --ink: #1e3a5c;
-  --muted: #5b7a99;
-  --faint: #8ba9c4;
+  --muted: #54708d;
   --line: #d3e3f2;
   --line-soft: #e6f0f9;
-  --field-border: #b9d2e8;
+  /* حدّ الحقل مكوّن واجهة، وحدّه ٣:١ (معيار 1.4.11) لا ١٫٥٦ كما كان: حقلٌ
+     حدّه لا يُرى يجعل النموذج مساحةً بيضاء لا يُعرف أين يُكتب فيها، وأول من
+     يفقده من يقرأ على شاشةٍ باهتة أو في ضوء نهار. */
+  --field-border: #5f97c8;
 
+  /*
+    ثلاثة زرقاوات لا واحد، لأن للاستعمالين حدَّي تباين مختلفين:
+
+    · --brand يُرسَم به ما ليس نصّاً — حدٌّ، إطار تركيز، تدرّج. معيار WCAG
+      لمكوّنات الواجهة ٣:١، وهذا اللون يبلغ ٣٫٠٦ على الأبيض، فيمرّ ويبقى
+      اللون السماوي كما هو.
+    · --brand-solid خلفيةٌ يُكتب فوقها بالأبيض — الزرّ، والرابط الفعّال في
+      القائمة. النصّ الصغير يحتاج ٤٫٥، وكان --brand يعطي ٣٫٠٦: زرّ «تسجيل
+      الدخول» نفسه كان راسباً.
+    · --brand-dark نصٌّ أزرق على أبيض — الروابط والعناوين. كان ٤٫١٣ فأُنزل
+      قليلاً إلى ٤٫٥٤.
+
+    خلطُ الثلاثة في متغيّر واحد يعني أن تصحيح الزرّ يُطفئ التدرّج، أو أن
+    إبقاء التدرّج يترك الزرّ راسباً — وهو ما كان.
+  */
   --brand: #3d9bd6;
-  --brand-dark: #2b83bd;
+  --brand-solid: #267cb2;
+  --brand-dark: #297cb3;
   --brand-soft: #e2f1fd;
 
   --side: #ffffff;
   --side-ink: #1e3a5c;
-  --side-dim: #6b8aa5;
+  --side-dim: #5b7a95;
 
   --danger: #b42318;
   --danger-soft: #fdecea;
@@ -88,8 +106,8 @@ body {
   padding: .45rem .7rem;
   border-radius: .45rem;
 }
-.nav a:hover { background: var(--brand-soft); color: var(--brand-dark); }
-.nav a.active { background: var(--brand); color: #fff; font-weight: 700; }
+.nav a:hover { background: var(--brand-soft); color: var(--ink); }
+.nav a.active { background: var(--brand-solid); color: #fff; font-weight: 700; }
 
 .shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -142,8 +160,11 @@ main h1 { font-size: 1.45rem; margin: 0 0 1.2rem; }
 main h2 { font-size: 1.05rem; margin: 1.8rem 0 .7rem; }
 main p { margin: .6rem 0; }
 
+/* المرور يزيد الوضوح لا ينقصه: كان الرابط يفتحّ إلى --brand فيهبط تباينه
+   من ٤٫٥٤ إلى ٣٫٠٦ — أي أن إشارة «هذا قابل للنقر» كانت تجعله أصعب قراءةً.
+   الخطّ يقول ذلك بلا لون، ويصل لمن لا يميّز الأزرقين أصلاً. */
 main a { color: var(--brand-dark); }
-main a:hover { color: var(--brand); }
+main a:hover { color: var(--ink); text-decoration-thickness: 2px; }
 
 /* الجداول بطاقات بيضاء برأس ثابت اللون وصفّ يتظلل عند المرور. */
 table {
@@ -197,10 +218,14 @@ input, select, textarea {
   width: 100%;
   max-width: 26rem;
 }
-input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
-  outline: 2px solid var(--brand);
+/* إطار التركيز بـ--brand-solid لا --brand: مكوّنات الواجهة تحتاج ٣:١، و--brand
+   يبلغ ٢٫٦٩ على الأرضية الرمادية — أي أن من يتنقّل بلوحة المفاتيح يفقد أثره
+   على نصف الشاشات. */
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--brand-solid);
   outline-offset: 1px;
-  border-color: var(--brand);
+  border-color: var(--brand-solid);
 }
 input[type="checkbox"], input[type="radio"] { width: auto; }
 input[type="file"] { border-style: dashed; background: #f7faf9; }
@@ -212,7 +237,7 @@ form > input, form > select, form > button { margin-inline-end: .5rem; margin-bl
 button, input[type="submit"] {
   font: inherit;
   font-weight: 700;
-  background: var(--brand);
+  background: var(--brand-solid);
   color: #fff;
   border: 0;
   border-radius: .45rem;

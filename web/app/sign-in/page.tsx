@@ -67,7 +67,7 @@ export default async function SignInPage({
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 required
-                className="money rounded border border-neutral-300 px-3 py-2 text-lg"
+                className="money rounded border border-neutral-500 px-3 py-2 text-lg"
               />
             </label>
 
@@ -82,7 +82,7 @@ export default async function SignInPage({
                 type="text"
                 name="full_name"
                 autoComplete="name"
-                className="rounded border border-neutral-300 px-3 py-2"
+                className="rounded border border-neutral-500 px-3 py-2"
               />
             </label>
 
@@ -109,7 +109,7 @@ export default async function SignInPage({
                 autoComplete="tel"
                 required
                 placeholder="9665XXXXXXXX"
-                className="money rounded border border-neutral-300 px-3 py-2 text-lg"
+                className="money rounded border border-neutral-500 px-3 py-2 text-lg"
               />
             </label>
 

@@ -41,7 +41,7 @@ export function Pagination({ query, total, limit, offset, path }: Props) {
           الصفحة السابقة
         </Link>
       ) : (
-        <span className="text-neutral-400">الصفحة السابقة</span>
+        <span className="text-neutral-500">الصفحة السابقة</span>
       )}
 
       <span className="text-neutral-600">
@@ -53,7 +53,7 @@ export function Pagination({ query, total, limit, offset, path }: Props) {
           الصفحة التالية
         </Link>
       ) : (
-        <span className="text-neutral-400">الصفحة التالية</span>
+        <span className="text-neutral-500">الصفحة التالية</span>
       )}
     </nav>
   );

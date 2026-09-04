@@ -54,7 +54,7 @@ export function VehicleCard({
               className="object-cover"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-neutral-400">
+            <div className="flex h-full items-center justify-center text-sm text-neutral-500">
               لا توجد صورة
             </div>
           )}

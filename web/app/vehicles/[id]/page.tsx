@@ -204,7 +204,7 @@ export default async function VehiclePage({ params }: Params) {
               priority
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-neutral-400">
+            <div className="flex h-full items-center justify-center text-neutral-500">
               لا توجد صورة
             </div>
           )}
