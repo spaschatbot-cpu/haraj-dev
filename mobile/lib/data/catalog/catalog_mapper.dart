@@ -1,13 +1,18 @@
+import '../../domain/catalog/entities/auction_phase.dart';
 import '../../domain/catalog/entities/auction_summary.dart';
 import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/catalog/entities/vehicle_feed.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/money.dart';
 import '../api/generated/models/auction.dart' as api;
+import '../api/generated/models/auction_phase.dart' as api;
 import '../api/generated/models/paginated_vehicle_card_list.dart' as api;
+import '../api/generated/models/phase_counts.dart' as api;
 import '../api/generated/models/specification.dart' as api;
 import '../api/generated/models/vehicle.dart' as api;
 import '../api/generated/models/vehicle_card.dart' as api;
+import '../api/generated/models/vehicle_feed_page.dart' as api;
 
 /// تحويل نماذج المخطط المولَّدة إلى كيانات النطاق.
 ///
@@ -32,6 +37,48 @@ extension VehicleCardMapper on api.VehicleCard {
     thumbnailUrl: thumbnailUrl,
     reservePrice: _money(reservePrice, currency),
     bidsCount: bidsCount,
+    auctionId: auctionId,
+    phase: phase.toDomain(),
+    auctionEndsAt: auctionEndsAt.toUtc(),
+  );
+}
+
+extension AuctionPhaseMapper on api.AuctionPhase {
+  /// طورٌ لم يعرفه هذا الإصدار يصير `unknown` ولا يرمي: المادة ٢-٣ — كلمة
+  /// الخادم تُحفظ ولا تُسقط الاستجابة التي تحملها. مركبةٌ بطورٍ مجهول تُعرض،
+  /// ولا يُقال عنها «منتهية».
+  AuctionPhase toDomain() => switch (this) {
+    api.AuctionPhase.upcoming => AuctionPhase.upcoming,
+    api.AuctionPhase.active => AuctionPhase.active,
+    api.AuctionPhase.ended => AuctionPhase.ended,
+    api.AuctionPhase.$unknown => AuctionPhase.unknown,
+  };
+}
+
+/// الاتجاه المعاكس — طورٌ يُسأل عنه الخادم.
+///
+/// `unknown` لا يُرسَل: لا معنى لسؤال «وريني ما لا أفهمه»، وإرسال نصٍّ فارغ
+/// يجعل الخادم يرشّح على قيمة لا وجود لها فيردّ فراغاً بلا سبب مكتوب.
+api.AuctionPhase? apiPhaseOf(AuctionPhase? phase) => switch (phase) {
+  AuctionPhase.upcoming => api.AuctionPhase.upcoming,
+  AuctionPhase.active => api.AuctionPhase.active,
+  AuctionPhase.ended => api.AuctionPhase.ended,
+  AuctionPhase.unknown || null => null,
+};
+
+extension PhaseCountsMapper on api.PhaseCounts {
+  PhaseCounts toDomain() =>
+      PhaseCounts(upcoming: upcoming, active: active, ended: ended);
+}
+
+extension VehicleFeedMapper on api.VehicleFeedPage {
+  VehicleFeed toDomain() => VehicleFeed(
+    page: VehiclePage(
+      vehicles: results.map((card) => card.toDomain()).toList(growable: false),
+      totalCount: count,
+      hasMore: next != null,
+    ),
+    counts: counts.toDomain(),
   );
 }
 

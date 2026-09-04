@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haraj_mobile/app/theme.dart';
-import 'package:haraj_mobile/domain/catalog/entities/auction_summary.dart';
+import 'package:haraj_mobile/domain/catalog/entities/vehicle_feed.dart';
+import 'package:haraj_mobile/domain/catalog/entities/vehicle_summary.dart';
+import 'package:haraj_mobile/domain/common/snapshot.dart';
 import 'package:haraj_mobile/l10n/generated/app_localizations.dart';
 import 'package:haraj_mobile/presentation/catalog/home_screen.dart';
 
@@ -13,17 +15,19 @@ import '../support/pump_app.dart';
 /// الشاشة المفحوصة هنا هي الرئيسية (T707): أول شاشة منتج حقيقية حلّت محلّ شاشة
 /// البذرة. فحصُ الاتجاه على شاشة حقيقية أصدق من فحصه على شاشة كُتبت للفحص.
 void main() {
-  FakeCatalogRepository catalogWithOneAuction() => FakeCatalogRepository(
-    home: fresh(
-      HomeAuctions(
-        running: <AuctionSummary>[auctionSummary()],
-        upcoming: const <AuctionSummary>[],
+  FakeCatalogRepository catalogWithOneVehicle() => FakeCatalogRepository(
+    feedPages: <int, Snapshot<VehicleFeed>>{
+      1: fresh(
+        vehicleFeed(
+          vehicles: <VehicleSummary>[vehicleSummary()],
+          counts: phaseCounts(active: 1),
+        ),
       ),
-    ),
+    },
   );
 
   testWidgets('التطبيق يقلع بالعربية واتجاه RTL', (tester) async {
-    await pumpApp(tester, catalog: catalogWithOneAuction());
+    await pumpApp(tester, catalog: catalogWithOneVehicle());
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(HomeScreen));
@@ -37,7 +41,7 @@ void main() {
     // بالضبط ما يكشفه هذا الاختبار.
     await pumpApp(
       tester,
-      catalog: catalogWithOneAuction(),
+      catalog: catalogWithOneVehicle(),
       locale: const Locale('en'),
     );
     await tester.pumpAndSettle();
@@ -48,20 +52,23 @@ void main() {
   });
 
   testWidgets('نصّ الشاشة يأتي من ملف الترجمة', (tester) async {
-    await pumpApp(tester, catalog: catalogWithOneAuction());
+    await pumpApp(tester, catalog: catalogWithOneVehicle());
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(HomeScreen));
     final l10n = AppLocalizations.of(context);
 
     expect(find.text(l10n.homeTitle), findsOneWidget);
-    expect(find.text(l10n.homeRunningSection), findsOneWidget);
+    expect(
+      find.text(l10n.homeTabWithCount(l10n.homeTabActive, 1)),
+      findsOneWidget,
+    );
   });
 
   testWidgets('الخط العربي مبنيّ في الحزمة لا مجلوب وقت التشغيل', (
     tester,
   ) async {
-    await pumpApp(tester, catalog: catalogWithOneAuction());
+    await pumpApp(tester, catalog: catalogWithOneVehicle());
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(HomeScreen));

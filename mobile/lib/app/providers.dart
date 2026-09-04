@@ -48,6 +48,7 @@ import '../domain/catalog/repositories/catalog_repository.dart';
 import '../domain/catalog/usecases/load_auction_vehicles.dart';
 import '../domain/catalog/usecases/load_home_auctions.dart';
 import '../domain/catalog/usecases/load_vehicle.dart';
+import '../domain/catalog/usecases/load_vehicle_feed.dart';
 import '../domain/common/snapshot.dart';
 import '../domain/notifications/repositories/device_registry.dart';
 import '../domain/notifications/repositories/push_service.dart';
@@ -277,6 +278,11 @@ final loadAuctionVehiclesProvider = Provider<LoadAuctionVehicles>(
 
 final loadVehicleProvider = Provider<LoadVehicle>(
   (ref) => LoadVehicle(ref.watch(catalogRepositoryProvider)),
+);
+
+/// شبكة الرئيسية: صفحةُ التبويب وعدّاداته الثلاثة في طلب واحد.
+final loadVehicleFeedProvider = Provider<LoadVehicleFeed>(
+  (ref) => LoadVehicleFeed(ref.watch(catalogRepositoryProvider)),
 );
 
 /// **لا إعادة محاولة صامتة.**

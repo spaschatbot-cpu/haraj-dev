@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../domain/catalog/entities/auction_phase.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../common/money_text.dart';
+import 'countdown_text.dart';
 import 'remote_image.dart';
 
 /// كرت المركبة — **مكوّن واحد، ولا رسم لكرت خارجه** (T708).
@@ -20,6 +22,12 @@ import 'remote_image.dart';
 /// تقديرية»، ولا حساب في الشاشة: في v1 حُسب سعر المركبة في أربع شاشات بأربع
 /// طرق فاختلفت الأرقام أمام العميل (المادة ٤-٥، ودليل النظام §8-3). ويُعرض
 /// عبر `MoneyText` كما وصل نصّاً — بلا فواصل ولا تقريب.
+///
+/// **«انتهى» يقولها الخادم، والعدّاد يقول «كم بقي» فقط.** الطور يأتي جاهزاً في
+/// `phase`، والكرت يطبعه كما وصل؛ ولا يقارن `auctionEndsAt` بساعة الجهاز
+/// ليستنتجه. هذا بعينه ما فعله v1: عدّادٌ تنازلي على ساعة العميل كتب «انتهى»
+/// على مزادٍ ما زال مفتوحاً لكل من ساعته متقدّمة دقيقتين، فأغلق باب المزايدة
+/// أمامه وهو مفتوح.
 class VehicleCard extends StatelessWidget {
   const VehicleCard({required this.vehicle, this.onTap, super.key});
 
@@ -51,7 +59,14 @@ class VehicleCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text(vehicle.title, style: theme.textTheme.titleMedium),
+                  // سطران على الأكثر: عنوانٌ طويل في خليّة شبكة يدفع السعر
+                  // خارج الكرت، فيُقصّ الرقم بدل أن يُقصّ الاسم.
+                  Text(
+                    vehicle.title,
+                    style: theme.textTheme.titleMedium,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     l10n.vehicleLot(vehicle.lotNumber),
@@ -85,6 +100,21 @@ class VehicleCard extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  // مزادٌ قاله الخادم منتهياً لا عدّاد له: العدّ إلى لحظةٍ مضت
+                  // يعطي نصّاً عن ساعة الجهاز، والخبر عن المزاد أصدق منه.
+                  // وطورٌ لا نعرفه يُعامَل معاملة القائم لا المنتهي — الجهل
+                  // ليس نفياً (المادة ٢-٣).
+                  if (vehicle.phase == AuctionPhase.ended)
+                    Text(
+                      l10n.vehicleAuctionEnded,
+                      style: theme.textTheme.bodyMedium,
+                    )
+                  else
+                    CountdownText(
+                      at: vehicle.auctionEndsAt,
+                      target: CountdownTarget.end,
+                    ),
                 ],
               ),
             ),

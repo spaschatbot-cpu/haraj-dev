@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/catalog/entities/auction_phase.dart';
 import '../domain/notifications/entities/push_destination.dart';
 import '../presentation/activity/my_activity_screen.dart' show MyActivityTab;
 
@@ -46,6 +47,15 @@ abstract final class Routes {
   /// اسم مُعامل التبويب — مكتوب مرة واحدة لأن الإشعار يبنيه والشاشة تقرؤه.
   static const String tabQueryParameter = 'tab';
 
+  /// اسم مُعامل تبويب الرئيسية — `?phase=active`.
+  ///
+  /// **التبويب في العنوان لا في حالة عميل فقط**، ولثلاثة أسباب كلها من عند
+  /// المستخدم: الرابط يُشارَك فيفتح عند الثاني ما رآه الأول، وإعادة فتح
+  /// التطبيق على الرابط نفسه تعيد التبويب نفسه، والإشعار يفتح تبويباً بعينه
+  /// بدل أن ينزل على الافتراضي فيبحث المستخدم بيده (معيار H6). والاسم `phase`
+  /// هو بعينه اسم الحقل على السلك وعلى الكرت — معنى واحد باسم واحد.
+  static const String phaseQueryParameter = 'phase';
+
   static const String homePath = '/';
   static const String signInPath = '/sign-in';
   static const String verifyCodePath = '/sign-in/code';
@@ -66,6 +76,15 @@ abstract final class Routes {
   /// يقارنه بنفسه ويسقط عند المستخدم وحده.
   static String myActivityTab(MyActivityTab tab) =>
       '$myActivityPath?$tabQueryParameter=${tab.slug}';
+
+  /// عنوان تبويبٍ في الرئيسية — يبنيه هذا الملف وحده، ويقرؤه جدول المسارات.
+  static String homeTab(AuctionPhase phase) =>
+      '$homePath?$phaseQueryParameter=${phase.slug}';
+
+  /// ينتقل إلى تبويبٍ في الرئيسية. `go` لا `push`: التبويب ليس شاشةً فوق
+  /// شاشة، وتكديسه يجعل زرّ الرجوع يمشي في التبويبات واحداً واحداً.
+  static void goToPhase(BuildContext context, AuctionPhase phase) =>
+      GoRouter.of(context).go(homeTab(phase));
 
   // بناء العنوان يعيش مع اسمه: شاشة تبني عنوانها بنفسها تفترق عنه عند أول
   // تعديل، فتفتح شاشةً غير التي يفتحها الإشعار (معيار H6).

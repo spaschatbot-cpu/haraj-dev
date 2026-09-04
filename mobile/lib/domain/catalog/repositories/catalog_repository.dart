@@ -1,6 +1,7 @@
 import '../../common/snapshot.dart';
 import '../entities/auction_summary.dart';
 import '../entities/vehicle_detail.dart';
+import '../entities/vehicle_feed.dart';
 import '../entities/vehicle_query.dart';
 
 /// عقد التصفّح: المزادات، مركبات المزاد، والمركبة الواحدة.
@@ -20,6 +21,15 @@ abstract interface class CatalogRepository {
     String auctionId,
     VehicleQuery query,
   );
+
+  /// الشبكة المسطّحة عبر المزادات: صفحةُ تبويبٍ **وعدّاداته الثلاثة في طلب
+  /// واحد**.
+  ///
+  /// لا نظير له يرجّع العدّادات وحدها: طلبٌ ثانٍ للأرقام يجعلها من لحظةٍ غير
+  /// لحظة الصفحة، فيقول التبويب رقماً لا يصف ما يُفتح فيه.
+  ///
+  /// [query] لا بدّ أن يحمل `phase` — بلا تبويبٍ لا سؤال.
+  Future<Snapshot<VehicleFeed>> loadVehicleFeed(VehicleQuery query);
 
   Future<Snapshot<VehicleDetail>> loadVehicle(String vehicleId);
 }
