@@ -28,7 +28,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SCHEMA = join(ROOT, "backend", "openapi", "schema.yaml");
-const WEB_PHASES = join(ROOT, "web", "lib", "api", "awaiting.ts");
+const WEB_PHASES = join(ROOT, "web", "lib", "api", "phases.ts");
 
 /** أسماء الأطوار كما يعلنها المخطط في `PhaseCounts` — الحقول المطلوبة. */
 function phasesFromSchema() {
@@ -59,7 +59,7 @@ function phasesFromWeb() {
   const line = text.match(/export const PHASES = \[([^\]]*)\]/);
   if (line === null) {
     throw new Error(
-      "PHASES غير موجودة في web/lib/api/awaiting.ts. إن انتقلت فحدّث هذا الفحص.",
+      "PHASES غير موجودة في web/lib/api/phases.ts. إن انتقلت فحدّث هذا الفحص.",
     );
   }
   return [...line[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]).sort();

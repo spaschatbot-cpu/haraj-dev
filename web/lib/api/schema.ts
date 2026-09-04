@@ -1144,6 +1144,16 @@ export interface components {
          * @enum {string}
          */
         PaymentIntentStateEnum: "pending" | "succeeded" | "failed" | "cancelled" | "expired" | "disputed";
+        /** @description The three tab counters, in the one response that carries the page.
+         *
+         *     Three named fields and not a map keyed by phase: a generated Dart or
+         *     TypeScript client turns the first into three typed getters and the second
+         *     into `Map<String, int>?`, and a screen reading `counts['activ']` compiles. */
+        PhaseCounts: {
+            soon: number;
+            active: number;
+            ended: number;
+        };
         /** @description One bid on one car. */
         PlaceBid: {
             amount: string;
@@ -1288,8 +1298,14 @@ export interface components {
          *     kept honest by hand. */
         VehicleCard: {
             id: number;
+            auction_id: number;
             auction_number: number;
+            auction_title: string;
             auction_state: string;
+            /** Format: date-time */
+            auction_starts_at: string;
+            /** Format: date-time */
+            auction_ends_at: string;
             lot_number: number;
             title: string;
             make: string;
@@ -1311,8 +1327,15 @@ export interface components {
             owner_company_name: string | null;
             thumbnail_url: string | null;
         };
+        /** @description A page of cars, its total, and the three tab counters.
+         *
+         *     The counters ride along on **every** vehicle page, whichever tab was asked
+         *     for, because all three tabs are on screen at all times. Splitting them into
+         *     a second endpoint is what v1 did — six requests to draw three numbers — and
+         *     it made the three numbers three different moments. */
         VehiclePage: {
             total: number;
+            counts: components["schemas"]["PhaseCounts"];
             results: components["schemas"]["VehicleCard"][];
         };
         /** @description Prove the number. */
@@ -1403,6 +1426,10 @@ export interface operations {
                 limit?: number;
                 make?: string;
                 offset?: number;
+                /** @description * `soon` - قريباً
+                 *     * `active` - نشط
+                 *     * `ended` - منتهي */
+                phase?: "soon" | "active" | "ended" | "";
                 search?: string;
                 /** @description * `draft` - مسودة
                  *     * `listed` - معروضة
@@ -2011,6 +2038,10 @@ export interface operations {
                 limit?: number;
                 make?: string;
                 offset?: number;
+                /** @description * `soon` - قريباً
+                 *     * `active` - نشط
+                 *     * `ended` - منتهي */
+                phase?: "soon" | "active" | "ended" | "";
                 search?: string;
                 /** @description * `draft` - مسودة
                  *     * `listed` - معروضة

@@ -11,7 +11,7 @@
  */
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { readFile } from "node:fs/promises";
+import { readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -314,34 +314,39 @@ describe("المدّة فرقٌ بين لحظتين UTC", () => {
   });
 });
 
-describe("الطبقة المؤقّتة لعقد التبويبات", () => {
-  const shim = fileURLToPath(new URL("../api/awaiting.ts", import.meta.url));
-  const schema = fileURLToPath(new URL("../api/schema.ts", import.meta.url));
+describe("لا نسخة ثانية من العقد", () => {
+  const api = fileURLToPath(new URL("../api", import.meta.url));
 
   /**
-   * تُحذف الطبقة يوم يحمل المخطط حقولها — وهذا الاختبار هو موعدُ الحذف.
+   * الطبقة المؤقّتة حُذفت — وهذا الاختبار هو ما يمنع عودتها.
    *
-   * `lib/api/awaiting.ts` أنواعٌ مكتوبة بيد بجوار أنواعٍ مولَّدة، وهو ما يمنعه
-   * T1002. وُجدت لأن الويب سبق العقد. وطبقةٌ مؤقّتة بلا تاريخ انتهاء تصير
-   * دائمة، ثم تختلف عن المولَّد بصمت — فيفشل هذا الاختبار في اللحظة التي يصبح
-   * فيها للحقل مصدرٌ حقيقي، ويقول ما يُفعَل.
+   * كان هنا `lib/api/awaiting.ts`: أنواعٌ مكتوبة بيد تعلن `phase` و`counts` و
+   * `auction_ends_at` لأن الويب سبق العقد. وحمل تاريخ انتهائه في اختبارٍ يفشل
+   * يوم يعلن المخطط تلك الحقول — ففشل يوم أعلنها، وحُذف الملف، وصارت الأنواع
+   * تأتي من المولَّد.
+   *
+   * والقاعدة التي كسرها ذلك الملف مؤقّتاً هي T1002: **العميل مولَّد لا مكتوب**.
+   * نوعٌ مكتوب بيد بجوار نوعٍ مولَّد لا يخطئ يوم يُكتب، وإنما يوم يتغيّر
+   * المخطط ولا يتغيّر هو — فيقول البناءُ إن الحقل موجود، ويقول الخادم لا.
+   *
+   * فالفحص على **الوجود** لا على المحتوى: أي ملفٍّ جديد في `lib/api/` خارج
+   * القائمة المعروفة يُسقط الحزمة، ويُقرأ عمداً لا يُضاف سهواً.
    */
-  it("تفشل يوم يعلن المخطط الحقول، فلا تبقى نسخةٌ ثانية", async () => {
-    const [declared, generated] = await Promise.all([
-      readFile(shim, "utf8"),
-      readFile(schema, "utf8"),
+  it("لا ملفّ في lib/api خارج المعروف — الأنواع تُولَّد ولا تُكتب", async () => {
+    const known = new Set([
+      "client.ts", //: `fetch` المهيّأ بالكوكيز والعنوان
+      "errors.ts", //: رفضُ الخادم كما كتبه، لا صياغةٌ من عندنا
+      "index.ts", //: الواجهة الواحدة (T1026 يقرؤها)
+      "phases.ts", //: قيمُ الأطوار مشتقّةً من مفاتيح المولَّد
+      "schema.ts", //: المولَّد نفسه
     ]);
 
-    //: بحدود كلمات: «counts» تقع داخل «accounts» في كل مسار حساب في المخطط،
-    //: و`includes` كانت ستقول إن العقد وصل وهو لم يصل.
-    for (const field of ["auction_ends_at", "counts", "phase"]) {
-      const word = new RegExp(`\\b${field}\\b`);
-      if (word.test(generated)) {
-        expect(
-          word.test(declared),
-          `المخطط صار يعلن «${field}» — احذفه من lib/api/awaiting.ts واستعمل المولَّد.`,
-        ).toBe(false);
-      }
-    }
+    const found = (await readdir(api)).filter((name) => name.endsWith(".ts"));
+    const extra = found.filter((name) => !known.has(name));
+
+    expect(
+      extra,
+      `ملفّات جديدة في lib/api. إن كانت أنواعاً فهي نسخةٌ ثانية من العقد (T1002): ${extra.join(", ")}`,
+    ).toEqual([]);
   });
 });
