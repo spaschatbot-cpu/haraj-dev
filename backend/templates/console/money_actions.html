@@ -16,10 +16,6 @@ and the rule lives where the next caller inherits it.
 {% block heading %}أفعال مالية على {{ name }}{% endblock %}
 
 {% block content %}
-  {% for note in messages %}
-    <p><strong>{{ note }}</strong></p>
-  {% endfor %}
-
   <p>
     <span class="money">{{ customer.phone }}</span> ·
     <a href="{% url 'console:money-customer' customer.pk %}">دفتره (للقراءة) ←</a>
@@ -58,10 +54,10 @@ and the rule lives where the next caller inherits it.
               <button type="submit">مصادرة</button>
             </form>
 
-            {# The exception is offered only to whoever may grant one. A form
+            {% comment %} The exception is offered only to whoever may grant one. A form
                that always answers 403 teaches its reader that the console is
                broken, and it is offered only on a dues lock because that is
-               the only thing an exception can be granted against. #}
+               the only thing an exception can be granted against. {% endcomment %}
             {% if may_grant_exception and hold.reason == dues and not hold.exception_note %}
               <form method="post"
                     action="{% url 'console:money-exception' hold.pk %}">

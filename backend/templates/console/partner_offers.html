@@ -16,8 +16,6 @@ that number reached the invoice conversation.
 {% endblock %}
 
 {% block content %}
-  {% for message in messages %}<p><strong>{{ message }}</strong></p>{% endfor %}
-
   <table>
     <tr><th>المزاد</th><td>
       <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
@@ -27,9 +25,9 @@ that number reached the invoice conversation.
     <tr><th>سعر الوقوف</th><td class="money">
       {{ vehicle.reserve_price|unlocalize|default:"—" }}</td></tr>
     <tr><th>العرض المقبول</th><td class="money">
-      {# The award's own number. Absent until there is an award: an unawarded
+      {% comment %} The award's own number. Absent until there is an award: an unawarded
          car has no accepted offer, and putting the highest bid in this slot is
-         exactly the v1 confusion. #}
+         exactly the v1 confusion. {% endcomment %}
       {% if accepted %}{{ accepted|unlocalize }} — {{ vehicle.awarded_to.full_name }}
       {% else %}<span class="empty">لم تُقبل بعد</span>{% endif %}</td></tr>
   </table>
@@ -63,8 +61,8 @@ that number reached the invoice conversation.
   <h2>رفض المالك</h2>
   <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}">
     {% csrf_token %}
-    {# "Nobody offered enough" and "the owner pulled it" are different facts
-       with opposite next steps, and v1 lost the distinction. #}
+    {% comment %} "Nobody offered enough" and "the owner pulled it" are different facts
+       with opposite next steps, and v1 lost the distinction. {% endcomment %}
     <input type="text" name="reason" placeholder="سبب الرفض" required>
     <button type="submit">المالك رفض كل العروض</button>
   </form>

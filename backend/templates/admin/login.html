@@ -1,0 +1,83 @@
+{% comment %}
+Staff sign-in, in the console's own clothes. T819.
+
+`admin.site.login` (still throttled in `apps.accounts.login`) renders this
+template instead of Django's own — the view is untouched, only the skin is
+ours. Field names, the csrf token and the hidden `next` field are exactly what
+the view expects: a redesign that renames a field locks everybody out, and a
+lockout that pages the team at night is not a styling issue.
+
+The orbs are pure decoration (`aria-hidden`); the peek button is a plain
+`type="button"` so it can never submit the form, and the short script below
+only flips the input's `type` and the pressed state — no framework, no
+dependency, nothing for a login page to wait on.
+{% endcomment %}<!doctype html>
+{% load static %}
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>دخول الموظفين — لوحة حراج</title>
+  <link rel="stylesheet" href="{% static 'console/app.css' %}">
+</head>
+<body class="login-page">
+  <div class="orb orb-a" aria-hidden="true"></div>
+  <div class="orb orb-b" aria-hidden="true"></div>
+  <div class="orb orb-c" aria-hidden="true"></div>
+
+  <main class="login-card">
+    <div class="login-brand">
+      <span class="login-mark" aria-hidden="true">ح</span>
+      <span>
+        <strong>لوحة حراج</strong>
+        <small>دخول الموظفين — إدارة المزادات والمال</small>
+      </span>
+    </div>
+    <p><span class="env-badge" data-env="{{ environment }}">{{ environment }}</span></p>
+
+    {% if form.non_field_errors %}
+      <div class="notice error" role="alert">
+        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="post" action="{{ app_path }}" class="login-form">
+      {% csrf_token %}
+      <p>
+        <label for="{{ form.username.id_for_label }}">رقم الجوال</label>
+        {{ form.username }}
+        {% if form.username.errors %}
+          <br><strong>{{ form.username.errors|join:" · " }}</strong>
+        {% endif %}
+      </p>
+      <p class="password-wrap">
+        <label for="{{ form.password.id_for_label }}">كلمة المرور</label>
+        {{ form.password }}
+        <button type="button" class="peek" id="peek" aria-label="إظهار كلمة المرور" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        {% if form.password.errors %}
+          <br><strong>{{ form.password.errors|join:" · " }}</strong>
+        {% endif %}
+      </p>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit">دخول</button>
+    </form>
+  </main>
+
+  <script>
+    (function () {
+      var peek = document.getElementById("peek");
+      var field = peek && peek.parentElement.querySelector('input[type="password"], input[type="text"]');
+      if (!peek || !field) return;
+      peek.addEventListener("click", function () {
+        var show = field.type === "password";
+        field.type = show ? "text" : "password";
+        peek.setAttribute("aria-pressed", show ? "true" : "false");
+        peek.setAttribute("aria-label", show ? "إخفاء كلمة المرور" : "إظهار كلمة المرور");
+        field.focus();
+      });
+    })();
+  </script>
+</body>
+</html>

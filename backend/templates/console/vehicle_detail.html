@@ -16,10 +16,6 @@ and v1's screens were full of them.
 {% block heading %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
-  {% for message in messages %}
-    <p><strong>{{ message }}</strong></p>
-  {% endfor %}
-
   <table>
     <tr><th>المزاد</th><td>
       <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
@@ -47,8 +43,8 @@ and v1's screens were full of them.
           <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
         {% endfor %}
       </select>
-      {# Required, and recorded. A car that moved and nobody can say why is the
-         row support cannot explain to the partner who owns it. #}
+      {% comment %} Required, and recorded. A car that moved and nobody can say why is the
+         row support cannot explain to the partner who owns it. {% endcomment %}
       <input type="text" name="reason" placeholder="سبب التغيير" required>
       <button type="submit">نفّذ</button>
     </form>
