@@ -9,6 +9,7 @@ import 'package:haraj_mobile/domain/common/snapshot.dart';
 import 'package:haraj_mobile/l10n/generated/app_localizations.dart';
 import 'package:haraj_mobile/presentation/catalog/auction_vehicles_screen.dart';
 import 'package:haraj_mobile/presentation/catalog/widgets/vehicle_card.dart';
+import 'package:haraj_mobile/presentation/catalog/widgets/vehicle_results.dart';
 import 'package:haraj_mobile/presentation/common/failure_view.dart';
 import 'package:haraj_mobile/presentation/common/stale_data_banner.dart';
 
@@ -169,7 +170,7 @@ void main() {
 
     // الثانية أسفل الشاشة: القائمة تبني عناصرها عند الوصول إليها، وهو نصف
     // معيار H2 — فالتحقق منها يبدأ بالتمرير إليها.
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.drag(find.byType(VehicleResults), const Offset(0, -600));
     await tester.pumpAndSettle();
     expect(find.text('Second'), findsOneWidget);
   });
@@ -225,7 +226,7 @@ void main() {
     catalog.heldPages[2]!.complete();
     await tester.pumpAndSettle();
 
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.drag(find.byType(VehicleResults), const Offset(0, -600));
     await tester.pumpAndSettle();
     expect(find.text('Second'), findsOneWidget);
   });

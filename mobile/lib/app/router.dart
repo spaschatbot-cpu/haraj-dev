@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/catalog/entities/auction_phase.dart';
 import '../domain/wallet/entities/wallet_balance.dart';
 import '../presentation/activity/my_activity_screen.dart';
 import '../presentation/auth/pending_sign_in.dart';
@@ -44,7 +45,14 @@ List<RouteBase> appRoutes() => <RouteBase>[
   GoRoute(
     path: Routes.homePath,
     name: Routes.home,
-    builder: (context, state) => const HomeScreen(),
+    // التبويب يُقرأ من العنوان في كل بناء، لا يُحفظ في حالة الشاشة: عنوانٌ
+    // واحد يعطي شاشةً واحدة، سواء وصل من ضغطة تبويب أو من رابط مشارَك أو من
+    // إشعار أو من إعادة فتح التطبيق.
+    builder: (context, state) => HomeScreen(
+      phase: AuctionPhase.fromSlug(
+        state.uri.queryParameters[Routes.phaseQueryParameter],
+      ),
+    ),
     routes: <RouteBase>[
       GoRoute(
         // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه

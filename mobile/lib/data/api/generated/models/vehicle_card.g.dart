@@ -15,6 +15,9 @@ VehicleCard _$VehicleCardFromJson(Map<String, dynamic> json) => VehicleCard(
   currentBidAmount: json['current_bid_amount'] as String,
   currency: json['currency'] as String,
   bidsCount: (json['bids_count'] as num).toInt(),
+  auctionId: json['auction_id'] as String,
+  phase: AuctionPhase.fromJson(json['phase'] as String),
+  auctionEndsAt: DateTime.parse(json['auction_ends_at'] as String),
 );
 
 Map<String, dynamic> _$VehicleCardToJson(VehicleCard instance) =>
@@ -27,4 +30,14 @@ Map<String, dynamic> _$VehicleCardToJson(VehicleCard instance) =>
       'current_bid_amount': instance.currentBidAmount,
       'currency': instance.currency,
       'bids_count': instance.bidsCount,
+      'auction_id': instance.auctionId,
+      'phase': _$AuctionPhaseEnumMap[instance.phase]!,
+      'auction_ends_at': instance.auctionEndsAt.toIso8601String(),
     };
+
+const _$AuctionPhaseEnumMap = {
+  AuctionPhase.upcoming: 'upcoming',
+  AuctionPhase.active: 'active',
+  AuctionPhase.ended: 'ended',
+  AuctionPhase.$unknown: r'$unknown',
+};

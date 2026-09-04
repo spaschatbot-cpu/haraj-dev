@@ -4,6 +4,8 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import 'auction_phase.dart';
+
 part 'vehicle_card.g.dart';
 
 @JsonSerializable()
@@ -17,6 +19,9 @@ class VehicleCard {
     required this.currentBidAmount,
     required this.currency,
     required this.bidsCount,
+    required this.auctionId,
+    required this.phase,
+    required this.auctionEndsAt,
   });
 
   factory VehicleCard.fromJson(Map<String, Object?> json) =>
@@ -42,6 +47,18 @@ class VehicleCard {
   final String currency;
   @JsonKey(name: 'bids_count')
   final int bidsCount;
+
+  /// مزاد هذه المركبة — الكرت يفتح مركبته، والتبويب يجمع عبر المزادات
+  @JsonKey(name: 'auction_id')
+  final String auctionId;
+  final AuctionPhase phase;
+
+  /// لحظة انتهاء **مزاد** هذه المركبة، ISO-8601 بتوقيت UTC.
+  ///
+  /// تُرسَل مع كل مركبة عمداً: العدّاد التنازلي على الكرت فرقٌ بين هذه اللحظة و«الآن»، وبلا حملها على الكرت يحتاج كل كرت طلباً ثانياً عن مزاده. أما **هل انتهى؟** فجوابه `phase` لا هذا الحقل: ساعة الجهاز ليست الحقيقة، وv1 قارن بها فأظهر «انتهى» لمزاد ما زال مفتوحاً.
+  ///
+  @JsonKey(name: 'auction_ends_at')
+  final DateTime auctionEndsAt;
 
   Map<String, Object?> toJson() => _$VehicleCardToJson(this);
 }

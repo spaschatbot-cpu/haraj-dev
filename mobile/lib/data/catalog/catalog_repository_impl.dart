@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../../domain/catalog/entities/auction_summary.dart';
 import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/catalog/entities/vehicle_feed.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/catalog/repositories/catalog_repository.dart';
 import '../../domain/common/failure.dart';
@@ -13,6 +14,7 @@ import '../api/generated/models/auction_status.dart';
 import '../api/generated/models/paginated_auction_list.dart' as api;
 import '../api/generated/models/paginated_vehicle_card_list.dart' as api;
 import '../api/generated/models/vehicle.dart' as api;
+import '../api/generated/models/vehicle_feed_page.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'catalog_mapper.dart';
 
@@ -123,6 +125,47 @@ final class CatalogRepositoryImpl implements CatalogRepository {
   }
 
   @override
+  Future<Snapshot<VehicleFeed>> loadVehicleFeed(VehicleQuery query) async {
+    final phase = query.phase;
+    // برمجيّاً لا للمستخدم: العرض يبني الاستعلام من تبويبٍ مختار دائماً، وطلبٌ
+    // بلا تبويب خطأُ استدعاء يجب أن ينكسر عند كاتبه لا أن يصير طلباً بلا معنى.
+    assert(phase != null, 'loadVehicleFeed needs a phase');
+
+    try {
+      // نداء **واحد** للصفحة والعدّادات الثلاثة. الأرقام الثلاثة من لحظة
+      // الصفحة نفسها، وإلا قال التبويب رقماً لا يصف ما يُفتح فيه.
+      final feed = await callApi(
+        () => _vehicles.vehiclesList(
+          phase: apiPhaseOf(phase),
+          search: _blankToNull(query.search),
+          make: _blankToNull(query.make),
+          yearFrom: query.yearFrom,
+          yearTo: query.yearTo,
+          page: query.page,
+          pageSize: pageSize,
+        ),
+      );
+
+      final fetchedAt = _clock().toUtc();
+      if (query.isFirstUnfilteredPage && phase != null) {
+        await _cache.write(
+          CacheKeys.vehicleFeed(phase.slug),
+          jsonEncode(feed.toJson()),
+          fetchedAtUtc: fetchedAt,
+        );
+      }
+      return Snapshot.fresh(feed.toDomain(), at: fetchedAt);
+    } on TransportFailure {
+      // نفس قرار قائمة مركبات المزاد: المحفوظ يجيب عن «وريني التبويب» ولا
+      // يجيب عن «ابحث عن كامري» — بحثٌ لم يُبحث ليس نتيجة.
+      if (!query.isFirstUnfilteredPage || phase == null) rethrow;
+      final cached = await _readFeedCache(phase.slug);
+      if (cached != null) return cached;
+      rethrow;
+    }
+  }
+
+  @override
   Future<Snapshot<VehicleDetail>> loadVehicle(String vehicleId) async {
     try {
       final vehicle = await callApi(
@@ -181,6 +224,19 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     try {
       final page = api.PaginatedVehicleCardList.fromJson(document.decode());
       return Snapshot.cached(page.toDomain(), storedAt: document.fetchedAtUtc);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<Snapshot<VehicleFeed>?> _readFeedCache(String phaseSlug) async {
+    final document = await _cache.read(CacheKeys.vehicleFeed(phaseSlug));
+    if (document == null) return null;
+    try {
+      final feed = api.VehicleFeedPage.fromJson(document.decode());
+      // العدّادات المحفوظة تُعرض كما حُفظت، بعلامة «آخر تحديث» فوقها: رقمٌ
+      // قديمٌ معلَّمٌ بلحظته أصدق من تبويبٍ بلا رقم أو من شبكة بيضاء.
+      return Snapshot.cached(feed.toDomain(), storedAt: document.fetchedAtUtc);
     } on Object {
       return null;
     }
