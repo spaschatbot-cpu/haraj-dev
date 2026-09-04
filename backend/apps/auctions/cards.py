@@ -72,8 +72,21 @@ def _thumbnail_url(vehicle: Vehicle) -> str | None:
 #: key → how to read it off a vehicle. The single source of the card's shape.
 _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "id": lambda v: v.pk,
+    # The auction, on the card. A card that counts down to the close needs the
+    # closing moment, and a tab that says «نشط» needs to name which auction it
+    # is showing — v1 sent both with every vehicle for exactly this reason, and
+    # that part of v1 was right. Without them a countdown costs a second request
+    # per car. They are free here: `card_queryset` already joins the auction, so
+    # reading four more of its columns adds no query at all.
+    #
+    # Both times are UTC on the wire (Article 3-1); each channel converts once,
+    # at its own display edge.
+    "auction_id": lambda v: v.auction_id,
     "auction_number": lambda v: v.auction.number,
+    "auction_title": lambda v: v.auction.title,
     "auction_state": lambda v: v.auction.state,
+    "auction_starts_at": lambda v: v.auction.starts_at,
+    "auction_ends_at": lambda v: v.auction.ends_at,
     "lot_number": lambda v: v.lot_number,
     "title": lambda v: f"{v.make} {v.model} {v.year}",
     "make": lambda v: v.make,

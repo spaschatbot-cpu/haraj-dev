@@ -11,6 +11,11 @@ built from it:
 They must agree for every user and every vehicle, and a test proves that over
 the full matrix rather than trusting that the two were written from the same
 idea (E6).
+
+:class:`Phase` lives here for the same reason: the browse page's three tabs are
+a partition of :data:`PUBLIC_AUCTION_STATES`, so the names and the states they
+cover belong beside the rule they partition — not in a view, and certainly not
+in each of the two clients.
 """
 
 from __future__ import annotations
@@ -47,6 +52,49 @@ PUBLIC_VEHICLE_STATES = frozenset(
         VehicleState.RELEASED,
     }
 )
+
+
+class Phase(models.TextChoices):
+    """The three tabs a browsing customer chooses between.
+
+    A phase is a property of the **auction**, never of the car: "قريباً" is a
+    car whose auction has not opened yet, not a car in some pending state of
+    its own. v1 answered this from the vehicle's own column and a car withdrawn
+    from a finished auction landed in "قريباً".
+
+    One auction a week is the shape the owner asked for, so in practice the tab
+    *is* «which auction am I looking at» — which is exactly why the three names
+    must partition the public auction states with nothing left over and nothing
+    counted twice.
+    """
+
+    SOON = "soon", "قريباً"
+    ACTIVE = "active", "نشط"
+    ENDED = "ended", "منتهي"
+
+
+#: phase → the auction states it covers. The one place this mapping is written.
+#:
+#: `ended` holds two states because "منتهي" is a customer's word and settlement
+#: is ours: a settled auction is over as far as anybody browsing is concerned,
+#: and giving it a fourth tab would ask a bidder to care which of our internal
+#: steps has run.
+PHASE_AUCTION_STATES: dict[str, frozenset[str]] = {
+    Phase.SOON: frozenset({AuctionState.SCHEDULED}),
+    Phase.ACTIVE: frozenset({AuctionState.LIVE}),
+    Phase.ENDED: frozenset({AuctionState.ENDED, AuctionState.SETTLED}),
+}
+
+
+def phase_q(phase: str) -> Q:
+    """The phase as a ``WHERE`` clause, to be **added** to the visibility rule.
+
+    Never a replacement for it. A tab narrows what a caller may already see; a
+    car hidden from an anonymous visitor today does not become visible because
+    somebody named the tab it would sit in. Every caller therefore builds this
+    on top of :func:`visible_vehicles`, and a test says so.
+    """
+    return Q(auction__state__in=sorted(PHASE_AUCTION_STATES[phase]))
 
 
 class ListingState(models.TextChoices):
