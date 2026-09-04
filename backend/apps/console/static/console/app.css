@@ -455,3 +455,32 @@ tbody tr, tr { transition: background .12s ease; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* شبكة الرئيسية: كرتٌ لكل شاشة، اسمُها وما تفعله.
+ *
+ * `auto-fill` مع `minmax` بدل عدد أعمدة مكتوب: عدد الكروت يتغيّر بالصلاحيات
+ * — مالكٌ يرى اثني عشر وموظف دعمٍ يرى ثلاثة — فشبكةٌ بثلاثة أعمدة ثابتة تترك
+ * لصاحب الثلاثة صفّاً وحيداً وفراغين، وللمالك أربعة صفوف ضيّقة.
+ */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: .75rem;
+  margin: .8rem 0 1.6rem;
+}
+.card {
+  display: block;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: .9rem 1rem;
+  text-decoration: none;
+  color: var(--ink);
+  border-inline-start: 3px solid var(--brand);
+}
+.card strong { display: block; color: var(--brand-dark); font-size: 1rem; }
+.card span { display: block; color: var(--muted); font-size: .84rem; line-height: 1.55; }
+/* المرور يرفع الكرت ويغمّق حدّه — لا يفتحّ نصّه. */
+.card:hover { border-color: var(--brand-solid); box-shadow: 0 6px 20px rgba(38, 124, 178, .16); }
+.card:hover strong { color: var(--ink); }

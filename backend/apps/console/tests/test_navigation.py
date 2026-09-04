@@ -231,3 +231,47 @@ def test_the_check_is_quiet_on_a_link_that_follows_the_prefix(tmp_path: Path, ma
     (tmp_path / "page.html").write_text(markup, encoding="utf-8")
 
     assert load("console_urls_are_named").violations(templates=tmp_path, python=[]) == []
+
+
+def test_every_sidebar_page_says_what_it_does():
+    """A card with a name and an empty line under it is worse than no card.
+
+    The home page's whole reason to exist is that it says what each screen is
+    *for* — the sidebar beside it already says where each one is. A page added
+    to the registry without a blurb lands in that grid as a bare name, and the
+    page silently goes back to being a copy of its neighbour.
+
+    `console:home` is exempt and is the only exemption: it is not drawn in its
+    own grid, so nobody reads its line.
+    """
+    missing = [
+        page.url_name
+        for page in PAGES
+        if page.url_name != "console:home" and not page.blurb.strip()
+    ]
+
+    assert missing == [], f"شاشات بلا سطر يشرحها: {missing}"
+
+
+def test_the_home_page_does_not_link_to_itself(client):
+    """A card that returns you to the page you are standing on is not a choice."""
+    signed_in(client, staff(Role.OWNER))
+
+    body = client.get(reverse("console:home")).content.decode()
+
+    #: The sidebar still carries it — that is a nav, and "where am I" belongs
+    #: there. What must not appear is a *card*, so the assertion is on the card
+    #: markup rather than on the url anywhere in the page.
+    assert f'class="card" href="{reverse("console:home")}"' not in body
+
+
+def test_the_home_page_shows_what_each_screen_does(client):
+    """The blurbs reach the page — not merely the labels."""
+    signed_in(client, staff(Role.OWNER))
+
+    body = client.get(reverse("console:home")).content.decode()
+
+    for page in PAGES:
+        if page.url_name == "console:home":
+            continue
+        assert page.blurb in body, f"سطر {page.url_name} لم يصل الصفحة"

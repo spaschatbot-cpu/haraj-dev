@@ -1,23 +1,45 @@
 {% extends "console/base.html" %}
 {% comment %}
-The landing page is the person's own list of what they can do, not a dashboard
-of numbers they cannot act on — which is what v1's home page was, and why
-everybody bookmarked a sub-page instead.
+الرئيسية قائمةُ ما يملك هذا الشخص فعله، لا لوحةَ أرقامٍ لا يستطيع التصرّف
+فيها — وتلك كانت رئيسية v1، ولذلك وضع الجميع إشارةً على صفحةٍ فرعية بدلاً
+منها.
+
+وكانت هنا قائمةَ نقاطٍ تكرّر الشريط الجانبي حرفياً: الأقسام نفسها، والروابط
+نفسها، بالترتيب نفسه — بجانب الشريط على الشاشة ذاتها. صفحةٌ تقول ما يقوله
+جارُها لا سبب لها.
+
+فصارت شبكةً يحمل كلُّ كرتٍ فيها **ما تفعله الشاشة**، وهو ما لا يسع الشريطَ
+أن يقوله. الاسم يدلّ أين تذهب، والسطر تحته يقول لماذا — والفرق بينهما هو
+كامل ما تضيفه هذه الصفحة.
+
+و«الرئيسية» محذوفةٌ من الشبكة: كرتٌ يعيدك إلى الصفحة التي تقف عليها ليس
+اختياراً، وإنما سطرٌ يقرؤه القارئ ثم يكتشف أنه لا يعني شيئاً.
 {% endcomment %}
 
 {% block title %}الرئيسية{% endblock %}
 {% block heading %}أهلاً {{ request.user.full_name }}{% endblock %}
 
 {% block content %}
-  <p>الشاشات المتاحة لك:</p>
-
   {% for section in sidebar %}
-    <h2>{{ section.label }}</h2>
-    <ul>
-      {% for page in section.pages %}
-        <li><a href="{% url page.url_name %}">{{ page.label }}</a></li>
-      {% endfor %}
-    </ul>
+    {% comment %}
+      قسمٌ لا يبقى فيه إلا «الرئيسية» يُطوى كلّه — عنوانٌ فوق شبكةٍ فارغة
+      يقرؤه الموظّف على أنه عطل، ثم يسأل الدعم عن صلاحيةٍ لم تُنقص.
+    {% endcomment %}
+    {% with visible=section.pages|length %}
+      {% if visible > 1 or section.pages.0.url_name != "console:home" %}
+        <h2>{{ section.label }}</h2>
+        <div class="cards">
+          {% for page in section.pages %}
+            {% if page.url_name != "console:home" %}
+              <a class="card" href="{% url page.url_name %}">
+                <strong>{{ page.label }}</strong>
+                <span>{{ page.blurb }}</span>
+              </a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
   {% empty %}
     <p class="empty">لا صلاحيات مسنَدة لهذا الحساب بعد.</p>
   {% endfor %}

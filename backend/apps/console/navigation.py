@@ -42,6 +42,16 @@ class Page:
     #: affects access.
     section: str
 
+    #: سطرٌ يقول ما تفعله هذه الشاشة — تقرأه الصفحةُ الرئيسية وحدها.
+    #:
+    #: الشريط الجانبي يعرض الأسماء، فرئيسيةٌ تعرض الأسماء نفسها تحت العناوين
+    #: نفسها تكون نسخةً حرفية مما يراه القارئ بجانبها في اللحظة ذاتها. الاسم
+    #: يقول أين تذهب، وهذا السطر يقول لماذا — وهو الفرق الوحيد الذي يجعل
+    #: للصفحة سبب وجود.
+    #:
+    #: فارغٌ لصفحات التفصيل: لا تُعرض في شبكةٍ ولا في شريط، فلا أحد يقرأه.
+    blurb: str = ""
+
 
 @dataclass(frozen=True)
 class Section:
@@ -61,47 +71,89 @@ SECTIONS: tuple[Section, ...] = (
 #: sidebar or the guards are concerned — which is deliberate: an unlisted page
 #: reachable by url is exactly the shape of an accidental leak.
 PAGES: tuple[Page, ...] = (
-    Page("console:home", "الرئيسية", Capability.CONSOLE_ACCESS, "daily"),
-    Page("console:auctions", "المزادات", Capability.AUCTIONS_VIEW, "daily"),
-    Page("console:vehicles", "المركبات", Capability.AUCTIONS_VIEW, "daily"),
+    Page(
+        "console:home",
+        "الرئيسية",
+        Capability.CONSOLE_ACCESS,
+        "daily",
+        "ما تملك فتحه، وما تفعله كل شاشة.",
+    ),
+    Page(
+        "console:auctions",
+        "المزادات",
+        Capability.AUCTIONS_VIEW,
+        "daily",
+        "المزاد الأسبوعي وحالته، وجدولته وبدؤه وإنهاؤه.",
+    ),
+    Page(
+        "console:vehicles",
+        "المركبات",
+        Capability.AUCTIONS_VIEW,
+        "daily",
+        "كل مركبة وحالتها ولوتها وسعر وقوفها.",
+    ),
     Page(
         "console:vehicles-import",
         "استيراد المركبات",
         Capability.AUCTIONS_IMPORT,
         "daily",
+        "رفع دفعة مركبات من ملف، ومراجعة ما رُفض منها بسببه.",
     ),
     Page(
         "console:partner-decisions",
         "قرارات الشركاء",
         Capability.PARTNERS_DECIDE,
         "daily",
+        "مركبات انتهت مزايدتها دون سعر الوقوف — يقبل المالك أو يرفض.",
     ),
-    Page("console:customers", "المستخدمون", Capability.USERS_VIEW, "daily"),
-    Page("console:invoices", "الفواتير", Capability.INVOICES_VIEW, "money"),
+    Page(
+        "console:customers",
+        "المستخدمون",
+        Capability.USERS_VIEW,
+        "daily",
+        "العملاء والشركات وبياناتهم الموثّقة.",
+    ),
+    Page(
+        "console:invoices",
+        "الفواتير",
+        Capability.INVOICES_VIEW,
+        "money",
+        "فواتير الفوز وما سُدّد منها وما تأخّر.",
+    ),
     Page(
         "console:money-ledger",
         "دفتر التأمينات",
         Capability.MONEY_VIEW,
         "money",
+        "كل ريال دخل أو خرج أو حُجز — للقراءة، والحركة تُصنع من أفعال المال.",
     ),
-    Page("console:audit", "سجل التدقيق", Capability.AUDIT_VIEW, "admin"),
+    Page(
+        "console:audit",
+        "سجل التدقيق",
+        Capability.AUDIT_VIEW,
+        "admin",
+        "من غيّر ماذا ومتى، بالقيمة قبل وبعد.",
+    ),
     Page(
         "console:odoo-inbox",
         "صندوق وارد أودو",
         Capability.ODOO_INBOX,
         "diagnostics",
+        "ما وصل من أودو، وما فشل منه ولماذا، وإعادة تشغيله.",
     ),
     Page(
         "console:money-health",
         "صحة المال",
         Capability.DIAGNOSTICS_VIEW,
         "diagnostics",
+        "أربعة فحوص مستقلّة على الدفتر، وكل خلاف تقوله بصراحة.",
     ),
     Page(
         "console:why-no-bid",
         "ليه ما يقدرش يزايد؟",
         Capability.DIAGNOSTICS_VIEW,
         "diagnostics",
+        "عميلٌ ومركبة، والجواب: أي شرطٍ بالضبط منعه.",
     ),
 )
 
