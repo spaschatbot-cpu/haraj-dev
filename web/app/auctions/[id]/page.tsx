@@ -13,12 +13,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { type Auction } from "@/features/catalog/AuctionCard";
-import { VehicleFilters, FILTER_FIELDS } from "@/features/catalog/VehicleFilters";
+import { VehicleFilters, readFilters } from "@/features/catalog/VehicleFilters";
 import { VehicleGrid, type Vehicle } from "@/features/catalog/VehicleCard";
 import { Pagination } from "@/features/catalog/Pagination";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
-import { dateTime, count } from "@/lib/format";
+import { dateTime, count, respondedAt } from "@/lib/format";
 import { readNumber, readPaging, toParams } from "@/lib/paging";
 
 export const dynamic = "force-dynamic";
@@ -58,15 +58,12 @@ export default async function AuctionPage({ params, searchParams }: Params & Sea
   const { limit, offset } = readPaging(query);
 
   const auction = await auctionOr404(auctionId);
+  const now = await respondedAt();
 
-  // Only the parameters the contract declares are forwarded. An unknown one
-  // arriving in the url is dropped here rather than passed through to be
-  // refused by the API with a message the visitor cannot act on.
-  const filters: Record<string, string> = {};
-  for (const field of FILTER_FIELDS) {
-    const value = query.get(field);
-    if (value) filters[field] = value;
-  }
+  // Only the parameters the contract declares are forwarded — `readFilters`
+  // holds that decision once, so this page and the root grid cannot drift apart
+  // about which filters exist (Article 4-5).
+  const filters = readFilters(query);
 
   const page = await request(() =>
     api.GET("/api/v1/auctions/{id}/vehicles/", {
@@ -83,7 +80,7 @@ export default async function AuctionPage({ params, searchParams }: Params & Sea
 
       <VehicleFilters action={`/auctions/${auctionId}`} values={query} />
 
-      <VehicleGrid vehicles={(page.results ?? []) as Vehicle[]} />
+      <VehicleGrid vehicles={(page.results ?? []) as Vehicle[]} now={now} />
 
       <Pagination
         query={query}

@@ -24,15 +24,57 @@
 //: about which names belong to the filter and which belong to paging.
 export const FILTER_FIELDS = ["search", "make", "year_from", "year_to"] as const;
 
+/**
+ * المرشِّحات الموجودة في العنوان، محصورةً في ما يعلنه العقد.
+ *
+ * معاملٌ لا نعرفه يصل في العنوان يُسقَط هنا بدل أن يُمرَّر ليرفضه الـAPI برسالة
+ * لا يستطيع الزائر أن يفعل بها شيئاً.
+ *
+ * وهي دالة واحدة لأنها كانت حلقةً مكتوبة في صفحة المزاد، وشبكةُ الجذر تحتاج
+ * الحلقة نفسها: نسختان تعنيان أن مرشِّحاً يُضاف يوماً فيعمل في شاشة ولا يعمل
+ * في الأخرى (المادة ٤-٥).
+ */
+export function readFilters(query: URLSearchParams): Record<string, string> {
+  const filters: Record<string, string> = {};
+  for (const field of FILTER_FIELDS) {
+    const value = query.get(field);
+    if (value) filters[field] = value;
+  }
+  return filters;
+}
+
+/** هل يُرشَّح الآن؟ — فالفراغ حينها سببه البحث لا التبويب. */
+export function isFiltered(query: URLSearchParams): boolean {
+  return FILTER_FIELDS.some((field) => query.get(field));
+}
+
 export function VehicleFilters({
   action,
   values,
+  keep = [],
 }: {
   /** The route this form submits back to — its own page. */
   action: string;
   values: URLSearchParams;
+  /**
+   * معاملاتٌ في العنوان يجب أن تنجو من الإرسال — التبويب أوّلها.
+   *
+   * نموذج `GET` يستبدل سلسلة الاستعلام كلها بحقوله، فبحثٌ داخل تبويب «منتهي»
+   * كان سيعيد الزائر إلى التبويب الافتراضي بلا أن يطلب ذلك. الحقل المخفي هو
+   * ما يجعل البحث يبقى **داخل** التبويب الذي فُتح فيه.
+   */
+  keep?: readonly string[];
 }) {
-  const isFiltered = FILTER_FIELDS.some((field) => values.get(field));
+  const filtered = isFiltered(values);
+
+  //: «إزالة الترشيح» تزيل الترشيح وحده. لو أعادت الزائر إلى العنوان العاري
+  //: لأخرجته من تبويبه أيضاً — وهو لم يطلب ذلك، وسيقرؤه انتقالاً لا مسحاً.
+  const cleared = new URLSearchParams();
+  for (const name of keep) {
+    const value = values.get(name);
+    if (value) cleared.set(name, value);
+  }
+  const resetHref = cleared.toString() ? `${action}?${cleared.toString()}` : action;
 
   return (
     <form
@@ -40,6 +82,11 @@ export function VehicleFilters({
       action={action}
       className="mb-6 grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5"
     >
+      {keep.map((name) => {
+        const value = values.get(name);
+        return value ? <input key={name} type="hidden" name={name} value={value} /> : null;
+      })}
+
       <label className="flex flex-col gap-1 text-sm lg:col-span-2">
         <span className="text-neutral-600">بحث</span>
         <input
@@ -95,8 +142,8 @@ export function VehicleFilters({
           the browser and leaves the url — and therefore the results — exactly as
           they were, which reads as a broken button.
         */}
-        {isFiltered ? (
-          <a href={action} className="text-sm text-neutral-600 underline">
+        {filtered ? (
+          <a href={resetHref} className="text-sm text-neutral-600 underline">
             إزالة الترشيح
           </a>
         ) : null}
