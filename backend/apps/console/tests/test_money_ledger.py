@@ -35,6 +35,8 @@ from apps.money import services as money
 from apps.money.models import Account, AccountKind, Entry, Hold, HoldReason, HoldState
 from apps.money.verification import verify_customer, verify_ledger
 
+from .conftest import screen_of
+
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
@@ -208,7 +210,7 @@ def test_the_page_offers_nothing_that_writes(reader, depositor):
     A `<form method="post">` appearing here later is somebody adding an
     adjustment button to the screen support trusts to tell them the truth.
     """
-    body = body_for(reader, depositor).lower()
+    body = screen_of(body_for(reader, depositor)).lower()
     assert 'method="post"' not in body
     assert "للقراءة فقط" in body_for(reader, depositor)
 

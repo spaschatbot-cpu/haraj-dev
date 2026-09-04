@@ -30,6 +30,8 @@ from apps.core.permissions import Capability, Role, can
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
+from .conftest import screen_of
+
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
@@ -251,7 +253,7 @@ def test_the_page_offers_no_way_to_change_a_row(client, played, auditor):
     """An audit trail that can be edited proves nothing about the trail."""
     client.force_login(auditor)
 
-    body = client.get(reverse("console:audit")).content.decode().lower()
+    body = screen_of(client.get(reverse("console:audit")).content.decode()).lower()
 
     assert 'method="post"' not in body
 

@@ -164,6 +164,13 @@ APP_BASE = env("APP_BASE", default="console").strip("/")
 # developer screen with no way forward.
 LOGIN_REDIRECT_URL = f"/{APP_BASE}/"
 
+# By name, not by path. Unset, Django sends every guarded page to its own
+# default `/accounts/login/`, which this project has never routed — so a
+# signed-out operator opening the console was handed a 404 instead of the
+# sign-in page. Naming the route also keeps it correct if the login moves,
+# the same reason the console is linked by `{% url %}` and never by prefix.
+LOGIN_URL = "admin-login"
+
 # Absolute, with the leading slash, deliberately. A relative "static/" makes
 # `{% static %}` emit a path resolved against the *page* — so the stylesheet of
 # `/admin/login/` was requested from `/admin/static/…` and no styled page ever

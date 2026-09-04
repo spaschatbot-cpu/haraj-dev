@@ -39,6 +39,8 @@ from apps.core.permissions import Capability, Role
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
+from .conftest import screen_of
+
 pytestmark = pytest.mark.django_db
 
 TEN_K = Decimal("10000.00")
@@ -230,6 +232,7 @@ def test_the_page_asks_the_database_once_per_thing_it_shows(client, agent, calle
 
 
 def test_nothing_on_it_writes(client, agent, caller):
-    body = client.get(reverse(PAGE), {"phone": caller.phone}).content.decode().lower()
+    page = client.get(reverse(PAGE), {"phone": caller.phone}).content.decode()
+    body = screen_of(page).lower()
 
     assert 'method="post"' not in body
