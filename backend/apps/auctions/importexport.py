@@ -431,6 +431,21 @@ def _create(auction, lot_number, attributes, reject, report) -> None:
         reject("مركبة جديدة تحتاج: " + "، ".join(missing))
         return
 
+    # صفٌّ يعيد شاصياً موجوداً في هذا المزاد يُرفض **بسببه**، ولا يُترك للقيد.
+    #
+    # `one_vin_per_auction` (HR-11) يمنع السيارة الواحدة أن تدخل المزاد
+    # الواحد مرتين، وهو الصواب. لكنه قيدُ قاعدة: بلوغه من هنا يرفع
+    # `IntegrityError` من داخل الحلقة، فيسقط الرفع كلّه على صفٍّ واحد —
+    # وذلك عكس ما يَعِد به هذا المستورِد صراحةً: «مشكلة صفٍّ لا توقف بقيّته».
+    #
+    # فيُسأل قبل الكتابة. والسؤال عن الشاصي **غير الفارغ** وحده، لأن القيد
+    # جزئيٌّ مثله: أسطولٌ لم تصل أوراقه يدخل بمركباتٍ كثيرة بلا شاصي، وليست
+    # نسخاً من بعضها.
+    vin = str(attributes.get("vin") or "").strip()
+    if vin and Vehicle.objects.filter(auction=auction, vin=vin).exists():
+        reject(f"الشاصي {vin} مُدخَل في هذا المزاد بالفعل")
+        return
+
     # A new row starts as a draft. State is never read from the file, so an
     # import can add a car but can never put one on the block (T402).
     vehicle = Vehicle.objects.create(auction=auction, lot_number=lot_number, **attributes)
