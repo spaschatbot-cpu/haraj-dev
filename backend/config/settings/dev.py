@@ -25,3 +25,7 @@ DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405
 # refuses local memory the moment anything deployed uses it, so this default
 # cannot leak into production the way a silent fallback would.
 CACHES = {"default": env.cache("CACHE_URL", default="locmemcache://")}  # noqa: F405
+
+# الويب على 3000 والخلفية هنا، فالصور تُطلب مطلقةً وإلا طلبها المتصفّح من
+# أصل الويب ورجعت 404. قيمةٌ افتراضية حتى يعمل العرض بلا إعداد.
+MEDIA_BASE_URL = env("MEDIA_BASE_URL", default="http://127.0.0.1:8000")  # noqa: F405

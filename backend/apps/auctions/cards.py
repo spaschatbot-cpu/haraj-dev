@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from django.conf import settings
 from django.db.models import Prefetch
 
 from .models import (
@@ -63,10 +64,22 @@ def _cover(vehicle: Vehicle) -> VehicleImage | None:
 
 
 def _thumbnail_url(vehicle: Vehicle) -> str | None:
+    """The cover thumbnail, addressed from wherever the caller happens to be.
+
+    `FieldFile.url` is a path, and a path only works while the server that
+    rendered the page is the server that holds the file. Neither client is
+    that server: the web is a separate Next app (Vercel in production) and the
+    mobile app is not a server at all. So the browser asked **its own** origin
+    for `/media/...` and every card image came back 404 — cards complete,
+    pictures broken.
+
+    `MEDIA_BASE_URL` empty keeps the old relative path, which is right for the
+    console: same server, same origin.
+    """
     cover = _cover(vehicle)
     if cover is None or not cover.thumbnail:
         return None
-    return cover.thumbnail.url
+    return f"{settings.MEDIA_BASE_URL}{cover.thumbnail.url}"
 
 
 #: key → how to read it off a vehicle. The single source of the card's shape.
