@@ -173,6 +173,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
     ),
     Page("console:auction-new", "مزاد جديد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page("console:auction-state", "نقلة مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-new", "مركبة جديدة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-edit", "تعديل مركبة", Capability.AUCTIONS_MANAGE, ""),
     # Downloads, not pages: a sidebar entry that starts a file download is a

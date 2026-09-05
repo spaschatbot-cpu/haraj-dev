@@ -144,10 +144,20 @@ def auction_detail(request, pk: int):
         .order_by("urgency", "lot_number")
     )
 
+    from apps.auctions.states import AUCTION_MOVES
+
+    # محسوبةً من الآلة لا مكتوبةً في القالب — نفس سبب `vehicle_detail`:
+    # زرٌّ لنقلةٍ ترفضها الآلة زرٌّ لا يُنتج إلا رسالة خطأ.
+    moves = [
+        {"target": move.target, "label": AuctionState(move.target).label, "why": move.why}
+        for move in AUCTION_MOVES
+        if move.source == auction.state
+    ]
+
     return render(
         request,
         "console/auction_detail.html",
-        {"auction": auction, "page": _page(request, cars)},
+        {"auction": auction, "page": _page(request, cars), "moves": moves},
     )
 
 
