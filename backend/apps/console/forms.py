@@ -18,6 +18,7 @@ adds is making sure nothing reaches the database without passing through one.
 
 from __future__ import annotations
 
+import hashlib
 from zoneinfo import ZoneInfo
 
 from django import forms
@@ -68,11 +69,56 @@ class ReasonMixin(forms.Form):
         error_messages={"required": "سبب التعديل مطلوب."},
     )
 
+    #: HR-13 — ختمُ حالة الصفّ ساعةَ رُسمت الاستمارة.
+    #
+    # مخفيّ، ويعود مع الإرسال. فإن اختلف عمّا في القاعدة ساعةَ الحفظ، فبين
+    # اللحظتين كتب أحدٌ آخر — وهذا هو كلّ ما يعرفه الخادم، وهو يكفي للرفض.
+    row_stamp = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # الختم على **حقول هذه الاستمارة** لا على `updated_at`، لسببين:
+        # `User` و`Company` بلا `updated_at` أصلاً فكان سيلزم عمودان وهجرة؛
+        # والأهمّ أن `updated_at` يتحرّك لحفظٍ لم يغيّر شيئاً، فيرفض تعديلاً
+        # لا يدهس أحداً. والحقول هي بالضبط ما يستطيع هذا النموذج أن يكتبه —
+        # لا أوسع فيزعج، ولا أضيق فيفوته ما يحرسه.
+        if not self.is_bound:
+            self.initial["row_stamp"] = self._row_stamp()
+
+    def _row_stamp(self) -> str:
+        """بصمةُ ما تكتبه هذه الاستمارة الآن، أو `""` لصفٍّ لم يوجد بعد."""
+        instance = getattr(self, "instance", None)
+        if instance is None or instance.pk is None:
+            return ""
+
+        # من `self.instance` مباشرةً، وقد جُرّبت إعادةُ قراءةٍ من القاعدة هنا
+        # فلم يُسقطها اختبار: الشاشات الأربع كلّها تُحمّل الصفّ بـ`get_object_
+        # _or_404` عند الطلب نفسه، فالكائن **هو** ما في القاعدة. وسطرٌ دفاعيّ
+        # لا تُسقطه مخالفةٌ مصنوعة سطرٌ لا يُميَّز عن سطرٍ لا يعمل.
+        names = list(getattr(getattr(self, "_meta", None), "fields", None) or [])
+        payload = "|".join(f"{name}={getattr(instance, name, '')!r}" for name in names)
+        return hashlib.sha256(payload.encode()).hexdigest()[:32]
+
     def clean_reason(self) -> str:
         reason = (self.cleaned_data.get("reason") or "").strip()
         if not reason:
             raise forms.ValidationError("سبب التعديل مطلوب.")
         return reason
+
+    def clean(self):
+        cleaned = super().clean()
+
+        # الفحص في `clean` لا في العرض: `_post_clean` يكون قد كتب قيم الإرسال
+        # على `self.instance` بحلول ذلك الوقت، فبصمةٌ تُحسب بعده تبصم ما أراده
+        # المرسِل لا ما في القاعدة — وتتطابق دائماً.
+        expected = self._row_stamp()
+        if expected and cleaned.get("row_stamp") != expected:
+            raise forms.ValidationError(
+                "عُدِّل هذا الصفّ من مكانٍ آخر بعد أن فتحتَ الصفحة. "
+                "افتحها من جديد لترى ما صار إليه، ثم أعِد تعديلك — "
+                "الحفظ الآن يمحو عمل غيرك بلا أن يعلم."
+            )
+        return cleaned
 
 
 class AuctionForm(ReasonMixin, forms.ModelForm):

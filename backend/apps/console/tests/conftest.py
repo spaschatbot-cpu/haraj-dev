@@ -28,6 +28,27 @@ def screen_of(body: str) -> str:
     return match.group(1)
 
 
+STAMP = re.compile(r'name="row_stamp"[^>]*value="([^"]*)"')
+
+
+def stamp_from(client, url: str) -> str:
+    """ختم HR-13 كما رسمته الصفحة — يُقرأ منها ولا يُحسب هنا.
+
+    كلّ إرسالٍ إلى شاشة تعديل يحمله، لأن الاستمارة الحقيقية تحمله: حقلٌ مخفيّ
+    يعود مع الطلب. واختبارٌ يبنيه بنفسه يختبر حسابه هو، ويظلّ أخضر ولو توقّفت
+    الصفحة عن رسم الحقل — وحينها لا ختم مع أيّ حفظٍ حقيقيّ.
+
+    ولماذا لا يُقبل الإرسالُ بلا ختم أصلاً: حارسٌ يُتجاوَز بحذف حقلٍ من الطلب
+    ليس حارساً. فالثمن أن كلّ اختبارٍ يرسل يدوياً يفتح الصفحة أولاً — وهو ما
+    يفعله المتصفّح على أي حال.
+    """
+    response = client.get(url)
+    assert response.status_code == 200, f"{url} أجاب {response.status_code}"
+    match = STAMP.search(response.content.decode())
+    assert match, f"{url} لم ترسم حقل الختم"
+    return match.group(1)
+
+
 @pytest.mark.django_db
 def test_the_chrome_writes_nothing_but_the_way_out(client, staff) -> None:
     """The hole `screen_of` opens, closed here.
