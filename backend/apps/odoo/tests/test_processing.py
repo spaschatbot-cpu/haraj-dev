@@ -17,6 +17,7 @@ from apps.money import services
 from apps.money.models import (
     AccountKind,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     RefundRequestState,
     Transaction,
@@ -549,6 +550,7 @@ class TestASuspensePaymentThatLaterFindsItsOwner:
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
             odoo_invoice_id="ODOO-INV-90",
+            source=InvoiceSource.LOCAL,
         )
         # Stored while the link did not exist yet.
         unlinked = stored(
@@ -731,6 +733,7 @@ class TestOdooCannotEraseDuesByLoweringAnInvoice:
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
             odoo_invoice_id="ODOO-LOWER-1",
+            source=InvoiceSource.LOCAL,
         )
         services.lock_for_invoice(user=linked, invoice=invoice)
         services.record_payment(
@@ -768,6 +771,7 @@ class TestOdooCannotEraseDuesByLoweringAnInvoice:
             amount_paid=Decimal("100.00"),
             state=InvoiceState.PAID,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
 
         invoice.amount = Decimal("50.00")
@@ -785,6 +789,7 @@ class TestOdooCannotEraseDuesByLoweringAnInvoice:
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
             odoo_invoice_id="ODOO-LOWER-3",
+            source=InvoiceSource.LOCAL,
         )
 
         message = stored(

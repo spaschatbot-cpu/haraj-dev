@@ -18,6 +18,7 @@ from apps.money import services
 from apps.money.models import (
     AccountKind,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     PaymentMethod,
     PaymentPurpose,
@@ -57,6 +58,7 @@ def invoice(bidder, won_vehicle):
         state=InvoiceState.OPEN,
         vehicle=won_vehicle,
         issued_at="2026-02-01T00:00:00Z",
+        source=InvoiceSource.LOCAL,
     )
 
 
@@ -247,6 +249,7 @@ class TestTheInvoiceList:
             amount=Decimal("10.00"),
             state=InvoiceState.DRAFT,
             issued_at="2026-02-01T00:00:00Z",
+            source=InvoiceSource.LOCAL,
         )
 
         body = parsed_without_floats(as_bidder.get(reverse("money:invoice-list")))
@@ -263,6 +266,7 @@ class TestTheInvoiceList:
             amount=Decimal("99.00"),
             state=InvoiceState.OPEN,
             issued_at="2026-02-01T00:00:00Z",
+            source=InvoiceSource.LOCAL,
         )
 
         body = parsed_without_floats(as_bidder.get(reverse("money:invoice-list")))

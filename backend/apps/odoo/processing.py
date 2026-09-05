@@ -24,6 +24,7 @@ from django.utils import timezone
 from apps.money import services
 from apps.money.models import (
     Invoice,
+    InvoiceSource,
     InvoiceState,
     RefundRequest,
     RefundRequestState,
@@ -324,6 +325,9 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
             odoo_invoice_id=invoice_ref,
             odoo_state_raw=raw_state,
             state=InvoiceState.OPEN,
+            # Theirs, so the amount already carries the tax. Saying so here is
+            # what stops it being taxed a second time (HR-05).
+            source=InvoiceSource.ODOO_SYNC,
             issued_at=timezone.now(),
         )
         return Outcome(

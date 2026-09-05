@@ -36,6 +36,7 @@ from apps.money.models import (
     Hold,
     HoldState,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     Transaction,
     TransactionKind,
@@ -107,6 +108,7 @@ def dues_hold(customer) -> Hold:
         amount=Decimal("8000.00"),
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
     return money.lock_for_invoice(user=customer, invoice=invoice)
 

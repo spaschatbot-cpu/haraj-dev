@@ -407,6 +407,11 @@ SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.sms.console_backend")
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 
+# A setting and not a literal, because the rate is a fact about the tax year and
+# not about this code. Read as a string and turned into a Decimal at the one
+# place that uses it — `float` is forbidden on any money path (Article 3-2).
+VAT_RATE = env.str("VAT_RATE", default="0.15")
+
 # The smallest bid the platform accepts, in riyals. Not a price the car stands
 # on — that is `Vehicle.reserve_price` and nothing else — and deliberately not
 # derived from it: a bid under the reserve is a supported outcome that sends
