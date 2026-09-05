@@ -42,6 +42,16 @@ log = logging.getLogger(__name__)
 #: refund three days later says just as clearly that the money went back.
 REFUND_LOOKBACK_DAYS = 30
 
+#: How recently a card top-up of the same amount makes an Odoo payment for that
+#: customer look like an echo of it rather than new money.
+#:
+#: Short on purpose. The echo is a machine reflecting our own push back at us
+#: within seconds; fifteen minutes is generous for that and still narrow enough
+#: that a customer who genuinely pays twice — once by card and once at a
+#: counter — is unlikely to land inside it. And when one does, the message is
+#: `ignored` with its reason and its payload intact, so a person can replay it.
+CARD_ECHO_WINDOW_MINUTES = 15
+
 
 @dataclass(frozen=True)
 class Outcome:
@@ -230,6 +240,10 @@ def _handle_payment(message: InboundMessage) -> Outcome:
         blocked = _refunded_since(user, amount, message)
         if blocked is not None:
             return Outcome(InboundState.IGNORED, blocked)
+
+        echo = _echoes_a_card_topup(user, amount, message)
+        if echo is not None:
+            return Outcome(InboundState.IGNORED, echo)
 
         # `credit_payment`, not `deposit_insurance`: `posted` may have arrived
         # before the customer was linked and put this very payment in suspense,
@@ -539,6 +553,62 @@ def _resolve_customer(odoo_customer_id: str):
         )
 
     return None, f"عميل أودو {odoo_customer_id} غير مربوط بأي حساب"
+
+
+def _echoes_a_card_topup(user, amount: Decimal, message: InboundMessage) -> str | None:
+    """Refuse an Odoo payment that is our own card top-up coming back. HR-10.
+
+    The order **is** the defect (`PHASE_02` §3):
+
+    1. the customer pays by card and we credit them locally, keyed on the
+       gateway's payment id;
+    2. we push the entry to Odoo;
+    3. **Odoo fires its webhook the moment the payment is created — before our
+       push has finished being written**;
+    4. the webhook carries *Odoo's* payment id, not the gateway's, so our
+       idempotency key does not recognise it, and ten thousand riyals are
+       credited a second time.
+
+    v1 produced **42 phantom deposits** this way, and a customer's balance went
+    to 20,000 "من العدم".
+
+    Idempotency is the first layer and it is not enough on its own: it answers
+    "have we seen *this event*?", and the echo is a different event describing
+    the same money. This is the second layer, and it asks the only question
+    that spans both — has this customer just been credited this exact amount by
+    card?
+
+    Returns the reason to ignore, or None when the money is genuinely new.
+    """
+    seen_at = message.received_at or timezone.now()
+    window = seen_at - timezone.timedelta(minutes=CARD_ECHO_WINDOW_MINUTES)
+
+    # Two `filter()` calls, not one. A top-up has two legs — the customer's
+    # `insurance_free` credit and the platform's `external_card` debit — and
+    # naming both conditions in a single call asks Django for *one* entry that
+    # is both, which no row is. Chained calls join the table twice and ask what
+    # was meant: a transaction with an entry of this customer's **and** an entry
+    # on the card account.
+    recent = (
+        Transaction.objects.filter(
+            kind=TransactionKind.INSURANCE_TOPUP,
+            occurred_at__gte=window,
+            occurred_at__lte=seen_at,
+        )
+        .filter(entries__owner=user)
+        .filter(entries__account__kind=AccountKind.EXTERNAL_CARD)
+        .distinct()
+        .order_by("-occurred_at")
+    )
+
+    for candidate in recent:
+        if candidate.total == amount:
+            return (
+                f"[layer2] صدى دفعة: العميل شُحن {amount} بالبطاقة بالمعاملة "
+                f"{candidate.pk} خلال {CARD_ECHO_WINDOW_MINUTES} دقيقة قبل هذه "
+                f"الرسالة — تقييدها كان سيضاعف رصيده من العدم"
+            )
+    return None
 
 
 def _refunded_since(user, amount: Decimal, message: InboundMessage) -> str | None:
