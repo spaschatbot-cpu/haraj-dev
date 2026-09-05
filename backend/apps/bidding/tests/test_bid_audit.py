@@ -141,8 +141,14 @@ def test_the_row_cannot_be_edited_or_deleted(car, bidder):
     (row,) = entries("bidding.bid_placed")
 
     row.after = {"amount": "1.00"}
-    with pytest.raises(Exception):
+    # بالنوع وبالنصّ، لا بـ`Exception` عارية: العارية تمرّ على `NameError`
+    # من خطأ إملائي في `save` نفسها، فتُعلن أن السجلّ محميّ وهو مكسور.
+    #
+    # والمُطابَق شظيّة **بلا تشكيل**: رسالة النموذج فيها فتحةٌ ثمّ شدّة
+    # (‏064E ثمّ ‏0651)، ومن يكتبها بالترتيب المعكوس يرى نصّين متطابقين
+    # عيناً ومختلفين بالبايت — فيسقط الاختبار بلا سببٍ مرئيّ. حدث هنا.
+    with pytest.raises(ValueError, match="كتابته"):
         row.save()
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError, match="حذف"):
         row.delete()
