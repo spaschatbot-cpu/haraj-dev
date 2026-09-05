@@ -79,6 +79,13 @@ PAGES: tuple[Page, ...] = (
         "ما تملك فتحه، وما تفعله كل شاشة.",
     ),
     Page(
+        "console:dashboard",
+        "لوحة التحليلات",
+        Capability.CONSOLE_ACCESS,
+        "daily",
+        "أرقام المنصّة، وكلٌّ منها بابٌ إلى الشاشة التي تتصرّف فيه.",
+    ),
+    Page(
         "console:auctions",
         "المزادات",
         Capability.AUCTIONS_VIEW,

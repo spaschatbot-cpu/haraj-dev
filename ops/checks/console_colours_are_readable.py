@@ -101,6 +101,15 @@ def main() -> int:
         ("إطار التركيز على البطاقة", t["brand-solid"], t["panel"], UI),
         ("إطار التركيز على الأرضية", t["brand-solid"], t["ground"], UI),
         ("حدّ الحقل", t["field-border"], t["panel"], UI),
+        # لوحة التحليلات — لونٌ بلا زوجٍ هنا لونٌ بلا ضمان.
+        ("رقم المال على البطاقة", t["money"], t["panel"], TEXT),
+        ("رقم المزاد على البطاقة", t["auction"], t["panel"], TEXT),
+        ("رقم الناس على البطاقة", t["people"], t["panel"], TEXT),
+        ("تفصيل البطاقة", t["ink-soft"], t["panel"], TEXT),
+        ("رقم التنبيه على خلفيته", t["warn"], t["warn-soft"], TEXT),
+        ("رقم الإنذار على خلفيته", t["danger"], t["danger-soft"], TEXT),
+        ("حافة بطاقة المال", t["money"], t["panel"], UI),
+        ("حافة بطاقة المزاد", t["auction"], t["panel"], UI),
     ]
 
     failures = []

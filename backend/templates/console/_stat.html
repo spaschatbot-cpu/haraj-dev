@@ -1,0 +1,39 @@
+{% comment %}
+  بطاقةُ رقمٍ واحدة. شكلها مأخوذٌ من قالبين: مربّع الرمز والتذييل خلف فاصل من
+  الأول، والحبّة والخطّ المصغَّر من الثاني.
+
+  والبطاقة كلها رابطٌ حين يكون لها فعل، لا رابطٌ في تذييلها وحده: هدفُ لمسٍ
+  بعرض البطاقة أسهل من هدفٍ بعرض كلمتين، والتذييل يبقى ليقول **إلى أين**.
+{% endcomment %}
+{% if stat.href %}<a class="stat stat--{{ stat.tone }}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}">{% endif %}
+  <div class="stat__top">
+    {% if stat.icon %}<span class="stat__icon" aria-hidden="true">{{ stat.icon }}</span>{% endif %}
+    {% if stat.delta %}
+      {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
+         الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
+      <span class="delta delta--{{ stat.delta.direction }}">
+        <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
+      </span>
+    {% endif %}
+  </div>
+
+  <span class="stat__label">{{ stat.label }}</span>
+  <strong class="stat__value">{{ stat.value }}</strong>
+
+  {% if stat.delta %}<span class="stat__delta-note">{{ stat.delta.word }} {{ stat.delta.percent }}% {{ stat.delta.note }}</span>{% endif %}
+
+  {% if stat.spark_points %}
+    {% comment %} شكلٌ لا رقم — والرقم مكتوبٌ فوقه. `aria-hidden` لأن قارئ
+       الشاشة قرأ القيمة والدلتا بالفعل، وسلسلةُ إحداثياتٍ ضجيج. {% endcomment %}
+    <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
+         role="presentation" aria-hidden="true" focusable="false">
+      <polyline points="{{ stat.spark_points }}" />
+    </svg>
+  {% endif %}
+
+  <span class="stat__detail">{{ stat.detail }}</span>
+
+  {% if stat.action %}
+    <span class="stat__action">{{ stat.action }} <span aria-hidden="true">←</span></span>
+  {% endif %}
+{% if stat.href %}</a>{% else %}</div>{% endif %}
