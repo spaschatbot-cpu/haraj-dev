@@ -77,7 +77,19 @@ def a_car(auction: Auction, lot: int, reserve: str = "40000.00") -> Vehicle:
     )
 
 
-def a_bidder(django_user_model, phone: str, funds: str = "50000.00"):
+def a_bidder(django_user_model, phone: str, funds: str | None = None):
+    """A bidder who deposited **what the auction asks** — nothing more. HR-01ب.
+
+    The default was ``"50000.00"`` against an auction asking ten thousand, so
+    forty thousand stayed free after the bidding hold and every settlement test
+    ran with a cushion no real bidder has. That cushion hid HR-01: a winner who
+    deposited exactly the deposit had nothing free left, and invoicing raised
+    rather than issuing. The fixture was green on a state that does not occur.
+
+    A test that needs more says so, and says why — funds are an argument, not a
+    default, so the exception is visible at the call site.
+    """
+    funds = funds or str(TEN_K)
     user = django_user_model.objects.create_user(
         phone=phone, full_name="مزايد", national_id=phone[-10:]
     )
@@ -313,7 +325,7 @@ def test_a_winner_with_another_unresolved_car_keeps_the_auction_hold(
     """Invoicing one car must not free a deposit still doing its first job."""
     won = a_car(auction, 1, reserve="40000.00")
     pending = a_car(auction, 2, reserve="90000.00")
-    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    winner = a_bidder(django_user_model, "966501111111")
 
     bidding.place_bid(user=winner, vehicle=won, amount=Decimal("45000.00"))
     bidding.place_bid(user=winner, vehicle=pending, amount=Decimal("50000.00"))
@@ -396,10 +408,7 @@ def test_an_auction_whose_cars_are_all_resolved_closes(auction, django_user_mode
 def test_a_full_auction_settles_and_the_ledger_stays_clean(auction, django_user_model):
     """Twenty bidders, ten cars, and every deposit either freed or kept by name."""
     cars = [a_car(auction, lot, reserve="40000.00") for lot in range(1, 11)]
-    bidders = [
-        a_bidder(django_user_model, f"96650{index:07d}", funds="60000.00")
-        for index in range(1, 21)
-    ]
+    bidders = [a_bidder(django_user_model, f"96650{index:07d}") for index in range(1, 21)]
 
     for index, bidder in enumerate(bidders):
         car = cars[index % len(cars)]
@@ -422,10 +431,7 @@ def test_a_full_auction_settles_and_the_ledger_stays_clean(auction, django_user_
 def test_nobody_loses_a_riyal_across_a_whole_settlement(auction, django_user_model):
     """The sum every customer holds is the sum they deposited, before and after."""
     cars = [a_car(auction, lot) for lot in range(1, 4)]
-    bidders = [
-        a_bidder(django_user_model, f"96651{index:07d}", funds="50000.00")
-        for index in range(1, 7)
-    ]
+    bidders = [a_bidder(django_user_model, f"96651{index:07d}") for index in range(1, 7)]
     for index, bidder in enumerate(bidders):
         bidding.place_bid(
             user=bidder, vehicle=cars[index % 3], amount=Decimal("45000.00") + index
@@ -458,8 +464,8 @@ def test_nobody_loses_a_riyal_across_a_whole_settlement(auction, django_user_mod
 def test_replacing_the_winner_moves_the_award_and_the_money(auction, django_user_model):
     """F6. Four effects, one transaction — v1 did this by hand in four screens."""
     car = a_car(auction, 1)
-    first = a_bidder(django_user_model, "966501111111", funds="80000.00")
-    second = a_bidder(django_user_model, "966502222222", funds="80000.00")
+    first = a_bidder(django_user_model, "966501111111")
+    second = a_bidder(django_user_model, "966502222222")
 
     bidding.place_bid(user=first, vehicle=car, amount=Decimal("70000.00"))
     bidding.place_bid(user=second, vehicle=car, amount=Decimal("65000.00"))
@@ -484,8 +490,8 @@ def test_replacing_the_winner_moves_the_award_and_the_money(auction, django_user
 def test_the_first_winner_is_left_owing_nothing(auction, django_user_model):
     """The v1 failure: a customer who never got a car carried a blocking debt."""
     car = a_car(auction, 1)
-    first = a_bidder(django_user_model, "966501111111", funds="80000.00")
-    second = a_bidder(django_user_model, "966502222222", funds="80000.00")
+    first = a_bidder(django_user_model, "966501111111")
+    second = a_bidder(django_user_model, "966502222222")
     bidding.place_bid(user=first, vehicle=car, amount=Decimal("70000.00"))
     bidding.place_bid(user=second, vehicle=car, amount=Decimal("65000.00"))
     settlement.settle_auction(auction)
@@ -504,8 +510,8 @@ def test_the_first_winner_is_left_owing_nothing(auction, django_user_model):
 def test_the_new_winner_can_be_invoiced_after_the_replacement(auction, django_user_model):
     """The unique constraint must not treat the cancelled invoice as live."""
     car = a_car(auction, 1)
-    first = a_bidder(django_user_model, "966501111111", funds="80000.00")
-    second = a_bidder(django_user_model, "966502222222", funds="80000.00")
+    first = a_bidder(django_user_model, "966501111111")
+    second = a_bidder(django_user_model, "966502222222")
     bidding.place_bid(user=first, vehicle=car, amount=Decimal("70000.00"))
     bidding.place_bid(user=second, vehicle=car, amount=Decimal("65000.00"))
     settlement.settle_auction(auction)
@@ -582,7 +588,7 @@ def test_cancelling_voids_an_unpaid_invoice_and_frees_its_lock(
 ):
     """Nobody owes us anything because of an event that did not happen."""
     car = a_car(auction, 1)
-    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    winner = a_bidder(django_user_model, "966501111111")
     bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
     settlement.settle_auction(auction)
     car.refresh_from_db()
@@ -601,7 +607,7 @@ def test_cancelling_voids_an_unpaid_invoice_and_frees_its_lock(
 def test_a_paid_invoice_is_reported_not_silently_voided(auction, django_user_model):
     """Un-taking money somebody handed over is a refund, and a refund needs a human."""
     car = a_car(auction, 1)
-    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    winner = a_bidder(django_user_model, "966501111111")
     bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
     settlement.settle_auction(auction)
     car.refresh_from_db()
@@ -669,7 +675,7 @@ def test_the_previous_cycles_award_does_not_travel_with_the_car(
 ):
     """A car listed in April showing March's winner tells somebody they own it."""
     car = a_car(auction, 1)
-    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    winner = a_bidder(django_user_model, "966501111111")
     bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
     settlement.settle_auction(auction)
     car.refresh_from_db()
@@ -698,8 +704,8 @@ def test_a_bidder_refused_in_one_cycle_is_not_refused_in_the_next(
     listed again.
     """
     car = a_car(auction, 1)
-    outbid = a_bidder(django_user_model, "966502222222", funds="80000.00")
-    winner = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    outbid = a_bidder(django_user_model, "966502222222")
+    winner = a_bidder(django_user_model, "966501111111")
     bidding.place_bid(user=winner, vehicle=car, amount=Decimal("70000.00"))
     bidding.place_bid(user=outbid, vehicle=car, amount=Decimal("50000.00"))
     ended(auction)
@@ -718,7 +724,7 @@ def test_a_bidder_refused_in_one_cycle_is_not_refused_in_the_next(
 def test_the_old_bids_stay_with_the_old_auction(auction, django_user_model):
     """They are the record of what happened in March, not a claim on April."""
     car = a_car(auction, 1)
-    bidder = a_bidder(django_user_model, "966501111111", funds="80000.00")
+    bidder = a_bidder(django_user_model, "966501111111")
     old_bid = bidding.place_bid(user=bidder, vehicle=car, amount=Decimal("70000.00"))
     ended(auction)
     settlement.cancel_auction(auction, reason="أُلغيت")
