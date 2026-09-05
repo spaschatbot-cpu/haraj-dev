@@ -467,6 +467,44 @@ def test_a_repeated_lot_number_is_a_sentence_beside_the_box(client, operator, li
     assert "رقم اللوت مستعمل" in response.content.decode()
 
 
+def test_a_repeated_vin_is_a_sentence_beside_the_box(client, operator, live):
+    """HR-11 — الطريق الثالث إلى القيد نفسه، وهو الذي تُنسى فيه الشاشة.
+
+    القيد `one_vin_per_auction` **جزئي** (`~Q(vin="")`)، وقيدٌ جزئي لا يظهر في
+    PostgreSQL بوصفه `CONSTRAINT` بل فهرساً بشرط `WHERE`. فالسؤال الذي يجيبه
+    هذا الاختبار ليس «هل القاعدة ترفض؟» — تلك يجيبها `test_vin_uniqueness.py`
+    بـSQL خام — بل **هل يرى المشغّل جملةً بجانب الخانة أم صفحة ٥٠٠؟**
+
+    وقراءة مصدر Django تقول إن `full_clean` يتحقّق من القيود الشرطية، لكن
+    قراءةً لمصدر مكتبةٍ ليست تشغيلاً: التحقّق يُستثنى صامتاً إن كان أحد حقلَي
+    القيد خارج النموذج، و`auction` قد يخرج منه غداً بقرارٍ لا علاقة له بهذا.
+    """
+    a_car(live, 7, vin="JT1234567890")
+
+    response = client.post(
+        reverse("console:vehicle-new"),
+        vehicle_payload(live, vin="JT1234567890"),
+    )
+
+    assert response.status_code == 200, "المكرَّر انتهى إلى صفحة خطأ لا إلى الاستمارة"
+    assert not Vehicle.objects.filter(lot_number=12).exists()
+
+
+def test_editing_a_car_onto_its_neighbour_vin_is_refused_too(client, operator, live):
+    """ولا يحتاج المشغّل صفّاً جديداً ليكرّر شاصياً: تكفي خانةٌ يعدّلها."""
+    a_car(live, 7, vin="JT1234567890")
+    other = a_car(live, 8, vin="JT0987654321")
+
+    response = client.post(
+        reverse("console:vehicle-edit", args=[other.pk]),
+        vehicle_payload(live, lot_number="8", vin="JT1234567890"),
+    )
+
+    assert response.status_code == 200
+    other.refresh_from_db()
+    assert other.vin == "JT0987654321", "حُفظ شاصٍ مكرَّر"
+
+
 def test_the_edit_form_offers_no_way_to_type_an_award(client, operator, live):
     """An award typed by hand is an award with no bid behind it.
 
