@@ -218,6 +218,37 @@ def test_a_repeated_vin_is_rejected_with_a_reason_not_a_crash(fleet):
     assert not Vehicle.objects.filter(lot_number=98).exists()
 
 
+def test_an_edit_that_duplicates_a_vin_is_rejected_too(fleet):
+    """الطريق الثاني إلى القيد نفسه، وهو الذي يُنسى: **لا صفَّ جديد**.
+
+    لا يحتاج الموظّف أن يضيف سيارة ليكرّر شاصياً — تكفي خانةٌ يعدّلها في صفٍّ
+    قائم لتطابق جاره. و`HR-11ب` سدّ `_create` وحده، فبقي هذا مكشوفاً: نفس
+    `IntegrityError`، ونفس الملفّ الساقط كلّه على صفٍّ واحد.
+
+    والفرق عن الإنشاء أن السؤال قبل الكتابة لا يكفي هنا وحده: الصفّ يملك
+    شاصيه الحالي، فسؤالٌ ساذج عن الوجود يرفض الصفّ لتطابقه مع **نفسه**.
+    """
+    sheet = export_sheet(Vehicle.objects.all())
+    sheet.rows[1][sheet.headers.index("رقم الهيكل")] = "JT1234567890"
+
+    report = import_vehicles(sheet.to_xlsx())
+
+    (rejection,) = report.rejections
+    assert "الشاصي" in rejection.reason
+    assert Vehicle.objects.get(pk=fleet[1].pk).vin != "JT1234567890"
+
+
+def test_a_row_keeping_its_own_vin_is_not_a_duplicate_of_itself(fleet):
+    """الوجه الآخر، ولولاه لكان الحارس يرفض كل إعادة رفعٍ للملفّ كما هو."""
+    sheet = export_sheet(Vehicle.objects.all())
+    sheet.rows[0][sheet.headers.index("سعر الوقوف")] = "77000.00"
+
+    report = import_vehicles(sheet.to_xlsx())
+
+    assert report.rejections == []
+    assert Vehicle.objects.get(pk=fleet[0].pk).reserve_price == Decimal("77000.00")
+
+
 def test_rows_without_a_vin_are_not_duplicates_of_each_other(fleet, make_auction):
     """المجهول ليس قيمةً تتكرّر — أسطولٌ لم تصل أوراقه يدخل كاملاً."""
     sheet = export_sheet(Vehicle.objects.all())

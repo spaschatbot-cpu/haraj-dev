@@ -416,7 +416,7 @@ def _apply_row(
         _create(auction, lot_number, attributes, reject, report)
         return
 
-    _update(vehicle, attributes, report)
+    _update(vehicle, attributes, reject, report)
 
 
 def _create(auction, lot_number, attributes, reject, report) -> None:
@@ -452,7 +452,12 @@ def _create(auction, lot_number, attributes, reject, report) -> None:
     report.created.append(vehicle.pk)
 
 
-def _update(vehicle: Vehicle, attributes: dict, report: ImportReport) -> None:
+def _update(
+    vehicle: Vehicle,
+    attributes: dict,
+    reject: Callable[[str], None],
+    report: ImportReport,
+) -> None:
     changed = [
         name
         for name, value in attributes.items()
@@ -462,6 +467,28 @@ def _update(vehicle: Vehicle, attributes: dict, report: ImportReport) -> None:
     if not changed:
         report.unchanged.append(vehicle.pk)
         return
+
+    # الطريق الثاني إلى `one_vin_per_auction`، وسدَّ HR-11ب الأولَ وحده.
+    #
+    # لا يحتاج الموظّف صفّاً جديداً ليكرّر شاصياً: تكفي خانةٌ يعدّلها في صفٍّ
+    # قائم لتطابق جاره — ونفس `IntegrityError` يسقط الملفّ كلّه على صفٍّ واحد.
+    #
+    # والسؤال داخل `if "vin" in changed` لا خارجه، وذلك ما يجعله صحيحاً بلا
+    # `exclude(pk=...)`: صفٌّ يُعيد شاصيه كما هو لا يدخل هنا أصلاً، فلا يُقارَن
+    # بنفسه ولا يُرفض. جُرّبت إضافة `exclude` ثم نزعُها فلم يُسقط النزعُ
+    # اختباراً — وسطرٌ لا تُميّزه مخالفةٌ عن سطرٍ لا يعمل لا يبقى.
+    #
+    # ولولا الشرط لرُفضت كلّ إعادة رفعٍ للملفّ كما هو، وحارسٌ يرفض العمل
+    # السليم يُطفَأ في أسبوع — ولذلك له اختباره أدناه.
+    if "vin" in changed:
+        vin = str(attributes.get("vin") or "").strip()
+        clash = (
+            vin
+            and Vehicle.objects.filter(auction_id=vehicle.auction_id, vin=vin).exists()
+        )
+        if clash:
+            reject(f"الشاصي {vin} مُدخَل في هذا المزاد بالفعل")
+            return
 
     for name in changed:
         setattr(vehicle, name, attributes[name])
