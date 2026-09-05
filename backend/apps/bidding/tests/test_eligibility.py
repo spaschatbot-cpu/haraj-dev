@@ -8,6 +8,8 @@ get past it — and that saying no leaves a record behind.
 
 from __future__ import annotations
 
+import pathlib
+import re
 from datetime import timedelta
 from decimal import Decimal
 
@@ -142,22 +144,23 @@ def test_a_debtor_cannot_bid(bidder, vehicle):
 def test_every_reason_in_the_enum_has_a_test():
     """The enum is the checklist, so the checklist cannot silently grow.
 
-    A new reason added to the model without a test here fails this — which is
-    the point: a rule nobody exercised is a rule nobody knows works.
-    """
-    tested = {
-        RefusalReason.AUCTION_NOT_LIVE,
-        RefusalReason.AUCTION_ENDED,
-        RefusalReason.VEHICLE_NOT_BIDDABLE,
-        RefusalReason.OWN_VEHICLE,
-        RefusalReason.PHONE_NOT_VERIFIED,
-        RefusalReason.PROFILE_INCOMPLETE,
-        RefusalReason.BELOW_FLOOR,
-        RefusalReason.NO_DEPOSIT,
-        RefusalReason.UNPAID_DUES,
-    }
+    A new reason added to the model and exercised nowhere fails this — a rule
+    nobody exercised is a rule nobody knows works.
 
-    assert tested == set(RefusalReason)
+    The reasons are **read off the tests themselves** rather than listed here.
+    A second list went stale the first time it was tried: `REFUND_PENDING` was
+    added to the enum and tested in `test_refund_blocks_bid.py`, and this test
+    went red because the list beside it had not been edited — reporting "no
+    test" for a reason that had one. A checklist maintained by hand is a
+    checklist that reports on itself, not on the suite.
+    """
+    named = set()
+    for source in pathlib.Path(__file__).parent.glob("test_*.py"):
+        named |= set(re.findall(r"RefusalReason\.([A-Z_]+)", source.read_text("utf-8")))
+
+    untested = {reason for reason in RefusalReason if reason.name not in named}
+
+    assert not untested, f"أسباب رفض بلا اختبار: {sorted(r.name for r in untested)}"
 
 
 # ---------------------------------------------------------------------------
