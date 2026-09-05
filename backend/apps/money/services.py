@@ -1494,7 +1494,42 @@ def pay_invoice_from_balance(
     # one state when the customer paid it and another when Odoo did.
     invoice.state = derive_invoice_state(invoice)
     invoice.save(update_fields=["amount_paid", "state", "updated_at"])
+
+    _tell_odoo_the_customer_paid(invoice, outstanding, txn)
     return txn
+
+
+def _tell_odoo_the_customer_paid(
+    invoice: Invoice, amount: Decimal, payment: Transaction
+) -> None:
+    """Queue the payment for Odoo — HR-17. Written down, not sent.
+
+    This is the only payment Odoo cannot learn about on its own. Every other
+    one reaches us *from* them: `record_payment`'s only caller is the webhook
+    handler, so sending those back would be the echo HR-10 was written about.
+    A customer pressing "pay" against their own insurance balance happens
+    entirely here, and until now nothing carried it across — our invoice read
+    `paid`, Odoo's still showed the debt, and finance chased a customer who
+    had paid. That is the mirror disagreeing with the source, which is the one
+    thing this whole boundary exists to prevent.
+
+    **Only an invoice Odoo already knows.** One we issued ourselves has no
+    `account.move` behind it, and telling Odoo about a payment on an invoice
+    it does not have is the phantom debt from the other direction.
+
+    **Queuing is not sending.** The outbox is "something we owe Odoo, written
+    down before we try to send it": `send` is called by nothing scheduled, and
+    `client` refuses outright while `ODOO_ENABLED` is false — which it is in
+    every environment by default. Article 5-2's approval is about *scheduling
+    the send*, and this does not schedule anything; it stops the fact from
+    being lost while that decision is pending.
+    """
+    if not invoice.odoo_invoice_id:
+        return
+
+    from apps.odoo import outbox
+
+    outbox.queue_payment(invoice, amount, source_transaction=payment)
 
 
 # ---------------------------------------------------------------------------
