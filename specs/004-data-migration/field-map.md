@@ -72,8 +72,8 @@
 | `userss.arabic_name` | `User.full_name` | كما هو. `english_name` يُحفظ في حقلٍ ثانٍ أو يُهمَل — 🔍 قرار |
 | `userss.email` | `User.email` | كما هو، والفارغ `""` لا `NULL` |
 | `userss.identity_number` | `User.national_id` | ⚠️ **يُثبَّت مرة على القيمة الصحيحة** (T606). فالمكرَّر أو الفاسد **يُرحَّل بلا تثبيت** ويدخل تقرير المراجعة |
-| `userss.identity_type` `enum('id','residency')` | `User.identity_type` | ⚠️ **enum واسع من البداية** (المادة ٣-٥): لا يُضغَط إلى `bool` |
-| `userss.type_of_account` | `User.account_type` | 🔍 قيمه الفعلية غير معروفة — البذرة `'test'` |
+| `userss.identity_type` `enum` | 🚫 **لا يُرحَّل** | **عُدَّ (§و): `id` في كل الـ44,039 صفّاً.** عمودٌ بلا معلومة. ⚠️ ويبقى مبدأ «enum واسع من البداية» صحيحاً لو ظهرت `residency` يوماً — لكنّها لم تظهر مرّة |
+| `userss.type_of_account` | `User.account_type` | **عُدَّ (§و):** `personal=42,158` · `company=1,314` · `NULL=567`. والـ567 يُفترَض فيها «فرد» **ويُذكر الافتراض في التقرير** |
 | `userss.block_status` `enum('allowed','blocked')` | `User.is_active` | `allowed → True` · `blocked → False`. ⚠️ ولا شاشة عندنا تكتب هذا الحقل بعد (`parity.md` §ب) |
 | `userss.blocked_until` | يُحفظ في ملاحظة | حقلٌ لا نظير له؛ لا يُسقَط |
 | `userss.created_at` | `User.date_joined` | ⚠️ منطقة زمنية — انظر §و |
@@ -103,8 +103,8 @@
 | `auction_vehicles.auction_id` | `Vehicle.auction` | مفتاحٌ حقيقي ✅ |
 | `auction_vehicles.lot_number` `varchar(100)` | `Vehicle.lot_number` `int` | ⚠️ **نصٌّ ← عدد.** غير الرقمي **يُبلَّغ ولا يُخمَّن**، والقيد `one_lot_per_auction` يرفض المكرَّر |
 | `auction_vehicles.chassis_number` | `Vehicle.vin` | ⚠️ **HR-11: `one_vin_per_auction`.** المكرَّر داخل المزاد الواحد **يُرفض ويدخل التقرير** — والقيد الجديد يجعله مستحيلاً لا محتملاً |
-| `auction_vehicles.make` · `model` · `vehicle_brand` | `Vehicle.make` · `model` | ⚠️ **ثلاثة أعمدة لمعنيين.** 🔍 أيّها المصدر الحيّ يُقرَّر بعدّ الفراغات في الإنتاج |
-| `auction_vehicles.year` · `year_of_manufacture` | `Vehicle.year` | ⚠️ عمودان لمعنًى واحد — 🔍 نفس القرار |
+| `auction_vehicles.make` · `model` · `vehicle_brand` | `Vehicle.make` · `model` | ⚠️ **ثلاثة أعمدة لمعنيين — وقد عُدَّت (§و):** `vehicle_brand` مملوءٌ في **13,061 من 13,079**، و`make` في **3,993** فقط. وحيث امتلآ معاً **يختلفان في 2,919 من 3,993 (٧٣٪)**. فالمصدر الحيّ `vehicle_brand`، و`make` عمودٌ قديمٌ ناقصٌ **ومخالف** — لا احتياطيّ له |
+| `auction_vehicles.year` · `year_of_manufacture` | `Vehicle.year` | ⚠️ عمودان لمعنًى واحد، **والعدّ حسمه (§و):** `year_of_manufacture` مملوءٌ في **13,059**، و`year` **فارغٌ في كل صفّ** — لم يجتمعا في صفٍّ واحد قطّ |
 | `auction_vehicles.starting_price` | `Vehicle.reserve_price` | ⚠️ **`reserve_price` هو الحقل الوحيد للسعر** (المادة ٤-٥ · T406). لا يُبنى ثانٍ |
 | `auction_vehicles.status` `varchar(20)` | `Vehicle.state` | ⚠️ **«ضُغط لوسيط أضيق مرة»** (`spec.md`) — فالمصدر الأوسع يُبحث عنه. 🔍 **عدٌّ من الإنتاج، وهو الصفّ الأخطر في هذا الجدول**: خسارةُ الفرق بين «لم يزايد أحد» و«رفض المالك أعلى مزايدة» تُغيّر الخطوة التالية لكل صفٍّ يقع فيها |
 | `auction_vehicles.vehicle_data` · `settings_override` · `override_settings` `longtext` | 🔍 يُفحص | ⚠️ **عمودان بالاسم نفسه تقريباً.** يُقرأ محتواهما قبل أي قرار |
@@ -123,7 +123,7 @@
 | **`invoices_odoo.source`** `varchar(30)` | **`Invoice.source`** | ⚠️ **HR-05 — أدقّ فخّ في الملفات.** فاتورتنا مبالغها **قبل** الضريبة والواردة من أودو **شاملةٌ** لها. 🔍 قيم هذا العمود تُعدّ من الإنتاج وتُخرَّط إلى `local`/`odoo_sync`، **وحقلنا بلا قيمة افتراضية عمداً** فالخطأ `IntegrityError` لا رقمٌ خاطئ |
 | **`invoices_odoo.auction_id`** | 🚫 **لا يُستعمل أبداً** | ⚠️ **يحمل `vehicle_id`** (`spec.md`). الربط عبر `auction_vehicles` |
 | `invoices_odoo.vehicle_id` | `Invoice.vehicle` | ⚠️ يُتحقَّق مقابل `auction_vehicles.id` — ولا يُوثق به قبل التحقّق |
-| `invoices_odoo.customer_id` · `id_user` | `Invoice.customer` | ⚠️ **عمودان للعميل.** 🔍 أيّهما `userss.id` وأيّهما `id_customer`؟ **الخطأ هنا يُسند فاتورةً لشخصٍ آخر** |
+| `invoices_odoo.customer_id` · `id_user` | `Invoice.customer` | ⚠️ **عمودان للعميل، والعدّ حسمه (§و):** يختلفان في **12,426 من 12,426** — أي **دائماً**. ومداهما يفصلهما: `id_user` من 71 إلى 43,468 (مدى `userss.id`)، و`customer_id` من 1,104 إلى 23,268 (مدى `id_customer`). فـ**`id_user` مفتاحنا**، و`customer_id` معرّف أودو — وهو فخّ `refunds_requests` نفسه بأسماءٍ أخرى |
 | `invoices_odoo.status` `enum('paid','Not_paid','part_paid')` | `Invoice.state` | `paid → PAID` · `Not_paid → OPEN` · `part_paid → PARTIAL`. ⚠️ **حرف N الكبير مقصودٌ في المصدر** — مطابقةٌ حسّاسة للحالة تُسقط الصفّ |
 | `invoices_odoo.odoo_record_id` | `Invoice.odoo_invoice_id` | كما هو |
 | `invoices_odoo.status` الخام | `Invoice.odoo_state_raw` | ⚠️ كلمتهم تُحفظ بجوار enumنا (المادة ٢-٣) |
@@ -229,3 +229,101 @@
 
 > **ولا يُكتب بانٍ قبل التوقيع.** هذا ما يقوله `tasks.md`، والسبب أن بانياً
 > يُكتب على خريطةٍ غير موقَّعة يُعاد كتابته بعد أول جواب.
+
+---
+
+## و — العدّ: ما الذي أجاب علامات 🔍، وما الذي بقي
+
+**كيف قُرئ.** النسخة التي سلّمها المالك (`D:\tmp\haraj_db_dump\`)، بقراءةٍ
+متدفّقة تُحصي وتُهمِل. **لم يُستبقَ صفٌّ واحد ولم يُطبَع اسمٌ ولا رقم هويّة**:
+كلُّ ما يخرج عددٌ، أو كلمةُ حالةٍ من تعدادٍ مغلق.
+
+وذلك يرفع القيد المكتوب في رأس هذه الوثيقة عن الصفوف أدناه — لا عنها كلها.
+البذرة ما تزال مُصطنَعة، والعدّ لا يحلّ محلّ قرارِ مالك.
+
+### أعمدةٌ حُسمت
+
+| السؤال | الجواب |
+|---|---|
+| `vehicle_brand` أم `make`؟ | **`vehicle_brand`** — 13,061 مقابل 3,993، ويختلفان في ٧٣٪ ممّا اجتمعا فيه |
+| `year_of_manufacture` أم `year`؟ | **`year_of_manufacture`** — 13,059 مقابل **صفر** |
+| `id_user` أم `customer_id` في الفاتورة؟ | **`id_user`** مفتاحنا، و`customer_id` معرّف أودو. يختلفان في **كل** صفّ، ومداهما يفصلهما |
+| `type_of_account`؟ | `personal=42,158` · `company=1,314` · `NULL=567` |
+| `identity_type`؟ | `id` في **كل** صفّ — عمودٌ بلا معلومة |
+| `customer_links.confidence`؟ | `confirmed` في **كل** صفّ — عمودٌ بلا معلومة |
+| كم عميلاً بحسابين؟ | **سبعة صفوف** على ثلاث قيمٍ مشتركة، أكبرُ مجموعةٍ ثلاثة |
+
+### ⚠️ وثلاثةٌ قلبها العدّ
+
+**١ — «`id_customer` غير فريد» ليس الفخّ. الفراغ هو الفخّ.**
+**27,848 من 44,039 (٦٣٪) بلا `id_customer` أصلاً.** فبناءُ رسم هويّةٍ لسبعة
+صفوف عملُ ساعة، و**تقريرُ سبعةٍ وعشرين ألف حسابٍ بلا نظيرٍ في أودو هو T307
+كلّه**. والفخّ بصيغته يوجّه الجهد إلى الطرف الصغير.
+
+**٢ — `total` ليس مبلغ الفاتورة.** مملوءٌ في **2,711 من 12,434**، بينما
+`amount` في **12,429**. و`amount_residual` في **364** فقط، و`fees_amount` في
+4,127. فمن يقرأ «أودو يرسل شاملاً الضريبة فخذ `total`» يأخذ فراغاً في ثمانين
+بالمئة من الصفوف. **`amount` هو المبلغ**، و`source` هو ما يقول إن كان شاملاً
+(HR-05) — لا اسمُ العمود.
+
+**٣ — `invoices_odoo.status` لم يعد مجمَّداً على `draft`.** `posted=8,096` ·
+`draft=3,924` · `partially paid=150` · `cancelled=122` · `cancel=102` ·
+`reversed=40`. لا يغيّر ذلك القرار — حالتنا مشتقّة و`odoo_state_raw` شاهدٌ لا
+مصدر — لكنّ من يقرأ «كلها draft» ثم يرى `posted` يظنّ نفسه أمام قاعدةٍ أخرى.
+
+> **وفخٌّ لم يُذكر في أي وثيقة: كلمتان لمعنًى واحد.** `cancelled` (122)
+> و`cancel` (102) في `invoices_odoo.status`؛ و`cancelled` (101) و`cancel` (9)
+> في `refunds_requests.payment_state`. **أيُّ شرطٍ يقارن بواحدةٍ منهما يفوته
+> نصفُ الملغى** — وذلك في عمودٍ يقرّر إن كانت فاتورةٌ دَيناً أم لا.
+
+### مفردات الحالات، معدودة
+
+| العمود | القيم |
+|---|---|
+| `auctions.status` | `not_active=51` · `upcoming=2` · `later=1` · `ended=1` · `active=1`. **والتعداد يعلن ثمانيةً؛ ثلاثٌ منها (`soon`, `coming`, `relater`) لا تظهر في صفٍّ واحد** |
+| `auction_vehicles.status` | `not_active=11,915` · `active=405` · `coming=363` · `ended=288` · `later=107` · **`soon=1`**. ستٌّ مستعملة، **ثلاثٌ منها تعني «لم يبدأ»**، وإحداها صفٌّ واحد — وهو بالضبط ما يفوت أي شرط |
+| `bids.offer_status` | `rejected=61,546` · `pending=52,317` · `accepted=6,122`. **و٥٢ ألف عرضٍ معلّق هو الصفّ الأوسط من HR-04 بمقياس الإنتاج** |
+| `bids.status` | `active=76,560` · `not_active=41,663` · `deleted=1,762` |
+| `insurance_deposits.status` | `refunded=1,155` · `free=511` · `held=317` · `locked=80` · `confiscated=80` |
+| `insurance_deposits.void_reason` | `refund=1,042` · `NULL=1,005` · `confiscation=80` · `reversal=16` |
+| `invoices_odoo.PaymentStatus` | `paid=11,807` · `reversed=213` · `cancelled=204` · `not paid=185` · `partially paid=19` · `draft=6` |
+| `invoices_odoo.source` | `NULL=8,294` · `odoo_webhook=4,139` · `system=1`. ⚠️ **ثلثا الفواتير بلا مصدرٍ مكتوب** — وHR-05 يقرأ المصدر ليقرّر الضريبة. **قرارُ ما تعنيه `NULL` هنا قرارُ مالك** |
+| `refunds_requests.status` | `approved=3,121` · `rejected=111` · `pending=57` |
+| `wallet_transactions.type` | `purchase_payment=2,245` · `refund_debit=1,101` · `card_topup=1,042` · `bank_transfer=413` · `cash_receipt=93` · `wallet_reversal=12` · `refund_reversal=1` |
+| `wallet_transactions.category` | **فارغة في 2,662 من 4,907** — فلا يُبنى عليها شرط |
+| `userss.block_status` | `allowed=44,027` · `blocked=12` |
+| `userss.mobile_verified` | `1 = 17,401` · **`0 = 26,638`** |
+
+### أعمدةٌ شبه فارغة — يُقرَّر إسقاطها بالعدد لا بالظنّ
+
+| العمود | مملوء من |
+|---|---|
+| `userss.arabic_name` | **16,195 من 44,039** — ⚠️ ثلثا المستخدمين بلا اسمٍ عربي |
+| `userss.english_name` | 161 — ويختلف عن العربي في 160 منها |
+| `userss.iban_account` | 1,395 |
+| `userss.vat_number` | 562 · `cr_number` 337 — **وعدد حسابات الشركات 1,314**، فأكثرُها بلا سجلٍّ تجاري |
+| صور الهويّة والضريبة والسجل | `identity_image` 1,592 · `commerce_image` 261 · `tax_image` 254 · `national_address_image` 193 · `company_image` **3** |
+| `auctions.starting_price` | **1 من 56** · `fees` 31 · و`increment` و`share_count` **فارغان تماماً** |
+| `auction_vehicles.lot_number` | 12,920 من 13,079 — **159 بلا رقم لوت** |
+| `auction_vehicles.mileage` | 11,751 |
+| `insurance_deposits.linked_auction_id` | **438 من 2,143** · `linked_invoice_id` **98** — فأكثرُ الودائع لا تسمّي مزادها ولا فاتورتها |
+
+### ✅ والفخّ الموثَّق، مؤكَّداً بالعدّ
+
+`invoices_odoo.auction_id` مملوءٌ في 9,845 صفّاً، **ومداه من 1 إلى 8,803** —
+**وفي القاعدة كلّها ستّةٌ وخمسون مزاداً**. فالعمود لا يحمل معرّف مزادٍ قطعاً؛
+ومدى `vehicle_id` (1–12,499) هو مداه. الفخّ صحيحٌ حرفياً، والربط عبر
+`auction_vehicles` وحده.
+
+### 🔍 وما بقي مفتوحاً بعد العدّ — لأن العدّ لا يقرّر
+
+* **`not_active` على 11,966 صفّاً** من المزادات والمركبات: ماذا تعني؟ الغالبية
+  العظمى، ولا تعني شيئاً واحداً. **قرار مالك.**
+* **26,638 مستخدماً بجوالٍ غير موثَّق (٦٠٪)**: v2 يمنع المزايدة بلا توثيق،
+  فيصلون غير قادرين عليها حتى يوثّقوا. **قرار مالك.**
+* **`invoices_odoo.source = NULL` في 8,294 صفّاً**: وHR-05 يقرأ المصدر ليقرّر
+  الضريبة. **قرار مالك.**
+* `userss.iban_account` (1,395) لا وجهة له في v2، ويُستعمل في الاسترداد.
+* صور الهويّة `longtext`: نقلُها قرارٌ له وجهان — حجمٌ في القاعدة، وحمايةُ
+  بيانات.
+
