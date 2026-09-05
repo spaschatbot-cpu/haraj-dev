@@ -50,6 +50,19 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // ‏AGP 9 أغلق `resValues` افتراضياً، والأطوار الثلاثة أدناه تستعمل
+    // `resValue` لتسمية التطبيق بلا ملفّ موارد لكل طور. فسقط البناء بـ
+    // «Product Flavor dev contains custom resource values, but the feature
+    // is disabled» — رسالةٌ تصف الحالة ولا تسمّي الرافعة، فتُقرأ على أنها
+    // خطأ في الطور لا إعدادٌ ناقص.
+    //
+    // والتمكين هنا لا في `gradle.properties`: هذا الملفّ هو الذي يستعمل
+    // الخاصيّة، فمن يحذف `resValue` يرى السطر الذي صار بلا موضوع. وعلمٌ عامّ
+    // في ملفّ آخر يبقى بعد أن يزول سببه.
+    buildFeatures {
+        resValues = true
+    }
+
     defaultConfig {
         applicationId = "sa.harajwahed.haraj_mobile"
 
