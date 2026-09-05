@@ -9,10 +9,12 @@ on:
   push:
     paths:
       - "mobile/**"
+      - "backend/openapi/schema.yaml"
       - ".github/workflows/mobile.yml"
   pull_request:
     paths:
       - "mobile/**"
+      - "backend/openapi/schema.yaml"
       - ".github/workflows/mobile.yml"
 
 defaults:
@@ -61,6 +63,55 @@ jobs:
 
       - name: الفرق يعني أن المرفوع لا يطابق المخطط
         run: git diff --exit-code -- lib/data/api/generated
+
+  backend-schema-generates-a-dart-client:
+    # معيار قبول T621 بنصّه: «ولّد عميل Dart منه في CI للتأكد من صلاحيته؛
+    # وكسر المخطط يُسقط الـCI».
+    #
+    # ولماذا وظيفةٌ منفصلة عن `generated-client-matches-schema` فوقها: تلك
+    # تحرس **العميل المرفوع** ضدّ المخطط الذي يولّده اليوم (`haraj-mock.yaml`)،
+    # وهذه تحرس **مخطّط الخلفية** ضدّ قدرته على إنتاج عميل Dart أصلاً. سؤالان
+    # مختلفان، ودمجُهما يعني أن أحدهما يتوقّف عن السؤال يوم يُنقَل التطبيق.
+    #
+    # والمولَّد هنا يُرمى ولا يُرفع: التطبيق ما زال يستهلك عميل المخطط المؤقّت
+    # (`wallet_repository_impl` وغيره)، وتبديل المصدر اليوم يحذف عملاء تعتمد
+    # عليهم شيفرةٌ قائمة. المطلوب في هذا التاسك أن يُثبَت أن المخطط **يُولِّد**،
+    # لا أن يُنقَل التطبيق — ذاك عمل الفيز 008.
+    #
+    # فإن عجز `swagger_parser` عن نوعٍ أو مُسلسِل، سقط هنا وفي وقتٍ يُقرأ فيه
+    # السبب — لا في يومٍ يحاول فيه أحدٌ النقل ويجد المخطط لا يصلح.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - name: توجيه المولّد إلى مخطّط الخلفية الحقيقي
+        # في نسخة العمل الزائلة وحدها. الملف المرفوع لا يتغيّر، ولذلك لا
+        # `git diff` بعد هذه الوظيفة: مخرَجها هو نجاحها أو فشلها، لا ملفّ.
+        run: |
+          cp ../backend/openapi/schema.yaml openapi/backend-schema.yaml
+          sed -i             -e 's#schema_path: openapi/haraj-mock.yaml#schema_path: openapi/backend-schema.yaml#'             -e 's#output_directory: lib/data/api/generated#output_directory: build/backend_client#'             swagger_parser.yaml
+
+      - name: توليد عميل Dart من المخطط
+        run: dart run swagger_parser
+
+      - name: مولِّدٌ لا يكتب شيئاً ينجح صامتاً
+        # بلا هذه الخطوة تمرّ الوظيفة على مجلّدٍ فارغ، فتُعلن أن المخطط صالحٌ
+        # وهي لم تولّد منه سطراً. الفحص الذي لا يجد ما يحرسه يصرخ (المادة ٤).
+        run: |
+          count=$(find build/backend_client -name '*.dart' | wc -l)
+          echo "وُلِّد $count ملفاً"
+          if [ "$count" -lt 10 ]; then
+            echo "المخطط ولّد $count ملفاً فقط — لا عميل هنا." >&2
+            exit 1
+          fi
 
   android-build:
     # معيار قبول T717: «بناء إصدار ينجح للمنصتين».
