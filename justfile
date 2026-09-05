@@ -113,6 +113,7 @@ lint-rules:
     uv run python ../ops/checks/one_vehicle_card.py
     uv run python ../ops/checks/one_sheet_writer.py
     uv run python ../ops/checks/one_upload_gate.py
+    uv run python ../ops/checks/every_capability_guards_something.py
 
 # Rewrite what ruff can rewrite. CI never runs this — CI only ever checks.
 fmt: _fix _format

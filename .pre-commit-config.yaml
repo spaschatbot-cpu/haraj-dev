@@ -93,3 +93,11 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # قدرةٌ ممنوحةٌ لا تحرس شيئاً جملةٌ كاذبة في نموذج الصلاحيات، لا شيفرةٌ
+      # ميّتة: من يقرأ `ROLE_CAPABILITIES` يستنتج طريقاً محكوماً ولا باب.
+      - id: every-capability-guards-something
+        name: every capability guards a page
+        entry: uv run --directory backend python ../ops/checks/every_capability_guards_something.py
+        language: system
+        types: [python]
+        pass_filenames: false

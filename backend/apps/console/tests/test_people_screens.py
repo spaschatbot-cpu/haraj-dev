@@ -370,4 +370,11 @@ def test_operations_cannot_read_invoices_it_was_not_given(client, invoice):
     operations = staff(Role.OPERATIONS, phone="966500000043")
 
     assert can(operations, Capability.INVOICES_VIEW)
-    assert not can(operations, Capability.INVOICES_MANAGE)
+
+    # كان هنا `not can(..., INVOICES_MANAGE)`، وأُزيلت القدرة لأنها لم تكن
+    # تحرس صفحةً واحدة. والسطر كان يثبت أن دوراً لا يملك **باباً غير موجود** —
+    # توكيدٌ يمرّ دائماً، وهو الشكل الذي يجعل عطلاً كهذا يعيش سنة.
+    #
+    # والحدّ الحقيقي الذي أراده هذا الاختبار قائمٌ ويُختبَر هنا: التشغيل يقرأ
+    # ما على العملاء ولا يحرّك ريالاً.
+    assert not can(operations, Capability.MONEY_ACT)

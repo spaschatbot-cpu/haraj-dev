@@ -51,7 +51,16 @@ class Capability(models.TextChoices):
     USERS_MANAGE = "users.manage", "إدارة المستخدمين والشركات"
 
     INVOICES_VIEW = "invoices.view", "عرض الفواتير والمدفوعات"
-    INVOICES_MANAGE = "invoices.manage", "إدارة الفواتير والمدفوعات"
+
+    # `invoices.manage` كانت هنا، وكانت ممنوحةً للمالك والمالية، **ولا تحرس
+    # صفحةً واحدة**: لا صفَّ لها في `navigation.PAGES` ولا `require()` يطلبها.
+    # فأُزيلت، لأن قدرةً كهذه ليست شيفرةً ميّتة — هي **جملةٌ كاذبة في نموذج
+    # الصلاحيات**. من يسأل «من يستطيع إدارة الفواتير؟» يقرأ الاسم تحت
+    # FINANCE فيستنتج طريقاً محكوماً، ولا باب أصلاً.
+    #
+    # وإصدار فاتورةٍ أو تسجيل دفعةٍ بيد موظّف ما زال **غير مبنيّ** — وهو تاسك
+    # في `apps/money` (المسار أ)، لا حذفٌ هنا. يوم يُبنى، تعود القدرة مع
+    # صفحتها في `PAGES`، ويمرّ حارس `every_capability_guards_something`.
 
     # Money is split three ways on purpose. Reading the ledger, acting on it,
     # and granting an exception are three different levels of trust, and v1
@@ -108,7 +117,6 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.AUCTIONS_VIEW,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
-            Capability.INVOICES_MANAGE,
             Capability.MONEY_VIEW,
             Capability.MONEY_ACT,
             Capability.DIAGNOSTICS_VIEW,
