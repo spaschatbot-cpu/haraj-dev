@@ -43,6 +43,7 @@ from apps.accounts.models import (
     OtpPurpose,
     PhoneVerification,
     SmsFailure,
+    StaffGrant,
     User,
 )
 from apps.accounts.sms import SmsSendFailed, send_sms
@@ -697,3 +698,55 @@ def _gate(phone: str, purpose: str) -> PhoneVerification:
         raise OtpTooManyAttempts(f"code for {phone} has no attempts left")
 
     return verification
+
+
+# --------------------------------------------------------------------------
+# منح الصلاحيات — T822
+# --------------------------------------------------------------------------
+
+
+@transaction.atomic
+def set_capability(
+    *, user: User, capability: str, granted: bool, reason: str, actor: User
+) -> StaffGrant:
+    """امنح صلاحيةً لشخصٍ أو اسحبها منه — الكاتب الوحيد في `StaffGrant`.
+
+    الجدول كان يُقرأ ولا يُكتب: `capabilities_of` وحدها تقرؤه، ولا خدمةَ ولا
+    شاشةَ ولا تسجيلَ في لوحة Django تكتبه. فمنحُ صلاحيةٍ كان يقع بيدٍ على قاعدة
+    البيانات — أي أن **أخطر تغييرٍ في النظام كان الوحيد الذي لا أثر له**.
+
+    و`update_or_create` لا `create`: القيد `one_grant_per_user_capability`
+    يقول صراحةً إن المنح ثم السحب يجب أن **يستبدل** الصفّ لا أن يترك صفّين
+    متناقضين يحلّهما القارئ. فبلوغ القيد من هنا انهيارٌ، واستبدالُه هو المقصود.
+
+    والسبب يُنظَّف ويُتحقَّق منه هنا لا عند القيد: `CHECK` يمنع الفارغ، لكن
+    بلوغه من شاشةٍ صفحةُ خطأ لا جملةٌ بجانب الخانة. ومسافاتٌ بيضاء تمرّ من
+    `CHECK` وليست سبباً.
+
+    والقيد في السجلّ داخل المعاملة نفسها: تغييرُ وصولٍ يقع بلا قيدٍ يصف من
+    فعله ولماذا هو ما تسأل عنه المراجعة أوّلاً.
+    """
+    text = (reason or "").strip()
+    if not text:
+        raise ValueError("سبب المنح أو السحب مطلوب")
+
+    before = None
+    existing = StaffGrant.objects.filter(user=user, capability=capability).first()
+    if existing is not None:
+        before = {"granted": existing.granted, "reason": existing.reason}
+
+    row, _ = StaffGrant.objects.update_or_create(
+        user=user,
+        capability=capability,
+        defaults={"granted": granted, "reason": text, "granted_by": actor},
+    )
+
+    audit.record(
+        action="console.set_capability",
+        entity=row,
+        actor=actor,
+        before=before,
+        after={"granted": granted, "capability": capability, "user_id": user.pk},
+        note=text,
+    )
+    return row

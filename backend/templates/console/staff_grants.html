@@ -1,0 +1,40 @@
+{% extends "console/base.html" %}
+{% block title %}صلاحيات {{ member.full_name }}{% endblock %}
+{% block heading %}صلاحيات {{ member.full_name }}{% endblock %}
+{% block content %}
+  <p>الدور: {{ member.get_console_role_display|default:member.console_role }}</p>
+
+  <h2>ما يستطيعه اليوم</h2>
+  {# الوصول الفعلي من `capabilities_of` — الدور والمنح مركَّبين، لا الدور وحده. #}
+  <ul>
+    {% for capability in effective %}<li>{{ capability }}</li>{% empty %}<li>لا شيء</li>{% endfor %}
+  </ul>
+
+  <h2>المنح والسحب فوق الدور</h2>
+  <table>
+    <thead>
+      <tr><th>الصلاحية</th><th>الحالة</th><th>السبب</th><th>من</th><th>متى</th></tr>
+    </thead>
+    <tbody>
+      {% for grant in grants %}
+        <tr>
+          <td>{{ grant.capability }}</td>
+          <td>{% if grant.granted %}ممنوحة{% else %}مسحوبة{% endif %}</td>
+          <td>{{ grant.reason }}</td>
+          <td>{{ grant.granted_by.full_name|default:"—" }}</td>
+          <td>{{ grant.created_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">لا منح ولا سحب — الوصول من الدور وحده.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>تغيير صلاحية</h2>
+  <form method="post">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">حفظ</button>
+    <a href="{% url 'console:home' %}">إلغاء</a>
+  </form>
+{% endblock %}
