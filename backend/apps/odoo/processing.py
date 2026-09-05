@@ -37,6 +37,11 @@ from .models import CustomerLink, InboundMessage, InboundState, RefundShortfall
 
 log = logging.getLogger(__name__)
 
+#: What Odoo puts in `invoice_id` before a move is numbered. It is a
+#: placeholder, not an identity — every unnumbered draft in the system carries
+#: this same string (``R3-02`` §4).
+ODOO_UNNUMBERED = "/"
+
 #: How long after a payment a refund of the same amount makes replaying that
 #: payment suspect. Generous on purpose: the v1 case was same-day, but a
 #: refund three days later says just as clearly that the money went back.
@@ -318,6 +323,9 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
     if not invoice_ref:
         return Outcome(InboundState.FAILED, "رسالة فاتورة بلا معرّف فاتورة")
 
+    if invoice_ref == ODOO_UNNUMBERED:
+        return _handle_unnumbered(payload)
+
     amount, error = _amount(payload)
     if amount is None:
         return Outcome(InboundState.FAILED, error)
@@ -372,6 +380,47 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
     return Outcome(
         InboundState.PROCESSED,
         f"حُدّثت الفاتورة {invoice.number} (حالة أودو المحفوظة: {raw_state!r})",
+    )
+
+
+def _handle_unnumbered(payload: dict) -> Outcome:
+    """A message whose invoice reference is Odoo's placeholder for "not yet".
+
+    ``R3-02`` §4: "an empty draft is a phantom debt: opening a blank form in
+    Odoo sends `created` with `invoice_id:"/"` and zeros — they are ignored."
+
+    Two endings, because `"/"` means two different things depending on what
+    comes with it, and both were wrong before:
+
+    * **Nothing with it** — a form somebody opened and abandoned. It was
+      `failed` on the arithmetic ("مبلغ غير موجب: 0.00"), and `failed` is
+      labelled "قابلة لإعادة التشغيل" on the model: the retry queue picks it
+      up, fails again, and the case stands in the review list forever. Ten
+      blank forms in a morning is ten permanent alarms about nothing, and a
+      queue of false alarms is a queue nobody reads — which is v1's silent
+      skip reached from the other side. `IGNORED` is what §4's «تُتجاهَل»
+      asks for: terminal, out of the retry path, and with a reason.
+
+    * **Money with it** — refused, and this is the half the rule does not
+      name. `"/"` was being written into `odoo_invoice_id` as an identity, and
+      it is not one: it is Odoo's word for *unnumbered*, the same string for
+      every draft in the system. A second such message would find the first by
+      `filter(odoo_invoice_id="/")` and **update it** — two unrelated invoices
+      collapsed into one row, each overwriting the other's amount. So it goes
+      to a person rather than being guessed at (Article 2-3).
+    """
+    amount, _ = _amount(payload)
+    if amount is None:
+        return Outcome(
+            InboundState.IGNORED,
+            f"مسودّة فارغة في أودو: المعرّف {ODOO_UNNUMBERED!r} وبلا مبلغ — "
+            "نموذجٌ فُتح ولم يُملأ، ولا شيء يُرحَّل منه",
+        )
+    return Outcome(
+        InboundState.FAILED,
+        f"المعرّف {ODOO_UNNUMBERED!r} هو موضع أودو لغير المرقَّم، ومعه مبلغ "
+        f"{amount} — ولا يصلح مفتاحاً: كل مسودّة تحمله، فتلتقي فاتورتان في "
+        "صفٍّ واحد. يحتاج رقماً حقيقياً من أودو أو قراراً بشرياً",
     )
 
 
