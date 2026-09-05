@@ -42,7 +42,17 @@ if (!hasReleaseKeystore) {
 
 android {
     namespace = "sa.harajwahed.haraj_mobile"
-    compileSdk = flutter.compileSdkVersion
+
+    // ‏37 صراحةً لا `flutter.compileSdkVersion`، و`flutter_secure_storage` هو
+    // السبب: يطلب التصريف على 37 بينما إصدار مُلحَق Flutter الحالي (9.0.1)
+    // يعطي 36، فسقط `assembleDevRelease` برسالةٍ تسمّي التبعية ولا تسمّي
+    // الملفّ الذي يُصلحها. وبقيت بوابة `mobile` حمراء على `main` يومين
+    // ولا أحد ينظر — وذلك أسوأ من العطل نفسه.
+    //
+    // ورقمٌ مكتوب هنا يُقرأ ويُراجَع؛ ويوم يرفع Flutter افتراضه إلى 37 أو
+    // أعلى يصير هذا السطر بلا موضوع فيُحذف بقرار. أما تركُه على الافتراض
+    // فيعني أن ترقية أي مُلحَق تُسقط البناء ثانيةً بلا موضعٍ يُعدَّل.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
