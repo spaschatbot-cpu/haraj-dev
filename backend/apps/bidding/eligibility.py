@@ -33,6 +33,7 @@ from django.utils import timezone
 from apps.auctions.states import AuctionState, VehicleState
 from apps.money.models import (
     MONEY,
+    UNPAID_INVOICE_STATES,
     ZERO,
     Account,
     AccountKind,
@@ -40,7 +41,6 @@ from apps.money.models import (
     HoldReason,
     HoldState,
     Invoice,
-    InvoiceState,
 )
 
 from .models import RefusalReason
@@ -60,7 +60,6 @@ BIDDABLE_VEHICLE_STATES = (VehicleState.LISTED, VehicleState.BIDDING)
 
 #: Dues that stand in a bidder's way. A draft invoice has not been issued yet
 #: and a cancelled one is not owed; neither is a debt.
-UNPAID_INVOICE_STATES = (InvoiceState.OPEN, InvoiceState.PARTIAL)
 
 _CENT = Decimal(1).scaleb(-MONEY["decimal_places"])
 

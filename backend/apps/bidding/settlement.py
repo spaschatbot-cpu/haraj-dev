@@ -45,7 +45,14 @@ from apps.auctions.services import award, reject, send_to_owner
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
 from apps.money import services as money
-from apps.money.models import Hold, HoldReason, HoldState, Invoice, InvoiceState
+from apps.money.models import (
+    UNPAID_INVOICE_STATES,
+    Hold,
+    HoldReason,
+    HoldState,
+    Invoice,
+    InvoiceState,
+)
 
 log = logging.getLogger(__name__)
 
@@ -301,8 +308,24 @@ def invoice_award(vehicle: Vehicle, *, due_at: datetime | None = None):
             vehicle=vehicle,
             due_at=due_at,
         )
-        money.lock_for_invoice(user=vehicle.awarded_to, invoice=invoice)
-        _release_bidding_hold(vehicle)
+        # The auction's own deposit becomes the pledge, in place. Not
+        # `lock_for_invoice`: that draws on `insurance_free`, and after
+        # settlement the winner's deposit is entirely in `insurance_held` — so
+        # a winner who deposited exactly what the auction asked could not be
+        # invoiced at all (HR-01). And not one lock per invoice: the winner of
+        # two cars owes one deposit, not two.
+        pledge = money.pledge_auction_hold(
+            user=vehicle.awarded_to, auction=vehicle.auction
+        )
+        if (
+            pledge is None
+            and money.auction_pledge(user=vehicle.awarded_to, auction=vehicle.auction)
+            is None
+        ):
+            # No auction hold ever existed — an award made outside the bidding
+            # path. Fall back to the per-invoice lock so the debt is still
+            # secured by whatever is free rather than by nothing.
+            money.lock_for_invoice(user=vehicle.awarded_to, invoice=invoice)
 
     from apps.auctions.services import invoice as mark_invoiced
 
@@ -447,6 +470,7 @@ def _undo_award(vehicle: Vehicle, *, reason: str) -> None:
     exists, which is exactly how a person who never received a car found their
     refund refused.
     """
+    customers = set()
     for invoice in Invoice.objects.filter(vehicle=vehicle).exclude(
         state=InvoiceState.CANCELLED
     ):
@@ -455,7 +479,24 @@ def _undo_award(vehicle: Vehicle, *, reason: str) -> None:
 
         invoice.state = InvoiceState.CANCELLED
         invoice.save(update_fields=["state"])
+        customers.add(invoice.customer)
         log.info("invoice %s cancelled: %s", invoice.number, reason)
+
+    # And the auction's own pledge, which names the auction and not the invoice
+    # — so the loop above cannot see it (HR-01). It goes back only when this
+    # customer owes nothing else in the auction: the winner of two cars who
+    # loses one still owes on the other, and one deposit answers both.
+    for customer in customers:
+        still_owing = Invoice.objects.filter(
+            customer=customer,
+            vehicle__auction=vehicle.auction,
+            state__in=list(UNPAID_INVOICE_STATES),
+        ).exists()
+        if still_owing:
+            continue
+        pledge = money.auction_pledge(user=customer, auction=vehicle.auction)
+        if pledge is not None:
+            money.release_hold(pledge, memo=f"أُلغيت الفاتورة: {reason}")
 
 
 def cancel_auction(auction: Auction, *, reason: str, now: datetime | None = None):
@@ -513,9 +554,19 @@ def cancel_auction(auction: Auction, *, reason: str, now: datetime | None = None
                 invoice.save(update_fields=["state"])
                 voided.append(invoice.number)
 
-        for hold in Hold.objects.filter(
-            auction=auction, reason=HoldReason.BIDDING, state=HoldState.ACTIVE
-        ):
+        # Every hold on the auction, bidding or pledged. Restricting this to
+        # `BIDDING` left a pledged deposit locked against invoices that had
+        # just been voided (HR-01) — the customer owed nothing and we still
+        # held their money, which is the shape of the v1 refund refusals.
+        for hold in Hold.objects.filter(auction=auction, state=HoldState.ACTIVE):
+            if Invoice.objects.filter(
+                customer_id=hold.owner_id,
+                vehicle__auction=auction,
+                state__in=list(UNPAID_INVOICE_STATES),
+            ).exists():
+                # A part-paid invoice survives a cancellation on purpose, and a
+                # surviving debt keeps its guarantee.
+                continue
             money.release_hold(hold, memo=f"أُلغي المزاد: {reason}")
             freed.append(
                 HoldOutcome(hold.pk, hold.owner_id, "released", f"أُلغي المزاد: {reason}")

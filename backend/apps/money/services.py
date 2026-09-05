@@ -32,6 +32,7 @@ from apps.core.errors import DomainError
 
 from .models import (
     MONEY,
+    UNPAID_INVOICE_STATES,
     ZERO,
     Account,
     AccountKind,
@@ -595,6 +596,80 @@ def release_hold(hold: Hold, *, memo: str = "") -> Hold:
     hold.ended_at = timezone.now()
     hold.save(update_fields=["state", "ended_by_transaction", "ended_at"])
     return hold
+
+
+@db_transaction.atomic
+def pledge_auction_hold(*, user, auction) -> Hold | None:
+    """Turn this auction's bidding hold into the pledge behind its invoices.
+
+    **One deposit per auction, not per invoice** — the rule v1 wrote down and we
+    did not implement (HR-01). The same row is re-purposed rather than released
+    and re-taken: its money moves ``insurance_held → insurance_locked`` and its
+    reason moves ``bidding → dues``, while it keeps naming the auction it was
+    always about.
+
+    Two failures made this the shape it is, and both are real:
+
+    * **The winner whose deposit is exactly what the auction asked.** After
+      settlement every riyal of it sits in ``insurance_held``, so
+      ``lock_for_invoice`` — which draws on ``insurance_free`` — found nothing
+      to lock and refused, and *no invoice could be issued at all*. A single
+      winner of a single car was enough. It stayed hidden because the settlement
+      fixture funded each bidder with five times the deposit.
+    * **The winner of two cars in one auction.** Locking per invoice asked that
+      customer for a second deposit. That is, to the letter, v1's double-pledge
+      incident: "20,000 pledged against one car, the customer's available
+      balance zero, and bidding refused though they had paid in full."
+
+    So the pledge is not topped up per invoice and is not released per invoice.
+    It answers every invoice this customer holds in this auction, and
+    :func:`_release_holds_on` gives it back only when the last of them is paid.
+
+    Returns ``None`` when there is no bidding hold to convert — an invoice that
+    belongs to no auction, or one whose hold was already pledged.
+    """
+    _lock_free_insurance(user)
+
+    hold = (
+        Hold.objects.select_for_update()
+        .filter(
+            owner=user,
+            auction=auction,
+            state=HoldState.ACTIVE,
+            reason=HoldReason.BIDDING,
+        )
+        .first()
+    )
+    if hold is None:
+        return None
+
+    post(
+        kind=TransactionKind.INSURANCE_LOCK,
+        # The hold's own primary key, so a replay of this exact conversion moves
+        # nothing. `_episode` is not the right counter here: the row already
+        # exists and this happens to it once.
+        idempotency_key=f"pledge:{hold.pk}",
+        memo=f"رهن وديعة المزاد {auction.number} على مستحقاته",
+        legs=[
+            Leg(account_for(user, AccountKind.INSURANCE_HELD), -hold.amount),
+            Leg(account_for(user, AccountKind.INSURANCE_LOCKED), hold.amount),
+        ],
+    )
+    hold.reason = HoldReason.DUES
+    hold.save(update_fields=["reason"])
+    log.info("pledged hold %s of auction %s against its dues", hold.pk, auction.pk)
+    return hold
+
+
+def auction_pledge(*, user, auction) -> Hold | None:
+    """The live pledge behind ``auction``'s invoices for ``user``, if any."""
+    return (
+        Hold.objects.filter(
+            owner=user, auction=auction, state=HoldState.ACTIVE, reason=HoldReason.DUES
+        )
+        .order_by("pk")
+        .first()
+    )
 
 
 @db_transaction.atomic
@@ -1509,12 +1584,32 @@ def _consume_locked_claim(invoice: Invoice, amount: Decimal, txn: Transaction) -
     over in its state, naming the transaction that ended it.
     """
     remaining = amount
-    holds = (
+    # Invoice-keyed claims first, then the auction's pledge. An invoice raised
+    # inside an auction is answered by that auction's one deposit and by no row
+    # naming the invoice, so a filter on `invoice` alone found nothing to shrink
+    # and left the bucket and the holds disagreeing (HR-01).
+    claims = list(
         Hold.objects.select_for_update()
         .filter(invoice=invoice, state=HoldState.ACTIVE, reason=HoldReason.DUES)
         .order_by("pk")
     )
-    for hold in holds:
+    auction = getattr(invoice.vehicle, "auction", None)
+    if auction is not None:
+        pledge = (
+            Hold.objects.select_for_update()
+            .filter(
+                owner=invoice.customer,
+                auction=auction,
+                state=HoldState.ACTIVE,
+                reason=HoldReason.DUES,
+            )
+            .order_by("pk")
+            .first()
+        )
+        if pledge is not None:
+            claims.append(pledge)
+
+    for hold in claims:
         if remaining <= ZERO:
             break
         taken = min(hold.amount, remaining)
@@ -1537,7 +1632,29 @@ def _release_holds_on(invoice: Invoice) -> None:
     the deposit intact and this is what hands it back. Either way the customer
     is never left owing nothing while we still hold their money.
     """
-    for hold in Hold.objects.filter(invoice=invoice, state=HoldState.ACTIVE):
+    holds = list(Hold.objects.filter(invoice=invoice, state=HoldState.ACTIVE))
+
+    # The auction's single pledge answers *every* invoice of that auction, so it
+    # is only free to go when the last of them is paid. Releasing it on the
+    # first payment is the v1 incident this project was built around: 230
+    # winners' deposits released before their cars were covered.
+    auction = getattr(invoice.vehicle, "auction", None)
+    if auction is not None:
+        still_owing = (
+            Invoice.objects.filter(
+                customer=invoice.customer,
+                vehicle__auction=auction,
+                state__in=list(UNPAID_INVOICE_STATES),
+            )
+            .exclude(pk=invoice.pk)
+            .exists()
+        )
+        if not still_owing:
+            pledge = auction_pledge(user=invoice.customer, auction=auction)
+            if pledge is not None:
+                holds.append(pledge)
+
+    for hold in holds:
         remaining = account_for(hold.owner, AccountKind.INSURANCE_LOCKED).balance
         if remaining <= ZERO:
             hold.state = HoldState.CONSUMED

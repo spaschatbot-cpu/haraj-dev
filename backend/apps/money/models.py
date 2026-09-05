@@ -373,6 +373,15 @@ class InvoiceState(models.TextChoices):
     CANCELLED = "cancelled", "ملغاة"
 
 
+#: An invoice the customer still owes something on.
+#:
+#: Defined here, beside the enum, because three modules ask the same question —
+#: eligibility ("does this person owe us?"), settlement ("may this deposit go
+#: back?") and the console — and a fourth list of states is a fourth chance for
+#: one of them to forget `partial` (Article 4-5).
+UNPAID_INVOICE_STATES = (InvoiceState.OPEN, InvoiceState.PARTIAL)
+
+
 class Invoice(models.Model):
     """What a customer owes us.
 

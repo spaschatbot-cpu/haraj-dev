@@ -266,9 +266,16 @@ def test_awarding_then_invoicing_locks_the_deposit_against_the_debt(
     assert invoice.amount == Decimal("70000.00")
     assert invoice.vehicle_id == car.pk
     assert car.state == VehicleState.INVOICED
+    # Pinned by the auction's own deposit, which names the auction and not the
+    # invoice: one deposit answers every car this winner takes in this auction
+    # (HR-01). What matters here is that the money is not free, and why.
     assert Hold.objects.filter(
-        owner=winner, invoice=invoice, state=HoldState.ACTIVE
+        owner=winner,
+        auction=auction,
+        reason=HoldReason.DUES,
+        state=HoldState.ACTIVE,
     ).exists()
+    assert not Hold.objects.filter(owner=winner, invoice=invoice).exists()
     assert verify_ledger() == []
 
 
@@ -315,7 +322,14 @@ def test_a_winner_with_another_unresolved_car_keeps_the_auction_hold(
 
     settlement.invoice_award(won)
 
-    assert active_hold(winner, auction) is not None
+    # Still there, and still this auction's — pledged against the invoice now,
+    # while it also covers the bid on the car that has not been decided. One
+    # deposit, both jobs.
+    surviving = Hold.objects.filter(
+        owner=winner, auction=auction, state=HoldState.ACTIVE
+    ).first()
+    assert surviving is not None, "أُفرج عن الوديعة ومركبة أخرى لم تُحسم"
+    assert surviving.reason == HoldReason.DUES
     assert verify_ledger() == []
 
 
@@ -476,14 +490,14 @@ def test_the_first_winner_is_left_owing_nothing(auction, django_user_model):
     bidding.place_bid(user=second, vehicle=car, amount=Decimal("65000.00"))
     settlement.settle_auction(auction)
     car.refresh_from_db()
-    invoice = settlement.invoice_award(car)
+    settlement.invoice_award(car)
     car.refresh_from_db()
 
     settlement.replace_winner(car, new_winner=second, reason="تعذّر السداد")
 
-    assert not Hold.objects.filter(
-        owner=first, invoice=invoice, state=HoldState.ACTIVE
-    ).exists(), "بقي تأمين الأول مقفولاً على فاتورة أُلغيت"
+    assert not Hold.objects.filter(owner=first, state=HoldState.ACTIVE).exists(), (
+        "بقي تأمين الأول مرهوناً على فاتورة أُلغيت"
+    )
     assert verify_ledger() == []
 
 
