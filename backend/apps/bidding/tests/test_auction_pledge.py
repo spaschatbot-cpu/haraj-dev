@@ -282,3 +282,45 @@ def test_no_settlement_fixture_funds_a_bidder_above_the_deposit():
         "تجهيزةٌ تودع أكثر من الوديعة في ملفٍّ يمرّ بالفوترة — "
         f"وتلك وسادةٌ تُخفي HR-01: {oversized}"
     )
+
+
+# ---------------------------------------------------------------------------
+# HR-01ج — السداد من الرصيد يُفرج عن الرهن كما يفعل السداد من الخارج
+# ---------------------------------------------------------------------------
+
+
+def test_paying_the_last_invoice_from_balance_releases_the_pledge(
+    auction, django_user_model
+):
+    """The other payment path, and it was not releasing anything.
+
+    ``_release_holds_on`` says it in its own docstring: "the customer is never
+    left owing nothing while we still hold their money". ``record_payment``
+    calls it; ``pay_invoice_from_balance`` did not — so a customer who pressed
+    "pay" against their own balance settled the debt and **kept their deposit
+    locked**, with nothing owing to justify it.
+
+    Nobody noticed because the two paths look interchangeable from outside and
+    every test of the release used the other one. It surfaced when a demo
+    seeder paid an invoice this way and ``verify_ledger`` reported
+    ``locked_not_above_dues``: locked 10,000, owed 0.00.
+    """
+    car = a_car(auction, 1)
+    winner = a_bidder(django_user_model, "966501111191")
+    win(winner, car, "70000.00")
+    settlement.settle_auction(auction)
+    car.refresh_from_db()
+    invoice = settlement.invoice_award(car)
+    # The deposit is pinned against the debt, which is right while it stands.
+    assert buckets(winner) == {"free": NOTHING, "held": NOTHING, "locked": DEPOSIT}
+    money.deposit_insurance(
+        user=winner, amount=invoice.amount, source="cash", reference="hr01c/topup"
+    )
+
+    money.pay_invoice_from_balance(user=winner, invoice=invoice)
+
+    invoice.refresh_from_db()
+    assert invoice.state == InvoiceState.PAID
+    assert pledges(winner, auction) == [], "سُدِّدت الفاتورة والوديعة ما زالت مرهونة"
+    assert buckets(winner)["locked"] == NOTHING
+    assert verify_ledger() == []

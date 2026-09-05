@@ -1495,6 +1495,19 @@ def pay_invoice_from_balance(
     invoice.state = derive_invoice_state(invoice)
     invoice.save(update_fields=["amount_paid", "state", "updated_at"])
 
+    # HR-01ج — والدَّين انتهى، فما كان يحجزه صار للعميل.
+    #
+    # ‏`record_payment` كان ينادي هذا و`pay_invoice_from_balance` لا — والسطران
+    # يبدوان من الخارج طريقين لشيءٍ واحد. فمن ضغط «ادفع» من رصيده سدّد وبقيت
+    # وديعته **مقفولة ولا شيء عليه**، وهو نقضُ ما يقوله `_release_holds_on` عن
+    # نفسه: «لا يُترك العميل لا يدين بشيء ونحن نمسك ماله».
+    #
+    # ولم يمسكه اختبار لأن كل اختبارات الإفراج سلكت الطريق الآخر. أمسكته بذرةُ
+    # عرضٍ سدّدت بهذا الطريق، فأبلغ `verify_ledger` عن `locked_not_above_dues`:
+    # مقفولٌ عشرة آلاف، ومستحقٌّ صفر.
+    if invoice.state == InvoiceState.PAID:
+        _release_holds_on(invoice)
+
     _tell_odoo_the_customer_paid(invoice, outstanding, txn)
     return txn
 

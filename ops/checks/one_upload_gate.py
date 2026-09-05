@@ -45,7 +45,16 @@ UPLOADS = BACKEND / "apps" / "core" / "uploads.py"
 #: project encoded a moment earlier rather than anything an uploader sent. It
 #: is listed here — by name, with that reason — rather than left to a pattern,
 #: so adding a second exemption is a deliberate edit somebody reviews.
-IMAGE_DECODER_EXEMPT = {UPLOADS, BACKEND / "apps" / "auctions" / "images.py"}
+IMAGE_DECODER_EXEMPT = {
+    UPLOADS,
+    BACKEND / "apps" / "auctions" / "images.py",
+    # ‏`seed_demo` **يُنشئ** صورةً ولا يفكّ ترميز صورةٍ وصلت من أحد: يرسم
+    # مستطيلاً بلونٍ ونصّ ويسلّمه إلى `services.add_image`، فيمرّ من هناك
+    # بالبوابة نفسها التي يمرّ منها رفعُ أي مشغّل. والخطر الذي يحرسه هذا
+    # الفحص هو `PIL` مصوَّباً على بايتاتٍ معادية، ولا بايتات هنا إلا التي
+    # كتبها هذا الملفّ قبل سطرين. ولا يعمل خارج `DEBUG` أصلاً.
+    BACKEND / "apps" / "auctions" / "management" / "commands" / "seed_demo.py",
+}
 
 # Tests are exempt from both rules: forging a hostile upload — a script named
 # `.png`, a header declaring 40,000 pixels — is precisely what a test of this
