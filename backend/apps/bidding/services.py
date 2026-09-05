@@ -176,6 +176,34 @@ class _Attempt:
     bid: Bid | None
 
 
+def _action_of(standing: Bid | None, amount: Decimal) -> str:
+    """`bid_placed` أو `bid_raised` أو `bid_lowered` — الحركة باسمها.
+
+    التمييز مقصود ولا يُترك ليُستنتَج من الرقمين عند القراءة: تقرير النزاعات
+    يجمع بالفعل لا بالمقارنة، و«كم خفضاً حدث في هذا المزاد؟» سؤالٌ يُسأل.
+    """
+    if standing is None:
+        return "bid_placed"
+    return "bid_raised" if amount > standing.amount else "bid_lowered"
+
+
+def _bid_state(bid: Bid | None) -> dict | None:
+    """المزايدة كما تُكتب في السجلّ — والمبلغ نصّ لا رقم.
+
+    `None` للمزايدة الأولى: لا حال قبلها، وصفرٌ في مكان «لم يكن» ادّعاء.
+    والمبلغ نصّ لأن المادة ٣-٢ تمنع مرور مبلغ من float ولو في طريقه إلى سطر
+    تدقيق — وهي القاعدة نفسها التي تتبعها `audit.snapshot`.
+    """
+    if bid is None:
+        return None
+    return {
+        "bid": bid.pk,
+        "amount": str(bid.amount),
+        "is_withdrawn": bid.is_withdrawn,
+        "is_superseded": bid.is_superseded,
+    }
+
+
 def place_bid(
     *,
     user,
@@ -262,6 +290,26 @@ def _place(
         vehicle=locked, bidder=user, amount=amount, supersedes=standing
     )
 
+    # HR-07 — كل حركة على مزايدة تُكتب، وفي **نفس** المعاملة.
+    #
+    # v1 لم يكن يستطيع الردّ على «أنا لم أخفض السعر» ولا على «المشرف عدّل
+    # عرضي»: الصف يحمل المبلغ الأخير وحده، فالادّعاء والنفي متساويان في
+    # الدليل. وسجلّ الإحلال عندنا يحفظ الصفّ القديم، لكنه لا يقول **من**
+    # فعلها — والشكوى عن الفاعل لا عن الرقم.
+    #
+    # وداخل الـatomic لا بعده: سجلٌّ يُكتب بعد نجاح المعاملة يمكن أن يسقط
+    # وحده فتبقى مزايدةٌ بلا أثر. `_place` كلّه في `transaction.atomic`،
+    # فإخفاق السطر هنا يُسقط المزايدة معه — وذلك المطلوب صراحةً
+    # (`PHASE_01` §4-2).
+    audit.record(
+        action=f"bidding.{_action_of(standing, amount)}",
+        entity=bid,
+        actor=user,
+        before=_bid_state(standing),
+        after=_bid_state(bid),
+        note=f"مزايدة على المركبة {locked.pk} في المزاد {locked.auction_id}",
+    )
+
     if locked.state == VehicleState.LISTED:
         # The first bid is what opens the car. The move goes through the
         # auctions service because that module is the only writer of this
@@ -332,9 +380,24 @@ def withdraw_bid(*, user, bid: Bid, now: datetime | None = None) -> Bid:
             user_message="هذه المزايدة استُبدلت بمزايدة أحدث.",
         )
 
+    before = _bid_state(locked_bid)
+
     locked_bid.is_withdrawn = True
     locked_bid.withdrawn_at = now
     locked_bid.save(update_fields=["is_withdrawn", "withdrawn_at"])
+
+    # السحب حركةٌ على مزايدة كالخفض تماماً، وأكثر ما يُنازَع فيه: العميل يقول
+    # «لم أسحبها». والصفّ يحمل `is_withdrawn` وحده — يقول أنها سُحبت، لا من
+    # سحبها ولا متى بالضبط.
+    audit.record(
+        action="bidding.bid_withdrawn",
+        entity=locked_bid,
+        actor=user,
+        before=before,
+        after=_bid_state(locked_bid),
+        at=now,
+        note=f"سحب المزايدة على المركبة {locked_vehicle.pk}",
+    )
 
     auction = locked_vehicle.auction
     if not is_competing_in(user, auction):
