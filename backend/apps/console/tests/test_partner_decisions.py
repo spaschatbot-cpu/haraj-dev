@@ -81,7 +81,7 @@ def a_bidder(phone: str, name: str) -> User:
     user.national_id = phone[-10:]
     user.save(update_fields=["phone_verified_at", "national_id"])
     money.deposit_insurance(
-        user=user, amount=Decimal("60000.00"), source="cash", reference=f"seed/{phone}"
+        user=user, amount=Decimal("10000.00"), source="cash", reference=f"seed/{phone}"
     )
     return user
 

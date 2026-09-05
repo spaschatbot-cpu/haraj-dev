@@ -230,3 +230,55 @@ def test_paying_the_last_invoice_releases_the_pledge(auction, django_user_model)
     assert pledges(winner, auction) == []
     assert buckets(winner) == {"free": DEPOSIT, "held": NOTHING, "locked": NOTHING}
     assert verify_ledger() == []
+
+
+# ---------------------------------------------------------------------------
+# HR-01ب — التجهيزة لا تعود إلى وسادةٍ لا يملكها مزايد
+# ---------------------------------------------------------------------------
+
+
+def test_no_settlement_fixture_funds_a_bidder_above_the_deposit():
+    """كل تجهيزةٍ تمرّ بالفوترة تودع مقدار الوديعة، لا أكثر.
+
+    هذا الحارس مكتوبٌ عن عطلٍ وقع، لا احتياطاً. كانت ``a_bidder()`` في
+    ``test_settlement.py`` تودع خمسين ألفاً والمزاد يطلب عشرة، فتبقى أربعون
+    ألفاً حرّة بعد حجز المزايدة — ووسادةٌ بهذا الحجم تجعل ``lock_for_invoice``
+    تجد ما تأخذه دائماً. فمرّت الحزمة كلّها خضراء على HR-01: فائزٌ أودع ما
+    طُلب منه بالضبط لا تصدر له فاتورة أصلاً.
+
+    **الوسادة لا تُنتج فشلاً، إنما تُخفيه** — ولذلك لا يمسكها مراجعٌ يقرأ
+    التغيير، ولا اختبارٌ يفحص سلوكاً. تُمسك هنا وحدها: بقراءة الملفات التي
+    تمرّ بالفوترة، والبحث عن إيداعٍ يتجاوز الوديعة.
+
+    والاستثناء ممكن — بوسيطٍ صريح ``funds=`` عند موضع النداء، حيث يراه القارئ
+    ويسأل عنه. الممنوع هو الافتراض الصامت في التجهيزة.
+    """
+    import re
+    from pathlib import Path
+
+    tests = Path(__file__).resolve().parent.parent.parent
+    #: الملفات التي تمرّ فعلاً بـ`invoice_award` — وهي وحدها التي تُخفي HR-01.
+    through_invoicing = [
+        tests / "bidding" / "tests" / "test_settlement.py",
+        tests / "console" / "tests" / "test_partner_decisions.py",
+    ]
+
+    oversized = []
+    for path in through_invoicing:
+        source = path.read_text(encoding="utf-8")
+        for match in re.finditer(
+            r"deposit_insurance\((?:[^()]|\([^()]*\))*?\)", source, re.DOTALL
+        ):
+            call = match.group(0)
+            #: نداءٌ يمرّر مبلغه من وسيطٍ (`amount=Decimal(funds)`) يُقرَّر عند
+            #: موضع الاستدعاء لا هنا — والافتراض نفسه مفحوصٌ بالسطر التالي.
+            amounts = re.findall(r'Decimal\("(\d+(?:\.\d+)?)"\)', call)
+            for raw in amounts:
+                if Decimal(raw) > DEPOSIT:
+                    line = source[: match.start()].count(chr(10)) + 1
+                    oversized.append(f"{path.name}:{line} يودع {raw}")
+
+    assert oversized == [], (
+        "تجهيزةٌ تودع أكثر من الوديعة في ملفٍّ يمرّ بالفوترة — "
+        f"وتلك وسادةٌ تُخفي HR-01: {oversized}"
+    )
