@@ -181,6 +181,10 @@ def test_a_new_lot_number_creates_a_draft(fleet, make_auction):
     sheet = export_sheet(Vehicle.objects.all())
     row = list(sheet.rows[0])
     row[sheet.headers.index("رقم اللوت")] = "99"
+    #: وشاصٍ خاصٌّ بها. الصفّ منسوخٌ عن الأول لأن موضوع هذا الاختبار رقم
+    #: اللوت لا الشاصي، وتركُ الشاصي منسوخاً يجعله يختبر `one_vin_per_auction`
+    #: بدل ما سُمّي به.
+    row[sheet.headers.index("رقم الهيكل")] = "NEWVIN0000000099"
     sheet.rows.append(row)
 
     report = import_vehicles(sheet.to_xlsx())
@@ -188,6 +192,44 @@ def test_a_new_lot_number_creates_a_draft(fleet, make_auction):
     assert len(report.created) == 1
     created = Vehicle.objects.get(lot_number=99)
     assert created.state == VehicleState.DRAFT  # never listed by a file
+
+
+def test_a_repeated_vin_is_rejected_with_a_reason_not_a_crash(fleet):
+    """HR-11 — القيد يمنع، والمستورِد يقول **لماذا** بدل أن يسقط الرفع كلّه.
+
+    `one_vin_per_auction` صوابٌ في القاعدة، لكن بلوغه من داخل حلقة الاستيراد
+    يرفع `IntegrityError` فيسقط الملف كلّه على صفٍّ واحد — وذلك نقضٌ لما يَعِد
+    به هذا المستورِد صراحةً: «مشكلة صفٍّ لا توقف بقيّته».
+
+    وهذا الاختبار مكتوبٌ عن عطلٍ وقع: أضفتُ القيد في HR-11 فسقط
+    `test_a_new_lot_number_creates_a_draft` على `main` — ولم ألحظه لأن أمري
+    كان `pytest | tail`، وحالةُ خروج الأنبوب هي حالة `tail` لا `pytest`.
+    """
+    sheet = export_sheet(Vehicle.objects.all())
+    row = list(sheet.rows[0])
+    row[sheet.headers.index("رقم اللوت")] = "98"
+    sheet.rows.append(row)  # الشاصي كما هو — وهو المقصود هنا
+
+    report = import_vehicles(sheet.to_xlsx())
+
+    assert report.created == []
+    (rejection,) = report.rejections
+    assert "الشاصي" in rejection.reason
+    assert not Vehicle.objects.filter(lot_number=98).exists()
+
+
+def test_rows_without_a_vin_are_not_duplicates_of_each_other(fleet, make_auction):
+    """المجهول ليس قيمةً تتكرّر — أسطولٌ لم تصل أوراقه يدخل كاملاً."""
+    sheet = export_sheet(Vehicle.objects.all())
+    for lot in ("101", "102"):
+        row = list(sheet.rows[0])
+        row[sheet.headers.index("رقم اللوت")] = lot
+        row[sheet.headers.index("رقم الهيكل")] = ""
+        sheet.rows.append(row)
+
+    report = import_vehicles(sheet.to_xlsx())
+
+    assert len(report.created) == 2, report.rejections
 
 
 def test_choices_are_read_back_from_their_arabic_labels(fleet):
