@@ -28,7 +28,7 @@ from apps.console.audit import search
 from apps.core.models import AuditLog
 from apps.core.permissions import Capability, Role, can
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState
+from apps.money.models import Invoice, InvoiceSource, InvoiceState
 
 from .conftest import screen_of
 
@@ -98,6 +98,7 @@ def played(client, customer) -> User:
         amount=Decimal("5000.00"),
         state=InvoiceState.OPEN,
         issued_at=now,
+        source=InvoiceSource.LOCAL,
     )
     dues_hold = money.lock_for_invoice(user=customer, invoice=invoice)
     client.post(

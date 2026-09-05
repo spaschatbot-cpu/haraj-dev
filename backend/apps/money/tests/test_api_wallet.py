@@ -17,6 +17,7 @@ from apps.money.models import (
     AccountKind,
     Entry,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     TransactionKind,
 )
@@ -35,6 +36,7 @@ def invoice(bidder):
         amount=Decimal("50000.00"),
         state=InvoiceState.OPEN,
         issued_at="2026-01-01T00:00:00Z",
+        source=InvoiceSource.LOCAL,
     )
 
 

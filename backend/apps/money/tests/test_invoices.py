@@ -18,6 +18,7 @@ from apps.money.models import (
     Hold,
     HoldState,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     Transaction,
     TransactionKind,
@@ -54,6 +55,7 @@ def invoice(customer, vehicle):
         vehicle=vehicle,
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
 
 
@@ -270,6 +272,7 @@ class TestOneLiveInvoicePerVehicle:
                 vehicle=vehicle,
                 state=InvoiceState.OPEN,
                 issued_at=timezone.now(),
+                source=InvoiceSource.LOCAL,
             )
 
     def test_a_cancelled_invoice_frees_the_vehicle_for_a_new_one(
@@ -288,6 +291,7 @@ class TestOneLiveInvoicePerVehicle:
             vehicle=vehicle,
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
 
         assert replacement.pk != invoice.pk
@@ -313,6 +317,7 @@ class TestOneLiveInvoicePerVehicle:
             vehicle=second_vehicle,
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
 
         assert second.pk != invoice.pk

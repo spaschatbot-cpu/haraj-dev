@@ -13,7 +13,13 @@ import pytest
 from django.urls import reverse
 
 from apps.money import services
-from apps.money.models import Invoice, InvoiceState, RefundRequest, Transaction
+from apps.money.models import (
+    Invoice,
+    InvoiceSource,
+    InvoiceState,
+    RefundRequest,
+    Transaction,
+)
 from apps.odoo.models import OutboxMessage, OutboxState
 
 from .conftest import TEN_K, free_balance, parsed_without_floats
@@ -43,6 +49,7 @@ def debtor(funded):
         amount=Decimal("50000.00"),
         state=InvoiceState.OPEN,
         issued_at="2026-01-01T00:00:00Z",
+        source=InvoiceSource.LOCAL,
     )
     services.lock_for_invoice(user=funded, invoice=invoice)
     return funded

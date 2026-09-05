@@ -14,7 +14,7 @@ import pytest
 from django.utils import timezone
 
 from apps.money import services
-from apps.money.models import AccountKind, Invoice, InvoiceState
+from apps.money.models import AccountKind, Invoice, InvoiceSource, InvoiceState
 from apps.odoo import outbox, reconciliation
 from apps.odoo.client import OdooDisabled, OdooUnreachable
 from apps.odoo.models import (
@@ -55,6 +55,7 @@ def invoice(customer):
         state=InvoiceState.OPEN,
         odoo_invoice_id="ODOO-INV-1",
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
 
 
@@ -476,6 +477,7 @@ class TestBalanceCheck:
             amount=Decimal("4000.00"),
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
         services.lock_for_invoice(user=customer, invoice=invoice)
 

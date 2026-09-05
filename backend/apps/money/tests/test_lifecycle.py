@@ -17,6 +17,7 @@ from apps.money.models import (
     HoldReason,
     HoldState,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     Transaction,
     TransactionKind,
@@ -219,6 +220,7 @@ def invoice(customer, vehicle):
         vehicle=vehicle,
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
 
 

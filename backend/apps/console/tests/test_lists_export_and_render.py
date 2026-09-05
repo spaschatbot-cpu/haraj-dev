@@ -36,7 +36,7 @@ from apps.console.exports import XLSX_CONTENT_TYPE
 from apps.console.navigation import PAGES
 from apps.core import audit as recorder
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState
+from apps.money.models import Invoice, InvoiceSource, InvoiceState
 from apps.odoo.models import InboundMessage, InboundState
 
 pytestmark = pytest.mark.django_db
@@ -129,6 +129,7 @@ def world(db):
         amount=Decimal("5000.00"),
         state=InvoiceState.OPEN,
         issued_at=now,
+        source=InvoiceSource.LOCAL,
     )
     InboundMessage.objects.create(
         source="odoo",

@@ -24,7 +24,14 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding import services as bidding
 from apps.bidding import settlement
 from apps.money import services as money
-from apps.money.models import AccountKind, Hold, HoldReason, HoldState, Invoice
+from apps.money.models import (
+    AccountKind,
+    Hold,
+    HoldReason,
+    HoldState,
+    Invoice,
+    InvoiceSource,
+)
 from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db
@@ -309,6 +316,7 @@ def test_the_database_refuses_a_second_invoice_for_one_car(auction, django_user_
             amount=Decimal("70000.00"),
             vehicle=car,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
 
 

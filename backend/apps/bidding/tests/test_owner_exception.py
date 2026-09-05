@@ -18,7 +18,7 @@ from apps.bidding.eligibility import check_eligibility
 from apps.bidding.models import RefusalReason
 from apps.core.models import AuditLog
 from apps.money import services as money
-from apps.money.models import Hold, HoldState, Invoice, InvoiceState
+from apps.money.models import Hold, HoldState, Invoice, InvoiceSource, InvoiceState
 from apps.money.verification import verify_ledger
 
 pytestmark = pytest.mark.django_db
@@ -42,6 +42,7 @@ def debtor(verified):
         amount=DUE,
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
     hold = money.lock_for_invoice(user=verified, invoice=invoice)
     return verified, invoice, hold
@@ -130,6 +131,7 @@ def test_one_excused_debt_does_not_excuse_another(debtor, vehicle, staff):
         amount=Decimal("1000.00"),
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
 
     decision = check_eligibility(user, vehicle, amount=BID)
