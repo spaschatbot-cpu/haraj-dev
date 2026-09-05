@@ -41,6 +41,7 @@ from .models import (
     HoldReason,
     HoldState,
     Invoice,
+    InvoicePaymentSource,
     InvoiceSource,
     InvoiceState,
     PaymentIntent,
@@ -1355,6 +1356,20 @@ def request_refund(
 # ---------------------------------------------------------------------------
 
 
+class CardNotForPurchases(MoneyError):
+    """A card tried to settle a purchase. HR-08.
+
+    v1 let customers put cars of over a hundred thousand riyals on bank cards,
+    and the interchange on those was a real cost the platform paid. The slower
+    reason is worse: a card charge can be reversed months after the car left
+    the yard, and there is nothing to take back.
+
+    The gateway stays open for one thing — insurance deposits — and this is the
+    line that keeps it that way for every caller, not only for the screens we
+    have written so far.
+    """
+
+
 class InvoiceNotPayable(MoneyError):
     code = "invoice_not_payable"
     default_message = "هذه الفاتورة غير قابلة للسداد الآن."
@@ -1662,10 +1677,15 @@ def record_payment(
     that landing without the other half is how a paid customer keeps a locked
     deposit, or an unpaid one gets it back.
 
-    `source` is where the money comes from:
+    `source` is where the money comes from, and it is an
+    :class:`InvoicePaymentSource` and not free text:
 
     * ``insurance`` — the deposit we are already holding for this debt
-    * ``cash`` / ``card`` — a fresh payment from outside the platform
+    * ``cash`` — a bank transfer or cash the bank has confirmed
+
+    **There is no card.** It is refused here rather than merely left off a
+    screen's dropdown (HR-08): a rule that holds only because nobody has
+    written the caller yet is a coincidence, not a rule.
     """
     invoice = Invoice.objects.select_for_update().get(pk=invoice.pk)
     key = f"payment:{invoice.pk}:{reference}"
@@ -1687,11 +1707,17 @@ def record_payment(
         raise MoneyError(f"المطلوب سداده {invoice.outstanding} والمبلغ {amount} أكبر منه")
 
     revenue = system_account(AccountKind.REVENUE)
-    if source == "insurance":
+    if source == InvoicePaymentSource.INSURANCE:
         from_account = account_for(invoice.customer, AccountKind.INSURANCE_LOCKED)
-    elif source in ("cash", "card"):
-        from_account = system_account(
-            AccountKind.EXTERNAL_CASH if source == "cash" else AccountKind.EXTERNAL_CARD
+    elif source == InvoicePaymentSource.CASH:
+        from_account = system_account(AccountKind.EXTERNAL_CASH)
+    elif source == "card":
+        # HR-08. This branch used to exist and settle the invoice, and nothing
+        # but the absence of a caller kept cars off the card rail — which is
+        # not a rule, it is a coincidence waiting for a new integration.
+        raise CardNotForPurchases(
+            f"الفاتورة {invoice.number} لا تُسدَّد بالبطاقة — "
+            "البطاقة لشحن التأمين وحده، والسيارة بتحويل بنكي أو من الرصيد"
         )
     else:
         raise MoneyError(f"مصدر سداد غير معروف: {source!r}")

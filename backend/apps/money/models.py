@@ -503,6 +503,27 @@ class PaymentMethod(models.TextChoices):
     BANK_TRANSFER = "bank_transfer", "تحويل بنكي"
 
 
+class InvoicePaymentSource(models.TextChoices):
+    """Where money settling an invoice came from — and a card is not on the list.
+
+    ``PHASE_02`` §5-1: the card gateway is for insurance deposits and nothing
+    else. Cars are settled by bank transfer or from the wallet.
+
+    The reason is a bill the platform paid, not a preference: v1 let customers
+    put purchases of **over a hundred thousand riyals** on bank cards, and the
+    interchange on those "كبّد الشركة عمولات بنكية ضخمة". The second reason is
+    slower and worse — a card charge can be reversed months later, against a car
+    that left the yard the same week.
+
+    ``PaymentMethod`` already omits the card, but that enum is what a *customer*
+    may choose on a screen. This one is what the ledger will accept from any
+    caller at all, which is where a rule has to live to be a rule.
+    """
+
+    INSURANCE = "insurance", "من التأمين المقفول"
+    CASH = "cash", "نقداً أو تحويلاً بنكياً"
+
+
 class PaymentPurpose(models.TextChoices):
     """What a card payment is for.
 
