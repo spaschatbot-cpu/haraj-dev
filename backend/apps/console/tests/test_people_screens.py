@@ -24,6 +24,8 @@ from apps.core.permissions import Role
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
+from .conftest import stamp_from
+
 pytestmark = pytest.mark.django_db
 
 VALID_ID = "1000000008"
@@ -153,7 +155,9 @@ def test_a_boundary_value_is_a_field_message_not_a_crash(
 
 
 def test_a_good_edit_saves_and_is_recorded(client, manager, customer):
-    client.post(reverse("console:customer-edit", args=[customer.pk]), edit_payload())
+    url = reverse("console:customer-edit", args=[customer.pk])
+    # ختم HR-13: الاستمارة الحقيقية تحمله، فالإرسال اليدويّ يحمله كذلك.
+    client.post(url, edit_payload(row_stamp=stamp_from(client, url)))
 
     customer.refresh_from_db()
     entry = AuditLog.objects.get(action="console.edit_customer")
@@ -195,9 +199,10 @@ def test_staff_can_correct_a_mistyped_identity(client, manager, customer):
     customer.national_id = MISTYPED_ID
     customer.save(update_fields=["national_id"])
 
+    url = reverse("console:customer-edit", args=[customer.pk])
     client.post(
-        reverse("console:customer-edit", args=[customer.pk]),
-        edit_payload(national_id=VALID_ID),
+        url,
+        edit_payload(national_id=VALID_ID, row_stamp=stamp_from(client, url)),
     )
 
     customer.refresh_from_db()
@@ -228,9 +233,15 @@ def test_an_old_company_can_be_corrected_without_producing_a_vat_number(
     """
     Company.objects.create(user=customer, name="شركة قديمة")
 
+    url = reverse("console:company-edit", args=[customer.pk])
     client.post(
-        reverse("console:company-edit", args=[customer.pk]),
-        {"name": "شركة قديمة", "district": "العليا", "reason": "تصحيح الحي"},
+        url,
+        {
+            "name": "شركة قديمة",
+            "district": "العليا",
+            "reason": "تصحيح الحي",
+            "row_stamp": stamp_from(client, url),
+        },
     )
 
     company = Company.objects.get(user=customer)

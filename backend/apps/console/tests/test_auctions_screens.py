@@ -24,6 +24,8 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.core.models import AuditLog
 from apps.core.permissions import Capability, Role
 
+from .conftest import stamp_from
+
 pytestmark = pytest.mark.django_db
 
 
@@ -412,9 +414,15 @@ def test_a_duplicate_auction_number_is_a_message_not_a_500(client, operator, liv
 
 
 def test_editing_an_auction_keeps_the_before_and_after(client, operator, live):
+    url = reverse("console:auction-edit", args=[live.pk])
+    # ختم HR-13: الاستمارة الحقيقية تحمله، فالإرسال اليدويّ يحمله كذلك.
     client.post(
-        reverse("console:auction-edit", args=[live.pk]),
-        auction_payload(number=str(live.number), title="عنوان مصحَّح"),
+        url,
+        auction_payload(
+            number=str(live.number),
+            title="عنوان مصحَّح",
+            row_stamp=stamp_from(client, url),
+        ),
     )
 
     live.refresh_from_db()
