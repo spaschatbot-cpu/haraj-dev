@@ -45,4 +45,26 @@ somebody went looking for it.
   </table>
 
   <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+
+  <h2>تغيير حالة المزاد</h2>
+  {% comment %}
+  النقلات من آلة الحالات لا من هذا القالب. وزرُّ الإلغاء هنا **ليس** نقلة حالة
+  وحدها حين يكون المزاد منتهياً: الشاشة توجّهه إلى `settlement.cancel_auction`
+  الذي يفكّ كل حجز ويُبطل كل فاتورة غير مدفوعة قبل النقل. القاعدة في الشاشة لا
+  هنا، لأن قالباً يحمل قاعدةً مالية هو نسخةٌ ثانية تنحرف بصمت.
+  {% endcomment %}
+  {% if moves %}
+    <form method="post" action="{% url 'console:auction-state' auction.pk %}">
+      {% csrf_token %}
+      <select name="target">
+        {% for move in moves %}
+          <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="reason" placeholder="سبب التغيير" required>
+      <button type="submit">نفّذ</button>
+    </form>
+  {% else %}
+    <p class="empty">لا انتقال متاح من هذه الحالة.</p>
+  {% endif %}
 {% endblock %}
