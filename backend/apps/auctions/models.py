@@ -248,6 +248,11 @@ class VehicleImage(models.Model):
     #: was never the request count, it was 50 × 3 MB of JPEG.
     thumbnail = models.ImageField(upload_to=uploads.vehicle_thumbnail_path, blank=True)
 
+    #: The middle tier (HR-12). Without it a detail screen has two choices —
+    #: enlarge the 400px card thumbnail, or fetch the original — and the second
+    #: is the 13 GB incident on the screen a customer stays on longest.
+    preview = models.ImageField(upload_to=uploads.vehicle_preview_path, blank=True)
+
     position = models.PositiveSmallIntegerField(default=0)
     is_cover = models.BooleanField(default=False)
 

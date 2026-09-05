@@ -249,6 +249,16 @@ def vehicle_thumbnail_path(instance, filename: str) -> str:  # noqa: ARG001
     return generated_name("vehicles/thumbs", _suffix_of(filename))
 
 
+def vehicle_preview_path(instance, filename: str) -> str:  # noqa: ARG001
+    """``upload_to`` for the detail-screen copy (HR-12). Same rule again.
+
+    Its own folder rather than a suffix on the thumbnail's, for the reason the
+    thumbnail has one: "delete every rendered copy and rebuild" is a directory
+    somebody can point at, and a mixed directory is a `rm` nobody dares run.
+    """
+    return generated_name("vehicles/previews", _suffix_of(filename))
+
+
 def _suffix_of(filename: str) -> str:
     """The extension **we** put on the name we generated, never the uploader's.
 
@@ -270,5 +280,6 @@ __all__ = [
     "generated_name",
     "sanitise_image",
     "vehicle_image_path",
+    "vehicle_preview_path",
     "vehicle_thumbnail_path",
 ]
