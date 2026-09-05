@@ -28,6 +28,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.conf import settings
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.auctions.states import AuctionState, VehicleState
@@ -41,6 +42,8 @@ from apps.money.models import (
     HoldReason,
     HoldState,
     Invoice,
+    RefundRequest,
+    RefundRequestState,
 )
 
 from .models import RefusalReason
@@ -77,6 +80,25 @@ class MoneySnapshot:
     insurance_held: Decimal = ZERO
     insurance_locked: Decimal = ZERO
     outstanding_dues: Decimal = ZERO
+
+    #: ما طُلب استردادُه ولم يُرحَّل بعد. مبلغٌ في `insurance_free` بالدفتر،
+    #: وخارجٌ عنه بالقرار — انظر `spendable_insurance` أدناه.
+    refund_pending: Decimal = ZERO
+
+    @property
+    def spendable_insurance(self) -> Decimal:
+        """الحرّ الذي يجوز أن يتحوّل إلى تأمين مزادٍ جديد.
+
+        **الخصم مؤجَّل.** طلبُ الاسترداد لا يحرّك الدفتر — لا يتحرّك إلا حين
+        تؤكّد المحاسبة الصرف. فالمبلغ يبقى في `insurance_free` بين اللحظتين،
+        وهي فجوةٌ يمكن أن تُحجَز فيها العشرة آلاف نفسها لمزاد **ثم** تُصرَف
+        استرداداً: خرج المال مرتين على وديعةٍ واحدة (ف1، وهي حادثة v1
+        `PENDING_REFUND_BLOCKS_BID`).
+
+        الطرح هنا لا في `_buckets`: الدفتر يقول الحقيقة كما هي، وهذا القرار
+        مبنيٌّ فوقه. ولقطةُ الرفض تحمل الرقمين معاً فيقرأ الدعم أيّهما منع.
+        """
+        return self.insurance_free - self.refund_pending
 
 
 @dataclass(frozen=True)
@@ -146,18 +168,34 @@ def _buckets(user) -> dict[str, Decimal]:
     }
 
 
-def _snapshot(buckets: dict[str, Decimal], dues: Decimal) -> MoneySnapshot:
+def _refund_pending(user) -> Decimal:
+    """مجموع ما طلب هذا العميل استردادَه ولم يُحسم بعد.
+
+    الحالات المفتوحة تُقرأ من `RefundRequestState.open_states()` نفسها التي
+    يقرؤها `request_refund` والقيدُ في القاعدة — ثلاثة مواضع تسأل السؤال
+    نفسه، وقائمةٌ رابعة للحالات فرصةٌ رابعة للاختلاف (المادة ٤-٥).
+    """
+    total = RefundRequest.objects.filter(
+        user=user, state__in=RefundRequestState.open_states()
+    ).aggregate(total=Sum("amount"))["total"]
+    return total or ZERO
+
+
+def _snapshot(
+    buckets: dict[str, Decimal], dues: Decimal, refund_pending: Decimal = ZERO
+) -> MoneySnapshot:
     return MoneySnapshot(
         insurance_free=buckets.get(AccountKind.INSURANCE_FREE, ZERO),
         insurance_held=buckets.get(AccountKind.INSURANCE_HELD, ZERO),
         insurance_locked=buckets.get(AccountKind.INSURANCE_LOCKED, ZERO),
         outstanding_dues=dues,
+        refund_pending=refund_pending,
     )
 
 
 def money_snapshot(user) -> MoneySnapshot:
-    """The three insurance buckets and what the bidder owes, right now."""
-    return _snapshot(_buckets(user), _dues(user)[0])
+    """The three insurance buckets, what the bidder owes, and what is leaving."""
+    return _snapshot(_buckets(user), _dues(user)[0], _refund_pending(user))
 
 
 def _dues(user) -> tuple[Decimal, Decimal]:
@@ -243,7 +281,7 @@ def check_eligibility(
     # Both halves of the dues answer come from one pass over the invoices: the
     # total belongs in the snapshot, the blocking part decides the gate.
     total_dues, blocking_dues = _dues(user)
-    money = _snapshot(_buckets(user), total_dues)
+    money = _snapshot(_buckets(user), total_dues, _refund_pending(user))
     deposit_required = deposit_required_for(auction)
     minimum_bid = minimum_bid_for(vehicle)
 
@@ -308,11 +346,21 @@ def check_eligibility(
     already_held = Hold.objects.filter(
         owner=user, auction=auction, state=HoldState.ACTIVE
     ).exists()
-    if not already_held and money.insurance_free < deposit_required:
+    if not already_held and money.spendable_insurance < deposit_required:
+        # سببان لا واحد، لأن ما يفعله العميل يختلف. من لا تأمين لديه يشحن؛
+        # ومن تأمينه مطلوبٌ استرداده يُلغي الطلب أو ينتظره. ورسالة «اشحن» لمن
+        # يملك عشرة آلاف في حسابه هي بالضبط ما يجعله يتصل بالدعم.
+        if money.refund_pending > ZERO and money.insurance_free >= deposit_required:
+            return refuse(
+                RefusalReason.REFUND_PENDING,
+                f"لديك طلب استرداد قائم بمبلغ {money.refund_pending} ريال، "
+                f"وتأمينك محجوز له حتى يُنفَّذ أو يُلغى. المتاح للمزايدة "
+                f"{money.spendable_insurance} ريال والمطلوب {deposit_required} ريال.",
+            )
         return refuse(
             RefusalReason.NO_DEPOSIT,
             f"تحتاج تأميناً متاحاً قدره {deposit_required} ريال للمزايدة في هذا "
-            f"المزاد، والمتاح لديك {money.insurance_free} ريال.",
+            f"المزاد، والمتاح لديك {money.spendable_insurance} ريال.",
         )
 
     return Eligibility(
