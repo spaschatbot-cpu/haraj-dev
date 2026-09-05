@@ -23,6 +23,7 @@ from django.utils import timezone
 
 from apps.money import services
 from apps.money.models import (
+    AccountKind,
     Invoice,
     InvoiceSource,
     InvoiceState,
@@ -32,7 +33,7 @@ from apps.money.models import (
     TransactionKind,
 )
 
-from .models import CustomerLink, InboundMessage, InboundState
+from .models import CustomerLink, InboundMessage, InboundState, RefundShortfall
 
 log = logging.getLogger(__name__)
 
@@ -385,6 +386,10 @@ def _handle_refund(message: InboundMessage) -> Outcome:
             InboundState.FAILED, f"استرداد {refund_id} لعميل غير مربوط — {link_note}"
         )
 
+    shortfall = _shortfall_if_pledged(message, user, amount, refund_id)
+    if shortfall is not None:
+        return shortfall
+
     txn = services.refund_insurance(
         user=user,
         amount=amount,
@@ -394,6 +399,64 @@ def _handle_refund(message: InboundMessage) -> Outcome:
     closed = _close_refund_request(user, payload, txn)
     return Outcome(
         InboundState.PROCESSED, f"استُرد {amount} للعميل {user.pk}{closed}", txn
+    )
+
+
+def _shortfall_if_pledged(
+    message: InboundMessage, user, amount: Decimal, refund_id: str
+) -> Outcome | None:
+    """Refuse a payout the free bucket cannot answer, and open a case for it.
+
+    ``PHASE_02`` §4-3, and the incident behind it: v1 paid back a deposit that
+    was securing a car the customer had already won **and collected**, "مما ترك
+    الشركة دون أي غطاء قانوني أو مالي".
+
+    The ledger would refuse this on its own — the free bucket is empty and the
+    CHECK stops the posting. That refusal is not enough. It arrives as one more
+    `failed` message carrying an arithmetic sentence, and nothing says a car may
+    be uncovered. Article 2-2 draws the line this sits on: a message refused
+    **on purpose** is `ignored` with a written reason, and this writes the reason
+    into a row somebody reviews rather than into a log line somebody greps.
+
+    Returns ``None`` when the money is genuinely free, and the caller pays out.
+    """
+    free = services.account_for(user, AccountKind.INSURANCE_FREE).balance
+    if free >= amount:
+        return None
+
+    held = services.account_for(user, AccountKind.INSURANCE_HELD).balance
+    locked = services.account_for(user, AccountKind.INSURANCE_LOCKED).balance
+    short = amount - free
+
+    case, created = RefundShortfall.objects.get_or_create(
+        refund_ref=f"odoo:{refund_id}",
+        defaults={
+            "message": message,
+            "user": user,
+            "requested": amount,
+            "free": free,
+            "held": held,
+            "locked": locked,
+            "shortfall": short,
+            "note": (
+                f"طلب أودو استرداد {amount} والمتاح {free}. "
+                f"المحجوز {held} والمرهون {locked} — لا يُسحب المرهون آلياً."
+            ),
+        },
+    )
+    again = "" if created else " (طلبٌ مكرَّر — القضية مفتوحة أصلاً)"
+    log.info(
+        "refund %s short by %s for user %s — case %s%s",
+        refund_id,
+        short,
+        user.pk,
+        case.pk,
+        again,
+    )
+    return Outcome(
+        InboundState.IGNORED,
+        f"استرداد {refund_id}: المتاح {free} والمطلوب {amount} — "
+        f"فُتحت قضية عجز #{case.pk} ولم يُنفَّذ شيء{again}",
     )
 
 
