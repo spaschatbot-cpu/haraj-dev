@@ -116,6 +116,10 @@ class VehicleCardSerializer(serializers.Serializer):
     auction_title = serializers.CharField()
     auction_state = serializers.CharField()
 
+    #: The tab, decided by the server. Blank for an auction outside the three
+    #: (draft, cancelled) — a state only staff ever see, and one no tab claims.
+    phase = serializers.ChoiceField(choices=Phase.choices, allow_blank=True)
+
     #: The countdown's two ends, UTC on the wire. On the card and not behind a
     #: second request: a grid of twenty cars would otherwise open twenty-one
     #: connections to draw twenty clocks.

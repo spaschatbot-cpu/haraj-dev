@@ -850,6 +850,8 @@ export interface components {
             total: number;
             results: components["schemas"]["Bid"][];
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
         /** @description One named pot, with the count of entries that add up to it. */
         Bucket: {
             kind: string;
@@ -1154,6 +1156,13 @@ export interface components {
             active: number;
             ended: number;
         };
+        /**
+         * @description * `soon` - قريباً
+         *     * `active` - نشط
+         *     * `ended` - منتهي
+         * @enum {string}
+         */
+        PhaseEnum: "soon" | "active" | "ended";
         /** @description One bid on one car. */
         PlaceBid: {
             amount: string;
@@ -1302,6 +1311,7 @@ export interface components {
             auction_number: number;
             auction_title: string;
             auction_state: string;
+            phase: components["schemas"]["PhaseEnum"] | components["schemas"]["BlankEnum"];
             /** Format: date-time */
             auction_starts_at: string;
             /** Format: date-time */

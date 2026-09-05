@@ -25,11 +25,13 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from apps.auctions.listing import vehicle_page
+from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.auctions.visibility import (
     PHASE_AUCTION_STATES,
     PUBLIC_AUCTION_STATES,
     Phase,
+    phase_of,
 )
 
 pytestmark = pytest.mark.django_db
@@ -172,6 +174,23 @@ def test_the_withdrawn_car_is_hidden_even_inside_its_own_tab(api, world):
 # ---------------------------------------------------------------------------
 # The counters
 # ---------------------------------------------------------------------------
+
+
+def test_the_counter_fields_are_the_phase_names_themselves():
+    """`counts` is keyed by the same words as `?phase=` — proven, not intended.
+
+    The three counters are three hand-written serializer fields (so a generated
+    client gets three typed getters instead of `Map<String, int>?`), and hand
+    written is exactly how they drift: the app read `counts['upcoming']` off a
+    response whose keys were `soon`, `active`, `ended` and threw a cast error
+    while decoding — a 200 the client turned into a failure screen, invisible in
+    the server's log.
+
+    One word per meaning, on the wire and in the counter both.
+    """
+    from apps.auctions.api.serializers import PhaseCountsSerializer
+
+    assert set(PhaseCountsSerializer().fields) == set(Phase.values)
 
 
 def test_every_response_carries_all_three_counters_whatever_the_tab(api, world):
@@ -335,3 +354,69 @@ def test_the_detail_page_carries_them_too(api, world):
     assert detail == listed
     for field in ("auction_id", "auction_title", "auction_starts_at", "auction_ends_at"):
         assert field in detail
+
+
+# ---------------------------------------------------------------------------
+# The tab, on the card — so neither client has to work it out
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("phase", "states"),
+    sorted((str(phase), states) for phase, states in PHASE_AUCTION_STATES.items()),
+)
+def test_phase_of_agrees_with_the_map_it_is_inverted_from(phase, states):
+    """`phase_of` is the inverse of `PHASE_AUCTION_STATES` and nothing else.
+
+    Written as a test rather than trusted because that inversion is the only
+    thing standing between one definition of «منتهي» and two.
+    """
+    assert {phase_of(state) for state in states} == {phase}
+
+
+def test_a_state_outside_the_three_tabs_has_no_phase():
+    """`draft` and `cancelled` get the blank, not `ended`.
+
+    Staff see these cars. Telling them a draft auction is over is a verdict
+    nobody reached, and folding it into `ended` is exactly how v1 put a car
+    withdrawn from a finished auction into «قريباً».
+    """
+    assert phase_of(AuctionState.DRAFT) == ""
+    assert phase_of(AuctionState.CANCELLED) == ""
+
+
+@pytest.mark.parametrize("phase", sorted(str(name) for name in Phase.values))
+def test_the_card_names_the_tab_it_came_from(api, world, phase):
+    """The card's `phase` is the tab that returned it — every card, every tab.
+
+    This is the field both clients read to decide *which* moment to count down
+    to. Before it existed the web counted to `auction_ends_at` for a car in
+    «قريباً» and told a customer «يغلق بعد ٦ أيام» about an auction that had not
+    opened; the app did the same. Neither channel can get that wrong from a
+    field the server filled in.
+    """
+    page = browse(api, phase=phase)
+
+    assert page["results"], "التبويب فارغ فلا يُثبت شيئاً"
+    assert {row["phase"] for row in page["results"]} == {phase}
+
+
+def test_the_card_phase_matches_its_own_auction_state(api, world):
+    """Read against the row rather than against the tab, so a tab that filtered
+    on one rule and stamped another would still be caught."""
+    rows = browse(api, limit=50)["results"]
+
+    assert rows
+    for row in rows:
+        vehicle = Vehicle.objects.get(pk=row["id"])
+        assert row["phase"] == phase_of(vehicle.auction.state)
+
+
+def test_staff_see_a_blank_phase_rather_than_a_wrong_one(api, world, staff):
+    """The draft car only staff may see carries no tab, and says so."""
+    api.force_authenticate(staff)
+
+    hidden = world["hidden"][0]
+    detail = api.get(reverse("auctions_api:vehicle-detail", args=[hidden.pk])).data
+
+    assert detail["phase"] == ""

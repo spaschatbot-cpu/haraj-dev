@@ -1447,6 +1447,9 @@ components:
       required:
       - results
       - total
+    BlankEnum:
+      enum:
+      - ''
     Bucket:
       type: object
       description: One named pot, with the count of entries that add up to it.
@@ -2063,6 +2066,16 @@ components:
       - active
       - ended
       - soon
+    PhaseEnum:
+      enum:
+      - soon
+      - active
+      - ended
+      type: string
+      description: |-
+        * `soon` - قريباً
+        * `active` - نشط
+        * `ended` - منتهي
     PlaceBid:
       type: object
       description: One bid on one car.
@@ -2379,6 +2392,10 @@ components:
           type: string
         auction_state:
           type: string
+        phase:
+          oneOf:
+          - $ref: '#/components/schemas/PhaseEnum'
+          - $ref: '#/components/schemas/BlankEnum'
         auction_starts_at:
           type: string
           format: date-time
@@ -2447,6 +2464,7 @@ components:
       - model
       - odometer_km
       - owner_company_name
+      - phase
       - plate_type
       - plate_type_label
       - reserve_price

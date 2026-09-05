@@ -86,6 +86,34 @@ PHASE_AUCTION_STATES: dict[str, frozenset[str]] = {
 }
 
 
+#: auction state → the tab it sits in. **Inverted** from the mapping above and
+#: never written a second time: two tables would be two answers to "is this over
+#: yet?", which is the duplicate decision point Article 4-5 forbids.
+_PHASE_OF_STATE: dict[str, str] = {
+    state: str(phase)
+    for phase, states in PHASE_AUCTION_STATES.items()
+    for state in states
+}
+
+
+def phase_of(auction_state: str) -> str:
+    """Which tab an auction in this state belongs to — the server's answer.
+
+    On the card because otherwise each client derives it, and a client that
+    derives it owns a second definition of "منتهي": the web would compare
+    `auction_ends_at` to the browser's clock and the app would compare it to the
+    phone's, and v1 proved where that ends — a customer two minutes fast read
+    «انتهى» on an auction still taking bids and did not put one in.
+
+    A state outside the three tabs (`draft`, `cancelled`) has no tab and gets
+    the empty string rather than being folded into `ended`. Staff can see such a
+    vehicle, and telling them it is over is a claim nobody made; the clients
+    read the blank as "unknown" and show the car without a verdict (Article
+    2-3 — an unrecognised value is kept, not resolved by guessing).
+    """
+    return _PHASE_OF_STATE.get(auction_state, "")
+
+
 def phase_q(phase: str) -> Q:
     """The phase as a ``WHERE`` clause, to be **added** to the visibility rule.
 
