@@ -36,6 +36,17 @@ from apps.money.models import (  # noqa: E402
 )
 from apps.money.verification import verify_ledger  # noqa: E402
 
+# ويندوز: cp1252 لا يمثّل العربية، فجملة النجاح نفسها ترمي `UnicodeEncodeError`
+# ويخرج الحارس بـ1 وهو ناجح. وحارسٌ يُبلَّغ عنه فاشلاً وهو ناجح يُطفَأ بعد
+# ثالث مرة — وهذا أسوأ من حارسٍ لا يعمل، لأنه يُطفأ عن قناعة.
+#
+# و`hasattr` ليست حذراً زائداً: `tests/test_no_float_check.py` يستورد هذا
+# الملف، وpytest يكون قد استبدل `sys.stdout` بكائن التقاطٍ بلا `reconfigure`.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8")
+
 CUSTOMERS = 2_000
 TRANSACTIONS_PER_CUSTOMER = 250  # 2 entries each -> ~1,000,000 entries
 BATCH = 5_000
