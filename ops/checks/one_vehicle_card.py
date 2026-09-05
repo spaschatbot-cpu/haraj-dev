@@ -33,11 +33,18 @@ guessed from a list of "generic" field names, so the check keeps working when
 a card gains a field.
 
 Three is the threshold because one or two shared names are a coincidence
-(`state` and `year` mean things elsewhere) and three is a card. The
-"one computed field" clause is what separates a card from a plain
-`Vehicle.objects.create(...)` payload of column values; the computed fields
-are derived by reading `models.py`, not listed here, so the check cannot end
-up guarding an older card than the one that exists.
+(`state` and `year` mean things elsewhere) and three is a card. What separates a
+card from a plain `Vehicle.objects.create(...)` payload of column values is
+either of two marks, and it takes both to cover the shapes that actually occur:
+
+* **a computed field** — `title`, `thumbnail_url`, a `_label`: a name no column
+  carries, so somebody assembled it. Derived by reading `models.py` rather than
+  listed here, so the check cannot end up guarding an older card;
+* **one object behind every value** — a card is a set of facts about the same
+  vehicle. A create payload is literals and reads off nothing; a bid row that
+  names the car it is on reads off two objects, the bid and the vehicle. A dict
+  of seven plain columns all read off one car is a card however plain its names,
+  and the computed-field clause alone lets it through.
 
 Run:  python ops/checks/one_vehicle_card.py
 """
@@ -154,6 +161,25 @@ def _is_a_form(node: ast.ClassDef) -> bool:
     return False
 
 
+def _sources(node: ast.AST) -> set[str]:
+    """Which objects a value is read off — `vehicle.auction.title` → `vehicle`.
+
+    Only lower-cased names count. `VehicleState.LISTED` is an enum constant, not
+    a car: a `Vehicle.objects.create(...)` payload is full of them, and counting
+    a class as an object it was read off turns every factory in the test suite
+    into a hand-drawn card.
+    """
+    found: set[str] = set()
+    for inner in ast.walk(node):
+        if isinstance(inner, ast.Attribute):
+            base = inner
+            while isinstance(base, ast.Attribute):
+                base = base.value
+            if isinstance(base, ast.Name) and base.id.islower():
+                found.add(base.id)
+    return found
+
+
 def _string_elements(node: ast.AST) -> set[str]:
     if not isinstance(node, ast.List | ast.Tuple | ast.Set):
         return set()
@@ -177,11 +203,37 @@ class CardHunter(ast.NodeVisitor):
             if isinstance(key, ast.Constant) and isinstance(key.value, str)
         }
         shared = keys & self.fields
-        if len(shared) >= THRESHOLD and shared & self.computed:
+        if len(shared) >= THRESHOLD and (
+            shared & self.computed or self._one_object(node, keys & self.fields)
+        ):
             self.hits.append(
                 (node.lineno, "قاموس يرسم كرت مركبة: " + "، ".join(sorted(shared)))
             )
         self.generic_visit(node)
+
+    def _one_object(self, node: ast.Dict, shared: set[str]) -> bool:
+        """Does one object supply THRESHOLD or more of these card fields?
+
+        The second half of "is this a card", and the half that survives `id`
+        being counted as the column it is. A card is a set of facts about the
+        same vehicle; the two shapes that share its names are not:
+
+        * `Vehicle.objects.create(**{"make": "تويوتا", "year": 2022, ...})` —
+          literals and enum constants, read off no object at all;
+        * a bid row naming the car it is on — `{"id": bid.pk, "auction_id":
+          v.auction_id, "lot_number": v.lot_number}` — where no single object
+          supplies three, because the row is about two things.
+
+        Counting per object rather than asking "is there exactly one" is what
+        keeps a stray `timezone.now()` in a factory from deciding the answer.
+        """
+        tally: dict[str, int] = {}
+        for key, value in zip(node.keys, node.values, strict=False):
+            if not isinstance(key, ast.Constant) or key.value not in shared:
+                continue
+            for name in _sources(value):
+                tally[name] = tally.get(name, 0) + 1
+        return any(seen >= THRESHOLD for seen in tally.values())
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         """Skip a `Meta` for another model, and skip an edit form entirely.

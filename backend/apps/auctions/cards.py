@@ -29,7 +29,7 @@ from .models import (
     VehicleState,
 )
 from .states import AuctionState
-from .visibility import listing_state
+from .visibility import listing_state, phase_of
 
 
 def _label(choices, value: str) -> str:
@@ -85,6 +85,12 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "auction_number": lambda v: v.auction.number,
     "auction_title": lambda v: v.auction.title,
     "auction_state": lambda v: v.auction.state,
+    # The tab this car sits in, decided here and not in either client. Both
+    # channels ask the same question of a card — «هل انتهى؟ ومتى العدّ؟» — and
+    # before this field the web answered it from `auction_ends_at` against the
+    # browser clock while the app answered it from a field the contract did not
+    # send. One name, one answer, derived from `PHASE_AUCTION_STATES`.
+    "phase": lambda v: phase_of(v.auction.state),
     "auction_starts_at": lambda v: v.auction.starts_at,
     "auction_ends_at": lambda v: v.auction.ends_at,
     "lot_number": lambda v: v.lot_number,

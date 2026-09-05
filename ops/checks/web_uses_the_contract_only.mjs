@@ -91,8 +91,102 @@ async function contract() {
   return declared;
 }
 
-export async function violations(root = WEB) {
+/**
+ * The named enums the web mirrors as runtime values, and where it writes them.
+ *
+ * A type cannot be rendered. `<nav>` needs the three tab *words*, and
+ * TypeScript erases the union that would have vouched for them — so the words
+ * are written once in the client and this table is what holds them to the
+ * contract. One line per mirrored enum.
+ */
+const MIRRORED_ENUMS = [
+  //: الملفّ `phases.ts` لا `phase.ts`: أُنقذ هذا الفحص من فرعٍ كان يسمّي
+  //: نظيرَه بالمفرد، وقد استقرّ الاسم على الجمع في `main` قبله.
+  { schema: "PhaseEnum", file: join("web", "lib", "api", "phases.ts"), constant: "PHASES" },
+];
+
+/**
+ * The values of a named enum component in the committed schema.
+ *
+ * Same line parser as `contract()` and for the same reason — no dependency, so
+ * the check cannot be skipped on the day the install is what broke.
+ */
+function enumValues(text, name) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => new RegExp(`^ {4}${name}:\\s*$`).test(line));
+  if (start < 0) return null;
+
+  const values = [];
+  let inside = false;
+  for (const line of lines.slice(start + 1)) {
+    if (/^ {0,4}\S/.test(line)) break; // the next component
+    if (/^ {6}enum:\s*$/.test(line)) {
+      inside = true;
+      continue;
+    }
+    if (inside) {
+      const item = /^ {6}- (?:'([^']*)'|"([^"]*)"|(\S+))\s*$/.exec(line);
+      if (item) values.push(item[1] ?? item[2] ?? item[3]);
+      else inside = false;
+    }
+  }
+  return values;
+}
+
+/** A `const NAME = ["a", "b"]` literal array in a client source file. */
+function literalArray(source, name) {
+  const found = new RegExp(`\\bconst ${name}\\s*=\\s*\\[([^\\]]*)\\]`).exec(source);
+  if (!found) return null;
+  return [...found[1].matchAll(/"([^"]*)"|'([^']*)'/g)].map((m) => m[1] ?? m[2]);
+}
+
+/**
+ * The fourth way round the contract, and the one that shipped: right path,
+ * right method, **wrong word**.
+ *
+ * `web_uses_the_contract_only` compared paths and verbs and nothing else, so
+ * `GET /api/v1/vehicles/?phase=upcoming` passed every check in this repository
+ * while the schema declared `soon`. The server answered 400, the tab the owner
+ * asked for by name was the one tab that never opened, and all three trees were
+ * green — each client test faked a server that agreed with the client.
+ */
+async function mirroredEnums() {
   const found = [];
+  const text = await readFile(SCHEMA, "utf8");
+
+  for (const { schema, file, constant } of MIRRORED_ENUMS) {
+    const declared = enumValues(text, schema);
+    if (declared === null) {
+      found.push(`${schema} لم يعد في المخطط — عدّل MIRRORED_ENUMS أو أعد توليده`);
+      continue;
+    }
+
+    const source = await readFile(join(ROOT, file), "utf8");
+    const mirrored = literalArray(source, constant);
+    if (mirrored === null) {
+      found.push(`${file}: لم يُعثر على ${constant}`);
+      continue;
+    }
+
+    const invented = mirrored.filter((value) => !declared.includes(value));
+    const missing = declared.filter((value) => !mirrored.includes(value));
+    if (invented.length) {
+      found.push(
+        `${file}: ${constant} فيه ما لا يعرفه العقد (${schema}): ` +
+          `${invented.join("، ")} — الخادم يردّ 400 على كلٍّ منها`,
+      );
+    }
+    if (missing.length) {
+      found.push(
+        `${file}: ${constant} ينقصه ما يعلنه العقد (${schema}): ${missing.join("، ")}`,
+      );
+    }
+  }
+  return found;
+}
+
+export async function violations(root = WEB) {
+  const found = await mirroredEnums();
   const declared = await contract();
 
   for await (const file of walk(root)) {

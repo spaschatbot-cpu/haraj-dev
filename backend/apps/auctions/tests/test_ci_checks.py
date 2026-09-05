@@ -234,6 +234,66 @@ def test_the_card_check_still_catches_a_card_that_names_the_auction(tmp_path):
     assert len(check.violations([root])) == 1
 
 
+def test_the_card_check_still_catches_a_card_of_nothing_but_columns(tmp_path):
+    """The regression the `id` widening opened, and the test that was missing.
+
+    `id` is a column — Django writes the primary key, the author does not — so
+    counting it as one is right, and it is what lets `bid_row` through. But the
+    check's only other mark for "this is a card" was a computed field, and a
+    payload of seven plain columns has none. Between the two, a view could ship
+    a hand-drawn vehicle card and pass CI: exactly E7, the defect the guard was
+    written for.
+
+    What tells them apart is not the names but where the values come from — all
+    seven of these are read off one car.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "views.py",
+        "def payload(vehicle):\n"
+        "    return {\n"
+        "        'id': vehicle.pk,\n"
+        "        'make': vehicle.make,\n"
+        "        'model': vehicle.model,\n"
+        "        'year': vehicle.year,\n"
+        "        'odometer_km': vehicle.odometer_km,\n"
+        "        'reserve_price': vehicle.reserve_price,\n"
+        "        'state': vehicle.state,\n"
+        "    }\n",
+    )
+
+    assert len(check.violations([root])) == 1
+
+
+def test_the_card_check_leaves_a_factory_of_literals_alone(tmp_path):
+    """Enum constants are not an object the card was read off.
+
+    `VehicleState.LISTED` next to `"make": "تويوتا"` is somebody creating a car,
+    and a check that reads `VehicleState` as the thing being described flags
+    every factory in this suite — which is how a guard gets switched off.
+    """
+    check = load("one_vehicle_card")
+    root = write(
+        tmp_path,
+        "factory.py",
+        "from apps.auctions.models import Vehicle\n"
+        "from apps.auctions.states import VehicleState\n"
+        "def a_car(auction, lot):\n"
+        "    fields = {\n"
+        "        'lot_number': lot,\n"
+        "        'make': 'تويوتا',\n"
+        "        'model': 'كامري',\n"
+        "        'year': 2020,\n"
+        "        'state': VehicleState.LISTED,\n"
+        "        'reserve_price': '55000.00',\n"
+        "    }\n"
+        "    return Vehicle.objects.create(auction=auction, **fields)\n",
+    )
+
+    assert check.violations([root]) == []
+
+
 def test_the_card_check_catches_a_second_field_list(tmp_path):
     check = load("one_vehicle_card")
     root = write(
