@@ -25,8 +25,10 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.accounts.models import Company, User
+from apps.accounts import services as accounts_services
+from apps.accounts.models import Company, StaffGrant, User
 from apps.core import audit
+from apps.core.permissions import Capability, capabilities_of
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState, Transaction
 
@@ -340,3 +342,67 @@ __all__ = [
     "invoice_detail",
     "invoices",
 ]
+
+
+class GrantForm(forms.Form):
+    """صلاحيةٌ واحدة، ومنحٌ أو سحب، وسبب.
+
+    القدرات من `Capability.choices` لا من قائمةٍ مكتوبة هنا: قدرةٌ جديدة تظهر
+    في هذه الشاشة بمجرّد وجودها، وقائمةٌ ثانية تنحرف عن الأولى بصمت — وذلك
+    بعينه ما كسر لوحة v1 حين اختلفت نسخة القائمة عن نسخة الحارس.
+    """
+
+    capability = forms.ChoiceField(label="الصلاحية", choices=Capability.choices)
+    granted = forms.BooleanField(label="ممنوحة", required=False)
+    reason = forms.CharField(
+        label="السبب",
+        max_length=500,
+        widget=forms.TextInput(attrs={"placeholder": "لماذا هذا التغيير؟"}),
+        error_messages={"required": "سبب المنح أو السحب مطلوب."},
+    )
+
+    def clean_reason(self) -> str:
+        reason = (self.cleaned_data.get("reason") or "").strip()
+        if not reason:
+            raise forms.ValidationError("سبب المنح أو السحب مطلوب.")
+        return reason
+
+
+@console_page("console:staff-grants")
+def staff_grants(request, pk: int):
+    """صلاحيات موظّفٍ فوق دوره — ومن أعطاها ولماذا.
+
+    الشاشة التي لم تكن: `StaffGrant` كان يُقرأ ولا يُكتب، فمنحُ صلاحيةٍ لا يقع
+    إلا بيدٍ على قاعدة البيانات — بلا سببٍ مقروء ولا اسم مانح ولا صفٍّ في
+    السجلّ. وهو أخطر تغييرٍ في النظام، فكان الوحيد بلا أثر.
+
+    والصفحة تعرض **الوصول الفعلي** لا الدور وحده: سؤال المراجعة هو «ماذا
+    يستطيع هذا الشخص اليوم؟»، وجوابه ليس في الدور ولا في المنح بل في تركيبهما
+    (`capabilities_of`) — وقراءتها هنا تعني أن الشاشة لا تحمل نسخةً ثانية من
+    قاعدة الأسبقية.
+    """
+    member = get_object_or_404(User.objects.filter(is_staff=True), pk=pk)
+    form = GrantForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        accounts_services.set_capability(
+            user=member,
+            capability=form.cleaned_data["capability"],
+            granted=form.cleaned_data["granted"],
+            reason=form.cleaned_data["reason"],
+            actor=request.user,
+        )
+        messages.success(request, "حُدِّثت الصلاحية.")
+        return redirect("console:staff-grants", pk=pk)
+
+    effective = sorted(capabilities_of(member))
+    return render(
+        request,
+        "console/staff_grants.html",
+        {
+            "member": member,
+            "form": form,
+            "effective": effective,
+            "grants": StaffGrant.objects.filter(user=member).order_by("capability"),
+        },
+    )

@@ -72,6 +72,11 @@ class Capability(models.TextChoices):
 
     DIAGNOSTICS_VIEW = "diagnostics.view", "شاشات التشخيص وصحة المال"
     ODOO_INBOX = "odoo.inbox", "صندوق وارد أودو"
+    # منحُ صلاحيةٍ ثقةٌ وحدها، وأوسع من `users.manage`: من يملكها يستطيع أن
+    # يمنح نفسه كل شيء. فهي للمالك وحده — لا تُضاف إلى دورٍ آخر بلا قرارٍ
+    # مكتوب، لأن إضافتها إلى دور تعني أن ذلك الدور صار كلَّ الأدوار.
+    STAFF_GRANT = "staff.grant", "منح صلاحيات الموظفين وسحبها"
+
     AUDIT_VIEW = "audit.view", "سجل التدقيق"
 
 
