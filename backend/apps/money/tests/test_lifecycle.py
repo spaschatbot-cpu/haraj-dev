@@ -439,12 +439,19 @@ class TestSuspense:
         assert services.system_account(AccountKind.SUSPENSE).balance == Decimal("0.00")
 
     def test_attributing_part_of_it_leaves_the_rest_in_suspense(self, customer):
-        services.receive_unattributed(amount=TEN_K, source="cash", reference="U/3")
+        """One transfer covering two customers: the first is placed, the rest waits.
 
-        services.attribute(user=customer, amount=Decimal("4000.00"), reference="U/3-part")
+        The part attributed is a whole deposit, because the part is what lands
+        in `insurance_free` and the deposit is a unit (HR-03). A transfer that
+        does not divide into deposits stays whole in suspense until a person
+        says what it was.
+        """
+        services.receive_unattributed(amount=TEN_K * 2, source="cash", reference="U/3")
 
-        assert free(customer) == Decimal("4000.00")
-        assert services.system_account(AccountKind.SUSPENSE).balance == Decimal("6000.00")
+        services.attribute(user=customer, amount=TEN_K, reference="U/3-part")
+
+        assert free(customer) == TEN_K
+        assert services.system_account(AccountKind.SUSPENSE).balance == TEN_K
 
     def test_attributing_more_than_is_there_is_refused(self, customer):
         """Suspense is a platform bucket with no CHECK floor, so this guard is

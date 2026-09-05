@@ -439,6 +439,20 @@ def deposit_insurance(
     }.get(source)
     if external is None:
         raise MoneyError(f"مصدر تمويل غير معروف: {source!r}")
+    # The deposit-unit rule (HR-03) is **not** enforced here, and the reason is
+    # worth writing down because this is the obvious place to put it.
+    #
+    # This function records that money became insurance; it does not decide
+    # whether the platform accepts it. Two callers need it to stay a plain
+    # recorder: the property tests generate arbitrary movements to prove the
+    # ledger's invariants hold for any of them, and phase 004 rebuilds v1's
+    # history from v1's events — which include the one-riyal test deposit the
+    # rule exists because of. A ledger that cannot express what happened cannot
+    # be reconciled against it.
+    #
+    # The rule lives where a decision is made instead: `credit_payment` for
+    # money arriving, `attribute` for money leaving suspense, and `start_topup`
+    # never offers the customer the choice at all.
 
     return post(
         kind=TransactionKind.INSURANCE_TOPUP,
@@ -533,6 +547,41 @@ def deposit_amount_for(*, auction=None) -> Decimal:
     return Decimal(settings.INSURANCE_DEPOSIT_AMOUNT).quantize(
         Decimal(1).scaleb(-MONEY["decimal_places"])
     )
+
+
+class NotWholeDeposits(MoneyError):
+    """An amount that is not a whole number of deposits tried to become insurance."""
+
+
+def whole_deposits_in(amount: Decimal) -> Decimal | None:
+    """How many deposits ``amount`` is, or ``None`` if it is not a whole number.
+
+    The deposit is a **unit, not a balance** (``PHASE_02`` §1-1): ten thousand
+    exactly, and insurance is topped up in multiples of it and in nothing else.
+    Treating it as an elastic balance in riyals is what let v1's bidders cover a
+    car with a fraction of the cover it required, and what let a **one-riyal
+    test deposit** be counted as answering a ten-thousand refund.
+    """
+    unit = deposit_amount_for()
+    if unit <= ZERO or amount <= ZERO:
+        return None
+    count, remainder = divmod(amount, unit)
+    return count if remainder == ZERO else None
+
+
+def require_whole_deposits(amount: Decimal) -> None:
+    """Refuse an amount that would enter ``insurance_free`` in pieces.
+
+    Guarding the two doors into that bucket rather than the callers: money
+    becomes insurance through :func:`deposit_insurance` and through
+    :func:`attribute`, and a rule enforced at one of them is a rule the other
+    undoes.
+    """
+    if whole_deposits_in(amount) is None:
+        unit = deposit_amount_for()
+        raise NotWholeDeposits(
+            f"التأمين يُشحن بمضاعفات {unit} فقط، والمبلغ {amount} ليس منها"
+        )
 
 
 @db_transaction.atomic
@@ -816,6 +865,10 @@ def attribute(
         # CHECK can only produce an IntegrityError. This is what produces a
         # sentence, and it is decided under the lock that makes it true.
         raise MoneyError(f"المعلّق فيه {suspense.balance} ولا يكفي لنسب {amount}")
+    # The other door into `insurance_free`, and so the other place the unit has
+    # to hold. Guarding only the deposit would leave suspense as the way round
+    # it: park three thousand, attribute it, and the rule is gone.
+    require_whole_deposits(amount)
 
     return post(
         kind=TransactionKind.ATTRIBUTION,
@@ -859,6 +912,24 @@ def credit_payment(
 
     in_suspense = find_transaction(suspense_key(source, reference))
     if in_suspense is None:
+        if whole_deposits_in(amount) is None:
+            # It arrived. A bank transfer cannot be un-received, and Article 2-2
+            # forbids dropping what reached us — so the rule refuses to call it
+            # *insurance*, not to record it as *money*. It waits in suspense,
+            # visible and counted, until somebody decides what it was: the
+            # one-riyal test deposit that v1 counted as covering a ten-thousand
+            # refund would have stopped here.
+            log.info(
+                "credit_payment: %s is not whole deposits — parked in suspense",
+                amount,
+            )
+            return receive_unattributed(
+                amount=amount,
+                source=source,
+                reference=reference,
+                occurred_at=occurred_at,
+                memo=memo or f"مبلغ ليس من مضاعفات الوديعة — العميل {user.pk}",
+            )
         return deposit_insurance(
             user=user,
             amount=amount,
@@ -876,6 +947,18 @@ def credit_payment(
             f"الدفعة {reference} محفوظة في المعلّق بمبلغ {in_suspense.total} "
             f"والمطلوب نسبه {amount} — الفرق يحتاج قراراً بشرياً"
         )
+
+    if whole_deposits_in(amount) is None:
+        # Already parked here on a previous telling, and still not a deposit.
+        # The second telling is the same money, and the right answer to it is
+        # nothing at all: moving it now would put a fraction into insurance by
+        # the back door, and raising would break the idempotency every inbound
+        # path depends on.
+        log.info(
+            "credit_payment: %s stays in suspense — heard again, still not whole",
+            reference,
+        )
+        return in_suspense
 
     return attribute(
         user=user,
