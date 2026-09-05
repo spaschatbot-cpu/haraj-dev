@@ -1,0 +1,73 @@
+{% extends "console/base.html" %}
+
+{% block heading %}لوحة التحليلات{% endblock %}
+
+{% block content %}
+  {% comment %} الصحّة أولاً. رقمٌ كبير فوق دفترٍ لا يتّزن ليس معلومة. {% endcomment %}
+  {% if board.alarms %}
+    <section class="board-alarms" aria-label="ما يحتاج نظراً الآن">
+      {% for stat in board.alarms %}{% include "console/_stat.html" %}{% endfor %}
+    </section>
+  {% elif board.is_clean %}
+    <p class="notice success">الدفتر متّزن، ولا شيء معلّق بلا صاحب.</p>
+  {% endif %}
+
+  {% if board.stats %}
+    <section class="board-stats" aria-label="أرقام المنصّة">
+      {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
+    </section>
+  {% else %}
+    <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
+  {% endif %}
+
+  <div class="board-figures">
+    {% if board.auction_states %}
+      <section class="figure" aria-label="توزيع حالات المزادات">
+        <header class="figure__head">
+          <h2>حالات المزادات</h2>
+          <a class="figure__action" href="{% url 'console:auctions' %}">القائمة</a>
+        </header>
+        {% comment %} دائرةٌ ومفتاحٌ بأرقام. القطاعان المتقاربان لا يُقرآن من
+           الدائرة وحدها — والمفتاح بجوارها يحمل العدد والنسبة، فالرسم يقول
+           «أيّها أكبر» والمفتاح يقول «كم». {% endcomment %}
+        <div class="wheel">
+          <div class="wheel__disc" style="background: {{ board.auction_wheel }}"
+               role="img" aria-label="توزيع حالات المزادات — التفصيل في القائمة المجاورة">
+            <span class="wheel__hole">
+              <strong>{{ board.auction_total }}</strong>
+              <span>مزاد</span>
+            </span>
+          </div>
+          <ul class="wheel__key">
+            {% for label, count, share in board.auction_states %}
+              <li class="wheel__item">
+                <span class="wheel__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
+                <span class="wheel__name">{{ label }}</span>
+                <span class="wheel__count">{{ count }}</span>
+                <span class="wheel__share">{{ share }}%</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </section>
+    {% endif %}
+
+    {% if board.trend %}
+      <section class="figure" aria-label="المزايدات في سبعة أيام">
+        <header class="figure__head">
+          <h2>المزايدات — سبعة أيام</h2>
+          <span class="figure__note">العمود الأطول هو أعلى يوم</span>
+        </header>
+        <ol class="spark">
+          {% for day, count, height in board.trend %}
+            <li class="spark__day">
+              <span class="spark__count">{{ count }}</span>
+              <span class="spark__bar" style="block-size: {{ height }}%"></span>
+              <span class="spark__label">{{ day }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+    {% endif %}
+  </div>
+{% endblock %}

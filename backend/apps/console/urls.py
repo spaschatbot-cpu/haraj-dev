@@ -22,11 +22,15 @@ from . import (
     people,
     views,
 )
+from . import (
+    dashboard as dashboard_views,
+)
 
 app_name = "console"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("dashboard/", dashboard_views.dashboard, name="dashboard"),
     # The way out. Deliberately **not** a row in `navigation.PAGES`: a row there
     # is a screen with a capability that both reveals and guards it, and signing
     # out is neither — it is an action, and no capability gates it, because

@@ -62,6 +62,9 @@ EXPORTING = {
 #: so adding a screen and forgetting to prove it renders is not possible quietly.
 MUST_RENDER = {
     "console:home": "الرئيسية",
+    # الرقم على الصفحة لا الحالة 200: لوحةٌ ترسم صفراً على بياناتٍ موجودة هي
+    # بالضبط ما شحنته v1 وكل الفحوص خضراء.
+    "console:dashboard": "إجمالي التأمين",
     "console:auctions": "مزاد الرندرة",
     "console:vehicles": "كامري",
     "console:vehicles-import": "استيراد",
