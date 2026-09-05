@@ -96,6 +96,7 @@ class RefusalReason(models.TextChoices):
     PHONE_NOT_VERIFIED = "phone_not_verified", "الجوال غير موثّق"
     PROFILE_INCOMPLETE = "profile_incomplete", "الملف غير مكتمل"
     OWN_VEHICLE = "own_vehicle", "المركبة تخصّه"
+    REFUND_PENDING = "refund_pending", "تأمينه مطلوبٌ استرداده"
 
 
 class BidRefusal(models.Model):

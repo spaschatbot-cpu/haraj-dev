@@ -151,13 +151,21 @@ describe("وضع المزايدة", () => {
 describe("J7 — الرفض يصل برمزه وجملته كما هما", () => {
   // The enumerated reasons, with the sentences the backend actually sends. The
   // test does not care what they say; it cares that whatever they say arrives.
+  // كل رمز في `RefusalReason` بالخادم، ولا رمز من عندنا.
+  // `ops/checks/web_refusal_codes_match_the_server.mjs` يقرأ هذه القائمة نفسها
+  // ويقارنها بالتعداد في الخلفية — أُضيف بعد أن كانت أربعة رموز غائبة عنها
+  // بلا أن يُنتج ذلك فشلاً في أي اختبار.
   const REFUSALS = [
     ["no_deposit", "تحتاج تأميناً متاحاً قدره 10000.00 ريال."],
+    ["refund_pending", "لديك طلب استرداد قائم بمبلغ 10000.00 ريال."],
     ["unpaid_dues", "عليك مستحقات غير مسدَّدة، سدّدها قبل المزايدة."],
     ["auction_ended", "المزاد انتهى."],
+    ["auction_not_live", "المزاد غير مفتوح للمزايدة الآن."],
+    ["vehicle_not_biddable", "المركبة «مُباعة» ولا تقبل مزايدة."],
     ["below_floor", "أقل مزايدة مقبولة 20000.00 ريال."],
     ["own_vehicle", "المركبة تخصّك."],
     ["phone_not_verified", "لازم توثّق رقم جوالك قبل المزايدة."],
+    ["profile_incomplete", "ملفك ناقص: رقم الهوية مطلوب للمزايدة."],
   ] as const;
 
   it.each(REFUSALS)("%s", async (code, message) => {
