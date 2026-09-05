@@ -18,6 +18,20 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   typescript: { ignoreBuildErrors: false },
+
+  /**
+   * التطوير وحده: `127.0.0.1` أصلٌ مسموح كما `localhost`.
+   *
+   * خادم التطوير في Next 16 يفحص ترويسة `Origin` على أصوله الخاصة، ويعرف
+   * `localhost` ولا يعرف `127.0.0.1` — وهما العنوان نفسه. فمن يفتح الصفحة على
+   * الرقم يرى كل أصلٍ من أصول التطوير يُرفض بـ403، **ومنها مصافحة الـWebSocket
+   * للتحديث الحيّ**، فيتوقّف عن العمل بلا رسالة تقول لماذا. وقد وقع ذلك فعلاً،
+   * وقيس: `Origin: http://localhost:3000` يُجاب بـ200 و`http://127.0.0.1:3000`
+   * بـ403 على المسار نفسه.
+   *
+   * وأثرُه في الإنتاج **صفر**: الإعداد لا يقرأه إلا `next dev`.
+   */
+  allowedDevOrigins: ["127.0.0.1"],
 };
 
 export default nextConfig;
