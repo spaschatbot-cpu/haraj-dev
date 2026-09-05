@@ -382,6 +382,24 @@ class InvoiceState(models.TextChoices):
 UNPAID_INVOICE_STATES = (InvoiceState.OPEN, InvoiceState.PARTIAL)
 
 
+class InvoiceSource(models.TextChoices):
+    """Where an invoice was born — and therefore what its ``amount`` means.
+
+    This is the whole of HR-05. ``PHASE_03`` §2 calls it the finest trap in the
+    v1 files: an invoice we raise carries amounts **before** tax, and one Odoo
+    sends back carries amounts **including** it. Applying the same 15% equation
+    to both charges the customer 15% on top of a figure that already had it —
+    silently, and on every Odoo invoice.
+
+    So the source is recorded at birth, before anything computes tax, because
+    the day something does the answer has to already exist. A column added
+    afterwards can only guess at rows already written.
+    """
+
+    LOCAL = "local", "محلية"
+    ODOO_SYNC = "odoo_sync", "من أودو"
+
+
 class Invoice(models.Model):
     """What a customer owes us.
 
@@ -406,6 +424,14 @@ class Invoice(models.Model):
     #: branched on, never allowed to fail a write.
     odoo_state_raw = models.CharField(max_length=64, blank=True)
     odoo_invoice_id = models.CharField(max_length=64, blank=True, db_index=True)
+
+    #: Deliberately without a default. A default here would be the trap itself:
+    #: an Odoo invoice created by a caller who forgot would be filed as `local`,
+    #: read as pre-tax, and taxed a second time — quietly, and correctly as far
+    #: as any code could tell. A CHECK refuses the empty value instead, so
+    #: forgetting is an IntegrityError at the write rather than a wrong number
+    #: on a customer's invoice (Article 3-3).
+    source = models.CharField(max_length=16, choices=InvoiceSource.choices)
 
     vehicle = models.ForeignKey(
         "auctions.Vehicle",
@@ -443,6 +469,13 @@ class Invoice(models.Model):
                 fields=["vehicle"],
                 condition=Q(vehicle__isnull=False) & ~Q(state="cancelled"),
                 name="one_live_invoice_per_vehicle",
+            ),
+            # Every invoice says where it came from, because that is what says
+            # whether its amount already carries tax (HR-05). An unnamed source
+            # is not a small gap: it is a figure nobody can compute correctly.
+            models.CheckConstraint(
+                condition=Q(source__in=["local", "odoo_sync"]),
+                name="invoice_names_its_source",
             ),
         ]
         indexes = [models.Index(fields=["customer", "state"])]

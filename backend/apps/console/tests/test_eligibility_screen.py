@@ -37,7 +37,7 @@ from apps.bidding.models import BidRefusal, RefusalReason
 from apps.console.navigation import PAGES, pages_for
 from apps.core.permissions import Capability, Role
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState
+from apps.money.models import Invoice, InvoiceSource, InvoiceState
 
 from .conftest import screen_of
 
@@ -110,6 +110,7 @@ def caller(db, car) -> User:
         amount=Decimal("8000.00"),
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
     money.lock_for_invoice(user=customer, invoice=invoice)
 

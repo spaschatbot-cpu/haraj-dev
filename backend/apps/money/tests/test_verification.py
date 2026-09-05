@@ -23,6 +23,7 @@ from apps.money.models import (
     HoldReason,
     HoldState,
     Invoice,
+    InvoiceSource,
     InvoiceState,
 )
 from apps.money.verification import (
@@ -188,6 +189,7 @@ class TestLockedNotAboveDues:
             vehicle=vehicle,
             state=InvoiceState.OPEN,
             issued_at=timezone.now(),
+            source=InvoiceSource.LOCAL,
         )
 
     def test_quiet_when_the_lock_matches_the_debt(self, customer, invoice):

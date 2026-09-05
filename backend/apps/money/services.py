@@ -19,7 +19,7 @@ import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -41,6 +41,7 @@ from .models import (
     HoldReason,
     HoldState,
     Invoice,
+    InvoiceSource,
     InvoiceState,
     PaymentIntent,
     PaymentIntentState,
@@ -1486,6 +1487,73 @@ def pay_invoice_from_balance(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Tax — one rule, and it reads the invoice's source before anything else
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class TaxBreakdown:
+    """What an invoice's ``amount`` is made of, once its source is known."""
+
+    #: The figure tax is charged on.
+    base: Decimal
+    #: The tax itself.
+    tax: Decimal
+    #: What the customer pays. Always equals ``base + tax``.
+    total: Decimal
+    #: True when ``Invoice.amount`` already carried the tax when we received it.
+    amount_was_inclusive: bool
+
+
+def vat_rate() -> Decimal:
+    """The rate, as a Decimal. Never a float on a money path (Article 3-2)."""
+    return Decimal(str(settings.VAT_RATE))
+
+
+def tax_of(invoice: Invoice) -> TaxBreakdown:
+    """Split ``invoice.amount`` into base and tax — **the only place this happens**.
+
+    The finest trap in v1's files (``PHASE_03`` §2), and it is not a rounding
+    bug but a silent 15% overcharge:
+
+    * an invoice **we** raise carries the awarded price, which is *before* tax,
+      so the tax is added on top;
+    * an invoice **Odoo** sends carries a total that *already includes* tax, so
+      the base is what is left after taking the tax out of it.
+
+    Applying one equation to both — which is what happens the moment a second
+    screen decides to compute a total for itself — charges 15% on a figure that
+    already had it. Nothing else in this project may multiply by the rate; a CI
+    check refuses a second place that tries (``ops/checks/one_tax_rule.py``).
+
+    Rounding is `ROUND_HALF_UP` to two places, and the tax is derived from the
+    base rather than the two being rounded independently: rounding both is how
+    a total stops equalling its own parts, and an invoice whose lines do not add
+    up to its total is one no auditor accepts.
+    """
+    rate = vat_rate()
+    amount = invoice.amount
+    inclusive = invoice.source == InvoiceSource.ODOO_SYNC
+
+    if inclusive:
+        base = _to_money(amount / (Decimal(1) + rate))
+        tax = amount - base
+        total = amount
+    else:
+        base = amount
+        tax = _to_money(base * rate)
+        total = base + tax
+
+    return TaxBreakdown(base=base, tax=tax, total=total, amount_was_inclusive=inclusive)
+
+
+def _to_money(value: Decimal) -> Decimal:
+    return value.quantize(
+        Decimal(1).scaleb(-MONEY["decimal_places"]), rounding=ROUND_HALF_UP
+    )
+
+
 def issue_invoice(
     *,
     customer,
@@ -1539,6 +1607,8 @@ def issue_invoice(
         amount=Decimal(amount).quantize(Decimal(1).scaleb(-MONEY["decimal_places"])),
         vehicle=vehicle,
         state=InvoiceState.OPEN,
+        # Ours, so the amount is the awarded price — before tax (HR-05).
+        source=InvoiceSource.LOCAL,
         issued_at=issued_at,
         due_at=due_at,
     )

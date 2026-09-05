@@ -22,7 +22,7 @@ from apps.bidding import services
 from apps.bidding.eligibility import check_eligibility
 from apps.bidding.models import Bid, BidRefusal, RefusalReason
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState
+from apps.money.models import Invoice, InvoiceSource, InvoiceState
 from apps.money.verification import verify_ledger
 
 from .conftest import TEN_K, make_user, make_vehicle
@@ -133,6 +133,7 @@ def test_a_debtor_cannot_bid(bidder, vehicle):
         amount=Decimal("4000.00"),
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
 
     refusal = refuse(bidder, vehicle)
@@ -194,6 +195,7 @@ def test_a_refusal_carries_the_whole_money_picture(bidder, vehicle):
         amount=Decimal("3000.00"),
         state=InvoiceState.OPEN,
         issued_at=timezone.now(),
+        source=InvoiceSource.LOCAL,
     )
     money.lock_for_invoice(user=bidder, invoice=invoice)
 
