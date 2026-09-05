@@ -61,6 +61,7 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.money",
     "apps.odoo",
+    "apps.migration",
     "apps.auctions",
     "apps.bidding",
     "apps.notifications",
@@ -468,6 +469,19 @@ ODOO_DB = env("ODOO_DB", default="")
 ODOO_USERNAME = env("ODOO_USERNAME", default="")
 ODOO_API_KEY = env("ODOO_API_KEY", default="")
 ODOO_WEBHOOK_SECRET = env("ODOO_WEBHOOK_SECRET", default="")
+
+# ---------------------------------------------------------------------------
+# v1 — read only, and empty by default (phase 004)
+# ---------------------------------------------------------------------------
+
+# Empty means no connection is attempted at all. A migration layer that quietly
+# connects to nothing and returns no rows reports "0 customers migrated" as a
+# success, which is the one failure mode a migration must not have.
+#
+# The account this names must be **read only** at the grant (T301, criterion
+# D6). `apps.migration.extract` refuses to send anything but a read, but that
+# is the readable sentence in front of the guard, not the guard.
+V1_DSN = env("V1_DSN", default="")
 
 LOGGING = {
     "version": 1,
