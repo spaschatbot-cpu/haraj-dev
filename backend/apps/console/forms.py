@@ -23,6 +23,8 @@ from zoneinfo import ZoneInfo
 
 from django import forms
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+from django.forms.models import ALL_FIELDS
 from django.utils import timezone
 
 from apps.auctions.models import Auction, Vehicle
@@ -85,6 +87,35 @@ class ReasonMixin(forms.Form):
         if not self.is_bound:
             self.initial["row_stamp"] = self._row_stamp()
 
+    def _stamp_columns(self) -> list[str]:
+        """الأعمدة التي تكتبها هذه الاستمارة — لا نصّاً ولا قائمةً فارغة.
+
+        ‏`Meta.fields` ليست دائماً قائمة أسماء. تكتبها استمارةٌ بـ`"__all__"`
+        أو تتركها كلّها وتكتب `exclude` بدلها، وفي الحالتين يجعلها Django
+        ‏`None` — فتُقرأ هنا لا شيء، وتُحسب البصمة على النصّ الفارغ، وتخرج
+        **واحدةً بعينها لكلّ الصفوف**. حينها يقارن الفحص ثابتاً بثابت ويمرّ
+        دائماً: لا يُرفض حفظٌ متقادم أبداً، ويعود المحو الصامت وقد بقي الحقل
+        المخفيّ يُرسم في الصفحة فيبدو كلّ شيء قائماً.
+
+        مقيسٌ لا مُخمَّن: استمارةٌ بـ`exclude` أعطت مزادين مختلفين البصمةَ
+        نفسها `e3b0c442…` — وهي بصمة النصّ الفارغ.
+        """
+        meta = getattr(self, "_meta", None)
+        model = getattr(meta, "model", None)
+        if model is None:
+            return []
+
+        declared = getattr(meta, "fields", None)
+        if declared and declared != ALL_FIELDS:
+            return list(declared)
+
+        excluded = set(getattr(meta, "exclude", None) or ())
+        return [
+            field.name
+            for field in model._meta.fields
+            if field.editable and not field.auto_created and field.name not in excluded
+        ]
+
     def _row_stamp(self) -> str:
         """بصمةُ ما تكتبه هذه الاستمارة الآن، أو `""` لصفٍّ لم يوجد بعد."""
         instance = getattr(self, "instance", None)
@@ -95,8 +126,15 @@ class ReasonMixin(forms.Form):
         # فلم يُسقطها اختبار: الشاشات الأربع كلّها تُحمّل الصفّ بـ`get_object_
         # _or_404` عند الطلب نفسه، فالكائن **هو** ما في القاعدة. وسطرٌ دفاعيّ
         # لا تُسقطه مخالفةٌ مصنوعة سطرٌ لا يُميَّز عن سطرٍ لا يعمل.
-        names = list(getattr(getattr(self, "_meta", None), "fields", None) or [])
-        payload = "|".join(f"{name}={getattr(instance, name, '')!r}" for name in names)
+        names = self._stamp_columns()
+        if not names:
+            # يصرخ ولا يمرّ: استمارةُ تعديلٍ بلا عمودٍ واحد تُبصَم لا يحرسها
+            # هذا الحارس، وصمتُه هنا هو بعينه العطل الذي كُتب ضدّه.
+            raise ImproperlyConfigured(
+                f"{type(self).__name__}: لا عمود لختم HR-13. "
+                "استمارةُ تعديلٍ بلا أعمدةٍ تُبصَم تعني حارساً يمرّ دائماً."
+            )
+        payload = "|".join(f"{name}={getattr(instance, name)!r}" for name in names)
         return hashlib.sha256(payload.encode()).hexdigest()[:32]
 
     def clean_reason(self) -> str:
