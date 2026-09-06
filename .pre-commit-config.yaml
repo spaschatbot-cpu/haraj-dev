@@ -101,3 +101,12 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      # رقمٌ واحد لتاسكين مرجعٌ مكسور: من يسأل «ما هذا التاسك؟» يجد جوابين.
+      # ويعمل على markdown لا على python — التصادم يقع في `tasks.md`.
+      - id: no-task-number-twice
+        name: one task number, one task
+        entry: uv run --directory backend python ../ops/checks/no_task_number_twice.py
+        language: system
+        files: '^specs/.*/tasks\.md$'
+        pass_filenames: false
