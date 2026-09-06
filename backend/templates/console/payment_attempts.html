@@ -1,0 +1,41 @@
+{% extends "console/base.html" %}
+{% block title %}محاولات الدفع{% endblock %}
+{% block heading %}محاولات الدفع عبر البوابة{% endblock %}
+{% block content %}
+  {% comment %}
+  قراءةٌ فقط. تحريكُ مالٍ لمحاولةٍ فاشلة هو `money-actions` بعينه، وله صلاحيتُه.
+  الاستمارة أدناه بحثٌ (GET) لا كتابة.
+  {% endcomment %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="جوّال أو مرجع أو معرّف البوابة">
+    <button type="submit">ابحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr><th>المرجع</th><th>العميل</th><th>المبلغ</th><th>الغرض</th>
+          <th>الحالة</th><th>كلمة البوابة</th><th>القيد</th><th>متى</th></tr>
+    </thead>
+    <tbody>
+      {% for row in attempts %}
+        <tr>
+          <td>{{ row.intent.reference }}</td>
+          <td><a href="{% url 'console:customer-detail' row.intent.user.pk %}">{{ row.intent.user.full_name }}</a>
+              — {{ row.intent.user.phone }}</td>
+          <td>{{ row.intent.amount }}</td>
+          <td>{{ row.intent.get_purpose_display }}</td>
+          <td>
+            {{ row.intent.get_state_display }}
+            {% if row.stale %}<strong>— لم تُكمَل</strong>{% endif %}
+            {% if row.unposted %}<strong>— نجحت ولم تُقيَّد</strong>{% endif %}
+          </td>
+          <td>{{ row.intent.gateway_status_raw|default:"—" }}</td>
+          <td>{{ row.intent.resulting_transaction_id|default:"—" }}</td>
+          <td>{{ row.intent.created_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا محاولة تطابق.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

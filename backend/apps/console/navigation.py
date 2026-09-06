@@ -223,6 +223,13 @@ DETAIL_PAGES: tuple[Page, ...] = (
         "أودو طلب سحب وديعةٍ مرهونة — ما لم يُنفَّذ وينتظر قراراً.",
     ),
     Page("console:refund-resolve", "إغلاق عجز استرداد", Capability.MONEY_ACT, ""),
+    Page(
+        "console:payment-attempts",
+        "محاولات الدفع",
+        Capability.MONEY_VIEW,
+        "diagnostics",
+        "ما حدث لمحاولة دفعٍ: لم تصل البوابة، أم رفضتها، أم نجحت ولم تُقيَّد.",
+    ),
     Page("console:money-actions", "أفعال مالية", Capability.MONEY_ACT, ""),
     Page("console:money-confiscate", "مصادرة حجز", Capability.MONEY_ACT, ""),
     Page("console:money-correct", "تصحيح حركة", Capability.MONEY_ACT, ""),
