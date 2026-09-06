@@ -213,6 +213,16 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # exception carries `money.exception` on top of it — the one action that
     # puts a bidder in an auction with nothing behind their bid is not the same
     # trust as confiscating a deposit that is already ours to take.
+    # القراءة والإغلاق صلاحيتان: الدعم يقرأ الطابور ليجيب «أين استردادي؟»،
+    # وإغلاقُ قضيةٍ قرارٌ يقول «لا استرداد» — وهو من ثقة `money.act`.
+    Page(
+        "console:refund-queue",
+        "طابور عجز الاسترداد",
+        Capability.MONEY_VIEW,
+        "diagnostics",
+        "أودو طلب سحب وديعةٍ مرهونة — ما لم يُنفَّذ وينتظر قراراً.",
+    ),
+    Page("console:refund-resolve", "إغلاق عجز استرداد", Capability.MONEY_ACT, ""),
     Page("console:money-actions", "أفعال مالية", Capability.MONEY_ACT, ""),
     Page("console:money-confiscate", "مصادرة حجز", Capability.MONEY_ACT, ""),
     Page("console:money-correct", "تصحيح حركة", Capability.MONEY_ACT, ""),

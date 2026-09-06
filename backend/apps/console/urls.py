@@ -20,6 +20,7 @@ from . import (
     money,
     partners,
     people,
+    refunds,
     views,
 )
 from . import (
@@ -73,6 +74,8 @@ urlpatterns = [
     path("customers/<int:pk>/edit/", people.customer_edit, name="customer-edit"),
     path("customers/<int:pk>/company/", people.company_edit, name="company-edit"),
     path("customers/<int:pk>/access/", people.customer_access, name="customer-access"),
+    path("refunds/queue/", refunds.refund_queue, name="refund-queue"),
+    path("refunds/<int:pk>/resolve/", refunds.refund_resolve, name="refund-resolve"),
     path("staff/<int:pk>/grants/", people.staff_grants, name="staff-grants"),
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),

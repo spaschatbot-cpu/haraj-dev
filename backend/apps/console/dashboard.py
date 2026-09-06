@@ -184,7 +184,7 @@ def board_for(user) -> Board:
                 "عجز استرداد مفتوح",
                 str(open_shortfalls),
                 "أودو طلب سحب وديعةٍ مرهونة — لم يُنفَّذ، وينتظر قراراً",
-                "",
+                reverse("console:refund-queue"),
                 "warn",
             )
         )

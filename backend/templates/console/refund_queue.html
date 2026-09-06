@@ -1,0 +1,57 @@
+{% extends "console/base.html" %}
+{% block title %}طابور عجز الاسترداد{% endblock %}
+{% block heading %}طابور عجز الاسترداد{% endblock %}
+{% block content %}
+  {% comment %}
+  أودو طلب سحب وديعةٍ مرهونة. لا شيء يُنفَّذ آلياً — حسابُ المنصّة لا يقرّر هل
+  سُلّمت السيارة. يقرّر إنسان، ويقول كيف.
+  {% endcomment %}
+  <h2>ينتظر قراراً</h2>
+  <table>
+    <thead>
+      <tr><th>المرجع</th><th>العميل</th><th>طُلب</th><th>المتاح</th>
+          <th>المرهون</th><th>العجز</th><th>منذ</th><th>القرار</th></tr>
+    </thead>
+    <tbody>
+      {% for case in cases %}
+        <tr>
+          <td>{{ case.refund_ref }}</td>
+          <td><a href="{% url 'console:customer-detail' case.user.pk %}">{{ case.user.full_name }}</a></td>
+          <td>{{ case.requested }}</td>
+          <td>{{ case.free }}</td>
+          <td>{{ case.locked }}</td>
+          <td><strong>{{ case.shortfall }}</strong></td>
+          <td>{{ case.opened_at }}</td>
+          <td>
+            <form method="post" action="{% url 'console:refund-resolve' case.pk %}">
+              {% csrf_token %}
+              <input type="text" name="resolution" placeholder="القرار وكيف نُفِّذ" required>
+              <button type="submit">أغلق</button>
+            </form>
+          </td>
+        </tr>
+        <tr><td colspan="8">{{ case.note }}</td></tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا قضيّة تنتظر.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>آخر ما أُغلق</h2>
+  <table>
+    <thead><tr><th>المرجع</th><th>العميل</th><th>القرار</th><th>من</th><th>متى</th></tr></thead>
+    <tbody>
+      {% for case in closed %}
+        <tr>
+          <td>{{ case.refund_ref }}</td>
+          <td>{{ case.user.full_name }}</td>
+          <td>{{ case.resolution }}</td>
+          <td>{{ case.resolved_by.full_name|default:"—" }}</td>
+          <td>{{ case.resolved_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لم يُغلق شيء بعد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
