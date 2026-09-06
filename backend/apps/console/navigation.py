@@ -203,6 +203,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:customer-detail", "بيانات العميل", Capability.USERS_VIEW, ""),
     Page("console:customer-edit", "تعديل العميل", Capability.USERS_MANAGE, ""),
     Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
+    Page("console:customer-access", "وصول العميل", Capability.USERS_MANAGE, ""),
     # ليست `users.manage`: تعديلُ بيانات عميلٍ وتوسيعُ ما يستطيعه موظّف في
     # اللوحة كلّها ثقتان مختلفتان، وv1 جمعهما في علمٍ واحد.
     Page("console:staff-grants", "صلاحيات موظف", Capability.STAFF_GRANT, ""),

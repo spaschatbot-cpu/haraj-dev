@@ -22,6 +22,7 @@ from apps.accounts import identity
 from apps.accounts import otp as otp_module
 from apps.accounts import tokens as token_service
 from apps.accounts.errors import (
+    AccountStopped,
     CompanyProfileIncomplete,
     NationalIdAlreadyVerified,
     NationalIdInvalid,
@@ -333,6 +334,15 @@ def sign_in_with_code(*, phone: str, code: str, full_name: str = "") -> tuple[Us
         raise RegistrationNeedsName(f"{phone} has no account and no name was given")
 
     check_verification_code(phone=phone, code=code)
+
+    # **بعد** فحص الرمز لا قبله. رفضٌ يسبق الفحص يجعل هذه النقطة تُجيب «هل
+    # هذا الرقم موقوف؟» لمن يجرّب أرقاماً؛ ومن وصل إلى هنا يملك الجوّال.
+    #
+    # وهنا لا في `user_for_verified_phone` وحدها: تلك تُستدعى أيضاً من مسار
+    # تغيير الجوّال، وهو تصحيحُ بياناتٍ لحسابٍ قائم لا فتحُ جلسةٍ جديدة.
+    if existing is not None and not existing.is_active:
+        raise AccountStopped(f"{phone} موقوف")
+
     return user_for_verified_phone(phone=phone, full_name=full_name)
 
 
@@ -750,3 +760,41 @@ def set_capability(
         note=text,
     )
     return row
+
+
+@transaction.atomic
+def set_customer_access(*, user: User, active: bool, reason: str, actor: User) -> User:
+    """أوقف عميلاً عن الدخول أو أعِد تفعيله — الكاتب الوحيد لـ`is_active`.
+
+    الحقل كان قائماً وليس من حقول أي استمارة: إيقاف مزايدٍ يقع بيدٍ على قاعدة
+    البيانات، بلا سببٍ مقروء ولا اسم فاعلٍ ولا صفٍّ في سجلّ التدقيق. وإيقافُ
+    وصولٍ هو أوّل ما تسأل عنه المراجعة.
+
+    والسبب يُنظَّف ويُتحقَّق منه هنا: مسافاتٌ بيضاء ليست سبباً، ولا `CHECK`
+    على هذا الحقل يمنعها.
+
+    **ولا تُلمس رموز الجلسة هنا.** `tokens.verify` و`rotate` يقرآن `is_active`
+    عند كل طلب، فالرمز القائم يموت من نفسه عند أوّل استعمال؛ وإبطالُ الصفوف
+    هنا كتابةٌ ثانية في جدولٍ يملكه `tokens`، ولا تضيف إلا فرصةَ اختلافٍ بين
+    الكاتبين.
+    """
+    from apps.core import audit
+
+    text = (reason or "").strip()
+    if not text:
+        raise ValueError("سبب الإيقاف أو الإعادة مطلوب")
+
+    before = {"is_active": user.is_active}
+    if user.is_active != active:
+        user.is_active = active
+        user.save(update_fields=["is_active"])
+
+    audit.record(
+        action="console.set_customer_access",
+        entity=user,
+        actor=actor,
+        before=before,
+        after={"is_active": active},
+        note=text,
+    )
+    return user

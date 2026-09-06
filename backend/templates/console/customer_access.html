@@ -1,0 +1,18 @@
+{% extends "console/base.html" %}
+{% block title %}وصول {{ customer.full_name }}{% endblock %}
+{% block heading %}وصول {{ customer.full_name }}{% endblock %}
+{% block content %}
+  <p>الحالة الآن:
+    <strong>{% if customer.is_active %}يستطيع الدخول{% else %}موقوف{% endif %}</strong></p>
+  {% comment %}
+  الإيقاف يقطع البابين: الرمز القائم يموت عند أوّل طلب (`tokens.verify`)،
+  والدخول برمزٍ جديد يُرفض (`AccountStopped`). وبلا الثاني كان الإيقاف يصمد
+  حتى أوّل رسالةٍ نصّية.
+  {% endcomment %}
+  <form method="post">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">حفظ</button>
+    <a href="{% url 'console:customer-detail' customer.pk %}">إلغاء</a>
+  </form>
+{% endblock %}
