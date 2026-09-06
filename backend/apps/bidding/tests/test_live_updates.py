@@ -290,3 +290,32 @@ def test_the_endpoint_needs_a_session():
     response = APIClient().get(reverse("bidding_api:live-updates"))
 
     assert response.status_code in (401, 403)
+
+
+def test_the_endpoint_accepts_the_only_header_eventsource_sends(funded):
+    """‏`EventSource` يرسل `Accept: text/event-stream` ولا يقبل غيره.
+
+    وقبل هذا كانت مفاوَضةُ DRF تردّ **406** قبل أن يُنفَّذ سطرٌ في الدالة، لأن
+    النوع ليس في مُصيّراتها. والعطل لا يُرى إلا من متصفّح: `curl` بلا `Accept`
+    ينجح، والاختبار الافتراضي في هذا الملفّ يرسل `Accept: */*` فينجح أيضاً —
+    وتكتب الصفحة «انقطع الاتصال» على خادمٍ سليم تماماً. وقد وقع.
+
+    ولذلك تُرسَل الترويسة هنا حرفياً: هي المدخل الذي كان يفشل.
+    """
+    from django.urls import reverse
+    from rest_framework.test import APIClient
+
+    from apps.accounts import tokens as token_service
+
+    api = APIClient()
+    api.credentials(
+        HTTP_AUTHORIZATION=f"Bearer {token_service.issue_pair(funded)['access']}"
+    )
+
+    response = api.get(
+        reverse("bidding_api:live-updates"), HTTP_ACCEPT="text/event-stream"
+    )
+
+    assert response.status_code == 200
+    assert response["Content-Type"].startswith("text/event-stream")
+    response.close()

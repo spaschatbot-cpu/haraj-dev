@@ -71,6 +71,8 @@ const VEHICLE = {
   condition: "good",
   condition_label: "جيدة",
   location: "الرياض / طريق الحائر",
+  admin_fee: "800.00",
+  admin_fee_with_vat: "920.00",
   state: "listed",
   thumbnail_url: null,
 };

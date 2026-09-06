@@ -378,3 +378,64 @@ describe("لا منطق أهلية في الويب", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// «تفاصيل المزايدة» — الأربعة أسطر التي يعرضها v1
+// ---------------------------------------------------------------------------
+
+describe("تفاصيل المزايدة كما يعرضها v1", () => {
+  //: يُرندَر المكوّن وحده لا الصفحة: ما يُقاس هنا هو **ما يخرج من الخادم**
+  //: في هذا الصندوق، وصفحةٌ كاملة تُدخل نداءاتٍ لا علاقة لها بالسؤال.
+  async function box(extra: Record<string, unknown> = {}) {
+    const { createElement } = await import("react");
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { BidBox } = await import("@/features/bidding/BidBox");
+    //: `createElement` لا نداءٌ مباشر: المكوّن يستعمل `useState`، ونداؤه
+    //: كدالّةٍ يُشغّل الخُطّاف خارج رندرة — وهو `null` عندها.
+    return renderToStaticMarkup(
+      createElement(BidBox, {
+        vehicleId: 91,
+        flash: null,
+        adminFee: "800.00",
+        adminFeeWithVat: "920.00",
+        ...extra,
+      }),
+    );
+  }
+
+  it("الأسطر الأربعة بأسمائها", async () => {
+    const markup = await box();
+
+    expect(markup).toContain("رسوم إدارية");
+    expect(markup).toContain("الرسوم + الضريبة (15%)");
+    expect(markup).toContain("السعر + الضريبة (15%)");
+    expect(markup).toContain("دخول المزاد");
+  });
+
+  it("الرسوم كما وصلت من الخادم بالضبط", async () => {
+    //: نصّان عشريّان يُعرضان كما هما — لا فاصل آلاف ولا تقريب. والرقم الثاني
+    //: **لم يُضرب هنا**: لو حُسب في الويب لَظهر ٩٢٠ ولو غُيّرت النسبة، وهو
+    //: بالضبط الاختلاف الصامت الذي يمنعه `web_money_is_never_computed`.
+    const markup = await box({ adminFee: "300.00", adminFeeWithVat: "345.00" });
+
+    expect(markup).toContain("300.00");
+    expect(markup).toContain("345.00");
+    expect(markup).not.toContain("920.00");
+  });
+
+  it("«السعر + الضريبة» صفرٌ قبل أن يُكتب شيء، كما في v1", async () => {
+    const markup = await box();
+
+    expect(markup).toContain("0.00");
+  });
+
+  it("النموذج يعمل بلا جافاسكربت", async () => {
+    //: المزايدة نداءُ سيرفر أكشن على `form`، فزائرٌ سكربته لا يعمل يزايد.
+    //: الذي يحتاج المتصفّح هو سطرُ الضريبة وحده، وغيابه لا يمنع مزايدة.
+    const markup = await box();
+
+    expect(markup).toContain("<form");
+    expect(markup).toContain('name="amount"');
+    expect(markup).toContain('type="submit"');
+  });
+});

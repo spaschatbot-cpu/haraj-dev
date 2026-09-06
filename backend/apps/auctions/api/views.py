@@ -26,6 +26,7 @@ from apps.auctions import favourites
 from apps.auctions.cards import (
     auction_card,
     card_queryset,
+    media_url,
     vehicle_card,
     vehicle_cards,
 )
@@ -45,6 +46,7 @@ from .serializers import (
     AuctionQuerySerializer,
     PageQuerySerializer,
     VehicleCardSerializer,
+    VehicleImagesSerializer,
     VehiclePageSerializer,
     VehicleQuerySerializer,
 )
@@ -202,6 +204,53 @@ class VehicleDetailView(APIView):
 
         return Response(
             VehicleCardSerializer(vehicle_card(vehicle)).data, status=status.HTTP_200_OK
+        )
+
+
+class VehicleImageListView(APIView):
+    """`GET /api/v1/vehicles/{id}/images/` — معرض صور المركبة. HR-12ب.
+
+    الطبقتان (بطاقة ومعاينة) تُولَّدان منذ HR-12 وتُخزَّنان على القرص، **ولم
+    تكن لهما قناة**: الكرت يحمل صورة الغلاف بمقاس بطاقةٍ واحدة، وشاشة
+    التفاصيل كانت تُكبّرها. هذه هي القناة.
+
+    **ونقطةٌ منفصلة لا حقلٌ على الكرت**، وهو القرار الذي علّقه HR-12ب:
+    T609 يشترط أن تُعيد التفاصيل حقول القائمة نفسها، فتوسيعُ الكرت بمصفوفة
+    صورٍ يخالفه ويحتاج استثناءً مكتوباً في `one_vehicle_card`. والأهمّ أنه
+    يُثقل ما لا يحتاج: صفحةُ خمسين سيارةً بتسع صورٍ لكلٍّ تحمل أربعمئة صفٍّ
+    لتُقرأ منها تسعةٌ حين يُضغط كرتٌ واحد. فالكرت كما هو، والمعرض بطلبه.
+
+    الرؤية هي رؤية المركبة نفسها (`visible_vehicles`)، وسيارةٌ لا يراها
+    المتصل **404** لا 403 — تأكيدُ وجود الصفّ وحده يكفي لعدّ مزادٍ قبل أن
+    يُفتح.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        operation_id="vehicles_images_list",
+        responses={200: VehicleImagesSerializer},
+        summary="صور المركبة",
+    )
+    def get(self, request: Request, pk: int) -> Response:
+        vehicle = get_object_or_404(visible_vehicles(request.user), pk=pk)
+
+        # الغلاف أولاً ثم `position` — عدّاد v1 يقول `1 / 9`، و«١» فيه هي
+        # الصورة التي رآها العميل على الكرت. ترتيبٌ آخر يعني أن الضغط على
+        # صورةٍ يفتح صورةً غيرها.
+        rows = vehicle.images.order_by("-is_cover", "position", "id")
+        results = [
+            {
+                "id": row.pk,
+                "thumbnail_url": media_url(row.thumbnail),
+                "preview_url": media_url(row.preview),
+                "is_cover": row.is_cover,
+            }
+            for row in rows
+        ]
+        return Response(
+            VehicleImagesSerializer({"total": len(results), "results": results}).data,
+            status=status.HTTP_200_OK,
         )
 
 

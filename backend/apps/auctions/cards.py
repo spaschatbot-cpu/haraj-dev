@@ -46,6 +46,18 @@ def _amount(value) -> str | None:
     return None if value is None else f"{value:.2f}"
 
 
+def _fee_with_vat(fee) -> str:
+    """الرسم الإداري مع الضريبة — من قاعدة الضريبة الواحدة، لا من ضربٍ هنا.
+
+    الاستيراد داخل الدالة لا في رأس الملفّ: `apps.money` يستورد المزادات في
+    مسار التسوية، ورأسٌ إلى رأس يقفل الحلقة عند إقلاع Django. والنداء رخيص —
+    ضربُ `Decimal` لا استعلام.
+    """
+    from apps.money import services as money
+
+    return _amount(money.tax_added_to(fee).total)
+
+
 def _cover(vehicle: Vehicle) -> VehicleImage | None:
     """The cover image, from the prefetch when there is one.
 
@@ -74,9 +86,17 @@ def _thumbnail_url(vehicle: Vehicle) -> str | None:
     console: same server, same origin.
     """
     cover = _cover(vehicle)
-    if cover is None or not cover.thumbnail:
-        return None
-    return f"{settings.MEDIA_BASE_URL}{cover.thumbnail.url}"
+    return None if cover is None else media_url(cover.thumbnail)
+
+
+def media_url(field) -> str | None:
+    """رابطٌ يصلح لعميلٍ ليس هو الخادم — الموضع الوحيد الذي يبنيه.
+
+    مشتركٌ بين الكرت ومعرض الصور (المادة ٤-٥): موضعان يبنيان الرابط يعني
+    موضعاً واحداً يُنسى فيه `MEDIA_BASE_URL` يوم تنتقل الملفّات، وصوراً
+    مكسورةً في قناةٍ واحدة دون الأخرى — وهو بالضبط ما وقع قبل هذا السطر.
+    """
+    return f"{settings.MEDIA_BASE_URL}{field.url}" if field else None
 
 
 #: ما يعرضه الكرت — **وهو ما يعرضه v1، لا أقلّ ولا أكثر** (طلب المالك
@@ -131,6 +151,17 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "condition_label": lambda v: _label(VehicleCondition, v.condition),
     # موقع المزاد: «الرياض / طريق الحائر». على المزاد لا على المركبة.
     "location": lambda v: v.auction.location,
+    # «تفاصيل المزايدة» في نافذة v1: «رسوم إدارية ٨٠٠ ر.س» و«الرسوم +
+    # الضريبة (15%) ٩٢٠ ر.س». الرقمان يصلان **محسوبَين من الخادم**، لأن
+    # `ops/checks/web_money_is_never_computed.mjs` يمنع الواجهة أن تضرب
+    # مبلغاً في نسبة — وهو محقّ: نسختان من معادلة الضريبة تختلفان يوم
+    # تتغيّر النسبة، وتختلفان صامتتَين.
+    #
+    # وهما على **الكرت** وإن كان كرت v1 لا يعرضهما، لأن نافذة التفاصيل في v1
+    # تُرسم من حمولة القائمة نفسها. «لا زيادة» شرطٌ على ما **يُعرض**، وقد
+    # نُفِّذ: لا الشبكة ولا الكرت يرسمهما.
+    "admin_fee": lambda v: _amount(v.auction.admin_fee),
+    "admin_fee_with_vat": lambda v: _fee_with_vat(v.auction.admin_fee),
     # الحالة تبقى **رمزاً** لا نصّاً: زرّ «مزايدة» على كرت v1 يُفعَّل أو
     # يُعطَّل بها، والعميل يحتاج القيمة ليقرّر. أما نصّها المعروض
     # («الحالة تحت المزايدة») فلا يعرضه v1، فذهب.

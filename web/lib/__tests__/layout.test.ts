@@ -146,6 +146,10 @@ const VEHICLE = {
   auction_ends_at: "2099-12-31T20:00:00Z",
   auction_number: 811,
   auction_state: "live",
+  //: الطور كما يرسله الخادم. بلا هذا كان الحقل `undefined` في اللقطات، فيُرسم
+  //: زرّ «مزايدة» معطَّلاً على مزادٍ جارٍ — بيانات ناقصة تصف شاشةً غير التي
+  //: يراها العميل.
+  phase: "active",
   lot_number: 14,
   reference: "#91",
   title: "تويوتا كامري",
@@ -158,6 +162,8 @@ const VEHICLE = {
   condition: "good",
   condition_label: "جيدة",
   location: "الرياض / طريق الحائر",
+  admin_fee: "800.00",
+  admin_fee_with_vat: "920.00",
   state: "listed",
   thumbnail_url: null,
 };

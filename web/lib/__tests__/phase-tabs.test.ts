@@ -53,6 +53,8 @@ const VEHICLE = {
   condition: "good",
   condition_label: "جيدة",
   location: "الرياض / طريق الحائر",
+  admin_fee: "800.00",
+  admin_fee_with_vat: "920.00",
   state: "listed",
   thumbnail_url: null,
 };
@@ -391,5 +393,38 @@ describe("العدّاد يقول قُرب الموعد بلونه", () => {
     expect(markup).toContain("text-lg font-bold");
     //: أرقامٌ ثابتة العرض، فلا يرقص السطر مع كل ثانية.
     expect(markup).toContain("tabular-nums");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// زرّ «مزايدة» على الكرت — الحقل الحادي عشر في قائمة v1
+// ---------------------------------------------------------------------------
+
+describe("زرّ المزايدة على الكرت", () => {
+  it("مفعَّلٌ رابطاً على مزادٍ جارٍ", async () => {
+    results = [{ ...VEHICLE, phase: "active" }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).toContain("مزايدة");
+    //: رابطٌ إلى صفحة المركبة، حيث صندوق المزايدة. لا نافذةٌ تفتح فوق القائمة:
+    //: عنوانٌ يُشارَك ويُفهرَس هو ما يجعل «كامري 2022 مزاد» تهبط على السيارة.
+    expect(markup).toContain('href="/vehicles/91"');
+  });
+
+  it("معطَّلٌ على مزادٍ لم يبدأ — كما يفعل v1 حرفياً", async () => {
+    results = [{ ...VEHICLE, phase: "soon" }];
+    const markup = await render({ phase: "soon" });
+
+    expect(markup).toContain('aria-disabled="true"');
+  });
+
+  it("والطور من الخادم لا من مقارنة ساعةٍ هنا", async () => {
+    //: مزادٌ انتهى وقتُه المعلَن وحالتُه عند الخادم `active` يبقى زرّه مفعَّلاً:
+    //: الحالة يقولها الخادم. وv1 كان يقارن ساعة المتصفّح ثم يُغلق الباب على
+    //: من ساعته متقدّمة.
+    results = [{ ...VEHICLE, phase: "active", auction_ends_at: "2020-01-01T00:00:00Z" }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).not.toContain('aria-disabled="true"');
   });
 });

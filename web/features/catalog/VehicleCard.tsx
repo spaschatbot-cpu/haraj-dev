@@ -159,6 +159,37 @@ export function VehicleCard({
           ) : null}
         </div>
       </Link>
+
+      {/*
+        زرّ «مزايدة» — الحادي عشر في قائمة v1، وكان الناقص الأخير من الكرت.
+
+        **خارج `Link` لا داخله**: رابطٌ في رابطٍ وسمٌ غير صالح، والمتصفّحات
+        تفكّه كلٌّ على هواها — فيصير الزرّ خارج البطاقة في واحدٍ منها.
+
+        ومزادٌ لم يبدأ يعرض الزرّ **معطَّلاً** كما يفعل v1 حرفياً
+        (`disabled` على كل كرتٍ في تبويب «قريباً»). وليس هذا حكماً بالأهلية —
+        الأهلية يقولها `check_eligibility` وحده ولا يُسأل هنا — بل هو الطور
+        الذي قرّره الخادم وأرسله في `phase`، نفسه الذي يختار كلمة العدّاد
+        فوقه. ومن يضغط الزرّ المفعَّل يصل صندوق المزايدة، وهناك يقول الخادم
+        نعم أو لا بسببه المُعدَّد.
+      */}
+      <div className="px-4 pb-4">
+        {vehicle.phase === "active" ? (
+          <Link
+            href={`/vehicles/${vehicle.id}`}
+            className="block rounded bg-neutral-900 px-4 py-2 text-center text-sm text-white"
+          >
+            مزايدة
+          </Link>
+        ) : (
+          <span
+            className="block cursor-not-allowed rounded bg-neutral-200 px-4 py-2 text-center text-sm text-neutral-600"
+            aria-disabled="true"
+          >
+            مزايدة
+          </span>
+        )}
+      </div>
     </article>
   );
 }

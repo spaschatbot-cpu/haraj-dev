@@ -60,6 +60,18 @@ class Auction(models.Model):
         max_digits=14, decimal_places=2, default=Decimal("10000.00")
     )
 
+    #: «رسوم إدارية» على شاشة المزايدة في v1 — ٨٠٠ ر.س، وتُعرض معها
+    #: «الرسوم + الضريبة (15%)».
+    #
+    # على **المزاد** لا على المركبة، ومقيسٌ من v1: العمود هناك
+    # `auctions.fees` (`specs/004-data-migration/field-map.md`)، أي أن الرسم
+    # خاصّيةُ مزادٍ لا خاصّيةُ سيارة. وهو غير `deposit_required`: التأمين
+    # مبلغٌ **يُحجَز ويُردّ**، والرسم مبلغٌ **يُدفَع ولا يُردّ** — ودمجُهما
+    # في عمودٍ واحد يجعل ردّ التأمين يردّ الرسم معه.
+    admin_fee = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal("800.00")
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -143,6 +143,12 @@ class VehicleCardSerializer(serializers.Serializer):
     #: موقع المزاد كما يعرضه كرت v1: «الرياض / طريق الحائر».
     location = serializers.CharField(allow_blank=True)
 
+    #: «رسوم إدارية» و«الرسوم + الضريبة (15%)» على شاشة المزايدة في v1.
+    #: نصّان عشريّان لا عددان — العدد يصير عائماً في جافاسكربت قبل أن يراه
+    #: سطرٌ من كودنا (المادة ٣-٢).
+    admin_fee = serializers.CharField()
+    admin_fee_with_vat = serializers.CharField()
+
     #: الحالة رمزاً لا نصّاً — بها يُفعَّل زرّ المزايدة أو يُعطَّل.
     state = serializers.CharField()
     thumbnail_url = serializers.CharField(allow_null=True)
@@ -178,3 +184,28 @@ class VehiclePageSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     counts = PhaseCountsSerializer()
     results = VehicleCardSerializer(many=True)
+
+
+class VehicleImageSerializer(serializers.Serializer):
+    """صورةٌ واحدة بطبقاتها — **وليست كرتاً**.
+
+    ثلاثة حقول لا يحمل أيّها اسمَ عمودٍ على المركبة، فلا يخلطها
+    `ops/checks/one_vehicle_card.py` بكرت. وهي منفصلة عن الكرت عمداً:
+    T609 يقول «التفاصيل نفس حقول القائمة»، وقائمةٌ من خمسين سيارة تحمل كلٌّ
+    منها تسع صور بثلاث طبقات هي حمولةٌ تُرسَل كلَّ مرّة لتُقرأ مرّةً واحدة
+    (وهذا هو HR-12ب: الطبقة موجودة على القرص ولا قناة تصل إليها).
+    """
+
+    id = serializers.IntegerField()
+    #: مقاس البطاقة (400×300) — للشرائط المصغّرة تحت المعرض.
+    thumbnail_url = serializers.CharField(allow_null=True)
+    #: مقاس المعاينة (1280×960) — الصورة الكبيرة في المعرض. طبقة HR-12.
+    preview_url = serializers.CharField(allow_null=True)
+    is_cover = serializers.BooleanField()
+
+
+class VehicleImagesSerializer(serializers.Serializer):
+    """صور مركبةٍ واحدة، وعددها — والعدّاد `1 / 9` في v1 يقرأ `total`."""
+
+    total = serializers.IntegerField()
+    results = VehicleImageSerializer(many=True)

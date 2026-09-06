@@ -7,15 +7,16 @@
  * server, before any script runs. J5 is tested exactly that way: a request with
  * no JavaScript must return the vehicle's name and its price.
  *
- * The price
- * ---------
- * `reserve_price`, and nothing else. It is not computed here, not compared with
- * a bid, not rounded and not formatted with a separator — it is the string the
- * server sent, rendered as it arrived (Article 3-2, and
- * `ops/checks/web_money_is_never_computed.mjs`). A "current price" that this
- * page worked out from anything would be a second answer to a question the
- * backend already answers, and the wrong one the moment a car is awarded to the
- * second bidder.
+ * ولا سعرَ على الصفحة — ولا مبلغٌ يُحسب فيها
+ * ==========================================
+ * نافذة v1 لا تعرض سعراً للسيارة، وهذه الصفحة نظيرها: الصفحة تُفتح بلا دخول،
+ * فسعرٌ عليها يُخبر كلَّ من يفتحها بأقلّ ما يقبله البائع قبل أن يزايد أحد.
+ * والمبالغ الوحيدة التي تظهر هنا هي رسوم المزايدة، وتصل **محسوبةً من الخادم**
+ * (`admin_fee`, `admin_fee_with_vat`) — لا يضرب هذا الملفّ مبلغاً في نسبة،
+ * ولا يقارنه بشيء (المادة ٣-٢، و`ops/checks/web_money_is_never_computed.mjs`).
+ *
+ * ومعرض الصور نداءٌ ثانٍ لا حقلٌ على الكرت — HR-12ب، والسبب في
+ * `VehicleImageListView`.
  *
  * The structured data
  * -------------------
@@ -27,12 +28,12 @@
  */
 
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { BidBox } from "@/features/bidding/BidBox";
+import { Gallery, type Shot } from "@/features/catalog/Gallery";
 import { LiveBids, type LiveBid } from "@/features/bidding/LiveBids";
 import { FavouriteButton } from "@/features/favourites/FavouriteButton";
 import { Notice } from "@/features/shell/Notice";
@@ -41,7 +42,7 @@ import { takeFlash } from "@/lib/flash";
 import { authHeader, hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
-import { amount, count } from "@/lib/format";
+import { count } from "@/lib/format";
 import { readNumber } from "@/lib/paging";
 
 export const dynamic = "force-dynamic";
@@ -87,6 +88,20 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function VehiclePage({ params }: Params) {
   const { id } = await params;
   const vehicle = await vehicleOr404(readNumber(id, 0));
+
+  // معرض الصور — نقطةٌ ثانية لأن الكرت لا يحملها (HR-12ب، وسببُ الانفصال في
+  // `VehicleImageListView`). ويُقرأ هنا في الخادم فتصل الصورة الأولى وعدّادُها
+  // في الـHTML، ويفشل بلا أن يُسقط الصفحة: سيارةٌ بلا معرضٍ أهونُ من 500 على
+  // صفحةٍ قادمةٍ من نتيجة بحث.
+  let shots: Shot[] = [];
+  try {
+    const gallery = await request(() =>
+      api.GET("/api/v1/vehicles/{id}/images/", { params: { path: { id: vehicle.id } } }),
+    );
+    shots = (gallery.results ?? []) as Shot[];
+  } catch {
+    shots = [];
+  }
 
   // Read here rather than inside the box: a server component reads cookies, and
   // pulling the flash once at the top is what keeps it a *one-shot* message —
@@ -191,22 +206,28 @@ export default async function VehiclePage({ params }: Params) {
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100">
-          {vehicle.thumbnail_url ? (
-            <Image
-              src={vehicle.thumbnail_url}
-              alt={vehicle.title}
-              fill
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover"
-              priority
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-neutral-500">
-              لا توجد صورة
-            </div>
-          )}
-        </div>
+        {/*
+          المعرض لا صورةً واحدة. وحين لا يجيب نداءُ الصور تُعرض صورة الغلاف
+          التي وصلت مع الكرت أصلاً — فالصفحة لا تفقد صورتها لأن نداءً ثانياً
+          سقط.
+        */}
+        <Gallery
+          shots={
+            shots.length > 0
+              ? shots
+              : vehicle.thumbnail_url
+                ? [
+                    {
+                      id: vehicle.id,
+                      thumbnail_url: vehicle.thumbnail_url,
+                      preview_url: null,
+                      is_cover: true,
+                    },
+                  ]
+                : []
+          }
+          alt={vehicle.title}
+        />
 
         <div>
           <h1 className="text-2xl font-bold">{vehicle.title}</h1>
@@ -241,7 +262,12 @@ export default async function VehiclePage({ params }: Params) {
           {signedIn ? (
             <>
               <LiveBids vehicleId={vehicle.id} initial={standing} />
-              <BidBox vehicleId={vehicle.id} flash={flash} />
+              <BidBox
+                vehicleId={vehicle.id}
+                flash={flash}
+                adminFee={vehicle.admin_fee}
+                adminFeeWithVat={vehicle.admin_fee_with_vat}
+              />
             </>
           ) : (
             /*

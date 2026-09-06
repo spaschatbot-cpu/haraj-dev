@@ -47,14 +47,30 @@ function forwardedHeaders(request: NextRequest, auth: Record<string, string>): H
   return headers;
 }
 
-async function forward(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> },
-): Promise<Response> {
-  const { path } = await context.params;
+//: البادئة التي تُقشَّر، ولا شيء غيرها يُلمَس في المسار.
+const PREFIX = "/api/backend";
+
+/**
+ * المسار كما كُتب — **من `pathname` لا من `params.path`**.
+ *
+ * ‏`params.path` مصفوفةُ مقاطع، والمقطع الفارغ في آخر `/bids/quote/` ليس
+ * مقطعاً، فيعود `join("/")` بـ`bids/quote` بلا شرطة. وكل مسار في الخلفية
+ * ينتهي بشرطة: جانغو يحوّل `GET` الناقص بـ301 (`APPEND_SLASH`) فينجو صامتاً،
+ * **ولا يحوّل `POST`** — لأن التحويل يُفقد الجسم — بل يرمي `RuntimeError`.
+ * فكان كل نداءٍ كاتبٍ من المتصفّح يسقط بـ500 بينما النداء نفسه بـcurl سليم،
+ * والفرق حرفٌ واحد يُحذف في الطريق.
+ *
+ * وهذا شرطُ صحّةِ هذا الملفّ نفسه: عقده أن ما يُطلَب منه هو ما يصل الخلفية.
+ * فالمسار يُقشَّر من بادئته ويُمرَّر بقيّتُه كما هي، لا يُعاد تركيبه.
+ */
+function backendPath(request: NextRequest): string {
+  return request.nextUrl.pathname.slice(PREFIX.length);
+}
+
+async function forward(request: NextRequest): Promise<Response> {
   const store = await cookies();
 
-  const target = `${backendUrl()}/${path.join("/")}${request.nextUrl.search}`;
+  const target = `${backendUrl()}${backendPath(request)}${request.nextUrl.search}`;
   const method = request.method;
   const body = method === "GET" || method === "HEAD" ? undefined : await request.text();
 
