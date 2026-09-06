@@ -66,6 +66,9 @@ urlpatterns = [
     path("vehicles/<int:pk>/edit/", auctions.vehicle_edit, name="vehicle-edit"),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
+    path(
+        "vehicles/<int:pk>/relist/", auction_moves.vehicle_relist, name="vehicle-relist"
+    ),
     path("partners/", partners.decisions, name="partner-decisions"),
     path("partners/<int:pk>/", partners.offers, name="partner-offers"),
     path("partners/<int:pk>/award/", partners.award, name="partner-award"),
