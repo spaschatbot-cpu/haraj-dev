@@ -152,19 +152,12 @@ const VEHICLE = {
   model: "كامري",
   year: 2022,
   odometer_km: 84000,
-  transmission: "automatic",
-  transmission_label: "أوتوماتيك",
-  fuel_type: "petrol",
-  fuel_type_label: "بنزين",
+  colour: "silver",
+  colour_label: "فضي",
   condition: "good",
   condition_label: "جيدة",
-  plate_type: "private",
-  plate_type_label: "خصوصي",
-  reserve_price: "48500.75",
+  location: "الرياض / طريق الحائر",
   state: "listed",
-  state_label: "معروضة",
-  listing_state: "open",
-  owner_company_name: "شركة المعارض",
   thumbnail_url: null,
 };
 
@@ -176,7 +169,6 @@ const OTHER_VEHICLE = {
   model: "التيما",
   year: 2021,
   odometer_km: 61000,
-  reserve_price: "31200.00",
 };
 
 const LIVE_BID = {
@@ -391,16 +383,14 @@ const SCREENS: Screen[] = [
      *
      * It used to be a paragraph, and it used to be size-invariant. Now it is
      * the screen most visitors open first, it carries the same responsive grid
-     * the auction page does, and it renders a price — so it belongs in the
-     * amount scan too, and it has left `SIZE_INVARIANT` deliberately.
+     * the auction page does — so it has left `SIZE_INVARIANT` deliberately.
+     * ولم تعد تعرض مبلغاً: كرت v1 بلا سعر، فخرجت من مسح المبالغ (2026-09-06).
      */
     name: "المزادات (الرئيسية)",
-    amounts: [VEHICLE.reserve_price],
     render: () => render(Home({ searchParams: Promise.resolve({}) })),
   },
   {
     name: "مركبات المزاد",
-    amounts: [VEHICLE.reserve_price],
     render: () =>
       render(
         AuctionPage({
@@ -411,7 +401,6 @@ const SCREENS: Screen[] = [
   },
   {
     name: "صفحة المركبة",
-    amounts: [VEHICLE.reserve_price],
     render: () => render(VehiclePage({ params: Promise.resolve({ id: "91" }) })),
   },
   {
@@ -431,7 +420,7 @@ const SCREENS: Screen[] = [
     name: "صفحة المركبة — داخل وبرفض",
     signedIn: true,
     flash: REFUSAL,
-    amounts: [VEHICLE.reserve_price, LIVE_BID.amount, "45000.00"],
+    amounts: [LIVE_BID.amount, "45000.00"],
     render: () => render(VehiclePage({ params: Promise.resolve({ id: "91" }) })),
   },
   {
@@ -443,7 +432,6 @@ const SCREENS: Screen[] = [
   {
     name: "المفضّلة",
     signedIn: true,
-    amounts: [VEHICLE.reserve_price, OTHER_VEHICLE.reserve_price],
     render: () => render(FavouritesPage({ searchParams: Promise.resolve({}) })),
   },
   {

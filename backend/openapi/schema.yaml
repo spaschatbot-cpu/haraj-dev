@@ -2412,37 +2412,21 @@ components:
           type: string
         year:
           type: integer
+        colour:
+          type: string
+        colour_label:
+          type: string
         odometer_km:
           type: integer
           nullable: true
-        transmission:
-          type: string
-        transmission_label:
-          type: string
-        fuel_type:
-          type: string
-        fuel_type_label:
-          type: string
         condition:
           type: string
         condition_label:
           type: string
-        plate_type:
+        location:
           type: string
-        plate_type_label:
-          type: string
-        reserve_price:
-          type: string
-          nullable: true
         state:
           type: string
-        state_label:
-          type: string
-        listing_state:
-          type: string
-        owner_company_name:
-          type: string
-          nullable: true
         thumbnail_url:
           type: string
           nullable: true
@@ -2453,27 +2437,20 @@ components:
       - auction_starts_at
       - auction_state
       - auction_title
+      - colour
+      - colour_label
       - condition
       - condition_label
-      - fuel_type
-      - fuel_type_label
       - id
-      - listing_state
+      - location
       - lot_number
       - make
       - model
       - odometer_km
-      - owner_company_name
       - phase
-      - plate_type
-      - plate_type_label
-      - reserve_price
       - state
-      - state_label
       - thumbnail_url
       - title
-      - transmission
-      - transmission_label
       - year
     VehiclePage:
       type: object

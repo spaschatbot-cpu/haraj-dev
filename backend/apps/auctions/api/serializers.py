@@ -131,25 +131,17 @@ class VehicleCardSerializer(serializers.Serializer):
     make = serializers.CharField()
     model = serializers.CharField()
     year = serializers.IntegerField()
+    colour = serializers.CharField()
+    colour_label = serializers.CharField()
     odometer_km = serializers.IntegerField(allow_null=True)
-    transmission = serializers.CharField()
-    transmission_label = serializers.CharField()
-    fuel_type = serializers.CharField()
-    fuel_type_label = serializers.CharField()
     condition = serializers.CharField()
     condition_label = serializers.CharField()
-    plate_type = serializers.CharField()
-    plate_type_label = serializers.CharField()
 
-    #: A string, never a number. Article 3-2 forbids a float on a money path,
-    #: and JSON has no other numeric type to offer — `1234.50` parsed by a
-    #: JavaScript client is a float whatever the schema calls it.
-    reserve_price = serializers.CharField(allow_null=True)
+    #: موقع المزاد كما يعرضه كرت v1: «الرياض / طريق الحائر».
+    location = serializers.CharField(allow_blank=True)
 
+    #: الحالة رمزاً لا نصّاً — بها يُفعَّل زرّ المزايدة أو يُعطَّل.
     state = serializers.CharField()
-    state_label = serializers.CharField()
-    listing_state = serializers.CharField()
-    owner_company_name = serializers.CharField(allow_null=True)
     thumbnail_url = serializers.CharField(allow_null=True)
 
 

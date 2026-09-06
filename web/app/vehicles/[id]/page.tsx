@@ -68,13 +68,13 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   // scroll past, and the mileage is the fact buyers actually read.
   const facts = [
     vehicle.condition_label,
-    vehicle.transmission_label,
+    vehicle.colour_label,
     vehicle.odometer_km === null ? null : `${count(vehicle.odometer_km)} كم`,
   ].filter(Boolean);
 
   return {
     title: vehicle.title,
-    description: `${vehicle.title} — ${facts.join(" · ")}. لوت ${vehicle.lot_number} في مزاد ${vehicle.auction_number}.`,
+    description: `${vehicle.title} — ${facts.join(" · ")}. الموقف ${vehicle.lot_number} في مزاد ${vehicle.auction_number}.`,
     openGraph: {
       title: vehicle.title,
       description: facts.join(" · "),
@@ -146,8 +146,7 @@ export default async function VehiclePage({ params }: Params) {
     brand: { "@type": "Brand", name: vehicle.make },
     model: vehicle.model,
     vehicleModelDate: String(vehicle.year),
-    vehicleTransmission: vehicle.transmission_label,
-    fuelType: vehicle.fuel_type_label,
+    color: vehicle.colour_label,
     ...(vehicle.odometer_km === null
       ? {}
       : {
@@ -160,17 +159,16 @@ export default async function VehiclePage({ params }: Params) {
     ...(vehicle.thumbnail_url ? { image: vehicle.thumbnail_url } : {}),
   };
 
+  // «مواصفات المركبة» كما تعرضها نافذة v1 عند الضغط على الكرت — خمسةٌ لا غير،
+  // مقروءةٌ من الإنتاج الحيّ (`specs/011-customer-web/v1-card-parity.md`).
+  // والممشى الفارغ شرطةٌ لا صفر، كما يفعل v1 حرفياً: مركبةٌ لم يُقَس ممشاها
+  // ليست مركبةً ممشاها صفر.
   const specifications: Array<[string, string]> = [
-    ["الماركة", vehicle.make],
-    ["الطراز", vehicle.model],
+    ["الموديل", `${vehicle.make} ${vehicle.model}`],
     ["سنة الصنع", String(vehicle.year)],
-    ["الحالة", vehicle.condition_label],
-    ["ناقل الحركة", vehicle.transmission_label],
-    ["الوقود", vehicle.fuel_type_label],
-    ["نوع اللوحة", vehicle.plate_type_label],
+    ["اللون", vehicle.colour_label],
     ["الممشى", vehicle.odometer_km === null ? "—" : `${count(vehicle.odometer_km)} كم`],
-    ["رقم اللوت", count(vehicle.lot_number)],
-    ["المالك", vehicle.owner_company_name ?? "—"],
+    ["المدينة", vehicle.location || "—"],
   ];
 
   return (
@@ -215,7 +213,7 @@ export default async function VehiclePage({ params }: Params) {
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <p className="text-sm text-neutral-600">
-              {vehicle.state_label} · لوت {count(vehicle.lot_number)}
+              الموقف {count(vehicle.lot_number)} · مزاد {count(vehicle.auction_number)}
             </p>
             {signedIn ? (
               <FavouriteButton
@@ -225,17 +223,6 @@ export default async function VehiclePage({ params }: Params) {
               />
             ) : null}
           </div>
-
-          <p className="mt-6 flex items-baseline gap-2">
-            <span className="text-neutral-500">سعر الوقوف</span>
-            {vehicle.reserve_price === null ? (
-              <span className="text-neutral-500">لم يُحدَّد</span>
-            ) : (
-              <span className="money text-2xl font-bold">
-                {amount(vehicle.reserve_price)} ريال
-              </span>
-            )}
-          </p>
 
           <dl className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm">
             {specifications.map(([label, value]) => (

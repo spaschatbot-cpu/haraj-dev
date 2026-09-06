@@ -18,16 +18,26 @@
  * in Arabic, and the day somebody adds a state the app shows it and the web
  * shows the raw enum.
  *
- * The price is `reserve_price` and nothing else (T1009). It is rendered as the
- * string it arrived as: no `Number`, no rounding, no separator. See
- * `lib/format.ts`.
+ * ما يُعرض هنا هو ما يعرضه v1 — لا أقلّ ولا أكثر
+ * ------------------------------------------------
+ * طلب المالك (2026-09-06): «نفس كل حاجة فيه بس بتصميمنا … كاملة بدون أي نقص
+ * ولا زيادة»، والقياس في `specs/011-customer-web/v1-card-parity.md` مقروءاً
+ * من الإنتاج الحيّ.
+ *
+ * فالحقول: الموقف · العنوان · سنة الصنع · اللون · الممشى · الحالة · الموقع ·
+ * العدّاد · زرّ المزايدة. **ولا سعر**: كرت v1 لا يعرضه، والقائمة نقطةٌ عامّة
+ * لا تطلب دخولاً — فسعرٌ فيها يُخبر كلَّ من يفتحها بأقلّ ما يقبله البائع قبل
+ * أن يزايد أحد. ويصل السعر من يحتاجه عبر `check_eligibility`.
+ *
+ * وذهب معه ناقل الحركة والوقود ونوع اللوحة واسم الشركة ونصّ الحالة — ستّةٌ لا
+ * يعرضها v1. وليست محذوفةً من النموذج: اللوحة تحرّرها وتقرؤها.
  */
 
 import Image from "next/image";
 import Link from "next/link";
 
 import type { Vehicle } from "@/lib/api";
-import { amount, count, remaining } from "@/lib/format";
+import { count, remaining } from "@/lib/format";
 
 import { Countdown } from "./Countdown";
 
@@ -64,17 +74,22 @@ export function VehicleCard({
           <h3 className="font-semibold">{vehicle.title}</h3>
 
           <p className="mt-1 text-sm text-neutral-600">
-            لوت {count(vehicle.lot_number)} · مزاد {count(vehicle.auction_number)}
+            الموقف {count(vehicle.lot_number)} · مزاد {count(vehicle.auction_number)}
           </p>
 
           {/*
-            Every label is the server's own word. A translation table here would
-            be a second place that decides what a state is called in Arabic.
+            كل كلمة عربية هنا كلمةُ الخادم (`colour_label`, `condition_label`).
+            جدولُ ترجمةٍ في هذا الملفّ يعني تعريفاً ثانياً لما تعنيه القيمة،
+            ويوم تُضاف حالةٌ يعرضها التطبيقُ ويعرض الويبُ الرمز الخام.
           */}
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-neutral-700">
             <div className="flex gap-1">
-              <dt className="text-neutral-500">الحالة</dt>
-              <dd>{vehicle.state_label}</dd>
+              <dt className="text-neutral-500">سنة الصنع</dt>
+              <dd>{count(vehicle.year)}</dd>
+            </div>
+            <div className="flex gap-1">
+              <dt className="text-neutral-500">اللون</dt>
+              <dd>{vehicle.colour_label}</dd>
             </div>
             <div className="flex gap-1">
               <dt className="text-neutral-500">الممشى</dt>
@@ -83,28 +98,18 @@ export function VehicleCard({
               </dd>
             </div>
             <div className="flex gap-1">
-              <dt className="text-neutral-500">ناقل الحركة</dt>
-              <dd>{vehicle.transmission_label}</dd>
-            </div>
-            <div className="flex gap-1">
-              <dt className="text-neutral-500">الوقود</dt>
-              <dd>{vehicle.fuel_type_label}</dd>
+              <dt className="text-neutral-500">الحالة</dt>
+              <dd>{vehicle.condition_label}</dd>
             </div>
           </dl>
 
-          <p className="mt-3 flex items-baseline gap-2">
-            <span className="text-sm text-neutral-500">سعر الوقوف</span>
-            {vehicle.reserve_price === null ? (
-              // Not "0", and not blank: a car whose owner has not set a floor is
-              // a different thing from a car whose floor is zero, and printing a
-              // number for the first is a number nobody chose.
-              <span className="text-neutral-500">لم يُحدَّد</span>
-            ) : (
-              <span className="money text-lg font-semibold">
-                {amount(vehicle.reserve_price)} ريال
-              </span>
-            )}
-          </p>
+          {/*
+            الموقع سطرٌ وحده لأنه أطولها («الرياض / طريق الحائر»)، ويُحذف كلّه
+            حين يكون فارغاً: عنوانٌ فارغ بشرطة سؤالٌ بلا داعٍ.
+          */}
+          {vehicle.location ? (
+            <p className="mt-2 text-sm text-neutral-600">{vehicle.location}</p>
+          ) : null}
 
           {/*
             العدّاد على الكرت لأن السؤال يُسأل عند الكرت: «كم بقي لهذه؟». وهو

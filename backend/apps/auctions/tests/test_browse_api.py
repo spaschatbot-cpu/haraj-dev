@@ -99,14 +99,21 @@ def test_a_car_nobody_may_see_is_a_404_not_a_403(api, hidden_auction):
     assert response.status_code == 404
 
 
-def test_the_price_is_a_string_not_a_number(api, auction):
-    """Article 3-2. JSON has only floats to offer, whatever the schema says."""
+def test_the_listing_sends_no_price_at_all(api, auction):
+    """‏v1 لا يعرض سعراً في القائمة، وطلب المالك «بدون زيادة» (2026-09-06).
+
+    وليست مسألةَ عرض: هذه نقطةٌ **عامّة** لا تطلب دخولاً، فسعرٌ فيها يُخبر كلَّ
+    من يفتحها بأقلّ ما يقبله البائع على كل مركبة. والسعر يصل من يحتاجه عبر
+    `check_eligibility` بعد أن يُعرَف من هو.
+
+    وقاعدة المادة ٣-٢ (المبلغ نصٌّ لا رقم) باقيةٌ حيث يبقى مبلغ — في المحفظة
+    والفواتير وردّ الأهلية — ولها اختباراتها هناك.
+    """
     a_car(auction, 1)
 
     card = api.get(reverse("auctions_api:vehicle-list")).data["results"][0]
 
-    assert isinstance(card["reserve_price"], str)
-    assert card["reserve_price"] == "55000.00"
+    assert not [key for key in card if "price" in key], sorted(card)
 
 
 # ---------------------------------------------------------------------------

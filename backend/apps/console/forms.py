@@ -170,10 +170,18 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
 
     class Meta:
         model = Auction
-        fields = ("number", "title", "starts_at", "ends_at", "deposit_required")
+        fields = (
+            "number",
+            "title",
+            "location",
+            "starts_at",
+            "ends_at",
+            "deposit_required",
+        )
         labels = {
             "number": "رقم المزاد",
             "title": "العنوان",
+            "location": "الموقع",
             "starts_at": "يبدأ",
             "ends_at": "ينتهي",
             "deposit_required": "التأمين المطلوب",
@@ -221,6 +229,7 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "make",
             "model",
             "year",
+            "colour",
             "vin",
             "plate_number",
             "plate_type",

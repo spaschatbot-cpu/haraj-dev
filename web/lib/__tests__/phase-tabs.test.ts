@@ -47,19 +47,12 @@ const VEHICLE = {
   model: "كامري",
   year: 2022,
   odometer_km: 84000,
-  transmission: "automatic",
-  transmission_label: "أوتوماتيك",
-  fuel_type: "petrol",
-  fuel_type_label: "بنزين",
+  colour: "silver",
+  colour_label: "فضي",
   condition: "good",
   condition_label: "جيدة",
-  plate_type: "private",
-  plate_type_label: "خصوصي",
-  reserve_price: "48500.75",
+  location: "الرياض / طريق الحائر",
   state: "listed",
-  state_label: "معروضة",
-  listing_state: "open",
-  owner_company_name: "شركة المعارض",
   thumbnail_url: null,
 };
 
@@ -124,8 +117,11 @@ describe("J5 — الشاشة مرندَرة في الخادم", () => {
 
     expect(markup).toContain("تويوتا كامري 2022");
     expect(markup).toContain("نيسان التيما 2021");
-    //: والسعر كما وصل حرفاً بحرف — لا فاصلة آلاف ولا تقريب (المادة ٣-٢).
-    expect(markup).toContain("48500.75");
+    //: ومواصفاتها كما سمّاها الخادم — لا جدول ترجمةٍ في الويب.
+    expect(markup).toContain("فضي");
+    expect(markup).toContain("جيدة");
+    //: ولا سعرَ على الكرت: v1 لا يعرضه، والقائمة نقطةٌ عامّة (2026-09-06).
+    expect(markup).not.toContain("48500.75");
   });
 
   it("أسماء التبويبات الثلاثة في الـHTML، لا في سكربت يبنيها", async () => {
@@ -272,7 +268,8 @@ describe("حالة المزاد كما قالها الخادم", () => {
     const markup = await render({ phase: "active" });
 
     expect(markup).toContain("تويوتا كامري 2022");
-    expect(markup).toContain("معروضة");
+    //: تُعرض كما جاءت — والحالة تصل رمزاً لا نصّاً منذ تكافؤ كرت v1، فالشاهد
+    //: أنها ما زالت مرسومةً لا أن نصّاً بعينه ظهر.
     expect(markup).toContain("الوقت المعلَن");
     //: ولا حكمٌ على المزاد نفسه من ساعة المتصفح.
     expect(markup).not.toContain("انتهى المزاد");

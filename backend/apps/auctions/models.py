@@ -40,6 +40,14 @@ class Auction(models.Model):
     number = models.PositiveIntegerField(unique=True, help_text="رقم المزاد المعروض")
     title = models.CharField(max_length=200)
 
+    #: الموقع كما يعرضه كرت v1: «الرياض / طريق الحائر».
+    #
+    # على **المزاد** لا على المركبة، وذلك مقيس: كل صفٍّ في صفحة الإنتاج الحيّة
+    # يحمل الموقع نفسه. فمزادٌ يقع في ساحةٍ واحدة، ونسخُ النصّ على كل مركبة
+    # يعني ثلاثة عشر ألف نسخةٍ من قيمةٍ واحدة — وثلاثة عشر ألف موضعٍ تختلف
+    # فيه عن أختها يوم يُصحَّح اسم الطريق.
+    location = models.CharField(max_length=200, blank=True)
+
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
 
@@ -89,9 +97,47 @@ class FuelType(models.TextChoices):
     UNKNOWN = "unknown", "غير محدد"
 
 
+class VehicleColour(models.TextChoices):
+    """لون المركبة — يعرضه كرت v1 ولم يكن عندنا حقلٌ له.
+
+    المفردات مقروءةٌ من الإنتاج الحيّ لا مخترعة: `فضي` و`ذهبي` و`رمادي`
+    و`ابيض` و`اسود` و`ازرق غامق` كلّها ظهرت في صفحةٍ واحدة. و`UNKNOWN` موجود
+    لأن المجهول ليس لوناً يُخمَّن (المادة ٢-٣)، وثلاثة عشر ألف صفٍّ قادمة من
+    v1 فيها ما لا لون له.
+    """
+
+    WHITE = "white", "أبيض"
+    BLACK = "black", "أسود"
+    SILVER = "silver", "فضي"
+    GREY = "grey", "رمادي"
+    BLUE = "blue", "أزرق"
+    DARK_BLUE = "dark_blue", "أزرق غامق"
+    RED = "red", "أحمر"
+    GREEN = "green", "أخضر"
+    GOLD = "gold", "ذهبي"
+    BEIGE = "beige", "بيج"
+    BROWN = "brown", "بني"
+    YELLOW = "yellow", "أصفر"
+    OTHER = "other", "لون آخر"
+    UNKNOWN = "unknown", "غير محدد"
+
+
 class VehicleCondition(models.TextChoices):
+    """حالة المركبة — ووُسِّعت لتحمل وصف الضرر لا التشغيل وحده.
+
+    كرت v1 يعرض هنا `حادث` و`حريق`، وهما وصفُ **ما أصابها**؛ وقيمنا الأصلية
+    وصفُ **هل تسير**. والسؤالان مختلفان، ومعروضان في المكان نفسه.
+    فوُسِّع التعداد بدل أن يُشقّ عمودان: عمودٌ واحد بمفرداتٍ أوسع يُقرأ في
+    موضعٍ واحد، وعمودان يعنيان قراءتين وقاعدتين تتباعدان (المادة ٤-٥).
+    وواسعٌ من البداية لأن ضيّقه هو ما يُجبر على هجرةٍ يوم تصل قيمةٌ سادسة
+    (المادة ٣-٥).
+    """
+
     RUNNING = "running", "تسير"
     NOT_RUNNING = "not_running", "لا تسير"
+    ACCIDENT = "accident", "حادث"
+    FIRE = "fire", "حريق"
+    FLOOD = "flood", "غرق"
     DAMAGED = "damaged", "متضررة"
     SALVAGE = "salvage", "تشليح"
     UNKNOWN = "unknown", "غير محدد"
@@ -130,6 +176,11 @@ class Vehicle(models.Model):
         max_length=32, choices=PlateType.choices, default=PlateType.PRIVATE
     )
     odometer_km = models.PositiveIntegerField(null=True, blank=True)
+    #: اللون — يعرضه كرت v1 بين سنة الصنع والممشى.
+    colour = models.CharField(
+        max_length=16, choices=VehicleColour.choices, default=VehicleColour.UNKNOWN
+    )
+
     transmission = models.CharField(
         max_length=16, choices=Transmission.choices, default=Transmission.UNKNOWN
     )

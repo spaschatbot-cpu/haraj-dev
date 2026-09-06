@@ -104,3 +104,47 @@ def other_partner(django_user_model):
     )
     Company.objects.create(user=user, name="شركة أخرى", representative_name="ممثل آخر")
     return user
+
+
+def insert_raw(model, /, **values):
+    """Insert a row straight through SQL, so the **database** answers.
+
+    Bypassing the ORM is the point of every caller: a constraint that only
+    `full_clean` enforces is not a constraint. Bypassing it for the *column
+    names* was never part of that — and a hand-written list here has now
+    broken three times for a reason unrelated to what the test guards: once
+    when `preview` was added to images (HR-12), and twice more when `colour`
+    was added to vehicles. A test about **lot numbers** failing with a NOT NULL
+    error about paint tells its reader nothing.
+
+    So the names are read off the model: every non-null column without a value
+    of its own is filled with its Django default. Add a column tomorrow and
+    these tests keep guarding what they were written to guard.
+
+    ‏`model` موضعيٌّ بحت (`/`) لأن **`model` اسمُ عمودٍ في `Vehicle`** — بدونه
+    يصطدم اسم الوسيط باسم الحقل، ويفشل النداء برسالةٍ عن «قيمتين لـmodel» لا
+    علاقة لها بما يجري.
+    """
+    from django.db import connection
+
+    row = dict(values)
+    for field in model._meta.fields:
+        if field.primary_key or field.attname in row or field.name in row:
+            continue
+        if not field.null:
+            # ‏`auto_now_add`/`auto_now` لا يعطيان قيمةً افتراضية: تملؤهما
+            # طبقةُ الـORM عند الحفظ، وهذا المسار يتخطّاها عمداً. فبدونهما
+            # يفشل الإدراج بـNOT NULL على `created_at` — وهي رسالةٌ ثالثة لا
+            # تدلّ على شيء ممّا يحرسه الاختبار.
+            if getattr(field, "auto_now", False) or getattr(field, "auto_now_add", False):
+                row[field.attname] = timezone.now()
+            else:
+                row[field.attname] = field.get_default()
+
+    columns = ", ".join(row)
+    placeholders = ", ".join(["%s"] * len(row))
+    with connection.cursor() as cursor:
+        cursor.execute(
+            f"INSERT INTO {model._meta.db_table} ({columns}) VALUES ({placeholders})",
+            list(row.values()),
+        )
