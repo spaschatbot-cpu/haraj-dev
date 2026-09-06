@@ -229,10 +229,23 @@ def vehicle_detail(request, pk: int):
         if move.source == vehicle.state
     ]
 
+    # وجهاتُ إعادة العرض: المزادات التي لم تبدأ بعد. الحيّ ليس منها — لوتٌ
+    # يظهر بعد أن قرأ الناس القائمة هو مزادٌ تغيّر تحت من يزايد فيه (T828).
+    from apps.auctions.states import VEHICLE_MOVE_INDEX
+
+    may_relist = (vehicle.state, VehicleState.RELISTED) in VEHICLE_MOVE_INDEX
+    destinations = (
+        Auction.objects.filter(
+            state__in=(AuctionState.DRAFT, AuctionState.SCHEDULED)
+        ).order_by("starts_at")
+        if may_relist
+        else Auction.objects.none()
+    )
+
     return render(
         request,
         "console/vehicle_detail.html",
-        {"vehicle": vehicle, "moves": moves},
+        {"vehicle": vehicle, "moves": moves, "destinations": destinations},
     )
 
 

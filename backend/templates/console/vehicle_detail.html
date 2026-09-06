@@ -51,4 +51,26 @@ and v1's screens were full of them.
   {% else %}
     <p class="empty">لا انتقال متاح من هذه الحالة.</p>
   {% endif %}
+
+  <h2>إعادة العرض في مزاد لاحق</h2>
+  {% comment %}
+  الاستبعاد يخصّ الدورة التي وقع فيها، والترسيةُ السابقة لا تسافر: سيارةٌ
+  معروضةٌ في أبريل تُظهر فائز مارس تقول لعميلٍ إنه يملك ما لا يملك. والوجهات
+  مزاداتٌ لم تبدأ بعد فقط.
+  {% endcomment %}
+  {% if destinations %}
+    <form method="post" action="{% url 'console:vehicle-relist' vehicle.pk %}">
+      {% csrf_token %}
+      <select name="auction">
+        {% for auction in destinations %}
+          <option value="{{ auction.pk }}">{{ auction.number|unlocalize }} — {{ auction.title }}</option>
+        {% endfor %}
+      </select>
+      <input type="number" name="lot_number" min="1" placeholder="رقم اللوت" required>
+      <input type="text" name="reason" placeholder="سبب الإعادة" required>
+      <button type="submit">أعِد العرض</button>
+    </form>
+  {% else %}
+    <p class="empty">لا إعادة عرضٍ من هذه الحالة، أو لا مزاد قادم.</p>
+  {% endif %}
 {% endblock %}

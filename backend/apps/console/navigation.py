@@ -178,6 +178,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
         Capability.AUCTIONS_MANAGE,
         "",
     ),
+    Page("console:vehicle-relist", "إعادة عرض مركبة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-new", "مزاد جديد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-state", "نقلة مزاد", Capability.AUCTIONS_MANAGE, ""),
