@@ -9,6 +9,11 @@
   والدخول برمزٍ جديد يُرفض (`AccountStopped`). وبلا الثاني كان الإيقاف يصمد
   حتى أوّل رسالةٍ نصّية.
   {% endcomment %}
+  <div class="alarm">
+    <strong>الإيقاف يقطع البابين:</strong> الرمز القائم يموت عند أوّل طلب،
+    والدخول برمزٍ جديد يُرفض. والسبب المكتوب يُقرأ عند أي مراجعة.
+  </div>
+
   <form method="post">
     {% csrf_token %}
     {% include "console/_form.html" %}

@@ -1,4 +1,5 @@
 {% extends "console/base.html" %}
+{% load l10n %}
 {% block title %}طابور عجز الاسترداد{% endblock %}
 {% block heading %}طابور عجز الاسترداد{% endblock %}
 {% block content %}
@@ -6,6 +7,11 @@
   أودو طلب سحب وديعةٍ مرهونة. لا شيء يُنفَّذ آلياً — حسابُ المنصّة لا يقرّر هل
   سُلّمت السيارة. يقرّر إنسان، ويقول كيف.
   {% endcomment %}
+  <div class="alarm">
+    <strong>لا شيء هنا يُنفَّذ آلياً.</strong>
+    حسابُ المنصّة لا يقرّر هل سُلّمت السيارة — يقرّر إنسان، ويقول كيف.
+  </div>
+
   <h2>ينتظر قراراً</h2>
   <table>
     <thead>
@@ -17,10 +23,10 @@
         <tr>
           <td>{{ case.refund_ref }}</td>
           <td><a href="{% url 'console:customer-detail' case.user.pk %}">{{ case.user.full_name }}</a></td>
-          <td>{{ case.requested }}</td>
-          <td>{{ case.free }}</td>
-          <td>{{ case.locked }}</td>
-          <td><strong>{{ case.shortfall }}</strong></td>
+          <td class="money">{{ case.requested|unlocalize }}</td>
+          <td class="money">{{ case.free|unlocalize }}</td>
+          <td class="money">{{ case.locked|unlocalize }}</td>
+          <td class="money"><strong>{{ case.shortfall|unlocalize }}</strong></td>
           <td>{{ case.opened_at }}</td>
           <td>
             <form method="post" action="{% url 'console:refund-resolve' case.pk %}">
@@ -30,7 +36,7 @@
             </form>
           </td>
         </tr>
-        <tr><td colspan="8">{{ case.note }}</td></tr>
+        <tr><td colspan="8" class="empty">{{ case.note }}</td></tr>
       {% empty %}
         <tr><td colspan="8" class="empty">لا قضيّة تنتظر.</td></tr>
       {% endfor %}

@@ -4,10 +4,15 @@
 {% block content %}
   <p>الدور: {{ member.get_console_role_display|default:member.console_role }}</p>
 
+  <div class="alarm">
+    <strong>منحُ صلاحيةٍ يوسّع ما يستطيعه هذا الشخص في اللوحة كلّها.</strong>
+    السبب المكتوب يظهر في سجل التدقيق باسمك.
+  </div>
+
   <h2>ما يستطيعه اليوم</h2>
   {# الوصول الفعلي من `capabilities_of` — الدور والمنح مركَّبين، لا الدور وحده. #}
   <ul>
-    {% for capability in effective %}<li>{{ capability }}</li>{% empty %}<li>لا شيء</li>{% endfor %}
+    {% for capability in effective %}<li>{{ capability }}</li>{% empty %}<li class="empty">لا شيء</li>{% endfor %}
   </ul>
 
   <h2>المنح والسحب فوق الدور</h2>
@@ -25,7 +30,7 @@
           <td>{{ grant.created_at }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="5">لا منح ولا سحب — الوصول من الدور وحده.</td></tr>
+        <tr><td colspan="5" class="empty">لا منح ولا سحب — الوصول من الدور وحده.</td></tr>
       {% endfor %}
     </tbody>
   </table>
