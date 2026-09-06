@@ -406,3 +406,53 @@ def staff_grants(request, pk: int):
             "grants": StaffGrant.objects.filter(user=member).order_by("capability"),
         },
     )
+
+
+class AccessForm(forms.Form):
+    """يدخل أو لا يدخل، وسبب. لا حقلَ ثالث.
+
+    مفصولةٌ عن `CustomerForm` عمداً: تصحيحُ اسمٍ وإيقافُ وصولٍ ثقتان مختلفتان،
+    وإيقافٌ مدفونٌ في استمارة ملفٍّ شخصيّ إيقافٌ لا يراجعه أحد — وهو نفس سبب
+    غياب `is_staff` عن تلك الاستمارة.
+    """
+
+    is_active = forms.BooleanField(label="يستطيع الدخول", required=False)
+    reason = forms.CharField(
+        label="السبب",
+        max_length=500,
+        widget=forms.TextInput(attrs={"placeholder": "لماذا؟"}),
+        error_messages={"required": "سبب الإيقاف أو الإعادة مطلوب."},
+    )
+
+    def clean_reason(self) -> str:
+        reason = (self.cleaned_data.get("reason") or "").strip()
+        if not reason:
+            raise forms.ValidationError("سبب الإيقاف أو الإعادة مطلوب.")
+        return reason
+
+
+@console_page("console:customer-access")
+def customer_access(request, pk: int):
+    """أوقف عميلاً أو أعِده. الشاشة التي لم تكن.
+
+    والإعادة موجودة كالإيقاف: حارسٌ يمنع العودة يجعل الإيقاف عقوبةً نهائية بيد
+    موظّف، وv1 كان يعالج ذلك بإنشاء حسابٍ ثانٍ للعميل نفسه.
+    """
+    customer = get_object_or_404(User.objects.filter(is_staff=False), pk=pk)
+    form = AccessForm(request.POST or None, initial={"is_active": customer.is_active})
+
+    if request.method == "POST" and form.is_valid():
+        accounts_services.set_customer_access(
+            user=customer,
+            active=form.cleaned_data["is_active"],
+            reason=form.cleaned_data["reason"],
+            actor=request.user,
+        )
+        messages.success(request, "حُدِّث وصول العميل.")
+        return redirect("console:customer-detail", pk=pk)
+
+    return render(
+        request,
+        "console/customer_access.html",
+        {"customer": customer, "form": form},
+    )
