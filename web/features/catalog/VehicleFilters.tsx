@@ -80,62 +80,76 @@ export function VehicleFilters({
     <form
       method="get"
       action={action}
-      className="mb-6 grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5"
+      /*
+        شريطٌ في بطاقةٍ واحدة على اثنتي عشرة خانة — نظام التصميم (T1032).
+        والحقول في صفٍّ واحد على سطح المكتب لأن الترشيح فعلٌ واحد: أربعةُ
+        حقولٍ متفرّقة تُقرأ أربعةَ قراراتٍ منفصلة.
+      */
+      className="mb-6 grid grid-cols-1 items-end gap-3 rounded-xl bg-surface-lowest p-3 shadow-sm md:grid-cols-12"
     >
       {keep.map((name) => {
         const value = values.get(name);
         return value ? <input key={name} type="hidden" name={name} value={value} /> : null;
       })}
 
-      <label className="flex flex-col gap-1 text-sm lg:col-span-2">
-        <span className="text-neutral-600">بحث</span>
+      <label className="flex flex-col gap-1 md:col-span-4">
+        <span className="text-caption text-on-surface-variant">بحث</span>
         <input
           type="search"
           name="search"
           defaultValue={values.get("search") ?? ""}
-          placeholder="ماركة أو طراز أو رقم لوت"
-          className="rounded border border-neutral-500 px-3 py-2"
+          placeholder="ماركة / طراز / رقم الموقف…"
+          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-600">الماركة</span>
+      {/*
+        حقلُ نصّ لا قائمة اختيار، وإن كان التصميم المرجعيّ قائمة.
+
+        قائمةٌ بأسماء الماركات هنا تعني **مصدراً ثانياً** لما تعرفه قاعدة
+        البيانات: ماركةٌ تدخل المخزون ولا تدخل هذه القائمة تصير غير قابلة
+        للترشيح، وماركةٌ تخرج تبقى خياراً يعطي صفر نتيجة. وليس في العقد نقطةٌ
+        تُعيد الماركات المتاحة — يوم تُضاف، تصير القائمة صحيحة وتُبنى.
+      */}
+      <label className="flex flex-col gap-1 md:col-span-3">
+        <span className="text-caption text-on-surface-variant">الماركة</span>
         <input
           type="text"
           name="make"
           defaultValue={values.get("make") ?? ""}
-          className="rounded border border-neutral-500 px-3 py-2"
+          placeholder="تويوتا…"
+          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-600">من سنة</span>
+      <label className="flex flex-col gap-1 md:col-span-2">
+        <span className="text-caption text-on-surface-variant">من سنة</span>
         <input
           type="number"
           name="year_from"
           inputMode="numeric"
           defaultValue={values.get("year_from") ?? ""}
-          className="rounded border border-neutral-500 px-3 py-2"
+          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none tnum"
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-600">إلى سنة</span>
+      <label className="flex flex-col gap-1 md:col-span-2">
+        <span className="text-caption text-on-surface-variant">إلى سنة</span>
         <input
           type="number"
           name="year_to"
           inputMode="numeric"
           defaultValue={values.get("year_to") ?? ""}
-          className="rounded border border-neutral-500 px-3 py-2"
+          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none tnum"
         />
       </label>
 
-      <div className="flex items-end gap-3 lg:col-span-5">
+      <div className="flex items-center gap-3 md:col-span-1">
         <button
           type="submit"
-          className="rounded bg-neutral-900 px-4 py-2 text-sm text-white"
+          className="h-11 w-full rounded-lg bg-primary px-4 text-label-md text-on-primary transition-opacity hover:opacity-90"
         >
-          طبّق الترشيح
+          طبّق
         </button>
         {/*
           A link and not a reset button: `type="reset"` restores the fields in
@@ -143,8 +157,11 @@ export function VehicleFilters({
           they were, which reads as a broken button.
         */}
         {filtered ? (
-          <a href={resetHref} className="text-sm text-neutral-600 underline">
-            إزالة الترشيح
+          <a
+            href={resetHref}
+            className="whitespace-nowrap text-label-md text-on-surface-variant underline"
+          >
+            إزالة
           </a>
         ) : null}
       </div>

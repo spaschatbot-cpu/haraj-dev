@@ -16,7 +16,7 @@ export function EnvironmentBanner({ name }: { name: string }) {
   return (
     <div
       role="status"
-      className="w-full bg-amber-200 px-4 py-1 text-center text-sm text-amber-950"
+      className="w-full bg-warn-surface px-4 py-1 text-center text-label-sm text-warn"
     >
       بيئة <strong>{name}</strong> — ليست الإنتاج. أي عملية هنا ليست حقيقية.
     </div>

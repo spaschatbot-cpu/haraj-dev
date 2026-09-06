@@ -86,15 +86,6 @@ const MINUTE = 60;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 
-/** «٣ أيام»، «يومان» — الصيغة العربية في مكان واحد بدل أن تُخمَّن في كل شاشة. */
-function plural(value: number, one: string, two: string, few: string, many: string): string {
-  if (value === 1) return one;
-  if (value === 2) return two;
-  //: بلا فاصل آلاف — المدّة عدّ لا مبلغ، وفاصلةٌ فيها تقرأ كتنسيق مالٍ تسلّل
-  //: إلى شاشة، وهو بالضبط ما تبحث عنه فحوص المبالغ.
-  return `${value} ${value <= 10 ? few : many}`;
-}
-
 /**
  * ما بقي من الوقت حتى `endsAt`، أو `null` إن مضى أو لم يُعرف.
  *
@@ -110,8 +101,16 @@ function plural(value: number, one: string, two: string, few: string, many: stri
  * انتهى هو الخادم وحده، عبر حالة الكرت وتبويبه — ومن يقرأ هذه الدالة يعرض
  * جملةً عن **الوقت المعلَن**، لا حكماً على المزاد.
  *
- * الشكل: يومٌ فأكثر تُقرأ بالأيام والساعات — لا أحد يتابع الثواني قبل ثلاثة
- * أيام — وما دون اليوم ساعةٌ ودقيقةٌ وثانية، لأن آخر ساعة هي التي تُتابَع.
+ * الشكل: `DD:HH:MM:SS` فوق اليوم و`HH:MM:SS` دونه — رقميّاً في الحالتين.
+ *
+ * وكان فوق اليوم يُكتب نصّاً («يومان و٣ ساعات»)، فتغيّر لسببين مقيسين: عدّاد
+ * v1 نفسه رقميّ (`03:06:57:48` — قِيس من الإنتاج الحيّ في
+ * `specs/011-customer-web/v1-card-parity.md`)، ونظام التصميم يضع العدّاد في
+ * شريطٍ بأرقامٍ جدولية ثابتة العرض. وشكلان في مكانٍ واحد يعنيان شريطاً يتمدّد
+ * ويتقلّص بين بطاقةٍ وأخرى في الشبكة نفسها.
+ *
+ * والأيام تبقى بلا حدٍّ أعلى: مزادٌ بعد أربعين يوماً يُكتب `40:...` لا
+ * `16:...`. عدّادٌ يلفّ عند الشهر يعرض رقماً صحيح الشكل خاطئ المعنى.
  */
 export function remaining(
   endsAt: string | null | undefined,
@@ -126,18 +125,13 @@ export function remaining(
   if (seconds <= 0) return null;
 
   const days = Math.floor(seconds / DAY);
-  if (days > 0) {
-    const hours = Math.floor((seconds % DAY) / HOUR);
-    const spelledDays = plural(days, "يوم واحد", "يومان", "أيام", "يوماً");
-    if (hours === 0) return spelledDays;
-    return `${spelledDays} و${plural(hours, "ساعة", "ساعتان", "ساعات", "ساعة")}`;
-  }
-
   const clock = [
-    Math.floor(seconds / HOUR),
+    Math.floor((seconds % DAY) / HOUR),
     Math.floor((seconds % HOUR) / MINUTE),
     seconds % MINUTE,
   ];
+  if (days > 0) clock.unshift(days);
+
   return clock.map((part) => String(part).padStart(2, "0")).join(":");
 }
 

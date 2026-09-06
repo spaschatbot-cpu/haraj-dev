@@ -71,13 +71,33 @@ function toneFor(endsAt: string, now: number): Tone {
   return "calm";
 }
 
-//: الصفوف مكتوبةٌ كاملةً لا مركَّبةً بقصّ نصّ — Tailwind يقرأ الملفّ نصّاً،
-//: وصفٌّ يُبنى في زمن التشغيل لا يصل ملفّ الأنماط أصلاً.
-const TONES: Record<Tone, string> = {
-  calm: "text-neutral-900",
-  soon: "text-amber-700",
-  urgent: "text-red-700 font-extrabold",
-  past: "text-neutral-500",
+/**
+ * لكل درجةٍ **شريطها**: خلفيةٌ ونصٌّ وكلمةٌ تقول ما هذا الوقت.
+
+ * الشريط لا اللون على الرقم وحده (T1032): العدّاد آخر ما تقرؤه العين في
+ * البطاقة، ولوحٌ ملوَّن يُرى في مسحٍ سريع لشبكةٍ من عشرين — أما رقمٌ أحمر بين
+ * نصٍّ أسود فيحتاج قراءة.
+ *
+ * والصفوف مكتوبةٌ كاملةً لا مركَّبةً بقصّ نصّ — Tailwind يقرأ الملفّ نصّاً،
+ * وصفٌّ يُبنى في زمن التشغيل لا يصل ملفّ الأنماط أصلاً.
+ */
+const TONES: Record<Tone, { band: string; digits: string }> = {
+  calm: {
+    band: "bg-surface-container text-on-surface",
+    digits: "text-headline-sm font-bold",
+  },
+  soon: {
+    band: "bg-warn-surface text-warn",
+    digits: "text-headline-sm font-bold",
+  },
+  urgent: {
+    band: "bg-critical-surface text-critical",
+    digits: "text-headline-sm font-extrabold",
+  },
+  past: {
+    band: "bg-surface-container text-on-surface-variant",
+    digits: "text-label-md font-semibold",
+  },
 };
 
 export function Countdown({
@@ -115,10 +135,13 @@ export function Countdown({
   }, [endsAt]);
 
   const past = left === null;
+  const shown = TONES[past ? "past" : tone];
 
   return (
-    <p className="mt-3 flex items-baseline justify-between gap-2">
-      <span className="text-sm text-neutral-500">
+    <p
+      className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2 ${shown.band}`}
+    >
+      <span className="text-label-sm opacity-80">
         {past ? "الوقت المعلَن" : label}
       </span>
       <time
@@ -126,11 +149,9 @@ export function Countdown({
         //: يُنطق تغيّرُه على قارئ الشاشة عند الدقائق الأخيرة وحدها — إعلانٌ كل
         //: ثانية طوال اليوم ضجيجٌ يُطفئ القارئ.
         aria-live={tone === "urgent" ? "polite" : "off"}
-        className={`money tabular-nums ${
-          past ? "text-sm" : "text-lg font-bold"
-        } ${TONES[past ? "past" : tone]}`}
+        className={`money tabular-nums tracking-wider ${shown.digits}`}
       >
-        {left ?? "مضى — الحالة أعلاه من الخادم"}
+        {left ?? "مضى — الحالة من الخادم"}
       </time>
     </p>
   );

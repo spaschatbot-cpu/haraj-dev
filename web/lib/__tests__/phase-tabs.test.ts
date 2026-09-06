@@ -291,13 +291,25 @@ describe("حالة المزاد كما قالها الخادم", () => {
 describe("المدّة فرقٌ بين لحظتين UTC", () => {
   const at = (iso: string) => Date.parse(iso);
 
-  it("تُقرأ بالأيام والساعات فوق اليوم، وبالساعة تحته", () => {
+  it("رقميّة في الحالتين: `DD:HH:MM:SS` فوق اليوم و`HH:MM:SS` دونه", () => {
+    //: شكلٌ واحد لأن الشريط الذي يحملها ثابت العرض — ونصٌّ عربيّ فوق اليوم
+    //: ورقمٌ دونه يجعل بطاقةً في الشبكة أعرضَ من جارتها. وv1 رقميّ أيضاً
+    //: (`03:06:57:48`، مقروءاً من الإنتاج الحيّ).
     expect(remaining("2026-09-06T12:00:00Z", at("2026-09-03T09:00:00Z"))).toBe(
-      "3 أيام و3 ساعات",
+      "03:03:00:00",
     );
-    expect(remaining("2026-09-04T09:00:00Z", at("2026-09-03T09:00:00Z"))).toBe("يوم واحد");
-    expect(remaining("2026-09-05T09:00:00Z", at("2026-09-03T09:00:00Z"))).toBe("يومان");
+    expect(remaining("2026-09-04T09:00:00Z", at("2026-09-03T09:00:00Z"))).toBe(
+      "01:00:00:00",
+    );
     expect(remaining("2026-09-03T10:02:03Z", at("2026-09-03T09:00:00Z"))).toBe("01:02:03");
+  });
+
+  it("والأيام بلا حدٍّ أعلى — لا تلفّ عند الشهر", () => {
+    //: عدّادٌ يلفّ يعرض رقماً صحيح الشكل خاطئ المعنى، ولا شيء على الشاشة
+    //: يقول إنه لفّ.
+    expect(remaining("2026-10-13T09:00:00Z", at("2026-09-03T09:00:00Z"))).toBe(
+      "40:00:00:00",
+    );
   });
 
   it("لا تُبنى تواريخ محلية: عبور منتصف الليل لا يغيّر الفرق", () => {
@@ -363,24 +375,24 @@ describe("العدّاد يقول قُرب الموعد بلونه", () => {
     results = [{ ...VEHICLE, auction_ends_at: at(600) }];
     const markup = await render({ phase: "active" });
 
-    expect(markup).toContain("text-neutral-900");
-    expect(markup).not.toContain("text-red-700");
-    expect(markup).not.toContain("text-amber-700");
+    expect(markup).toContain("bg-surface-container");
+    expect(markup).not.toContain("bg-critical-surface");
+    expect(markup).not.toContain("bg-warn-surface");
   });
 
   it("أقلّ من ساعة: كهرمانيّ", async () => {
     results = [{ ...VEHICLE, auction_ends_at: at(30) }];
     const markup = await render({ phase: "active" });
 
-    expect(markup).toContain("text-amber-700");
-    expect(markup).not.toContain("text-red-700");
+    expect(markup).toContain("bg-warn-surface");
+    expect(markup).not.toContain("bg-critical-surface");
   });
 
   it("آخر عشر دقائق: أحمر وأثخن — ولا يعتمد المعنى على اللون وحده", async () => {
     results = [{ ...VEHICLE, auction_ends_at: at(5) }];
     const markup = await render({ phase: "active" });
 
-    expect(markup).toContain("text-red-700");
+    expect(markup).toContain("bg-critical-surface");
     expect(markup).toContain("font-extrabold");
     //: يُنطق على قارئ الشاشة في هذه الدرجة وحدها.
     expect(markup).toContain('aria-live="polite"');
@@ -390,7 +402,7 @@ describe("العدّاد يقول قُرب الموعد بلونه", () => {
     results = [{ ...VEHICLE, auction_ends_at: at(120) }];
     const markup = await render({ phase: "active" });
 
-    expect(markup).toContain("text-lg font-bold");
+    expect(markup).toContain("text-headline-sm font-bold");
     //: أرقامٌ ثابتة العرض، فلا يرقص السطر مع كل ثانية.
     expect(markup).toContain("tabular-nums");
   });

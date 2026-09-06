@@ -33,6 +33,7 @@
 
 import type { Metadata } from "next";
 
+import { BrowseHero } from "@/features/browse/BrowseHero";
 import { browse } from "@/features/browse/browse";
 import { PhaseTabs } from "@/features/browse/PhaseTabs";
 import { readPhase, tabOf } from "@/features/browse/phase";
@@ -79,7 +80,12 @@ export default async function Home({
   }
 
   return (
-    <PageShell title="المزادات">
+    /*
+      اللافتة `banner` لا داخل `children`: تعبر العمود كلّه وتسبق كل شيء، وهي
+      **بديلُ** العنوان لا سطرٌ تحته — فيها `h1` الشاشة، وعنوانٌ ثانٍ فوقها
+      يعني عنوانَين لصفحةٍ واحدة.
+    */
+    <PageShell banner={<BrowseHero total={page?.total ?? null} />}>
       <PhaseTabs current={phase} counts={page?.counts ?? null} query={query} path={PATH} />
 
       <VehicleFilters action={PATH} values={query} keep={["phase"]} />
@@ -103,10 +109,10 @@ export default async function Home({
       ) : (
         <div
           role="status"
-          className="rounded-lg border border-amber-200 bg-amber-50 p-6 text-center"
+          className="rounded-xl border border-warn-line bg-warn-surface p-6 text-center"
         >
-          <p className="text-amber-900">{refusal}</p>
-          <p className="mt-2 text-sm text-amber-800">
+          <p className="text-warn">{refusal}</p>
+          <p className="mt-2 text-body-sm text-warn">
             لم تصل قائمة المركبات. جرّب تحديث الصفحة أو تبويباً آخر.
           </p>
         </div>
