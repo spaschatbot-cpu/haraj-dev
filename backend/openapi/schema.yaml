@@ -2404,6 +2404,8 @@ components:
           format: date-time
         lot_number:
           type: integer
+        reference:
+          type: string
         title:
           type: string
         make:
@@ -2448,6 +2450,7 @@ components:
       - model
       - odometer_km
       - phase
+      - reference
       - state
       - thumbnail_url
       - title

@@ -47,19 +47,40 @@ export function VehicleCard({
   vehicle,
   /** لحظة إنتاج الرد — منها ينطلق العدّاد. انظر `respondedAt`. */
   now,
+  /**
+   * أهذه أول بطاقة في الشبكة؟
+   *
+   * صورتها هي **أكبر عنصرٍ يُرسم** في الصفحة (LCP)، وNext يُحمّل صور
+   * `next/image` كسولةً افتراضاً — فتُؤجَّل الصورةُ التي يقيس المتصفّح
+   * سرعةَ الصفحة بها. والأولوية للأولى وحدها: إعطاؤها للعشرين يعني عشرين
+   * طلباً متسابقاً، وهو عكس المقصود.
+   */
+  priority = false,
 }: {
   vehicle: Vehicle;
   now: number;
+  priority?: boolean;
 }) {
+  const countsTo =
+    vehicle.phase === "soon" ? vehicle.auction_starts_at : vehicle.auction_ends_at;
+
   return (
     <article className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
       <Link href={`/vehicles/${vehicle.id}`} className="block">
         <div className="relative aspect-[4/3] bg-neutral-100">
+          {/*
+            الرقم المرجعي على الصورة، كما يضعه v1 (`#10565`). يذكره العميل حين
+            يسأل الدعم، فموضعه حيث تقع العين أولاً لا في سطرٍ أسفل.
+          */}
+          <span className="absolute end-2 top-2 z-10 rounded bg-neutral-900/75 px-2 py-0.5 text-xs text-white">
+            {vehicle.reference}
+          </span>
           {vehicle.thumbnail_url ? (
             <Image
               src={vehicle.thumbnail_url}
               alt={vehicle.title}
               fill
+              priority={priority}
               sizes="(max-width: 768px) 100vw, 33vw"
               className="object-cover"
             />
@@ -73,8 +94,10 @@ export function VehicleCard({
         <div className="p-4">
           <h3 className="font-semibold">{vehicle.title}</h3>
 
+          {/* «الموقف» وحده. رقم المزاد لا يظهر على كرت v1 — والمعروض هنا هو
+              ما يعرضه هو، لا أكثر. */}
           <p className="mt-1 text-sm text-neutral-600">
-            الموقف {count(vehicle.lot_number)} · مزاد {count(vehicle.auction_number)}
+            الموقف {count(vehicle.lot_number)}
           </p>
 
           {/*
@@ -85,7 +108,8 @@ export function VehicleCard({
           <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-neutral-700">
             <div className="flex gap-1">
               <dt className="text-neutral-500">سنة الصنع</dt>
-              <dd>{count(vehicle.year)}</dd>
+              {/* بلا فاصل آلاف: السنة اسمٌ لا كمّية، و«2,022» خطأٌ يُقرأ. */}
+              <dd>{vehicle.year}</dd>
             </div>
             <div className="flex gap-1">
               <dt className="text-neutral-500">اللون</dt>
@@ -119,10 +143,18 @@ export function VehicleCard({
             وحين لا يرسل الخادم لحظة الانتهاء لا يُرسم شيء: عدّادٌ من لا شيء
             كذبة، وشرطةٌ مكانه سؤالٌ بلا داعٍ.
           */}
-          {vehicle.auction_ends_at ? (
+          {/*
+            مزادٌ لم يبدأ يُعدّ إلى **بدايته** لا إلى نهايته، وكرت v1 يقول
+            «يبدأ خلال». وقبل هذا كانت البطاقة تعدّ إلى الإغلاق وتكتب «يغلق
+            بعد» على مزادٍ لم يفتح بعد — رقمٌ صحيح تحت عنوانٍ خاطئ، وهو أسوأ
+            من لا رقم.
+          */}
+          {countsTo ? (
             <Countdown
-              endsAt={vehicle.auction_ends_at}
-              initial={remaining(vehicle.auction_ends_at, now)}
+              endsAt={countsTo}
+              label={vehicle.phase === "soon" ? "يبدأ خلال" : "يغلق بعد"}
+              initial={remaining(countsTo, now)}
+              now={now}
             />
           ) : null}
         </div>
@@ -154,8 +186,13 @@ export function VehicleGrid({
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {vehicles.map((vehicle) => (
-        <VehicleCard key={vehicle.id} vehicle={vehicle} now={now} />
+      {vehicles.map((vehicle, index) => (
+        <VehicleCard
+          key={vehicle.id}
+          vehicle={vehicle}
+          now={now}
+          priority={index === 0}
+        />
       ))}
     </div>
   );

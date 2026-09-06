@@ -127,6 +127,9 @@ class VehicleCardSerializer(serializers.Serializer):
     auction_ends_at = serializers.DateTimeField()
 
     lot_number = serializers.IntegerField()
+
+    #: `#10565` — الرقم المرجعي على صورة كرت v1.
+    reference = serializers.CharField()
     title = serializers.CharField()
     make = serializers.CharField()
     model = serializers.CharField()

@@ -60,7 +60,8 @@ const VEHICLE = {
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
-  title: "تويوتا كامري 2022",
+  reference: "#91",
+  title: "تويوتا كامري",
   make: "تويوتا",
   model: "كامري",
   year: 2022,
@@ -226,7 +227,7 @@ describe("مسار عميل كامل", () => {
       VehiclePage({ params: Promise.resolve({ id: "91" }) }),
     );
     expect(anonymous).toContain("سجّل دخولك");
-    expect(anonymous).toContain("تويوتا كامري 2022");
+    expect(anonymous).toContain("تويوتا كامري");
 
     // ---- 2. sign in ------------------------------------------------------
     await run(() => sendCode(form({ phone: "966500000001" })));
@@ -264,7 +265,7 @@ describe("مسار عميل كامل", () => {
     const bids = await render(BidsPage({ searchParams: Promise.resolve({}) }));
     expect(bids).toContain("50000.25");
     expect(bids).toContain("قائمة");
-    expect(bids).toContain("تويوتا كامري 2022");
+    expect(bids).toContain("تويوتا كامري");
 
     // ---- 6. and the wallet shows the deposit the bid moved ---------------
     const wallet = await render(WalletPage());

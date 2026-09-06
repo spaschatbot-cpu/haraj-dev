@@ -42,7 +42,8 @@ const VEHICLE = {
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
-  title: "تويوتا كامري 2022",
+  reference: "#91",
+  title: "تويوتا كامري",
   make: "تويوتا",
   model: "كامري",
   year: 2022,
@@ -56,7 +57,7 @@ const VEHICLE = {
   thumbnail_url: null,
 };
 
-const OTHER_VEHICLE = { ...VEHICLE, id: 92, lot_number: 15, title: "نيسان التيما 2021" };
+const OTHER_VEHICLE = { ...VEHICLE, id: 92, lot_number: 15, title: "نيسان التيما" };
 
 /*
  * العدّادات **لا تساوي** طول القائمة، عمداً.
@@ -115,8 +116,8 @@ describe("J5 — الشاشة مرندَرة في الخادم", () => {
   it("طلبٌ بلا جافاسكربت يُرجع أسماء المركبات في الـHTML", async () => {
     const markup = await render();
 
-    expect(markup).toContain("تويوتا كامري 2022");
-    expect(markup).toContain("نيسان التيما 2021");
+    expect(markup).toContain("تويوتا كامري");
+    expect(markup).toContain("نيسان التيما");
     //: ومواصفاتها كما سمّاها الخادم — لا جدول ترجمةٍ في الويب.
     expect(markup).toContain("فضي");
     expect(markup).toContain("جيدة");
@@ -267,7 +268,7 @@ describe("حالة المزاد كما قالها الخادم", () => {
     results = [{ ...VEHICLE, auction_ends_at: "2020-01-01T00:00:00Z" }];
     const markup = await render({ phase: "active" });
 
-    expect(markup).toContain("تويوتا كامري 2022");
+    expect(markup).toContain("تويوتا كامري");
     //: تُعرض كما جاءت — والحالة تصل رمزاً لا نصّاً منذ تكافؤ كرت v1، فالشاهد
     //: أنها ما زالت مرسومةً لا أن نصّاً بعينه ظهر.
     expect(markup).toContain("الوقت المعلَن");
@@ -279,7 +280,7 @@ describe("حالة المزاد كما قالها الخادم", () => {
     results = [{ ...VEHICLE, auction_ends_at: null }];
     const markup = await render();
 
-    expect(markup).toContain("تويوتا كامري 2022");
+    expect(markup).toContain("تويوتا كامري");
     expect(markup).not.toContain("يغلق بعد");
     expect(markup).not.toContain("الوقت المعلَن");
   });
@@ -345,5 +346,50 @@ describe("لا نسخة ثانية من العقد", () => {
       extra,
       `ملفّات جديدة في lib/api. إن كانت أنواعاً فهي نسخةٌ ثانية من العقد (T1002): ${extra.join(", ")}`,
     ).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// العدّاد: كبيرٌ، ولونه يقول قُرب الموعد (طلب المالك 2026-09-07)
+// ---------------------------------------------------------------------------
+
+describe("العدّاد يقول قُرب الموعد بلونه", () => {
+  const at = (minutes: number) =>
+    new Date(Date.now() + minutes * 60_000).toISOString();
+
+  it("بعيدٌ: بلا لون تحذير", async () => {
+    results = [{ ...VEHICLE, auction_ends_at: at(600) }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).toContain("text-neutral-900");
+    expect(markup).not.toContain("text-red-700");
+    expect(markup).not.toContain("text-amber-700");
+  });
+
+  it("أقلّ من ساعة: كهرمانيّ", async () => {
+    results = [{ ...VEHICLE, auction_ends_at: at(30) }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).toContain("text-amber-700");
+    expect(markup).not.toContain("text-red-700");
+  });
+
+  it("آخر عشر دقائق: أحمر وأثخن — ولا يعتمد المعنى على اللون وحده", async () => {
+    results = [{ ...VEHICLE, auction_ends_at: at(5) }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).toContain("text-red-700");
+    expect(markup).toContain("font-extrabold");
+    //: يُنطق على قارئ الشاشة في هذه الدرجة وحدها.
+    expect(markup).toContain('aria-live="polite"');
+  });
+
+  it("كبيرٌ وواضح ما دام يعدّ", async () => {
+    results = [{ ...VEHICLE, auction_ends_at: at(120) }];
+    const markup = await render({ phase: "active" });
+
+    expect(markup).toContain("text-lg font-bold");
+    //: أرقامٌ ثابتة العرض، فلا يرقص السطر مع كل ثانية.
+    expect(markup).toContain("tabular-nums");
   });
 });

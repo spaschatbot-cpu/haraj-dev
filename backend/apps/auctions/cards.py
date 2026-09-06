@@ -115,7 +115,12 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "auction_ends_at": lambda v: v.auction.ends_at,
     # «الموقف» على كرت v1 — رقم موضع المركبة في الساحة.
     "lot_number": lambda v: v.lot_number,
-    "title": lambda v: f"{v.make} {v.model} {v.year}",
+    # الرقم المرجعي: `#10565` على صورة كرت v1. هو معرّف المركبة نفسه، ويُعرض
+    # لأن العميل يذكره حين يسأل الدعم — «السيارة رقم كذا».
+    "reference": lambda v: f"#{v.pk}",
+    # الماركة والطراز وحدهما. سنةُ الصنع شارةٌ مستقلّة على كرت v1، وذكرُها في
+    # العنوان أيضاً تكرارٌ للبيانات نفسها في بطاقةٍ واحدة.
+    "title": lambda v: f"{v.make} {v.model}",
     "make": lambda v: v.make,
     "model": lambda v: v.model,
     "year": lambda v: v.year,

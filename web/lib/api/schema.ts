@@ -1317,6 +1317,7 @@ export interface components {
             /** Format: date-time */
             auction_ends_at: string;
             lot_number: number;
+            reference: string;
             title: string;
             make: string;
             model: string;

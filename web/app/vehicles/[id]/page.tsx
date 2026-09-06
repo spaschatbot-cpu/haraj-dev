@@ -213,7 +213,7 @@ export default async function VehiclePage({ params }: Params) {
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <p className="text-sm text-neutral-600">
-              الموقف {count(vehicle.lot_number)} · مزاد {count(vehicle.auction_number)}
+              الموقف {count(vehicle.lot_number)}
             </p>
             {signedIn ? (
               <FavouriteButton

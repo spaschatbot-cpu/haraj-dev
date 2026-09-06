@@ -67,7 +67,8 @@ const VEHICLE = {
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
-  title: "تويوتا كامري 2022",
+  reference: "#91",
+  title: "تويوتا كامري",
   make: "تويوتا",
   model: "كامري",
   year: 2022,
@@ -225,7 +226,7 @@ describe("صفحة المركبة", () => {
   it("J5 — الاسم والمواصفات في الـHTML بلا جافاسكربت", async () => {
     const html = await render(VehiclePage({ params }));
 
-    expect(html).toContain("تويوتا كامري 2022");
+    expect(html).toContain("تويوتا كامري");
     //: «مواصفات المركبة» كما يعرضها v1: الموديل وسنة الصنع واللون والممشى
     //: والمدينة — خمسةٌ لا غير.
     expect(html).toContain("اللون");
@@ -245,7 +246,7 @@ describe("صفحة المركبة", () => {
   it("بيانات وصفية حقيقية، لا العنوان مكرَّراً", async () => {
     const metadata = await vehicleMetadata({ params });
 
-    expect(metadata.title).toBe("تويوتا كامري 2022");
+    expect(metadata.title).toBe("تويوتا كامري");
     expect(metadata.description).toContain("84,000 كم");
     expect(metadata.description).toContain("فضي");
   });
