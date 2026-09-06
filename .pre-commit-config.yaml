@@ -110,3 +110,12 @@ repos:
         language: system
         files: '^specs/.*/tasks\.md$'
         pass_filenames: false
+
+      # `LANGUAGE_CODE = "ar"` يعرض `10000.00` كـ`10000,00`. ومن يطابق شاشةً
+      # بدفترٍ لا يُطلب منه أن يفكّ تحويل عرضٍ في رأسه.
+      - id: console-money-is-shown-raw
+        name: money on screen matches the ledger
+        entry: uv run --directory backend python ../ops/checks/console_money_is_shown_raw.py
+        language: system
+        files: '^backend/templates/console/.*\.html$'
+        pass_filenames: false

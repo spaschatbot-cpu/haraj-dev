@@ -1,4 +1,5 @@
 {% extends "console/base.html" %}
+{% load l10n %}
 {% block title %}محاولات الدفع{% endblock %}
 {% block heading %}محاولات الدفع عبر البوابة{% endblock %}
 {% block content %}
@@ -11,6 +12,10 @@
     <button type="submit">ابحث</button>
   </form>
 
+  <div class="notice">
+    قراءةٌ فقط: تحريكُ مالٍ لمحاولةٍ فاشلة له صلاحيتُه وشاشتُه.
+  </div>
+
   <table>
     <thead>
       <tr><th>المرجع</th><th>العميل</th><th>المبلغ</th><th>الغرض</th>
@@ -22,15 +27,15 @@
           <td>{{ row.intent.reference }}</td>
           <td><a href="{% url 'console:customer-detail' row.intent.user.pk %}">{{ row.intent.user.full_name }}</a>
               — {{ row.intent.user.phone }}</td>
-          <td>{{ row.intent.amount }}</td>
+          <td class="money">{{ row.intent.amount|unlocalize }}</td>
           <td>{{ row.intent.get_purpose_display }}</td>
           <td>
             {{ row.intent.get_state_display }}
             {% if row.stale %}<strong>— لم تُكمَل</strong>{% endif %}
             {% if row.unposted %}<strong>— نجحت ولم تُقيَّد</strong>{% endif %}
           </td>
-          <td>{{ row.intent.gateway_status_raw|default:"—" }}</td>
-          <td>{{ row.intent.resulting_transaction_id|default:"—" }}</td>
+          <td class="money">{{ row.intent.gateway_status_raw|default:"—" }}</td>
+          <td class="money">{{ row.intent.resulting_transaction_id|default:"—" }}</td>
           <td>{{ row.intent.created_at }}</td>
         </tr>
       {% empty %}
