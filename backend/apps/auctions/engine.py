@@ -191,6 +191,11 @@ class VehicleTally:
         return self.by_state.get(state, 0)
 
     @property
+    def offered(self) -> int:
+        """ما هو معروض للمزايدة حالياً — مدرجة أو تحت المزايدة."""
+        return self.of(VehicleState.LISTED) + self.of(VehicleState.BIDDING)
+
+    @property
     def awaiting_decision(self) -> int:
         return self.of(VehicleState.AWAITING_DECISION)
 

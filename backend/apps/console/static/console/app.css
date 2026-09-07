@@ -2436,3 +2436,213 @@ form[method="get"] .advanced-panel label {
 }
 .bar > i { display: block; block-size: 100%; background: var(--ok); border-radius: 999px; }
 .bar--warn > i { background: var(--warn); }
+
+/* ---- شاشة تفاصيل المزاد وتوزيع عناصره — T850 ---- */
+
+/* كارت المزاد الرئيسي والشبكة الوصفية */
+.auction-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  margin-block-end: 1.25rem;
+}
+.auction-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .8rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.auction-card__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.auction-card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.auction-card__badges {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+}
+.auction-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12.5rem, 100%), 1fr));
+  gap: .75rem;
+  margin-block-start: 1rem;
+}
+.auction-meta-item {
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: .65rem .9rem;
+}
+.auction-meta-label {
+  display: block;
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-block-end: .25rem;
+}
+.auction-meta-value {
+  display: block;
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* لوحة إدارة العمليات ودورة الحياة */
+.operations-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.15rem 1.4rem;
+  margin-block-end: 1.4rem;
+}
+.operations-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-block-end: 1rem;
+  padding-block-end: .75rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.operations-panel__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.operations-form__fields {
+  display: flex;
+  align-items: flex-end;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.operations-form__fields .field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex: 1;
+  min-inline-size: 14rem;
+}
+.operations-form__fields label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.operations-form__fields input,
+.operations-form__fields select {
+  inline-size: 100%;
+  max-inline-size: none;
+}
+.operations-idle {
+  padding: .65rem .9rem;
+  background: var(--raised);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: .84rem;
+}
+.operations-blocked {
+  margin-block-start: .9rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px dashed var(--line);
+}
+.operations-blocked__label {
+  display: block;
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-block-end: .45rem;
+}
+.operations-blocked__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.operations-blocked__list li {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--raised);
+  padding: .25rem .6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  font-size: .78rem;
+}
+.blocked-reason {
+  color: var(--muted);
+}
+
+/* أزرار مساعدة */
+.btn-danger-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .75rem;
+  border: 1px solid var(--danger-line);
+  border-radius: .4rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease;
+}
+.btn-danger-sm:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-sm:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.code-font {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .78rem;
+  direction: ltr;
+  display: inline-block;
+}
+.pill--count {
+  background: var(--line-soft);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+

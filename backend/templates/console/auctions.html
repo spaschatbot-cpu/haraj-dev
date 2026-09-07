@@ -258,8 +258,8 @@ have to undo one in their head.
                   </button>
                 {% endwith %}
               {% endif %}
-              {% with icon=action_icons.delete %}
-                <a href="{% url 'console:auction-edit' auction.pk %}" class="act act--del" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              {% with icon=action_icons.edit %}
+                <a href="{% url 'console:auction-edit' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </a>
               {% endwith %}

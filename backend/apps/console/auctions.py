@@ -262,9 +262,22 @@ def auction_detail(request, pk: int):
     """
     auction = get_object_or_404(with_vehicle_counts(Auction.objects.all()), pk=pk)
 
+    if wants_export(request):
+        from apps.auctions.importexport import export_vehicles
+
+        from .exports import workbook_response
+
+        return workbook_response(
+            export_vehicles(engine.vehicle_rows(auction)),
+            name=f"auction_{auction.number}_vehicles",
+        )
+
     view = engine.snapshot(auction)
     page = _page(request, engine.vehicle_rows(auction))
     with_tones(page.object_list)
+
+    allowed_operations = [op for op in view.operations if op.allowed]
+    blocked_operations = [op for op in view.operations if not op.allowed]
 
     return render(
         request,
@@ -273,12 +286,20 @@ def auction_detail(request, pk: int):
             "auction": auction,
             "page": page,
             "view": view,
+            "allowed_operations": allowed_operations,
+            "blocked_operations": blocked_operations,
             # النغمةُ تُحسب هنا لا في القالب: `tones.with_tones` يقول لماذا —
             # قالبٌ يحسب نغمةً مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
             "phase_tone": tone_of_phase(view.phase),
+            "badge": engine.badge_of(auction),
             "badge_label": engine.Badge(engine.badge_of(auction)).label,
             "badge_tone": engine.BADGE_TONES.get(engine.badge_of(auction), ""),
             "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
+            "action_icons": {
+                "view": icons.path_of("car"),
+                "edit": icons.path_of("pencil"),
+                "end": icons.path_of("square"),
+            },
         },
     )
 
