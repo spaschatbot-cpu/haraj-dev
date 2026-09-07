@@ -19,6 +19,7 @@ urlpatterns = [
         name="place-bid",
     ),
     path("bids/mine/", views.MyBidsView.as_view(), name="my-bids"),
+    path("bids/quote/", views.BidQuoteView.as_view(), name="bid-quote"),
     path(
         "participations/",
         views.MyParticipationsView.as_view(),

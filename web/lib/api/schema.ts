@@ -225,6 +225,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bids/quote/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * السعر مع الضريبة
+         * @description `POST /api/v1/bids/quote/` — «السعر + الضريبة (15%)» لمبلغٍ يُكتب الآن.
+         *
+         *     نافذةُ v1 تعرض سطراً يتغيّر مع كل حرفٍ يكتبه المزايد: «السعر + الضريبة
+         *     (15%): ٠ ر.س». في v1 يُحسب في المتصفّح؛ **وهنا لا يمكن أن يُحسب هناك**
+         *     و`ops/checks/web_money_is_never_computed.mjs` يمنعه بحقّ — نسخةٌ ثانية من
+         *     معادلة الضريبة تختلف عن الأولى يوم تتغيّر النسبة، وتختلف صامتة.
+         *
+         *     فالرقم يُطلَب. رحلةٌ إلى الخادم لضربتين، نعم — والثمن مقصود: النسبة يقولها
+         *     `money.tax_added_to` وحدها، ومبلغٌ يقبله هذا العرض هو مبلغٌ تقبله
+         *     المزايدة لأن النمط واحد.
+         *
+         *     **ولا يكتب شيئاً**: لا قيد، ولا مزايدة، ولا صفّ. `POST` لأن المبلغ جسمٌ
+         *     لا يُوضع في مسار — مبالغُ العملاء لا تُكتب في عناوين تُسجَّل في كل وسيط
+         *     بينهم وبيننا.
+         *
+         *     ويحتاج جلسةً كما تحتاجها المزايدة نفسها: الشاشة التي تعرض هذا السطر هي
+         *     الشاشة التي فيها صندوق المزايدة، ولا تُعرَض لزائرٍ غير داخل.
+         */
+        post: operations["bids_quote"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/devices/": {
         parameters: {
             query?: never;
@@ -439,6 +475,17 @@ export interface paths {
          *     After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
          *     stream that lives forever outlives the deploy that replaced the code running
          *     it, and the reconnect is what gets the customer onto the current version.
+         *
+         *     ‏`renderer_classes` وسببه
+         *     -------------------------
+         *     ‏`EventSource` يرسل `Accept: text/event-stream` ولا يقبل غيره. وDRF يفاوض
+         *     على النوع **قبل** أن يصل الطلبُ هذه الدالة، فيقارنه بمُصيّراته — وليس فيها
+         *     هذا النوع — ويردّ **406** بلا أن يُنفَّذ سطرٌ هنا. والنتيجة أن الصفحة تكتب
+         *     «انقطع الاتصال» على خادمٍ سليم، وأن `curl` بلا `Accept` ينجح فيبدو العطل
+         *     في المتصفّح وحده.
+         *
+         *     والمُصيّر أدناه لا يُصيّر شيئاً: الجسم `StreamingHttpResponse` يخرج كما
+         *     هو. وجودُه إعلانٌ للمفاوَضة بأن هذا النوع مقبول، لا طبقةُ تحويل.
          */
         get: operations["live_updates"];
         put?: never;
@@ -681,6 +728,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/vehicles/{id}/images/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * صور المركبة
+         * @description `GET /api/v1/vehicles/{id}/images/` — معرض صور المركبة. HR-12ب.
+         *
+         *     الطبقتان (بطاقة ومعاينة) تُولَّدان منذ HR-12 وتُخزَّنان على القرص، **ولم
+         *     تكن لهما قناة**: الكرت يحمل صورة الغلاف بمقاس بطاقةٍ واحدة، وشاشة
+         *     التفاصيل كانت تُكبّرها. هذه هي القناة.
+         *
+         *     **ونقطةٌ منفصلة لا حقلٌ على الكرت**، وهو القرار الذي علّقه HR-12ب:
+         *     T609 يشترط أن تُعيد التفاصيل حقول القائمة نفسها، فتوسيعُ الكرت بمصفوفة
+         *     صورٍ يخالفه ويحتاج استثناءً مكتوباً في `one_vehicle_card`. والأهمّ أنه
+         *     يُثقل ما لا يحتاج: صفحةُ خمسين سيارةً بتسع صورٍ لكلٍّ تحمل أربعمئة صفٍّ
+         *     لتُقرأ منها تسعةٌ حين يُضغط كرتٌ واحد. فالكرت كما هو، والمعرض بطلبه.
+         *
+         *     الرؤية هي رؤية المركبة نفسها (`visible_vehicles`)، وسيارةٌ لا يراها
+         *     المتصل **404** لا 403 — تأكيدُ وجود الصفّ وحده يكفي لعدّ مزادٍ قبل أن
+         *     يُفتح.
+         */
+        get: operations["vehicles_images_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet/": {
         parameters: {
             query?: never;
@@ -849,6 +930,20 @@ export interface components {
         BidPage: {
             total: number;
             results: components["schemas"]["Bid"][];
+        };
+        /** @description ما يصير عليه المبلغ بعد الضريبة — من `money.tax_added_to` وحدها. */
+        BidQuote: {
+            amount: string;
+            tax: string;
+            total: string;
+        };
+        /** @description المبلغ الذي يكتبه المزايد، نصّاً.
+         *
+         *     النمط نفسه الذي يقبله `PlaceBidSerializer` حرفاً بحرف: الشاشة التي تعرض
+         *     «السعر + الضريبة» هي الشاشة التي تُرسِل المزايدة، فمبلغٌ يقبله العرض
+         *     وترفضه المزايدة وعدٌ بخطأٍ بعد أن يقرأ العميل رقماً. */
+        BidQuoteRequest: {
+            amount: string;
         };
         /** @enum {unknown} */
         BlankEnum: "";
@@ -1328,8 +1423,28 @@ export interface components {
             condition: string;
             condition_label: string;
             location: string;
+            admin_fee: string;
+            admin_fee_with_vat: string;
             state: string;
             thumbnail_url: string | null;
+        };
+        /** @description صورةٌ واحدة بطبقاتها — **وليست كرتاً**.
+         *
+         *     ثلاثة حقول لا يحمل أيّها اسمَ عمودٍ على المركبة، فلا يخلطها
+         *     `ops/checks/one_vehicle_card.py` بكرت. وهي منفصلة عن الكرت عمداً:
+         *     T609 يقول «التفاصيل نفس حقول القائمة»، وقائمةٌ من خمسين سيارة تحمل كلٌّ
+         *     منها تسع صور بثلاث طبقات هي حمولةٌ تُرسَل كلَّ مرّة لتُقرأ مرّةً واحدة
+         *     (وهذا هو HR-12ب: الطبقة موجودة على القرص ولا قناة تصل إليها). */
+        VehicleImage: {
+            id: number;
+            thumbnail_url: string | null;
+            preview_url: string | null;
+            is_cover: boolean;
+        };
+        /** @description صور مركبةٍ واحدة، وعددها — والعدّاد `1 / 9` في v1 يقرأ `total`. */
+        VehicleImages: {
+            total: number;
+            results: components["schemas"]["VehicleImage"][];
         };
         /** @description A page of cars, its total, and the three tab counters.
          *
@@ -1633,6 +1748,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BidPage"];
+                };
+            };
+        };
+    };
+    bids_quote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BidQuoteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["BidQuoteRequest"];
+                "multipart/form-data": components["schemas"]["BidQuoteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BidQuote"];
                 };
             };
         };
@@ -2122,6 +2262,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Bid"];
+                };
+            };
+        };
+    };
+    vehicles_images_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VehicleImages"];
                 };
             };
         };

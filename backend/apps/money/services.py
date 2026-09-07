@@ -1595,20 +1595,34 @@ def tax_of(invoice: Invoice) -> TaxBreakdown:
     a total stops equalling its own parts, and an invoice whose lines do not add
     up to its total is one no auditor accepts.
     """
-    rate = vat_rate()
     amount = invoice.amount
-    inclusive = invoice.source == InvoiceSource.ODOO_SYNC
+    if invoice.source == InvoiceSource.ODOO_SYNC:
+        base = _to_money(amount / (Decimal(1) + vat_rate()))
+        return TaxBreakdown(
+            base=base, tax=amount - base, total=amount, amount_was_inclusive=True
+        )
+    return tax_added_to(amount)
 
-    if inclusive:
-        base = _to_money(amount / (Decimal(1) + rate))
-        tax = amount - base
-        total = amount
-    else:
-        base = amount
-        tax = _to_money(base * rate)
-        total = base + tax
 
-    return TaxBreakdown(base=base, tax=tax, total=total, amount_was_inclusive=inclusive)
+def tax_added_to(amount: Decimal) -> TaxBreakdown:
+    """الضريبة على مبلغٍ **لا يحملها بعد** — والمضاعفةُ هنا وحدها.
+
+    :func:`tax_of` تسأل عن **فاتورة**، وهي السؤال الصحيح في تسعة مواضع من
+    عشرة لأن `Invoice.source` هو ما يقرّر أمشمولةٌ الضريبة أم لا. لكن شاشة
+    المزايدة تسأل عن مبلغٍ لا فاتورة له بعد: «رسوم إدارية ٨٠٠، فكم مع
+    الضريبة؟» و«السعر الذي كتبتُه، كم يصير؟» — ولا فاتورة تُنشأ لتُسأل.
+
+    فبدل أن يضرب النداءُ الجديد بالنسبة عنده — وهو ما يمنعه
+    `ops/checks/one_tax_rule.py` ومعه حقّ — الضربُ هنا، ويناديها
+    :func:`tax_of` نفسها في فرعها غير المشمول. موضعٌ واحدٌ يضرب، واثنان
+    يسألان.
+
+    والتقريب `ROUND_HALF_UP` إلى منزلتين، والضريبة تُشتقّ من الأساس لا
+    يُقرَّبان مستقلَّين: تقريبُهما معاً هو كيف يكفّ المجموع عن مساواة أجزائه.
+    """
+    base = _to_money(amount)
+    tax = _to_money(base * vat_rate())
+    return TaxBreakdown(base=base, tax=tax, total=base + tax, amount_was_inclusive=False)
 
 
 def _to_money(value: Decimal) -> Decimal:

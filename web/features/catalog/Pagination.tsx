@@ -35,25 +35,43 @@ export function Pagination({ query, total, limit, offset, path }: Props) {
   }
 
   return (
-    <nav className="mt-8 flex items-center justify-between gap-4 text-sm" aria-label="صفحات">
+    /*
+      شريطٌ في بطاقةٍ كبقيّة الشاشة (T1032). والطرفان يبقيان مرسومَين حين لا
+      يعملان — رماديّين لا غائبين: أزرارٌ تختفي وتظهر تجعل موضع «التالي» يقفز
+      بين صفحةٍ وأخرى، فيُضغط ما لم يُقصد.
+    */
+    <nav
+      className="mt-6 flex items-center justify-between gap-4 rounded-xl bg-surface-lowest p-3 text-label-md shadow-sm"
+      aria-label="صفحات"
+    >
       {offset > 0 ? (
-        <Link href={href(offset - limit)} className="underline" rel="prev">
-          الصفحة السابقة
+        <Link
+          href={href(offset - limit)}
+          className="rounded-lg bg-surface-container px-5 py-2 transition-colors hover:bg-surface-high"
+          rel="prev"
+        >
+          السابق
         </Link>
       ) : (
-        <span className="text-neutral-500">الصفحة السابقة</span>
+        <span className="px-5 py-2 text-outline">السابق</span>
       )}
 
-      <span className="text-neutral-600">
-        صفحة {page} من {pages} · {total} نتيجة
+      <span className="select-none text-center">
+        صفحة <span className="tnum">{page}</span> من{" "}
+        <span className="tnum">{pages}</span> ·{" "}
+        <span className="tnum">{total}</span> نتيجة
       </span>
 
       {offset + limit < total ? (
-        <Link href={href(offset + limit)} className="underline" rel="next">
-          الصفحة التالية
+        <Link
+          href={href(offset + limit)}
+          className="rounded-lg bg-surface-container px-5 py-2 transition-colors hover:bg-surface-high"
+          rel="next"
+        >
+          التالي
         </Link>
       ) : (
-        <span className="text-neutral-500">الصفحة التالية</span>
+        <span className="px-5 py-2 text-outline">التالي</span>
       )}
     </nav>
   );

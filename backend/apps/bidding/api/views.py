@@ -20,6 +20,7 @@ Two things this file deliberately does *not* offer:
 from __future__ import annotations
 
 import time
+from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Count
@@ -29,6 +30,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.renderers import BaseRenderer
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -39,10 +41,13 @@ from apps.auctions.visibility import visible_vehicles
 from apps.bidding import live, services
 from apps.bidding.models import Bid
 from apps.bidding.throttling import BID_THROTTLES
+from apps.money import services as money
 from apps.money.models import Hold, HoldState
 
 from .serializers import (
     BidPageSerializer,
+    BidQuoteRequestSerializer,
+    BidQuoteSerializer,
     BidSerializer,
     MyBidsQuerySerializer,
     PageQuerySerializer,
@@ -113,6 +118,52 @@ class PlaceBidView(APIView):
             confirm_lower=payload.validated_data["confirm_lower"],
         )
         return Response(BidSerializer(bid_row(bid)).data, status=status.HTTP_201_CREATED)
+
+
+class BidQuoteView(APIView):
+    """`POST /api/v1/bids/quote/` — «السعر + الضريبة (15%)» لمبلغٍ يُكتب الآن.
+
+    نافذةُ v1 تعرض سطراً يتغيّر مع كل حرفٍ يكتبه المزايد: «السعر + الضريبة
+    (15%): ٠ ر.س». في v1 يُحسب في المتصفّح؛ **وهنا لا يمكن أن يُحسب هناك**
+    و`ops/checks/web_money_is_never_computed.mjs` يمنعه بحقّ — نسخةٌ ثانية من
+    معادلة الضريبة تختلف عن الأولى يوم تتغيّر النسبة، وتختلف صامتة.
+
+    فالرقم يُطلَب. رحلةٌ إلى الخادم لضربتين، نعم — والثمن مقصود: النسبة يقولها
+    `money.tax_added_to` وحدها، ومبلغٌ يقبله هذا العرض هو مبلغٌ تقبله
+    المزايدة لأن النمط واحد.
+
+    **ولا يكتب شيئاً**: لا قيد، ولا مزايدة، ولا صفّ. `POST` لأن المبلغ جسمٌ
+    لا يُوضع في مسار — مبالغُ العملاء لا تُكتب في عناوين تُسجَّل في كل وسيط
+    بينهم وبيننا.
+
+    ويحتاج جلسةً كما تحتاجها المزايدة نفسها: الشاشة التي تعرض هذا السطر هي
+    الشاشة التي فيها صندوق المزايدة، ولا تُعرَض لزائرٍ غير داخل.
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = BID_THROTTLES
+
+    @extend_schema(
+        operation_id="bids_quote",
+        request=BidQuoteRequestSerializer,
+        responses={200: BidQuoteSerializer},
+        summary="السعر مع الضريبة",
+    )
+    def post(self, request: Request) -> Response:
+        payload = BidQuoteRequestSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+
+        split = money.tax_added_to(Decimal(payload.validated_data["amount"]))
+        return Response(
+            BidQuoteSerializer(
+                {
+                    "amount": f"{split.base:.2f}",
+                    "tax": f"{split.tax:.2f}",
+                    "total": f"{split.total:.2f}",
+                }
+            ).data,
+            status=status.HTTP_200_OK,
+        )
 
 
 class WithdrawBidView(APIView):
@@ -285,6 +336,17 @@ def participation_row(auction, *, bids_count: int, hold) -> dict:
     }
 
 
+class EventStreamRenderer(BaseRenderer):
+    """‏`text/event-stream` نوعٌ مقبول — وإلا ردّت المفاوَضة 406 قبل الدالة."""
+
+    media_type = "text/event-stream"
+    format = "txt"
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        #: لا يُنادى أصلاً: الجواب `StreamingHttpResponse` يتجاوز التصيير.
+        return data
+
+
 class LiveUpdatesView(APIView):
     """`GET /api/v1/live/` — server-sent events for the signed-in caller.
 
@@ -312,9 +374,21 @@ class LiveUpdatesView(APIView):
     After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
     stream that lives forever outlives the deploy that replaced the code running
     it, and the reconnect is what gets the customer onto the current version.
+
+    ‏`renderer_classes` وسببه
+    -------------------------
+    ‏`EventSource` يرسل `Accept: text/event-stream` ولا يقبل غيره. وDRF يفاوض
+    على النوع **قبل** أن يصل الطلبُ هذه الدالة، فيقارنه بمُصيّراته — وليس فيها
+    هذا النوع — ويردّ **406** بلا أن يُنفَّذ سطرٌ هنا. والنتيجة أن الصفحة تكتب
+    «انقطع الاتصال» على خادمٍ سليم، وأن `curl` بلا `Accept` ينجح فيبدو العطل
+    في المتصفّح وحده.
+
+    والمُصيّر أدناه لا يُصيّر شيئاً: الجسم `StreamingHttpResponse` يخرج كما
+    هو. وجودُه إعلانٌ للمفاوَضة بأن هذا النوع مقبول، لا طبقةُ تحويل.
     """
 
     permission_classes = [IsAuthenticated]
+    renderer_classes = [EventStreamRenderer]
 
     @extend_schema(
         operation_id="live_updates",

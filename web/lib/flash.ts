@@ -24,7 +24,8 @@ import type { cookies } from "next/headers";
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
-const FLASH_COOKIE = "haraj_flash";
+/** الاسم يُصدَّر لأن `middleware.ts` هو من يمسحه الآن. */
+export const FLASH_COOKIE = "haraj_flash";
 
 //: Long enough to survive a redirect on a slow connection, short enough that a
 //: refusal cannot resurface in a session somebody comes back to later.
@@ -56,17 +57,28 @@ export function setFlash(store: CookieStore, flash: Flash): void {
 }
 
 /**
- * Read the flash and clear it, in one call.
+ * اقرأ الرسالة. **ولا تحذفها** — والحذف ليس مكانه هنا.
  *
- * Reading without clearing is how a message ends up shown twice — once on the
- * page it was meant for and again on the next one the visitor opens — and the
- * two callers who would have to remember to clear it are the two who forget.
+ * كانت تُسمّى `takeFlash` وتحذف الكوكي في السطر التالي للقراءة، ومنادوها
+ * السبعة كلّهم **مكوّنات خادم**. وNext يمنع تعديل كوكي في رندرة، فكان كل فعلٍ
+ * يضع رسالةً ثم يحوّل يُنتج **خطأ خادم** على الصفحة التي حوّل إليها:
+ *
+ *   Error: Cookies can only be modified in a Server Action or Route Handler
+ *
+ * أي أن مزايدةً مرفوضة، وسحبَ مزايدة، وشحنَ محفظة، وطلبَ استرداد — كلّها
+ * تنتهي بشاشة خطأ بدل جملة الخادم. قِيس في المتصفّح (2026-09-07): ضغطتُ
+ * «دخول المزاد» فجاء `500` ورقمه `734850254@E1180`.
+ *
+ * **ولم يكشفه اختبار** لأن الاختبارات تستبدل `next/headers` بمخزنٍ متساهل
+ * يقبل الحذف في أي وقت — فمرّت سبع شاشات خضراءَ على عطلٍ يقع في كل مرة.
+ *
+ * فالحذف انتقل إلى `middleware.ts`: يمسحه من **الرد** على كل تنقّلٍ إلى
+ * وثيقة. والدلالة تبقى «مرة واحدة» كما كانت: الطلب يحمل الكوكي فتقرؤه
+ * الرندرة، والرد يمسحه فلا يصل التنقّل التالي.
  */
-export function takeFlash(store: CookieStore): Flash | null {
+export function readFlash(store: CookieStore): Flash | null {
   const raw = store.get(FLASH_COOKIE)?.value;
   if (!raw) return null;
-
-  store.delete(FLASH_COOKIE);
 
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -86,8 +98,8 @@ export function takeFlash(store: CookieStore): Flash | null {
     }
   } catch {
     // A cookie we cannot read is a cookie from an older version of this code,
-    // or one somebody edited. Either way it has already been deleted above, and
-    // showing nothing is the right outcome.
+    // or one somebody edited. The middleware clears it either way, and showing
+    // nothing is the right outcome.
   }
   return null;
 }

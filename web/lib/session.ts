@@ -52,22 +52,40 @@ function options(maxAge: number) {
   };
 }
 
-//: How long each cookie is kept by the browser. These are storage lifetimes,
-//: not authority: the backend decides whether a token is still valid, and it is
-//: the only thing that can. Keeping the cookie a little beyond the token's life
-//: is deliberate — an expired access token can be refreshed, while a missing
-//: cookie looks exactly like signing out.
-const ACCESS_MAX_AGE = 60 * 60 * 24;
+/**
+ * عمرُ كوكي الوصول = **عمرُ الرمز الذي فيه**، لا أكثر.
+ *
+ * كان يوماً كاملاً بينما الرمز خمس عشرة دقيقة، والنيّة مكتوبة: «الكوكي يعيش
+ * أطول لأن الرمز المنتهي يمكن تحديثه». لكن **لم يُكتب من يحدّثه** —
+ * `refreshToken()` لم يكن ينادِيها أحد — فكانت النتيجة أن `hasSession` تقول
+ * «داخل» ثلاثاً وعشرين ساعةً وثلاثة أرباع بعد موت الرمز: الشاشة تعرض صندوق
+ * المزايدة، وكل فعلٍ يردّ 401، والعميل لا يُقال له شيء. قِيس في المتصفّح
+ * (2026-09-07): صفحةٌ كاملة بصندوق مزايدة، وزرٌّ يُنتج خطأ خادم.
+ *
+ * فصار غيابُ الكوكي **هو** إشارة الانتهاء، وعليه يعمل `middleware.ts`. ومن
+ * يريد الفرق بين «انتهى» و«خرج» يقرأ كوكي التحديث: هو الباقي ثلاثين يوماً.
+ *
+ * و`expires_in` من الخادم لا رقمٌ مكتوب هنا: الرمزُ عمرُه إعدادٌ في الخلفية
+ * (`ACCESS_TOKEN_TTL_SECONDS`)، ونسخةٌ ثانية منه في الويب تختلف عنه يوم
+ * يُعدَّل، بصمت.
+ */
+const ACCESS_FALLBACK_MAX_AGE = 15 * 60;
 const REFRESH_MAX_AGE = 60 * 60 * 24 * 30;
 
 export interface Tokens {
   access: string;
   refresh?: string;
+  /** عمر رمز الوصول بالثواني كما قاله الخادم. */
+  expiresIn?: number;
 }
 
 /** Write the session. Called from route handlers only — never from a component. */
 export function setSession(store: CookieStore, tokens: Tokens): void {
-  store.set(ACCESS_COOKIE, tokens.access, options(ACCESS_MAX_AGE));
+  //: ثانيتان تُطرحان: بين لحظة إصدار الخادم ووصول الرد إلى المتصفّح زمنُ
+  //: شبكة، وكوكي يعيش إلى آخر ثانيةٍ في الرمز يعني نداءً أخيراً يذهب برمزٍ
+  //: مات في الطريق — وهو 401 بلا سبب ظاهر.
+  const life = Math.max((tokens.expiresIn ?? ACCESS_FALLBACK_MAX_AGE) - 2, 1);
+  store.set(ACCESS_COOKIE, tokens.access, options(life));
   if (tokens.refresh) {
     store.set(REFRESH_COOKIE, tokens.refresh, options(REFRESH_MAX_AGE));
   }
@@ -104,6 +122,17 @@ export function refreshToken(store: CookieStore): string | undefined {
  */
 export function hasSession(store: CookieStore): boolean {
   return accessToken(store) !== undefined;
+}
+
+/**
+ * هل يستطيع هذا الزائر **استعادة** جلسته وإن مات رمز وصوله؟
+ *
+ * يفرّق بين «انتهى رمزه» و«خرج»: الأول كوكي تحديثٍ باقٍ بلا كوكي وصول،
+ * والثاني لا كوكي أصلاً. و`middleware.ts` يقرؤها ليقرّر أيبدّل الرمز أم يدع
+ * الزائر يتصفّح كزائر.
+ */
+export function canRestoreSession(store: CookieStore): boolean {
+  return !hasSession(store) && refreshToken(store) !== undefined;
 }
 
 /** The `Authorization` header for a server-side call, or nothing. */

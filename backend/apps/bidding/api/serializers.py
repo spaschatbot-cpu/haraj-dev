@@ -115,3 +115,25 @@ class ParticipationSerializer(serializers.Serializer):
 class ParticipationPageSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     results = ParticipationSerializer(many=True)
+
+
+class BidQuoteRequestSerializer(serializers.Serializer):
+    """المبلغ الذي يكتبه المزايد، نصّاً.
+
+    النمط نفسه الذي يقبله `PlaceBidSerializer` حرفاً بحرف: الشاشة التي تعرض
+    «السعر + الضريبة» هي الشاشة التي تُرسِل المزايدة، فمبلغٌ يقبله العرض
+    وترفضه المزايدة وعدٌ بخطأٍ بعد أن يقرأ العميل رقماً.
+    """
+
+    amount = serializers.RegexField(
+        r"^\d{1,12}(\.\d{1,2})?$",
+        error_messages={"invalid": "المبلغ لازم يكون رقماً بريالات وهللات."},
+    )
+
+
+class BidQuoteSerializer(serializers.Serializer):
+    """ما يصير عليه المبلغ بعد الضريبة — من `money.tax_added_to` وحدها."""
+
+    amount = serializers.CharField()
+    tax = serializers.CharField()
+    total = serializers.CharField()

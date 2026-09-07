@@ -413,6 +413,52 @@ paths:
               schema:
                 $ref: '#/components/schemas/BidPage'
           description: ''
+  /api/v1/bids/quote/:
+    post:
+      operationId: bids_quote
+      description: |-
+        `POST /api/v1/bids/quote/` — «السعر + الضريبة (15%)» لمبلغٍ يُكتب الآن.
+
+        نافذةُ v1 تعرض سطراً يتغيّر مع كل حرفٍ يكتبه المزايد: «السعر + الضريبة
+        (15%): ٠ ر.س». في v1 يُحسب في المتصفّح؛ **وهنا لا يمكن أن يُحسب هناك**
+        و`ops/checks/web_money_is_never_computed.mjs` يمنعه بحقّ — نسخةٌ ثانية من
+        معادلة الضريبة تختلف عن الأولى يوم تتغيّر النسبة، وتختلف صامتة.
+
+        فالرقم يُطلَب. رحلةٌ إلى الخادم لضربتين، نعم — والثمن مقصود: النسبة يقولها
+        `money.tax_added_to` وحدها، ومبلغٌ يقبله هذا العرض هو مبلغٌ تقبله
+        المزايدة لأن النمط واحد.
+
+        **ولا يكتب شيئاً**: لا قيد، ولا مزايدة، ولا صفّ. `POST` لأن المبلغ جسمٌ
+        لا يُوضع في مسار — مبالغُ العملاء لا تُكتب في عناوين تُسجَّل في كل وسيط
+        بينهم وبيننا.
+
+        ويحتاج جلسةً كما تحتاجها المزايدة نفسها: الشاشة التي تعرض هذا السطر هي
+        الشاشة التي فيها صندوق المزايدة، ولا تُعرَض لزائرٍ غير داخل.
+      summary: السعر مع الضريبة
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BidQuoteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BidQuoteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BidQuoteRequest'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidQuote'
+          description: ''
   /api/v1/devices/:
     get:
       operationId: devices_list
@@ -714,6 +760,17 @@ paths:
         After `MAX_STREAM_SECONDS` the server closes and the client reconnects. A
         stream that lives forever outlives the deploy that replaced the code running
         it, and the reconnect is what gets the customer onto the current version.
+
+        ‏`renderer_classes` وسببه
+        -------------------------
+        ‏`EventSource` يرسل `Accept: text/event-stream` ولا يقبل غيره. وDRF يفاوض
+        على النوع **قبل** أن يصل الطلبُ هذه الدالة، فيقارنه بمُصيّراته — وليس فيها
+        هذا النوع — ويردّ **406** بلا أن يُنفَّذ سطرٌ هنا. والنتيجة أن الصفحة تكتب
+        «انقطع الاتصال» على خادمٍ سليم، وأن `curl` بلا `Accept` ينجح فيبدو العطل
+        في المتصفّح وحده.
+
+        والمُصيّر أدناه لا يُصيّر شيئاً: الجسم `StreamingHttpResponse` يخرج كما
+        هو. وجودُه إعلانٌ للمفاوَضة بأن هذا النوع مقبول، لا طبقةُ تحويل.
       summary: التحديث الحي
       tags:
       - v1
@@ -1132,6 +1189,45 @@ paths:
               schema:
                 $ref: '#/components/schemas/Bid'
           description: ''
+  /api/v1/vehicles/{id}/images/:
+    get:
+      operationId: vehicles_images_list
+      description: |-
+        `GET /api/v1/vehicles/{id}/images/` — معرض صور المركبة. HR-12ب.
+
+        الطبقتان (بطاقة ومعاينة) تُولَّدان منذ HR-12 وتُخزَّنان على القرص، **ولم
+        تكن لهما قناة**: الكرت يحمل صورة الغلاف بمقاس بطاقةٍ واحدة، وشاشة
+        التفاصيل كانت تُكبّرها. هذه هي القناة.
+
+        **ونقطةٌ منفصلة لا حقلٌ على الكرت**، وهو القرار الذي علّقه HR-12ب:
+        T609 يشترط أن تُعيد التفاصيل حقول القائمة نفسها، فتوسيعُ الكرت بمصفوفة
+        صورٍ يخالفه ويحتاج استثناءً مكتوباً في `one_vehicle_card`. والأهمّ أنه
+        يُثقل ما لا يحتاج: صفحةُ خمسين سيارةً بتسع صورٍ لكلٍّ تحمل أربعمئة صفٍّ
+        لتُقرأ منها تسعةٌ حين يُضغط كرتٌ واحد. فالكرت كما هو، والمعرض بطلبه.
+
+        الرؤية هي رؤية المركبة نفسها (`visible_vehicles`)، وسيارةٌ لا يراها
+        المتصل **404** لا 403 — تأكيدُ وجود الصفّ وحده يكفي لعدّ مزادٍ قبل أن
+        يُفتح.
+      summary: صور المركبة
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VehicleImages'
+          description: ''
   /api/v1/wallet/:
     get:
       operationId: v1_wallet_retrieve
@@ -1447,6 +1543,34 @@ components:
       required:
       - results
       - total
+    BidQuote:
+      type: object
+      description: ما يصير عليه المبلغ بعد الضريبة — من `money.tax_added_to` وحدها.
+      properties:
+        amount:
+          type: string
+        tax:
+          type: string
+        total:
+          type: string
+      required:
+      - amount
+      - tax
+      - total
+    BidQuoteRequest:
+      type: object
+      description: |-
+        المبلغ الذي يكتبه المزايد، نصّاً.
+
+        النمط نفسه الذي يقبله `PlaceBidSerializer` حرفاً بحرف: الشاشة التي تعرض
+        «السعر + الضريبة» هي الشاشة التي تُرسِل المزايدة، فمبلغٌ يقبله العرض
+        وترفضه المزايدة وعدٌ بخطأٍ بعد أن يقرأ العميل رقماً.
+      properties:
+        amount:
+          type: string
+          pattern: ^\d{1,12}(\.\d{1,2})?$
+      required:
+      - amount
     BlankEnum:
       enum:
       - ''
@@ -2427,12 +2551,18 @@ components:
           type: string
         location:
           type: string
+        admin_fee:
+          type: string
+        admin_fee_with_vat:
+          type: string
         state:
           type: string
         thumbnail_url:
           type: string
           nullable: true
       required:
+      - admin_fee
+      - admin_fee_with_vat
       - auction_ends_at
       - auction_id
       - auction_number
@@ -2455,6 +2585,45 @@ components:
       - thumbnail_url
       - title
       - year
+    VehicleImage:
+      type: object
+      description: |-
+        صورةٌ واحدة بطبقاتها — **وليست كرتاً**.
+
+        ثلاثة حقول لا يحمل أيّها اسمَ عمودٍ على المركبة، فلا يخلطها
+        `ops/checks/one_vehicle_card.py` بكرت. وهي منفصلة عن الكرت عمداً:
+        T609 يقول «التفاصيل نفس حقول القائمة»، وقائمةٌ من خمسين سيارة تحمل كلٌّ
+        منها تسع صور بثلاث طبقات هي حمولةٌ تُرسَل كلَّ مرّة لتُقرأ مرّةً واحدة
+        (وهذا هو HR-12ب: الطبقة موجودة على القرص ولا قناة تصل إليها).
+      properties:
+        id:
+          type: integer
+        thumbnail_url:
+          type: string
+          nullable: true
+        preview_url:
+          type: string
+          nullable: true
+        is_cover:
+          type: boolean
+      required:
+      - id
+      - is_cover
+      - preview_url
+      - thumbnail_url
+    VehicleImages:
+      type: object
+      description: صور مركبةٍ واحدة، وعددها — والعدّاد `1 / 9` في v1 يقرأ `total`.
+      properties:
+        total:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleImage'
+      required:
+      - results
+      - total
     VehiclePage:
       type: object
       description: |-

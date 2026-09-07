@@ -7,13 +7,117 @@
   Tailwind (`ms-*`, `pe-*`, `text-start`) resolves the right way without a
   single rule written twice. RTL added later means rewriting every layout, which
   is why the task says «من أول commit» rather than «قبل الإطلاق».
+
+  ونظام التصميم كلّه هنا — T1032
+  ================================
+  الألوان والخطوط والمسافات والحواف **رموزٌ في مكان واحد**، لا قيمٌ مكتوبة في
+  المكوّنات. سببه هو سبب `cards.py` نفسه (المادة ٤-٥): لونٌ مكتوب في ثلاثة
+  ملفّات هو ثلاثة مواضع تختلف يوم يُعدَّل واحد، والاختلاف لا يُرى في اختبار —
+  يُرى في شاشة، بعد الإطلاق.
+
+  والأسماء **دورٌ لا صبغة**: `surface-container` لا `blue-50`. المكوّن يقول
+  «حاوية» فيبقى صحيحاً لو تغيّرت الصبغة، ويقول «أزرق ٥٠» فيصير كذباً.
 */
 
 @theme {
-  --font-arabic: var(--font-cairo), "Segoe UI", Tahoma, system-ui, sans-serif;
-  --color-ink: #1a1a1a;
-  --color-ground: #fafafa;
-  --color-line: #e5e5e5;
+  /* ------------------------------------------------------------------ خطّ */
+  /*
+    IBM Plex Sans Arabic: عدّادات مفتوحة وأرقامٌ جدولية (`tnum`) تبقى حادّة في
+    جدولٍ كثيف وفي عدّادٍ ينزل كل ثانية — وهو ما تحتاجه هذه الشاشة تحديداً.
+    ومُستضاف ذاتياً عبر `next/font` (انظر `layout.tsx`): لا طلبَ إلى طرفٍ ثالث
+    لرسم صفحةٍ عربية، ولا إعادةَ تدفّقٍ حين يصل خطٌّ متأخّراً.
+  */
+  --font-arabic: var(--font-plex-arabic), "Segoe UI", Tahoma, system-ui, sans-serif;
+
+  /* ---------------------------------------------------------------- ألوان */
+  /* الأسطح: أربع درجات، من الخلفية إلى البطاقة الأعلى. */
+  --color-surface: #f8f9ff;
+  --color-surface-lowest: #ffffff;
+  --color-surface-low: #eff4ff;
+  --color-surface-container: #e6eeff;
+  --color-surface-high: #dde9ff;
+  --color-surface-highest: #d5e3fd;
+
+  /* النصّ على الأسطح. */
+  --color-on-surface: #0d1c2f;
+  --color-on-surface-variant: #45474d;
+  /*
+    ‏`#6e6f75` لا `#76777d` الذي جاءت به لوحة التصميم: ذاك نسبته **٤٫٤٦** على
+    بطاقةٍ بيضاء، أي دون ٤٫٥ — وهو يحمل «السابق» و«التالي» المعطَّلَين ونصَّ
+    الإرشاد في حقول الترشيح. أُعتم درجةً فصار ٥٫٠١، وبقي أفتحَ من
+    `on-surface-variant` فيُقرأ معطَّلاً كما يجب. كشفه
+    `web_colours_are_readable.mjs` حين صار يقيس بدل أن يمنع أسماءً.
+  */
+  --color-outline: #6e6f75;
+  --color-outline-variant: #c6c6cd;
+
+  /* المقلوب — للشارات فوق الصور. */
+  --color-inverse-surface: #233144;
+  --color-inverse-on-surface: #ebf1ff;
+
+  /* الفعل الأساسي (زرّ المزايدة، «طبّق»)، والثانوي (الروابط والتوثيق). */
+  --color-primary: #0b1528;
+  --color-on-primary: #ffffff;
+  --color-secondary: #3755c3;
+  --color-on-secondary: #ffffff;
+  --color-secondary-fixed: #dde1ff;
+  --color-on-secondary-fixed: #173bab;
+
+  /*
+    دلالات دورة المزاد — ثلاث درجات، ولكلٍّ سببٌ زمنيّ لا ذوقيّ:
+
+    * **كهرمانيّ** تحت الساعة: آخر فرصةٍ لشحن المحفظة ووضع مزايدة بلا عجلة؛
+    * **قرمزيّ** تحت العشر دقائق: لا يكفي فيها شيءٌ إلا المزايدة الآن؛
+    * **حياديّ** فوق ذلك: تلوينُ كل عدّادٍ على الشاشة يجعل اللون بلا معنى.
+
+    والتباين **يُقاس ولا يُكتب هنا**: `web_colours_are_readable.mjs` يقرأ هذه
+    الرموز نفسها ويحسب النسبة عند كل تشغيل. رقمٌ منسوخ في تعليقٍ يتقادم يوم
+    يُعدَّل لون، ويُصدَّق وهو كاذب.
+  */
+  --color-warn: #92400e;
+  --color-warn-surface: #fffbeb;
+  --color-warn-line: #fde68a;
+  --color-critical: #991b1b;
+  --color-critical-surface: #fef2f2;
+  --color-critical-line: #fecaca;
+  --color-error: #ba1a1a;
+
+  /* ------------------------------------------------------------ الحوافّ */
+  /*
+    ملفٌّ «ناعم» لا «مستدير»: آلةٌ ثقيلة تُباع بمئة ألف ريال، والحوافّ
+    المفرطة الاستدارة تقرأ تطبيقَ ترفيه.
+  */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* -------------------------------------------------------------- الخطوط */
+  --text-hero: 2.75rem;
+  --text-hero--line-height: 3.5rem;
+  --text-hero--font-weight: 700;
+  --text-headline-lg: 1.75rem;
+  --text-headline-lg--line-height: 2.375rem;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-md: 1.375rem;
+  --text-headline-md--line-height: 2rem;
+  --text-headline-md--font-weight: 600;
+  --text-headline-sm: 1.125rem;
+  --text-headline-sm--line-height: 1.625rem;
+  --text-headline-sm--font-weight: 600;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.625rem;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.375rem;
+  --text-label-md: 0.875rem;
+  --text-label-md--line-height: 1.25rem;
+  --text-label-md--font-weight: 600;
+  --text-label-sm: 0.75rem;
+  --text-label-sm--line-height: 1.125rem;
+  --text-label-sm--font-weight: 600;
+  --text-caption: 0.6875rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
 }
 
 html {
@@ -21,8 +125,8 @@ html {
 }
 
 body {
-  background: var(--color-ground);
-  color: var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
 }
 
 /*
@@ -37,4 +141,15 @@ body {
   direction: ltr;
   unicode-bidi: embed;
   display: inline-block;
+}
+
+/*
+  الأرقام اللاتينية داخل نصٍّ عربيّ — سنةُ صنعٍ ورقمُ موقفٍ وعدّاد.
+
+  ليست `.money`: تلك تمنع الالتفاف وتفرض اتجاهاً لأن المبلغ وحدةٌ لا تُقسَم.
+  وهذه تفعل شيئاً واحداً — أرقامٌ ثابتة العرض — فلا يرقص العدّاد وهو ينزل، ولا
+  يزحف عمودُ «الممشى» بين بطاقةٍ وأخرى.
+*/
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

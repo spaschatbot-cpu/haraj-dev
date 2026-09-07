@@ -16,16 +16,25 @@
  */
 
 import type { Metadata, Viewport } from "next";
-import { Cairo } from "next/font/google";
+import { IBM_Plex_Sans_Arabic } from "next/font/google";
 
 import { EnvironmentBanner } from "@/features/shell/EnvironmentBanner";
 import { environmentName } from "@/lib/environment";
 
 import "./globals.css";
 
-const cairo = Cairo({
+/*
+  IBM Plex Sans Arabic — نظام التصميم (T1032).
+
+  اختير لأمرين تحتاجهما هذه الشاشة بعينها: **عدّادات مفتوحة** تبقى مقروءة في
+  جدول مواصفاتٍ كثيف، و**أرقامٌ جدولية** (`tnum`) تُثبّت عرض الخانة فلا يهتزّ
+  العدّاد وهو ينزل كل ثانية. والأوزان الأربعة كافية للسلّم كلّه؛ خامسٌ يعني
+  ملفّاً إضافياً يُحمَّل لسطرٍ واحد.
+*/
+const plexArabic = IBM_Plex_Sans_Arabic({
   subsets: ["arabic", "latin"],
-  variable: "--font-cairo",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex-arabic",
   display: "swap",
 });
 
@@ -41,7 +50,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl" className={cairo.variable}>
+    <html lang="ar" dir="rtl" className={plexArabic.variable}>
       <body className="min-h-screen antialiased">
         <EnvironmentBanner name={environmentName()} />
         {children}

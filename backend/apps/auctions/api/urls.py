@@ -21,6 +21,11 @@ urlpatterns = [
     ),
     path("vehicles/", views.VehicleListView.as_view(), name="vehicle-list"),
     path("vehicles/<int:pk>/", views.VehicleDetailView.as_view(), name="vehicle-detail"),
+    path(
+        "vehicles/<int:pk>/images/",
+        views.VehicleImageListView.as_view(),
+        name="vehicle-images",
+    ),
     path("favourites/", views.FavouriteListView.as_view(), name="favourite-list"),
     path("favourites/<int:pk>/", views.FavouriteView.as_view(), name="favourite-detail"),
 ]

@@ -40,8 +40,13 @@ export function PhaseTabs({
   }
 
   return (
-    <nav aria-label="حالة المزاد" className="mb-6 border-b border-neutral-200">
-      <ul className="flex gap-1">
+    /*
+      مجموعةُ حبّاتٍ في وعاءٍ غائر، لا تبويباتٌ بخطٍّ سفليّ — التصميم المرجعيّ
+      (T1032). والوعاء يمرّر أفقياً على الجوال بدل أن يلتفّ سطرين: ثلاثة
+      تبويبات في سطرين تُقرأ قائمتين.
+    */
+    <nav aria-label="حالة المزاد" className="mb-6">
+      <ul className="inline-flex gap-1 overflow-x-auto rounded-xl bg-surface-low p-1.5">
         {TABS.map((tab) => {
           const selected = tab.id === current;
           return (
@@ -49,15 +54,21 @@ export function PhaseTabs({
               <Link
                 href={href(tab.id)}
                 aria-current={selected ? "page" : undefined}
-                className={
+                className={`flex items-baseline gap-2 whitespace-nowrap rounded-lg px-5 py-2 text-label-md transition-colors ${
                   selected
-                    ? "flex items-baseline gap-2 border-b-2 border-neutral-900 px-4 py-3 text-sm font-semibold text-neutral-900"
-                    : "flex items-baseline gap-2 border-b-2 border-transparent px-4 py-3 text-sm text-neutral-600 hover:text-neutral-900"
-                }
+                    ? "bg-surface-lowest text-on-surface shadow-sm"
+                    : "text-on-surface-variant hover:text-on-surface"
+                }`}
               >
                 <span>{tab.label}</span>
                 {counts === null ? null : (
-                  <span className="money rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">
+                  <span
+                    className={`tnum rounded-full px-2 py-0.5 text-label-sm ${
+                      selected
+                        ? "bg-surface-container text-on-surface"
+                        : "bg-surface-container text-on-surface-variant"
+                    }`}
+                  >
                     {count(counts[tab.id])}
                   </span>
                 )}

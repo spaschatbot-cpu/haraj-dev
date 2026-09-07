@@ -78,8 +78,31 @@ const VEHICLE = {
   condition: "good",
   condition_label: "جيدة",
   location: "الرياض / طريق الحائر",
+  admin_fee: "800.00",
+  admin_fee_with_vat: "920.00",
   state: "listed",
   thumbnail_url: null,
+};
+
+//: معرض الصور — نداءٌ ثانٍ على صفحة المركبة (HR-12ب). الطبقتان مختلفتان
+//: عمداً: المعاينة للصورة الكبيرة والبطاقة للشريط تحتها، وتساويهما في
+//: فيكستشر يخفي كتابةَ الكبيرة من الطبقة الصغيرة.
+const SHOTS = {
+  total: 2,
+  results: [
+    {
+      id: 5,
+      thumbnail_url: "http://127.0.0.1:8000/media/thumb-5.jpg",
+      preview_url: "http://127.0.0.1:8000/media/preview-5.jpg",
+      is_cover: true,
+    },
+    {
+      id: 6,
+      thumbnail_url: "http://127.0.0.1:8000/media/thumb-6.jpg",
+      preview_url: "http://127.0.0.1:8000/media/preview-6.jpg",
+      is_cover: false,
+    },
+  ],
 };
 
 /** Every url the page asked for, so a test can assert on the request itself. */
@@ -115,6 +138,7 @@ beforeEach(() => {
       if (url.includes("/api/v1/auctions/")) {
         return answer({ total: 1, results: [AUCTION] });
       }
+      if (/\/api\/v1\/vehicles\/\d+\/images\//.test(url)) return answer(SHOTS);
       if (url.includes("/api/v1/vehicles/")) return answer(VEHICLE);
 
       return answer({ error: { code: "not_found", message: "غير موجود.", detail: {} } }, 404);
@@ -241,6 +265,41 @@ describe("صفحة المركبة", () => {
 
     expect(html).not.toContain("48500.75");
     expect(html).not.toContain("سعر الوقوف");
+  });
+
+  it("معرض الصور بعدّاده في الـHTML — HR-12ب", async () => {
+    //: الصورة الأولى وعدّادُها يخرجان من الخادم، فزائرٌ بلا جافاسكربت يرى
+    //: صورةً وعدداً لا هيكلاً رمادياً ينتظر (معيار J5).
+    const html = await render(VehiclePage({ params }));
+
+    expect(html).toContain("1 / 2");
+    expect(html).toContain("الصورة التالية");
+  });
+
+  it("الكبيرة من طبقة المعاينة لا من مصغّرة البطاقة", async () => {
+    //: هذا هو HR-12 كلّه: الطبقة تُولَّد منذ فترة، وشاشة التفاصيل كانت تمدّ
+    //: ٤٠٠ بكسل على عرض الشاشة لأن لا قناة تصل إليها.
+    const html = await render(VehiclePage({ params }));
+
+    expect(html).toContain("preview-5.jpg");
+  });
+
+  it("سقوط نداء الصور لا يُسقط الصفحة ولا صورتها", async () => {
+    //: صفحةٌ قادمةٌ من نتيجة بحث تُفتح ولو لم يُجب نداءٌ ثانٍ. وصورة الغلاف
+    //: وصلت مع الكرت أصلاً، فلا تُفقَد لأن المعرض سقط.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = typeof input === "string" ? input : (input as Request).url;
+        if (url.includes("/images/")) return answer({}, 500);
+        return answer({ ...VEHICLE, thumbnail_url: "http://x/media/cover.jpg" });
+      }),
+    );
+
+    const html = await render(VehiclePage({ params }));
+
+    expect(html).toContain("تويوتا كامري");
+    expect(html).toContain("1 / 1");
   });
 
   it("بيانات وصفية حقيقية، لا العنوان مكرَّراً", async () => {
