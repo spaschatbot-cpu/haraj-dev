@@ -41,7 +41,8 @@
     <p class="empty">لا مركبة بهذا الشاسيه أو هذه اللوحة.</p>
 
   {% else %}
-    <table>
+    <div class="scroller">
+      <table>
       <tbody>
         <tr><th>المركبة</th><td>{{ found.vehicle.make }} {{ found.vehicle.model }} · {{ found.vehicle.year|unlocalize }}</td></tr>
         <tr><th>رقم الشاسيه</th><td>{{ found.vehicle.vin|default:"—" }}</td></tr>
@@ -57,6 +58,7 @@
         {% endif %}
       </tbody>
     </table>
+  </div>
 
     <p class="empty">
       هذه الشاشة تعرض حالة الفاتورة وحدها. اسمُ المشتري وجوّالُه ومبلغُ

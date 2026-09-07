@@ -32,7 +32,8 @@
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>العميل</th>
@@ -69,6 +70,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} إشعاراً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 {% endblock %}

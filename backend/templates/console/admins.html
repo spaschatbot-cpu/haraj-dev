@@ -18,7 +18,7 @@
   {% comment %} ثلاثةُ أفعالٍ على هذه القائمة، لا وجهاتٌ في الشريط: إنشاءُ
      حساب، والأدوار التي يُختار منها، والتصدير. وكانت «الأدوار» و«التحكم في
      الصفحات» مدخلين مستقلّين في الشريط بجوار هذه الشاشة، وكلاهما لا يُفتح
-     إلا من هنا عملياً (T838 · T839). {% endcomment %}
+     إلا من هنا عملياً (T847 · T848). {% endcomment %}
   <a class="button" href="{% url 'console:admin-new' %}">+ مشرف جديد</a>
   <a class="button" href="{% url 'console:roles' %}">الأدوار والصلاحيات</a>
   <a href="{{ export_url }}">تصدير إلى إكسل</a>
@@ -43,7 +43,8 @@
 
   <h2>قائمة المشرفين الحالية <span class="pill">{{ page.paginator.count|unlocalize }} مشرفاً</span></h2>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المشرف</th>
@@ -84,7 +85,7 @@
           <td>
             {% comment %} مدخلان لفعلين مختلفين: «الصلاحيات» يكتب تجاوزاً،
                و«صفحاته» يقرأ ما كُتب. وكانا في v1 شاشتين منفصلتين تعرضان
-               القائمة نفسها — فدُمجت الثانية هنا (T838). {% endcomment %}
+               القائمة نفسها — فدُمجت الثانية هنا (T847). {% endcomment %}
             <a href="{% url 'console:staff-grants' person.pk %}">الصلاحيات</a> ·
             <a href="{% url 'console:page-control' %}?q={{ person.phone|unlocalize }}">صفحاته</a>
           </td>
@@ -94,6 +95,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} مشرفاً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 

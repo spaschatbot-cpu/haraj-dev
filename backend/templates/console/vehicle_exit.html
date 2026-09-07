@@ -31,7 +31,8 @@ v1 عنده «إنشاء الخروج» و«متابعة نقل الملكية»
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المزاد</th>
@@ -65,6 +66,7 @@ v1 عنده «إنشاء الخروج» و«متابعة نقل الملكية»
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 

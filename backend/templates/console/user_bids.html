@@ -41,7 +41,8 @@
     </h2>
     <p><a href="{% url 'console:customer-detail' report.person.pk %}">بيانات العميل ←</a></p>
 
-    <table>
+    <div class="scroller">
+      <table>
       <tbody>
         <tr><th>إجمالي المزايدات</th><td class="count">{{ report.count|unlocalize }}</td></tr>
         <tr><th>إجمالي قيمتها</th><td class="money">{{ report.value|unlocalize }}</td></tr>
@@ -59,9 +60,11 @@
         </tr>
       </tbody>
     </table>
+  </div>
 
     <h2>ما فاز به — {{ report.won_count|unlocalize }} مركبةً بـ{{ report.won_value|unlocalize }}</h2>
-    <table>
+    <div class="scroller">
+      <table>
       <thead>
         <tr><th>المزاد</th><th>اللوت</th><th>المركبة</th><th>سعر الترسية</th><th>الحالة</th></tr>
       </thead>
@@ -79,9 +82,11 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
 
     <h2>آخر مزايداته</h2>
-    <table>
+    <div class="scroller">
+      <table>
       <thead>
         <tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>الحالة</th><th>وقتها</th></tr>
       </thead>
@@ -110,5 +115,6 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
   {% endif %}
 {% endblock %}

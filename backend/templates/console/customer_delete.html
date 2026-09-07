@@ -14,6 +14,7 @@
 {% block heading %}حذف حساب{% endblock %}
 
 {% block content %}
+  <div class="scroller">
   <table>
     <tbody>
       <tr><th>المعرف</th><td class="count">#{{ customer.pk|unlocalize }}</td></tr>
@@ -38,6 +39,7 @@
       </tr>
     </tbody>
   </table>
+  </div>
 
   {% if blocked %}
     <p class="alarm">
@@ -62,6 +64,7 @@
       {% comment %} العدد بجوار الاسم: «له مزايدات» جملةٌ لا يُتصرَّف فيها،
          و«له ٤ مزايدات» تُفتح ويُنظر فيها. {% endcomment %}
       <p>ما يشير إليه:</p>
+      <div class="scroller">
       <table>
         <thead><tr><th>الأثر</th><th>العدد</th></tr></thead>
         <tbody>
@@ -70,6 +73,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       <p class="empty">
         صفوفُ المال والمزايدة تشير إلى هذا الحساب، وحذفُه يترك «فاتورةً لمن؟»
         بلا جواب. والقاعدة نفسها ترفضه (<code>on_delete=PROTECT</code>) — فهذا

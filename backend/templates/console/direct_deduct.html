@@ -31,16 +31,19 @@
         {{ row.name }}
         <small>{{ row.person.phone|unlocalize }}</small>
       </h2>
-      <table>
+      <div class="scroller">
+        <table>
         <tbody>
           <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
           <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
           <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
         </tbody>
       </table>
+    </div>
 
       <h3>حجوزٌ قائمة — تُصادَر بسببٍ مكتوب</h3>
-      <table>
+      <div class="scroller">
+        <table>
         <thead>
           <tr><th>الحجز</th><th>ما يضمنه</th><th>المبلغ</th><th></th></tr>
         </thead>
@@ -64,9 +67,11 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
 
       <h3>مستحقّات — تُسدَّد من رصيده</h3>
-      <table>
+      <div class="scroller">
+        <table>
         <thead>
           <tr><th>الفاتورة</th><th>المبلغ</th><th>المتبقّي</th><th></th></tr>
         </thead>
@@ -83,6 +88,7 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
 
       <p><a href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل ←</a></p>
     {% endfor %}

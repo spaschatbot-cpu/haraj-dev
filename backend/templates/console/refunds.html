@@ -15,7 +15,8 @@
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الحالة</th><th>العدد</th><th></th></tr></thead>
     <tbody>
       {% for row in counts %}
@@ -35,6 +36,7 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو جواله أو المرجع">
@@ -47,7 +49,8 @@
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المرجع</th>
@@ -75,6 +78,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} طلباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 {% endblock %}

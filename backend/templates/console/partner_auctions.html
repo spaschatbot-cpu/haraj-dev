@@ -24,7 +24,8 @@
     <button type="submit">اعرض</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>#</th>
@@ -54,6 +55,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 {% endblock %}

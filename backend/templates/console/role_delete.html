@@ -12,6 +12,7 @@
 {% block heading %}حذف الدور «{{ role.label }}»{% endblock %}
 
 {% block content %}
+  <div class="scroller">
   <table>
     <tbody>
       <tr><th>المعرّف</th><td><code>{{ role.slug }}</code></td></tr>
@@ -20,6 +21,7 @@
       <tr><th>متى</th><td>{{ role.created_at }}</td></tr>
     </tbody>
   </table>
+  </div>
 
   <h2>ما يحمله هذا الدور</h2>
   {% if capabilities %}
@@ -34,6 +36,7 @@
     <p class="alarm">
       <strong>لا يُحذف:</strong> يحمله {{ holders|length|unlocalize }} من المشرفين.
     </p>
+    <div class="scroller">
     <table>
       <thead><tr><th>المشرف</th><th>الجوال</th><th></th></tr></thead>
       <tbody>
@@ -46,6 +49,7 @@
         {% endfor %}
       </tbody>
     </table>
+    </div>
   {% else %}
     <p class="alarm">لا مشرفَ على هذا الدور — حذفُه لا يُخرج أحداً.</p>
     <form method="post" class="form-card">

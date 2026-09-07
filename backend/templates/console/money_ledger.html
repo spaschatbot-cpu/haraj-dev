@@ -28,7 +28,8 @@ registered buries the four people the operator could have meant.
   {% endif %}
 
   {% if page %}
-    <table>
+    <div class="scroller">
+      <table>
       <thead>
         <tr><th>العميل</th><th>الجوال</th><th>مجموع التأمينات</th><th>حجوزات قائمة</th></tr>
       </thead>
@@ -47,6 +48,7 @@ registered buries the four people the operator could have meant.
         {% endfor %}
       </tbody>
     </table>
+  </div>
 
     <p>{{ page.paginator.count }} عميل · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
   {% endif %}

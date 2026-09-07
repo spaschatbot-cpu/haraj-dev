@@ -47,7 +47,8 @@
 
   {# ------------------------------------------------------------------ #}
   <h2>التأمين — وما منه يُنفَق فعلاً</h2>
-  <table>
+  <div class="scroller">
+<table>
     <tbody>
       <tr>
         <th>الحرّ في الدفتر</th>
@@ -76,6 +77,7 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   {% if gate.outstanding_dues %}
     {% comment %} هذا هو «محجوز لمستحقات ⚠️» عند v1، مقولاً بأرقامنا: الوديعة
@@ -91,7 +93,8 @@
   {# ------------------------------------------------------------------ #}
   <h2>الربط بأودو</h2>
   {% if odoo_links %}
-    <table>
+    <div class="scroller">
+<table>
       <thead><tr><th>رقم العميل في أودو</th><th>الأساسي</th><th>ملاحظة</th><th>رُبط</th></tr></thead>
       <tbody>
         {% for link in odoo_links %}
@@ -104,6 +107,7 @@
         {% endfor %}
       </tbody>
     </table>
+</div>
   {% else %}
     {% comment %} الغياب يُقال صراحةً: في v1 يصير المعرّفُ الفارغ صفراً،
        فتُعرض ماليةُ كل من يحمل صفراً على أنها ماليةُ هذا العميل. {% endcomment %}
@@ -115,7 +119,8 @@
 
   {# ------------------------------------------------------------------ #}
   <h2>البيانات الكاملة</h2>
-  <table>
+  <div class="scroller">
+<table>
     <tbody>
       {% for label, value in record %}
         <tr>
@@ -125,6 +130,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
   <p class="empty">
     كلُّ عمودٍ في الصفّ إلا ما سُمّي سرّاً — مبنيّاً من النموذج لا من قائمةٍ
     مكتوبةٍ باليد، فحقلٌ يُضاف غداً يظهر هنا ولا يُنسى.
@@ -132,7 +138,8 @@
 
   {% if company %}
     <h2>الشركة</h2>
-    <table>
+    <div class="scroller">
+<table>
       <tbody>
         <tr><th>الاسم</th><td>{{ company.name }}</td></tr>
         <tr><th>الممثل</th><td>{{ company.representative_name|default:"—" }}</td></tr>
@@ -145,6 +152,7 @@
         <tr><th>الرمز البريدي</th><td>{{ company.postal_code|default:"—" }}</td></tr>
       </tbody>
     </table>
+</div>
   {% endif %}
 
   {# ------------------------------------------------------------------ #}
@@ -152,7 +160,8 @@
     <h2>{{ card.title }}</h2>
 
     {% if card.kind == "bids" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>الحالة</th><th>وقتها</th></tr></thead>
         <tbody>
           {% for bid in card.rows %}
@@ -172,9 +181,11 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
 
     {% elif card.kind == "invoices" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>الرقم</th><th>المبلغ</th><th>المسدَّد</th><th>الحالة</th></tr></thead>
         <tbody>
           {% for invoice in card.rows %}
@@ -189,9 +200,11 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
 
     {% elif card.kind == "payments" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>المرجع</th><th>المبلغ</th><th>الحالة</th><th>قيدٌ ناتج</th><th>متى</th></tr></thead>
         <tbody>
           {% for intent in card.rows %}
@@ -207,9 +220,11 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
 
     {% elif card.kind == "refunds" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>المرجع</th><th>المبلغ</th><th>الحالة</th><th>قُدِّم</th></tr></thead>
         <tbody>
           {% for refund in card.rows %}
@@ -224,9 +239,11 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
 
     {% elif card.kind == "entries" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th><th>الحركة</th></tr></thead>
         <tbody>
           {% for entry in card.rows %}
@@ -241,9 +258,11 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
 
     {% elif card.kind == "holds" %}
-      <table>
+      <div class="scroller">
+<table>
         <thead><tr><th>المبلغ</th><th>السبب</th><th>المزاد</th><th>الفاتورة</th><th>منذ</th></tr></thead>
         <tbody>
           {% for hold in card.rows %}
@@ -259,6 +278,7 @@
           {% endfor %}
         </tbody>
       </table>
+</div>
     {% endif %}
   {% endfor %}
 

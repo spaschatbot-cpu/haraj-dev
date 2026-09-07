@@ -19,7 +19,8 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
 
   <p>إجمالي ما وصل: <strong>{{ total|unlocalize }}</strong></p>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>الفاتورة</th>
@@ -53,6 +54,7 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} فاتورةً وصل منها مال · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 

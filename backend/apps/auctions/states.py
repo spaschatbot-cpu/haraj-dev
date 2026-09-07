@@ -117,22 +117,36 @@ class Move:
     guard: Guard | None = None
 
 
+# الساعةُ تُسأل في :mod:`apps.auctions.engine` وحدها. هذه الحرّاسُ تقول
+# **متى تجوز النقلة**، والمحرّك يقول **أين المزاد من الساعة** — وكان الاثنان
+# يكتبان `auction.ends_at <= now` كلٌّ بيده، فصار للسؤال جوابان.
+#
+# والاستيراد داخل الدوالّ لا في الرأس: المحرّك يستورد هذا الملفّ ليقرأ
+# `AUCTION_MOVES`، فاستيرادُه هنا في الأعلى دورةٌ مغلقة.
+
+
 def _auction_ready_to_schedule(auction: Auction, now: datetime) -> str | None:
+    from .engine import has_finished
+
     if not auction.vehicles.exists():
         return "لا يمكن جدولة مزاد بلا مركبات"
-    if auction.ends_at <= now:
+    if has_finished(auction, now=now):
         return "وقت انتهاء المزاد مضى بالفعل"
     return None
 
 
 def _auction_start_time_reached(auction: Auction, now: datetime) -> str | None:
-    if auction.starts_at > now:
+    from .engine import has_started
+
+    if not has_started(auction, now=now):
         return "لم يحن وقت بدء المزاد بعد"
     return None
 
 
 def _auction_end_time_reached(auction: Auction, now: datetime) -> str | None:
-    if auction.ends_at > now:
+    from .engine import has_finished
+
+    if not has_finished(auction, now=now):
         return "المزاد لم ينته بعد"
     return None
 

@@ -184,3 +184,81 @@ def test_the_colour_guard_refuses_a_planted_violation(
 
     # وبعد الإرجاع يعود نظيفاً — وإلا كان الفشل أعلاه من الورقة لا من الزرع.
     assert check.main() == 0
+
+
+# ---------------------------------------------------------------------------
+# الاستجابة للمقاسات — T842، وما يمكن إثباته بلا متصفّح
+# ---------------------------------------------------------------------------
+#
+# قِيست اللوحة في متصفّح على ٢٦ شاشة وسبعة عروض (2026-09-07)، فوُجد عطلان:
+#
+#   ٩٠٠ بكسل  · `/console/bids/accepted/` تفيض أفقياً بـ١٤٣ بكسل
+#              · `/console/vehicles/catalog/` بـ١٠٥ · `/console/after-sales/` بـ٩٢
+#   ٣٢٠ بكسل  · **كل** صفحة تفيض بـ٣٢ بالضبط — رقمٌ ثابت، أي عنصرٌ في الإطار
+#
+# والقياس نفسه لا يعيش هنا: لا متصفّح في هذه الحزمة، ورندرةُ القالب إلى نصّ
+# لا تقول شيئاً عن عرضٍ محسوب. فالمحفوظ هنا هو **السبب** في الورقة — والعرَض
+# يُعاد قياسه في متصفّح عند كل تغيير شكلٍ كبير. وهذا حدّ الأداة، ويُقال.
+
+SCROLL_GUARD = ROOT / "ops" / "checks" / "console_tables_scroll.py"
+
+
+def test_the_sheet_no_longer_flattens_tables_to_blocks() -> None:
+    """`display: block` على جدول يُخرج صفوفه من شجرة الوصول.
+
+    كانت الحيلة الوحيدة التي تمرّر الجداول، وتسري تحت ٥٦rem وحدها. حلّ محلّها
+    غلافٌ يمرّر في كل مقاس — فكسبنا التمرير فوق ٨٩٦ بكسل، **و**بقاءَ الجدول
+    جدولاً، **و**رأساً لاصقاً لا يعتمد على حظّ المحرّك مع كتلةٍ مُمرَّرة.
+    """
+    #: التعليقات تُفرَّغ أولاً: هذا الملفّ **يشرح** الحيلة المحذوفة عند
+    #: تعريف الغلاف، فبحثٌ ساذج يجدها في شرحها ويسقط على نصٍّ صحيح.
+    sheet = re.sub(r"/\*.*?\*/", " ", SHEET.read_text(encoding="utf-8"), flags=re.S)
+
+    assert "display: block" not in sheet or "main table" not in sheet
+    assert ".scroller {" in sheet
+    assert "overflow-x: auto" in sheet
+
+
+def test_no_auto_fit_track_wider_than_its_container() -> None:
+    """`repeat(auto-fit, minmax(21rem, 1fr))` تعني «لا أقلّ من ٢١rem مهما ضاقت».
+
+    وهي سبب الـ٣٢ بكسل الثابتة على ٣٢٠: العمود يصير ٣٣٦ ويدفع الصفحة كلّها.
+    والصواب `minmax(min(21rem, 100%), 1fr)` — وهو ما يُقصد دائماً من
+    `auto-fit`: «اقسمها ما دامت تتّسع».
+
+    و`auto-fit`/`auto-fill` وحدهما المفحوصان. الشبكةُ ذات المسارات المسمّاة
+    (`minmax(17rem, 22rem)` في شاشة الدخول) تعرف عدد أعمدتها وتنهار بقاعدةٍ
+    مكتوبة عند ٤٦rem — واختبارٌ يرفضها يرفض شيئاً قِيس أنه لا يفيض.
+    """
+    sheet = re.sub(r"/\*.*?\*/", " ", SHEET.read_text(encoding="utf-8"), flags=re.S)
+
+    bare = re.findall(
+        r"repeat\(\s*auto-(?:fit|fill)\s*,\s*minmax\(\s*(\d+(?:\.\d+)?(?:rem|px|em))\s*,",
+        sheet,
+    )
+
+    assert bare == [], f"مسارٌ مرن بحدٍّ أدنى مطلق: {bare} — لُفّه بـmin(…, 100%)"
+
+
+def test_the_top_bar_name_shrinks_instead_of_pushing_the_page() -> None:
+    """ابنُ المرن لا ينكمش دون محتواه، فاسمٌ طويل يدفع الشريط خارج الشاشة."""
+    sheet = SHEET.read_text(encoding="utf-8")
+
+    user = sheet[sheet.index(".user {") : sheet.index(".user__mark")]
+
+    assert "min-inline-size: 0" in user
+    assert "text-overflow: ellipsis" in user
+
+
+def test_every_console_table_is_wrapped() -> None:
+    """الحارس نفسه، مُشغَّلاً — فالقالب الذي يُكتب غداً لا ينسى الغلاف."""
+    spec = importlib.util.spec_from_file_location("console_tables", SCROLL_GUARD)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+
+    found, tables = module.offences()
+
+    assert tables > 0, "لا جدول — الحارس يفحص العدم"
+    assert found == []

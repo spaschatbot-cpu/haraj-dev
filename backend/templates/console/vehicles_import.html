@@ -41,7 +41,8 @@ off a screen.
            <button type="submit">نزّل الأسباب كجدول</button></p>
       </form>
 
-      <table>
+      <div class="scroller">
+        <table>
         <thead><tr><th>الصف</th><th>اللوت</th><th>السبب</th></tr></thead>
         <tbody>
           {% for rejection in report.rejections %}
@@ -53,6 +54,7 @@ off a screen.
           {% endfor %}
         </tbody>
       </table>
+    </div>
     {% else %}
       <p class="empty">لا صفوف مرفوضة.</p>
     {% endif %}

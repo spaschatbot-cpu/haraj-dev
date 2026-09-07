@@ -648,7 +648,7 @@ PLANNED: tuple[Planned, ...] = (
 #: because the guard reads this registry and nothing else, and a detail page
 #: with no row would be a page with no guard.
 DETAIL_PAGES: tuple[Page, ...] = (
-    # «التحكم في صفحات المستخدمين» **دُمج في «إدارة المشرفين»** (T838): في v1
+    # «التحكم في صفحات المستخدمين» **دُمج في «إدارة المشرفين»** (T847): في v1
     # هما شاشتان تعرضان القائمة نفسها بعمودٍ مختلف، فيفتح الموظّف إحداهما ثم
     # يكتشف أن ما يريده في الأخرى بالاسم نفسه تقريباً. فصارت تُفتح من صفِّ
     # المشرف وخرجت من الشريط — مدخلان إلى القائمة الواحدة أحدُهما زائد.
@@ -670,6 +670,12 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:auction-new", "مزاد جديد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-state", "نقلة مزاد", Capability.AUCTIONS_MANAGE, ""),
+    # العمليّات السريعة — T846. كلُّها `AUCTIONS_MANAGE`: من يرى القائمة
+    # (`AUCTIONS_VIEW`) لا يُنهي مزاداً بضغطة.
+    Page("console:auction-showcase", "حالة مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page("console:auction-reschedule", "جدولة مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page("console:auction-fees", "رسوم مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page("console:auction-end-now", "إنهاء مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-new", "مركبة جديدة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-edit", "تعديل مركبة", Capability.AUCTIONS_MANAGE, ""),
     # Downloads, not pages: a sidebar entry that starts a file download is a

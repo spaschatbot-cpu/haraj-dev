@@ -65,19 +65,20 @@
     <p><button type="submit">بحث</button></p>
   </form>
 
-  <table>
-    <thead>
-      <tr>
-        <th>المعرف</th>
-        <th>الاسم والمدينة</th>
-        <th>رقم الهاتف</th>
-        <th>رقم الهوية</th>
-        <th>النوع</th>
-        <th>الحالة</th>
-        <th>الرصيد</th>
-        <th>الإجراءات</th>
-      </tr>
-    </thead>
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المعرف</th>
+          <th>الاسم والمدينة</th>
+          <th>رقم الهاتف</th>
+          <th>رقم الهوية</th>
+          <th>النوع</th>
+          <th>الحالة</th>
+          <th>الرصيد</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
     <tbody>
       {% for customer in rows %}
         <tr>
@@ -126,6 +127,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   {% comment %} العدد الحقيقيّ للصفحات: v1 يقول «إجمالي النتائج ٤٤٬١٩١» ثم
      يعرض أربع صفحات — وهي ألفٌ وسبعمئة وثمانٍ وستون. {% endcomment %}

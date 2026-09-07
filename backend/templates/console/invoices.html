@@ -27,7 +27,8 @@ say" when the question was "what are we owed".
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>المسدَّد</th>
           <th>المتبقّي</th><th>الحالة</th><th>صدرت</th></tr>
@@ -48,6 +49,7 @@ say" when the question was "what are we owed".
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} فاتورة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

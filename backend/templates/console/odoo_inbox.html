@@ -40,7 +40,8 @@ question that actually brings people here half the time is «هل وصلتنا �
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>متى</th><th>المصدر</th><th>الحدث</th><th>الموضوع</th>
@@ -63,6 +64,7 @@ question that actually brings people here half the time is «هل وصلتنا �
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} رسالة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

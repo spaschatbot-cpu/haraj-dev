@@ -62,7 +62,8 @@ from django.db.models import Count, Q
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
 
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions import engine
+from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.money import services as money
 from apps.money.models import Invoice
@@ -154,7 +155,7 @@ def catalogue_totals() -> dict:
     """
     return {
         "vehicles": Vehicle.objects.count(),
-        "live_auctions": Auction.objects.filter(state=AuctionState.LIVE).count(),
+        "live_auctions": engine.open_now().count(),
         "with_images": Vehicle.objects.filter(images__isnull=False).distinct().count(),
         "invoiced": Vehicle.objects.filter(invoices__isnull=False).distinct().count(),
     }

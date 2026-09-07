@@ -37,6 +37,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
+from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid, BidRefusal
@@ -209,6 +210,22 @@ def board_for(user) -> Board:
             )
         )
 
+    # مزادٌ تخلّف عنه عاملُ الخلفية: العمودُ يقول شيئاً والساعةُ تقول غيره.
+    # ليس عطلاً في المزاد بل في العامل — Celery متوقّف أو متأخّر — ولذلك مكانُه
+    # التنبيهات لا الأرقام: كلُّ دقيقةٍ يبقى فيها مزادٌ «جارياً» بعد نهايته هي
+    # دقيقةٌ يرى فيها العميل عدّاداً يقول «مضى» وزرَّ مزايدةٍ يُرفض ضغطُه.
+    late = engine.late_now().count()
+    if late and sees_auctions:
+        board.alarms.append(
+            Stat(
+                "مزادات تخلّف عنها العامل",
+                str(late),
+                "حان وقتها ولم تُفتَح، أو انتهى ولم تُغلَق — تحقّق من Celery",
+                reverse("console:auctions"),
+                "warn",
+            )
+        )
+
     stuck = InboundMessage.objects.filter(state=InboundState.FAILED).count()
     if stuck and sees_diagnostics:
         board.alarms.append(
@@ -269,7 +286,10 @@ def board_for(user) -> Board:
 
     # ---- المزادات والمركبات ----------------------------------------------
     if sees_auctions:
-        live = Auction.objects.filter(state=AuctionState.LIVE).count()
+        # `open_now` لا `state=LIVE`: العمودُ يكتبه عاملُ خلفيّة والساعة لا
+        # تنتظره، فمزادٌ انتهى وقتُه ولم يُغلَق بعد كان يُعدّ هنا «جارياً»
+        # بينما البوّابة ترفض كل مزايدة فيه والعدّاد عند العميل يقول «مضى».
+        live = engine.open_now().count()
         scheduled = Auction.objects.filter(state=AuctionState.SCHEDULED).count()
         board.stats.append(
             Stat(

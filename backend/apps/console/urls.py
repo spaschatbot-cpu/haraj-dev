@@ -15,6 +15,7 @@ from . import (
     analytics,
     archive,
     auction_moves,
+    auction_quick,
     auctions,
     audit,
     billing,
@@ -65,6 +66,24 @@ urlpatterns = [
     path("auctions/new/", auctions.auction_new, name="auction-new"),
     path("auctions/<int:pk>/edit/", auctions.auction_edit, name="auction-edit"),
     path("auctions/<int:pk>/state/", auction_moves.auction_state, name="auction-state"),
+    # العمليّات السريعة من الصفّ — T846. كلُّها POST: نافذةٌ تغيّر حالةً
+    # بـGET هي رابطٌ يُفتح بالخطأ من سجلّ المتصفّح.
+    path(
+        "auctions/<int:pk>/showcase/",
+        auction_quick.auction_showcase,
+        name="auction-showcase",
+    ),
+    path(
+        "auctions/<int:pk>/reschedule/",
+        auction_quick.auction_reschedule,
+        name="auction-reschedule",
+    ),
+    path("auctions/<int:pk>/fees/", auction_quick.auction_fees, name="auction-fees"),
+    path(
+        "auctions/<int:pk>/end-now/",
+        auction_quick.auction_end_now,
+        name="auction-end-now",
+    ),
     path("auctions/<int:pk>/", auctions.auction_detail, name="auction-detail"),
     path("auctions/<int:pk>/bids/", archive.auction_bids, name="auction-bids"),
     path("archive/", archive.auction_archive, name="auction-archive"),

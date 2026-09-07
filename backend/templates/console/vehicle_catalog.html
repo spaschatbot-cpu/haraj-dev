@@ -16,7 +16,8 @@
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>إجمالي المركبات</th><td class="count">{{ totals.vehicles|unlocalize }}</td></tr>
       <tr><th>مزادات جارية</th><td class="count">{{ totals.live_auctions|unlocalize }}</td></tr>
@@ -24,6 +25,7 @@
       <tr><th>سيارات مفوترة</th><td class="count">{{ totals.invoiced|unlocalize }}</td></tr>
     </tbody>
   </table>
+</div>
 
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="شاصي أو لوحة أو اسم السيارة أو لوت">
@@ -40,7 +42,8 @@
     <button type="submit">تطبيق الفلاتر</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>#</th>
@@ -83,6 +86,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 

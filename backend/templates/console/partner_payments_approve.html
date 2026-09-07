@@ -15,12 +15,14 @@
 {% block heading %}اعتماد مدفوعات الشريك{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>إجمالي ما قُيّد على سيارات الشركاء</th><td class="money">{{ total|unlocalize }}</td></tr>
       <tr><th>فواتير وصل منها مال</th><td class="count">{{ count|unlocalize }}</td></tr>
     </tbody>
   </table>
+</div>
 
   <h2>رفع ملفّ الدفعات</h2>
   <form method="post" enctype="multipart/form-data" class="form-card">
@@ -51,7 +53,8 @@
   </p>
 
   <h2>الملفّات المرفوعة</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>الملفّ</th>
@@ -82,6 +85,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>
     <a href="{% url 'console:partner-payments' %}">سجل دفعات الشريك ←</a> ·

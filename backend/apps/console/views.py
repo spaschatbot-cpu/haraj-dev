@@ -13,10 +13,13 @@ what is left here is the guard alone.
 from __future__ import annotations
 
 from functools import wraps
+from zoneinfo import ZoneInfo
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.shortcuts import redirect
+from django.utils import timezone
 
 from apps.core.permissions import can
 
@@ -42,7 +45,7 @@ def console_page(url_name: str):
         @wraps(view)
         @login_required
         def guarded(request, *args, **kwargs):
-            # كلمةٌ كتبها غيرُه تُغيَّر قبل أي شيء (T839). ويُستثنى مسارُ
+            # كلمةٌ كتبها غيرُه تُغيَّر قبل أي شيء (T848). ويُستثنى مسارُ
             # التغيير نفسه وإلّا دار على نفسه، والخروجُ ليس صفحةً هنا أصلاً.
             if (
                 getattr(request.user, "must_change_password", False)
@@ -51,7 +54,25 @@ def console_page(url_name: str):
                 return redirect("console:password-change")
             if not can(request.user, capability):
                 raise PermissionDenied(f"{capability} غير مسموحة لهذا المستخدم")
-            return view(request, *args, **kwargs)
+
+            # ساعةُ الرياض على كلّ صفحةِ لوحة — T846.
+            #
+            # `TIME_ZONE = "UTC"` والتخزينُ بها، وهو الصواب. لكن لا شيء كان
+            # يُفعّل منطقة العرض، فكلّ `{{ auction.starts_at }}` في القوالب
+            # كان يُرسم **بتوقيت UTC**: مزادٌ يبدأ ١٢:٠٠ ظهراً يُقرأ ٩:٠٠
+            # صباحاً. والعطل صامت — لا استثناء ولا اختبار يسقط، والموظّف
+            # يقرأ رقماً معقولاً وهو خطأٌ بثلاث ساعات.
+            #
+            # والتفعيل هنا لا في وسيطٍ عامّ: العميلُ يقرأ من API بـUTC
+            # ويحوّل عنده، وقلبُ المنطقة لكلّ طلبٍ في المشروع كان سيغيّر
+            # مخرَج تلك النقاط أيضاً.
+            timezone.activate(ZoneInfo(settings.DISPLAY_TIME_ZONE))
+            try:
+                return view(request, *args, **kwargs)
+            finally:
+                # الخيوطُ يُعاد استعمالها: منطقةٌ مفعَّلةٌ لا تُعاد تُسرّب
+                # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة.
+                timezone.deactivate()
 
         return guarded
 

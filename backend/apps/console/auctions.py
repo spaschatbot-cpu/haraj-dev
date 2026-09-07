@@ -24,25 +24,79 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.auctions import cards
+from apps.auctions import cards, engine
 from apps.auctions import services as auction_services
 from apps.auctions.listing import MAX_PAGE_SIZE, with_vehicle_counts
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Auction, Showcase, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
+from apps.core.permissions import Capability, can
 
+from . import icons
 from .exports import export, wants_export
 from .forms import AuctionForm, VehicleForm
-from .tones import tone_of, with_tones
+from .tones import tone_of, tone_of_phase, with_tones
 from .views import console_page
 
 #: Rows per page. Twenty-five rather than the API's twenty: a console user is
 #: scanning rather than scrolling a phone, and a page that ends after twenty
 #: rows costs an operator a click on every auction.
 PAGE_SIZE = 25
+
+
+#: أعمدة الجدول لخانات «تخصيص الأعمدة» — المفتاح هو `data-col` نفسه.
+#:
+#: هنا لا في القالب: قائمةٌ في القالب تُنسخ ثانيةً في السكربت، فيبقى عمودٌ
+#: بلا خانةٍ تُخفيه أو خانةٌ لا تُخفي شيئاً — ولا يُلاحَظ حتى يفتحها موظّف.
+#: أيقوناتُ عمود التحكم — سبعةُ أفعالٍ في صفٍّ واحد.
+#:
+#: نصّاً كانت تلتفّ على أربعة أسطر وتمدّ الصفّ حتى يُقرأ الجدول أطولَ من
+#: محتواه. والأيقونة **ليست بديلاً عن الاسم**: كلُّ زرٍّ يحمل `aria-label`
+#: و`title` بالنصّ نفسه، فمن يقرأ بقارئ شاشة أو يقف بالفأرة يسمع/يرى الكلمة.
+ACTIONS = (
+    ("cars", "سياراته", "car-list"),
+    ("bids", "مزايداته", "gavel"),
+    ("export", "تصدير سياراته", "download"),
+    ("fees", "الرسوم والتأمين", "coins"),
+    ("reschedule", "إعادة جدولة", "calendar"),
+    ("end", "إنهاء فوري", "flag"),
+    ("edit", "تعديل", "gauge-edit"),
+)
+
+
+COLUMNS = (
+    ("id", "الرقم"),
+    ("auction", "المزاد"),
+    ("preview", "المعاينة"),
+    ("badge", "الحالة"),
+    ("window", "الفترة الزمنية"),
+    ("cars", "العربيات"),
+    ("prices", "الأسعار"),
+    ("ready", "التفعيل"),
+    ("images", "الصور"),
+    ("bids", "المشاركات"),
+    ("park", "الموقع"),
+    ("actions", "تحكم"),
+)
+
+
+def parks(limit: int = 60) -> list[str]:
+    """الساحاتُ الموجودة فعلاً، لقائمة الفلترة.
+
+    مقروءةٌ من الصفوف لا مكتوبةٌ في الشيفرة: قائمةٌ ثابتة تنسى ساحةً تُفتح
+    غداً، ويبحث الموظّف عنها فلا يجدها ويظنّ أن لا مزاد فيها.
+    """
+    seen = (
+        Auction.objects.exclude(location="")
+        .values_list("location", flat=True)
+        .distinct()
+        .order_by("location")[:limit]
+    )
+    return list(seen)
 
 
 def _page(request, queryset):
@@ -68,6 +122,12 @@ def auctions(request):
     makes that distinction for the customer API, and this reuses the same
     annotation so the counts on both cannot drift.
     """
+    # نبضةُ دورة الحياة قبل القراءة — T846. عاملُ Celery يتوقّف، ولا يحتمل
+    # الموظّف أن يفتح الشاشة فيرى «قريباً» على مزادٍ بدأ قبل دقيقتين. وهي
+    # تنادي `services` نفسها، فالكاتبُ يبقى واحداً، وتُكلّف استعلامين
+    # يعودان فارغين في أغلب النداءات.
+    engine.tick()
+
     rows = Auction.objects.all()
 
     state = request.GET.get("state", "")
@@ -76,40 +136,98 @@ def auctions(request):
 
     search = (request.GET.get("q") or "").strip()
     if search:
+        # البحث يشمل الموقع أيضاً (T846): «ابحث بالاسم أو الساحة أو الرقم».
         rows = (
-            rows.filter(title__icontains=search)
+            rows.filter(Q(title__icontains=search) | Q(location__icontains=search))
             if not search.isdigit()
             else rows.filter(number=int(search))
         )
 
-    rows = with_vehicle_counts(rows).order_by("-starts_at")
+    # الفلترة المتقدّمة: مطابقةٌ حرفية لا احتواء — «رقم المزاد المطابق»
+    # و«الساحة المطابقة». وهي غيرُ خانة البحث عمداً: من يعرف الرقم لا يريد
+    # أن يجد معه ١٠١٤ و٢١٠١٤.
+    exact = (request.GET.get("id_exact") or "").strip()
+    if exact.isdigit():
+        rows = rows.filter(number=int(exact))
+
+    park = (request.GET.get("park_exact") or "").strip()
+    if park:
+        rows = rows.filter(location__iexact=park)
+
+    # الأحدث أوّلاً — والرقم يفصل عند تساوي الموعد، وإلا اختلف ترتيب الصفحة
+    # الثانية عن الأولى وتكرّر صفٌّ وغاب آخر.
+    rows = with_vehicle_counts(rows).order_by("-starts_at", "-number")
 
     if wants_export(request):
+        # التصدير يحمل ما تحمله الشاشة — وإلا صار ملفّان لا يتّفقان: موظّفٌ
+        # يقرأ «٦٥١٨ مزايدة» على الشاشة و«٥٨٤٧» في الملفّ ولا يعرف أيّهما.
+        # ولذلك يمرّ على المحرّك نفسه، لا على استعلامٍ ثانٍ.
+        page_rows = list(rows)
+        summaries = engine.summarise(page_rows)
+        engine.phases_of(page_rows)
         return export(
-            rows,
+            page_rows,
             name="auctions",
             headers=[
                 "الرقم",
-                "العنوان",
-                "الحالة",
+                "المزاد",
+                "المرحلة",
                 "يبدأ",
                 "ينتهي",
-                "المركبات",
+                "الموقع",
+                "السيارات",
+                "الماركات",
+                "المعروضة",
+                "بسعر مسجّل",
+                "أقل سعر وقوف",
+                "أعلى سعر وقوف",
+                "سيارات لها صور",
+                "الصور",
+                "المزايدات",
+                "المزايدون",
+                "أعلى مزايدة",
                 "التأمين",
+                "الرسوم الإدارية",
             ],
             cell=lambda a: [
                 a.number,
                 a.title,
-                a.get_state_display(),
+                a.phase_label,
                 a.starts_at,
                 a.ends_at,
-                a.vehicle_count,
+                a.location,
+                summaries[a.pk].cars,
+                summaries[a.pk].makes,
+                summaries[a.pk].offered,
+                summaries[a.pk].with_reserve,
+                summaries[a.pk].reserve_low,
+                summaries[a.pk].reserve_high,
+                summaries[a.pk].cars_with_images,
+                summaries[a.pk].images,
+                summaries[a.pk].bids,
+                summaries[a.pk].bidders,
+                summaries[a.pk].top_bid,
                 a.deposit_required,
+                a.admin_fee,
             ],
         )
 
     page = _page(request, rows)
     with_tones(page.object_list)
+    # المرحلةُ على كل صفّ — بلا استعلامٍ إضافي (T843). القائمةُ كانت تعرض
+    # العمود وحده، فمزادٌ انتهى وقتُه ولم يُغلَق يُقرأ «جارياً» في الصفّ الذي
+    # يُفتَح منه، وهو الصفّ الذي يجب أن يُفتَح **أولاً**.
+    engine.phases_of(page.object_list)
+    for row in page.object_list:
+        row.phase_tone = tone_of_phase(row.phase)
+        # البادج بمفردات v1 الخمس، محسوباً من الحالة والساعة واللافتة.
+        row.badge = engine.badge_of(row)
+        row.badge_label = engine.Badge(row.badge).label
+        row.badge_tone = engine.BADGE_TONES.get(row.badge, "")
+    # أعمدةُ v1 كما طلبها المالك: «عايز نفس الحقول». أربعةُ استعلاماتٍ
+    # مجمَّعة لصفوف **الصفحة** وحدها — وv1 كان يحسبها للمزادات كلّها في كل
+    # تحميل، ثم يعدّ المزايدات المسحوبة ضمن النشاط.
+    engine.summarise_onto(page.object_list)
 
     return render(
         request,
@@ -119,17 +237,36 @@ def auctions(request):
             "states": AuctionState.choices,
             "state": state,
             "q": search,
+            "id_exact": exact,
+            "park_exact": park,
+            "parks": parks(),
+            "badges": engine.Badge.choices,
+            "column_choices": COLUMNS,
+            "action_icons": {
+                key: (label, icons.path_of(name)) for key, label, name in ACTIONS
+            },
+            # الأزرار تُرسَم لمن يملك الإدارة فقط — لا تُرسَم ثم تُرفض.
+            "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
+            "showcases": Showcase.choices,
         },
     )
 
 
 @console_page("console:auction-detail")
 def auction_detail(request, pk: int):
-    """One auction and its cars, with what needs a decision put first.
+    """المزاد كمُجمَّع: سياراتُه، ومن دخله وبأيّ تأمين، وما يجوز فعله به.
 
-    The ordering is the screen's whole value: a car waiting on its owner's
-    decision is a car nobody is being paid for, and in v1 it sat in lot order on
-    page four until somebody went looking.
+    المالك بالحرف: «مزاد مجمع وداخله مجموعة من السيارات… المزاد الواحد مطلوب
+    عشان المشاركة فيه تأمين واحد للمزايدة فيه حتى لو هيزايد على كل السيارات
+    اللي فيه… فواتير المزاد الواحد تتربط برده بنفس التأمين بتاعه».
+
+    وهذه الشاشة هي المكان الذي يُرى فيه ذلك: صفٌّ لكل مشارك، فيه **تأمينٌ
+    واحد** مهما بلغ عدد سياراته، وتحته سياراته وفواتيره. وقبل T843 كان
+    الجوابُ موجوداً في القاعدة ولا شاشةَ تعرضه: الموظّف يفتح دفتر التأمينات
+    ثم قائمة الفواتير ثم يربط بيده.
+
+    ولا شيء هنا يقرّر. المرحلةُ والعمليّاتُ والمشاركون كلُّها من
+    :mod:`apps.auctions.engine`، والكتابةُ من ``services`` و``settlement``.
     """
     auction = get_object_or_404(with_vehicle_counts(Auction.objects.all()), pk=pk)
 
@@ -149,20 +286,25 @@ def auction_detail(request, pk: int):
         .order_by("urgency", "lot_number")
     )
 
-    from apps.auctions.states import AUCTION_MOVES
-
-    # محسوبةً من الآلة لا مكتوبةً في القالب — نفس سبب `vehicle_detail`:
-    # زرٌّ لنقلةٍ ترفضها الآلة زرٌّ لا يُنتج إلا رسالة خطأ.
-    moves = [
-        {"target": move.target, "label": AuctionState(move.target).label, "why": move.why}
-        for move in AUCTION_MOVES
-        if move.source == auction.state
-    ]
+    # لقطةٌ واحدة بدل ستّة أسئلة موزّعة على القالب. والعمليّاتُ تأتي معها
+    # محسوبةً من آلة الحالات — وكانت تُبنى هنا بيد، ويُبنى مثلُها في
+    # `bulk.py` بشرطٍ مختلف.
+    view = engine.snapshot(auction)
+    page = _page(request, cars)
+    with_tones(page.object_list)
 
     return render(
         request,
         "console/auction_detail.html",
-        {"auction": auction, "page": _page(request, cars), "moves": moves},
+        {
+            "auction": auction,
+            "page": page,
+            "view": view,
+            # النغمةُ تُحسب هنا لا في القالب: `tones.with_tones` يقول لماذا —
+            # قالبٌ يحسب نغمةً مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
+            "phase_tone": tone_of_phase(view.phase),
+            "participants": engine.participants(auction),
+        },
     )
 
 

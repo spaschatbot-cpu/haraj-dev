@@ -75,7 +75,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_active = models.BooleanField("الحساب مفعّل", default=True)
 
-    #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T839.
+    #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T848.
     #:
     #: استمارةُ «إضافة مشرف» في v1 فيها خانةُ كلمة مرورٍ يملؤها موظّفٌ
     #: لموظّفٍ آخر — أي أن الأول يعرف كلمة الثاني ويستطيع الدخول باسمه،
@@ -139,7 +139,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{display_name(self)} ({self.phone})"
 
 
-#: أسماءُ الحقول الموروثة من جانغو — عربيّةً كبقيّتها. T840.
+#: أسماءُ الحقول الموروثة من جانغو — عربيّةً كبقيّتها. T849.
 #:
 #: `id` و`last_login` و`is_superuser` تأتي من `AbstractBaseUser` و
 #: `PermissionsMixin` بأسمائها الإنجليزية، وشاشةُ ملفّ العميل تقرأ
@@ -432,7 +432,7 @@ class StaffGrant(models.Model):
 
 
 class ConsoleRole(models.Model):
-    """دورٌ يُنشئه المالك — حزمةُ قدراتٍ لها اسم. T838.
+    """دورٌ يُنشئه المالك — حزمةُ قدراتٍ لها اسم. T847.
 
     الأدوار الأربعة الأولى مكتوبةٌ في الشيفرة
     (`apps.core.permissions.ROLE_CAPABILITIES`) وتبقى هناك: صفٌّ في قاعدةٍ يمكن

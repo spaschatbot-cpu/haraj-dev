@@ -44,6 +44,7 @@ from django.db.models import Avg, Count, Max, Min, Q, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import User
+from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid, BidRefusal
@@ -379,7 +380,7 @@ def live_shape(number: str = "") -> dict | None:
     و«القيمة الحالية» **مجموعُ أعلى مزايدةٍ لكل سيارة**، لا مجموعُ المزايدات:
     الثاني يجمع عشرَ مزايداتٍ على سيارةٍ واحدة فيقول إنها بيعت عشر مرّات.
     """
-    auctions = Auction.objects.filter(state=AuctionState.LIVE).order_by("-starts_at")
+    auctions = engine.open_now().order_by("-starts_at")
     if (number or "").strip().isdigit():
         auctions = Auction.objects.filter(number=int(number))
 
@@ -422,7 +423,7 @@ def active_auction(request):
         {
             "shape": live_shape(request.GET.get("number", "")),
             "number": request.GET.get("number", ""),
-            "live": Auction.objects.filter(state=AuctionState.LIVE).count(),
+            "live": engine.open_now().count(),
         },
     )
 
@@ -554,7 +555,7 @@ def owners_console(request):
     from django.contrib.auth import get_user_model
 
     User = get_user_model()
-    live = Auction.objects.filter(state=AuctionState.LIVE)
+    live = engine.open_now()
 
     return render(
         request,
