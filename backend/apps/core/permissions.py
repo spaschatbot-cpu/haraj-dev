@@ -43,6 +43,11 @@ class Capability(models.TextChoices):
 
     AUCTIONS_VIEW = "auctions.view", "عرض المزادات والمركبات"
     AUCTIONS_MANAGE = "auctions.manage", "إدارة المزادات والمركبات"
+    # الحذف ليس `auctions.manage`، للسبب نفسه الذي فصل `users.delete`:
+    # **الإلغاء يُراجَع ويُعكَس، والحذفُ لا.** ومزادٌ مُلغى يبقى صفّاً يُسأل
+    # عنه — من ألغاه ومتى ولماذا — بينما المحذوفُ لا يترك ما يُسأل عنه.
+    # وv1 يُظهر زرَّ الحذف بجوار التعديل وبالثقة نفسها (`canDelete`).
+    AUCTIONS_DELETE = "auctions.delete", "حذف مزادٍ فارغ لا أثر له"
     AUCTIONS_IMPORT = "auctions.import", "استيراد وتصدير المركبات"
 
     PARTNERS_DECIDE = "partners.decide", "قرارات الشريك واختيار العروض"

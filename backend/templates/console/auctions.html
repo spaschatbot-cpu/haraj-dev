@@ -263,6 +263,22 @@ have to undo one in their head.
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </a>
               {% endwith %}
+              {% if can_delete %}
+                {% comment %}
+                زرُّ الحذف بقدرةٍ خاصّة (`auctions.delete`) لا بـ`manage`:
+                من يدير مزاداً يومياً لا يُعطى زرّاً يمحوه. والحذفُ ينجح على
+                مزادٍ فارغٍ وحده — وما عداه يُرفض برسالةٍ **تقول العدد**
+                وتدلّ على الإلغاء.
+                {% endcomment %}
+                {% with icon=action_icons.delete %}
+                  <button type="button" class="act act--danger" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                          data-open-delete
+                          data-pk="{{ auction.pk|unlocalize }}"
+                          data-number="{{ auction.number|unlocalize }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                  </button>
+                {% endwith %}
+              {% endif %}
             {% endif %}
           </td>
         </tr>
@@ -435,6 +451,29 @@ have to undo one in their head.
       <p class="modal__buttons">
         <button type="submit">احفظ</button>
         <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  <dialog id="deleteModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-delete' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <h2>حذف مزاد <span data-number></span></h2>
+      <p class="notice warning">
+        الحذفُ ينجح على مزادٍ <strong>فارغٍ</strong> وحده. ومزادٌ تحته سيارةٌ
+        أو تأمينٌ محجوز تَرفض القاعدةُ حذفَه، وستُخبرك بالعدد — والفعلُ
+        الصحيح حينها <strong>الإلغاء</strong>: يفكّ التأمينات ويُبطل الفواتير
+        غير المدفوعة ثم ينقل الحالة، ويترك صفّاً يُسأل عنه.
+      </p>
+      <p>
+        <label for="delReason">سبب الحذف</label>
+        <input id="delReason" type="text" name="reason" required
+               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">احذف</button>
+        <button type="button" data-close>تراجع</button>
       </p>
     </form>
   </dialog>

@@ -39,6 +39,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 from django.utils import timezone
 
@@ -408,3 +409,83 @@ def auction_end_now(request, pk: int):
         f"أُنهي مزاد {auction.number}. التسوية تفكّ التأمينات وتُصدر الفواتير.",
     )
     return _back(request, auction)
+
+
+@console_page("console:auction-delete")
+def auction_delete(request, pk: int):
+    """احذف مزاداً **فارغاً** — أو قُل لماذا لا يُحذف، بالأرقام.
+
+    الحذفُ ممكنٌ ومستحيلٌ معاً، والفرقُ هو ما تقوله هذه الشاشة:
+
+    * **مزادٌ فارغ** — مسودّةٌ أُنشئت بالخطأ، أو نسخةٌ مكرّرة — يُحذف. ولا شيء
+      يشير إليه فلا شيء يُكسَر.
+    * **مزادٌ تحته سيارةٌ أو تأمين** لا يُحذف، ولا في القاعدة أصلاً:
+      ``Vehicle.auction`` و``Hold.auction`` و``PaymentSheet.auction`` كلُّها
+      ``PROTECT``. فلو أذن الكودُ رفضت القاعدة.
+
+    **والرفضُ يقول العدد.** «لا يمكن الحذف» جملةٌ تُنتج تذكرة دعم؛ و«تحته ٧
+    سيارات و٣ تأمينات محجوزة» جملةٌ يتصرّف بها الموظّف. وv1 يرفض بلا عدد.
+
+    **والبديلُ يُقال في الرسالة نفسها:** الإلغاء. وهو ليس حذفاً ألطف — هو
+    الفعلُ الصحيح: يفكّ الحجوز ويُبطل الفواتير غير المدفوعة **ثم** ينقل
+    الحالة، ويترك صفّاً يُسأل عنه: من ألغاه ومتى ولماذا.
+    """
+    from apps.money.models import Hold, HoldState
+
+    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+
+    if request.method != "POST":
+        return redirect("console:auctions")
+
+    reason = _reason(request)
+    if not reason:
+        messages.error(request, "سبب الحذف مطلوب.")
+        return _back(request, auction)
+
+    cars = auction.vehicles.count()
+    holds = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).count()
+
+    if cars or holds:
+        blocking = " و".join(
+            part
+            for part in (
+                f"{cars} سيارة" if cars else "",
+                f"{holds} تأميناً محجوزاً" if holds else "",
+            )
+            if part
+        )
+        messages.error(
+            request,
+            f"لا يُحذف مزاد {auction.number}: تحته {blocking}. "
+            "والإلغاء هو ما يفكّ التأمينات ويُبطل الفواتير غير المدفوعة — "
+            "من نافذة «تغيير الحالة».",
+        )
+        return _back(request, auction)
+
+    number, title, pk_gone = auction.number, auction.title, auction.pk
+    before = audit.snapshot(auction, ["number", "title", "state", "starts_at"])
+
+    try:
+        # الحذفُ والسجلُّ في معاملةٍ واحدة. وقعا خارجَها أوّلَ تشغيل، فسقط
+        # السجلُّ بعد نجاح الحذف — ومزادٌ اختفى بلا سطرٍ يقول من محاه هو
+        # بالضبط ما لا يُحتمل في فعلٍ لا يُعكَس.
+        with transaction.atomic():
+            auction.delete()
+            # `entity_type`/`entity_id` لا `entity`: الصفُّ لم يعد موجوداً،
+            # و`record` يشترط أحدهما — وهو ما ينصّ عليه وصفُها حرفياً.
+            audit.record(
+                action="console.auction_delete",
+                entity_type="auctions.auction",
+                entity_id=pk_gone,
+                actor=request.user,
+                before=before,
+                after={},
+                note=f"حُذف مزاد {number} «{title}» — {reason}",
+            )
+    except ProtectedError as guarded:
+        # القاعدةُ هي الضمانة لا العدُّ أعلاه: صفٌّ يُنشَأ بين العدِّ والحذف
+        # يمرّ من الفحص ويصطدم هنا. والرسالةُ تُقال ولا تُبتلَع.
+        messages.error(request, f"القاعدة رفضت حذف المزاد: {guarded}")
+        return _back(request, auction)
+    messages.success(request, f"حُذف مزاد {number} «{title}».")
+    return redirect("console:auctions")

@@ -675,6 +675,9 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:auction-showcase", "حالة مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-reschedule", "جدولة مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-fees", "رسوم مزاد", Capability.AUCTIONS_MANAGE, ""),
+    # حذفٌ بقدرةٍ خاصّة — أضيق من `AUCTIONS_MANAGE`: من يدير مزاداً يومياً
+    # لا يُعطى زرّاً يمحوه.
+    Page("console:auction-delete", "حذف مزاد", Capability.AUCTIONS_DELETE, ""),
     Page("console:auction-end-now", "إنهاء مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-new", "مركبة جديدة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:vehicle-edit", "تعديل مركبة", Capability.AUCTIONS_MANAGE, ""),

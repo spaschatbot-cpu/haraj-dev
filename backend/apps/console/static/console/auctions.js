@@ -95,6 +95,12 @@
       return;
     }
 
+    var removing = hit("[data-open-delete]");
+    if (removing) {
+      openWith(document.getElementById("deleteModal"), removing, []);
+      return;
+    }
+
     var close = hit("[data-close]");
     if (close) {
       var box = close.closest("dialog");

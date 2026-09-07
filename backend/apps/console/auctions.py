@@ -241,6 +241,7 @@ def auctions(request):
             },
             # الأزرار تُرسَم لمن يملك الإدارة فقط — لا تُرسَم ثم تُرفض.
             "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
+            "can_delete": can(request.user, Capability.AUCTIONS_DELETE),
             "showcases": Showcase.choices,
         },
     )
