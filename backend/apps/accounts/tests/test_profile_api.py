@@ -315,7 +315,14 @@ def test_an_unknown_company_field_is_refused(api):
 def test_one_customer_never_sees_anothers_company(api, user):
     """No path parameter names a user here, so there is nothing to tamper with."""
     stranger = User.objects.create_user(phone="966502222222", full_name="غريب")
-    Company.objects.create(user=stranger, **COMPLETE_COMPANY)
+    # العنوانُ الوطنيّ انتقل إلى `NationalAddress` (T850)، فبناءُ `Company`
+    # بحقوله يرفع `AttributeError` — وهو رفضٌ صحيح: خصائصُ الشركة قراءةٌ فقط.
+    company_fields = {
+        key: value
+        for key, value in COMPLETE_COMPANY.items()
+        if key in {"name", "commercial_register", "vat_number"}
+    }
+    Company.objects.create(user=stranger, **company_fields)
 
     assert api.get(reverse("accounts_api:profile-company")).status_code == 404
 

@@ -802,3 +802,55 @@ def admin_password_reset(request, pk: int):
         return redirect("console:admins")
 
     return render(request, "console/admin_password_reset.html", {"person": person})
+
+
+@console_page("console:role-edit")
+def role_edit(request, slug: str):
+    """عدّل قدرات دورٍ مضاف — وقُل كم مشرفاً يمسّه التعديل قبل أن يقع. T852.
+
+    وكانت الأدوار تُضاف وتُحذف ولا تُعدَّل، فمن أراد أن يزيد قدرةً واحدة على
+    دورٍ يحمله سبعة كان أمامه طريقان: يحذف الدور ويصنع غيره (فيُخرج السبعةَ
+    من اللوحة لحظةً)، أو يمنح القدرةَ لكلٍّ منهم فردياً (فتنمو الاستثناءات
+    مكان التصحيح). وكلاهما أسوأ من التعديل.
+
+    **والمكتوبُ في الشيفرة لا يُعدَّل من هنا.** `bundle_for` تقرأه قبل الجدول،
+    فتعديلُ صفٍّ باسمه لا أثر له — وشاشةٌ تقبل تعديلاً بلا أثر أسوأ من شاشةٍ
+    ترفضه.
+    """
+    role = get_object_or_404(ConsoleRole, slug=slug)
+    holders = User.objects.filter(is_staff=True, console_role=slug)
+
+    form = RoleForm(request.POST or None, instance=role)
+    # المعرّف لا يُعدَّل: هو ما يحمله عمودُ كل مشرفٍ على هذا الدور، وتغييرُه
+    # يترك السبعةَ بدورٍ لا وجود له — وهو حذفٌ بلا اسمه.
+    form.fields["slug"].disabled = True
+
+    if request.method == "POST" and form.is_valid():
+        before = sorted(role.capabilities)
+        saved = form.save(commit=False)
+        saved.slug = role.slug
+        saved.full_clean()
+        saved.save()
+        audit.record(
+            action="console.edit_role",
+            entity=saved,
+            actor=request.user,
+            before={"capabilities": before},
+            after={"capabilities": sorted(saved.capabilities)},
+            note=saved.reason,
+        )
+        messages.success(
+            request,
+            f"حُدِّث الدور «{saved.label}» — ويمسّ {holders.count()} مشرفاً.",
+        )
+        return redirect(f"{reverse('console:admins')}?view=roles")
+
+    return render(
+        request,
+        "console/role_edit.html",
+        {
+            "role": role,
+            "form": form,
+            "holders": holders.order_by("full_name"),
+        },
+    )

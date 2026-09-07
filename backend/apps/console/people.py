@@ -44,6 +44,7 @@ from apps.money.models import (
 from .dashboard import Stat
 from .exports import export, wants_export
 from .forms import ReasonMixin
+from .icons import path_of
 from .tones import with_tones
 from .views import console_page
 
@@ -207,6 +208,9 @@ def customer_rows(*, text: str = "", kind: str = "", status: str = ""):
 #: `test_every_card_icon_is_declared` أدناه فلا تفترق عمّا تبنيه الدالّة.
 CARD_ICONS = ("users", "check", "lock", "briefcase", "person-search")
 
+#: رسومُ أفعال الصفّ. مثلُ `CARD_ICONS` ولنفس السبب.
+ROW_ICONS = ("eye", "pencil-line", "ban", "bin")
+
 
 def customer_tallies() -> list[Stat]:
     """البطاقات الخمس، باستعلامٍ واحدٍ مجمَّع لا بخمسة.
@@ -354,6 +358,14 @@ def customers(request):
             # الرابط يُعرض لمن يملكه وحده — والحارس على الشاشة نفسها لا
             # على إخفاء الرابط: إخفاءٌ بلا حراسةٍ زينة.
             "can_delete": can(request.user, Capability.USERS_DELETE),
+            # أفعالُ الصفّ رسوماً لا كلمات: أربعُ كلماتٍ في خليّةٍ تكسر الصفَّ
+            # سطرين على شاشةٍ عادية، والجدولُ هو غرضُ الشاشة. والاسمُ يبقى في
+            # `title` و`aria-label` — فمن يقرأ بالصوت يسمعه، ومن يمرّ بالفأرة
+            # يراه. ورسمٌ بلا اسمٍ مقروء هو ما يجعل الموظّف يضغط ليعرف.
+            "icon_open": path_of("eye"),
+            "icon_edit": path_of("pencil-line"),
+            "icon_access": path_of("ban"),
+            "icon_delete": path_of("bin"),
             "types": AccountType.choices,
             "statuses": STATUSES,
             "row_choices": ROW_CHOICES,
@@ -401,6 +413,23 @@ def customer_edit(request, pk: int):
     )
 
 
+#: حقولُ العنوان التي تدخل القيد. مكتوبةٌ مرّةً ويقرؤها الطرفان (قبلُ وبعد)،
+#: فلا يقارن القيدُ مفتاحاً بغير نظيره.
+ADDRESS_FIELDS = ("city", "district", "street", "building_number", "postal_code")
+
+
+def _address_snapshot(customer) -> dict:
+    """عنوانُ هذا العميل كما هو الآن — أو فراغاتٌ إن لم يُكتب له عنوان.
+
+    فراغاتٌ لا قاموسٌ فارغ: القيدُ يقارن مفتاحاً بمفتاح، وغيابُ المفتاح في
+    «قبل» ووجودُه في «بعد» يُقرأ إضافةً لا تغييراً.
+    """
+    from apps.accounts.models import NationalAddress
+
+    address = NationalAddress.objects.filter(user=customer).first()
+    return {name: getattr(address, name, "") or "" for name in ADDRESS_FIELDS}
+
+
 @console_page("console:company-edit")
 def company_edit(request, pk: int):
     """Edit a company's ZATCA details.
@@ -416,7 +445,12 @@ def company_edit(request, pk: int):
 
     if request.method == "POST" and form.is_valid():
         fields = tuple(CompanyForm.Meta.fields)
+        # لقطةُ العنوان مع لقطة الشركة: العنوانُ صار جدولاً آخر (T850)، ولقطةٌ
+        # على حقول `Meta` وحدها تجعل تغييرَ مدينةٍ **بلا أثرٍ في السجلّ** —
+        # وكان له أثرٌ يوم كان عموداً على الشركة. وسؤالُ «من غيّر العنوان
+        # الضريبيّ؟» يُسأل عند خلافٍ على فاتورة.
         before = audit.snapshot(company, fields) if company else None
+        before_address = _address_snapshot(customer)
         saved = form.save(commit=False)
         saved.user = customer
         saved.save()
@@ -440,8 +474,8 @@ def company_edit(request, pk: int):
             action="console.edit_company",
             entity=saved,
             actor=request.user,
-            before=before,
-            after=audit.snapshot(saved, fields),
+            before={**(before or {}), **before_address},
+            after={**audit.snapshot(saved, fields), **_address_snapshot(customer)},
             note=form.cleaned_data["reason"],
         )
         messages.success(request, "حُفظت بيانات الشركة.")

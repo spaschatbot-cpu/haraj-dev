@@ -22,6 +22,7 @@ from apps.console.dashboard import STAT_ICONS
 from apps.console.icons import ICONS, path_of
 from apps.console.navigation import DETAIL_PAGES, PAGES, PLANNED
 from apps.console.people import CARD_ICONS as CUSTOMER_CARD_ICONS
+from apps.console.people import ROW_ICONS as CUSTOMER_ROW_ICONS
 from apps.console.staff import CARD_ICONS as STAFF_CARD_ICONS
 
 #: أوامر مسارات SVG المسموحة. الأحرف الكبيرة مطلقة والصغيرة نسبية.
@@ -59,7 +60,12 @@ DRAWN_OUTSIDE_THE_REGISTRY = {"exit-door", "crown"}
 
 #: ورسومُ بطاقاتِ الشاشات — مُعلَنةٌ في وحداتها لأن هذا الملفّ لا يستطيع بناءها
 #: (تحتاج قاعدة بيانات)، وكلُّ واحدةٍ يحرسها اختبارٌ في ملفّ شاشتها.
-CARD_ICONS = set(STAFF_CARD_ICONS) | set(CUSTOMER_CARD_ICONS) | set(AUCTION_ROW_ICONS)
+CARD_ICONS = (
+    set(STAFF_CARD_ICONS)
+    | set(CUSTOMER_CARD_ICONS)
+    | set(CUSTOMER_ROW_ICONS)
+    | set(AUCTION_ROW_ICONS)
+)
 
 
 def test_no_icon_is_drawn_for_nobody() -> None:

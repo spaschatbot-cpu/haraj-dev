@@ -190,6 +190,7 @@ urlpatterns = [
         staff.admin_password_reset,
         name="admin-password-reset",
     ),
+    path("admins/roles/<slug:slug>/edit/", staff.role_edit, name="role-edit"),
     path("admins/roles/<slug:slug>/delete/", staff.role_delete, name="role-delete"),
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),

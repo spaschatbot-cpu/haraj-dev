@@ -1,0 +1,45 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تعديل دور — ومن يمسّه التعديل مذكورٌ قبل أن يقع.
+
+كانت الأدوار تُضاف وتُحذف ولا تُعدَّل، فمن أراد زيادةَ قدرةٍ على دورٍ يحمله
+سبعةٌ كان أمامه طريقان: يحذف الدور ويصنع غيره — فيُخرج السبعةَ من اللوحة
+لحظةً — أو يمنح القدرةَ لكلٍّ منهم فردياً فتنمو الاستثناءات مكان التصحيح.
+{% endcomment %}
+{% block title %}تعديل دور{% endblock %}
+{% block heading %}تعديل الدور «{{ role.label }}»{% endblock %}
+
+{% block content %}
+  <p>
+    <code>{{ role.slug }}</code>
+    <span class="pill">{{ holders|length|unlocalize }} مشرفاً يحمله</span>
+  </p>
+
+  {% if holders %}
+    {% comment %} الأسماءُ قبل الاستمارة لا بعدها: تعديلُ دورٍ يمسّ كلَّ من
+       يحمله في اللحظة نفسها، ومن يقرأ الأسماء أوّلاً يعرف ما يفعل.
+    {% endcomment %}
+    <p class="alarm">
+      <strong>هذا التعديل يمسّهم جميعاً الآن:</strong>
+      {% for person in holders %}{{ person.full_name }}{% if not forloop.last %} · {% endif %}{% endfor %}
+    </p>
+  {% else %}
+    <p class="empty">لا مشرفَ على هذا الدور — التعديل لا يمسّ أحداً اليوم.</p>
+  {% endif %}
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <p class="empty">
+      المعرّفُ لا يُعدَّل: هو ما يحمله عمودُ كل مشرفٍ على هذا الدور، وتغييرُه
+      يتركهم بدورٍ لا وجود له — وذلك حذفٌ بلا اسمه.
+    </p>
+    <button type="submit">احفظ الدور</button>
+  </form>
+
+  <p>
+    <a href="{% url 'console:role-delete' role.slug %}">حذف هذا الدور</a> ·
+    <a href="{% url 'console:admins' %}?view=roles">← الأدوار</a>
+  </p>
+{% endblock %}

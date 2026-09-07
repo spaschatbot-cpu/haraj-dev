@@ -28,10 +28,27 @@
     وذلك يمسّ واحداً.
   </p>
 
-  <section class="board-stats" aria-label="أرقام الشاشة">
+  <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
+
+  {% comment %} الإنشاءُ فعلٌ نادر، والقائمةُ هي الغرض — فاستمارةٌ مفتوحةٌ
+     تدفع الجدولَ إلى ما بعد الطيّة. و`<details>` تفتح وتنطوي بلا سطر
+     جافاسكربت، وتُفتح وحدها حين يُرفض الإدخال فيرى الموظّف خطأه. {% endcomment %}
+  <details class="advanced-panel"{% if form.errors %} open{% endif %}>
+    <summary>+ دورٌ جديد</summary>
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <p class="empty">
+        القدرة التي لا تُختار لا تُمنح. ودورٌ بلا «فتح اللوحة» لا يدخل حاملُه
+        أصلاً — وذلك مسموح، لأن حساباً يُنشأ اليوم ويُفتح الأسبوع القادم حالةٌ
+        حقيقية.
+      </p>
+      <button type="submit">أضف الدور</button>
+    </form>
+  </details>
 
   <div class="scroller">
   <table>
@@ -64,7 +81,7 @@
                و«الأفعال المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى
                هذا الشخص المال؟». {% endcomment %}
             <details>
-              <summary>أيّها؟</summary>
+              <summary>أيُّ القدرات؟</summary>
               <ul>
                 {% for name in row.capabilities %}
                   <li>{{ name }}</li>
@@ -84,11 +101,13 @@
                في الصفحة. والسببُ واحدٌ للأربعة: صفٌّ لا وجود له لا يُحذف.
             {% endcomment %}
             {% if row.built_in %}
-              <span class="empty">لا يُحذف — مكتوبٌ في الشيفرة لا صفٌّ</span>
-            {% elif row.held %}
-              <span class="empty">يحمله {{ row.held|unlocalize }}</span>
+              <span class="empty">لا يُعدَّل ولا يُحذف — مكتوبٌ في الشيفرة لا صفٌّ</span>
             {% else %}
-              <a href="{% url 'console:role-delete' row.slug %}">حذف</a>
+              <a href="{% url 'console:role-edit' row.slug %}">تعديل</a>
+              {% comment %} الحذفُ يُعرض دائماً وشاشتُه هي التي ترفض وتقول
+                 من يحمله: زرٌّ يختفي يجعل الموظّف يظنّ الشاشة معطّلة، وزرٌّ
+                 يُفتح على رفضٍ مسمّىً يُعلّمه القاعدة. {% endcomment %}
+              · <a href="{% url 'console:role-delete' row.slug %}">حذف</a>
             {% endif %}
           </td>
         </tr>
@@ -97,15 +116,4 @@
   </table>
   </div>
 
-  <h2>دورٌ جديد</h2>
-  <form method="post" class="form-card">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <p class="empty">
-      القدرة التي لا تُختار لا تُمنح. ودورٌ بلا «فتح اللوحة» لا يدخل حاملُه
-      أصلاً — وذلك مسموح، لأن حساباً يُنشأ اليوم ويُفتح الأسبوع القادم حالةٌ
-      حقيقية.
-    </p>
-    <button type="submit">أضف الدور</button>
-  </form>
 {% endblock %}

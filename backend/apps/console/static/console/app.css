@@ -1880,6 +1880,80 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    ======================================================================== */
 
 .toolbar { margin: 0 0 .9rem; }
+/* خليّةُ أفعالِ الصفّ: رسومٌ متجاورة بمساحة لمسٍ كافية. T852.
+
+   والحدُّ الأدنى ٢٫٢ريم لأن هدفَ اللمس أصغرُ من ذلك يُخطئه الإصبع — والرسمُ
+   وحده ١ريم. والاسمُ في `title`/`aria-label` لا في النصّ: أربعُ كلماتٍ في
+   خليّةٍ تكسر الصفَّ سطرين، والجدولُ هو غرضُ الشاشة. */
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .1rem;
+  white-space: nowrap;
+}
+
+.row-actions a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.row-actions a:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* الحذفُ وحده بلونه: الفعلُ الذي لا يُتراجَع عنه لا يُميَّز باللون فقط —
+   له شاشتُه التي تسأل وترفض — ولكنّ لونَه يجعل الإصبعَ يتردّد قبل أن يصل. */
+.row-actions a.danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+.row-actions .row-icon { margin-inline-end: 0; inline-size: 1.05rem; block-size: 1.05rem; }
+
+/* ---- شريطُ بطاقاتٍ مضغوط -------------------------------------------------
+   بطاقاتُ اللوحة الرئيسية كبيرةٌ عن قصد: هي الصفحة كلُّها. وبطاقاتُ رأس شاشةِ
+   قائمةٍ ليست كذلك — تحتها جدولٌ هو الغرض، فبطاقةٌ بارتفاع الشاشة تدفعه تحت
+   الطيّة وتجعل الموظّف يمرّر قبل أن يرى صفّاً واحداً.
+
+   فأربعٌ أو خمسٌ في صفٍّ واحد على الشاشة العادية، وارتفاعُها ثلثُ الأولى:
+   عنوانٌ ورقمٌ وسطرٌ خافت، والرسمُ صغيرٌ في الحافة. T852. */
+.board-stats--compact {
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  gap: .55rem;
+  margin-block-end: 1.1rem;
+}
+
+.board-stats--compact .stat {
+  gap: .15rem;
+  padding: .6rem .75rem;
+  border-radius: 10px;
+  border-inline-start-width: 2px;
+  box-shadow: none;
+}
+
+.board-stats--compact .stat__value { font-size: 1.45rem; line-height: 1.25; }
+.board-stats--compact .stat__label { font-size: .72rem; }
+.board-stats--compact .stat__icon { inline-size: 1rem; block-size: 1rem; }
+.board-stats--compact .stat__top { margin-block-end: .1rem; }
+
+/* السطرُ الخافت يبقى — هو ما يقول **ما الذي يعدّه** الرقم — ولكنّه أصغر،
+   ولا يُطوى: عدّادٌ بلا تعريفٍ هو ما جعل «مزادات نشطة ٠» و«مزايدات نشطة
+   ٨١٤٧٥» يتعايشان في v1 دون أن يسأل أحد. */
+.board-stats--compact .stat__detail { font-size: .68rem; line-height: 1.45; }
+.board-stats--compact .stat__action { font-size: .68rem; }
+
 /* ---- الألسنة -------------------------------------------------------------
    «الأدوار» كانت صفحةً في الشريط بجوار «إدارة المشرفين»، وكلتاهما لا تُفتح
    إلا من الأخرى عملياً — فصارتا لسانين على شاشةٍ واحدة (T852).

@@ -19,7 +19,7 @@
     حسابات الأفراد والشركات: من هو، وهل يستطيع الدخول، وكم له عندنا في الدفتر.
   </p>
 
-  <section class="board-stats" aria-label="أرقام الشاشة">
+  <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
@@ -106,19 +106,30 @@
           {% comment %} من الدفتر لا من عمودٍ مخزَّن — وهو الفرق بين رقمٍ
              وبين `0 SAR` في أربعةٍ وأربعين ألف صفّ. {% endcomment %}
           <td class="money">{{ customer.wallet_total|unlocalize }}</td>
-          <td>
-            <a href="{% url 'console:customer-detail' customer.pk %}">افتح</a> ·
-            <a href="{% url 'console:customer-edit' customer.pk %}">تعديل</a>
+          <td class="row-actions">
+            {% comment %} رسومٌ لا كلمات: أربعُ كلماتٍ في خليّةٍ تكسر الصفَّ
+               سطرين، والجدولُ هو غرضُ الشاشة. والاسمُ في `title` و`aria-label`
+               — فمن يقرأ بالصوت يسمعه، ومن يمرّ بالفأرة يراه. {% endcomment %}
+            <a href="{% url 'console:customer-detail' customer.pk %}" title="افتح الملفّ" aria-label="افتح الملفّ">
+              <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_open }}"/></svg>
+            </a>
+            <a href="{% url 'console:customer-edit' customer.pk %}" title="تعديل البيانات" aria-label="تعديل البيانات">
+              <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_edit }}"/></svg>
+            </a>
             {% comment %} شاشة الوصول ترفض الموظّفين (`is_staff=False`)، فلا
                يُعرض رابطٌ يفتح على 404. {% endcomment %}
             {% if not customer.is_staff %}
-              · <a href="{% url 'console:customer-access' customer.pk %}">الوصول</a>
+              <a href="{% url 'console:customer-access' customer.pk %}" title="إيقاف الوصول أو إعادته" aria-label="إيقاف الوصول أو إعادته">
+                <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_access }}"/></svg>
+              </a>
             {% endif %}
             {% comment %} الحذف قدرةٌ وحدها (`users.delete`)، فلا يظهر لمن
                يملك التعديل وحده. والشاشة التي يفتحها ترفض أكثر ممّا تقبل:
                حسابٌ له مزايدةٌ أو فاتورة لا يُحذف. {% endcomment %}
             {% if can_delete %}
-              · <a href="{% url 'console:customer-delete' customer.pk %}">حذف</a>
+              <a class="danger" href="{% url 'console:customer-delete' customer.pk %}" title="حذف الحساب" aria-label="حذف الحساب">
+                <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_delete }}"/></svg>
+              </a>
             {% endif %}
           </td>
         </tr>

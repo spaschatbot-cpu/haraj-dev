@@ -210,12 +210,27 @@ class Company(models.Model):
     def __str__(self) -> str:
         return self.name
 
-    # ZATCA national address moved to NationalAddress (T850).
-    # Properties provide transparent access without duplicating columns on Company.
+    # العنوان الوطنيّ انتقل إلى `NationalAddress` (T850)، وهذه خصائصُ **قراءة**
+    # تُبقي القرّاء القدامى يعملون بلا عمودٍ مكرَّر.
+    #
+    # **والكتابة تصرخ ولا تصمت.** كانت أجسامُ الـsetters `pass`، أي أن
+    # `company.city = "الرياض"` يُهمَل بلا كلمة — والاستمارة تقول «حُفظت» وهو
+    # لم يُحفظ. وذلك عطل T808 بعينه في شكلٍ جديد: الموظّف يكتب، ويُبلَّغ
+    # بالنجاح، ولا شيء يُخزَّن. فالإسنادُ الآن يرفع `AttributeError` يقول أين
+    # يُكتب العنوان فعلاً.
     def _national_address(self):
+        """عنوانُ صاحب الشركة، أو `None` إن لم يُكتب له عنوانٌ بعد.
+
+        و`ObjectDoesNotExist` وحدها تُلتقَط لا `Exception`: الثانيةُ تبتلع
+        خطأ الاتّصال وخطأ البرمجة معاً فتُرجع `None`، فتُقرأ الشاشة «لا عنوان»
+        وهي لا تعرف. وذلك هو `safeRows` في v1 حرفياً — يُرجع `[]` بصمت فيقرأ
+        الموظّف «لا مزايدات» وهي موجودة.
+        """
+        from django.core.exceptions import ObjectDoesNotExist
+
         try:
             return self.user.national_address
-        except Exception:
+        except ObjectDoesNotExist:
             return None
 
     @property
@@ -225,7 +240,10 @@ class Company(models.Model):
 
     @building_number.setter
     def building_number(self, val: str) -> None:
-        pass
+        raise AttributeError(
+            "العنوان الوطنيّ يُكتب في `accounts.NationalAddress` لا على الشركة. "
+            f"أُسنِد «{val}» إلى `Company.building_number` وهو خاصّةُ قراءة."
+        )
 
     @property
     def street(self) -> str:
@@ -234,7 +252,10 @@ class Company(models.Model):
 
     @street.setter
     def street(self, val: str) -> None:
-        pass
+        raise AttributeError(
+            "العنوان الوطنيّ يُكتب في `accounts.NationalAddress` لا على الشركة. "
+            f"أُسنِد «{val}» إلى `Company.street` وهو خاصّةُ قراءة."
+        )
 
     @property
     def district(self) -> str:
@@ -243,7 +264,10 @@ class Company(models.Model):
 
     @district.setter
     def district(self, val: str) -> None:
-        pass
+        raise AttributeError(
+            "العنوان الوطنيّ يُكتب في `accounts.NationalAddress` لا على الشركة. "
+            f"أُسنِد «{val}» إلى `Company.district` وهو خاصّةُ قراءة."
+        )
 
     @property
     def city(self) -> str:
@@ -252,7 +276,10 @@ class Company(models.Model):
 
     @city.setter
     def city(self, val: str) -> None:
-        pass
+        raise AttributeError(
+            "العنوان الوطنيّ يُكتب في `accounts.NationalAddress` لا على الشركة. "
+            f"أُسنِد «{val}» إلى `Company.city` وهو خاصّةُ قراءة."
+        )
 
     @property
     def postal_code(self) -> str:
@@ -261,7 +288,10 @@ class Company(models.Model):
 
     @postal_code.setter
     def postal_code(self, val: str) -> None:
-        pass
+        raise AttributeError(
+            "العنوان الوطنيّ يُكتب في `accounts.NationalAddress` لا على الشركة. "
+            f"أُسنِد «{val}» إلى `Company.postal_code` وهو خاصّةُ قراءة."
+        )
 
 
 class NationalAddress(models.Model):

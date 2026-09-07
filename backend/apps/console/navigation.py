@@ -655,6 +655,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
         Capability.STAFF_GRANT,
         "",
     ),
+    Page("console:role-edit", "تعديل دور", Capability.STAFF_GRANT, ""),
     Page("console:role-delete", "حذف دور", Capability.STAFF_GRANT, ""),
     Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
     Page("console:auction-bids", "مزايدات المزاد", Capability.AUCTIONS_VIEW, ""),

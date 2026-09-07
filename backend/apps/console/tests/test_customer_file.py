@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -368,3 +369,105 @@ def test_national_address_validation_rejects_bad_formats_in_arabic(customer):
         additional_number="5678",
     )
     valid.clean()  # لا يرمي أي استثناء
+
+
+# ---------------------------------------------------------------------------
+# ٥ — مراجعةُ T850: العنوان الوطنيّ، وأربعةُ أعطالٍ أُصلحت. T852
+# ---------------------------------------------------------------------------
+
+
+def test_writing_an_address_onto_the_company_is_refused_not_swallowed():
+    """`company.city = …` كان يُهمَل بلا كلمة — والاستمارة تقول «حُفظت».
+
+    وذلك عطل T808 في شكلٍ جديد: الموظّف يكتب، ويُبلَّغ بالنجاح، ولا شيء
+    يُخزَّن. فالإسنادُ يرفع `AttributeError` يقول أين يُكتب العنوان فعلاً.
+    """
+    from apps.accounts.models import Company
+
+    company = Company(name="شركة الاختبار")
+
+    with pytest.raises(AttributeError, match="NationalAddress"):
+        company.city = "الرياض"
+
+
+def test_a_missing_address_is_not_a_swallowed_exception(db):
+    """`except Exception` كان يبتلع خطأ الاتّصال وخطأ البرمجة معاً فيُرجع None.
+
+    وهو `safeRows` في v1 حرفياً: يُرجع فراغاً بصمت فيقرأ الموظّف «لا عنوان»
+    وهو لا يعرف. فصار الالتقاط على `ObjectDoesNotExist` وحدها — وهذا يُثبت
+    أن الحالة الشرعية (لا عنوان بعد) ما زالت تُرجع `None` بلا انفجار.
+    """
+    from apps.accounts.models import Company, User
+
+    person = User.objects.create_user(
+        phone="966555550899", full_name="بلا عنوان", password="x"
+    )
+    company = Company.objects.create(user=person, name="شركة بلا عنوان")
+
+    assert company.city == ""
+    assert company.building_number == ""
+
+
+def test_changing_a_company_address_leaves_an_audit_row(client, owner):
+    """«من غيّر العنوان الضريبيّ؟» سؤالٌ يُسأل عند خلافٍ على فاتورة.
+
+    وكان له جوابٌ يوم كان العنوان عموداً على الشركة؛ ثم صار جدولاً آخر (T850)
+    واللقطةُ بقيت على حقول `Meta` وحدها — فصار تغييرُ مدينةٍ **بلا أثر**.
+    """
+    from apps.accounts.models import Company, NationalAddress, User
+    from apps.core.models import AuditLog
+
+    person = User.objects.create_user(
+        phone="966555550898", full_name="شركة العنوان", password="x"
+    )
+    Company.objects.create(user=person, name="شركة العنوان")
+
+    # HR-13: الاستمارة تحمل ختمَ حالة الصفّ ساعةَ رُسمت، ويعود مع الإرسال —
+    # فمن يكتب بلا فتحِ الصفحة يُرفض. والاختبار يسلك طريق الموظّف نفسه.
+    page = client.get(reverse("console:company-edit", args=[person.pk]))
+    stamp = re.search(r'name="row_stamp" value="([^"]*)"', page.content.decode())
+
+    response = client.post(
+        reverse("console:company-edit", args=[person.pk]),
+        {
+            "row_stamp": stamp.group(1) if stamp else "",
+            "name": "شركة العنوان",
+            "representative_name": "",
+            "commercial_register": "",
+            "vat_number": "",
+            "city": "الدمام",
+            "district": "الفيصلية",
+            "street": "الملك فهد",
+            "building_number": "1234",
+            "postal_code": "34212",
+            "reason": "تصحيح العنوان الوطنيّ",
+        },
+    )
+
+    assert response.status_code == 302, response.context["form"].errors
+    assert NationalAddress.objects.get(user=person).city == "الدمام"
+    entry = AuditLog.objects.filter(action="console.edit_company").latest("id")
+    assert entry.before["city"] == ""
+    assert entry.after["city"] == "الدمام"
+
+
+def test_the_migration_drops_what_will_not_fit_instead_of_crashing():
+    """`varchar(8)` صار `varchar(4)` — وقيمةٌ أطول تُجهض الهجرة، أي النشر كلَّه.
+
+    ولا يظهر ذلك على قاعدة تطويرٍ فيها صفّان قصيران. والاختبار على المنطق لا
+    على تشغيل الهجرة: `NARROWED` هي القرار، وهي ما يجب ألّا يُحذف.
+    """
+    import pathlib
+
+    source = (
+        pathlib.Path(__file__).resolve().parents[2]
+        / "accounts"
+        / "migrations"
+        / "0010_migrate_company_addresses.py"
+    ).read_text(encoding="utf-8")
+
+    assert 'NARROWED = {"building_number": 4, "postal_code": 5}' in source
+    assert "dropped.append" in source, "القيمةُ التي لا تتّسع تُسمَّى لا تُقصّ"
+    assert "[:4]" not in source and "[:5]" not in source, (
+        "القصُّ يخترع رقمَ مبنى لم يقله أحد، ويُقرأ بعد سنةٍ صحيحاً"
+    )
