@@ -54,21 +54,26 @@ class User(AbstractBaseUser, PermissionsMixin):
     # unique=True already indexes the column; a second db_index would only cost
     # writes. 12 is the exact length of 9665XXXXXXXX — the CHECK below is what
     # actually holds the shape.
-    phone = models.CharField(max_length=12, unique=True, validators=[saudi_mobile])
-    full_name = models.CharField(max_length=200)
-    email = models.EmailField(blank=True)
+    phone = models.CharField(
+        "الجوال", max_length=12, unique=True, validators=[saudi_mobile]
+    )
+    full_name = models.CharField("الاسم الكامل", max_length=200)
+    email = models.EmailField("البريد", blank=True)
 
     account_type = models.CharField(
-        max_length=16, choices=AccountType.choices, default=AccountType.INDIVIDUAL
+        "نوع الحساب",
+        max_length=16,
+        choices=AccountType.choices,
+        default=AccountType.INDIVIDUAL,
     )
 
     #: Set once, and only once it is valid — so a customer who typed it wrong
     #: can still correct themselves, but a correct one cannot be swapped for
     #: somebody else's. Blank until then; the partial unique index below indexes
     #: it and keeps one identity on one account.
-    national_id = models.CharField(max_length=20, blank=True)
+    national_id = models.CharField("رقم الهوية", max_length=20, blank=True)
 
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField("الحساب مفعّل", default=True)
 
     #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T839.
     #:
@@ -81,8 +86,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     #: `apps.console.views.console_page` يحوّل حاملَه إلى شاشة تغيير
     #: الكلمة قبل أيّ شاشةٍ أخرى، فما يعرفه المنشئ يصير باطلاً قبل أن
     #: يُفعل بالحساب شيء.
-    must_change_password = models.BooleanField(default=False)
-    is_staff = models.BooleanField(default=False)
+    must_change_password = models.BooleanField(
+        "يغيّر كلمة المرور عند أوّل دخول", default=False
+    )
+    is_staff = models.BooleanField("موظّف", default=False)
 
     #: Which bundle of console capabilities this account starts with (T801).
     #:
@@ -91,10 +98,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     #: decide anything: it is an input to `apps.core.permissions`, and asking
     #: "is this person X?" anywhere else fails a CI check. That indirection is
     #: the whole lesson of v1's `hasRole()`.
-    console_role = models.CharField(max_length=16, blank=True)
+    console_role = models.CharField("دور اللوحة", max_length=16, blank=True)
 
-    phone_verified_at = models.DateTimeField(null=True, blank=True)
-    date_joined = models.DateTimeField(default=timezone.now)
+    phone_verified_at = models.DateTimeField("وقت توثيق الجوال", null=True, blank=True)
+    date_joined = models.DateTimeField("تاريخ التسجيل", default=timezone.now)
 
     objects = UserManager()
 
@@ -130,6 +137,24 @@ class User(AbstractBaseUser, PermissionsMixin):
         from apps.accounts.services import display_name
 
         return f"{display_name(self)} ({self.phone})"
+
+
+#: أسماءُ الحقول الموروثة من جانغو — عربيّةً كبقيّتها. T840.
+#:
+#: `id` و`last_login` و`is_superuser` تأتي من `AbstractBaseUser` و
+#: `PermissionsMixin` بأسمائها الإنجليزية، وشاشةُ ملفّ العميل تقرأ
+#: `verbose_name` من النموذج — فتخرج ثلاثةُ أسطرٍ إنجليزية وسط جدولٍ عربيّ
+#: («superuser status: لا»). وتُضبَط هنا لا في العرض: الاسمُ صفةٌ للحقل،
+#: ووضعُه في شاشةٍ يعني قائمةَ ترجمةٍ ثانيةً تفترق عن النموذج.
+#:
+#: ولا هجرةَ لها: `verbose_name` بيانٌ وصفيّ لا يمسّ القاعدة، وجانغو لا يرصده
+#: على حقلٍ موروثٍ يُعدَّل بعد بناء الصنف.
+for _field, _label in (
+    ("id", "المعرّف"),
+    ("last_login", "آخر دخول"),
+    ("is_superuser", "مدير النظام"),
+):
+    User._meta.get_field(_field).verbose_name = _label
 
 
 class Company(models.Model):
