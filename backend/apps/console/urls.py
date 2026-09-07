@@ -158,6 +158,7 @@ urlpatterns = [
     path("refunds/<int:pk>/resolve/", refunds.refund_resolve, name="refund-resolve"),
     path("payments/attempts/", payments.payment_attempts, name="payment-attempts"),
     path("staff/<int:pk>/grants/", people.staff_grants, name="staff-grants"),
+    path("admins/new/", staff.admin_new, name="admin-new"),
     path("admins/roles/", staff.roles, name="roles"),
     path("admins/roles/<slug:slug>/delete/", staff.role_delete, name="role-delete"),
     path("invoices/", people.invoices, name="invoices"),

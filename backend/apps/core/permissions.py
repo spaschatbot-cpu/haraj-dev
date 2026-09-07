@@ -284,6 +284,26 @@ def role_choices() -> list[tuple[str, str]]:
     return built_in + added
 
 
+def assign_role(user, slug: str, *, save: bool = True) -> None:
+    """اكتب دورَ هذا الشخص — **الكاتبُ الوحيد** للحقل. T839.
+
+    الحقل له قارئٌ واحد بحكم `ops/checks/one_permission_gate.py`، وله كاتبٌ
+    واحد للسبب نفسه: إسنادُ دورٍ قرارُ صلاحيات، وشاشةٌ تكتبه بيدها هي بوّابةٌ
+    ثانية — وتلك هي الحادثة التي بُني عليها هذا الملفّ كلُّه.
+
+    ودورٌ لا وجود له يُرفض هنا لا يوم يُقرأ: حسابٌ بدورٍ مكتوبٍ خطأً يُنشأ
+    بلا شكوى، ثم يفتح اللوحة بأدنى قدرةٍ ولا يعرف صاحبُه لماذا — وذلك سؤالٌ
+    يصل الدعم بعد أسبوع بلا خيطٍ يُتبَع.
+    """
+    slug = (slug or "").strip()
+    if slug and slug not in {value for value, _ in role_choices()}:
+        raise ValueError(f"دورٌ لا وجود له: {slug}")
+
+    user.console_role = slug
+    if save and user.pk:
+        user.save(update_fields=["console_role"])
+
+
 def is_built_in(slug: str) -> bool:
     """هل هذا الدور مكتوبٌ في الشيفرة — أي لا يُحذف ولا يُعدَّل من شاشة."""
     return slug in ROLE_CAPABILITIES

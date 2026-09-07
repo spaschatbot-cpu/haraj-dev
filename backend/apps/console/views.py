@@ -16,6 +16,7 @@ from functools import wraps
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
+from django.shortcuts import redirect
 
 from apps.core.permissions import can
 
@@ -41,6 +42,13 @@ def console_page(url_name: str):
         @wraps(view)
         @login_required
         def guarded(request, *args, **kwargs):
+            # كلمةٌ كتبها غيرُه تُغيَّر قبل أي شيء (T839). ويُستثنى مسارُ
+            # التغيير نفسه وإلّا دار على نفسه، والخروجُ ليس صفحةً هنا أصلاً.
+            if (
+                getattr(request.user, "must_change_password", False)
+                and url_name != "console:password-change"
+            ):
+                return redirect("console:password-change")
             if not can(request.user, capability):
                 raise PermissionDenied(f"{capability} غير مسموحة لهذا المستخدم")
             return view(request, *args, **kwargs)

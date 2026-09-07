@@ -107,6 +107,7 @@ class Command(BaseCommand):
             )
 
         bidders = self.customers(options["bidders"])
+        self.staff_and_roles()
         auctions = self.auctions()
         self.vehicles(auctions)
         self.images(options["images"])
@@ -144,6 +145,126 @@ class Command(BaseCommand):
             people.append(user)
         self.stdout.write(f"مزايدون: {len(people)}")
         return people
+
+    # -- الطاقم الإداري والأدوار -------------------------------------------
+
+    def staff_and_roles(self) -> None:
+        """مشرفون وأدوارٌ مضافة — كي تُقرأ شاشات «إدارة المشرفين» على صفوف.
+
+        شاشةٌ تُرندَر على جدولٍ فارغ تمرّ بكل فحصٍ نصّيّ وهي لا تعرض شيئاً،
+        وذلك ما شحنته v1 مراراً. فالبذرة تضع هنا **الحالات التي تُقرأ**:
+
+        * دورٌ مضافٌ يحمله أحد، وآخرُ لا يحمله أحد — الأول لا يُحذف والثاني
+          يُحذف، وهما وجها زرِّ الحذف في شاشة الأدوار.
+        * موظّفٌ معطَّل، وموظّفٌ لم يدخل قطّ، وموظّفٌ عليه استثناءٌ فوق دوره —
+          وهي الأعمدة الثلاثة التي تبقى فارغةً في v1 دائماً.
+        """
+        from apps.accounts.models import ConsoleRole, StaffGrant
+        from apps.core.permissions import Capability, Role
+
+        creator = User.objects.filter(is_staff=True).order_by("id").first()
+
+        # دورٌ مضافٌ من شاشة الأدوار — من قائمة v1 نفسها.
+        aftersales, _ = ConsoleRole.objects.get_or_create(
+            slug="aftersales",
+            defaults={
+                "label": "خدمات ما بعد البيع (اطلاع)",
+                "capabilities": [
+                    Capability.CONSOLE_ACCESS,
+                    Capability.AUCTIONS_VIEW,
+                    Capability.USERS_VIEW,
+                ],
+                "reason": "الفريق يقرأ حالة المركبات ولا يكتب شيئاً",
+                "created_by": creator,
+            },
+        )
+        # ودورٌ لا يحمله أحد — ليُقرأ زرُّ الحذف وهو صالحٌ للضغط.
+        ConsoleRole.objects.get_or_create(
+            slug="dataentry",
+            defaults={
+                "label": "مدخل بيانات المزادات",
+                "capabilities": [Capability.CONSOLE_ACCESS],
+                "reason": "بقي من ترتيبٍ قديم ولم يعد له عمل",
+                "created_by": creator,
+            },
+        )
+
+        # ‏`96650100…` لا `96650000…`: المدى الثاني تشغله حسابات العرض
+        # القديمة، فكان `get_or_create` يجد صفّاً قائماً ولا يُنشئ شيئاً —
+        # وتُقرأ الشاشةُ فارغةً والبذرةُ تقول إنها نجحت.
+        crew = [
+            ("966501000010", "سارة التشغيل", Role.OPERATIONS, True),
+            ("966501000011", "خالد المالية", Role.FINANCE, True),
+            ("966501000012", "نورة الدعم", Role.SUPPORT, True),
+            # معطَّل: العمود الذي يقول «نشط الآن» في ٣٧ من ٣٧ عند v1.
+            ("966501000013", "فهد المنقول", Role.SUPPORT, False),
+            ("966501000014", "ريم ما بعد البيع", aftersales.slug, True),
+        ]
+        made = 0
+        for phone, name, role, active in crew:
+            person, created = User.objects.get_or_create(
+                phone=phone, defaults={"full_name": name}
+            )
+            if not created:
+                continue
+            person.set_password("haraj1234")
+            person.is_staff = True
+            person.console_role = role
+            person.is_active = active
+            person.save()
+            made += 1
+
+        # استثناءٌ فوق الدور، بسببه — العمود الذي هو رقمٌ مجرَّد في v1
+        # («صفحات مخفية: ٤٦») ولا يقول أيَّها ولا لماذا.
+        support = User.objects.filter(phone="966501000012").first()
+        if support is not None:
+            StaffGrant.objects.get_or_create(
+                user=support,
+                capability=Capability.NOTIFICATIONS_VIEW,
+                defaults={
+                    "granted": True,
+                    "reason": "تتابع رسائل العملاء في نوبة الليل",
+                    "granted_by": creator,
+                },
+            )
+
+        self.stdout.write(
+            f"طاقم إداري: {made} حساباً جديداً · أدوار مضافة: {ConsoleRole.objects.count()}"
+        )
+        self.companies()
+
+    def companies(self) -> None:
+        """حسابا شركة — وإلّا قرأت بطاقةُ «حسابات شركات» صفراً بلا سبب.
+
+        وبطاقةٌ تعرض صفراً على شاشةٍ فيها ثمانمئة صفّ لا تُقرأ «لا شركات
+        عندنا»؛ تُقرأ «العدّاد معطَّل». وهو الفرق نفسه الذي بُنيت هذه الشاشة
+        لأجله في عمود الرصيد.
+        """
+        from apps.accounts.models import AccountType, Company
+
+        made = 0
+        for phone, name, rep, city in (
+            ("966501000020", "شركة بي ون موتورز", "سلطان العتيبي", "الرياض"),
+            ("966501000021", "مؤسسة الخليج للسيارات", "ماجد الدوسري", "الدمام"),
+        ):
+            person, created = User.objects.get_or_create(
+                phone=phone, defaults={"full_name": name}
+            )
+            if not created:
+                continue
+            person.account_type = AccountType.COMPANY
+            person.save(update_fields=["account_type"])
+            Company.objects.get_or_create(
+                user=person,
+                defaults={
+                    "name": name,
+                    "representative_name": rep,
+                    "city": city,
+                    "commercial_register": f"1010{made}00000",
+                },
+            )
+            made += 1
+        self.stdout.write(f"شركات: {made} حساباً جديداً")
 
     # -- المزادات -----------------------------------------------------------
 

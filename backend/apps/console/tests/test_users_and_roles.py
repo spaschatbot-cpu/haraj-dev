@@ -296,3 +296,95 @@ def test_the_overrides_screen_is_not_in_the_sidebar_any_more(client, owner):
 
     assert "console:page-control" not in sidebar
     assert "console:roles" in sidebar
+
+
+# ---------------------------------------------------------------------------
+# ٦ — إضافة مشرف: الكلمةُ التي يكتبها غيرُه تبطل عند أوّل دخول. T839
+# ---------------------------------------------------------------------------
+
+
+def test_a_new_admin_must_change_the_password_somebody_else_chose(client, owner):
+    """v1 يدع موظّفاً يكتب كلمة موظّفٍ آخر ويمضي.
+
+    والأثر ليس أن حساباً واحداً مكشوف: كلُّ قيدٍ يتركه الثاني في `AuditLog`
+    يصير قابلاً للإنكار («لم أفعل، فلانٌ يعرف كلمتي») — وحجّةُ الإنكار تصلح
+    لكل صفٍّ فيه، فيُبطل السجلُّ كلُّه لا صفٌّ منه.
+    """
+    response = client.post(
+        reverse("console:admin-new"),
+        {
+            "full_name": "مشرف جديد",
+            "phone": "966501000099",
+            "password": "Qw8!zxPl92mv",
+            "role": Role.SUPPORT,
+            "is_active": "on",
+        },
+    )
+
+    assert response.status_code == 302
+    fresh = User.objects.get(phone="966501000099")
+    assert fresh.is_staff and fresh.console_role == Role.SUPPORT
+    assert fresh.must_change_password, "كلمةٌ كتبها غيرُه ولا تنتهي"
+
+
+def test_the_flag_actually_blocks_every_screen_until_it_is_changed(client, owner):
+    """العلمُ الذي لا يمنع شيئاً حقلٌ يزيّن جدولاً.
+
+    ويُقاس على شاشةٍ عاديّة لا على شاشة التغيير: الأخيرة تمرّ بحكم الاستثناء،
+    فاختبارٌ عليها وحدها يمرّ ولو كان الحارس ميتاً.
+    """
+    fresh = staff(Role.SUPPORT, "966501000098")
+    fresh.must_change_password = True
+    fresh.save(update_fields=["must_change_password"])
+    client.force_login(fresh)
+
+    response = client.get(reverse("console:customers"))
+
+    assert response.status_code == 302
+    assert response["Location"] == reverse("console:password-change")
+    # وشاشةُ التغيير نفسها تُفتح، وإلّا دار الحارس على نفسه.
+    assert client.get(reverse("console:password-change")).status_code == 200
+
+
+def test_the_role_menu_does_not_open_on_owner(client, owner):
+    """قائمة v1 تُفتح على `Owner (المالك)` مختاراً — فضغطةٌ بلا انتباه تُنشئ ثانياً."""
+    body = client.get(reverse("console:admin-new")).content.decode()
+
+    menu = body.split('name="role"')[1].split("</select>")[0]
+
+    # المحدَّدُ سلفاً هو الفراغ وحده — لا دور. و`selected` على الخيار الفارغ
+    # هو الآليّة نفسها التي يستعملها v1 لتحديد «المالك»، فالاختبار على
+    # **أيُّها** محدَّد لا على وجود الكلمة.
+    assert 'value="" selected' in menu
+    for value in Role.values:
+        assert f'value="{value}" selected' not in menu, value
+
+
+def test_a_phone_that_already_has_an_account_is_named_not_crashed(client, owner):
+    """`phone` مفتاحٌ فريد، والحفظُ بلا فحصٍ يرمي `IntegrityError` فيسقط الطلب.
+
+    وهو عطل T808 في شكلٍ آخر: قيمةٌ واحدة تُسقط ما أدخله الموظّف كلَّه.
+    """
+    User.objects.create_user(phone="966501000097", full_name="قائم", password="x")
+
+    response = client.post(
+        reverse("console:admin-new"),
+        {
+            "full_name": "مكرَّر",
+            "phone": "966501000097",
+            "password": "Qw8!zxPl92mv",
+            "role": Role.SUPPORT,
+        },
+    )
+
+    assert response.status_code == 200
+    assert "لحسابٍ قائم" in response.content.decode()
+    assert User.objects.get(phone="966501000097").full_name == "قائم"
+
+
+def test_the_admins_screen_carries_both_buttons(client, owner):
+    """«إضافة مشرف» و«الأدوار» فعلان على هذه القائمة، لا وجهتان في الشريط."""
+    body = client.get(reverse("console:admins")).content.decode()
+
+    assert reverse("console:admin-new") in body
+    assert reverse("console:roles") in body

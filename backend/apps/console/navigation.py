@@ -653,6 +653,9 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # يكتشف أن ما يريده في الأخرى بالاسم نفسه تقريباً. فصارت تُفتح من صفِّ
     # المشرف وخرجت من الشريط — مدخلان إلى القائمة الواحدة أحدُهما زائد.
     Page("console:page-control", "التحكم في صفحات مشرف", Capability.STAFF_GRANT, ""),
+    # تُفتح بزرٍّ من «إدارة المشرفين» لا من الشريط: إنشاءُ حسابٍ فعلٌ
+    # على تلك القائمة لا وجهةٌ يُذهب إليها ابتداءً.
+    Page("console:admin-new", "إضافة مشرف", Capability.STAFF_GRANT, ""),
     Page("console:role-delete", "حذف دور", Capability.STAFF_GRANT, ""),
     Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
     Page("console:auction-bids", "مزايدات المزاد", Capability.AUCTIONS_VIEW, ""),

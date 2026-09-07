@@ -69,6 +69,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     national_id = models.CharField(max_length=20, blank=True)
 
     is_active = models.BooleanField(default=True)
+
+    #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T839.
+    #:
+    #: استمارةُ «إضافة مشرف» في v1 فيها خانةُ كلمة مرورٍ يملؤها موظّفٌ
+    #: لموظّفٍ آخر — أي أن الأول يعرف كلمة الثاني ويستطيع الدخول باسمه،
+    #: فيصير كلُّ قيدٍ يتركه الثاني في `AuditLog` **قابلاً للإنكار**:
+    #: «لم أفعل، فلانٌ يعرف كلمتي». وذلك يُبطل السجلَّ كلَّه لا صفّاً منه.
+    #:
+    #: والعلمُ هنا يُنهي تلك المعرفة عند أوّل دخول: الحارس في
+    #: `apps.console.views.console_page` يحوّل حاملَه إلى شاشة تغيير
+    #: الكلمة قبل أيّ شاشةٍ أخرى، فما يعرفه المنشئ يصير باطلاً قبل أن
+    #: يُفعل بالحساب شيء.
+    must_change_password = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
     #: Which bundle of console capabilities this account starts with (T801).
