@@ -9,76 +9,224 @@
  * `logical` (inset/inline/block) فيعمل RTL من غير استثناء.
  */
 
+/* ===========================================================================
+   النظام اللوني — أربع طبقاتٍ تُركَّب، وكلُّ طبقةٍ كتلةٌ مستقلّة
+   ---------------------------------------------------------------------------
+   كان اللون هنا كتلةً واحدة (`:root`) بقيمٍ مباشرة، وذلك كافٍ للوحةٍ بمظهرٍ
+   واحد. ولمّا صار للمالك أن يختار — مظهراً فاتحاً أو داكناً، ولوناً أساسياً من
+   ستّة، وشريطاً جانبياً فاتحاً أو داكناً — صارت التوليفات ٢٤. وكتابةُ ٢٤ لوحةً
+   بيدٍ تعني أن تصحيح لونٍ في واحدةٍ يتركه راسباً في ثلاثٍ وعشرين.
+
+   فالطبقات:
+
+   ١. `:root` — المحايدات وألوان الحالات وأبعاد التخطيط. هذه هي الحالة الفاتحة.
+   ٢. `[data-accent]` — ستّ درجاتٍ لا غير للّون الأساسي (`--a050…--a700`
+      و`--a-dim` للمظهر الداكن). لا كتلةَ أساسٍ تلمس شيئاً آخر.
+   ٣. `[data-scheme="dark"]` — يقلب المحايدات، ويرفع درجة الأساسي إلى `--a300`
+      لأن `--a700` على أرضيةٍ داكنة نصٌّ لا يُقرأ.
+   ٤. `[data-sidebar]` — لون الشريط الجانبي وحده، مستقلاً عن المظهر.
+
+   والربط بـ`var()` لا بتكرار القيمة: `--brand-dark` يشير إلى `--a700` في
+   الفاتح وإلى `--a300` في الداكن، فدرجةُ اللون تُكتب مرّةً واحدة.
+
+   `ops/checks/console_colours_are_readable.py` يركّب الطبقات نفسها ويفكّ
+   `var()` ثم يقيس كل زوجٍ في **كل** توليفة — لأن لوحةَ ألوانٍ يختارها المستخدم
+   بلا حارسٍ هي بابٌ مفتوحٌ لاختيارٍ لا يُقرأ.
+   ======================================================================== */
+
 :root {
-  --ground: #e9f1f9;
+  /* ---- المحايدات (المظهر الفاتح) ------------------------------------- */
+  --ground: #f4f6fb;
   --panel: #ffffff;
-  --ink: #1e3a5c;
-  --muted: #54708d;
-  --line: #d3e3f2;
-  --line-soft: #e6f0f9;
-  /* حدّ الحقل مكوّن واجهة، وحدّه ٣:١ (معيار 1.4.11) لا ١٫٥٦ كما كان: حقلٌ
-     حدّه لا يُرى يجعل النموذج مساحةً بيضاء لا يُعرف أين يُكتب فيها، وأول من
-     يفقده من يقرأ على شاشةٍ باهتة أو في ضوء نهار. */
-  --field-border: #5f97c8;
+  --raised: #f7f9fd;          /* رأس الجدول، وصفٌّ عند المرور، وكتلة كود */
+  --ink: #172033;
+  --ink-soft: #3d4d66;
+  --muted: #5a6b85;
+  --line: #e2e8f1;
+  --line-soft: #eef2f8;
 
-  /*
-    ثلاثة زرقاوات لا واحد، لأن للاستعمالين حدَّي تباين مختلفين:
+  /* حدّ الحقل مكوّن واجهة، وحدّه ٣:١ (معيار 1.4.11): حقلٌ حدّه لا يُرى يجعل
+     النموذج مساحةً بيضاء لا يُعرف أين يُكتب فيها، وأول من يفقده من يقرأ على
+     شاشةٍ باهتة أو في ضوء نهار. */
+  --field-border: #78899f;
 
-    · --brand يُرسَم به ما ليس نصّاً — حدٌّ، إطار تركيز، تدرّج. معيار WCAG
-      لمكوّنات الواجهة ٣:١، وهذا اللون يبلغ ٣٫٠٦ على الأبيض، فيمرّ ويبقى
-      اللون السماوي كما هو.
-    · --brand-solid خلفيةٌ يُكتب فوقها بالأبيض — الزرّ، والرابط الفعّال في
-      القائمة. النصّ الصغير يحتاج ٤٫٥، وكان --brand يعطي ٣٫٠٦: زرّ «تسجيل
-      الدخول» نفسه كان راسباً.
-    · --brand-dark نصٌّ أزرق على أبيض — الروابط والعناوين. كان ٤٫١٣ فأُنزل
-      قليلاً إلى ٤٫٥٤.
+  /* ---- ربط اللون الأساسي ---------------------------------------------
+     ثلاثة أدوارٍ لا دورٌ واحد، لأن لكلٍّ حدَّ تباينٍ مختلفاً:
+     · --brand      ما ليس نصّاً — حدٌّ، إطار، تدرّج. الحدّ ٣:١.
+     · --brand-solid خلفيةٌ يُكتب فوقها بالأبيض — الزرّ. الحدّ ٤٫٥.
+     · --brand-dark  نصٌّ ملوّن على البطاقة — الروابط. الحدّ ٤٫٥.
+     خلطُ الثلاثة في متغيّر واحد يعني أن تصحيح الزرّ يُطفئ التدرّج. */
+  --brand: var(--a500);
+  --brand-solid: var(--a700);
+  --brand-dark: var(--a700);
+  --brand-soft: var(--a050);
+  /* إطار التركيز ليس `--brand-solid`: الأخير خلفيةٌ يُكتب فوقها بالأبيض فيجب
+     أن يكون **غامقاً**، وإطارُ التركيز خطٌّ يُرسم على الصفحة فيجب أن يُرى
+     عليها — وعلى صفحةٍ داكنة الغامقُ لا يُرى. كشفه الحارس: البنفسجي `#6127c4`
+     على `#171d2b` نسبته ٢٫٠٨ والحدّ ٣، أي أن من يتنقّل بلوحة المفاتيح في
+     المظهر الداكن كان يفقد أثره تماماً. */
+  --focus: var(--a700);
 
-    خلطُ الثلاثة في متغيّر واحد يعني أن تصحيح الزرّ يُطفئ التدرّج، أو أن
-    إبقاء التدرّج يترك الزرّ راسباً — وهو ما كان.
-  */
-  --brand: #3d9bd6;
-  --brand-solid: #267cb2;
-  --brand-dark: #297cb3;
-  --brand-soft: #e2f1fd;
-
+  /* ---- الشريط الجانبي (الافتراضي فاتح) -------------------------------- */
   --side: #ffffff;
-  --side-ink: #1e3a5c;
-  --side-dim: #5b7a95;
+  --side-ink: #172033;
+  --side-dim: #5a6b85;
+  --side-line: #e2e8f1;
+  --side-hover: var(--a050);
+  /* اللون الأساسي **داخل** الشريط يتبع لون الشريط لا لون الصفحة: من اختار
+     صفحةً فاتحة وشريطاً داكناً كان القسمُ الحالي عنده `--a700` على `--a-dim`
+     — نسبةُ ٢٫٧٣، أي أن السطر الوحيد الذي يقول «أنت هنا» هو أقلّ سطرٍ يُقرأ
+     في القائمة. كشفه الحارس في أول تشغيلٍ له على التوليفات. */
+  --side-accent: var(--a700);
 
+  /* ---- ألوان الحالة ---------------------------------------------------- */
   --danger: #b42318;
+  --danger-strong: #a91d13;   /* لا يتبع المظهر — انظر `.env-badge` */
   --danger-soft: #fdecea;
   --danger-line: #f0b8b1;
-  --ok: #18794e;
-  --ok-soft: #e5f3eb;
+  --ok: #12704a;
+  --ok-soft: #e6f5ee;
   --ok-line: #b7dcc6;
   --warn: #8a5a00;
-  --warn-soft: #faf0da;
+  --warn-soft: #fbf1da;
+  --warn-line: #ecd9ac;
+  --info: #175cd3;
+  --info-soft: #e9f0fd;
+  --info-line: #c3d5f8;
 
   /* ---- لوحة التحليلات: لغةُ لونٍ ثانية، للأرقام لا للتنقّل -------------
-     الشريط الجانبي والنماذج تبقى بالهوية الزرقاء التي طلبها المالك (T819).
-     هذه الثلاثة للبطاقات وحدها، ووظيفتها التمييز لا التزيين: المال بنفسجي،
-     والمزاد فيروزي، والناس كهرماني — فالعين تجد الكتلة قبل أن تقرأ عنوانها.
-     وكلٌّ منها له زوجٌ في `ops/checks/console_colours_are_readable.py`. */
+     الشريط والنماذج تتبع اللون الأساسي الذي يختاره المالك. هذه الثلاثة
+     للبطاقات وحدها، ووظيفتها التمييز لا التزيين: المال بنفسجي، والمزاد
+     فيروزي، والناس كهرماني — فالعين تجد الكتلة قبل أن تقرأ عنوانها. ولا
+     تتغيّر باختيار اللون الأساسي، وإلا صارت بطاقةُ المال بلون بطاقة المزاد
+     عند اختيارٍ بعينه، وضاع التصنيف كلّه. */
   --money: #6d4aa8;
   --money-soft: #f2edfb;
   --auction: #0f6f75;
   --auction-soft: #e6f5f5;
   --people: #8a5a00;
   --people-soft: #fbf2e0;
-  --ink-soft: #47617e;
-  --info: #175cd3;
-  --info-soft: #e9f0fd;
 
-  --radius: .6rem;
-  --shadow: 0 1px 2px rgba(43, 131, 189, .07), 0 6px 18px rgba(43, 131, 189, .08);
+  /* ---- الشكل ----------------------------------------------------------- */
+  --radius: .65rem;
+  --radius-lg: 1rem;
+  --shadow: 0 1px 2px rgb(23 32 51 / .05), 0 6px 18px rgb(23 32 51 / .05);
+  --shadow-lift: 0 10px 28px rgb(23 32 51 / .12);
+  --topbar-h: 3.65rem;   /* يقرأه الرأسُ اللاصق للجدول — قيمةٌ واحدة لا اثنتان */
+  /* ١٩rem لا ١٧: القائمة صارت أربعةً وستّين صفّاً (T831)، وفي كلٍّ من
+     المحجوزة حبّةُ حالةٍ تأخذ عرضها — فكان أطولُ اسمٍ يُقصّ بعد ثلاث كلمات.
+     ورأسيّاً لا يُدفَع شيء: الشريط يمرّر وحده أصلاً. */
+  --sidebar-w: 19rem;
+  --sidebar-w-mini: 4.6rem;
+  --shell-max: 82rem;
+  --ring: color-mix(in srgb, var(--brand) 26%, transparent);
+}
+
+/* ---- اللون الأساسي: ستّة، وكلٌّ ستّ درجات وحدها ------------------------
+   الأزرق افتراضٌ لا صدفة: هويّة اللوحة التي أقرّها المالك في T819. الخمسة
+   الباقية اختيارٌ يُحفظ في المتصفّح، ولا يُغيّر ملفاً على الخادم. */
+:root, :root[data-accent="azure"] {
+  --a050: #e6f2fc; --a300: #8ec8ee; --a500: #3d9bd6; --a700: #1f6f9f; --a-dim: #10293c;
+}
+:root[data-accent="violet"] {
+  --a050: #f1ecfd; --a300: #bda6f4; --a500: #8b5cf6; --a700: #6127c4; --a-dim: #221a3d;
+}
+:root[data-accent="teal"] {
+  --a050: #e2f5f3; --a300: #6ed2ca; --a500: #17a99f; --a700: #0c766e; --a-dim: #0b2c2a;
+}
+:root[data-accent="emerald"] {
+  --a050: #e6f6ee; --a300: #74d5a7; --a500: #12a866; --a700: #077547; --a-dim: #0a2c1e;
+}
+:root[data-accent="amber"] {
+  --a050: #fdf2da; --a300: #f2c96f; --a500: #e39411; --a700: #8f5d09; --a-dim: #2e2410;
+}
+:root[data-accent="rose"] {
+  --a050: #fdeaee; --a300: #f5a0af; --a500: #ef4463; --a700: #b0113a; --a-dim: #2e1119;
+}
+
+/* ---- المظهر الداكن -----------------------------------------------------
+   ليس عكساً حسابياً للفاتح: الأبيض الصريح على أسود صريح يهتزّ، فالأرضية
+   كحليّة والنصّ رماديٌّ فاتح لا أبيض. وألوان الحالة تُرفع درجةً كاملة —
+   `#b42318` على `#171d2b` نسبته دون الثلاثة، أي أن الإنذار نفسه كان سيختفي. */
+:root[data-scheme="dark"] {
+  --ground: #0e131e;
+  --panel: #171d2b;
+  --raised: #1c2433;
+  --ink: #e7ecf4;
+  --ink-soft: #c0cbdb;
+  --muted: #9aa8bf;
+  --line: #2a3345;
+  --line-soft: #232b3a;
+  --field-border: #7b8ba5;
+
+  --brand-dark: var(--a300);
+  --brand-soft: var(--a-dim);
+  --focus: var(--a300);
+
+  --side: #131926;
+  --side-ink: #e7ecf4;
+  --side-dim: #9aa8bf;
+  --side-line: #262f40;
+  --side-hover: var(--a-dim);
+  --side-accent: var(--a300);
+
+  --danger: #fca19a;
+  --danger-strong: #a91d13;
+  --danger-soft: #2d1512;
+  --danger-line: #5c2a24;
+  --ok: #63d3a4;
+  --ok-soft: #0d2a1f;
+  --ok-line: #1d5a43;
+  --warn: #f0c268;
+  --warn-soft: #2c2210;
+  --warn-line: #57451a;
+  --info: #93b8ff;
+  --info-soft: #131f38;
+  --info-line: #2a3c62;
+
+  --money: #c4a9f2;
+  --money-soft: #211a35;
+  --auction: #59cbd0;
+  --auction-soft: #0b2a2c;
+  --people: #f0c268;
+  --people-soft: #2c2210;
+
+  --shadow: 0 1px 2px rgb(0 0 0 / .35), 0 8px 24px rgb(0 0 0 / .3);
+  --shadow-lift: 0 12px 32px rgb(0 0 0 / .45);
+}
+
+/* ---- الشريط الجانبي: يتبع المظهر، أو يُختار له لونٌ وحده -----------------
+   `data-sidebar="auto"` (الافتراضي) لا يكتب كتلةً أصلاً، فيأخذ قيم المظهر
+   نفسه. والقيم الثلاث الباقية تكسر التبعيّة عمداً: أكثر من عملَ على اللوحة
+   يريد شريطاً داكناً وصفحةً فاتحة — وهو ما تفعله اللوحة القديمة التي يعمل
+   عليها المالك يومياً. */
+:root[data-sidebar="dark"],
+:root[data-sidebar="gradient"] {
+  --side: #131926;
+  --side-ink: #e7ecf4;
+  --side-dim: #9aa8bf;
+  --side-line: #262f40;
+  --side-hover: var(--a-dim);
+  --side-accent: var(--a300);
+}
+:root[data-scheme="dark"][data-sidebar="light"] {
+  --side: #ffffff;
+  --side-ink: #172033;
+  --side-dim: #5a6b85;
+  --side-line: #e2e8f1;
+  --side-hover: var(--a050);
+  --side-accent: var(--a700);
 }
 
 * { box-sizing: border-box; }
 
-::selection { background: #bfe2f8; }
+::selection { background: var(--brand-soft); color: var(--ink); }
 
 body {
   margin: 0;
+  /* قلبُ المظهر انتقالٌ قصير لا ومضة: الشاشة كلّها تتغيّر دفعةً واحدة،
+     وتغيّرٌ فوريٌّ بهذا الحجم يُقرأ عطلاً لا اختياراً. */
+  transition: background-color .2s ease, color .2s ease;
   background: var(--ground);
   color: var(--ink);
   font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
@@ -87,60 +235,311 @@ body {
 
 .layout { display: flex; min-height: 100vh; align-items: stretch; }
 
-/* الشريط الجانبي — أبيض مزرق، والقسم الحالي حبّة بيبي بلو. */
+/* ---------------------------------------------------------------------------
+   الشريط الجانبي — ثلاث حالات لا واحدة
+   ---------------------------------------------------------------------------
+   `data-nav` على `<html>` يقول أيّها: `full` (الافتراضي) و`mini` (أيقونات
+   بعرض ٤٫٦rem) و`off` (مخفيّ تماماً). والحالة تُحفظ في المتصفّح فتبقى بين
+   الصفحات — من طوى الشريط لا يريد أن يُفتَح له عند كل نقرة.
+
+   ولماذا `data-*` على الجذر لا صنفٌ على `.sidebar`: لأن الطيّ يغيّر عرض
+   الصدفة كلّها وعرض الشريط العلوي معها، وسمةٌ واحدة في الأعلى أرخص من ثلاثة
+   أصنافٍ يجب أن تُضبط معاً — ولأن السمة تُكتب **قبل الرسم** بسطرٍ في `<head>`،
+   فلا يومض الشريط مفتوحاً ثم ينطوي أمام العين.
+   ------------------------------------------------------------------------ */
 .sidebar {
-  width: 17rem;
+  width: var(--sidebar-w);
   flex-shrink: 0;
   background: var(--side);
   color: var(--side-ink);
-  border-inline-end: 1px solid var(--line);
-  padding: 1.4rem 1rem 2rem;
+  border-inline-end: 1px solid var(--side-line);
+  padding: 1.1rem .8rem 2rem;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  transition: width .22s cubic-bezier(.2, .7, .3, 1);
 }
 
-.brand { display: block; text-decoration: none; margin-bottom: 1.4rem; }
-.brand strong { display: block; color: var(--brand-dark); font-size: 1.2rem; }
-.brand small { display: block; color: var(--side-dim); font-size: .75rem; }
+/* المتدرّج زينةٌ فوق الداكن لا لونٌ ثالث: الرموز نفسها والحدود نفسها. */
+:root[data-sidebar="gradient"] .sidebar {
+  background: linear-gradient(170deg, var(--a700) 0%, #131926 62%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  text-decoration: none;
+  padding: .3rem .35rem;
+  margin-bottom: 1.1rem;
+  border-radius: .7rem;
+}
+/* مربّع الحرف: هويّةٌ تبقى مرئيةً حين ينطوي الشريط ولا يبقى مكانٌ لكلمة. */
+.brand__mark {
+  flex: none;
+  inline-size: 2.3rem;
+  block-size: 2.3rem;
+  display: grid;
+  place-items: center;
+  border-radius: .7rem;
+  background: linear-gradient(135deg, var(--a500), var(--a700));
+  color: #fff;
+  font-weight: 800;
+  font-size: 1rem;
+  box-shadow: 0 4px 12px var(--ring);
+}
+.brand__words { min-width: 0; }
+.brand strong { display: block; color: var(--side-ink); font-size: 1.02rem; line-height: 1.3; white-space: nowrap; }
+.brand small { display: block; color: var(--side-dim); font-size: .72rem; white-space: nowrap; }
 
 .nav-sec {
-  margin: 1.2rem 0 .4rem;
-  font-size: .72rem;
+  margin: 1.1rem .55rem .35rem;
+  font-size: .68rem;
+  font-weight: 700;
   color: var(--side-dim);
-  letter-spacing: .02em;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 .nav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  position: relative;
   color: var(--side-ink);
   text-decoration: none;
-  font-size: .92rem;
-  padding: .45rem .7rem;
-  border-radius: .45rem;
+  font-size: .89rem;
+  padding: .48rem .6rem;
+  border-radius: .55rem;
+  white-space: nowrap;
 }
-.nav a:hover { background: var(--brand-soft); color: var(--ink); }
-.nav a.active { background: var(--brand-solid); color: #fff; font-weight: 700; }
+/* الرمز مربّعٌ ثابت العرض: القائمة تبقى مستقيمةً حين ينطوي الشريط، ولا
+   يتحرّك سطرٌ عن مكانه لأن اسمه أطول. */
+.nav__icon {
+  flex: none;
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  /* خطٌّ مرسومٌ لا مساحةٌ ممتلئة، و`currentColor` فيتلوّن مع السطر نفسه —
+     وهو ما لا يفعله الإيموجي: نظام التشغيل يرسمه بلونه هو مهما كان القسم. */
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: .62;
+  transition: opacity .15s ease;
+}
+.nav a:hover .nav__icon { opacity: .9; }
+.nav a.active .nav__icon { opacity: 1; stroke-width: 1.9; }
+/* `nowrap` لا لفّ: أطول اسمٍ في القائمة «التحكم في صفحات المستخدمين» يلتفّ
+   سطرين فيصير صفُّه ضعفَ جيرانه، وقائمةٌ من أربعةٍ وستّين صفّاً بارتفاعاتٍ
+   مختلفة تُمسح بالعين أبطأ. والاسم كاملاً في `title` و`data-label`. */
+.nav__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* سطرُ الخروج: نموذجٌ يُقرأ سطراً. الزرّ يرث هندسة `.nav a` بالكامل — والفرق
+   الوحيد أنه يُرسِل `POST`، وهو الفرق الذي لا يُرى ولا يجوز أن يختفي: رابطٌ
+   ينهي الجلسة على `GET` ينهيها من أي `<img src>`. والإعادةُ للصفر لازمة لأن
+   `.form-card button` في الورقة يعطي الأزرار شكل زرٍّ ممتلئ. */
+/* والنموذج نفسه يُعاد إلى الصفر: قاعدة `form` في هذه الورقة تعطي كل نموذجٍ
+   شكلَ بطاقة (خلفية وإطار وحشو)، فبقيت حول الزرّ صندوقاً — وهو العطل نفسه
+   الذي احتاج `.sign-out` في الشريط العلوي أن يُعاد صفراً في T824. */
+.nav-out {
+  margin: .2rem 0 0;
+  padding: 0;
+  max-width: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.nav-out button {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  inline-size: 100%;
+  padding: .5rem .7rem;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--side-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.nav-out button:hover { background: var(--side-hover); }
+:root[data-nav="mini"] .nav-out button { justify-content: center; padding-inline: 0; }
+
+/* المدخل المحجوز: مكانُ شاشةٍ لم تُبنَ بعد (T831).
+   يأخذ هندسة الرابط نفسها — فالقائمة تُقرأ صفّاً واحداً لا صفَّين — ويفترق
+   عنه في ثلاثة أشياء كلُّها تقول «لا تضغط»: لا مؤشّر يد، ولا خلفيةَ تحوّم،
+   وحبّةٌ مكتوبةٌ في الحافة. والتخفيت وحده لم يكن ليكفي: اللون في شريطٍ داكن
+   يُقرأ «معطّل» أو «ثانويّ» بحسب من ينظر، والكلمة لا تُقرأ إلا كما هي. */
+.nav__soon {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .7rem;
+  border-radius: 8px;
+  color: var(--side-ink);
+  opacity: .55;
+  cursor: default;
+  user-select: none;
+}
+.nav__soon .nav__icon { opacity: .5; }
+.nav__tag {
+  margin-inline-start: auto;
+  flex: none;
+  padding: .1rem .4rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: .62rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  opacity: .85;
+}
+
+.nav a:hover { background: var(--side-hover); color: var(--side-ink); }
+/* القسم الحالي: خلفيةٌ خفيفة ونصٌّ باللون الأساسي وشريطٌ على الحافة — لا
+   مستطيلٌ مصمت. المصمت كان يجعل السطر الوحيد الملوّن في الشريط هو الذي
+   **أنت فيه بالفعل**، أي أن أوضح إشارةٍ في القائمة تخدم أقلّ سؤالٍ يُسأل. */
+.nav a.active {
+  background: var(--side-hover);
+  color: var(--side-accent);
+  font-weight: 700;
+}
+.nav a.active::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -.8rem;
+  inset-block: .35rem;
+  inline-size: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--side-accent);
+}
+
+/* ---- المطوي: أيقوناتٌ وحدها ------------------------------------------- */
+:root[data-nav="mini"] .sidebar { width: var(--sidebar-w-mini); padding-inline: .55rem; }
+:root[data-nav="mini"] .brand__words,
+:root[data-nav="mini"] .nav__text { display: none; }
+:root[data-nav="mini"] .brand { justify-content: center; padding-inline: 0; }
+:root[data-nav="mini"] .nav a,
+:root[data-nav="mini"] .nav__soon { justify-content: center; padding-inline: 0; }
+/* الحبّة تختفي مع النصّ: «قريباً» في شريطٍ بعرض ٤٫٦rem تقصّ نفسها، والدائرة
+   الباهتة تقول ما تقوله. والاسم كاملاً في `title` كما لبقيّة الصفوف. */
+:root[data-nav="mini"] .nav__tag { display: none; }
+:root[data-nav="mini"] .nav a.active::before { inset-inline-start: -.55rem; }
+/* عنوان القسم يصير خطاً: حذفه يجعل اثني عشر رمزاً كتلةً واحدة بلا فواصل. */
+:root[data-nav="mini"] .nav-sec {
+  overflow: hidden;
+  text-indent: -100vw;
+  margin: .8rem .3rem;
+  border-top: 1px solid var(--side-line);
+  height: 1px;
+}
+/* الاسم يظهر عند المرور — والسمة `title` تحمله أيضاً للوحة المفاتيح واللمس. */
+:root[data-nav="mini"] .nav a::after {
+  content: attr(data-label);
+  position: absolute;
+  inset-inline-start: calc(100% + .5rem);
+  padding: .3rem .6rem;
+  border-radius: .4rem;
+  background: var(--ink);
+  color: var(--panel);
+  font-size: .78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 20;
+}
+:root[data-nav="mini"] .nav a:hover::after,
+:root[data-nav="mini"] .nav a:focus-visible::after { opacity: 1; transform: none; }
+
+/* ---- المخفيّ ------------------------------------------------------------ */
+:root[data-nav="off"] .sidebar { width: 0; padding: 0; border: 0; overflow: hidden; }
 
 .shell { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-/* الشريط العلوي: شارة البيئة واسم المستخدم — لا روابط مكتوبة بيد. */
+/* الشريط العلوي: مفتاح الطيّ، شارة البيئة، اسم المستخدم، والمظهر. */
 .topbar {
-  background: var(--panel);
+  background: color-mix(in srgb, var(--panel) 86%, transparent);
+  backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
-  padding: .65rem 2rem;
+  padding: .6rem 1.4rem;
   display: flex;
   align-items: center;
-  gap: .75rem;
+  gap: .6rem;
   position: sticky;
   top: 0;
   z-index: 5;
 }
-.user { margin-inline-start: auto; color: var(--muted); font-size: .85rem; }
+
+/* أزرار الشريط العلوي كلّها شكلٌ واحد: مربّعٌ شفّاف يتلوّن عند المرور. لا
+   `background` افتراضي لأن ثلاثة أزرارٍ مصمتة في شريطٍ واحد تتنافس مع زرّ
+   الفعل في الصفحة نفسها. */
+.icon-btn {
+  flex: none;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: .55rem;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--brand-soft); color: var(--brand-dark); border-color: var(--line); box-shadow: none; }
+.icon-btn[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-dark); }
+
+.user {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--ink);
+  font-size: .85rem;
+  font-weight: 600;
+}
+/* حرفان في دائرة: يعرّفان صاحب الجلسة بلا صورةٍ تُرفع ولا حقلٍ يُضاف. */
+.user__mark {
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .78rem;
+  font-weight: 700;
+}
 
 /* الخروج نموذجٌ لأنه POST، ويُقرأ زرّاً هادئاً لا زرّ فعل — المساحة التي
    يأخذها في الشريط يجب أن تقول «مغادرة» لا «نفّذ». */
-.sign-out { margin: 0; max-width: none; }
+/* ورثَ هذا النموذجُ بطاقةَ النماذج كلها — خلفيةً وحدّاً وظلاً وحشوةً ١٫٢rem —
+   فصار زرُّ الخروج داخل مربّعٍ أبيض، **ورفع الشريط العلوي إلى ٩٨px**. لم يظهر
+   في اختبار (الصفحة تُرسم)، وقُرئ «تصميماً» لا عطلاً. الإعادةُ صريحةٌ هنا لأن
+   القاعدة العامة `form {…}` تنطبق على كل `<form>` في اللوحة، وهذا واحدٌ منها. */
+.sign-out {
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
 .sign-out button {
   background: none;
   border: 1px solid var(--line);
@@ -157,15 +556,17 @@ body {
   font-size: .75rem;
   padding: .15rem .65rem;
   border-radius: 999px;
-  background: #eef2f1;
+  background: var(--raised);
   border: 1px solid var(--line);
   color: var(--muted);
   white-space: nowrap;
 }
 /* بيئة واحدة يجب أن تصرخ: الإنتاج أحمر مصمت، والباقي همس. */
+/* الإنتاج لا يتبع المظهر: `--danger` في الداكن لونٌ فاتح، والأبيض فوقه لا
+   يُقرأ — وشارةُ «إنتاج» هي آخر ما يُسمح له أن يبهت. فلها زوجها الثابت. */
 .env-badge[data-env="production"] {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: var(--danger-strong);
+  border-color: var(--danger-strong);
   color: #fff;
   font-weight: 700;
 }
@@ -178,49 +579,247 @@ body {
   display: inline-block;
   padding: .15rem .5rem;
   border-radius: .25rem;
-  background: #e8f1f9;
+  background: var(--raised);
   font-size: .75rem;
-  color: #555;
+  color: var(--muted);
 }
 
-main { padding: 1.75rem 2rem 3rem; max-width: 74rem; }
-main h1 { font-size: 1.45rem; margin: 0 0 1.2rem; }
-main h2 { font-size: 1.05rem; margin: 1.8rem 0 .7rem; }
+/* ===========================================================================
+   طبقةُ العرض — رأسُ الصفحة، وشريطُ الفلاتر، والجدول. T828.
+   ---------------------------------------------------------------------------
+   كل ما تحته **محدّدات عناصر**، لا أصناف تُكتب في القوالب. وهذا ليس ذوقاً:
+   القوالب ثلاثون، وأربعةٌ منها كُتبت هذا الأسبوع وستّة كُتبت قبل شهر. صنفٌ
+   جديد يعني ثلاثين تعديلاً، ونسيانَ واحدٍ منها هو الشاشةُ التي تبدو مكسورة
+   بعد كل تحسين. فالورقة تعرف `table` و`form[method="get"]` و`main h1`،
+   والقالبُ يبقى HTML دلاليّاً عارياً كما هو مكتوبٌ في رأس `console/base.html`.
+   ======================================================================== */
+
+main { padding: 1.5rem 1.8rem 4rem; max-width: var(--shell-max); }
+
+/* رأس الصفحة: العنوان وتحته خطٌّ رفيع، والسطر التالي وصفٌ لا فقرة.
+   `h1 + p` يلتقط سطر الوصف حيث وُجد، ولا يُطلب من أحدٍ أن يضيف صنفاً. */
+/* رأس الصفحة: العنوان في جهة وأفعالها في الأخرى، على سطرٍ واحد يلتفّ عند
+   الضيق. الأفعال كانت فقرةً تحت العنوان في اثنتي عشرة شاشة. */
+.page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-block-end: 1.1rem;
+}
+main h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  margin: 0;
+}
+
+.page__actions { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; }
+/* رابطٌ في منطقة الأفعال يُقرأ زرّاً هادئاً: هو فعلٌ لا جملة. ومحدّد عنصرٍ لا
+   صنفٌ يُكتب في القالب — القوالب اثنتا عشرة، وصنفٌ منسيٌّ في واحدةٍ منها هو
+   الشاشة التي تبدو مكسورة. */
+.page__actions a {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .42rem .9rem;
+  border: 1px solid var(--line);
+  border-radius: .55rem;
+  background: var(--panel);
+  color: var(--brand-dark);
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.page__actions a:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+.page + p { margin-block-start: -.7rem; color: var(--muted); font-size: .88rem; }
+main h2 { font-size: 1.02rem; font-weight: 650; margin: 1.9rem 0 .7rem; }
 main p { margin: .6rem 0; }
 
-/* المرور يزيد الوضوح لا ينقصه: كان الرابط يفتحّ إلى --brand فيهبط تباينه
-   من ٤٫٥٤ إلى ٣٫٠٦ — أي أن إشارة «هذا قابل للنقر» كانت تجعله أصعب قراءةً.
-   الخطّ يقول ذلك بلا لون، ويصل لمن لا يميّز الأزرقين أصلاً. */
 main a { color: var(--brand-dark); }
 main a:hover { color: var(--ink); text-decoration-thickness: 2px; }
 
-/* الجداول بطاقات بيضاء برأس ثابت اللون وصفّ يتظلل عند المرور. */
+/* ---- شريط الفلاتر ------------------------------------------------------
+   كان نموذج البحث يرث بطاقة النماذج كلها — حشوةً ١٫٢rem وحدّاً وظلاً وعرضاً
+   أقصى ٤٦rem — فيبدو استمارةَ إدخالٍ فوق كل قائمة. وهو ليس استمارة: هو
+   **شريط أدوات**. فصار صفّاً واحداً يلتفّ، بحقولٍ تتمدّد وزرٍّ في طرفه. */
+form[method="get"] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: none;
+  padding: .7rem .8rem;
+  margin: 0 0 1rem;
+  max-width: none;
+}
+form[method="get"] p { margin: 0; }
+form[method="get"] input, form[method="get"] select {
+  width: auto;
+  min-inline-size: 9rem;
+  padding-block: .45rem;
+}
+/* حقل البحث يأخذ ما بقي: هو المدخل الأول، والقوائم المنسدلة بعرض محتواها. */
+form[method="get"] input[type="search"] { flex: 1 1 14rem; min-inline-size: 12rem; }
+form[method="get"] button { margin: 0; padding-inline: 1.1rem; }
+form[method="get"] label { display: none; }
+/* الفاصل قبل الزرّ: يفصل «ماذا تبحث» عن «ابحث» بلا كلمة. */
+form[method="get"] button[type="submit"] { margin-inline-start: auto; }
+
+/* ---- الجدول ------------------------------------------------------------
+   بطاقةٌ برأسٍ لاصق: قوائم اللوحة تُمرَّر (٥٠ صفّاً في الصفحة)، ورأسٌ يغيب
+   عند التمرير يجعل العمود السابع رقماً بلا اسم — وهو أكثر ما يُسأل عنه في
+   شاشات المال. */
 table {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
-  margin: 1rem 0 1.5rem;
-  overflow: hidden;
+  margin: 0 0 1.2rem;
+  /* لا `overflow: hidden` هنا: كان يدوّر الأركان **ويُبطل** `position: sticky`
+     على رأس الجدول — أي أن الرأس اللاصق أعلاه كان زينةً لا تعمل. الأركان
+     تُدوَّر على الخانات الطرفية بدلاً منه. */
 }
+thead tr:first-child th:first-child { border-start-start-radius: var(--radius-lg); }
+thead tr:first-child th:last-child { border-start-end-radius: var(--radius-lg); }
+tbody tr:last-child td:first-child { border-end-start-radius: var(--radius-lg); }
+tbody tr:last-child td:last-child { border-end-end-radius: var(--radius-lg); }
 th, td {
-  padding: .6rem .8rem;
-  border-bottom: 1px solid var(--line-soft);
+  padding: .68rem .9rem;
+  border-block-end: 1px solid var(--line-soft);
   text-align: start;
-  font-size: .9rem;
+  font-size: .88rem;
   vertical-align: top;
 }
 thead th, tr:first-child th {
-  background: #f1f6f4;
+  position: sticky;
+  top: var(--topbar-h);        /* تحت الشريط العلوي اللاصق بالضبط */
+  z-index: 2;
+  background: var(--raised);
   color: var(--muted);
-  font-size: .78rem;
+  font-size: .74rem;
   font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
   white-space: nowrap;
+  border-block-end: 1px solid var(--line);
 }
-tbody tr:hover, tr:hover td { background: #f6faf8; }
-tr:last-child th, tr:last-child td { border-bottom: 0; }
+tbody tr { transition: background .12s ease; }
+tbody tr:hover, tr:hover td { background: var(--raised); }
+tr:last-child th, tr:last-child td { border-block-end: 0; }
+
+/* الأرقام في عمودٍ تستقيم خاناتها: `tabular-nums` على كل خانةٍ تحمل رقماً،
+   لا على `.money` وحدها — عمودُ «عدد المركبات» يُقارَن بالعين كما يُقارَن
+   عمود المبالغ. */
+td.count, td.money, th.count, th.money { font-variant-numeric: tabular-nums; }
+
+/* ---- الحبّة: حالةٌ تُقرأ لوناً وكلمةً معاً --------------------------------
+   الحالة كانت نصّاً عارياً في خانة («فشلت»، «منتهٍ»، «مسحوبة») فتُقرأ صفّاً
+   صفّاً. والحبّة تُمسح بالعين. واللون **لا يحمل المعنى وحده**: الكلمة داخلها
+   دائماً، فمن لا يميّز الأحمر من الأخضر يقرأ الجملة نفسها (المادة ٤ في
+   `_stat.html` نفسها). */
+.pill {
+  display: inline-block;
+  padding: .16rem .6rem;
+  border-radius: 999px;
+  font-size: .74rem;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  background: var(--line-soft);
+  color: var(--ink-soft);
+}
+.pill[data-tone="ok"] { background: var(--ok-soft); color: var(--ok); }
+.pill[data-tone="warn"] { background: var(--warn-soft); color: var(--warn); }
+.pill[data-tone="bad"] { background: var(--danger-soft); color: var(--danger); }
+.pill[data-tone="info"] { background: var(--info-soft); color: var(--info); }
+.pill[data-tone="money"] { background: var(--money-soft); color: var(--money); }
+.pill[data-tone="auction"] { background: var(--auction-soft); color: var(--auction); }
+
+/* ---- المصغّرة في الجدول ------------------------------------------------
+   ٢٧ صورةً في قاعدة العرض، ولم تكن **واحدةٌ** منها تُعرض في اللوحة: لا في
+   القائمة ولا في صفحة التفصيل. والصورةُ هي أسرع ما يعرّف سيارةً — أسرع من
+   اللوت ومن الاسم — ولذلك تعرضها قائمة v1. */
+.thumb {
+  display: inline-block;
+  vertical-align: middle;
+  inline-size: 3rem;
+  block-size: 2.25rem;
+  margin-inline-end: .6rem;
+  border-radius: .4rem;
+  overflow: hidden;
+  background: var(--raised);
+  border: 1px solid var(--line);
+}
+.thumb img { inline-size: 100%; block-size: 100%; object-fit: cover; display: block; }
+.thumb__none {
+  display: grid;
+  place-items: center;
+  block-size: 100%;
+  color: var(--muted);
+  font-size: .8rem;
+}
+.thumb__name { vertical-align: middle; }
+
+/* معرض صفحة التفصيل: الغلاف أولاً، والباقي بجواره. */
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: .6rem;
+  margin: 0 0 1.4rem;
+  padding: 0;
+  list-style: none;
+}
+.shots li { margin: 0; }
+.shots img {
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  display: block;
+}
+/* الغلاف يُعلَن بحدٍّ لا بترتيب: الترتيب يضيع عند فرزٍ مختلف. */
+.shots li[data-cover="true"] img { border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
+
+/* ---- لا شيء هنا -------------------------------------------------------- */
+.empty { color: var(--muted); }
+/* خانةٌ فارغة تمتدّ على الجدول كلّه ليست صفّاً — هي حالة. تُوسَّط وتُعطى
+   مساحةً تقول «بحثتُ ولم أجد» لا «انقطع الجدول». */
+td.empty, td[colspan] .empty, td[colspan].empty {
+  text-align: center;
+  padding-block: 2.4rem;
+  font-size: .92rem;
+}
+
+/* ---- سطر العدّ والصفحات ------------------------------------------------
+   `table + p` هو سطرُ «كذا صفّاً · صفحة ١ من ٣» في كل قائمة، بلا استثناء.
+   كان نصّاً عائماً تحت الجدول؛ صار شريطاً هادئاً يُقرأ جزءاً من القائمة. */
+table + p {
+  margin: -.4rem 0 1.6rem;
+  padding: .55rem .9rem;
+  border: 1px solid var(--line);
+  border-block-start: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: .8rem;
+  font-variant-numeric: tabular-nums;
+}
 
 /* النماذج بطاقة واحدة: حقل فوق حقل، وخطأ الحقل بجانبه لا في أعلى الصفحة. */
 form {
@@ -239,7 +838,7 @@ label { display: block; font-size: .83rem; font-weight: 700; color: var(--muted)
 input, select, textarea {
   font: inherit;
   color: var(--ink);
-  background: #fff;
+  background: var(--panel);
   border: 1px solid var(--field-border);
   border-radius: .45rem;
   padding: .5rem .7rem;
@@ -251,12 +850,12 @@ input, select, textarea {
    على نصف الشاشات. */
 input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible,
 a:focus-visible {
-  outline: 2px solid var(--brand-solid);
+  outline: 2px solid var(--focus);
   outline-offset: 1px;
-  border-color: var(--brand-solid);
+  border-color: var(--focus);
 }
 input[type="checkbox"], input[type="radio"] { width: auto; }
-input[type="file"] { border-style: dashed; background: #f7faf9; }
+input[type="file"] { border-style: dashed; background: var(--raised); }
 /* نماذج البحث سطرٌ واحد لا بطاقة حقول مكدّسة. */
 form[method="get"] input, form[method="get"] select { width: auto; }
 form > input, form > select, form > button { margin-inline-end: .5rem; margin-block: .25rem; }
@@ -274,7 +873,7 @@ button, input[type="submit"] {
 }
 button:hover, input[type="submit"]:hover {
   background: var(--brand-dark);
-  box-shadow: 0 4px 12px rgba(61, 155, 214, .4);
+  box-shadow: 0 4px 14px var(--ring);
 }
 form a {
   display: inline-block;
@@ -303,10 +902,10 @@ form strong { color: var(--danger); font-size: .85rem; }
   background: var(--panel);
   font-size: .92rem;
 }
-.notice.success { background: var(--ok-soft); border-color: var(--ok-line); color: #0f5c39; }
-.notice.error { background: var(--danger-soft); border-color: var(--danger-line); color: #8f1d14; }
-.notice.warning { background: var(--warn-soft); border-color: #ecd9ac; color: #6b4500; }
-.notice.info { background: var(--info-soft); border-color: #c3d5f8; color: #123f8f; }
+.notice.success { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok); }
+.notice.error { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); }
+.notice.warning { background: var(--warn-soft); border-color: var(--warn-line); color: var(--warn); }
+.notice.info { background: var(--info-soft); border-color: var(--info-line); color: var(--info); }
 
 /* الخلاف المالي هو الشيء الوحيد الذي يستحيل تجاوزه: حدّ أحمر وإنذار هادئ. */
 .alarm {
@@ -327,7 +926,6 @@ form strong { color: var(--danger); font-size: .85rem; }
   margin: 1rem 0;
 }
 
-.empty { color: var(--muted); }
 .reason { font-weight: 600; }
 /* المبلغ يُقرأ كما في الدفتر: أرقام لاتينية متجاورة لا تتكسر بين السطور. */
 .money { font-variant-numeric: tabular-nums; white-space: nowrap; direction: ltr; unicode-bidi: embed; }
@@ -335,7 +933,7 @@ form strong { color: var(--danger); font-size: .85rem; }
 
 /* الجسم الخام دليلٌ يُعرض كما وصل: لوحة فاتحة بخط أحادي تُظهر الشارد. */
 pre {
-  background: #f2f7fc;
+  background: var(--raised);
   color: var(--ink);
   border: 1px solid var(--line);
   border-radius: .5rem;
@@ -353,6 +951,16 @@ li { margin: .25rem 0; }
 
 /* الدخول: سماء فاتحة بتوهّجات بيبي بلو تنجرف ببطء، وبطاقة بيضاء تطفو فوقها.
  * الحركة `transform` و`opacity` فقط، وكلها تتوقف مع `prefers-reduced-motion`. */
+/* ---------------------------------------------------------------------------
+   صفحة الدخول — عمودان: لوحةُ هويّة وبطاقةُ نموذج. T827.
+   ---------------------------------------------------------------------------
+   بطاقةٌ وحيدةٌ وسط فراغ كانت تُقرأ «نافذةَ نظامٍ داخلي» لا «بابَ منصّة»،
+   وشكلُ العمودين هو ما اعتاده المالك في v1 وما ترسمه القوالب التي أرسلها.
+
+   وكل لونٍ هنا من الرموز: الصفحة تتبع المظهر واللون الأساسي المختارَين —
+   كانت خارج النظام كلّه، فمن اختار الداكن يخرج من اللوحة فيصطدم بصفحةٍ
+   بيضاء ناصعة، وهي أول ما يُرى بعد كل انتهاء جلسة.
+   ------------------------------------------------------------------------ */
 .login-page {
   display: flex;
   align-items: center;
@@ -362,27 +970,29 @@ li { margin: .25rem 0; }
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(60rem 40rem at 85% -10%, #cfe8fa 0%, transparent 60%),
-    radial-gradient(50rem 36rem at 10% 110%, #d8ecfc 0%, transparent 55%),
-    #eef5fc;
+    radial-gradient(60rem 40rem at 85% -10%, var(--brand-soft) 0%, transparent 60%),
+    radial-gradient(50rem 36rem at 10% 110%, var(--brand-soft) 0%, transparent 55%),
+    var(--ground);
 }
 .orb { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; }
+/* التوهّجات لونُ الأساسي مخفَّفاً بـ`color-mix` لا قيماً مكتوبة: كانت ثلاث
+   زرقاواتٍ ثابتة، فمن يختار الكهرماني يرى هالاتٍ زرقاء خلف بطاقةٍ كهرمانية. */
 .orb-a {
   width: 34vmax; height: 34vmax;
   inset-inline-start: -8vmax; top: -10vmax;
-  background: rgba(137, 207, 240, .65);
+  background: color-mix(in srgb, var(--a500) 42%, transparent);
   animation: drift-a 16s ease-in-out infinite alternate;
 }
 .orb-b {
   width: 28vmax; height: 28vmax;
   inset-inline-end: -6vmax; bottom: -8vmax;
-  background: rgba(125, 190, 240, .5);
+  background: color-mix(in srgb, var(--a300) 40%, transparent);
   animation: drift-b 20s ease-in-out infinite alternate;
 }
 .orb-c {
   width: 16vmax; height: 16vmax;
   inset-inline-start: 12%; bottom: 12%;
-  background: rgba(178, 214, 248, .7);
+  background: color-mix(in srgb, var(--a300) 48%, transparent);
   animation: drift-a 24s ease-in-out infinite alternate-reverse;
 }
 @keyframes drift-a {
@@ -393,32 +1003,108 @@ li { margin: .25rem 0; }
   from { transform: translate(0, 0) scale(1.08); }
   to { transform: translate(-3vmax, -4vmax) scale(1); }
 }
+
+/* الشبكة: اللوحة أضيق من البطاقة عمداً — النموذج هو العمل، واللوحة سياقه. */
+.login-split {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(17rem, 22rem) minmax(20rem, 26rem);
+  align-items: stretch;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 50rem;
+  animation: rise .45s ease both;
+}
+
+.login-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem 1.9rem;
+  border-radius: 1.25rem;
+  /* المتدرّج من درجتَي اللون الأساسي إلى كحليّ ثابت: الطرف الداكن لا يتبع
+     المظهر لأن النصّ فوقه أبيض دائماً، وطرفٌ يفتحّ في المظهر الفاتح كان
+     سيُسقط الأبيض تحت ٤٫٥. الزوج مقيسٌ في الحارس على `--a700` وحده. */
+  background: linear-gradient(155deg, var(--a700) 0%, #131926 78%);
+  color: #fff;
+  box-shadow: 0 24px 60px rgb(11 16 26 / .3);
+}
+
+.login-side__brand { display: flex; align-items: center; gap: .8rem; }
+.login-side__brand strong { display: block; font-size: 1.25rem; line-height: 1.45; color: #fff; }
+.login-side__brand small { display: block; font-size: .78rem; color: rgb(255 255 255 / .9); }
+
+/* ٠٫٩ لا ٠٫٨٢: الأبيض الصريح على `--a700` يبلغ ٥٫٤٨ في أسوأ لون، وتخفيفه
+   إلى ٠٫٨٢ يُنزله إلى ٤٫٢٣ — أي **تحت** الحدّ. قِيست، فرُفعت. وهذه جملةٌ
+   تُقرأ لا خلفيّةٌ تُرى. */
+.login-side__line {
+  margin: 0;
+  font-size: .88rem;
+  line-height: 1.85;
+  color: rgb(255 255 255 / .9);
+}
+
+.login-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* الحبّة تُظلَّل لا تُفتَّح: خلفيةٌ بيضاء بـ١٠٪ فوق `--a700` تُنزل الأبيض
+   إلى ٤٫٥٠ — على الحدّ بالضبط، وأي تعديلٍ لاحقٍ في درجةٍ واحدة يُسقطه.
+   وسوادٌ بـ١٨٪ يرفعه إلى ٧٫٣ ويعطي العمق نفسه. */
+.login-pills li {
+  margin: 0;
+  padding: .3rem .75rem;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / .3);
+  background: rgb(0 0 0 / .18);
+  font-size: .75rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+/* الشارة تُدفَع إلى القاع: آخرُ ما تقع عليه العين قبل الانتقال إلى النموذج. */
+.login-side .env-badge { margin-block-start: auto; align-self: flex-start; }
+
 .login-card {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-top: 4px solid var(--brand);
-  border-radius: .8rem;
-  box-shadow: 0 24px 70px rgba(43, 131, 189, .22);
-  padding: 2rem 2.2rem;
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-lift);
+  padding: 2rem 2.1rem;
   width: 100%;
-  max-width: 24rem;
 }
-.login-brand { display: flex; align-items: center; gap: .8rem; margin-bottom: 1rem; }
+.login-card__title { margin: 0 0 .2rem; font-size: 1.35rem; }
+.login-card__hint { margin: 0 0 1.2rem; font-size: .85rem; color: var(--muted); }
+
 .login-mark {
   flex-shrink: 0;
   width: 3rem; height: 3rem;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 1rem;
   font-size: 1.5rem; font-weight: 800; color: #fff;
-  background: linear-gradient(135deg, #7cc7f2 0%, var(--brand-dark) 100%);
-  box-shadow: 0 6px 16px rgba(61, 155, 214, .45);
+  background: linear-gradient(135deg, var(--a300) 0%, var(--a700) 100%);
+  box-shadow: 0 6px 16px rgb(0 0 0 / .28);
 }
-.login-brand strong { display: block; font-size: 1.3rem; line-height: 1.4; }
-.login-brand small { color: var(--muted); font-size: .8rem; }
 /* النموذج هنا داخل بطاقة أصلاً — لا بطاقة ثانية حوله. */
 .login-form { background: none; border: 0; box-shadow: none; padding: 0; max-width: none; }
-.login-form button[type="submit"] { width: 100%; margin-top: .4rem; }
+.login-form input { max-width: none; }
+.login-form button[type="submit"] { width: 100%; margin-top: .6rem; padding-block: .7rem; }
+
+/* الشاشة الضيّقة: عمودٌ واحد، واللوحة فوق النموذج مختصرةً — لا تُحذف، لأن
+   شارة البيئة فيها والمادة ٥-٦ لا تسقط بضيق الشاشة. */
+@media (max-width: 46rem) {
+  .login-split { grid-template-columns: 1fr; max-width: 26rem; }
+  .login-side { padding: 1.3rem 1.4rem; gap: .75rem; }
+  .login-side__line { display: none; }
+}
 /* زرّ العين بجانب حقل كلمة المرور في شبكة — لا إحداثيات مطلقة تنكسر تحت
  * سطر الخطأ. ولا يرسل النموذج أبداً (`type="button"`). */
 .password-wrap { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 .4rem; }
@@ -463,26 +1149,93 @@ button, input[type="submit"] {
 button:active, input[type="submit"]:active { transform: translateY(1px); }
 input, select, textarea { transition: border-color .15s ease, box-shadow .15s ease; }
 input:focus-visible, select:focus-visible, textarea:focus-visible {
-  box-shadow: 0 0 0 3px rgba(61, 155, 214, .2);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 tbody tr, tr { transition: background .12s ease; }
 
 /* الشاشات الصغيرة: الجانبي شريط علوي، والجداول تُمرَّر أفقياً لا تُكسَر. */
+/* ---------------------------------------------------------------------------
+   الشاشة الضيّقة: الشريط **درجٌ منزلق** لا صفٌّ فوق المحتوى.
+   ---------------------------------------------------------------------------
+   كانت القاعدة هنا تسطّح الشريط إلى صفٍّ من الروابط يلتفّ فوق الصفحة، وذلك
+   كافٍ لثلاثة عشر رابطاً بلا أيقونات (T819). ولمّا صارت ستّة عشر برموزها صار
+   الصفُّ **٤٧٧px ارتفاعاً**، فتبدأ الصفحة عند `y=533` — أي نصفُ شاشةٍ من
+   تنقّلٍ قبل أول كلمةٍ من المحتوى. وقيس على عرض ٧٣١px.
+
+   والأسوأ أن `data-nav="mini"` كان يبقى نافذاً هنا (`:root[data-nav="mini"]
+   .sidebar` تسبق `.sidebar` في الأولوية)، فيصير الشريط عموداً بعرض ٤٫٦rem
+   **فوق** المحتوى لا بجانبه. فالحالات الثلاث تُوحَّد هنا: على الضيّق لا
+   «مطويّ» — هناك مفتوحٌ أو مغلق.
+   ------------------------------------------------------------------------ */
 @media (max-width: 56rem) {
   .layout { flex-direction: column; }
-  .sidebar { width: auto; height: auto; position: static; padding: 1rem; }
-  .nav { display: flex; flex-wrap: wrap; gap: .25rem; }
-  .nav-sec { width: 100%; margin-top: .8rem; }
+
+  /* `fixed` لا `static`: الدرج يطفو فوق الصفحة ولا يزيحها، فالمحتوى يبقى في
+     أعلى الشاشة حيث يُتوقَّع. و`!important` على العرض لأن حالات `data-nav`
+     أعلى أولويةً وليست ذات معنى هنا. */
+  .sidebar {
+    position: fixed;
+    inset-block: 0;
+    /* `inset-inline-start` أي **اليمين** في RTL — الجهة التي يقف فيها الشريط
+       في الوضع العريض. درجٌ ينزلق من الجهة المقابلة يجعل الشاشتين شاشتين
+       مختلفتين لا مقاسين لواحدة. (و`translateX` فيزيائيّ لا منطقيّ، فإخفاءُ
+       ما على اليمين يكون بدفعه يميناً: `+100%`.) */
+    inset-inline-start: 0;
+    inline-size: min(var(--sidebar-w), 82vw) !important;
+    block-size: 100vh;
+    padding: 1.1rem .8rem 2rem !important;
+    z-index: 30;
+    box-shadow: -18px 0 44px rgb(9 13 21 / .3);
+    transform: translateX(100%);          /* RTL: الدرج على اليمين، يخرج يميناً */
+    visibility: hidden;
+  }
+  :root[data-nav="full"] .sidebar { transform: none; visibility: visible; }
+
+  /* الرموز والأسماء يعودان: الدرج بعرضه الكامل، ولا معنى لإخفاء نصٍّ فيه. */
+  :root[data-nav="mini"] .brand__words,
+  :root[data-nav="mini"] .nav__text { display: revert; }
+  :root[data-nav="mini"] .brand,
+  :root[data-nav="mini"] .nav a { justify-content: flex-start; padding-inline: .6rem; }
+  :root[data-nav="mini"] .nav-sec {
+    overflow: revert;
+    text-indent: 0;
+    block-size: auto;
+    border-top: 0;
+    margin: 1.1rem .55rem .35rem;
+  }
+  :root[data-nav="mini"] .nav a::after { content: none; }
+
+  /* حجابٌ خلف الدرج: نقرةٌ خارجه تغلقه — أول ما تجرّبه اليد. ولا عنصرَ له في
+     القالب: `::before` على الصدفة يكفي، ونقرتُه يلتقطها `theme.js`. */
+  .shell::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    background: rgb(9 13 21 / .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+  :root[data-nav="full"] .shell::before { opacity: 1; pointer-events: auto; }
+
   main { padding: 1.2rem 1rem 2.5rem; }
   .topbar { padding: .6rem 1rem; }
   main table { display: block; overflow-x: auto; }
   form { max-width: none; }
+  .page { align-items: flex-start; }
 }
 
-/* من يطلب تقليل الحركة تُطفأ كلها — أداة عمل لا عرض. */
+/* من يطلب تقليل الحركة تُطفأ كلها — أداة عمل لا عرض.
+   و`data-motion="off"` هو الطلب نفسه من داخل اللوحة: من لا يستطيع تغيير
+   إعداد النظام كلّه — جهازٌ مشترك، أو مستأجَر — يطفئها هنا. القاعدتان
+   واحدة لأن الأثر واحد. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+:root[data-motion="off"] *,
+:root[data-motion="off"] *::before,
+:root[data-motion="off"] *::after { animation: none !important; transition: none !important; }
 
 /* شبكة الرئيسية: كرتٌ لكل شاشة، اسمُها وما تفعله.
  *
@@ -510,7 +1263,7 @@ tbody tr, tr { transition: background .12s ease; }
 .card strong { display: block; color: var(--brand-dark); font-size: 1rem; }
 .card span { display: block; color: var(--muted); font-size: .84rem; line-height: 1.55; }
 /* المرور يرفع الكرت ويغمّق حدّه — لا يفتحّ نصّه. */
-.card:hover { border-color: var(--brand-solid); box-shadow: 0 6px 20px rgba(38, 124, 178, .16); }
+.card:hover { border-color: var(--brand); box-shadow: var(--shadow-lift); }
 .card:hover strong { color: var(--ink); }
 
 /* ===========================================================================
@@ -550,7 +1303,7 @@ tbody tr, tr { transition: background .12s ease; }
   color: inherit;
   text-decoration: none;
   overflow: hidden;
-  box-shadow: 0 1px 2px rgb(30 58 92 / .05);
+  box-shadow: var(--shadow);
   /* الحافة المنطقية لا اليمنى: الصفحة RTL وتنقلب معها. */
   border-inline-start: 3px solid var(--brand);
   transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
@@ -573,12 +1326,12 @@ tbody tr, tr { transition: background .12s ease; }
 
 a.stat:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 24px rgb(30 58 92 / .10);
+  box-shadow: var(--shadow-lift);
   border-color: var(--field-border);
 }
 
 a.stat:focus-visible {
-  outline: 2px solid var(--brand-solid);
+  outline: 2px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -611,16 +1364,22 @@ a.stat:focus-visible {
 }
 
 /* الرمز في مربّعه — تزيينيٌّ صراحةً، ولذلك `aria-hidden` في القالب. */
+/* مربّعٌ ملوَّن ورسمٌ بالخط داخله. الحشو على `<svg>` نفسه لا على غلافٍ ثانٍ:
+   المسار مقيسٌ على `viewBox` فينكمش إلى صندوق المحتوى وحده. وسُمك الخط هو سُمك
+   الشريط — وهو ما يجعل الاثنين مجموعةً واحدة لا رسمين متشابهين. */
 .stat__icon {
   flex: none;
-  display: grid;
-  place-items: center;
   inline-size: 2.5rem;
   block-size: 2.5rem;
+  padding: .58rem;
   border-radius: 10px;
-  font-size: 1.1rem;
   background: var(--brand-soft);
   color: var(--brand-dark);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .stat--money .stat__icon { background: var(--money-soft); color: var(--money); }
 .stat--auction .stat__icon { background: var(--auction-soft); color: var(--auction); }
@@ -729,7 +1488,7 @@ a.stat:hover .stat__action { color: var(--ink); }
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 1px 2px rgb(30 58 92 / .05);
+  box-shadow: var(--shadow);
   animation: stat-in .34s cubic-bezier(.2,.7,.3,1) .3s backwards;
 }
 
@@ -798,12 +1557,12 @@ a.stat:hover .stat__action { color: var(--ink); }
 .wheel__item:last-child { border-block-end: 0; }
 .wheel__dot { inline-size: .6rem; block-size: .6rem; border-radius: 3px; background: var(--line); }
 /* بترتيب `WHEEL` في `dashboard.py` — قائمتان تتطابقان، واختبارٌ يثبّت ذلك. */
-.wheel__dot[data-slice="0"] { background: #0f6f75; }
-.wheel__dot[data-slice="1"] { background: #3d9bd6; }
-.wheel__dot[data-slice="2"] { background: #6d4aa8; }
-.wheel__dot[data-slice="3"] { background: #8a5a00; }
-.wheel__dot[data-slice="4"] { background: #18794e; }
-.wheel__dot[data-slice="5"] { background: #b42318; }
+.wheel__dot[data-slice="0"] { background: #1a9aa1; }
+.wheel__dot[data-slice="1"] { background: #4aa5df; }
+.wheel__dot[data-slice="2"] { background: #8c6ad6; }
+.wheel__dot[data-slice="3"] { background: #c9891a; }
+.wheel__dot[data-slice="4"] { background: #21a06a; }
+.wheel__dot[data-slice="5"] { background: #e05a4c; }
 .wheel__name { color: var(--ink); }
 .wheel__count { font-variant-numeric: tabular-nums; font-weight: 600; }
 .wheel__share { font-variant-numeric: tabular-nums; color: var(--muted); font-size: .75rem; min-inline-size: 2.6rem; text-align: end; }
@@ -877,4 +1636,176 @@ a.stat:hover .stat__action { color: var(--ink); }
 @media (max-width: 640px) {
   .stat__value { font-size: 1.5rem; }
   .spark { block-size: 7rem; }
+}
+
+/* ===========================================================================
+   لوحة المظهر — الدرج الذي يختار منه المالك. T824.
+   ---------------------------------------------------------------------------
+   لماذا درجٌ لا صفحة إعدادات: الاختيار بصريّ، ومن يجرّب لوناً يريد أن يرى
+   الشاشة التي يعمل عليها تتغيّر تحته لا أن ينتقل إلى شاشةٍ أخرى ثم يعود.
+
+   ولماذا `localStorage` لا حقلٌ في قاعدة البيانات: هذا تفضيلُ جهازٍ لا
+   تفضيلُ حساب — الموظّف نفسه يريد الداكن على شاشته ليلاً والفاتح على شاشة
+   الاستقبال. وحفظُه على الخادم يعني هجرةً وحقلاً وطلبَ كتابةٍ عند كل نقرة على
+   عيّنة لون.
+
+   ولا `<form>` هنا **بحكمٍ صريح**: `test_the_chrome_writes_nothing_but_the_way_out`
+   يشترط أن الشيء الوحيد الذي يُرسِل في إطار اللوحة هو الخروج. درجٌ فيه نموذج
+   يكسره — وهو محقّ: إطارٌ يكتب هو إطارٌ يُضغط عليه بالخطأ من كل صفحة.
+   ======================================================================== */
+
+.themer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(21rem, 92vw);
+  z-index: 40;
+  background: var(--panel);
+  border-inline-start: 1px solid var(--line);
+  box-shadow: -18px 0 44px rgb(23 32 51 / .16);
+  padding: 1.1rem 1.2rem 2rem;
+  overflow-y: auto;
+  transition: transform .26s cubic-bezier(.2, .7, .3, 1), visibility .26s;
+}
+/* `visibility` مع `transform` لا `transform` وحدها: درجٌ مُزاحٌ خارج الشاشة
+   تبقى أزراره في ترتيب `Tab` — فمن يتنقّل بلوحة المفاتيح يمرّ بأربعة عشر زرّاً
+   لا يراها قبل أن يصل إلى الصفحة. و`visibility` تُخرجها من الترتيب وتبقى
+   قابلةً للانتقال، فلا ينكسر الانزلاق. */
+.themer[aria-hidden="true"] { transform: translateX(-100%); visibility: hidden; }
+.themer[aria-hidden="false"] { transform: none; visibility: visible; }
+
+.themer__head {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding-block-end: .8rem;
+  margin-block-end: .4rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.themer__head h2 { margin: 0; font-size: .98rem; font-weight: 700; }
+.themer__head .icon-btn { margin-inline-start: auto; }
+
+.themer__group { margin-block: 1.05rem; }
+.themer__group > h3 {
+  margin: 0 0 .1rem;
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.themer__hint { margin: 0 0 .5rem; font-size: .75rem; color: var(--muted); line-height: 1.5; }
+
+/* الخيارات صفٌّ من الأزرار، والمختار يُعرَف بـ`aria-pressed` لا بصنفٍ — فما
+   يقوله قارئُ الشاشة وما يراه المبصر شيءٌ واحد، ولا يفترقان عند تعديلٍ لاحق. */
+.themer__row { display: flex; flex-wrap: wrap; gap: .4rem; }
+.themer__opt {
+  flex: 1 1 auto;
+  min-inline-size: 4.2rem;
+  padding: .42rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.themer__opt:hover { background: var(--raised); color: var(--ink); box-shadow: none; }
+.themer__opt[aria-pressed="true"] {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* عيّنات اللون: الدائرة هي اللون نفسه، فالاختيار يُرى قبل أن يُقرأ اسمه.
+   والاسم مكتوبٌ في `aria-label` لمن لا يرى الدائرة. */
+.themer__swatches { display: flex; flex-wrap: wrap; gap: .55rem; }
+.themer__swatch {
+  inline-size: 2.1rem;
+  block-size: 2.1rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--swatch);
+  cursor: pointer;
+  box-shadow: 0 0 0 1px var(--line);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.themer__swatch:hover { transform: scale(1.1); box-shadow: 0 0 0 1px var(--line), 0 4px 10px rgb(23 32 51 / .18); }
+.themer__swatch[aria-pressed="true"] {
+  border-color: var(--panel);
+  box-shadow: 0 0 0 2px var(--swatch);
+}
+.themer__swatch[data-accent="azure"]   { --swatch: #3d9bd6; }
+.themer__swatch[data-accent="violet"]  { --swatch: #8b5cf6; }
+.themer__swatch[data-accent="teal"]    { --swatch: #17a99f; }
+.themer__swatch[data-accent="emerald"] { --swatch: #12a866; }
+.themer__swatch[data-accent="amber"]   { --swatch: #e39411; }
+.themer__swatch[data-accent="rose"]    { --swatch: #ef4463; }
+
+.themer__reset {
+  inline-size: 100%;
+  margin-block-start: 1.2rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .82rem;
+}
+.themer__reset:hover { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger); box-shadow: none; }
+
+/* الحجاب: نقرةٌ خارج الدرج تغلقه — وهو أول ما تجرّبه اليد قبل أن تبحث عن ×. */
+.themer-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgb(9 13 21 / .38);
+  backdrop-filter: blur(1px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+.themer-veil[aria-hidden="false"] { opacity: 1; pointer-events: auto; }
+
+/* ---- صقلُ لوحة التحليلات على النظام الجديد ---------------------------- */
+
+/* الشريط العلويّ للبطاقة بلون تصنيفها: أرقّ من حافةٍ بعرض ٣px على الجانب،
+   ويُرى في المظهرين — الحافة الجانبية كانت تختفي تحت ظلّ البطاقة في الداكن. */
+.stat::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  block-size: 3px;
+  background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 30%, transparent));
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+a.stat:hover::before, a.stat:focus-visible::before { opacity: 1; }
+.stat--money::before { background: linear-gradient(90deg, var(--money), color-mix(in srgb, var(--money) 25%, transparent)); }
+.stat--auction::before { background: linear-gradient(90deg, var(--auction), color-mix(in srgb, var(--auction) 25%, transparent)); }
+.stat--people::before { background: linear-gradient(90deg, var(--people), color-mix(in srgb, var(--people) 25%, transparent)); }
+
+.stat { border-radius: var(--radius-lg); }
+.figure { border-radius: var(--radius-lg); }
+
+/* الرقم الكبير يعدّ إلى قيمته عند أول رسم — والقيمة النهائية مكتوبةٌ في
+   النصّ نفسه، فمن أطفأ الحركة أو قرأ بقارئ شاشة يرى الرقم كاملاً لا صفراً. */
+.stat__value { transition: color .2s ease; }
+
+/* الظلّ يرتفع مع الحافة: التحويم يقول «هذه بابٌ» بشيئين لا بواحد. */
+a.stat:hover { box-shadow: var(--shadow-lift); }
+
+/* الشبكة تتنفّس على الشاشات العريضة بدل أن تمطّ ستّ بطاقاتٍ إلى عرض الشاشة. */
+@media (min-width: 96rem) {
+  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
+}
+
+/* الشاشات الصغيرة: الدرج يملأ العرض، والشريط يُخفى لا يُطوى. */
+@media (max-width: 56rem) {
+  .themer { inline-size: 100vw; }
+  .topbar { padding: .55rem .9rem; }
 }

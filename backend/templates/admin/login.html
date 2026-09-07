@@ -1,5 +1,5 @@
 {% comment %}
-Staff sign-in, in the console's own clothes. T819.
+Staff sign-in, in the console's own clothes. T819، وأُعيد شكلها في T827.
 
 `admin.site.login` (still throttled in `apps.accounts.login`) renders this
 template instead of Django's own — the view is untouched, only the skin is
@@ -7,10 +7,28 @@ ours. Field names, the csrf token and the hidden `next` field are exactly what
 the view expects: a redesign that renames a field locks everybody out, and a
 lockout that pages the team at night is not a styling issue.
 
-The orbs are pure decoration (`aria-hidden`); the peek button is a plain
-`type="button"` so it can never submit the form, and the short script below
-only flips the input's `type` and the pressed state — no framework, no
-dependency, nothing for a login page to wait on.
+ولماذا صارت عمودين (T827)
+=========================
+لأن صفحة دخول v1 عمودان — لوحةُ هويّةٍ متدرّجة إلى جانب بطاقةِ نموذج — وهو
+الشكل الذي اعتاده المالك، وهو نفسه شكل القوالب التي أرسلها. والبطاقةُ الوحيدة
+وسط فراغٍ كانت تُقرأ «نافذةُ نظامٍ داخلي» لا «باب المنصّة».
+
+و**اللوحة تحمل معلومةً لا زخرفة**: اسم النظام، والبيئة، وأن الجلسة مؤمّنة. من
+يفتح هذه الصفحة على شاشةٍ لا يعرف أيّ بيئةٍ هي، يحتاج أن يعرف قبل أن يكتب
+كلمة مرورٍ فيها.
+
+و`theme.js` هنا **لازم لا زينة**
+================================
+كانت الصفحة خارج نظام المظهر كلّه: من اختار الداكن في اللوحة كان يخرج ثم يعود
+إلى صفحةٍ بيضاء ناصعة في وجهه — وهو أول ما يُرى بعد كل انتهاء جلسة. الملف نفسه
+حاجزٌ في `<head>` كما في `console/base.html`، فتُكتب السمات قبل أول رسم.
+
+والدرج نفسه **غير معروض هنا** عمداً: من لم يدخل بعد لا يُطلب منه أن يختار
+مظهراً، والخيارُ الذي اختاره من قبل محفوظٌ في المتصفّح فيُطبَّق وحده.
+
+الأشكال الثلاثة (`.orb`) زخرفةٌ صريحة (`aria-hidden`)؛ وزرّ العين
+`type="button"` فلا يُرسل النموذج أبداً، والسكربت أسفلَه يقلب نوع الحقل وحالة
+الزرّ فقط — لا إطار، ولا تبعيّة، ولا شيء تنتظره صفحةُ دخول.
 {% endcomment %}<!doctype html>
 {% load static %}
 <html lang="ar" dir="rtl">
@@ -19,51 +37,75 @@ dependency, nothing for a login page to wait on.
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>دخول الموظفين — لوحة حراج</title>
   <link rel="stylesheet" href="{% static 'console/app.css' %}">
+  <script src="{% static 'console/theme.js' %}"></script>
 </head>
 <body class="login-page">
   <div class="orb orb-a" aria-hidden="true"></div>
   <div class="orb orb-b" aria-hidden="true"></div>
   <div class="orb orb-c" aria-hidden="true"></div>
 
-  <main class="login-card">
-    <div class="login-brand">
-      <span class="login-mark" aria-hidden="true">ح</span>
-      <span>
-        <strong>لوحة حراج</strong>
-        <small>دخول الموظفين — إدارة المزادات والمال</small>
-      </span>
-    </div>
-    <p><span class="env-badge" data-env="{{ environment }}">{{ environment }}</span></p>
-
-    {% if form.non_field_errors %}
-      <div class="notice error" role="alert">
-        {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  <div class="login-split">
+    {% comment %} لوحة الهويّة. `aside` لا `section`: محتواها مكمّلٌ للنموذج،
+       ومن يتنقّل بقارئ شاشة يصل إلى النموذج أوّلاً لأنه `main`. {% endcomment %}
+    <aside class="login-side">
+      <div class="login-side__brand">
+        <span class="login-mark" aria-hidden="true">ح</span>
+        <span>
+          <strong>حراج واحد</strong>
+          <small>لوحة تشغيل المزادات والمال</small>
+        </span>
       </div>
-    {% endif %}
 
-    <form method="post" action="{{ app_path }}" class="login-form">
-      {% csrf_token %}
-      <p>
-        <label for="{{ form.username.id_for_label }}">رقم الجوال</label>
-        {{ form.username }}
-        {% if form.username.errors %}
-          <br><strong>{{ form.username.errors|join:" · " }}</strong>
-        {% endif %}
+      <p class="login-side__line">
+        كل ريالٍ في هذه اللوحة قيدٌ مزدوجٌ في دفترٍ يُراجَع، وكل فعلٍ فيها
+        يُكتب باسم من فعله.
       </p>
-      <p class="password-wrap">
-        <label for="{{ form.password.id_for_label }}">كلمة المرور</label>
-        {{ form.password }}
-        <button type="button" class="peek" id="peek" aria-label="إظهار كلمة المرور" aria-pressed="false">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
-        </button>
-        {% if form.password.errors %}
-          <br><strong>{{ form.password.errors|join:" · " }}</strong>
-        {% endif %}
-      </p>
-      <input type="hidden" name="next" value="{{ next }}">
-      <button type="submit">دخول</button>
-    </form>
-  </main>
+
+      <ul class="login-pills">
+        <li>جلسة مؤمّنة</li>
+        <li>سجلّ تدقيق كامل</li>
+        <li>صلاحيات بالاسم</li>
+      </ul>
+
+      {% comment %} المادة ٥-٦ على باب اللوحة لا داخلها فقط: من يكتب كلمة مرورٍ
+         يجب أن يعرف أي بيئةٍ يفتح قبل أن يكتبها. {% endcomment %}
+      <span class="env-badge" data-env="{{ environment }}">{{ environment }}</span>
+    </aside>
+
+    <main class="login-card">
+      <h1 class="login-card__title">دخول الموظفين</h1>
+      <p class="login-card__hint">بالجوال المسجَّل لك في اللوحة.</p>
+
+      {% if form.non_field_errors %}
+        <div class="notice error" role="alert">
+          {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+      {% endif %}
+
+      <form method="post" action="{{ app_path }}" class="login-form">
+        {% csrf_token %}
+        <p>
+          <label for="{{ form.username.id_for_label }}">رقم الجوال</label>
+          {{ form.username }}
+          {% if form.username.errors %}
+            <br><strong>{{ form.username.errors|join:" · " }}</strong>
+          {% endif %}
+        </p>
+        <p class="password-wrap">
+          <label for="{{ form.password.id_for_label }}">كلمة المرور</label>
+          {{ form.password }}
+          <button type="button" class="peek" id="peek" aria-label="إظهار كلمة المرور" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          {% if form.password.errors %}
+            <br><strong>{{ form.password.errors|join:" · " }}</strong>
+          {% endif %}
+        </p>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button type="submit">دخول</button>
+      </form>
+    </main>
+  </div>
 
   <script>
     (function () {
