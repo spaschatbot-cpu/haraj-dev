@@ -1,37 +1,136 @@
 {% extends "console/base.html" %}
 {% load l10n %}
-{% block title %}المستخدمون{% endblock %}
-{% block heading %}المستخدمون{% endblock %}
+{% comment %}
+إدارة المستخدمين — أعمدة v1 نفسها، وعمودُ الرصيد يقول رقماً.
+
+في إنتاج v1 هذا الجدول فيه أربعةٌ وأربعون ألف صفّ، و**عمود «الرصيد» فيها
+كلِّها `0 SAR`**: عمودٌ مشتقٌّ مخزَّنٌ على المستخدم لا يحدّثه شيء (جرد T302).
+والرصيد هنا مجموعُ حسابات العميل في الدفتر، فلا مكانَ يمكن أن يُهمَل تحديثُه.
+
+و«غير معرف» في v1 اسمٌ حرفيٌّ يُكتب مكان الاسم الغائب — فيبحث عنه الموظّف
+كاسمٍ ويجد آلافاً. الغيابُ هنا يُعرض غياباً.
+{% endcomment %}
+{% block title %}إدارة المستخدمين{% endblock %}
+{% block heading %}إدارة المستخدمين{% endblock %}
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  {% comment %} I5: every list downloads as a real workbook, and the download carries the
-     filter that is on the screen. `export_url` is this very request with one
-     parameter added, built in `apps.console.context` — so the filter comes
-     along by construction and no template writes a path by hand. {% endcomment %}
+  <p class="lede">
+    حسابات الأفراد والشركات: من هو، وهل يستطيع الدخول، وكم له عندنا في الدفتر.
+  </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="اسم أو جوال أو رقم هوية">
-    <button type="submit">بحث</button>
+  <div class="stats">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </div>
+
+  {% comment %} I5: كل قائمة تُصدَّر، والتصديرُ يحمل المرشّح الذي على الشاشة.
+     `export_url` هو هذا الطلب نفسه بمعامل واحد يُضاف، يُبنى في
+     `apps.console.context` — فلا قالبَ يكتب مساراً بيده.
+
+     وأسماء الخانات هي أسماء v1 حرفياً (`q` · `account_type` · `status` ·
+     `per_page`)، فرابطٌ محفوظٌ عند موظّف يفتح هنا على النتيجة نفسها.
+  {% endcomment %}
+  <form method="get" class="filters">
+    <p>
+      <label for="q">البحث</label>
+      <input id="q" type="search" name="q" value="{{ q }}"
+             placeholder="الاسم، الجوال، الهوية…">
+    </p>
+    <p>
+      <label for="account_type">نوع الحساب</label>
+      <select id="account_type" name="account_type">
+        <option value="">الكل</option>
+        {% for value, label in types %}
+          <option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label for="status">الحالة</label>
+      <select id="status" name="status">
+        <option value="">الكل</option>
+        {% for value, label in statuses %}
+          <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p>
+      <label for="per_page">النتائج</label>
+      <select id="per_page" name="per_page">
+        {% for choice in row_choices %}
+          <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} صفّاً</option>
+        {% endfor %}
+      </select>
+    </p>
+    <p><button type="submit">بحث</button></p>
   </form>
 
   <table>
-    <thead><tr><th>الاسم</th><th>الجوال</th><th>النوع</th><th>الهوية</th><th>مسجَّل منذ</th></tr></thead>
+    <thead>
+      <tr>
+        <th>المعرف</th>
+        <th>الاسم والمدينة</th>
+        <th>رقم الهاتف</th>
+        <th>رقم الهوية</th>
+        <th>النوع</th>
+        <th>الحالة</th>
+        <th>الرصيد</th>
+        <th>الإجراءات</th>
+      </tr>
+    </thead>
     <tbody>
-      {% for customer in page %}
+      {% for customer in rows %}
         <tr>
-          <td><a href="{% url 'console:customer-detail' customer.pk %}">
-            {{ customer.full_name }}</a></td>
+          <td class="count">#{{ customer.pk|unlocalize }}</td>
+          <td>
+            <a href="{% url 'console:customer-detail' customer.pk %}">
+              {% comment %} الغياب غيابٌ لا اسم: v1 يكتب «غير معرف» في خانة
+                 الاسم، فيصير نصّاً يُبحث عنه ويُفرَز به. {% endcomment %}
+              {% if customer.full_name %}{{ customer.full_name }}{% else %}<span class="empty">بلا اسم</span>{% endif %}
+            </a>
+            {% if customer.company.city %}
+              <small class="muted">{{ customer.company.city }}</small>
+            {% endif %}
+          </td>
           <td>{{ customer.phone }}</td>
-          <td>{{ customer.get_account_type_display }}</td>
           <td>{{ customer.national_id|default:"—" }}</td>
-          <td>{{ customer.date_joined|date:"Y-m-d" }}</td>
+          <td>{{ customer.get_account_type_display }}</td>
+          <td>
+            {% if customer.is_active %}
+              <span class="pill" data-tone="ok">نشط</span>
+            {% else %}
+              <span class="pill" data-tone="bad">محظور</span>
+            {% endif %}
+          </td>
+          {% comment %} من الدفتر لا من عمودٍ مخزَّن — وهو الفرق بين رقمٍ
+             وبين `0 SAR` في أربعةٍ وأربعين ألف صفّ. {% endcomment %}
+          <td class="money">{{ customer.wallet_total|unlocalize }}</td>
+          <td>
+            <a href="{% url 'console:customer-detail' customer.pk %}">افتح</a> ·
+            <a href="{% url 'console:customer-edit' customer.pk %}">تعديل</a>
+            {% comment %} شاشة الوصول ترفض الموظّفين (`is_staff=False`)، فلا
+               يُعرض رابطٌ يفتح على 404. {% endcomment %}
+            {% if not customer.is_staff %}
+              · <a href="{% url 'console:customer-access' customer.pk %}">الوصول</a>
+            {% endif %}
+            {% comment %} الحذف قدرةٌ وحدها (`users.delete`)، فلا يظهر لمن
+               يملك التعديل وحده. والشاشة التي يفتحها ترفض أكثر ممّا تقبل:
+               حسابٌ له مزايدةٌ أو فاتورة لا يُحذف. {% endcomment %}
+            {% if can_delete %}
+              · <a href="{% url 'console:customer-delete' customer.pk %}">حذف</a>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="5" class="empty">لا مستخدمين مطابقين.</td></tr>
+        <tr><td colspan="8" class="empty">لا حسابات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 
-  <p>{{ page.paginator.count }} مستخدماً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+  {% comment %} العدد الحقيقيّ للصفحات: v1 يقول «إجمالي النتائج ٤٤٬١٩١» ثم
+     يعرض أربع صفحات — وهي ألفٌ وسبعمئة وثمانٍ وستون. {% endcomment %}
+  <p>
+    {{ page.paginator.count|unlocalize }} حساباً ·
+    صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+  </p>
 {% endblock %}

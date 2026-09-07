@@ -1,0 +1,114 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+حذف حساب — والرفضُ هو الحالة الشائعة عمداً.
+
+في v1 زرُّ الحذف بجوار زرّ التعديل وبالثقة نفسها. وحذفُ حسابٍ يمحو الجوّال
+الذي يُعرَف به صاحبُه، فمن حُذف حسابُه بالخطأ يفتح واحداً جديداً — وذلك أحدُ
+مصادر التكرار في `userss`.
+
+فالشاشة تقول **كلَّ** ما يمنع لا أوّلَه (مزايداتٌ وفواتيرُ وقيودٌ ومحاولاتُ
+دفعٍ وصلاحيات)، وتعرض الإيقاف بديلاً مسمّى لا نصيحةً في الهامش.
+{% endcomment %}
+{% block title %}حذف حساب{% endblock %}
+{% block heading %}حذف حساب{% endblock %}
+
+{% block content %}
+  <table>
+    <tbody>
+      <tr><th>المعرف</th><td class="count">#{{ customer.pk|unlocalize }}</td></tr>
+      <tr>
+        <th>الاسم</th>
+        <td>
+          {% if customer.full_name %}{{ customer.full_name }}{% else %}<span class="empty">بلا اسم</span>{% endif %}
+        </td>
+      </tr>
+      <tr><th>الجوال</th><td>{{ customer.phone }}</td></tr>
+      <tr><th>الهوية</th><td>{{ customer.national_id|default:"—" }}</td></tr>
+      <tr><th>النوع</th><td>{{ customer.get_account_type_display }}</td></tr>
+      <tr>
+        <th>الحالة</th>
+        <td>
+          {% if customer.is_active %}
+            <span class="pill" data-tone="ok">نشط</span>
+          {% else %}
+            <span class="pill" data-tone="bad">محظور</span>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if blocked %}
+    <p class="alarm">
+      <strong>هذا الحساب لا يُحذف.</strong>
+    </p>
+
+    {% if is_self %}
+      <p class="empty">
+        هذا حسابك أنت. من يحذف حسابه يخرج من اللوحة في منتصف الفعل، ولا يبقى
+        من يعكسه.
+      </p>
+    {% endif %}
+
+    {% if is_staff_row %}
+      <p class="empty">
+        حسابُ موظّف: سجلُّ التدقيق يشير إليه. «من فعل هذا؟» سؤالٌ يُسأل بعد
+        سنة، وجوابُه لا يُمحى من شاشة عملاء — تُسحب صلاحياته بدل ذلك.
+      </p>
+    {% endif %}
+
+    {% if holds %}
+      {% comment %} العدد بجوار الاسم: «له مزايدات» جملةٌ لا يُتصرَّف فيها،
+         و«له ٤ مزايدات» تُفتح ويُنظر فيها. {% endcomment %}
+      <p>ما يشير إليه:</p>
+      <table>
+        <thead><tr><th>الأثر</th><th>العدد</th></tr></thead>
+        <tbody>
+          {% for label, count in holds %}
+            <tr><th>{{ label }}</th><td class="count">{{ count|unlocalize }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p class="empty">
+        صفوفُ المال والمزايدة تشير إلى هذا الحساب، وحذفُه يترك «فاتورةً لمن؟»
+        بلا جواب. والقاعدة نفسها ترفضه (<code>on_delete=PROTECT</code>) — فهذا
+        ليس رأياً في الشاشة.
+      </p>
+    {% endif %}
+
+    {% if not is_self %}
+      <p>
+        <strong>والسؤال غالباً «أوقفه» لا «امحُه»:</strong>
+        {% if not is_staff_row %}
+          <a href="{% url 'console:customer-access' customer.pk %}">أوقف هذا الحساب</a>
+          — يُمنع من الدخول ومن طلب رمزٍ جديد، ويبقى أثرُه كما هو، ويُعاد متى
+          تبيّن الخطأ.
+        {% else %}
+          <a href="{% url 'console:staff-grants' customer.pk %}">اسحب صلاحياته</a>
+          — الموظّف يُنزع وصولُه ولا يُمحى صفُّه.
+        {% endif %}
+      </p>
+    {% endif %}
+
+  {% else %}
+    <p class="alarm">
+      حسابٌ <strong>لا أثر له</strong>: لا مزايدة، ولا فاتورة، ولا قيد في
+      الدفتر، ولا محاولة دفع، ولا صلاحية. حذفُه لا يترك صفّاً بلا صاحب.
+    </p>
+
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      {{ form.as_p }}
+      {% comment %} السبب يدخل سجلَّ التدقيق مع الجوّال والاسم — فيبقى ما
+         يُعرَف به الصفُّ المحذوف بعد أن لا يبقى صفّ. {% endcomment %}
+      <p class="empty">
+        السبب يُكتب في سجلّ التدقيق ومعه الجوّال والاسم ورقم الهوية، فيبقى ما
+        يُعرَف به الحساب بعد أن لا يبقى له صفّ.
+      </p>
+      <button type="submit">احذف الحساب</button>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'console:customer-detail' customer.pk %}">← عودة إلى بيانات العميل</a></p>
+{% endblock %}

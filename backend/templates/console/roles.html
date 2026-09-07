@@ -1,0 +1,95 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+الأدوار والصلاحيات — دورٌ يُختار ويُضاف ويُحذف.
+
+قائمة v1 المنسدلة فيها أحدَ عشرَ دوراً، وأربعةٌ منها تكرارُ أربعةٍ أخرى بأسماءٍ
+مختلفة: «Admin (مدير)» و«مدير (كل شيء عدا الإحصائيات)»، و«Data Entry (إدخال
+بيانات)» و«مدخل بيانات المزادات». وليس ذلك خطأً في التسمية — هو أثرُ أن كلَّ
+حاجةٍ جديدة كانت تُحلّ بدورٍ جديد، ثم لا يجرؤ أحدٌ على حذف القديم لأنه لا يعرف
+من يحمله.
+
+فعمودُ «كم يحمله» هنا هو ما يجعل القائمة تُنظَّف: صفرٌ يعني أن الدور يُحذف
+اليوم، وسبعةٌ تعني أن حذفه يُخرج سبعةَ موظّفين من اللوحة في لحظة.
+{% endcomment %}
+{% block title %}الأدوار والصلاحيات{% endblock %}
+{% block heading %}الأدوار والصلاحيات{% endblock %}
+
+{% block content %}
+  <p class="lede">
+    الدورُ حزمةُ قدراتٍ لها اسم. وما يزيد عن الدور أو ينقص عنه لشخصٍ بعينه
+    يُكتب في
+    <a href="{% url 'console:page-control' %}">التحكم في صفحات مشرف</a> —
+    فتعديلُ دورٍ يمسّ كلَّ من يحمله، والتجاوزُ الفرديّ يمسّ واحداً.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>الدور</th>
+        <th>المعرّف</th>
+        <th>القدرات</th>
+        <th>كم مشرفاً يحمله</th>
+        <th>الإجراءات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>
+            {{ row.label }}
+            {% if row.built_in %}
+              {% comment %} المكتوب في الشيفرة يُوسَم: من يبحث عن زرّ الحذف
+                 ولا يجده يحتاج أن يعرف لماذا، لا أن يظنّ الشاشة معطّلة.
+              {% endcomment %}
+              <span class="pill" data-tone="ok">مكتوبٌ في الشيفرة</span>
+            {% endif %}
+            {% if row.reason %}<small class="muted">{{ row.reason }}</small>{% endif %}
+          </td>
+          <td><code>{{ row.slug }}</code></td>
+          <td>
+            {{ row.count|unlocalize }}
+            {% comment %} الأسماء لا العدد وحده: «١٢ قدرة» رقمٌ لا يُراجَع،
+               و«الأفعال المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى
+               هذا الشخص المال؟». {% endcomment %}
+            <details>
+              <summary>أيّها؟</summary>
+              <ul>
+                {% for name in row.capabilities %}
+                  <li>{{ name }}</li>
+                {% endfor %}
+              </ul>
+            </details>
+          </td>
+          <td class="count">
+            {{ row.held|unlocalize }}
+            {% if row.held %}
+              <a href="{% url 'console:admins' %}?role={{ row.slug }}">من هم ←</a>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.built_in %}
+              <span class="empty">لا يُحذف — حذفُ «المالك» يُقفل اللوحة</span>
+            {% elif row.held %}
+              <span class="empty">يحمله {{ row.held|unlocalize }}</span>
+            {% else %}
+              <a href="{% url 'console:role-delete' row.slug %}">حذف</a>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>دورٌ جديد</h2>
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <p class="empty">
+      القدرة التي لا تُختار لا تُمنح. ودورٌ بلا «فتح اللوحة» لا يدخل حاملُه
+      أصلاً — وذلك مسموح، لأن حساباً يُنشأ اليوم ويُفتح الأسبوع القادم حالةٌ
+      حقيقية.
+    </p>
+    <button type="submit">أضف الدور</button>
+  </form>
+{% endblock %}

@@ -33,12 +33,22 @@
 
 from __future__ import annotations
 
+from django import forms
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.accounts.models import User
-from apps.core.permissions import filter_by_role, role_choices, role_label
+from apps.accounts.models import ConsoleRole, User
+from apps.core import audit
+from apps.core.permissions import (
+    Capability,
+    bundle_for,
+    filter_by_role,
+    is_built_in,
+    role_choices,
+    role_label,
+)
 
 from .exports import export, wants_export
 from .views import console_page
@@ -254,3 +264,160 @@ def password_change(request):
         form = PasswordChangeForm(request.user)
 
     return render(request, "console/password_change.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
+# الأدوار — دورٌ يُختار ويُضاف ويُحذف. T838
+# ---------------------------------------------------------------------------
+#
+# قائمة v1 المنسدلة في «إضافة مشرف» فيها أحدَ عشرَ دوراً:
+#
+#     Owner (المالك) · Admin (مدير) · Manager (مدير قسم) · Supervisor (مشرف) ·
+#     Data Entry (إدخال بيانات) · Company (شركة) · مدير (كل شيء عدا
+#     الإحصائيات) · مدخل بيانات المزادات · الساحة/العدادات (تعديل سريع) ·
+#     خدمات ما بعد البيع (اطلاع) · المالية
+#
+# **وأربعةٌ منها تكرارُ أربعةٍ أخرى بأسماءٍ مختلفة** — «Admin (مدير)» و«مدير
+# (كل شيء عدا الإحصائيات)»، و«Data Entry (إدخال بيانات)» و«مدخل بيانات
+# المزادات». وهذا ليس خطأً في التسمية: هو أثرُ أن كلَّ حاجةٍ جديدة كانت
+# تُحلّ بدورٍ جديدٍ في الشيفرة، ثم لا يجرؤ أحدٌ على حذف القديم لأنه لا يعرف
+# من يحمله.
+#
+# فالشاشة هنا تقول لكل دورٍ **كم مشرفاً يحمله**، وتحذفه حين لا يحمله أحد.
+# وهو الفرق بين قائمةٍ تطول أبداً وقائمةٍ تُنظَّف.
+#
+# وأربعةُ أدوارٍ تبقى مكتوبةً في الشيفرة ولا تُحذف من هنا: حذفُ «المالك» يُقفل
+# اللوحة على الجميع بلا طريقٍ للعودة، وذلك عطلٌ لا تُصلحه شاشة.
+
+
+class RoleForm(forms.ModelForm):
+    """دورٌ جديد: اسمٌ يُقرأ، ومعرّفٌ يُكتب في العمود، وقدراتٌ تُختار."""
+
+    capabilities = forms.MultipleChoiceField(
+        choices=Capability.choices,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="القدرات",
+        # `console.access` ليست مفروضةً هنا: دورٌ بلا دخولٍ إلى اللوحة قد يكون
+        # مقصوداً (حسابٌ يُنشأ اليوم ويُفتح له الأسبوع القادم)، والشاشة تقوله
+        # بدل أن تصحّحه بصمت.
+        help_text="بلا «فتح اللوحة» لا يدخل حاملُ الدور أصلاً.",
+    )
+
+    class Meta:
+        model = ConsoleRole
+        fields = ("label", "slug", "capabilities", "reason")
+        labels = {
+            "label": "اسم الدور",
+            "slug": "المعرّف (لاتينيّ)",
+            "reason": "لماذا هذا الدور",
+        }
+
+    def clean_slug(self) -> str:
+        """معرّفٌ يطابق دوراً مكتوباً في الشيفرة يُرفض — لأنه لن يُقرأ.
+
+        `bundle_for` تقرأ المكتوب أولاً، فصفٌّ اسمُه `owner` لا أثر له إطلاقاً.
+        وصفٌّ لا أثر له وهو معروضٌ في شاشةٍ أسوأ من رفضٍ صريح.
+        """
+        slug = (self.cleaned_data.get("slug") or "").strip()
+        if is_built_in(slug):
+            raise forms.ValidationError("هذا المعرّف لدورٍ مكتوبٍ في الشيفرة — اختر غيره.")
+        return slug
+
+
+def role_table() -> list[dict]:
+    """كل دور، ومعه عددُ حامليه وعددُ قدراته — باستعلامين لا باستعلامٍ لكلٍّ."""
+    held = {
+        row["console_role"]: row["n"]
+        for row in User.objects.filter(is_staff=True)
+        .values("console_role")
+        .annotate(n=Count("id"))
+    }
+    added = {row.slug: row for row in ConsoleRole.objects.all()}
+    labels = dict(Capability.choices)
+
+    table = []
+    for slug, label in role_choices():
+        row = added.get(slug)
+        table.append(
+            {
+                "slug": slug,
+                "label": label,
+                "built_in": is_built_in(slug),
+                "count": len(bundle_for(slug)),
+                "held": held.get(slug, 0),
+                "reason": row.reason if row else "",
+                # قدراتُ الدور **مسمّاةً بالعربية** لا بمعرّفاتها: «١٢ قدرة»
+                # رقمٌ لا يُراجَع، و`money.act` معرّفٌ للشيفرة — و«الأفعال
+                # المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى هذا
+                # الشخص المال؟». وتُبنى هنا لا في القالب: بحثٌ في قاموس لا
+                # يفعله قالبُ جانغو أصلاً، ومن يحاول يكتب مرشّحاً جديداً.
+                "capabilities": sorted(
+                    labels.get(name, name) for name in bundle_for(slug)
+                ),
+            }
+        )
+    return table
+
+
+@console_page("console:roles")
+def roles(request):
+    """الأدوار: ما يحمله كلٌّ منها، وكم مشرفاً عليه — وإضافةُ دورٍ جديد."""
+    form = RoleForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        role = form.save(commit=False)
+        role.created_by = request.user
+        role.full_clean()
+        role.save()
+        audit.record(
+            action="console.create_role",
+            entity=role,
+            actor=request.user,
+            after={"slug": role.slug, "capabilities": sorted(role.capabilities)},
+            note=role.reason,
+        )
+        messages.success(request, f"أُضيف الدور «{role.label}».")
+        return redirect("console:roles")
+
+    return render(
+        request,
+        "console/roles.html",
+        {"form": form, "rows": role_table()},
+    )
+
+
+@console_page("console:role-delete")
+def role_delete(request, slug: str):
+    """احذف دوراً لا يحمله أحد — أو اعرف من يحمله.
+
+    والرفضُ مقصود: حذفُ دورٍ يحمله سبعةٌ يترك سبعةَ حساباتٍ بدورٍ لا وجود له،
+    فتقرأ `bundle_for` مجموعةً فارغة ويخرج سبعةُ موظّفين من اللوحة في لحظةٍ
+    واحدة بلا أن يقول لهم أحدٌ لماذا.
+    """
+    role = get_object_or_404(ConsoleRole, slug=slug)
+    holders = User.objects.filter(is_staff=True, console_role=slug)
+
+    if request.method == "POST" and not holders.exists():
+        audit.record(
+            action="console.delete_role",
+            entity_type=ConsoleRole._meta.label_lower,
+            entity_id=role.pk,
+            actor=request.user,
+            before={"slug": role.slug, "capabilities": sorted(role.capabilities)},
+            note=(request.POST.get("reason") or "").strip(),
+        )
+        role.delete()
+        messages.success(request, f"حُذف الدور «{role.label}».")
+        return redirect("console:roles")
+
+    return render(
+        request,
+        "console/role_delete.html",
+        {
+            "role": role,
+            "holders": holders.order_by("full_name"),
+            "capabilities": sorted(role.capabilities),
+            "labels": dict(Capability.choices),
+        },
+    )

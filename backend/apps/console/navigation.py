@@ -331,12 +331,12 @@ PAGES: tuple[Page, ...] = (
         "shield",
     ),
     Page(
-        "console:page-control",
-        "التحكم في صفحات المستخدمين",
+        "console:roles",
+        "الأدوار والصلاحيات",
         Capability.STAFF_GRANT,
         "members",
-        "ما مُنح لكلٍّ فوق دوره وما سُحب منه — مسمّىً وبسببه، لا رقماً.",
-        "toggle",
+        "ما يحمله كل دور، وكم مشرفاً عليه — ودورٌ يُضاف ويُحذف حين لا يحمله أحد.",
+        "role-badge",
     ),
     Page(
         "console:profit-report",
@@ -648,6 +648,12 @@ PLANNED: tuple[Planned, ...] = (
 #: because the guard reads this registry and nothing else, and a detail page
 #: with no row would be a page with no guard.
 DETAIL_PAGES: tuple[Page, ...] = (
+    # «التحكم في صفحات المستخدمين» **دُمج في «إدارة المشرفين»** (T838): في v1
+    # هما شاشتان تعرضان القائمة نفسها بعمودٍ مختلف، فيفتح الموظّف إحداهما ثم
+    # يكتشف أن ما يريده في الأخرى بالاسم نفسه تقريباً. فصارت تُفتح من صفِّ
+    # المشرف وخرجت من الشريط — مدخلان إلى القائمة الواحدة أحدُهما زائد.
+    Page("console:page-control", "التحكم في صفحات مشرف", Capability.STAFF_GRANT, ""),
+    Page("console:role-delete", "حذف دور", Capability.STAFF_GRANT, ""),
     Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
     Page("console:auction-bids", "مزايدات المزاد", Capability.AUCTIONS_VIEW, ""),
     Page("console:vehicle-detail", "تفاصيل المركبة", Capability.AUCTIONS_VIEW, ""),
@@ -684,6 +690,9 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:customer-edit", "تعديل العميل", Capability.USERS_MANAGE, ""),
     Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
     Page("console:customer-access", "وصول العميل", Capability.USERS_MANAGE, ""),
+    # قدرةٌ وحدها لا `users.manage`: انظر التعليق عند
+    # `Capability.USERS_DELETE`.
+    Page("console:customer-delete", "حذف حساب", Capability.USERS_DELETE, ""),
     # ليست `users.manage`: تعديلُ بيانات عميلٍ وتوسيعُ ما يستطيعه موظّف في
     # اللوحة كلّها ثقتان مختلفتان، وv1 جمعهما في علمٍ واحد.
     Page("console:staff-grants", "صلاحيات موظف", Capability.STAFF_GRANT, ""),
