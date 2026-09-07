@@ -420,3 +420,13 @@ def test_every_card_icon_is_declared():
         used = {card.icon for card in built if card.icon}
         assert used <= set(declared), f"{screen}: رسمٌ غير مُعلَن {used - set(declared)}"
         assert set(declared) <= used, f"{screen}: إعلانٌ بلا بطاقة {set(declared) - used}"
+
+
+def test_every_row_icon_is_declared():
+    """مثلُ `test_every_card_icon_is_declared`، ولصفوف شاشة المزادات. T852."""
+    from apps.console.auctions import ACTIONS, ROW_ICONS
+
+    used = {name for _, _, name in ACTIONS}
+
+    assert used <= set(ROW_ICONS), f"رسمٌ غير مُعلَن: {used - set(ROW_ICONS)}"
+    assert set(ROW_ICONS) <= used, f"إعلانٌ بلا فعل: {set(ROW_ICONS) - used}"

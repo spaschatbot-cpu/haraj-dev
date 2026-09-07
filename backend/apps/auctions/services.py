@@ -46,6 +46,7 @@ __all__ = [
     "award",
     "can_view",
     "cancel",
+    "cascade_auction_vehicles",
     "due_to_activate",
     "due_to_end",
     "end",
@@ -307,3 +308,23 @@ def add_image(vehicle: Vehicle, file, *, position: int = 0, cover: bool = False)
         image.save(update_fields=[tier.field for tier in TIERS])
 
     return image
+
+
+def cascade_auction_vehicles(auction: Auction, old_status: str, new_status: str) -> int:
+    """Cascade auction status change to matching vehicles (T849).
+
+    In v1: only vehicles whose status was in sync with the auction's previous
+    status follow the change. In v2: when an auction becomes active (live),
+    listed vehicles move to bidding. When scheduled/soon/upcoming, draft
+    vehicles move to listed.
+    """
+    cascaded = 0
+    if new_status == "active":
+        for vehicle in auction.vehicles.filter(state=VehicleState.LISTED):
+            open_bidding(vehicle)
+            cascaded += 1
+    elif new_status in ("soon", "upcoming", "later", "scheduled"):
+        for vehicle in auction.vehicles.filter(state=VehicleState.DRAFT):
+            list_for_sale(vehicle)
+            cascaded += 1
+    return cascaded

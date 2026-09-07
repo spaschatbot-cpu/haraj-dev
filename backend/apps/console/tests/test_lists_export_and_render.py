@@ -55,7 +55,9 @@ TEN_K = Decimal("10000.00")
 #: Named by url so a screen that loses its export is a failure here rather than
 #: an absence nobody notices.
 EXPORTING = {
-    "console:auctions": "الرقم",
+    # «#» لا «الرقم» بعد إعادة كتابة الشاشة (T846) — والعمود موجودٌ بالاسمين
+    # في شاشاتٍ أخرى، فالتوكيد على اسمٍ لا لبسَ فيه.
+    "console:auctions": "المزاد",
     "console:vehicles": "رقم اللوت",
     "console:customers": "الاسم",
     "console:invoices": "الرقم",

@@ -257,6 +257,34 @@ class Vehicle(models.Model):
         help_text="الشريك المالك للمركبة، إن وُجد",
     )
 
+    # ------------------------------------------------------------------
+    # الخمسةُ الباقية من شاشة سيارات المزاد في v1 — T853.
+    #
+    # كانت الشاشةُ عندنا تعرض ثلاثةَ عشرَ عموداً من ثمانيةَ عشر، والخمسةُ
+    # الغائبة لم تكن قراراً بل نقصَ حقول. وهي في v1 على `auction_vehicles`
+    # بأنواعها هذه، وتُنقل كما هي:
+    #
+    # **ولماذا نصٌّ حرٌّ لا تعدادات** في «حالة المحرّك» و«المفاتيح»: v1
+    # يخزّنهما `varchar(100)` بلا قائمةٍ مغلقة، ولم تُقرأ قيمُهما الفعلية من
+    # النسخة بعد. وتعدادٌ يُخترَع اليوم يرفض القيمةَ التي كتبها الموظّف أمس
+    # (المادة ٢-٣: المجهول لا يُخمَّن). فحين تُقرأ المفردات تُضيَّق بهجرة.
+    # ------------------------------------------------------------------
+
+    #: رقم المطالبة — `auction_vehicles.claim_number` (varchar 60).
+    claim_number = models.CharField(max_length=60, blank=True, db_index=True)
+
+    #: شركة التأمين — `insurance_company` (varchar 255).
+    insurance_company = models.CharField(max_length=255, blank=True)
+
+    #: حالة المحرّك — `runs_status`. «تعمل / لا تعمل / تدور ولا تتحرّك».
+    runs_status = models.CharField(max_length=100, blank=True)
+
+    #: المفاتيح — `key_status`. «مفتاح واحد / مفتاحان / بلا مفتاح».
+    key_status = models.CharField(max_length=100, blank=True)
+
+    #: للتسويق — `is_marketing`. سيارةٌ تُعرض للدعاية لا للبيع في هذه الدورة.
+    is_marketing = models.BooleanField(default=False)
+
     #: The one number that says what this car stands on. In v1 four screens each
     #: computed their own version of it; here every screen reads this field.
     reserve_price = models.DecimalField(

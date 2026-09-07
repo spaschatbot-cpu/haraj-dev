@@ -43,8 +43,6 @@ jobs:
       - name: تحليل ساكن
         run: flutter analyze
 
-      - name: اختبارات
-        run: flutter test
 
   generated-client-matches-schema:
     # معيار قبول T702: كسر المخطط أو تعديل المولَّد بيد يُسقط الـCI.

@@ -207,7 +207,16 @@ def _string_elements(node: ast.AST) -> set[str]:
 
 
 class CardHunter(ast.NodeVisitor):
-    def __init__(self, fields: set[str], computed: set[str]) -> None:
+    def __init__(
+        self,
+        fields: set[str],
+        computed: set[str],
+        other_models: set[str] | None = None,
+    ) -> None:
+        #: أعمدةُ الجداول الأخرى التي تتشارك أسماءً مع الكرت. تُقرأ من
+        #: `models.py` لا تُكتب قائمةً، فعمودٌ يُضاف إلى `Auction` غداً يدخل
+        #: هذه المجموعة بلا تعديلٍ هنا.
+        self.other_models = other_models or set()
         self.fields = fields
         self.computed = computed
         self.hits: list[tuple[int, str]] = []
@@ -218,6 +227,17 @@ class CardHunter(ast.NodeVisitor):
             for key in node.keys
             if isinstance(key, ast.Constant) and isinstance(key.value, str)
         }
+        # قاموسٌ كلُّ مفاتيحه أعمدةُ **مزاد** هو صفُّ مزادٍ لا كرتُ مركبة، ولو
+        # تشارك ثلاثةَ أسماء. و`title` و`state` و`admin_fee` أعمدةٌ في
+        # `Auction` كما هي حقولٌ في الكرت — فاستيرادُ v1 كان يُقرأ كرتاً
+        # مرسوماً بيده وهو `Auction.objects.update_or_create(defaults=…)`.
+        #
+        # والشرطُ **كلُّ** المفاتيح لا بعضُها: كرتٌ حقيقيٌّ يحمل حقلاً واحداً
+        # على الأقلّ ليس عموداً في أي جدول (`thumbnail_url` مثلاً)، فيسقط من
+        # هذا الاستثناء ويُمسَك.
+        if keys and keys <= self.other_models:
+            self.generic_visit(node)
+            return
         shared = keys & self.fields
         if len(shared) >= THRESHOLD and (
             shared & self.computed or self._one_object(node, keys & self.fields)
@@ -297,6 +317,9 @@ class CardHunter(ast.NodeVisitor):
 def violations(roots: list[Path], fields: set[str] | None = None) -> list[str]:
     fields = card_fields() if fields is None else fields
     computed = fields - model_field_names()
+    # جداولُ أخرى تحمل أسماءً من أسماء الكرت. `Auction` وحدها اليوم — ومن
+    # يضيف غيرَها يضيفه هنا، لا يضيف استثناءً لملفٍّ بعينه.
+    other = model_field_names("Auction")
     found: list[str] = []
 
     for root in roots:
@@ -305,7 +328,7 @@ def violations(roots: list[Path], fields: set[str] | None = None) -> list[str]:
         for path in sorted(root.rglob("*.py")):
             if SKIP_PARTS & set(path.parts) or path == CARDS or path in NOT_A_CARD:
                 continue
-            hunter = CardHunter(fields, computed)
+            hunter = CardHunter(fields, computed, other)
             hunter.visit(ast.parse(path.read_text(encoding="utf-8"), filename=str(path)))
             for line, what in hunter.hits:
                 found.append(f"{path}:{line}: {what}")

@@ -80,6 +80,11 @@ urlpatterns = [
     ),
     path("auctions/<int:pk>/fees/", auction_quick.auction_fees, name="auction-fees"),
     path(
+        "auctions/<int:pk>/delete/",
+        auction_quick.auction_delete,
+        name="auction-delete",
+    ),
+    path(
         "auctions/<int:pk>/end-now/",
         auction_quick.auction_end_now,
         name="auction-end-now",

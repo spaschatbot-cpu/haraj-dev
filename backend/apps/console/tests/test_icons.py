@@ -17,6 +17,7 @@ import re
 
 import pytest
 
+from apps.console.auctions import ROW_ICONS as AUCTION_ROW_ICONS
 from apps.console.dashboard import STAT_ICONS
 from apps.console.icons import ICONS, path_of
 from apps.console.navigation import DETAIL_PAGES, PAGES, PLANNED
@@ -58,7 +59,7 @@ DRAWN_OUTSIDE_THE_REGISTRY = {"exit-door", "crown"}
 
 #: ورسومُ بطاقاتِ الشاشات — مُعلَنةٌ في وحداتها لأن هذا الملفّ لا يستطيع بناءها
 #: (تحتاج قاعدة بيانات)، وكلُّ واحدةٍ يحرسها اختبارٌ في ملفّ شاشتها.
-CARD_ICONS = set(STAFF_CARD_ICONS) | set(CUSTOMER_CARD_ICONS)
+CARD_ICONS = set(STAFF_CARD_ICONS) | set(CUSTOMER_CARD_ICONS) | set(AUCTION_ROW_ICONS)
 
 
 def test_no_icon_is_drawn_for_nobody() -> None:

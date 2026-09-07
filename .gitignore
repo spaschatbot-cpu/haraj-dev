@@ -28,3 +28,9 @@ Thumbs.db
 
 # معاينة اللوحة المرسومة محلياً (ops/preview_console.py) — مخرَجٌ لا مصدر.
 backend/.design-preview/
+
+# مهاراتٌ خارجية مثبَّتةٌ بـ`npx skills add` — أدواتُ جهازٍ لا كودُ مشروع.
+# تُنصَّب بالأمر نفسه على أي جهاز، و`skills-lock.json` يثبّت النسخة.
+.agents/
+.claude/skills/
+.agy-brief-*.txt

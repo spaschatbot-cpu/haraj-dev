@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 `unlocalize` on every amount: money is shown exactly as the ledger stores it.
 A thousands separator or a localised decimal comma is a display transformation
@@ -7,16 +7,14 @@ on a money value, and an operator comparing this screen to the ledger must not
 have to undo one in their head.
 {% endcomment %}
 {% comment %}
-شاشةُ المزاد كمُجمَّع — T843.
+شاشةُ المزاد كمُجمَّع — T843، ومنقّاةٌ من أموال العملاء في T849، ومصممة بعناية في T850.
 
-المالك بالحرف: «مزاد مجمع وداخله مجموعة من السيارات. المزاد الواحد مطلوب عشان
-المشاركة فيه تأمين واحد للمزايدة فيه حتى لو هيزايد على كل السيارات اللي فيه.
-ولو زايد وكسب سيارات، السيارات تتربط بالتأمين ده — يعني فواتير المزاد الواحد
-تتربط برده بنفس التأمين بتاعه بعد اتخاذ القرار».
+المالك بالحرف: «مش عايز الصفحات يظهر فيها ولا ماليه ولا مزايدات غير الصفحات
+المخصصه لكدا». فلا تأميناً محجوزاً ولا فاتورةً ولا رصيداً على هذه الشاشة —
+عرضُ أموال العملاء له شاشاتُه، وإخراجُه هنا يكسر تصميم الصلاحيات: من يملك
+`auctions.view` كان يرى أرصدةً وفواتيرَ لا تخصّه.
 
-فترتيبُ الأقسام هو ترتيبُ السؤال: أين المزاد الآن ← ماذا أفعل به ← من فيه
-وبكم ← ما سياراته. والمشاركون قبل السيارات عمداً: صفحةُ سياراتٍ من خمسين
-لوتاً تدفع صفَّ التأمين خارج الشاشة، وهو الصفّ الذي وُجدت الشاشة لأجله.
+فترتيبُ الأقسام هو ترتيبُ السؤال: أين المزاد الآن ← ماذا أفعل به ← ما سياراته.
 
 Cars waiting on their owner's decision come first, then awarded ones, then the
 rest. That ordering is the screen's whole value: a car waiting on a decision is
@@ -27,21 +25,65 @@ somebody went looking for it.
 {% block title %}مزاد {{ auction.number|unlocalize }}{% endblock %}
 {% block heading %}مزاد {{ auction.number|unlocalize }} — {{ auction.title }}{% endblock %}
 
+{% block actions %}
+  <a href="{% url 'console:auctions' %}">← قائمة المزادات</a>
+  <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
+  {% if can_manage %}
+    <a href="{% url 'console:auction-edit' auction.pk %}" class="btn-primary">تعديل المزاد</a>
+  {% endif %}
+  <a href="{{ export_url }}" title="تصدير مركبات المزاد إلى ملف إكسل">تصدير إكسل</a>
+{% endblock %}
+
 {% block content %}
   {% comment %}
-  المرحلةُ لا الحالة. `get_state_display` يقول «جارٍ» عن مزادٍ انتهى وقتُه ولم
-  يُغلَق بعد، لأنه يقرأ العمود وحده والعمودَ يكتبه عاملُ خلفيّة. والمرحلة تعرف
-  الفرق وتسمّيه.
+  بطاقة ملخص المزاد والشبكة الوصفية الموحدة — T850
   {% endcomment %}
-  <p>
-    <span class="pill" data-tone="{{ phase_tone }}">{{ view.phase_label }}</span>
-    {% if view.is_late %}
-      <span class="pill" data-tone="bad">تخلّف عنه العامل</span>
-    {% endif %}
-    ·
-    {{ view.cars.total|unlocalize }} مركبة ·
-    من {{ auction.starts_at }} إلى {{ auction.ends_at }}
-  </p>
+  <div class="auction-card">
+    <div class="auction-card__header">
+      <div class="auction-card__title-wrap">
+        <span class="pill pill--filter">مزاد #{{ auction.number|unlocalize }}</span>
+        <h2 class="auction-card__title">{{ auction.title }}</h2>
+      </div>
+      <div class="auction-card__badges">
+        <span class="auction-status-badge pill" data-tone="{{ badge_tone }}">
+          <span class="status-dot"></span> {{ badge_label }}
+        </span>
+        <span class="pill" data-tone="{{ phase_tone }}">{{ view.phase_label }}</span>
+        {% if view.is_late %}
+          <span class="pill" data-tone="bad">تخلّف عنه العامل</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="auction-meta-grid">
+      <div class="auction-meta-item">
+        <span class="auction-meta-label">تاريخ البدء</span>
+        <span class="auction-meta-value time-start">{{ auction.starts_at|date:"Y-m-d H:i" }}</span>
+      </div>
+      <div class="auction-meta-item">
+        <span class="auction-meta-label">تاريخ الانتهاء</span>
+        <span class="auction-meta-value time-end">{{ auction.ends_at|date:"Y-m-d H:i" }}</span>
+      </div>
+      <div class="auction-meta-item">
+        <span class="auction-meta-label">الساحة / الموقع</span>
+        <span class="auction-meta-value">{{ auction.location|default:"غير محدد" }}</span>
+      </div>
+      <div class="auction-meta-item">
+        <span class="auction-meta-label">تأمين الدخول للمزاد</span>
+        <span class="auction-meta-value">{{ auction.deposit_required|unlocalize }} ر.س</span>
+      </div>
+      <div class="auction-meta-item">
+        <span class="auction-meta-label">الرسوم الإدارية</span>
+        <span class="auction-meta-value">{{ auction.admin_fee|unlocalize }} ر.س</span>
+      </div>
+      {% if auction.sms_reminder_at %}
+        <div class="auction-meta-item">
+          <span class="auction-meta-label">إشعار SMS المجدول</span>
+          <span class="auction-meta-value">{{ auction.sms_reminder_at|date:"Y-m-d H:i" }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 
   {% if view.is_late %}
     <div class="notice warning">
@@ -56,10 +98,17 @@ somebody went looking for it.
     </div>
   {% endif %}
 
+  {% comment %}
+  كروت إحصاءات سيارات المزاد
+  {% endcomment %}
   <div class="cards">
     <div class="card">
       <strong>{{ view.cars.total|unlocalize }}</strong>
-      <span>مركبة في المزاد</span>
+      <span>إجمالي سيارات المزاد</span>
+    </div>
+    <div class="card">
+      <strong>{{ view.cars.offered|unlocalize }}</strong>
+      <span>معروضة للمزايدة الآن</span>
     </div>
     <div class="card">
       <strong>{{ view.cars.awaiting_decision|unlocalize }}</strong>
@@ -69,132 +118,197 @@ somebody went looking for it.
       <strong>{{ view.cars.sold|unlocalize }}</strong>
       <span>رست على مشترٍ</span>
     </div>
-    <div class="card">
-      <strong class="money">{{ view.held|unlocalize }}</strong>
-      <span>ريالاً تأميناً محجوزاً على هذا المزاد</span>
+  </div>
+
+  {% comment %}
+  إدارة دورة حياة المزاد والعمليات
+  {% endcomment %}
+  {% if can_manage %}
+    <div class="operations-panel">
+      <div class="operations-panel__head">
+        <h3>إدارة دورة حياة المزاد والعمليات</h3>
+        {% if auction.state == "live" or badge == "active" %}
+          <button type="button" class="btn-danger-sm" data-open-end data-pk="{{ auction.pk|unlocalize }}" data-number="{{ auction.number|unlocalize }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.end }}"/></svg>
+            إنهاء فوري للمزاد
+          </button>
+        {% endif %}
+      </div>
+
+      {% if allowed_operations %}
+        <form method="post" action="{% url 'console:auction-state' auction.pk %}" class="operations-form">
+          {% csrf_token %}
+          <div class="operations-form__fields">
+            <div class="field">
+              <label for="targetState">الانتقال إلى</label>
+              <select id="targetState" name="target">
+                {% for move in allowed_operations %}
+                  <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="field">
+              <label for="stateReason">سبب التغيير (إلزامي للتدقيق والتوثيق)</label>
+              <input id="stateReason" type="text" name="reason" placeholder="اكتب سبب تغيير الحالة..." required>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-block-start: 0;">تنفيذ الانتقال</button>
+          </div>
+        </form>
+      {% else %}
+        <div class="operations-idle">
+          <span>لا توجد نقلات حالة مباشرة متاحة حالياً عبر النموذج في هذه المرحلة.</span>
+        </div>
+      {% endif %}
+
+      {% if blocked_operations %}
+        <div class="operations-blocked">
+          <span class="operations-blocked__label">الانتقالات المعلقة والشروط غير المستوفاة:</span>
+          <ul class="operations-blocked__list">
+            {% for move in blocked_operations %}
+              <li>
+                <span class="pill">{{ move.label }}</span>
+                <span class="blocked-reason">غير متاحة الآن — {{ move.blocked_by }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
     </div>
-    <div class="card">
-      <strong class="money">{{ auction.deposit_required|unlocalize }}</strong>
-      <span>تأمين الدخول — مرّةً واحدة لكل مشارك مهما بلغ عدد سياراته</span>
+  {% endif %}
+
+  {% comment %}
+  شريط أدوات جدول المركبات وجدول المركبات المطابق لـ v1
+  {% endcomment %}
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
+        المركبات <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+      </h2>
     </div>
-    <div class="card">
-      <strong class="money">{{ auction.admin_fee|unlocalize }}</strong>
-      <span>رسوم إدارية — تُدفع ولا تُردّ، وغير التأمين</span>
+    <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
+      <a href="{% url 'console:vehicle-search' %}" class="btn-sm">بحث في المركبات</a>
+      <a href="{{ export_url }}" class="btn-sm" title="تصدير سيارات المزاد إلى إكسل">تصدير إكسل</a>
     </div>
   </div>
 
-  <h2>العمليّات</h2>
-  {% comment %}
-  النقلات من آلة الحالات لا من هذا القالب، ومعها **سببُ تعطّل** ما لا يجوز
-  الآن. وزرٌّ لنقلةٍ ترفضها الآلة زرٌّ لا يُنتج إلا رسالة خطأ؛ وزرٌّ مطفأ بلا
-  سبب يُنتج تذكرةَ دعم. فيُعرض الاثنان: ما يجوز في القائمة، وما لا يجوز تحتها
-  بسببه المكتوب.
-
-  وزرُّ الإلغاء **ليس** نقلة حالة وحدها حين يكون المزاد منتهياً: الشاشة توجّهه
-  إلى `settlement.cancel_auction` الذي يفكّ كل حجز ويُبطل كل فاتورة غير مدفوعة
-  قبل النقل. القاعدة في الشاشة لا هنا، لأن قالباً يحمل قاعدةً مالية هو نسخةٌ
-  ثانية تنحرف بصمت.
-  {% endcomment %}
-  {% if view.operations %}
-    <form method="post" action="{% url 'console:auction-state' auction.pk %}">
-      {% csrf_token %}
-      <select name="target">
-        {% for move in view.operations %}
-          {% if move.allowed %}
-            <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
-          {% endif %}
-        {% endfor %}
-      </select>
-      <input type="text" name="reason" placeholder="سبب التغيير" required>
-      <button type="submit">نفّذ</button>
-    </form>
-
-    <ul>
-      {% for move in view.operations %}
-        {% if not move.allowed %}
-          <li>
-            <span class="pill">{{ move.label }}</span>
-            غير متاحة الآن — {{ move.blocked_by }}
-          </li>
-        {% endif %}
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="empty">لا انتقال متاح من هذه الحالة.</p>
-  {% endif %}
-
-  <p>
-    <a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a> ·
-    <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
-  </p>
-
-  <h2>المشاركون <span class="count">({{ participants|length|unlocalize }})</span></h2>
-  {% comment %}
-  صفٌّ لكل مشارك، وفيه **تأمينٌ واحد** — هذا هو المُجمَّع كما وصفه المالك.
-  والقائمة تضمّ من له حجزٌ قائم **أو** من كسب سيارة: من سدّد فاتورته فُكّ حجزُه
-  وبقي مشترياً، وحصرُها على أصحاب الحجوز يُخفيه؛ ومن حجز ولم يكسب يبقى لأن
-  ماله محجوزٌ ولسؤال «لماذا» جوابٌ هنا.
-  {% endcomment %}
   <div class="scroller">
     <table>
       <thead>
         <tr>
-          <th>المشارك</th>
-          <th>التأمين المحجوز</th>
-          <th>ما كسبه</th>
-          <th>قيمة الترسية</th>
-          <th>مفوتر</th>
-          <th>غير مسدَّد</th>
+          <th>اللوت</th>
+          <th>السيارة</th>
+          <th>السنة</th>
+          <th>الشاصي</th>
+          <th>رقم المطالبة</th>
+          <th>اللوحة</th>
+          <th>نوع اللوحة</th>
+          <th>اللون</th>
+          <th>العداد</th>
+          <th>شركة التأمين</th>
+          <th>الحالة الفنية</th>
+          <th>حالة المحرّك</th>
+          <th>المفاتيح</th>
+          <th>ناقل الحركة</th>
+          <th>الوقود</th>
+          <th>الصور</th>
+          <th>المالك</th>
+          <th>التسويق</th>
+          <th>الحالة</th>
+          {% if can_manage %}<th>تحكم</th>{% endif %}
         </tr>
       </thead>
       <tbody>
-        {% for row in participants %}
+        {% for car in page %}
           <tr>
-            <td>{{ row.customer.full_name|default:row.customer }}</td>
-            <td class="money">
-              {% if row.has_deposit %}
-                {{ row.held_amount|unlocalize }}
+            <td><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
+            <td><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
+            <td><span class="tnum">{{ car.year|unlocalize }}</span></td>
+            <td class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
+            <td class="tnum">{{ car.plate_number|default:"—" }}</td>
+            <td>{{ car.get_plate_type_display }}</td>
+            <td>{{ car.get_colour_display }}</td>
+            <td class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
+            <td>{{ car.insurance_company|default:"—" }}</td>
+            <td>{{ car.get_condition_display }}</td>
+            <td>{{ car.runs_status|default:"—" }}</td>
+            <td>{{ car.key_status|default:"—" }}</td>
+            <td>{{ car.get_transmission_display }}</td>
+            <td>{{ car.get_fuel_type_display }}</td>
+            <td class="tnum">
+              {% if car.image_count %}
+                <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
               {% else %}
-                <span class="pill" data-tone="warn">فُكّ</span>
+                <span class="pill" data-tone="warn">بلا صور</span>
               {% endif %}
             </td>
-            <td>
-              {% for vehicle in row.won %}
-                <a href="{% url 'console:vehicle-detail' vehicle.pk %}">لوت {{ vehicle.lot_number|unlocalize }}</a>{% if not forloop.last %} · {% endif %}
-              {% empty %}—{% endfor %}
-            </td>
-            <td class="money">{{ row.won_total|unlocalize }}</td>
-            <td class="money">{{ row.invoiced_total|unlocalize }}</td>
-            <td class="money">{{ row.unpaid|unlocalize }}</td>
+            <td>{{ car.owner_company.name|default:"—" }}</td>
+            {% comment %}
+            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
+            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
+            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
+            {% endcomment %}
+            <td>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
+            <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            {% if can_manage %}
+              <td class="actions">
+                <a href="{% url 'console:vehicle-detail' car.pk %}" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
+                </a>
+                <a href="{% url 'console:vehicle-edit' car.pk %}" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
+                </a>
+              </td>
+            {% endif %}
           </tr>
         {% empty %}
-          <tr><td colspan="6" class="empty">لا مشارك في هذا المزاد بعد.</td></tr>
+          <tr><td colspan="20" class="empty">لا مركبات في هذا المزاد.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <h2>المركبات</h2>
-  <div class="scroller">
-    <table>
-    <thead>
-      <tr><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الفائز</th></tr>
-    </thead>
-    <tbody>
-      {% for vehicle in page %}
-        <tr>
-          <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
-          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
-          <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
-          <td>{{ vehicle.awarded_to.full_name|default:"—" }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5" class="empty">لا مركبات في هذا المزاد.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div class="table-footer">
+    <div class="table-footer__count">
+      {{ page.paginator.count|unlocalize }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات المركبات">
+        {% comment %} بادئةُ اللوحة إعدادٌ (`APP_BASE`)، ورابطٌ نسبيٌّ يُكتب
+           بيده يعمل هنا ويسقط أوّلَ ما تُفتح الصفحة من مسارٍ آخر. ولوحاتُ v1
+           انتقلت بين ثلاث بادئات، وانكسر كلُّ رابطٍ مكتوبٍ بيده في كل مرّة —
+           صامتاً. {% endcomment %}
+        {% if page.has_previous %}
+          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.previous_page_number }}" class="pagination__btn">السابق</a>
+        {% endif %}
+        <span class="pagination__current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.next_page_number }}" class="pagination__btn">التالي</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
 
-  <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+  {% if can_manage and auction.state == "live" %}
+    <dialog id="endModal" class="modal">
+      <form method="post" data-action="{% url 'console:auction-end-now' 0 %}">
+        {% csrf_token %}
+        <h2>إنهاء فوري لمزاد <span data-number>{{ auction.number|unlocalize }}</span></h2>
+        <p class="notice warning">
+          تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
+        </p>
+        <p>
+          <label for="endReason">سبب الإنهاء الفوري (إلزامي للتدقيق)</label>
+          <input id="endReason" type="text" name="reason" required placeholder="اكتب سبب الإنهاء الفوري...">
+        </p>
+        <p class="modal__buttons">
+          <button type="submit" class="act--danger" style="color: #fff; background: var(--danger); border: none; padding: .5rem 1rem; border-radius: .4rem; font-weight: 700; cursor: pointer;">أنهِ الآن</button>
+          <button type="button" data-close>إلغاء</button>
+        </p>
+      </form>
+    </dialog>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'console/auctions.js' %}"></script>
 {% endblock %}

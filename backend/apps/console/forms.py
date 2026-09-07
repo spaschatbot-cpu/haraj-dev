@@ -239,6 +239,12 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "condition",
             "owner_company",
             "reserve_price",
+            # الخمسةُ من شاشة v1 — T853.
+            "claim_number",
+            "insurance_company",
+            "runs_status",
+            "key_status",
+            "is_marketing",
         )
         labels = {
             "auction": "المزاد",
@@ -255,6 +261,11 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "condition": "الحالة الفنية",
             "owner_company": "الشريك المالك",
             "reserve_price": "سعر الوقوف",
+            "claim_number": "رقم المطالبة",
+            "insurance_company": "شركة التأمين",
+            "runs_status": "حالة المحرّك",
+            "key_status": "المفاتيح",
+            "is_marketing": "للتسويق لا للبيع",
         }
 
     def clean(self):

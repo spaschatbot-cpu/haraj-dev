@@ -48,8 +48,12 @@
     فاتورة → مركبة → مزاد → (صاحب الفاتورة، المزاد) → حجزٌ واحد
 
 وعمودٌ ثانٍ يحمل الجواب نفسه هو موضعُ قرارٍ ثانٍ (المادة ٤-٥): يوم يختلف عن
-السلسلة لا يقول أحدٌ أيّهما الصحيح. فالسلسلة تُقرأ هنا في
-:func:`deposit_behind` و:func:`participants`، وتُعرَض على الشاشة، ولا تُنسَخ.
+السلسلة لا يقول أحدٌ أيّهما الصحيح. فالسلسلة موجودةٌ في القاعدة، ولا تُقرأ
+هنا: عرضُ أموال العملاء — تأميناتٍ وفواتيرَ وأرصدة — له شاشاتُه المخصّصة في
+:mod:`apps.money` و:mod:`apps.bidding`، وإخراجُه في شاشة المزاد كان يكسر
+تصميم الصلاحيات (من يملك `auctions.view` يرى أرصدةً لا تخصّه). فحُذفت
+``participants`` و``deposit_behind`` من هذا المحرّك في T849، وبقي هنا سؤالُ
+المزاد عن نفسه: ساعتُه، ومركباتُه، وما يجوز فعله به.
 """
 
 from __future__ import annotations
@@ -60,7 +64,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import Count, Max, Min, Q, Sum
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import Auction, Vehicle, VehicleImage
@@ -187,6 +191,11 @@ class VehicleTally:
         return self.by_state.get(state, 0)
 
     @property
+    def offered(self) -> int:
+        """ما هو معروض للمزايدة حالياً — مدرجة أو تحت المزايدة."""
+        return self.of(VehicleState.LISTED) + self.of(VehicleState.BIDDING)
+
+    @property
     def awaiting_decision(self) -> int:
         return self.of(VehicleState.AWAITING_DECISION)
 
@@ -219,197 +228,61 @@ def tally(auction: Auction) -> VehicleTally:
     return VehicleTally(total=sum(by_state.values()), by_state=by_state)
 
 
-def deposit_of(customer, auction: Auction):
-    """حجزُ هذا العميل على هذا المزاد — واحدٌ أو لا شيء.
-
-    «واحدٌ» ليست أملاً حسن النيّة: ``one_active_hold_per_customer_and_auction``
-    قيدٌ في القاعدة يجعل الثاني مستحيلاً، وهو ما يطلبه المالك حرفياً — تأمينٌ
-    واحد للمزاد مهما بلغ عدد السيارات التي يزايد عليها أو يكسبها.
-    """
-    from apps.money.models import Hold, HoldState
-
-    return (
-        Hold.objects.filter(owner=customer, auction=auction, state=HoldState.ACTIVE)
-        .select_related("owner")
-        .first()
-    )
-
-
-def deposit_behind(invoice):
-    """التأمينُ الذي تقف خلفه هذه الفاتورة — بالسلسلة لا بعمودٍ ثانٍ.
-
-    فاتورة → مركبة → مزاد → (صاحب الفاتورة، المزاد) → حجز. وكلُّ خطوةٍ فيها
-    مضمونةُ الوحدانيّة بقيدٍ في القاعدة: ``one_live_invoice_per_vehicle``،
-    و``Vehicle.auction`` مفتاحٌ واحد، و``one_active_hold_per_customer_and_auction``.
-
-    فتُعيد ``None`` عن فاتورةٍ لا مركبة لها (فاتورةُ مستحقاتٍ عامّة)، وعن
-    فاتورةٍ فُكّ حجزُها بعد السداد — والثانية ليست عطلاً بل نهايةَ الدورة.
-    """
-    vehicle = invoice.vehicle
-    if vehicle is None:
-        return None
-    return deposit_of(invoice.customer, vehicle.auction)
-
-
-@dataclass(frozen=True)
-class Participant:
-    """عميلٌ واحد داخل مزادٍ واحد: تأمينُه، وما كسبه، وما فُوتر عليه.
-
-    هذا هو المُجمَّع كما وصفه المالك، مقروءاً في صفٍّ واحد: التأمينُ عمودٌ
-    واحد مهما بلغ عدد السيارات، والفواتيرُ تحته لا بجانبه.
-    """
-
-    customer: object
-    hold: object | None
-    held_amount: Decimal
-    won: list[Vehicle]
-    invoices: list[object]
-
-    #: ما بقي عليه — يحسبه **محرّك المال** لا هذا الملفّ.
-    #:
-    #: `Invoice.outstanding` تعرف أن الملغاة صفر وأن المدفوع لا يتجاوز
-    #: المبلغ، وطرحُ العمودين هنا ينسى الشرطين يوم يتغيّران. و`unpaid` لا
-    #: `outstanding` اسماً: الثانية مفردةٌ من قاموس البوّابة، واستعارتُها
-    #: تجعل قارئاً يظنّ أن هذا الصفَّ يقرّر منعاً — وهو لا يقرّر شيئاً.
-    unpaid: Decimal = ZERO
-
-    @property
-    def won_total(self) -> Decimal:
-        return sum((car.awarded_price or ZERO for car in self.won), ZERO)
-
-    @property
-    def invoiced_total(self) -> Decimal:
-        return sum((invoice.amount for invoice in self.invoices), ZERO)
-
-    @property
-    def has_deposit(self) -> bool:
-        return self.hold is not None
-
-
-def participants(auction: Auction) -> list[Participant]:
-    """كلُّ من له تأمينٌ قائم في هذا المزاد أو كسب فيه سيارة.
-
-    «أو» لا «و» عمداً: من كسب سيارةً وسُدِّدت فاتورتُها فُكّ حجزُه، فحصرُ
-    القائمة على أصحاب الحجوز يُخفي المشترين الذين أتمّوا — وهم بالضبط من
-    يسأل عنهم الموظّف في شاشة ما بعد البيع. ومن له حجزٌ ولم يكسب شيئاً يبقى
-    في القائمة لأن ماله محجوزٌ وسؤال «لماذا» له جوابٌ هنا.
-    """
-    from apps.money.models import Hold, HoldState, Invoice
-
-    holds = list(
-        Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).select_related(
-            "owner"
-        )
-    )
-    won = list(
-        Vehicle.objects.filter(auction=auction, awarded_to__isnull=False)
-        .select_related("awarded_to")
-        .order_by("lot_number")
-    )
-    invoices = list(
-        Invoice.objects.filter(vehicle__auction=auction)
-        .exclude(state="cancelled")
-        .select_related("customer", "vehicle")
-        .order_by("issued_at")
-    )
-
-    people: dict[int, object] = {}
-    for hold in holds:
-        people[hold.owner_id] = hold.owner
-    for vehicle in won:
-        people.setdefault(vehicle.awarded_to_id, vehicle.awarded_to)
-    for invoice in invoices:
-        people.setdefault(invoice.customer_id, invoice.customer)
-
-    by_owner = {hold.owner_id: hold for hold in holds}
-
-    unpaid = (
-        Invoice.objects.filter(vehicle__auction=auction)
-        .exclude(state="cancelled")
-        .unpaid_by_customer()
-    )
-
-    rows = [
-        Participant(
-            customer=customer,
-            hold=by_owner.get(pk),
-            held_amount=by_owner[pk].amount if pk in by_owner else ZERO,
-            won=[car for car in won if car.awarded_to_id == pk],
-            invoices=[bill for bill in invoices if bill.customer_id == pk],
-            unpaid=unpaid.get(pk, ZERO),
-        )
-        for pk, customer in people.items()
-    ]
-    # الأكبر مالاً أولاً: الموظّف يفتح هذه الشاشة ليجد من عليه أكثر ما لم يُسدَّد.
-    rows.sort(key=lambda row: (-row.unpaid, -row.held_amount, str(row.customer)))
-    return rows
-
-
-def money_held_in(auction: Auction) -> Decimal:
-    """مجموعُ التأمينات المحجوزة على هذا المزاد الآن."""
-    from apps.money.models import Hold, HoldState
-
-    total = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).aggregate(
-        total=Sum("amount")
-    )["total"]
-    return total if total is not None else ZERO
-
-
 # ---------------------------------------------------------------------------
 # ١ب — البادج: مفرداتُ v1 الخمس، محسوبةً لا مخزَّنة
 # ---------------------------------------------------------------------------
 
 
 class Badge(models.TextChoices):
-    """ما يظهر في خانة «الحالة» — خمسُ كلماتٍ كما في v1، وسادسةٌ للملغى.
+    """ما يظهر في خانة «الحالة» — أربعُ كلماتٍ **تُحسب من الموعدين**.
 
-    v1 يخزّنها في عمودٍ واحد، فيخلط **دورةَ الحياة** بـ**لافتة العرض**:
-    نقلُ مزادٍ من «لاحقاً» إلى «قادم» هناك كتابةٌ في العمود نفسه الذي تقرؤه
-    التسويةُ والبوّابة. وهنا تُحسب من ثلاثة: الحالة، والساعة، ولافتةُ العرض.
+    المالك بالحرف: «الحالة تتغيّر حسب تاريخ البداية والنهاية، واعمل حقل
+    الحالة لو فيه درافت أو قريباً أو منتهي أو شغّال».
 
-    وسابعةٌ لا يعرفها v1 ولا تُخفى: `LATE` — انتهى وقتُه ولم يُغلَق، أو حان
-    ولم يبدأ. هي حالةُ عاملِ الخلفية لا حالةُ المزاد، ولها في القالب حبّةٌ
-    ثانية بجانب الأولى لا بدلاً منها.
+    **والحسابُ من الساعة لا من عمود.** العمودُ يكتبه عاملُ خلفيّة، والساعةُ
+    لا تنتظره؛ فمزادٌ حلّ موعدُه قبل دقيقتين يُقرأ هنا «شغّال» ولو لم يلحقه
+    العامل بعد. وذلك هو الفرق الذي جعل مزاداً منتهياً يُقرأ «جارياً» في
+    اللوحة و«مضى» عند العميل.
+
+    وخمسُ v1 (`later` · `upcoming` · `soon` · `active` · `ended`) صارت
+    أربعاً: الأولَيان **لافتةُ عرضٍ** على العميل لا حالةَ مزاد — تبقيان في
+    `Auction.showcase` وتُحرَّران من نافذة الحالة، ولا تُخلطان بما يقوله
+    الموعدان.
     """
 
-    LATER = "later", "لاحقاً"
-    UPCOMING = "upcoming", "قادم"
+    DRAFT = "draft", "مسودة"
     SOON = "soon", "قريباً"
-    ACTIVE = "active", "نشط"
+    ACTIVE = "active", "شغّال"
     ENDED = "ended", "منتهٍ"
     CANCELLED = "cancelled", "ملغى"
-    DRAFT = "draft", "مسودة"
 
 
 def badge_of(auction: Auction, *, now: datetime | None = None) -> Badge:
-    """كلمةُ الحالة كما يراها الموظّف — من الحالة والساعة واللافتة معاً."""
-    current = phase(auction, now=now)
+    """الحالةُ من الموعدين — والعمودُ لا يُسأل إلا عن المسودّة والملغى.
 
-    if current in (Phase.OPEN, Phase.OVERDUE_END):
-        # `OVERDUE_END` تُعرض «نشطاً» لأن الحالة المخزَّنة ما زالت كذلك،
-        # وحبّةُ «متأخّر» بجانبها هي التي تقول إن العامل لم يلحق. وإخفاؤها
-        # هنا يجعل الموظّف يبحث عن مزادٍ اختفى من القائمة.
-        return Badge.ACTIVE
-    if current in (Phase.ENDED, Phase.SETTLED):
-        return Badge.ENDED
-    if current == Phase.CANCELLED:
-        return Badge.CANCELLED
-    if current == Phase.DRAFT:
+    ``draft`` و``cancelled`` قراران لا يصنعهما الوقت: مزادٌ لم يُنشر بعد،
+    ومزادٌ أُلغي وأُعيدت تأميناتُه. وما عداهما يقوله التقويم وحده.
+    """
+    now = now or timezone.now()
+
+    if auction.state == AuctionState.DRAFT:
         return Badge.DRAFT
-    return Badge(auction.showcase)
+    if auction.state == AuctionState.CANCELLED:
+        return Badge.CANCELLED
+    if has_finished(auction, now=now):
+        return Badge.ENDED
+    if not has_started(auction, now=now):
+        return Badge.SOON
+    return Badge.ACTIVE
 
 
-#: البادج إلى نغمةِ الحبّة. هنا لا في `console/tones.py` لأن `ended` و`draft`
-#: و`cancelled` مفرداتٌ مشتركة مع الفواتير والمركبات، وثلاثتُها تعني هنا
-#: شيئاً آخر — و`active` ليست حالةً مخزَّنة أصلاً.
+#: البادج إلى نغمةِ الحبّة.
 BADGE_TONES: dict[str, str] = {
-    Badge.LATER: "",
-    Badge.UPCOMING: "info",
+    Badge.DRAFT: "",
     Badge.SOON: "warn",
     Badge.ACTIVE: "ok",
     Badge.ENDED: "",
     Badge.CANCELLED: "bad",
-    Badge.DRAFT: "",
 }
 
 
@@ -431,6 +304,38 @@ def tick(*, now: datetime | None = None) -> dict[str, list[int]]:
         "started": services.activate_due(now),
         "ended": services.end_due(now),
     }
+
+
+def vehicle_rows(auction: Auction):
+    """سياراتُ المزاد كما تعرضها شاشتُه — استعلامٌ واحد، بترتيبٍ يقول ما يهمّ.
+
+    **الترتيب هو قيمةُ الشاشة**، لا اللوت: سيارةٌ تنتظر قرار مالكها سيارةٌ لا
+    يُدفع لأحدٍ عنها، وفي v1 كانت تقبع بترتيب اللوت في الصفحة الرابعة حتى
+    يذهب أحدٌ يبحث عنها.
+
+    وعدُّ الصور **مُعلَّقٌ في الاستعلام** لا محسوبٌ في حلقة: صفحةُ ستّمئةٍ
+    وثلاثٍ وثمانين سيارة تعني ٦٨٣ ذهاباً إلى القاعدة لو حُسب في القالب —
+    وهو بعينه ما جعل شاشة v1 تأخذ ثماني ثوانٍ.
+    """
+    from django.db.models import Case, IntegerField, Value, When
+
+    return (
+        Vehicle.objects.filter(auction=auction)
+        .select_related("owner_company")
+        .annotate(
+            # `image_count` لا `images`: الأخيرة اسمُ العلاقة نفسها على
+            # النموذج، وجانغو يرفض تعليقاً يحجب حقلاً قائماً.
+            image_count=Count("images", distinct=True),
+            urgency=Case(
+                When(state=VehicleState.AWAITING_DECISION, then=Value(0)),
+                When(state=VehicleState.BIDDING, then=Value(1)),
+                When(state=VehicleState.LISTED, then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
+        )
+        .order_by("urgency", "lot_number")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -458,6 +363,14 @@ def tick(*, now: datetime | None = None) -> dict[str, list[int]]:
 OFFERED_STATES = frozenset({VehicleState.LISTED, VehicleState.BIDDING})
 
 
+# لا سعرَ افتتاحياً ولا «أعلى مزايدة» في هذا الملخّص — المالك بالحرف: «مفيش
+# أي سعر افتتاحي في النظام كله»، و«اخفي من المشاركات أعلى مزايد».
+#
+# **والسببُ واحد: المزاد مغلق.** `type_auctions='close'` في كل صفٍّ من نسخة
+# v1 الحقيقية. ومزادٌ مغلق لا يُعلن رقماً تنطلق منه المزايدة، ولا يُظهر
+# لأحدٍ أين وصل غيرُه — وإظهارُ «أعلى مزايدة» فيه يكشف ما بُني المزادُ على
+# إخفائه. وv1 يعرض العمودين لأنه يقرأ عمودَين موجودين، لا لأنهما يعنيان
+# شيئاً هنا.
 @dataclass(frozen=True)
 class RowSummary:
     """ما يُعرض عن مزادٍ واحد في صفٍّ من قائمة الإدارة."""
@@ -468,10 +381,6 @@ class RowSummary:
 
     #: «متاحة» — معروضةٌ للعميل الآن.
     offered: int = 0
-    #: «سعر مسجل» — لها سعرُ وقوفٍ مكتوب. وv1 يسمّيه «سعر افتتاحي».
-    with_reserve: int = 0
-    reserve_low: Decimal | None = None
-    reserve_high: Decimal | None = None
 
     #: سيارةٌ **لها صورةٌ واحدة على الأقلّ**، وإجماليُّ الصور. الرقمان مختلفان
     #: عمداً: «٣١٠ سيارة · ٣٦٧٠ صورة» يقول إن التغطية كاملة، و«٣٠٠ من ٦٨٣»
@@ -481,7 +390,6 @@ class RowSummary:
 
     bids: int = 0
     bidders: int = 0
-    top_bid: Decimal | None = None
 
     #: عيّنةٌ تعرّف المزاد بلمحة: «تويوتا كامري 2023».
     sample: str = ""
@@ -524,9 +432,6 @@ def summarise(auctions) -> dict[int, RowSummary]:
             cars=Count("id"),
             makes=Count("make", distinct=True),
             offered=Count("id", filter=Q(state__in=OFFERED_STATES)),
-            with_reserve=Count("id", filter=Q(reserve_price__isnull=False)),
-            reserve_low=Min("reserve_price"),
-            reserve_high=Max("reserve_price"),
         )
         .order_by()
     ):
@@ -554,7 +459,6 @@ def summarise(auctions) -> dict[int, RowSummary]:
         .annotate(
             bids=Count("id"),
             bidders=Count("bidder_id", distinct=True),
-            top_bid=Max("amount"),
         )
         .order_by()
     ):
@@ -671,7 +575,6 @@ class Snapshot:
     is_open: bool
     is_late: bool
     cars: VehicleTally
-    held: Decimal
     operations: list[Operation]
 
     @property
@@ -689,7 +592,6 @@ def snapshot(auction: Auction, *, now: datetime | None = None) -> Snapshot:
         is_open=current in BIDDABLE_PHASES,
         is_late=current in LATE_PHASES,
         cars=tally(auction),
-        held=money_held_in(auction),
         operations=operations(auction, now=now),
     )
 
@@ -775,14 +677,11 @@ __all__ = [
     "LATE_PHASES",
     "OFFERED_STATES",
     "Operation",
-    "Participant",
     "Phase",
     "RowSummary",
     "Snapshot",
     "VehicleTally",
     "badge_of",
-    "deposit_behind",
-    "deposit_of",
     "due_to_finish",
     "due_to_settle",
     "due_to_start",
@@ -792,15 +691,14 @@ __all__ = [
     "window_is_valid",
     "is_open_for_bidding",
     "late_now",
-    "money_held_in",
     "open_now",
     "operations",
-    "participants",
     "phase",
     "phases_of",
     "snapshot",
     "summarise",
     "summarise_onto",
     "tally",
+    "vehicle_rows",
     "tick",
 ]
