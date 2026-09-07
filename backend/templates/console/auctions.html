@@ -108,10 +108,20 @@ have to undo one in their head.
       {% for auction in page %}
         <tr>
           <td data-col="id"><a href="{% url 'console:auction-detail' auction.pk %}" class="row-num">{{ auction.number|unlocalize }}</a></td>
+          {% comment %}
+          العنوان ثم **رقمان وحدهما**: الإجماليّ والمتاح. وكان السطرُ يبدأ
+          باسم عيّنةٍ («تويوتا كامري تويوتا كامري 2025» — مكرَّرةً لأن
+          `vehicle_name` في v1 مكتوبٌ في الماركة والطراز معاً)، فيدفع
+          الرقمين إلى آخر السطر وهما ما يفتح الموظّف الشاشة لأجله.
+          {% endcomment %}
           <td data-col="auction">
             <div class="stat-stack">
               <strong class="car-title">{{ auction.display_title }}</strong>
-              <span class="auction-sub count">{{ auction.display_subtitle }}</span>
+              <span class="auction-counts">
+                <b>{{ auction.cars_total|unlocalize }}</b> سيارة
+                <span class="auction-counts__sep">·</span>
+                <b class="auction-counts__on">{{ auction.cars_offered|unlocalize }}</b> متاحة
+              </span>
             </div>
           </td>
           {% comment %}

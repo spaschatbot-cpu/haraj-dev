@@ -12,6 +12,7 @@ ordering that gives the screen its value is asserted as an ordering.
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -104,10 +105,14 @@ def test_the_auction_list_shows_the_rows_not_merely_a_200(client, operator, live
 
     assert "مزاد الرياض" in body
     assert "501" in body
-    # العدُّ، وهو ما يفتح الموظّف الصفحة لأجله. وبعد T844 صار العمود يقول
-    # «٢ سيارة» لا «٢» عارياً بين وسمين — الصياغةُ هي ما تغيّر لا الرقم،
-    # ولذلك ضُيّق الموضِع ولم يُحذف.
-    assert "2 سيارة" in body
+    # العدُّ، وهو ما يفتح الموظّف الصفحة لأجله. والتوكيدُ على **النصّ
+    # المرسوم** لا على HTML الخام: الرقمُ صار داخل `<b>` ليبرز (T855)، فسقط
+    # توكيدٌ يقرأ «2 سيارة» متجاورين في المصدر — والصياغةُ لم تتغيّر، الوسمُ
+    # هو الذي دخل بينهما. وتوكيدٌ يكسره وسمٌ يُغرِي بحذفه، وحذفُه يترك العمود
+    # بلا حارس.
+    text = re.sub(r"<[^>]+>", " ", body)
+    text = re.sub(r"\s+", " ", text)
+    assert "2 سيارة" in text
 
 
 def test_an_empty_list_says_so_instead_of_rendering_nothing(client, operator):
