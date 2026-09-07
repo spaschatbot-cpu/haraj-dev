@@ -24,6 +24,7 @@ from .states import AuctionState, VehicleState
 
 __all__ = [
     "Auction",
+    "Showcase",
     "AuctionState",
     "FuelType",
     "PlateType",
@@ -33,6 +34,19 @@ __all__ = [
     "VehicleImage",
     "VehicleState",
 ]
+
+
+class Showcase(models.TextChoices):
+    """عرضُ المزاد قبل أن يبدأ — لافتةٌ لا مرحلةُ حياة.
+
+    الثلاثةُ من `auctions.status` في v1، وهي هناك مختلطةٌ بالحالة. وهنا
+    مفصولة: `AuctionState` تقول أين المزاد من دورته، وهذه تقول ماذا يرى
+    العميل قبل انطلاقه.
+    """
+
+    LATER = "later", "لاحقاً — مخفيّ عن العملاء"
+    UPCOMING = "upcoming", "قادم — معلَن بلا عدّاد"
+    SOON = "soon", "قريباً — معلَن بعدّاد"
 
 
 class Auction(models.Model):
@@ -49,6 +63,27 @@ class Auction(models.Model):
 
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
+
+    #: كيف يُعرض المزاد على العميل **قبل أن يبدأ** — T846.
+    #
+    # v1 يخلط هذا بالحالة: `later` و`upcoming` و`soon` ثلاثُ قيمٍ في العمود
+    # `status` نفسه الذي يحمل `active` و`ended`. وهي ليست مراحلَ حياة بل
+    # **طرقَ عرض** لمزادٍ واحدٍ لم يبدأ: مخفيّ، أو معلَن بلا عدّاد، أو معلَن
+    # بعدّاد. وخلطُها بالحالة يعني أن نقل مزادٍ من «لاحقاً» إلى «قادم» يمرّ
+    # بآلة الحالات ويوقظ التسوية والبوّابة — وهو تغييرُ لافتةٍ لا أكثر.
+    #
+    # فالحالةُ تبقى واحدةً (`SCHEDULED`)، والعرضُ عمودٌ بجانبها. والبادج على
+    # الشاشة يجمعهما في كلمةٍ واحدة عبر `engine.showcase_status`.
+    showcase = models.CharField(
+        max_length=16, choices=Showcase.choices, default=Showcase.UPCOMING
+    )
+
+    #: موعد رسائل التذكير قبل الانطلاق — `auctions.sms_reminder_time` في v1.
+    #
+    # حقلٌ يُخزَّن ولا يُرسل بنفسه: إرسالُ رسالةٍ إلى آلافٍ يكلّف مالاً لا
+    # يُسترد، والمادة ٥-٢ تمنع مهمّةً مجدولة تُنفق بلا موافقةٍ صريحة. فهذا
+    # موعدٌ مسجَّل، ومن يبنيه مُرسِلاً يقرأ هذا السطر أولاً.
+    sms_reminder_at = models.DateTimeField(null=True, blank=True)
 
     state = models.CharField(
         max_length=16, choices=AuctionState.choices, default=AuctionState.DRAFT

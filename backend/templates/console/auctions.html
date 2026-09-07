@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 `unlocalize` on every amount: money is shown exactly as the ledger stores it.
 A thousands separator or a localised decimal comma is a display transformation
@@ -16,18 +16,59 @@ have to undo one in their head.
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <p><a href="{% url 'console:auction-new' %}">+ مزاد جديد</a></p>
+  <p class="toolbar">
+    <a href="{% url 'console:auction-new' %}">+ مزاد جديد</a> ·
+    <a href="{% url 'console:vehicle-search' %}">بحث عن سيارة</a> ·
+    <a href="{% url 'console:auctions-bulk' %}">عمليات مجمعة</a>
+  </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="رقم المزاد أو عنوانه">
+  <form method="get" class="filters">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="اسم المزاد أو الساحة أو رقمه">
     <select name="state">
       <option value="">كل الحالات</option>
       {% for value, label in states %}
         <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
     </select>
+
+    {% comment %}
+    الفلترة المتقدّمة داخل `<details>` لا نافذةٍ منبثقة: خانتان تُفتحان
+    وتنطويان بلا سطر جافاسكربت، وتبقيان في العنوان بعد البحث فيُشارَك الرابط
+    كما هو. ومن يفتحها يجدها مفتوحةً لأن القيمة فيها.
+    {% endcomment %}
+    <details class="advanced" {% if id_exact or park_exact %}open{% endif %}>
+      <summary>فلترة متقدمة</summary>
+      <label>
+        رقم المزاد المطابق
+        <input type="text" name="id_exact" value="{{ id_exact }}" inputmode="numeric">
+      </label>
+      <label>
+        الساحة المطابقة
+        <input list="parks" type="text" name="park_exact" value="{{ park_exact }}">
+        <datalist id="parks">
+          {% for park in parks %}<option value="{{ park }}"></option>{% endfor %}
+        </datalist>
+      </label>
+    </details>
+
     <button type="submit">بحث</button>
   </form>
+
+  {% comment %}
+  تخصيص الأعمدة — T846. خانةٌ لكل عمود، والإخفاء بـ`hidden` على `<col>`،
+  فينطبق على الرأس والخلايا معاً بقاعدةٍ واحدة. والاختيار يُحفظ في
+  `localStorage` لأنه تفضيلُ جهازٍ لا تفضيلُ حساب — الموظّف نفسه يريد أعمدةً
+  أقلّ على لوحه وأكثر على شاشة المكتب.
+  {% endcomment %}
+  <details class="columns" data-columns>
+    <summary>تخصيص الأعمدة</summary>
+    <div class="columns__grid">
+      {% for key, label in column_choices %}
+        <label><input type="checkbox" data-column="{{ key }}" checked> {{ label }}</label>
+      {% endfor %}
+    </div>
+  </details>
 
   <div class="scroller">
     <table>
@@ -45,37 +86,72 @@ have to undo one in their head.
       * «التفعيل» مشتقٌّ من حالة السيارة — v1 عمودٌ نصّيّ ثانٍ يختلف عنها.
       {% endcomment %}
       <tr>
-        <th>الرقم</th><th>المزاد</th><th>الحالة</th>
-        <th>الفترة الزمنية</th>
-        <th>العربيات</th>
-        <th>الأسعار</th>
-        <th>التفعيل</th>
-        <th>الصور</th>
-        <th>المشاركات</th>
-        <th>الموقع</th>
-        <th>تحكم</th>
+        <th data-col="id">الرقم</th>
+        <th data-col="auction">المزاد</th>
+        <th data-col="preview">المعاينة</th>
+        <th data-col="badge">الحالة</th>
+        <th data-col="window">الفترة الزمنية</th>
+        <th data-col="cars">العربيات</th>
+        <th data-col="prices">الأسعار</th>
+        <th data-col="ready">التفعيل</th>
+        <th data-col="images">الصور</th>
+        <th data-col="bids">المشاركات</th>
+        <th data-col="park">الموقع</th>
+        <th data-col="actions">تحكم</th>
       </tr>
     </thead>
     <tbody>
       {% for auction in page %}
         <tr>
-          <td><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.number|unlocalize }}</a></td>
-          <td>{{ auction.title }}</td>
+          <td data-col="id"><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.number|unlocalize }}</a></td>
+          <td data-col="auction">
+            <strong>{{ auction.title }}</strong>
+            {% if auction.summary.sample %}<br><span class="count">{{ auction.summary.sample }}</span>{% endif %}
+          </td>
           {% comment %}
-          المرحلة لا الحالة (T843): العمودُ يكتبه عاملُ خلفيّة والساعةُ لا
-          تنتظره، فمزادٌ انتهى وقتُه ولم يُغلَق بعد كان يُقرأ هنا «جارياً»
-          وهو لا يقبل مزايدة. و«متأخّر» حبّةٌ ثانية لأن الأولى تسمّي الحال
-          والثانية تسمّي أن أحداً يجب أن يتصرّف.
+          المصغّرة **رابطٌ** لا بايتات. v1 كان يستعلم `TO_BASE64(image_blob)`
+          فوق آلاف الصفوف لرسم مربّعٍ ٥٠×٣٨، فتأخذ الصفحة ثماني ثوانٍ ويتجمّد
+          الخادم. و`loading="lazy"` يجعل المتصفّح لا يطلب إلا ما يُرى،
+          و`onerror` يُخفي المكسورة بدل أيقونة كسرٍ في كل صفّ.
           {% endcomment %}
-          <td>
-            <span class="pill" data-tone="{{ auction.phase_tone }}">{{ auction.phase_label }}</span>
+          <td data-col="preview">
+            {% if auction.summary.thumbnail %}
+              <img class="thumb" src="{{ auction.summary.thumbnail }}" alt=""
+                   loading="lazy" decoding="async" width="50" height="38"
+                   onerror="this.remove()">
+            {% else %}
+              <span class="thumb thumb--none" aria-hidden="true"></span>
+            {% endif %}
+          </td>
+          {% comment %}
+          البادج زرّ: نقرةٌ عليه تفتح نافذة تغيير الحالة — وهو ما طلبه المالك
+          صراحةً. و`<button>` لا `<div onclick>`: يصله التركيز بالمفتاح
+          ويُنطق «زرّ» في قارئ الشاشة. ومن لا صلاحية إدارةٍ له يرى الحبّة
+          نصّاً بلا زرّ، لا زرّاً يُرفض عند الضغط.
+          {% endcomment %}
+          <td data-col="badge">
+            {% if can_manage %}
+              <button type="button" class="pill pill--button"
+                      data-tone="{{ auction.badge_tone }}"
+                      data-open-status
+                      data-pk="{{ auction.pk|unlocalize }}"
+                      data-number="{{ auction.number|unlocalize }}"
+                      data-badge="{{ auction.badge }}"
+                      data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
+                      data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
+                      data-sms="{{ auction.sms_reminder_at|date:'Y-m-d\TH:i' }}"
+                      data-deposit="{{ auction.deposit_required|unlocalize }}"
+                      data-fee="{{ auction.admin_fee|unlocalize }}">{{ auction.badge_label }}</button>
+            {% else %}
+              <span class="pill" data-tone="{{ auction.badge_tone }}">{{ auction.badge_label }}</span>
+            {% endif %}
             {% if auction.is_late %}<span class="pill" data-tone="bad">متأخّر</span>{% endif %}
           </td>
-          <td>
+          <td data-col="window">
             {{ auction.starts_at }}<br>
             <span class="count">إلى {{ auction.ends_at }}</span>
           </td>
-          <td>
+          <td data-col="cars">
             {{ auction.summary.cars|unlocalize }} سيارة<br>
             <span class="count">
               {{ auction.summary.makes|unlocalize }} ماركة
@@ -84,7 +160,7 @@ have to undo one in their head.
               {% endif %}
             </span>
           </td>
-          <td class="money">
+          <td class="money" data-col="prices">
             {% if auction.summary.with_reserve %}
               {{ auction.summary.reserve_low|unlocalize }} – {{ auction.summary.reserve_high|unlocalize }}<br>
               <span class="count">سعر الوقوف</span>
@@ -92,25 +168,25 @@ have to undo one in their head.
               <span class="count">بلا سعر</span>
             {% endif %}
           </td>
-          <td>
+          <td data-col="ready">
             {{ auction.summary.offered|unlocalize }} معروضة<br>
             <span class="count">{{ auction.summary.with_reserve|unlocalize }} بسعر مسجّل</span>
           </td>
-          <td>
+          <td data-col="images">
             {{ auction.summary.cars_with_images|unlocalize }} سيارة<br>
             <span class="count">
               {{ auction.summary.images|unlocalize }} صورة{% if auction.summary.images_missing %}
                 · {{ auction.summary.images_missing|unlocalize }} بلا صورة{% endif %}
             </span>
           </td>
-          <td>
+          <td data-col="bids">
             {{ auction.summary.bids|unlocalize }} مزايدة<br>
             <span class="count">
               {{ auction.summary.bidders|unlocalize }} مزايد ·
               أعلى {% if auction.summary.top_bid %}{{ auction.summary.top_bid|unlocalize }}{% else %}0{% endif %} ر.س
             </span>
           </td>
-          <td>{{ auction.location|default:"—" }}</td>
+          <td data-col="park">{{ auction.location|default:"—" }}</td>
           {% comment %}
           «تحكم» في v1 ستّةُ أزرارٍ بلا نصّ، أوّلها الحذف. وهنا خمسةُ روابطَ
           مسمّاة **ولا حذف**: المزاد لا يُحذف بل يُلغى عبر آلة الحالات، لأن
@@ -118,18 +194,251 @@ have to undo one in their head.
           و`on_delete=PROTECT` يرفضه في القاعدة أصلاً. والإلغاء يفكّ الحجوز
           ويُبطل الفواتير غير المدفوعة قبل النقل، وهو ما لا يفعله زرُّ حذف.
           {% endcomment %}
-          <td>
-            <a href="{% url 'console:auction-detail' auction.pk %}">سياراته</a> ·
-            <a href="{% url 'console:auction-bids' auction.pk %}">مزايداته</a> ·
-            <a href="{% url 'console:auction-edit' auction.pk %}">تعديل</a>
+          <td data-col="actions" class="actions">
+            {% comment %}
+            أيقوناتٌ لا نصّ — T846. سبعةُ أفعالٍ نصّاً كانت تلتفّ على أربعة
+            أسطر فتمدّ الصفّ حتى يصير الجدول أطولَ من محتواه.
+
+            و**الاسم لم يُحذف**: كلُّ زرٍّ يحمل `aria-label` و`title` بالكلمة
+            نفسها، فقارئ الشاشة ينطقها والفأرة تُظهرها. وأيقونةٌ وحدها بلا
+            اسمٍ هي ما يجعل موظّفاً جديداً يضغط «إنهاء فوري» ظانّاً أنه حفظ.
+            {% endcomment %}
+            {% with icon=action_icons.cars %}
+              <a href="{% url 'console:auction-detail' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+              </a>
+            {% endwith %}
+            {% with icon=action_icons.bids %}
+              <a href="{% url 'console:auction-bids' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+              </a>
+            {% endwith %}
+            {% with icon=action_icons.export %}
+              <a href="{{ export_url }}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+              </a>
+            {% endwith %}
+            {% if can_manage %}
+              {% with icon=action_icons.fees %}
+                <button type="button" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                        data-open-fees
+                        data-pk="{{ auction.pk|unlocalize }}"
+                        data-number="{{ auction.number|unlocalize }}"
+                        data-deposit="{{ auction.deposit_required|unlocalize }}"
+                        data-fee="{{ auction.admin_fee|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                </button>
+              {% endwith %}
+              {% with icon=action_icons.reschedule %}
+                <button type="button" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                        data-open-reschedule
+                        data-pk="{{ auction.pk|unlocalize }}"
+                        data-number="{{ auction.number|unlocalize }}"
+                        data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
+                        data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
+                        data-sms="{{ auction.sms_reminder_at|date:'Y-m-d\TH:i' }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                </button>
+              {% endwith %}
+              {% if auction.badge == "active" %}
+                {% with icon=action_icons.end %}
+                  <button type="button" class="act act--danger" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                          data-open-end
+                          data-pk="{{ auction.pk|unlocalize }}"
+                          data-number="{{ auction.number|unlocalize }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                  </button>
+                {% endwith %}
+              {% endif %}
+              {% with icon=action_icons.edit %}
+                <a href="{% url 'console:auction-edit' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                </a>
+              {% endwith %}
+            {% endif %}
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="11" class="empty">لا مزادات مطابقة.</td></tr>
+        <tr><td colspan="12" class="empty">لا مزادات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
   <p>{{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+
+{% if can_manage %}
+  {% comment %}
+  النوافذ الثلاث — T846.
+
+  **`<dialog>` لا `<div>` بطبقةٍ مرسومة باليد.** المتصفّح يعطيها التركيزَ
+  محبوساً بداخلها، وEscape يغلقها، و`::backdrop` يعتم ما خلفها، وقارئُ الشاشة
+  يُعلن أنها نافذة — أربعةُ أشياء كان كلٌّ منها سطرَ جافاسكربت يُنسى واحدٌ
+  منها دائماً.
+
+  **ونموذجٌ واحد لكلّ نافذة، لا نموذجٌ في كلّ صفّ.** خمسةٌ وعشرون صفّاً ×
+  ثلاثُ نوافذ = خمسةٌ وسبعون نموذجاً مخفيّاً في كل تحميل. والنافذةُ تُملأ من
+  `data-*` الصفّ عند فتحها، و`action` تُبنى من رقم المزاد.
+
+  **وكلُّها POST بـCSRF.** تغييرُ حالةٍ بـGET رابطٌ يُفتح بالخطأ من سجلّ
+  المتصفّح، أو يجلبه زاحفٌ فينهي مزاداً.
+
+  و`data-action` تُبنى بـ`{% url %}` على المزاد رقم **صفر** — نائبٌ لا وجود
+  له — ثم يستبدله السكربت برقم الصفّ. فالمسار مشتقٌّ من اسمه لا مكتوبٌ بيد،
+  ويتبع أيَّ تغييرٍ في `urls.py` وحده.
+
+  ولا SweetAlert ولا مكتبةَ توست: التأكيد جملةٌ داخل النافذة نفسها فوق زرّ
+  التنفيذ، والرسائل بعده تمرّ بـ`messages` — القناةُ التي تستعملها اللوحة
+  كلّها، فلا نظامَي إشعارٍ يختلفان.
+  {% endcomment %}
+
+  <dialog id="statusModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-showcase' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <h2>حالة مزاد <span data-number></span></h2>
+
+      <p>
+        <label for="statusBadge">الحالة</label>
+        <select id="statusBadge" name="badge" data-badge>
+          {% for value, label in showcases %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+          <option value="active">نشط — المزايدة مفتوحة الآن</option>
+          <option value="ended">منتهٍ — أُقفلت المزايدة</option>
+        </select>
+      </p>
+
+      {% comment %}
+      حقول الموعد تظهر لـ«قريباً» و«نشط» وحدهما — «قريباً» عدّادٌ بلا موعدٍ
+      لا معنى له، و«نشط» نقلةٌ تشترط أن يكون وقت البدء قد حلّ.
+      {% endcomment %}
+      <div data-when-timed hidden>
+        <p>
+          <label for="statusStarts">وقت البداية (بتوقيت الرياض)</label>
+          <input id="statusStarts" type="datetime-local" name="starts_at" data-starts>
+        </p>
+        <p>
+          <label for="statusEnds">وقت النهاية (بتوقيت الرياض)</label>
+          <input id="statusEnds" type="datetime-local" name="ends_at" data-ends>
+        </p>
+      </div>
+      <p class="count" data-when-untimed hidden>
+        «لاحقاً» يُخفي المزاد عن العملاء، و«قادم» يُعلنه بلا عدّاد — ولا
+        يحتاجان تعديل الموعد.
+      </p>
+
+      <p>
+        <label for="statusReason">سبب التغيير</label>
+        <input id="statusReason" type="text" name="reason" required
+               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">نفّذ</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  <dialog id="rescheduleModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-reschedule' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <h2>إعادة جدولة مزاد <span data-number></span></h2>
+
+      <p>
+        <label for="reStarts">وقت البداية الجديد (الرياض)</label>
+        <input id="reStarts" type="datetime-local" name="starts_at" data-starts required>
+      </p>
+      <p>
+        <label for="reEnds">وقت النهاية الجديد (الرياض)</label>
+        <input id="reEnds" type="datetime-local" name="ends_at" data-ends required>
+      </p>
+      <p>
+        <label for="reSms">موعد رسائل التذكير (اختياري)</label>
+        <input id="reSms" type="datetime-local" name="sms_reminder_at" data-sms>
+        <span class="count">يُسجَّل الموعد فقط — الإرسال قرارٌ منفصل بتكلفةٍ لا تُسترد.</span>
+      </p>
+      <p>
+        <label>
+          <input type="checkbox" name="reset_unsold_bids">
+          إعادة مزايدة السيارات غير المباعة
+        </label>
+        <span class="count">
+          تُحذف مزايدات المركبات التي **لا فائز لها** وحدها. والمباعة تبقى
+          مقفلة: فاتورتها وتأمينها يشيران إلى مزايدةٍ بعينها.
+        </span>
+      </p>
+      <p>
+        <label for="reReason">سبب إعادة الجدولة</label>
+        <input id="reReason" type="text" name="reason" required>
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">احفظ</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  <dialog id="feesModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-fees' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <h2>رسوم وتأمين مزاد <span data-number></span></h2>
+
+      <p>
+        <label for="feeAdmin">الرسوم الإدارية (السعي) — ريال</label>
+        <input id="feeAdmin" type="text" inputmode="decimal" name="admin_fee" data-fee required>
+        <span class="count">تُدفَع ولا تُردّ.</span>
+      </p>
+      <p>
+        <label for="feeDeposit">مبلغ التأمين الإلزامي — ريال</label>
+        <input id="feeDeposit" type="text" inputmode="decimal" name="deposit_required" data-deposit required>
+        <span class="count">يُحجَز ويُردّ — تأمينٌ واحد للمزاد مهما بلغ عدد السيارات.</span>
+      </p>
+      {% comment %}
+      لا حقلَ لنسبة الضريبة، ولا عرضَ لها. القرار ومبرّره في
+      `auction_quick.py`: النسبة قاعدةٌ واحدة للمنصّة، وقارئُها الوحيد
+      `money.tax_of` — وشاشةُ الرسوم لا تحسب مبلغاً حتى تحتاجها.
+      {% endcomment %}
+      <p class="count">
+        ضريبة القيمة المضافة تُحسب بقاعدةٍ واحدة للمنصّة كلّها، ولا تُضبط
+        لكل مزادٍ على حدة.
+      </p>
+      <p>
+        <label for="feeReason">سبب التعديل</label>
+        <input id="feeReason" type="text" name="reason" required>
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">احفظ</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  <dialog id="endModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-end-now' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <h2>إنهاء فوري لمزاد <span data-number></span></h2>
+      <p class="notice warning">
+        تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ
+        التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة
+        بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
+      </p>
+      <p>
+        <label for="endReason">سبب الإنهاء الفوري</label>
+        <input id="endReason" type="text" name="reason" required>
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">أنهِ الآن</button>
+        <button type="button" data-close>تراجع</button>
+      </p>
+    </form>
+  </dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'console/auctions.js' %}"></script>
 {% endblock %}

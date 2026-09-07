@@ -111,6 +111,17 @@ def has_finished(auction: Auction, *, now: datetime | None = None) -> bool:
     return auction.ends_at <= (now or timezone.now())
 
 
+def window_is_valid(auction: Auction) -> bool:
+    """أنهايتُه بعد بدايته؟ — سؤالٌ عن الموعدين، لا عن الساعة.
+
+    وهو هنا مع أسئلة الساعة لا في الشاشة التي تسأله: القيد
+    `auction_ends_after_it_starts` هو الضمانة، وهذه قراءتُه قبل الحفظ ليقرأ
+    الموظّف جملةً بدل صفحة خطأ ٥٠٠. وموضعُ القراءة واحدٌ لأن أيَّ شاشةٍ
+    تكتبه بيدها تكتب `<` حيث يجب `<=` يوماً، فتقبل مزاداً طولُه صفر.
+    """
+    return auction.ends_at > auction.starts_at
+
+
 #: المراحل التي تُقبل فيها المزايدة. واحدةٌ فقط، وذلك مقصود: `OVERDUE_END`
 #: ليست منها، فالساعة تسبق العمود ولا يُقبل مالٌ بعد النهاية المعلنة.
 BIDDABLE_PHASES = frozenset({Phase.OPEN})
@@ -346,6 +357,84 @@ def money_held_in(auction: Auction) -> Decimal:
 
 
 # ---------------------------------------------------------------------------
+# ١ب — البادج: مفرداتُ v1 الخمس، محسوبةً لا مخزَّنة
+# ---------------------------------------------------------------------------
+
+
+class Badge(models.TextChoices):
+    """ما يظهر في خانة «الحالة» — خمسُ كلماتٍ كما في v1، وسادسةٌ للملغى.
+
+    v1 يخزّنها في عمودٍ واحد، فيخلط **دورةَ الحياة** بـ**لافتة العرض**:
+    نقلُ مزادٍ من «لاحقاً» إلى «قادم» هناك كتابةٌ في العمود نفسه الذي تقرؤه
+    التسويةُ والبوّابة. وهنا تُحسب من ثلاثة: الحالة، والساعة، ولافتةُ العرض.
+
+    وسابعةٌ لا يعرفها v1 ولا تُخفى: `LATE` — انتهى وقتُه ولم يُغلَق، أو حان
+    ولم يبدأ. هي حالةُ عاملِ الخلفية لا حالةُ المزاد، ولها في القالب حبّةٌ
+    ثانية بجانب الأولى لا بدلاً منها.
+    """
+
+    LATER = "later", "لاحقاً"
+    UPCOMING = "upcoming", "قادم"
+    SOON = "soon", "قريباً"
+    ACTIVE = "active", "نشط"
+    ENDED = "ended", "منتهٍ"
+    CANCELLED = "cancelled", "ملغى"
+    DRAFT = "draft", "مسودة"
+
+
+def badge_of(auction: Auction, *, now: datetime | None = None) -> Badge:
+    """كلمةُ الحالة كما يراها الموظّف — من الحالة والساعة واللافتة معاً."""
+    current = phase(auction, now=now)
+
+    if current in (Phase.OPEN, Phase.OVERDUE_END):
+        # `OVERDUE_END` تُعرض «نشطاً» لأن الحالة المخزَّنة ما زالت كذلك،
+        # وحبّةُ «متأخّر» بجانبها هي التي تقول إن العامل لم يلحق. وإخفاؤها
+        # هنا يجعل الموظّف يبحث عن مزادٍ اختفى من القائمة.
+        return Badge.ACTIVE
+    if current in (Phase.ENDED, Phase.SETTLED):
+        return Badge.ENDED
+    if current == Phase.CANCELLED:
+        return Badge.CANCELLED
+    if current == Phase.DRAFT:
+        return Badge.DRAFT
+    return Badge(auction.showcase)
+
+
+#: البادج إلى نغمةِ الحبّة. هنا لا في `console/tones.py` لأن `ended` و`draft`
+#: و`cancelled` مفرداتٌ مشتركة مع الفواتير والمركبات، وثلاثتُها تعني هنا
+#: شيئاً آخر — و`active` ليست حالةً مخزَّنة أصلاً.
+BADGE_TONES: dict[str, str] = {
+    Badge.LATER: "",
+    Badge.UPCOMING: "info",
+    Badge.SOON: "warn",
+    Badge.ACTIVE: "ok",
+    Badge.ENDED: "",
+    Badge.CANCELLED: "bad",
+    Badge.DRAFT: "",
+}
+
+
+def tick(*, now: datetime | None = None) -> dict[str, list[int]]:
+    """يُلحق ما تخلّف عنه عاملُ الخلفية — نداءٌ خفيفٌ عند فتح القائمة.
+
+    **لا يستبدل Celery ولا يكرّره:** يستدعي `services.activate_due` و
+    `end_due` نفسَيهما، فالكاتبُ يبقى واحداً (يحرسه
+    `auction_state_single_writer`). وهو هنا لأن الموظّف لا يحتمل أن يفتح
+    الشاشة فيرى «قريباً» على مزادٍ بدأ قبل دقيقتين لأن العامل متوقّف —
+    ولأن العامل يتوقّف فعلاً.
+
+    ويعمل بلا استعلامٍ في الحالة الشائعة: `due_to_start` و`due_to_finish`
+    استعلامان بفهرسٍ على `(state, starts_at)` يعودان فارغين في أغلب النداءات.
+    """
+    from . import services
+
+    return {
+        "started": services.activate_due(now),
+        "ended": services.end_due(now),
+    }
+
+
+# ---------------------------------------------------------------------------
 # ٢ب — ملخّصُ الصفّ: الأعمدة التي تعرضها شاشةُ إدارة المزادات في v1
 # ---------------------------------------------------------------------------
 #
@@ -395,6 +484,18 @@ class RowSummary:
     bidders: int = 0
     top_bid: Decimal | None = None
 
+    #: عيّنةٌ تعرّف المزاد بلمحة: «تويوتا كامري 2023».
+    sample: str = ""
+
+    #: **رابط** المصغّرة، لا بايتاتها.
+    #:
+    #: v1 كان يستعلم `TO_BASE64(image_blob)` فوق آلاف الصفوف لرسم مربّعٍ
+    #: بـ50×38 بكسل، فتأخذ الصفحة ثماني ثوانٍ ويتجمّد الخادم. والصورةُ هنا
+    #: مخزَّنةٌ ملفّاً أصلاً، ولها **طبقةُ مصغّرات** جاهزة (`VehicleImage.thumbnail`)
+    #: — فالصفّ يحمل عنواناً نصّياً، والمتصفّح يجلبه كسولاً وبالتوازي ومن
+    #: ذاكرته في المرّة الثانية. ولا بايت صورةٍ واحد يمرّ بهذا الاستعلام.
+    thumbnail: str | None = None
+
     @property
     def images_missing(self) -> int:
         return max(self.cars - self.cars_with_images, 0)
@@ -407,6 +508,8 @@ def summarise(auctions) -> dict[int, RowSummary]:
     تحتاج ملخّصَ ستّةٍ وخمسين مزاداً، وv1 كان يحسبها كلَّها في كل تحميل.
     """
     from apps.bidding.models import Bid
+
+    from .cards import media_url
 
     ids = [auction.pk for auction in auctions]
     if not ids:
@@ -470,10 +573,42 @@ def summarise(auctions) -> dict[int, RowSummary]:
         if len(bucket) < 2 and row["make"]:
             bucket.append(row["make"])
 
+    # ٥ — العيّنة والمصغّرة: أول سيارةٍ في كل مزاد، وغلافُها إن وُجد.
+    #
+    # استعلامان لا اثنان لكل صفّ: الأول يأخذ سيارةً واحدة لكل مزاد بترتيب
+    # اللوت، والثاني غلافَ تلك السيارات دفعةً واحدة.
+    sample_cars = {}
+    for car in (
+        Vehicle.objects.filter(auction_id__in=ids)
+        .order_by("auction_id", "lot_number")
+        .only("id", "auction_id", "make", "model", "year")
+    ):
+        sample_cars.setdefault(car.auction_id, car)
+
+    covers: dict[int, str] = {}
+    if sample_cars:
+        for image in (
+            VehicleImage.objects.filter(
+                vehicle_id__in=[car.pk for car in sample_cars.values()]
+            )
+            .order_by("vehicle_id", "-is_cover", "position", "id")
+            .only("id", "vehicle_id", "thumbnail", "image")
+        ):
+            covers.setdefault(image.vehicle_id, media_url(image.thumbnail or image.image))
+
     return {
-        pk: RowSummary(top_makes=tuple(ranked[pk]), **fields)
+        pk: RowSummary(
+            top_makes=tuple(ranked[pk]),
+            sample=_name_of(sample_cars.get(pk)),
+            thumbnail=covers.get(sample_cars[pk].pk) if pk in sample_cars else None,
+            **fields,
+        )
         for pk, fields in cars.items()
     }
+
+
+def _name_of(car: Vehicle | None) -> str:
+    return f"{car.make} {car.model} {car.year}".strip() if car else ""
 
 
 def summarise_onto(auctions) -> None:
@@ -634,7 +769,9 @@ def phases_of(auctions: Iterable[Auction], *, now: datetime | None = None) -> No
 
 
 __all__ = [
+    "BADGE_TONES",
     "BIDDABLE_PHASES",
+    "Badge",
     "LATE_PHASES",
     "OFFERED_STATES",
     "Operation",
@@ -643,6 +780,7 @@ __all__ = [
     "RowSummary",
     "Snapshot",
     "VehicleTally",
+    "badge_of",
     "deposit_behind",
     "deposit_of",
     "due_to_finish",
@@ -651,6 +789,7 @@ __all__ = [
     "has_finished",
     "has_started",
     "is_late",
+    "window_is_valid",
     "is_open_for_bidding",
     "late_now",
     "money_held_in",
@@ -663,4 +802,5 @@ __all__ = [
     "summarise",
     "summarise_onto",
     "tally",
+    "tick",
 ]

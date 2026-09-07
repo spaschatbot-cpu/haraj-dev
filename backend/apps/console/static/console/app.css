@@ -1874,3 +1874,92 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   .themer { inline-size: 100vw; }
   .topbar { padding: .55rem .9rem; }
 }
+
+/* ===========================================================================
+   شاشة المزادات: شريط الأدوات، والنوافذ، وتخصيص الأعمدة — T846
+   ======================================================================== */
+
+.toolbar { margin: 0 0 .9rem; }
+.filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.filters input[type="search"] { min-inline-size: min(22rem, 100%); }
+
+/* `<details>` لا نافذة: تُفتح وتنطوي بلا سطر جافاسكربت، وتبقى قيمتُها في
+   العنوان فيُشارَك الرابط كما هو. */
+.advanced, .columns {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: .45rem .8rem;
+}
+.advanced[open], .columns[open] { padding-block-end: .8rem; }
+.advanced summary, .columns summary { cursor: pointer; font-weight: 600; font-size: .88rem; }
+.advanced label { display: block; margin-block-start: .6rem; font-size: .85rem; }
+.advanced input { inline-size: 100%; }
+
+.columns { margin: 0 0 1rem; }
+.columns__grid {
+  display: grid;
+  /* `min(…, 100%)` لا `12rem`: بلاها لا تنزل الخانة تحت عرضها الأدنى
+     فتفيض الصفحة على ٣٢٠ بكسل — T842. */
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: .3rem .9rem;
+  margin-block-start: .7rem;
+}
+.columns__grid label { font-size: .85rem; display: flex; align-items: center; gap: .4rem; }
+
+/* المصغّرة: مقاسٌ ثابت في الترميز **وفي الورقة**، فلا يقفز الصفّ حين تصل
+   الصورة. و`--none` مربّعٌ باهت لا أيقونةُ كسر. */
+.thumb--none {
+  display: inline-block;
+  inline-size: 3.1rem;
+  block-size: 2.4rem;
+  border-radius: .4rem;
+  background: var(--line-soft);
+}
+
+/* الحبّة زرّاً: تحتفظ بشكل الحبّة وتكتسب مؤشّر اليد وحلقة التركيز. */
+.pill--button { cursor: pointer; border: 1px solid transparent; font: inherit; font-size: .74rem; }
+.pill--button:hover { border-color: currentColor; }
+
+/* ---- النوافذ -------------------------------------------------------------
+   `<dialog>` يعطينا حبسَ التركيز وEscape و`::backdrop` بلا سطر جافاسكربت.
+   والعرض `min(30rem, 92vw)` فلا تفيض على الهاتف. */
+.modal {
+  inline-size: min(30rem, 92vw);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 1.3rem 1.4rem;
+  box-shadow: var(--shadow-lift);
+}
+.modal::backdrop { background: rgb(0 0 0 / .5); }
+.modal h2 { margin: 0 0 .9rem; font-size: 1.1rem; }
+.modal p { margin: 0 0 .8rem; }
+.modal label { display: block; margin-block-end: .25rem; font-size: .86rem; font-weight: 600; }
+.modal input[type="text"],
+.modal input[type="datetime-local"],
+.modal select { inline-size: 100%; max-inline-size: none; }
+.modal .count { display: block; margin-block-start: .25rem; }
+.modal__buttons { display: flex; gap: .5rem; margin: 1.1rem 0 0; }
+.modal__buttons button[type="submit"] { flex: 1; }
+
+/* عمود التحكم أيقونات — T846. مربّعٌ ثابت فلا يلتفّ الصفّ ولا يمتدّ. */
+.actions { white-space: nowrap; }
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.9rem;
+  block-size: 1.9rem;
+  margin: .1rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: var(--raised);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.act svg { inline-size: 1.05rem; block-size: 1.05rem; fill: currentColor; }
+.act:hover { border-color: var(--brand); color: var(--brand-dark); }
+.act--danger:hover { border-color: var(--danger); color: var(--danger); }

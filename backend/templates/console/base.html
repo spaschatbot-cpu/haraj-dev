@@ -230,5 +230,9 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
 
     <button type="button" class="themer__reset" data-look-reset>إرجاع الافتراضي</button>
   </aside>
+  {% comment %} سكربتُ الشاشة، إن كان لها واحد. في نهاية الجسم لا في
+     `<head>`: لا شيء فيه يمسّ أول رسم، فحجبُ العرض لأجله ثمنٌ بلا مقابل —
+     بخلاف `theme.js` الذي يكتب سماتِ المظهر قبل الرسم عمداً. {% endcomment %}
+  {% block scripts %}{% endblock %}
 </body>
 </html>
