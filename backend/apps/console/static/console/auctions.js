@@ -152,10 +152,40 @@
     var at = hiddenColumns.indexOf(key);
     if (box.checked && at !== -1) hiddenColumns.splice(at, 1);
     if (!box.checked && at === -1) hiddenColumns.push(key);
-
     applyColumns(hiddenColumns);
     try {
       window.localStorage.setItem(KEY, JSON.stringify(hiddenColumns));
     } catch (e) { /* ممتلئ أو محظور — الاختيار يعمل هذه الجلسة ولا يُحفظ. */ }
   });
+
+  /* زر الفلترة المتقدمة: فتح وطَيّ لوحة الحقول المتقدمة بسلاسة */
+  var btnAdvanced = document.getElementById("btnAdvanced");
+  var advancedPanel = document.getElementById("advancedPanel");
+  if (btnAdvanced && advancedPanel) {
+    btnAdvanced.addEventListener("click", function () {
+      var willShow = advancedPanel.hidden;
+      advancedPanel.hidden = !willShow;
+      btnAdvanced.classList.toggle("is-active", willShow);
+      btnAdvanced.setAttribute("aria-expanded", String(willShow));
+      if (willShow) {
+        var firstInput = advancedPanel.querySelector("input");
+        if (firstInput) firstInput.focus();
+      }
+    });
+  }
+
+  /* إغلاق قائمة تخصيص الأعمدة عند النقر خارجها أو ضغط Escape */
+  document.addEventListener("click", function (event) {
+    var details = document.querySelector("details.columns[open]");
+    if (details && !details.contains(event.target)) {
+      details.removeAttribute("open");
+    }
+  });
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+      var details = document.querySelector("details.columns[open]");
+      if (details) details.removeAttribute("open");
+    }
+  });
 })();
+

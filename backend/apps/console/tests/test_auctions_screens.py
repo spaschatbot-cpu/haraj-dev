@@ -195,44 +195,6 @@ def test_an_auction_with_no_cars_says_so(client, operator, live):
 # ---------------------------------------------------------------------------
 
 
-def _hold(bidder, auction, amount="10000.00"):
-    """تأمينٌ محجوز، عبر خدمة المال — لا صفَّ حجزٍ مكتوبٍ بيد (المادة ١-٢)."""
-    money.deposit_insurance(
-        user=bidder,
-        amount=Decimal(amount),
-        source="cash",
-        reference=f"screen-test/{auction.pk}/{bidder.pk}",
-    )
-    return money.hold_for_auction(user=bidder, auction=auction, amount=Decimal(amount))
-
-
-def test_the_auction_screen_shows_one_deposit_for_all_the_cars_a_bidder_won(
-    client, operator, live
-):
-    """المالك بالحرف: «تأمين واحد… حتى لو هيزايد على كل السيارات اللي فيه».
-
-    وقبل هذه الشاشة كان الجواب في القاعدة ولا شاشةَ تعرضه: الموظّف يفتح دفتر
-    التأمينات ثم قائمة الفواتير ثم يربط بيده.
-    """
-    buyer = User.objects.create_user(
-        phone="966500000441", full_name="مشتري المُجمَّع", password="x"
-    )
-    _hold(buyer, live)
-    for lot in (1, 2, 3):
-        a_car(live, lot, state=VehicleState.AWARDED, awarded_to=buyer)
-
-    body = screen_of(body_of(client, reverse("console:auction-detail", args=[live.pk])))
-
-    assert "مشتري المُجمَّع" in body
-    # صفٌّ واحد للمشتري، وفيه ثلاث سيارات وتأمينٌ **واحد**. والعدّ على خانات
-    # الصفّ لا على الصفحة: البطاقة أعلاها تعرض تأمين الدخول أيضاً، وعدُّ
-    # النصّ في الصفحة كلّها يخلط الاثنين.
-    row = re.search(
-        r"<tr>(?:(?!</tr>).)*مشتري المُجمَّع(?:(?!</tr>).)*</tr>", body, re.S
-    )
-    assert row, "لا صفَّ للمشتري في جدول المشاركين"
-    assert row.group(0).count("10000.00") == 1
-    assert "لوت 1" in row.group(0) and "لوت 3" in row.group(0)
 
 
 def test_the_auction_screen_names_the_gap_between_the_column_and_the_clock(

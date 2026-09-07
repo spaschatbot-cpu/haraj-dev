@@ -8,7 +8,12 @@ have to undo one in their head.
 {% endcomment %}
 {% block title %}المزادات{% endblock %}
 {% block heading %}المزادات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}
+  <a href="{% url 'console:auction-new' %}" class="btn-primary">+ مزاد جديد</a>
+  <a href="{% url 'console:vehicle-search' %}">بحث عن سيارة</a>
+  <a href="{% url 'console:auctions-bulk' %}">عمليات مجمعة</a>
+  <a href="{{ export_url }}" title="تصدير بيانات الصفحة إلى ملف إكسل">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
@@ -16,59 +21,68 @@ have to undo one in their head.
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <p class="toolbar">
-    <a href="{% url 'console:auction-new' %}">+ مزاد جديد</a> ·
-    <a href="{% url 'console:vehicle-search' %}">بحث عن سيارة</a> ·
-    <a href="{% url 'console:auctions-bulk' %}">عمليات مجمعة</a>
-  </p>
-
   <form method="get" class="filters">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="اسم المزاد أو الساحة أو رقمه">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="ابحث باسم المزاد أو الساحة أو رقمه...">
+      <select name="state" aria-label="حالة المزاد">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
 
-    {% comment %}
-    الفلترة المتقدّمة داخل `<details>` لا نافذةٍ منبثقة: خانتان تُفتحان
-    وتنطويان بلا سطر جافاسكربت، وتبقيان في العنوان بعد البحث فيُشارَك الرابط
-    كما هو. ومن يفتحها يجدها مفتوحةً لأن القيمة فيها.
-    {% endcomment %}
-    <details class="advanced" {% if id_exact or park_exact %}open{% endif %}>
-      <summary>فلترة متقدمة</summary>
-      <label>
-        رقم المزاد المطابق
-        <input type="text" name="id_exact" value="{{ id_exact }}" inputmode="numeric">
-      </label>
-      <label>
-        الساحة المطابقة
-        <input list="parks" type="text" name="park_exact" value="{{ park_exact }}">
-        <datalist id="parks">
-          {% for park in parks %}<option value="{{ park }}"></option>{% endfor %}
-        </datalist>
-      </label>
-    </details>
+      <button type="button" class="btn-advanced{% if id_exact or park_exact %} is-active{% endif %}" id="btnAdvanced" aria-expanded="{% if id_exact or park_exact %}true{% else %}false{% endif %}">
+        <svg class="btn-advanced__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        <span>فلترة متقدمة</span>
+      </button>
 
-    <button type="submit">بحث</button>
+      <button type="submit">بحث</button>
+
+      {% if q or state or id_exact or park_exact %}
+        <a href="{% url 'console:auctions' %}" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
+    </div>
+
+    <div class="advanced-panel" id="advancedPanel" {% if not id_exact and not park_exact %}hidden{% endif %}>
+      <div class="advanced-panel__grid">
+        <div class="field">
+          <label for="id_exact">رقم المزاد المطابق</label>
+          <input type="text" id="id_exact" name="id_exact" value="{{ id_exact }}" inputmode="numeric" placeholder="مثال: 501">
+        </div>
+        <div class="field">
+          <label for="park_exact">الساحة المطابقة</label>
+          <input list="parks" type="text" id="park_exact" name="park_exact" value="{{ park_exact }}" placeholder="اختر أو اكتب اسم الساحة">
+          <datalist id="parks">
+            {% for park in parks %}<option value="{{ park }}"></option>{% endfor %}
+          </datalist>
+        </div>
+      </div>
+    </div>
   </form>
 
-  {% comment %}
-  تخصيص الأعمدة — T846. خانةٌ لكل عمود، والإخفاء بـ`hidden` على `<col>`،
-  فينطبق على الرأس والخلايا معاً بقاعدةٍ واحدة. والاختيار يُحفظ في
-  `localStorage` لأنه تفضيلُ جهازٍ لا تفضيلُ حساب — الموظّف نفسه يريد أعمدةً
-  أقلّ على لوحه وأكثر على شاشة المكتب.
-  {% endcomment %}
-  <details class="columns" data-columns>
-    <summary>تخصيص الأعمدة</summary>
-    <div class="columns__grid">
-      {% for key, label in column_choices %}
-        <label><input type="checkbox" data-column="{{ key }}" checked> {{ label }}</label>
-      {% endfor %}
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <span>{{ page.paginator.count|unlocalize }} مزاداً</span>
+      {% if q or state or id_exact or park_exact %}
+        <span class="pill pill--filter">مفلترة</span>
+      {% endif %}
     </div>
-  </details>
+
+    {% comment %}
+    تخصيص الأعمدة — T846. خانةٌ لكل عمود، والإخفاء بـ`hidden` على `<col>`،
+    فينطبق على الرأس والخلايا معاً بقاعدةٍ واحدة. والاختيار يُحفظ في
+    `localStorage` لأنه تفضيلُ جهازٍ لا تفضيلُ حساب.
+    {% endcomment %}
+    <details class="columns" data-columns>
+      <summary>تخصيص الأعمدة</summary>
+      <div class="columns__grid">
+        {% for key, label in column_choices %}
+          <label><input type="checkbox" data-column="{{ key }}" checked> {{ label }}</label>
+        {% endfor %}
+      </div>
+    </details>
+  </div>
 
   <div class="scroller">
     <table>
@@ -103,7 +117,7 @@ have to undo one in their head.
     <tbody>
       {% for auction in page %}
         <tr>
-          <td data-col="id"><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.number|unlocalize }}</a></td>
+          <td data-col="id"><a href="{% url 'console:auction-detail' auction.pk %}" class="row-num">{{ auction.number|unlocalize }}</a></td>
           <td data-col="auction">
             <strong>{{ auction.title }}</strong>
             {% if auction.summary.sample %}<br><span class="count">{{ auction.summary.sample }}</span>{% endif %}
@@ -204,23 +218,23 @@ have to undo one in their head.
             اسمٍ هي ما يجعل موظّفاً جديداً يضغط «إنهاء فوري» ظانّاً أنه حفظ.
             {% endcomment %}
             {% with icon=action_icons.cars %}
-              <a href="{% url 'console:auction-detail' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              <a href="{% url 'console:auction-detail' auction.pk %}" class="act act--cars" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
             {% with icon=action_icons.bids %}
-              <a href="{% url 'console:auction-bids' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              <a href="{% url 'console:auction-bids' auction.pk %}" class="act act--bids" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
             {% with icon=action_icons.export %}
-              <a href="{{ export_url }}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              <a href="{{ export_url }}" class="act act--export" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
             {% if can_manage %}
               {% with icon=action_icons.fees %}
-                <button type="button" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                <button type="button" class="act act--fees" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
                         data-open-fees
                         data-pk="{{ auction.pk|unlocalize }}"
                         data-number="{{ auction.number|unlocalize }}"
@@ -230,7 +244,7 @@ have to undo one in their head.
                 </button>
               {% endwith %}
               {% with icon=action_icons.reschedule %}
-                <button type="button" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                <button type="button" class="act act--reschedule" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
                         data-open-reschedule
                         data-pk="{{ auction.pk|unlocalize }}"
                         data-number="{{ auction.number|unlocalize }}"
@@ -251,7 +265,7 @@ have to undo one in their head.
                 {% endwith %}
               {% endif %}
               {% with icon=action_icons.edit %}
-                <a href="{% url 'console:auction-edit' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                <a href="{% url 'console:auction-edit' auction.pk %}" class="act act--edit" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </a>
               {% endwith %}
@@ -265,7 +279,22 @@ have to undo one in their head.
   </table>
 </div>
 
-  <p>{{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+  <div class="table-footer">
+    <div class="table-footer__count">
+      {{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات المزادات">
+        {% if page.has_previous %}
+          <a href="{% url 'console:auctions' %}?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if id_exact %}&id_exact={{ id_exact }}{% endif %}{% if park_exact %}&park_exact={{ park_exact }}{% endif %}" class="pagination__btn">السابق</a>
+        {% endif %}
+        <span class="pagination__current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a href="{% url 'console:auctions' %}?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if id_exact %}&id_exact={{ id_exact }}{% endif %}{% if park_exact %}&park_exact={{ park_exact }}{% endif %}" class="pagination__btn">التالي</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
 
 {% if can_manage %}
   {% comment %}

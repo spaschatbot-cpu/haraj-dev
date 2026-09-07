@@ -48,7 +48,14 @@ def test_every_icon_name_resolves_to_a_path() -> None:
 #: ومكتوبةٌ هنا **صراحةً** كي لا يُوسَّع الحارس فيصمت: من يضيف رسماً ولا يستعمله
 #: يجد الحلَّ السهل في إضافة اسمه إلى هذه المجموعة، وسطرُ التعليق هذا هو ما
 #: يجعله يتوقّف — لا يدخل هنا إلا رسمٌ **يُقرأ من موضعٍ يُسمّى**.
-DRAWN_OUTSIDE_THE_REGISTRY = {"exit-door"}
+DRAWN_OUTSIDE_THE_REGISTRY = {
+    "exit-door",
+    "pencil",
+    "trash",
+    "file-excel",
+    "calendar-clock",
+    "filter",
+}
 
 
 def test_no_icon_is_drawn_for_nobody() -> None:

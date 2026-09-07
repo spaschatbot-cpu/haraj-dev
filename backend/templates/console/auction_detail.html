@@ -69,18 +69,6 @@ somebody went looking for it.
       <strong>{{ view.cars.sold|unlocalize }}</strong>
       <span>رست على مشترٍ</span>
     </div>
-    <div class="card">
-      <strong class="money">{{ view.held|unlocalize }}</strong>
-      <span>ريالاً تأميناً محجوزاً على هذا المزاد</span>
-    </div>
-    <div class="card">
-      <strong class="money">{{ auction.deposit_required|unlocalize }}</strong>
-      <span>تأمين الدخول — مرّةً واحدة لكل مشارك مهما بلغ عدد سياراته</span>
-    </div>
-    <div class="card">
-      <strong class="money">{{ auction.admin_fee|unlocalize }}</strong>
-      <span>رسوم إدارية — تُدفع ولا تُردّ، وغير التأمين</span>
-    </div>
   </div>
 
   <h2>العمليّات</h2>
@@ -127,53 +115,6 @@ somebody went looking for it.
     <a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a> ·
     <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
   </p>
-
-  <h2>المشاركون <span class="count">({{ participants|length|unlocalize }})</span></h2>
-  {% comment %}
-  صفٌّ لكل مشارك، وفيه **تأمينٌ واحد** — هذا هو المُجمَّع كما وصفه المالك.
-  والقائمة تضمّ من له حجزٌ قائم **أو** من كسب سيارة: من سدّد فاتورته فُكّ حجزُه
-  وبقي مشترياً، وحصرُها على أصحاب الحجوز يُخفيه؛ ومن حجز ولم يكسب يبقى لأن
-  ماله محجوزٌ ولسؤال «لماذا» جوابٌ هنا.
-  {% endcomment %}
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr>
-          <th>المشارك</th>
-          <th>التأمين المحجوز</th>
-          <th>ما كسبه</th>
-          <th>قيمة الترسية</th>
-          <th>مفوتر</th>
-          <th>غير مسدَّد</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in participants %}
-          <tr>
-            <td>{{ row.customer.full_name|default:row.customer }}</td>
-            <td class="money">
-              {% if row.has_deposit %}
-                {{ row.held_amount|unlocalize }}
-              {% else %}
-                <span class="pill" data-tone="warn">فُكّ</span>
-              {% endif %}
-            </td>
-            <td>
-              {% for vehicle in row.won %}
-                <a href="{% url 'console:vehicle-detail' vehicle.pk %}">لوت {{ vehicle.lot_number|unlocalize }}</a>{% if not forloop.last %} · {% endif %}
-              {% empty %}—{% endfor %}
-            </td>
-            <td class="money">{{ row.won_total|unlocalize }}</td>
-            <td class="money">{{ row.invoiced_total|unlocalize }}</td>
-            <td class="money">{{ row.unpaid|unlocalize }}</td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="6" class="empty">لا مشارك في هذا المزاد بعد.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
   <h2>المركبات</h2>
   <div class="scroller">
     <table>

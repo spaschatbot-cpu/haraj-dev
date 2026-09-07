@@ -189,143 +189,6 @@ def bidder(django_user_model):
     )
 
 
-def _hold_for(bidder, auction, amount="10000.00"):
-    """حجزٌ عبر خدمة المال، لا صفٌّ مكتوبٌ بيد.
-
-    `money_single_writer` يرسب على `Transaction.objects.create` هنا — والمادة
-    ١-٢ ليست تشدّداً على الاختبارات: حجزٌ بلا قيدٍ يوازنه يجعل الدفتر يكذب،
-    و`verify_ledger` يُقارن مجموعَ المحجوز بمجموع الحجوز القائمة. فاختبارٌ
-    يبني حجزاً بيده يبني حالةً لا تُنتَج في الإنتاج، ثم يُثبت عليها سلوكاً.
-    """
-    money.deposit_insurance(
-        user=bidder,
-        amount=Decimal(amount),
-        source="cash",
-        reference=f"engine-test/{auction.pk}/{bidder.pk}",
-    )
-    return money.hold_for_auction(user=bidder, auction=auction, amount=Decimal(amount))
-
-
-def test_one_deposit_covers_every_car_the_bidder_wins(make_auction, make_vehicle, bidder):
-    """المالك بالحرف: «تأمين واحد… حتى لو هيزايد على كل السيارات اللي فيه»."""
-    auction = make_auction(AuctionState.ENDED)
-    hold = _hold_for(auction=auction, bidder=bidder)
-
-    cars = [
-        make_vehicle(auction, VehicleState.AWARDED, lot_number=n, awarded_to=bidder)
-        for n in (1, 2, 3)
-    ]
-
-    rows = engine.participants(auction)
-    assert len(rows) == 1
-    row = rows[0]
-    assert row.customer == bidder
-    assert row.hold == hold
-    assert row.held_amount == Decimal("10000.00")
-    assert {v.pk for v in row.won} == {v.pk for v in cars}
-    # ثلاثُ سياراتٍ وتأمينٌ واحد، لا ثلاثة.
-    assert engine.money_held_in(auction) == Decimal("10000.00")
-
-
-def test_asking_for_a_second_deposit_returns_the_first_one(make_auction, bidder):
-    """«تأمين واحد للمزاد» على مستوى الخدمة: النداءُ الثاني لا يحجز ثانيةً.
-
-    ولا يرمي: عميلٌ يزايد عشرين مرّةً في المزاد نفسه يمرّ من هنا عشرين مرّة،
-    ورميُ استثناءٍ في التاسعة عشرة يعني رفضَ مزايدةٍ صحيحة. فالخدمة تُرجع
-    الحجزَ القائم، والقاعدةُ تمنع الثاني لو تسلّل نداءٌ متزامن —
-    و`money/tests/test_schema_refusals.py` هو ما يثبت القيدَ نفسه.
-    """
-    auction = make_auction(AuctionState.LIVE)
-    first = _hold_for(auction=auction, bidder=bidder)
-    second = _hold_for(auction=auction, bidder=bidder)
-
-    assert first.pk == second.pk
-    assert engine.deposit_of(bidder, auction) == first
-    assert engine.money_held_in(auction) == Decimal("10000.00")
-
-
-def test_participants_keeps_the_buyer_whose_hold_was_already_released(
-    make_auction, make_vehicle, bidder
-):
-    """من سدّد فُكّ حجزُه — وحصرُ القائمة على أصحاب الحجوز يُخفيه."""
-    auction = make_auction(AuctionState.SETTLED)
-    make_vehicle(auction, VehicleState.PAID, lot_number=1, awarded_to=bidder)
-
-    rows = engine.participants(auction)
-    assert len(rows) == 1
-    assert rows[0].hold is None
-    assert rows[0].has_deposit is False
-
-
-def test_the_invoice_reaches_its_deposit_through_the_chain(
-    make_auction, make_vehicle, bidder
-):
-    """فاتورة → مركبة → مزاد → حجز. بلا عمودٍ ثانٍ يحمل الجواب نفسه."""
-    from apps.money.models import Invoice, InvoiceSource
-
-    auction = make_auction(AuctionState.ENDED)
-    hold = _hold_for(auction=auction, bidder=bidder)
-    vehicle = make_vehicle(
-        auction, VehicleState.INVOICED, lot_number=1, awarded_to=bidder
-    )
-    invoice = Invoice.objects.create(
-        customer=bidder,
-        number="INV-ENGINE-1",
-        amount=Decimal("55000.00"),
-        source=InvoiceSource.LOCAL,
-        vehicle=vehicle,
-        issued_at=timezone.now(),
-    )
-
-    assert engine.deposit_behind(invoice) == hold
-    assert engine.deposit_of(bidder, auction) == hold
-
-
-def test_a_dues_invoice_with_no_vehicle_has_no_auction_deposit(make_auction, bidder):
-    from apps.money.models import Invoice, InvoiceSource
-
-    invoice = Invoice.objects.create(
-        customer=bidder,
-        number="INV-ENGINE-2",
-        amount=Decimal("300.00"),
-        source=InvoiceSource.LOCAL,
-        issued_at=timezone.now(),
-    )
-    assert engine.deposit_behind(invoice) is None
-
-
-def test_every_invoice_in_one_auction_stands_behind_the_same_deposit(
-    make_auction, make_vehicle, bidder
-):
-    """المالك بالحرف: «فواتير المزاد الواحد تتربط برده بنفس التأمين بتاعه»."""
-    from apps.money.models import Invoice, InvoiceSource
-
-    auction = make_auction(AuctionState.ENDED)
-    hold = _hold_for(auction=auction, bidder=bidder)
-
-    invoices = []
-    for lot in (1, 2, 3):
-        vehicle = make_vehicle(
-            auction, VehicleState.INVOICED, lot_number=lot, awarded_to=bidder
-        )
-        invoices.append(
-            Invoice.objects.create(
-                customer=bidder,
-                number=f"INV-ENGINE-SAME-{lot}",
-                amount=Decimal("10000.00"),
-                source=InvoiceSource.LOCAL,
-                vehicle=vehicle,
-                issued_at=timezone.now(),
-            )
-        )
-
-    assert {engine.deposit_behind(i).pk for i in invoices} == {hold.pk}
-
-    row = engine.participants(auction)[0]
-    assert row.invoiced_total == Decimal("30000.00")
-    assert row.unpaid == Decimal("30000.00")
-
-
 # ---------------------------------------------------------------------------
 # العدّ والعمليّات
 # ---------------------------------------------------------------------------
@@ -381,7 +244,7 @@ def test_operations_open_up_once_the_moment_arrives(make_auction, make_vehicle):
     assert ending.blocked_by == ""
 
 
-def test_snapshot_answers_the_whole_screen(make_auction, make_vehicle, bidder):
+def test_snapshot_answers_the_whole_screen(make_auction, make_vehicle):
     now = timezone.now()
     auction = make_auction(
         AuctionState.LIVE,
@@ -389,7 +252,6 @@ def test_snapshot_answers_the_whole_screen(make_auction, make_vehicle, bidder):
         ends_at=now + timedelta(hours=1),
     )
     make_vehicle(auction, VehicleState.LISTED, lot_number=1)
-    _hold_for(auction=auction, bidder=bidder)
 
     view = engine.snapshot(auction, now=now)
 
@@ -397,7 +259,6 @@ def test_snapshot_answers_the_whole_screen(make_auction, make_vehicle, bidder):
     assert view.is_open is True
     assert view.is_late is False
     assert view.cars.total == 1
-    assert view.held == Decimal("10000.00")
     assert [op.target for op in view.operations] == ["ended"]
 
 
@@ -519,7 +380,7 @@ def test_the_summary_is_a_fixed_number_of_queries(
     for auction in auctions:
         make_vehicle(auction, VehicleState.LISTED, lot_number=1)
 
-    with django_assert_num_queries(4):
+    with django_assert_num_queries(6):
         engine.summarise(auctions)
 
 

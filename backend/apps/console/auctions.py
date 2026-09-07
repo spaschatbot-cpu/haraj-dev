@@ -58,13 +58,13 @@ PAGE_SIZE = 25
 #: محتواه. والأيقونة **ليست بديلاً عن الاسم**: كلُّ زرٍّ يحمل `aria-label`
 #: و`title` بالنصّ نفسه، فمن يقرأ بقارئ شاشة أو يقف بالفأرة يسمع/يرى الكلمة.
 ACTIONS = (
-    ("cars", "سياراته", "car-list"),
+    ("cars", "سياراته", "car"),
     ("bids", "مزايداته", "gavel"),
-    ("export", "تصدير سياراته", "download"),
+    ("export", "تصدير سياراته", "file-excel"),
     ("fees", "الرسوم والتأمين", "coins"),
-    ("reschedule", "إعادة جدولة", "calendar"),
-    ("end", "إنهاء فوري", "flag"),
-    ("edit", "تعديل", "gauge-edit"),
+    ("reschedule", "إعادة جدولة", "calendar-clock"),
+    ("end", "إنهاء فوري", "trash"),
+    ("edit", "تعديل", "pencil"),
 )
 
 
@@ -303,7 +303,6 @@ def auction_detail(request, pk: int):
             # النغمةُ تُحسب هنا لا في القالب: `tones.with_tones` يقول لماذا —
             # قالبٌ يحسب نغمةً مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
             "phase_tone": tone_of_phase(view.phase),
-            "participants": engine.participants(auction),
         },
     )
 

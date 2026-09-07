@@ -219,143 +219,6 @@ def tally(auction: Auction) -> VehicleTally:
     return VehicleTally(total=sum(by_state.values()), by_state=by_state)
 
 
-def deposit_of(customer, auction: Auction):
-    """حجزُ هذا العميل على هذا المزاد — واحدٌ أو لا شيء.
-
-    «واحدٌ» ليست أملاً حسن النيّة: ``one_active_hold_per_customer_and_auction``
-    قيدٌ في القاعدة يجعل الثاني مستحيلاً، وهو ما يطلبه المالك حرفياً — تأمينٌ
-    واحد للمزاد مهما بلغ عدد السيارات التي يزايد عليها أو يكسبها.
-    """
-    from apps.money.models import Hold, HoldState
-
-    return (
-        Hold.objects.filter(owner=customer, auction=auction, state=HoldState.ACTIVE)
-        .select_related("owner")
-        .first()
-    )
-
-
-def deposit_behind(invoice):
-    """التأمينُ الذي تقف خلفه هذه الفاتورة — بالسلسلة لا بعمودٍ ثانٍ.
-
-    فاتورة → مركبة → مزاد → (صاحب الفاتورة، المزاد) → حجز. وكلُّ خطوةٍ فيها
-    مضمونةُ الوحدانيّة بقيدٍ في القاعدة: ``one_live_invoice_per_vehicle``،
-    و``Vehicle.auction`` مفتاحٌ واحد، و``one_active_hold_per_customer_and_auction``.
-
-    فتُعيد ``None`` عن فاتورةٍ لا مركبة لها (فاتورةُ مستحقاتٍ عامّة)، وعن
-    فاتورةٍ فُكّ حجزُها بعد السداد — والثانية ليست عطلاً بل نهايةَ الدورة.
-    """
-    vehicle = invoice.vehicle
-    if vehicle is None:
-        return None
-    return deposit_of(invoice.customer, vehicle.auction)
-
-
-@dataclass(frozen=True)
-class Participant:
-    """عميلٌ واحد داخل مزادٍ واحد: تأمينُه، وما كسبه، وما فُوتر عليه.
-
-    هذا هو المُجمَّع كما وصفه المالك، مقروءاً في صفٍّ واحد: التأمينُ عمودٌ
-    واحد مهما بلغ عدد السيارات، والفواتيرُ تحته لا بجانبه.
-    """
-
-    customer: object
-    hold: object | None
-    held_amount: Decimal
-    won: list[Vehicle]
-    invoices: list[object]
-
-    #: ما بقي عليه — يحسبه **محرّك المال** لا هذا الملفّ.
-    #:
-    #: `Invoice.outstanding` تعرف أن الملغاة صفر وأن المدفوع لا يتجاوز
-    #: المبلغ، وطرحُ العمودين هنا ينسى الشرطين يوم يتغيّران. و`unpaid` لا
-    #: `outstanding` اسماً: الثانية مفردةٌ من قاموس البوّابة، واستعارتُها
-    #: تجعل قارئاً يظنّ أن هذا الصفَّ يقرّر منعاً — وهو لا يقرّر شيئاً.
-    unpaid: Decimal = ZERO
-
-    @property
-    def won_total(self) -> Decimal:
-        return sum((car.awarded_price or ZERO for car in self.won), ZERO)
-
-    @property
-    def invoiced_total(self) -> Decimal:
-        return sum((invoice.amount for invoice in self.invoices), ZERO)
-
-
-    @property
-    def has_deposit(self) -> bool:
-        return self.hold is not None
-
-
-def participants(auction: Auction) -> list[Participant]:
-    """كلُّ من له تأمينٌ قائم في هذا المزاد أو كسب فيه سيارة.
-
-    «أو» لا «و» عمداً: من كسب سيارةً وسُدِّدت فاتورتُها فُكّ حجزُه، فحصرُ
-    القائمة على أصحاب الحجوز يُخفي المشترين الذين أتمّوا — وهم بالضبط من
-    يسأل عنهم الموظّف في شاشة ما بعد البيع. ومن له حجزٌ ولم يكسب شيئاً يبقى
-    في القائمة لأن ماله محجوزٌ وسؤال «لماذا» له جوابٌ هنا.
-    """
-    from apps.money.models import Hold, HoldState, Invoice
-
-    holds = list(
-        Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).select_related(
-            "owner"
-        )
-    )
-    won = list(
-        Vehicle.objects.filter(auction=auction, awarded_to__isnull=False)
-        .select_related("awarded_to")
-        .order_by("lot_number")
-    )
-    invoices = list(
-        Invoice.objects.filter(vehicle__auction=auction)
-        .exclude(state="cancelled")
-        .select_related("customer", "vehicle")
-        .order_by("issued_at")
-    )
-
-    people: dict[int, object] = {}
-    for hold in holds:
-        people[hold.owner_id] = hold.owner
-    for vehicle in won:
-        people.setdefault(vehicle.awarded_to_id, vehicle.awarded_to)
-    for invoice in invoices:
-        people.setdefault(invoice.customer_id, invoice.customer)
-
-    by_owner = {hold.owner_id: hold for hold in holds}
-
-    unpaid = (
-        Invoice.objects.filter(vehicle__auction=auction)
-        .exclude(state="cancelled")
-        .unpaid_by_customer()
-    )
-
-    rows = [
-        Participant(
-            customer=customer,
-            hold=by_owner.get(pk),
-            held_amount=by_owner[pk].amount if pk in by_owner else ZERO,
-            won=[car for car in won if car.awarded_to_id == pk],
-            invoices=[bill for bill in invoices if bill.customer_id == pk],
-            unpaid=unpaid.get(pk, ZERO),
-        )
-        for pk, customer in people.items()
-    ]
-    # الأكبر مالاً أولاً: الموظّف يفتح هذه الشاشة ليجد من عليه أكثر ما لم يُسدَّد.
-    rows.sort(key=lambda row: (-row.unpaid, -row.held_amount, str(row.customer)))
-    return rows
-
-
-def money_held_in(auction: Auction) -> Decimal:
-    """مجموعُ التأمينات المحجوزة على هذا المزاد الآن."""
-    from apps.money.models import Hold, HoldState
-
-    total = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).aggregate(
-        total=Sum("amount")
-    )["total"]
-    return total if total is not None else ZERO
-
-
 # ---------------------------------------------------------------------------
 # ١ب — البادج: مفرداتُ v1 الخمس، محسوبةً لا مخزَّنة
 # ---------------------------------------------------------------------------
@@ -671,7 +534,6 @@ class Snapshot:
     is_open: bool
     is_late: bool
     cars: VehicleTally
-    held: Decimal
     operations: list[Operation]
 
     @property
@@ -689,7 +551,6 @@ def snapshot(auction: Auction, *, now: datetime | None = None) -> Snapshot:
         is_open=current in BIDDABLE_PHASES,
         is_late=current in LATE_PHASES,
         cars=tally(auction),
-        held=money_held_in(auction),
         operations=operations(auction, now=now),
     )
 
@@ -775,14 +636,11 @@ __all__ = [
     "LATE_PHASES",
     "OFFERED_STATES",
     "Operation",
-    "Participant",
     "Phase",
     "RowSummary",
     "Snapshot",
     "VehicleTally",
     "badge_of",
-    "deposit_behind",
-    "deposit_of",
     "due_to_finish",
     "due_to_settle",
     "due_to_start",
@@ -792,10 +650,8 @@ __all__ = [
     "window_is_valid",
     "is_open_for_bidding",
     "late_now",
-    "money_held_in",
     "open_now",
     "operations",
-    "participants",
     "phase",
     "phases_of",
     "snapshot",

@@ -763,7 +763,7 @@ th, td {
 }
 thead th, tr:first-child th {
   position: sticky;
-  top: var(--topbar-h);        /* تحت الشريط العلوي اللاصق بالضبط */
+  top: 0;                      /* داخل `.scroller`: المرجع أعلى الغلاف لا الشريط العلوي */
   z-index: 2;
   background: var(--raised);
   color: var(--muted);
@@ -1880,35 +1880,217 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    ======================================================================== */
 
 .toolbar { margin: 0 0 .9rem; }
-.filters { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
-.filters input[type="search"] { min-inline-size: min(22rem, 100%); }
 
-/* `<details>` لا نافذة: تُفتح وتنطوي بلا سطر جافاسكربت، وتبقى قيمتُها في
-   العنوان فيُشارَك الرابط كما هو. */
-.advanced, .columns {
+/* زر الإجراء الرئيسي في رأس الصفحة: يبرز بلون المنظومة المصمت لتمييز الإنشاء عن التصدير */
+.page__actions .btn-primary {
+  background: var(--brand-solid);
+  color: #fff;
+  border-color: var(--brand-solid);
+}
+.page__actions .btn-primary:hover {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--ring);
+}
+
+/* شريط الفلاتر: بطاقة متكاملة تجمع البحث الفوري والقوائم المنسدلة والفرز المتقدم دون كسر السطر */
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: .85rem 1rem;
+  margin: 0 0 1.1rem;
+  box-shadow: var(--shadow);
+}
+.filters__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .65rem;
+  inline-size: 100%;
+}
+.filters__main input[type="search"] {
+  flex: 1 1 14rem;
+  min-inline-size: 11rem;
+}
+.filters__main select {
+  flex: 0 0 auto;
+  min-inline-size: 8.5rem;
+}
+/* زر الفلترة المتقدمة في شريط الفلاتر */
+.btn-advanced {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink-soft);
+  font-size: .84rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-advanced:hover, .btn-advanced.is-active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.btn-advanced__icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.filters__reset {
+  font-size: .82rem;
+  color: var(--muted);
+  text-decoration: underline;
+  padding: .3rem .5rem;
+  margin-inline-start: auto;
+}
+.filters__reset:hover {
+  color: var(--danger);
+}
+
+/* الفلترة المتقدمة: صندوق شبكي يمتد بعرض الصفحة عند الفتح */
+.advanced-panel {
+  inline-size: 100%;
+  padding-block-start: .75rem;
+  margin-block-start: .35rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.advanced-panel[hidden] {
+  display: none !important;
+}
+.advanced-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
+  gap: .8rem 1.2rem;
+}
+.advanced-panel .field {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+form[method="get"] .advanced-panel label {
+  display: block;
+  font-size: .82rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+.advanced-panel input {
+  inline-size: 100%;
+}
+
+/* شريط تحكم الجدول: يجمع إحصاء النتائج مع زر تخصيص الأعمدة فوق رأس الجدول */
+.table-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: 0 0 .75rem;
+}
+.table-bar__info {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* تخصيص الأعمدة: قائمة منسدلة عائمة فوق الصفحة تحفظ التفضيل بالجهاز ولا تدفع بيانات الجدول */
+.columns {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+}
+.columns summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .82rem;
+  color: var(--ink-soft);
+  user-select: none;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
-  padding: .45rem .8rem;
+  padding: .35rem .75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: border-color .15s ease, color .15s ease, box-shadow .15s ease;
 }
-.advanced[open], .columns[open] { padding-block-end: .8rem; }
-.advanced summary, .columns summary { cursor: pointer; font-weight: 600; font-size: .88rem; }
-.advanced label { display: block; margin-block-start: .6rem; font-size: .85rem; }
-.advanced input { inline-size: 100%; }
-
-.columns { margin: 0 0 1rem; }
+.columns summary:hover {
+  color: var(--brand-dark);
+  border-color: var(--field-border);
+}
+.columns[open] > summary {
+  color: var(--brand-dark);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+}
 .columns__grid {
+  position: absolute;
+  inset-block-start: calc(100% + .4rem);
+  inset-inline-end: 0;
+  z-index: 20;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+  padding: .75rem;
+  min-inline-size: 18.5rem;
   display: grid;
-  /* `min(…, 100%)` لا `12rem`: بلاها لا تنزل الخانة تحت عرضها الأدنى
-     فتفيض الصفحة على ٣٢٠ بكسل — T842. */
-  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
-  gap: .3rem .9rem;
-  margin-block-start: .7rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .45rem .8rem;
+  margin: 0;
 }
-.columns__grid label { font-size: .85rem; display: flex; align-items: center; gap: .4rem; }
+.columns__grid label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: .2rem .35rem;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background .12s ease, color .12s ease;
+}
+.columns__grid label:hover {
+  background: var(--raised);
+  color: var(--ink);
+}
+.columns__grid input[type="checkbox"] {
+  accent-color: var(--brand);
+  cursor: pointer;
+  margin: 0;
+}
 
-/* المصغّرة: مقاسٌ ثابت في الترميز **وفي الورقة**، فلا يقفز الصفّ حين تصل
-   الصورة. و`--none` مربّعٌ باهت لا أيقونةُ كسر. */
+/* رقم المزاد كمعرّف مميز: يسهل النقر والتعرف عليه */
+.row-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+.row-num:hover {
+  text-decoration: underline;
+}
+
+/* المصغّرة: مقاسٌ ثابت في الترميز وفي الورقة لمنع القفزات عند وصول الصورة */
 .thumb--none {
   display: inline-block;
   inline-size: 3.1rem;
@@ -1917,9 +2099,72 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   background: var(--line-soft);
 }
 
-/* الحبّة زرّاً: تحتفظ بشكل الحبّة وتكتسب مؤشّر اليد وحلقة التركيز. */
-.pill--button { cursor: pointer; border: 1px solid transparent; font: inherit; font-size: .74rem; }
-.pill--button:hover { border-color: currentColor; }
+/* الحبّة زرّاً: تفاعل بصري واضح عند الوقوف مع المحافظة على معيار الحالة */
+.pill--button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: .74rem;
+  transition: transform .1s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.pill--button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--ring);
+  border-color: currentColor;
+}
+.pill--filter {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .7rem;
+}
+
+/* تذييل الجدول والتنقل بين الصفحات: يلتحم بأسفل الغلاف ككتلة متصلة */
+.table-footer, .scroller + p, table + p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: -.4rem 0 1.6rem;
+  padding: .65rem 1rem;
+  border: 1px solid var(--line);
+  border-block-start: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow);
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--raised);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease;
+}
+.pagination__btn:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+.pagination__current {
+  font-size: .78rem;
+  color: var(--muted);
+  padding: 0 .3rem;
+}
 
 /* ---- النوافذ -------------------------------------------------------------
    `<dialog>` يعطينا حبسَ التركيز وEscape و`::backdrop` بلا سطر جافاسكربت.
@@ -1944,22 +2189,61 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
 .modal__buttons { display: flex; gap: .5rem; margin: 1.1rem 0 0; }
 .modal__buttons button[type="submit"] { flex: 1; }
 
-/* عمود التحكم أيقونات — T846. مربّعٌ ثابت فلا يلتفّ الصفّ ولا يمتدّ. */
+/* عمود التحكم أيقونات — T846. مربّعٌ مريح بنقلة ناعمة وحالة خطر مميزة */
 .actions { white-space: nowrap; }
 .act {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  inline-size: 1.9rem;
-  block-size: 1.9rem;
+  inline-size: 2rem;
+  block-size: 2rem;
   margin: .1rem;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: .5rem;
-  background: var(--raised);
+  border-radius: .45rem;
+  background: var(--panel);
   color: var(--ink-soft);
   cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
 }
-.act svg { inline-size: 1.05rem; block-size: 1.05rem; fill: currentColor; }
-.act:hover { border-color: var(--brand); color: var(--brand-dark); }
-.act--danger:hover { border-color: var(--danger); color: var(--danger); }
+.act svg {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.act:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  transform: translateY(-1px);
+}
+.act--edit:hover {
+  background: rgba(34, 197, 94, .12);
+  border-color: rgb(34, 197, 94);
+  color: rgb(22, 163, 74);
+}
+.act--export:hover {
+  background: rgba(20, 184, 166, .12);
+  border-color: rgb(20, 184, 166);
+  color: rgb(13, 148, 136);
+}
+.act--cars:hover {
+  background: rgba(234, 179, 8, .12);
+  border-color: rgb(234, 179, 8);
+  color: rgb(202, 138, 4);
+}
+.act--reschedule:hover {
+  background: rgba(14, 165, 233, .12);
+  border-color: rgb(14, 165, 233);
+  color: rgb(2, 132, 199);
+}
+.act--danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
