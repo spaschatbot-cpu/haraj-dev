@@ -25,3 +25,6 @@ Thumbs.db
 
 # Worktrees the harness creates for parallel agents — never committed.
 .claude/worktrees/
+
+# معاينة اللوحة المرسومة محلياً (ops/preview_console.py) — مخرَجٌ لا مصدر.
+backend/.design-preview/
