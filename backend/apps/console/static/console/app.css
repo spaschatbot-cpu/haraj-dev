@@ -118,7 +118,6 @@
      ورأسيّاً لا يُدفَع شيء: الشريط يمرّر وحده أصلاً. */
   --sidebar-w: 19rem;
   --sidebar-w-mini: 4.6rem;
-  --shell-max: 82rem;
   --ring: color-mix(in srgb, var(--brand) 26%, transparent);
 }
 
@@ -504,6 +503,12 @@ body {
 .icon-btn:hover { background: var(--brand-soft); color: var(--brand-dark); border-color: var(--line); box-shadow: none; }
 .icon-btn[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-dark); }
 
+/* الاسم ينكمش ويُقصّ بنقاطٍ بدل أن يدفع الشريط خارج الشاشة.
+ *
+ * الشريط العلويّ صفٌّ مرن، وابنُ المرن لا ينكمش دون محتواه افتراضياً
+ * (`min-width: auto`) — فاسمٌ طويل يجعل الشريط أعرض من الشاشة، ومعه الصفحة
+ * كلّها. والاسم أولى ما يُقصّ هنا: بقيّة الشريط أزرارٌ وشارةُ بيئة، وكلٌّ
+ * منها معلومةٌ لا تُقصّ (المادة ٥-٦). */
 .user {
   margin-inline-start: auto;
   display: inline-flex;
@@ -512,7 +517,12 @@ body {
   color: var(--ink);
   font-size: .85rem;
   font-weight: 600;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.user__mark { flex: none; }
 /* حرفان في دائرة: يعرّفان صاحب الجلسة بلا صورةٍ تُرفع ولا حقلٍ يُضاف. */
 .user__mark {
   inline-size: 1.9rem;
@@ -594,7 +604,20 @@ body {
    والقالبُ يبقى HTML دلاليّاً عارياً كما هو مكتوبٌ في رأس `console/base.html`.
    ======================================================================== */
 
-main { padding: 1.5rem 1.8rem 4rem; max-width: var(--shell-max); }
+/* اللوحة تملأ الشاشة — T838.
+ *
+ * كان `max-width: 82rem` (١٣١٢ بكسل)، فعلى شاشة ١٩٢٠ يبقى **ثلثُ العرض
+ * فارغاً** والجداول محشورةٌ في عمودٍ ضيّق. وسقفُ العرض قاعدةُ **قراءة**:
+ * سطرٌ من ثمانين حرفاً يُتعب العين. لكن هذه ليست شاشة قراءة — هي جداولٌ من
+ * سبعة إلى اثني عشر عموداً، وكلّما اتّسعت ظهرت أعمدةٌ أكثر بلا تمرير. وقد
+ * وضع v1 لوحته على العرض كلّه، ولذلك سُئل عنها.
+ *
+ * وما يحتاج سقفاً يحمله بنفسه ولا يفرضه على غيره: `form` عند ٤٦rem،
+ * و`.login-split` عند ٥٠rem — فحذفُ السقف هنا لا يجعل حقلاً واحداً أعرض.
+ *
+ * وحُذف الرمز `--shell-max` معه: رمزٌ لا يقرؤه أحد يبقى في الملفّ فيُظنّ
+ * ساري المفعول، فيُعدَّل رقمُه يوماً ولا يتغيّر شيء. */
+main { padding: 1.5rem 1.8rem 4rem; max-width: none; }
 
 /* رأس الصفحة: العنوان وتحته خطٌّ رفيع، والسطر التالي وصفٌ لا فقرة.
    `h1 + p` يلتقط سطر الوصف حيث وُجد، ولا يُطلب من أحدٍ أن يضيف صنفاً. */
@@ -680,6 +703,40 @@ form[method="get"] button[type="submit"] { margin-inline-start: auto; }
    بطاقةٌ برأسٍ لاصق: قوائم اللوحة تُمرَّر (٥٠ صفّاً في الصفحة)، ورأسٌ يغيب
    عند التمرير يجعل العمود السابع رقماً بلا اسم — وهو أكثر ما يُسأل عنه في
    شاشات المال. */
+/* الجدول يمرّر أفقياً **داخل نفسه**، في كل مقاس — T838.
+ *
+ * العطل مقيسٌ في المتصفّح (2026-09-07): على **٩٠٠ بكسل** تفيض صفحة
+ * «المزايدات المقبولة» أفقياً بـ١٤٣ بكسل، و«كتالوج المركبات» بـ١٠٥،
+ * و«ما بعد البيع» بـ٩٢ — أي أن الصفحة **كلّها** تُسحب جانباً، فيغيب الشريط
+ * الجانبي والرأس عن يمين الشاشة. وعلى ١٠٢٤ ما زالت الأولى تفيض بـ١٩.
+ *
+ * ولماذا لم يظهر على الجوال: كانت هناك قاعدة `main table { display: block;
+ * overflow-x: auto }` **داخل `max-width: 56rem` وحدها**. فتحت ٨٩٦ بكسل يمرّر
+ * الجدول، وفوقها لا يمرّر شيء — والفجوة هي بالضبط مقاسُ اللوح الأفقي وشاشة
+ * الحاسوب الصغيرة، أي ما يفتح عليه الموظّف اللوحة فعلاً.
+ *
+ * وقد حلّ الغلاف محلّ تلك القاعدة، وكسبنا بذلك أمرين لا واحداً:
+ *
+ * ١. **الجدول يبقى جدولاً.** `display: block` يُخرج الصفوف والخانات من شجرة
+ *    الوصول في محرّكاتٍ عدّة، فيقرأ قارئُ الشاشة قائمةَ نصوصٍ لا جدولاً بأعمدة
+ *    مسمّاة — على شاشات المال بالذات؛
+ * ٢. **الرأس اللاصق يبقى لاصقاً** بلا أن يعتمد على حظّ المحرّك مع كتلةٍ
+ *    مُمرَّرة.
+ *
+ * و`min-inline-size: 0` على الغلاف ليست زينة: هو ابنُ عنصرٍ مرن، وابنُ المرن
+ * لا ينكمش دون محتواه افتراضياً (`min-width: auto`) — وهذا هو سبب فيضان
+ * الصفحة نفسه، لا عرضُ الجدول.
+ */
+.scroller {
+  overflow-x: auto;
+  min-inline-size: 0;
+  /* الهامش انتقل من الجدول إلى غلافه، فلا يتغيّر التباعد بين الشاشات. */
+  margin: 0 0 1.2rem;
+  /* شريطُ تمريرٍ رفيع لا يقطع حافّة البطاقة المدوّرة. */
+  border-radius: var(--radius-lg);
+}
+.scroller > table { margin: 0; }
+
 table {
   border-collapse: separate;
   border-spacing: 0;
@@ -777,7 +834,7 @@ td.count, td.money, th.count, th.money { font-variant-numeric: tabular-nums; }
 /* معرض صفحة التفصيل: الغلاف أولاً، والباقي بجواره. */
 .shots {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(8.5rem, 100%), 1fr));
   gap: .6rem;
   margin: 0 0 1.4rem;
   padding: 0;
@@ -1221,7 +1278,9 @@ tbody tr, tr { transition: background .12s ease; }
 
   main { padding: 1.2rem 1rem 2.5rem; }
   .topbar { padding: .6rem 1rem; }
-  main table { display: block; overflow-x: auto; }
+  /* حُذفت `main table { display: block; overflow-x: auto }`: صارت في
+     `.scroller` وتسري على كل مقاس، لا تحت ٥٦rem وحدها — انظر سببها كاملاً
+     عند تعريف الغلاف. */
   form { max-width: none; }
   .page { align-items: flex-start; }
 }
@@ -1245,7 +1304,7 @@ tbody tr, tr { transition: background .12s ease; }
  */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
   gap: .75rem;
   margin: .8rem 0 1.6rem;
 }
@@ -1286,7 +1345,7 @@ tbody tr, tr { transition: background .12s ease; }
 .board-stats {
   display: grid;
   /* `auto-fit` يقرّر بعدد ما يتّسع، فلا نقطة انكسارٍ تُصان يدوياً. */
-  grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr));
   gap: .85rem;
   margin-block-end: 1.4rem;
 }
@@ -1477,9 +1536,15 @@ a.stat:hover .stat__action { color: var(--ink); }
 
 /* ---- الرسوم ------------------------------------------------------------ */
 
+/* `min(21rem, 100%)` لا `21rem` — T838.
+ *
+ * ‏`minmax(21rem, 1fr)` تعني «لا أقلّ من ٢١rem مهما ضاقت الشاشة»، فعلى
+ * ٣٢٠ بكسل يصير العمود ٣٣٦ ويُخرج الصفحة من حدّها. و`min(…, 100%)` تقرأ:
+ * ٢١rem حين تتّسع، وعرضُ الحاوية حين لا تتّسع — وهو ما يُقصد دائماً من
+ * `auto-fit`، ولا يقوله `minmax` وحده. قِيس: الصفحة كانت تفيض ٣٢ بكسل. */
 .board-figures {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(21rem, 100%), 1fr));
   gap: 1rem;
 }
 
@@ -1801,7 +1866,7 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
 
 /* الشبكة تتنفّس على الشاشات العريضة بدل أن تمطّ ستّ بطاقاتٍ إلى عرض الشاشة. */
 @media (min-width: 96rem) {
-  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
+  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
 }
 
 /* الشاشات الصغيرة: الدرج يملأ العرض، والشريط يُخفى لا يُطوى. */

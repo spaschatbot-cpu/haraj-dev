@@ -15,7 +15,8 @@
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الاسم</th><th>الجوال</th><th>النوع</th><th>الهوية</th><th>مسجَّل منذ</th></tr></thead>
     <tbody>
       {% for customer in page %}
@@ -32,6 +33,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} مستخدماً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

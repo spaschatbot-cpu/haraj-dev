@@ -19,7 +19,8 @@ v1 يفصل «إدارة مزاد + سياراته» عن «تعديل سريع 
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>#</th>
@@ -52,6 +53,7 @@ v1 يفصل «إدارة مزاد + سياراته» عن «تعديل سريع 
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ total|unlocalize }} مزاداً · تُعرض أول مئة.</p>
 

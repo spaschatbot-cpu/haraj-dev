@@ -24,7 +24,8 @@
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr>
         <th>مركبات رست</th>
@@ -54,6 +55,7 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   <p><a href="{% url 'console:accepted-bids' %}?q={{ q }}&amp;from={{ first }}&amp;to={{ last }}">افتح الصفوف التي خلف هذه الأرقام ←</a></p>
 {% endblock %}

@@ -23,7 +23,8 @@
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>إجمالي المزايدات</th><td class="count">{{ shape.total|unlocalize }}</td></tr>
       <tr><th>المزادات التي فيها مزايدة</th><td class="count">{{ shape.auctions|unlocalize }}</td></tr>
@@ -35,9 +36,11 @@
       <tr><th>إجمالي قيمة المزايدات</th><td class="money">{{ shape.value|unlocalize }}</td></tr>
     </tbody>
   </table>
+</div>
 
   <h2>الحالات — قسمةٌ لا تصنيف</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>قائمة</th><td class="count">{{ shape.standing|unlocalize }}</td></tr>
       <tr><th>استُبدلت بأعلى</th><td class="count">{{ shape.superseded|unlocalize }}</td></tr>
@@ -57,6 +60,7 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   <h2>محاولاتٌ لم تصر مزايدات</h2>
   <p>
@@ -71,7 +75,8 @@
   </p>
 
   <h2>أكثر المزايدين نشاطاً</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المزايد</th>
@@ -98,4 +103,5 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

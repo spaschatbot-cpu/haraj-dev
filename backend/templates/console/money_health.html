@@ -21,7 +21,8 @@ template.
   <h2>١ · الدفتر مع نفسه <span class="count">{{ report.findings|length|unlocalize }}</span></h2>
   <p class="empty">إعادة اشتقاق كل رصيد من قيوده. تُحسب الآن عند فتح الصفحة، فما
     زال سببه يختفي من هنا وحده.</p>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الفحص</th><th>الموضع</th><th>الملاحظة</th></tr></thead>
     <tbody>
       {% for finding in report.findings %}
@@ -35,11 +36,13 @@ template.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>٢ · الدفتر مع أودو <span class="count">{{ report.differences|length|unlocalize }}</span></h2>
   <p class="empty">أودو هو دفتر القيد المعتمد. اتّساق الدفتر مع نفسه لا يقول شيئاً
     عن هذا السؤال. المعروض هنا آخر مقارنة لكل عميل، لا كل مقارنة جرت.</p>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>العميل</th><th>عندنا</th><th>عند أودو</th><th>الفرق</th><th>متى</th><th>ملاحظة</th></tr>
     </thead>
@@ -58,6 +61,7 @@ template.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>٣ · معلّق بلا صاحب <span class="money count">{{ report.suspense.balance|unlocalize }}</span></h2>
   <p class="empty">مبلغ وصل فعلاً ولم يُنسَب لعميل. الرقم أعلاه هو رصيد الدلو نفسه؛
@@ -71,7 +75,8 @@ template.
     </div>
   {% endif %}
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>متى</th><th>الحركة</th><th>المبلغ</th><th>البيان</th></tr></thead>
     <tbody>
       {% for movement in report.suspense.movements %}
@@ -86,4 +91,5 @@ template.
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

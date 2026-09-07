@@ -13,7 +13,8 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
 {% block heading %}فاتورة {{ invoice.number }}{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tr><th>العميل</th><td>
       <a href="{% url 'console:customer-detail' invoice.customer.pk %}">
         {{ invoice.customer.full_name }}</a></td></tr>
@@ -33,9 +34,11 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
     </td></tr>
     <tr><th>صدرت</th><td>{{ invoice.issued_at }}</td></tr>
   </table>
+</div>
 
   <h2>الدفعات المرحَّلة ({{ payments|length }})</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الوقت</th><th>النوع</th><th>الملاحظة</th></tr></thead>
     <tbody>
       {% for payment in payments %}
@@ -51,4 +54,5 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

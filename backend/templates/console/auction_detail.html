@@ -25,7 +25,8 @@ somebody went looking for it.
 
   <p><a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a></p>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الفائز</th></tr>
     </thead>
@@ -43,6 +44,7 @@ somebody went looking for it.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 

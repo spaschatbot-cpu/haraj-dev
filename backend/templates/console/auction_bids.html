@@ -27,7 +27,8 @@ v1 يعرض القائمة الأخيرة وحدها، فيسأل الدعم «�
     <span class="count">{{ total|unlocalize }}</span> مزايدة
   </p>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المركبة</th>
@@ -55,6 +56,7 @@ v1 يعرض القائمة الأخيرة وحدها، فيسأل الدعم «�
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 {% endblock %}

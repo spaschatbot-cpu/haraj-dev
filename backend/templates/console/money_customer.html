@@ -44,7 +44,8 @@ hole in the books as a healthy balance.
   {% endif %}
 
   <h2>الدلاء</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الدلو</th><th>المبلغ</th><th>عدد القيود</th></tr></thead>
     <tbody>
       {% for bucket in ledger.snapshot.buckets %}
@@ -61,9 +62,11 @@ hole in the books as a healthy balance.
       </tr>
     </tbody>
   </table>
+</div>
 
   <h2>الحجوزات القائمة</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>المبلغ</th><th>السبب</th><th>على ماذا</th><th>استثناء</th><th>منذ</th></tr>
     </thead>
@@ -85,9 +88,11 @@ hole in the books as a healthy balance.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>الحركات</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>التاريخ</th><th>الدلو</th><th>الحركة</th><th>المبلغ</th><th>البيان</th></tr>
     </thead>
@@ -105,6 +110,7 @@ hole in the books as a healthy balance.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} حركة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

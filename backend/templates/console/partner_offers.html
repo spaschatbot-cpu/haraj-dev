@@ -16,7 +16,8 @@ that number reached the invoice conversation.
 {% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tr><th>المزاد</th><td>
       <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
         {{ vehicle.auction.number|unlocalize }}</a></td></tr>
@@ -31,9 +32,11 @@ that number reached the invoice conversation.
       {% if accepted %}{{ accepted|unlocalize }} — {{ vehicle.awarded_to.full_name }}
       {% else %}<span class="empty">لم تُقبل بعد</span>{% endif %}</td></tr>
   </table>
+</div>
 
   <h2>العروض ({{ bids|length }})</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>المزايد</th><th>المبلغ</th><th>وقتها</th><th></th></tr></thead>
     <tbody>
       {% for bid in bids %}
@@ -57,6 +60,7 @@ that number reached the invoice conversation.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>رفض المالك</h2>
   <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}">

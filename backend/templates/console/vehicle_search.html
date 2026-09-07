@@ -26,7 +26,8 @@
   {% if page is None %}
     <p class="empty">اكتب في أي حقل للبحث…</p>
   {% else %}
-    <table>
+    <div class="scroller">
+      <table>
       <thead>
         <tr>
           <th>#</th>
@@ -63,6 +64,7 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
     <p>{{ page.paginator.count|unlocalize }} نتيجةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
   {% endif %}
 {% endblock %}

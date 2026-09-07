@@ -13,7 +13,8 @@
   </div>
 
   <h2>ينتظر قراراً</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>المرجع</th><th>العميل</th><th>طُلب</th><th>المتاح</th>
           <th>المرهون</th><th>العجز</th><th>منذ</th><th>القرار</th></tr>
@@ -42,9 +43,11 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>آخر ما أُغلق</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>المرجع</th><th>العميل</th><th>القرار</th><th>من</th><th>متى</th></tr></thead>
     <tbody>
       {% for case in closed %}
@@ -60,4 +63,5 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

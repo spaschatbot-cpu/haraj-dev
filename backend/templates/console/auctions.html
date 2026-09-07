@@ -29,7 +29,8 @@ have to undo one in their head.
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>الرقم</th><th>العنوان</th><th>الحالة</th>
@@ -52,6 +53,7 @@ have to undo one in their head.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

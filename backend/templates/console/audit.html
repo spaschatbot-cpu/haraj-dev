@@ -32,7 +32,8 @@ audit entry is worth reading during a dispute.
     <button type="submit">بحث</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>متى</th><th>المنفّذ</th><th>الفعل</th><th>الكيان</th><th>قبل</th><th>بعد</th><th>السبب</th></tr>
     </thead>
@@ -55,6 +56,7 @@ audit entry is worth reading during a dispute.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} قيداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

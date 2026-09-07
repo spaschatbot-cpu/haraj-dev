@@ -17,12 +17,14 @@ T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَ�
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>عملاء لهم تأمين</th><td class="count">{{ customers|unlocalize }}</td></tr>
       <tr><th>إجمالي مبالغ التأمين</th><td class="money">{{ total|unlocalize }}</td></tr>
     </tbody>
   </table>
+</div>
 
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال">
@@ -35,7 +37,8 @@ T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَ�
     <button type="submit">تطبيق</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>#</th>
@@ -61,6 +64,7 @@ T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَ�
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} عميلاً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 

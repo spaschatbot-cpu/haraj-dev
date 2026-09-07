@@ -24,7 +24,8 @@
   {% if not auction %}
     <p class="empty">اكتب رقم مزادٍ لتفتح جدول عدّاداته.</p>
 
-    <table>
+    <div class="scroller">
+      <table>
       <thead><tr><th>#</th><th>المزاد</th><th>الحالة</th><th>المركبات</th><th></th></tr></thead>
       <tbody>
         {% for row in auctions %}
@@ -46,6 +47,7 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
 
   {% else %}
     <h2>{{ auction.number|unlocalize }} — {{ auction.title }}</h2>
@@ -53,7 +55,8 @@
     <form method="post" class="form-card">
       {% csrf_token %}
       <input type="hidden" name="number" value="{{ auction.number|unlocalize }}">
-      <table>
+      <div class="scroller">
+        <table>
         <thead>
           <tr><th>اللوت</th><th>المركبة</th><th>اللوحة</th><th>العدّاد</th></tr>
         </thead>
@@ -74,6 +77,7 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
       {% if cars %}<button type="submit">احفظ</button>{% endif %}
     </form>
 

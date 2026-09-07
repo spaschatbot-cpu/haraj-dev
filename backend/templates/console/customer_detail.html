@@ -15,7 +15,8 @@ customer read "رصيدك 10,000" as money he could withdraw — it was pinned t
       {% if company %}تعديل الشركة{% else %}إضافة شركة{% endif %}</a>
   </p>
 
-  <table>
+  <div class="scroller">
+    <table>
     <tr><th>الجوال</th><td>{{ customer.phone }}</td></tr>
     <tr><th>البريد</th><td>{{ customer.email|default:"—" }}</td></tr>
     <tr><th>نوع الحساب</th><td>{{ customer.get_account_type_display }}</td></tr>
@@ -27,9 +28,11 @@ customer read "رصيدك 10,000" as money he could withdraw — it was pinned t
       <tr><th>الرقم الضريبي</th><td>{{ company.vat_number|default:"—" }}</td></tr>
     {% endif %}
   </table>
+</div>
 
   <h2>التأمين</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الدلو</th><th>المبلغ</th></tr></thead>
     <tbody>
       {% for bucket in wallet.buckets %}
@@ -39,9 +42,11 @@ customer read "رصيدك 10,000" as money he could withdraw — it was pinned t
       <tr><th>الإجمالي</th><th class="money">{{ wallet.total|unlocalize }}</th></tr>
     </tbody>
   </table>
+</div>
 
   <h2>الفواتير</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>الرقم</th><th>المبلغ</th><th>المسدَّد</th><th>الحالة</th></tr></thead>
     <tbody>
       {% for invoice in invoices %}
@@ -56,4 +61,5 @@ customer read "رصيدك 10,000" as money he could withdraw — it was pinned t
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

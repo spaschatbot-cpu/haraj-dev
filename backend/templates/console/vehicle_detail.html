@@ -34,7 +34,8 @@ and v1's screens were full of them.
     </ul>
   {% endif %}
 
-  <table>
+  <div class="scroller">
+    <table>
     <tr><th>المزاد</th><td>
       <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
         {{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></td></tr>
@@ -49,6 +50,7 @@ and v1's screens were full of them.
     <tr><th>الفائز</th><td>{{ vehicle.awarded_to.full_name|default:"—" }}</td></tr>
     <tr><th>سعر الرسو</th><td class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</td></tr>
   </table>
+</div>
 
   <p><a href="{% url 'console:vehicle-edit' vehicle.pk %}">تعديل البيانات</a></p>
 

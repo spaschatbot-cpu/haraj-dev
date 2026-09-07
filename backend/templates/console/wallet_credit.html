@@ -30,13 +30,15 @@
         {{ row.person.full_name }}
         <small>{{ row.person.phone|unlocalize }}</small>
       </h2>
-      <table>
+      <div class="scroller">
+        <table>
         <tbody>
           <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
           <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
           <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
         </tbody>
       </table>
+    </div>
 
       <form method="post" class="form-card">
         {% csrf_token %}

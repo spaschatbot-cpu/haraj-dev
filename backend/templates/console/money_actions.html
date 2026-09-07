@@ -27,7 +27,8 @@ and the rule lives where the next caller inherits it.
   </div>
 
   <h2>الحجوزات القائمة</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>المبلغ</th><th>السبب</th><th>على ماذا</th><th>الفعل</th></tr>
     </thead>
@@ -74,11 +75,13 @@ and the rule lives where the next caller inherits it.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>آخر الحركات</h2>
   <p class="empty">التصحيح يضيف قيداً عاكساً. الحركة الأصلية تبقى كما هي — لا شيء
     في هذا النظام يعدّل تاريخاً.</p>
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr><th>متى</th><th>الحركة</th><th>المبلغ</th><th>البيان</th><th>الفعل</th></tr>
     </thead>
@@ -108,4 +111,5 @@ and the rule lives where the next caller inherits it.
       {% endfor %}
     </tbody>
   </table>
+</div>
 {% endblock %}

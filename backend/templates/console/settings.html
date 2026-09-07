@@ -16,7 +16,8 @@
   <p>الحساب، والصلاحيات، والمظهر — وما لكلٍّ منها من شاشة.</p>
 
   <h2>حسابك</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>الاسم</th><td>{{ request.user.full_name }}</td></tr>
       <tr><th>الجوال — وهو اسم الدخول</th><td>{{ request.user.phone|unlocalize }}</td></tr>
@@ -28,9 +29,11 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   <h2>الصلاحيات</h2>
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr>
         <th>المشرفون</th>
@@ -42,12 +45,14 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   <h2>ما تملكه أنت</h2>
   {% comment %} قائمةُ قدراتِ القارئ نفسه: أوضحُ جوابٍ عن «لماذا لا أرى هذه
      الصفحة؟»، وهو السؤال الذي يصل الدعمَ أكثر من غيره. وv1 لا يعرض هذا
      أبداً — يعرض المصفوفة كلّها لمن يملكها ولا شيء لمن لا يملكها. {% endcomment %}
-  <table>
+  <div class="scroller">
+    <table>
     <thead><tr><th>القدرة</th><th>من أين</th></tr></thead>
     <tbody>
       {% for item in mine %}
@@ -66,6 +71,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <h2>المظهر</h2>
   <p>

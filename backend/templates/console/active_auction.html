@@ -39,7 +39,8 @@
       <a href="{% url 'console:auction-detail' shape.auction.pk %}">افتح المزاد ←</a>
     </p>
 
-    <table>
+    <div class="scroller">
+      <table>
       <tbody>
         <tr><th>سيارات المزاد</th><td class="count">{{ shape.vehicles|unlocalize }}</td></tr>
         <tr><th>سيارات عليها مزايدة</th><td class="count">{{ shape.with_bids|unlocalize }}</td></tr>
@@ -52,9 +53,11 @@
         <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
       </tbody>
     </table>
+  </div>
 
     <h2>القيمة الحالية — لو أُغلق المزاد الآن</h2>
-    <table>
+    <div class="scroller">
+      <table>
       <tbody>
         <tr>
           <th>مجموع أعلى مزايدةٍ لكل سيارة</th>
@@ -62,6 +65,7 @@
         </tr>
       </tbody>
     </table>
+  </div>
     <p class="empty">
       هذا رقمٌ <strong>مشروط</strong>: لو أُغلق المزاد في هذه اللحظة. وليس
       مبيعاتٍ وقعت — المزايدة قد تُعلى، والمالك قد يرفض ما دون سعر الوقوف.

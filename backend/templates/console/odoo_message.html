@@ -18,7 +18,8 @@ transaction behind it — a payment that exists in Odoo and nowhere here.
 {% block content %}
   <p><a href="{% url 'console:odoo-inbox' %}">← صندوق الوارد</a></p>
 
-  <table>
+  <div class="scroller">
+    <table>
     <tr><th>الحالة</th><td>{{ row.get_state_display }}</td></tr>
     <tr><th>الموضوع</th><td>{{ row.subject_ref|default:"—" }}</td></tr>
     <tr><th>قاعدة أودو</th><td>{{ row.odoo_database|default:"—" }}</td></tr>
@@ -34,6 +35,7 @@ transaction behind it — a payment that exists in Odoo and nowhere here.
       {% else %}—{% endif %}
     </td></tr>
   </table>
+</div>
 
   {% if row.state == "failed" and replayable %}
     <h2>إعادة التشغيل</h2>

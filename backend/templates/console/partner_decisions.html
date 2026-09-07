@@ -17,7 +17,8 @@ sat in the vehicle list and the partner was told by telephone.
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المزاد</th><th>اللوت</th><th>المركبة</th><th>الشريك</th>
@@ -41,6 +42,7 @@ sat in the vehicle list and the partner was told by telephone.
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}

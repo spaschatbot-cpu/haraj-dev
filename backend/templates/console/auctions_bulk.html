@@ -14,7 +14,8 @@
 {% block heading %}عمليات مجمعة{% endblock %}
 
 {% block content %}
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>المزادات</th><td class="count">{{ auctions|unlocalize }}</td></tr>
       <tr><th>الجارية الآن</th><td class="count">{{ live|length|unlocalize }}</td></tr>
@@ -32,6 +33,7 @@
       </tr>
     </tbody>
   </table>
+</div>
 
   {% if dangling %}
     {% comment %} عدّادٌ بلا صفوفٍ لا يُتصرَّف فيه. {% endcomment %}
@@ -40,7 +42,8 @@
       يُغلق مزايداته في المعاملة نفسها، فبقاؤها قائمةً يعني أن الإغلاق لم
       يعمل. أمثلةٌ منها:
     </p>
-    <table>
+    <div class="scroller">
+      <table>
       <thead><tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>وقتها</th></tr></thead>
       <tbody>
         {% for bid in dangling_rows %}
@@ -53,13 +56,15 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
   {% endif %}
 
   <h2>إنهاء مزاداتٍ مختارة</h2>
   {% if live %}
     <form method="post" class="form-card">
       {% csrf_token %}
-      <table>
+      <div class="scroller">
+        <table>
         <thead>
           <tr><th></th><th>#</th><th>المزاد</th><th>المركبات</th><th>المزايدات</th><th>ينتهي</th></tr>
         </thead>
@@ -76,6 +81,7 @@
           {% endfor %}
         </tbody>
       </table>
+    </div>
       <p>
         <label for="why">السبب</label>
         <input id="why" type="text" name="reason" required>

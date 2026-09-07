@@ -31,7 +31,8 @@
     <button type="submit">تطبيق</button>
   </form>
 
-  <table>
+  <div class="scroller">
+    <table>
     <tbody>
       <tr><th>المزادات</th><td class="count">{{ totals.auctions|unlocalize }}</td></tr>
       <tr><th>منها ما فيه مزايدة</th><td class="count">{{ totals.with_bids|unlocalize }}</td></tr>
@@ -40,8 +41,10 @@
       <tr><th>ما وصل فعلاً</th><td class="money">{{ totals.collected|unlocalize }}</td></tr>
     </tbody>
   </table>
+</div>
 
-  <table>
+  <div class="scroller">
+    <table>
     <thead>
       <tr>
         <th>المزاد</th>
@@ -73,6 +76,7 @@
       {% endfor %}
     </tbody>
   </table>
+</div>
 
   <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 
