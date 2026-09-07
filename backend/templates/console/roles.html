@@ -1,21 +1,28 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
-الأدوار والصلاحيات — دورٌ يُختار ويُضاف ويُحذف.
+الأدوار والصلاحيات — لسانٌ في «إدارة المشرفين»، وفعلاهُ نافذتان.
 
-قائمة v1 المنسدلة فيها أحدَ عشرَ دوراً، وأربعةٌ منها تكرارُ أربعةٍ أخرى بأسماءٍ
-مختلفة: «Admin (مدير)» و«مدير (كل شيء عدا الإحصائيات)»، و«Data Entry (إدخال
-بيانات)» و«مدخل بيانات المزادات». وليس ذلك خطأً في التسمية — هو أثرُ أن كلَّ
-حاجةٍ جديدة كانت تُحلّ بدورٍ جديد، ثم لا يجرؤ أحدٌ على حذف القديم لأنه لا يعرف
-من يحمله.
+**لماذا نافذةٌ لا صفحة.** الإنشاءُ والتحكّم في الصلاحيات فعلان **على القائمة**
+لا وجهتان تُغادَر إليهما: من يعدّل صلاحيات دورٍ يريد أن يرى بقيّة الأدوار
+وعددَ حامليها في اللحظة نفسها، وصفحةٌ مستقلّة تأخذ ذلك السياق كلَّه ثم تُعيده.
 
-فعمودُ «كم يحمله» هنا هو ما يجعل القائمة تُنظَّف: صفرٌ يعني أن الدور يُحذف
-اليوم، وسبعةٌ تعني أن حذفه يُخرج سبعةَ موظّفين من اللوحة في لحظة.
+**و`<dialog>` لا `<div>` بطبقةٍ مرسومة:** المتصفّح يحبس التركيز، ويُغلق
+بـEscape، ويعتم الخلف، ويُعلنها نافذةً لقارئ الشاشة — أربعةٌ كان كلٌّ منها
+سطرَ جافاسكربت يُنسى واحدٌ منها دائماً.
+
+**ونافذتان اثنتان لا نافذةٌ في كل صفّ:** سبعةُ أدوارٍ × ثمانَ عشرةَ قدرةً =
+مئةٌ وستّةٌ وعشرون مربّعاً مخفيّاً في كل تحميل. فالصفُّ يحمل بياناته في
+`data-*` والنافذةُ تُملأ منها.
+
+**والمكتوبُ في الشيفرة لا يُعدَّل من هنا:** `bundle_for` تقرأه قبل الجدول،
+فتعديلُ صفٍّ باسمه لا أثر له — وشاشةٌ تقبل تعديلاً بلا أثر أسوأ من شاشةٍ ترفضه.
 {% endcomment %}
 {% block title %}الأدوار والصلاحيات{% endblock %}
 {% block heading %}إدارة المشرفين{% endblock %}
 {% block actions %}
   <a href="{% url 'console:admin-new' %}">+ مشرف جديد</a>
+  <button type="button" data-opens="roleNew">+ دور جديد</button>
 {% endblock %}
 
 {% block content %}
@@ -32,88 +39,123 @@
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>الدور</th>
+          <th>المعرّف</th>
+          <th>القدرات</th>
+          <th>كم مشرفاً يحمله</th>
+          <th>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              {{ row.label }}
+              {% if row.built_in %}
+                {% comment %} المكتوب في الشيفرة يُوسَم: من يبحث عن زرّ التعديل
+                   ولا يجده يحتاج أن يعرف لماذا، لا أن يظنّ الشاشة معطّلة.
+                {% endcomment %}
+                <span class="pill" data-tone="ok">مكتوبٌ في الشيفرة</span>
+              {% endif %}
+              {% if row.reason %}<small class="empty">{{ row.reason }}</small>{% endif %}
+            </td>
+            <td><code>{{ row.slug }}</code></td>
+            <td class="count">
+              {{ row.count|unlocalize }}
+              {% comment %} الأسماء لا العدد وحده: «١٢ قدرة» رقمٌ لا يُراجَع،
+                 و«الأفعال المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى
+                 هذا الشخص المال؟». {% endcomment %}
+              <details>
+                <summary>أيُّ القدرات؟</summary>
+                <ul>
+                  {% for name in row.capabilities %}<li>{{ name }}</li>{% endfor %}
+                </ul>
+              </details>
+            </td>
+            <td class="count">
+              {{ row.held|unlocalize }}
+              {% if row.held %}
+                <a href="{% url 'console:admins' %}?role={{ row.slug }}">من هم ←</a>
+              {% endif %}
+            </td>
+            <td class="row-actions">
+              {% if row.built_in %}
+                <span class="empty">لا يُعدَّل ولا يُحذف — مكتوبٌ في الشيفرة</span>
+              {% else %}
+                <button type="button"
+                        data-opens="roleCaps"
+                        data-slug="{{ row.slug }}"
+                        data-label="{{ row.label }}"
+                        data-held="{{ row.held|unlocalize }}"
+                        data-caps="{{ row.codes }}">إدارة الصلاحيات</button>
+                {% comment %} الحذفُ يُعرض دائماً وشاشتُه هي التي ترفض وتقول
+                   من يحمله: زرٌّ يختفي يجعل الموظّف يظنّ الشاشة معطّلة،
+                   وزرٌّ يُفتح على رفضٍ مسمّىً يُعلّمه القاعدة. {% endcomment %}
+                <a class="danger" href="{% url 'console:role-delete' row.slug %}">حذف</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
 
-  {% comment %} الإنشاءُ فعلٌ نادر، والقائمةُ هي الغرض — فاستمارةٌ مفتوحةٌ
-     تدفع الجدولَ إلى ما بعد الطيّة. و`<details>` تفتح وتنطوي بلا سطر
-     جافاسكربت، وتُفتح وحدها حين يُرفض الإدخال فيرى الموظّف خطأه. {% endcomment %}
-  <details class="advanced-panel"{% if form.errors %} open{% endif %}>
-    <summary>+ دورٌ جديد</summary>
-    <form method="post" class="form-card">
+{% block scripts %}
+  <dialog id="roleNew" class="modal">
+    <form method="post">
       {% csrf_token %}
+      <h2>دورٌ جديد</h2>
       {{ form.as_p }}
       <p class="empty">
         القدرة التي لا تُختار لا تُمنح. ودورٌ بلا «فتح اللوحة» لا يدخل حاملُه
         أصلاً — وذلك مسموح، لأن حساباً يُنشأ اليوم ويُفتح الأسبوع القادم حالةٌ
         حقيقية.
       </p>
-      <button type="submit">أضف الدور</button>
+      <div class="modal__buttons">
+        <button type="submit">أضف الدور</button>
+        <button type="button" data-close>إلغاء</button>
+      </div>
     </form>
-  </details>
+  </dialog>
 
-  <div class="scroller">
-  <table>
-    <thead>
-      <tr>
-        <th>الدور</th>
-        <th>المعرّف</th>
-        <th>القدرات</th>
-        <th>كم مشرفاً يحمله</th>
-        <th>الإجراءات</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-        <tr>
-          <td>
-            {{ row.label }}
-            {% if row.built_in %}
-              {% comment %} المكتوب في الشيفرة يُوسَم: من يبحث عن زرّ الحذف
-                 ولا يجده يحتاج أن يعرف لماذا، لا أن يظنّ الشاشة معطّلة.
-              {% endcomment %}
-              <span class="pill" data-tone="ok">مكتوبٌ في الشيفرة</span>
-            {% endif %}
-            {% if row.reason %}<small class="empty">{{ row.reason }}</small>{% endif %}
-          </td>
-          <td><code>{{ row.slug }}</code></td>
-          <td>
-            {{ row.count|unlocalize }}
-            {% comment %} الأسماء لا العدد وحده: «١٢ قدرة» رقمٌ لا يُراجَع،
-               و«الأفعال المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى
-               هذا الشخص المال؟». {% endcomment %}
-            <details>
-              <summary>أيُّ القدرات؟</summary>
-              <ul>
-                {% for name in row.capabilities %}
-                  <li>{{ name }}</li>
-                {% endfor %}
-              </ul>
-            </details>
-          </td>
-          <td class="count">
-            {{ row.held|unlocalize }}
-            {% if row.held %}
-              <a href="{% url 'console:admins' %}?role={{ row.slug }}">من هم ←</a>
-            {% endif %}
-          </td>
-          <td>
-            {% comment %} النصُّ عامٌّ لا عن «المالك» وحده: كان يقول «حذفُ
-               المالك يُقفل اللوحة» في صفِّ «التشغيل» أيضاً، فيُقرأ كأنه خطأ
-               في الصفحة. والسببُ واحدٌ للأربعة: صفٌّ لا وجود له لا يُحذف.
-            {% endcomment %}
-            {% if row.built_in %}
-              <span class="empty">لا يُعدَّل ولا يُحذف — مكتوبٌ في الشيفرة لا صفٌّ</span>
-            {% else %}
-              <a href="{% url 'console:role-edit' row.slug %}">تعديل</a>
-              {% comment %} الحذفُ يُعرض دائماً وشاشتُه هي التي ترفض وتقول
-                 من يحمله: زرٌّ يختفي يجعل الموظّف يظنّ الشاشة معطّلة، وزرٌّ
-                 يُفتح على رفضٍ مسمّىً يُعلّمه القاعدة. {% endcomment %}
-              · <a href="{% url 'console:role-delete' row.slug %}">حذف</a>
-            {% endif %}
-          </td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  </div>
+  <dialog id="roleCaps" class="modal modal--wide">
+    {% comment %} المسار بنائبٍ نصّيّ يستبدله `roles.js` بمعرّف الصفّ —
+       فبادئةُ اللوحة تبقى في `urls.py` وحدها. {% endcomment %}
+    <form method="post" data-action="{% url 'console:role-edit' '__slug__' %}">
+      {% csrf_token %}
+      <h2>صلاحيات «<span data-role-label></span>»</h2>
+      <p class="alarm">
+        هذا الدور يحمله <strong><span data-role-held></span></strong> من
+        المشرفين — وما تختاره هنا يقع عليهم جميعاً في اللحظة نفسها.
+      </p>
 
+      <fieldset class="caps">
+        <legend>القدرات</legend>
+        {% for value, label in capability_choices %}
+          <label class="caps__row">
+            <input type="checkbox" name="capabilities" value="{{ value }}">
+            <span>{{ label }}</span>
+            <code>{{ value }}</code>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <p>
+        <label for="capsReason">سبب التعديل</label>
+        <input id="capsReason" type="text" name="reason" required>
+      </p>
+
+      <div class="modal__buttons">
+        <button type="submit">احفظ الصلاحيات</button>
+        <button type="button" data-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="{% static 'console/roles.js' %}" defer></script>
 {% endblock %}

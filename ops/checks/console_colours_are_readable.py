@@ -76,11 +76,31 @@ SHEET = ROOT / "backend" / "apps" / "console" / "static" / "console" / "app.css"
 TEXT = 4.5
 UI = 3.0
 
-#: ما تعرضه اللوحة فعلاً — ويطابق `ALLOWED` في `theme.js`. زيادةُ لونٍ هناك بلا
-#: زيادته هنا تعني لوناً يُختار ولا يُقاس، وهو بالضبط ما يحرسه هذا الملف.
 SCHEMES = ("light", "dark")
-ACCENTS = ("azure", "violet", "teal", "emerald", "amber", "rose")
 SIDEBARS = ("auto", "light", "dark", "gradient")
+
+
+def accents() -> tuple[str, ...]:
+    """الألوان الأساسية **مقروءةً من الورقة** لا مكتوبةً هنا.
+
+    كانت قائمةً منسوخة، فأُضيف لونٌ سابع إلى `app.css` و`theme.js` وبقيت هي
+    ستّةً — **فصار لونٌ يُختار من الدرج ولا يُقاس تباينُه أبداً**، وهو بالضبط
+    ما وُجد هذا الملفّ ليمنعه. وحارسٌ يحرس قائمةً منسوخة يحرس أمسَ لا اليوم.
+
+    والاشتقاقُ من `[data-accent="…"]` لأنه المصدر الذي يقرؤه المتصفّح فعلاً:
+    لونٌ في `theme.js` بلا كتلةٍ هنا لا يغيّر شيئاً، وكتلةٌ هنا بلا زرٍّ في
+    الدرج تبقى مقيسةً بلا ضرر.
+    """
+    found = ACCENT_BLOCK.findall(SHEET.read_text(encoding="utf-8"))
+    if not found:
+        raise SystemExit(f"لم يُعثر على لونٍ أساسيٍّ واحد في {SHEET}")
+    # `dict.fromkeys` لا `set`: الترتيب يبقى ترتيبَ الورقة فتُقرأ الرسالة كما
+    # يقرأ المطوّرُ ملفَّه.
+    return tuple(dict.fromkeys(found))
+
+
+#: كتلةُ لونٍ أساسيّ: `:root[data-accent="NAME"]`.
+ACCENT_BLOCK = re.compile(r':root\[data-accent="([\w-]+)"\]')
 
 #: كتلةُ أنماطٍ: محدّدها ثم ما بين قوسيها. `[^{}]*` لأن كتل اللون لا تتداخل.
 BLOCK = re.compile(r"(:root[^{]*)\{([^{}]*)\}")
@@ -200,6 +220,12 @@ def pairs_for(t: dict[str, str]) -> list[tuple[str, str, str, float]]:
         ("إطار التركيز على البطاقة", t["focus"], t["panel"], UI),
         ("إطار التركيز على الأرضية", t["focus"], t["ground"], UI),
         ("حدّ الحقل", t["field-border"], t["panel"], UI),
+        # `--brand` دورُه الثالث المكتوب في رأس الورقة: «ما ليس نصّاً — حدٌّ،
+        # إطار، تدرّج. الحدّ ٣:١». وكان **بلا زوجٍ يقيسه**، فالورقةُ تُعلن
+        # قاعدةً لا يحرسها أحد. وأُضيف حين كُشف: لونٌ أساسيٌّ فاتح يمرّ في كل
+        # الفحوص ثم لا تُرى حدودُ البطاقات على الشاشة.
+        ("حدُّ اللون الأساسي على البطاقة", t["brand"], t["panel"], UI),
+        ("حدُّ اللون الأساسي على الأرضية", t["brand"], t["ground"], UI),
         # الرسائل الموسومة — لونها هو لون حالتها على خلفية حالتها.
         ("رسالة نجاح", t["ok"], t["ok-soft"], TEXT),
         ("رسالة رفض", t["danger"], t["danger-soft"], TEXT),
@@ -229,7 +255,7 @@ def pairs_for(t: dict[str, str]) -> list[tuple[str, str, str, float]]:
 
 
 def main() -> int:
-    combinations = list(itertools.product(SCHEMES, ACCENTS, SIDEBARS))
+    combinations = list(itertools.product(SCHEMES, accents(), SIDEBARS))
     failures = []
     measured = 0
 

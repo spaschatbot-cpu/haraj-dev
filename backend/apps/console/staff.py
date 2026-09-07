@@ -267,6 +267,10 @@ def _roles_tab(request):
             "views": VIEWS,
             "view": "roles",
             "cards": staff_tallies(),
+            # قائمةُ القدرات كما هي في التعداد: النافذةُ ترسمها مرّةً، ولا
+            # تُكرَّر في كل صفّ — سبعةُ أدوارٍ × ثمانَ عشرةَ قدرة = مئةٌ
+            # وستّةٌ وعشرون مربّعاً مخفيّاً في كل تحميل.
+            "capability_choices": Capability.choices,
         },
     )
 
@@ -481,6 +485,9 @@ def role_table() -> list[dict]:
                 "capabilities": sorted(
                     labels.get(name, name) for name in bundle_for(slug)
                 ),
+                # المعرّفاتُ الخام معها: النافذةُ تؤشّر بها، والجدولُ يعرض
+                # الاسمَ العربيّ — ومصدرُهما `bundle_for` واحدةً لا اثنتين.
+                "codes": ",".join(sorted(bundle_for(slug))),
             }
         )
     return table
@@ -820,13 +827,27 @@ def role_edit(request, slug: str):
     role = get_object_or_404(ConsoleRole, slug=slug)
     holders = User.objects.filter(is_staff=True, console_role=slug)
 
-    form = RoleForm(request.POST or None, instance=role)
+    # اللقطةُ **قبل** بناء الاستمارة: `ModelForm` يكتب في `instance` أثناء
+    # التحقّق، فقراءةُ `role.capabilities` بعده تقرأ الجديدَ وتكتبه في خانة
+    # «قبل» — فيقول القيدُ إن شيئاً لم يتغيّر. وقيدٌ يقول ذلك أسوأ من غيابه:
+    # يُقرأ إثباتاً على أن التغيير لم يقع.
+    before = sorted(role.capabilities)
+
+    # النافذةُ ترسل القدرات والسبب وحدهما — لا الاسمَ ولا المعرّف: هي شاشةُ
+    # «إدارة الصلاحيات» لا شاشةُ إعادة تسمية. فيُكمَّل الناقصُ من الصفّ
+    # القائم، ولو تُرك ناقصاً لرفضت الاستمارةُ الحفظَ على حقلٍ لم يُعرَض
+    # أصلاً — وذلك رفضٌ لا يفهمه من يقرأ الشاشة.
+    posted = request.POST.copy() if request.method == "POST" else None
+    if posted is not None:
+        posted.setdefault("label", role.label)
+        posted.setdefault("slug", role.slug)
+
+    form = RoleForm(posted, instance=role)
     # المعرّف لا يُعدَّل: هو ما يحمله عمودُ كل مشرفٍ على هذا الدور، وتغييرُه
     # يترك السبعةَ بدورٍ لا وجود له — وهو حذفٌ بلا اسمه.
     form.fields["slug"].disabled = True
 
     if request.method == "POST" and form.is_valid():
-        before = sorted(role.capabilities)
         saved = form.save(commit=False)
         saved.slug = role.slug
         saved.full_clean()

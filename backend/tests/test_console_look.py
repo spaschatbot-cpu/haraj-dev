@@ -145,7 +145,11 @@ def test_the_breakpoint_is_the_same_number_in_both_files() -> None:
 def test_the_guard_measures_every_combination_the_script_allows() -> None:
     """توليفةٌ تعمل ولا تُقاس هي التوليفة التي يقع فيها اللون الراسب."""
     allowed = allowed_in_script()
-    assert set(check.ACCENTS) == set(allowed["accent"])
+    # `accents()` تُشتقّ من الورقة لا تُنسَخ (T855): كانت قائمةً مكتوبةً
+    # باليد، فأُضيف لونٌ سابع إلى الورقة والدرج وبقيت هي ستّةً — ولونٌ
+    # يُختار ولا يُقاس هو ما وُجد هذا الحارس ليمنعه. وهذا التوكيد هو ما يُبقي
+    # الطرفين متساويين: الورقةُ والدرج.
+    assert set(check.accents()) == set(allowed["accent"])
     assert set(check.SIDEBARS) == set(allowed["sidebar"])
     # `scheme` وحده يُحَلّ في theme.js: `auto` تصير `light` أو `dark` قبل أن
     # تُكتب على `<html>`، فالورقة لا تعرف إلا اثنتين — والحارس يقيسهما.

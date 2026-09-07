@@ -121,26 +121,38 @@
   --ring: color-mix(in srgb, var(--brand) 26%, transparent);
 }
 
-/* ---- اللون الأساسي: ستّة، وكلٌّ ستّ درجات وحدها ------------------------
-   الأزرق افتراضٌ لا صدفة: هويّة اللوحة التي أقرّها المالك في T819. الخمسة
-   الباقية اختيارٌ يُحفظ في المتصفّح، ولا يُغيّر ملفاً على الخادم. */
+/* ---- اللون الأساسي: سبعة، وكلٌّ خمسُ درجاتٍ وحده ------------------------
+   الأزرق افتراضٌ لا صدفة: هويّة اللوحة التي أقرّها المالك في T819. والباقي
+   اختيارٌ يُحفظ في المتصفّح، ولا يُغيّر ملفاً على الخادم.
+
+   و`--a500` هنا **حدٌّ وإطار لا نصّ**، فحدُّه ٣:١. وأربعةٌ من الستّة كانت
+   دونه منذ كُتبت — الكهرمانيّ ٢٫٢٨ على الأرضية — لأن الحارس لم يكن يقيس هذا
+   الدور أصلاً (T855). فغُمّقت إلى أدنى ما يبلغ الحدَّ: تغميقٌ بالحدّ الأدنى
+   يُبقي اللون معروفاً، والقفزُ إلى درجةٍ غامقةٍ يجعل الستّة تتشابه. */
 :root, :root[data-accent="azure"] {
-  --a050: #e6f2fc; --a300: #8ec8ee; --a500: #3d9bd6; --a700: #1f6f9f; --a-dim: #10293c;
+  --a050: #e6f2fc; --a300: #8ec8ee; --a500: #3991c9; --a700: #1f6f9f; --a-dim: #10293c;
 }
 :root[data-accent="violet"] {
   --a050: #f1ecfd; --a300: #bda6f4; --a500: #8b5cf6; --a700: #6127c4; --a-dim: #221a3d;
 }
 :root[data-accent="teal"] {
-  --a050: #e2f5f3; --a300: #6ed2ca; --a500: #17a99f; --a700: #0c766e; --a-dim: #0b2c2a;
+  --a050: #e2f5f3; --a300: #6ed2ca; --a500: #159e95; --a700: #0c766e; --a-dim: #0b2c2a;
 }
 :root[data-accent="emerald"] {
-  --a050: #e6f6ee; --a300: #74d5a7; --a500: #12a866; --a700: #077547; --a-dim: #0a2c1e;
+  --a050: #e6f6ee; --a300: #74d5a7; --a500: #109d5f; --a700: #077547; --a-dim: #0a2c1e;
 }
 :root[data-accent="amber"] {
-  --a050: #fdf2da; --a300: #f2c96f; --a500: #e39411; --a700: #8f5d09; --a-dim: #2e2410;
+  --a050: #fdf2da; --a300: #f2c96f; --a500: #bc7a0d; --a700: #8f5d09; --a-dim: #2e2410;
 }
 :root[data-accent="rose"] {
   --a050: #fdeaee; --a300: #f5a0af; --a500: #ef4463; --a700: #b0113a; --a-dim: #2e1119;
+}
+/* الذهبيّ — هويّةُ حراج نفسها (`#a88118` في لوحته القديمة). وهو أصعبُ
+   الستّة: الذهبُ الفاتح على الأبيض لا يبلغ ٣:١ فلا يصلح حدّاً، فأُخذت درجةُ
+   الهويّة نفسُها لـ`--a500` (٤٫٠ على الأبيض) ونُزلت `--a700` إلى بنّيٍّ
+   ذهبيّ يحمل نصّاً أبيض. والحارس هو الذي حسم القيم لا العين. */
+:root[data-accent="gold"] {
+  --a050: #faf2dd; --a300: #d9b45c; --a500: #a88118; --a700: #6d5209; --a-dim: #2b2308;
 }
 
 /* ---- المظهر الداكن -----------------------------------------------------
@@ -1804,11 +1816,12 @@ a.stat:hover .stat__action { color: var(--ink); }
   border-color: var(--panel);
   box-shadow: 0 0 0 2px var(--swatch);
 }
-.themer__swatch[data-accent="azure"]   { --swatch: #3d9bd6; }
+.themer__swatch[data-accent="gold"]    { --swatch: #a88118; }
+.themer__swatch[data-accent="azure"]   { --swatch: #3991c9; }
 .themer__swatch[data-accent="violet"]  { --swatch: #8b5cf6; }
-.themer__swatch[data-accent="teal"]    { --swatch: #17a99f; }
-.themer__swatch[data-accent="emerald"] { --swatch: #12a866; }
-.themer__swatch[data-accent="amber"]   { --swatch: #e39411; }
+.themer__swatch[data-accent="teal"]    { --swatch: #159e95; }
+.themer__swatch[data-accent="emerald"] { --swatch: #109d5f; }
+.themer__swatch[data-accent="amber"]   { --swatch: #bc7a0d; }
 .themer__swatch[data-accent="rose"]    { --swatch: #ef4463; }
 
 .themer__reset {
@@ -2334,6 +2347,16 @@ form[method="get"] .advanced-panel label {
    `<dialog>` يعطينا حبسَ التركيز وEscape و`::backdrop` بلا سطر جافاسكربت.
    والعرض `min(30rem, 92vw)` فلا تفيض على الهاتف. */
 .modal {
+  /* التوسيطُ صريحٌ لا متروكٌ للمتصفّح: قاعدةُ `dialog` الافتراضية تضع
+     `margin: auto`، وأيُّ قاعدةٍ سابقة تمسّ `margin` على العناصر تُلغيها —
+     فتنزل النافذةُ إلى أسفل الشاشة وتظهر نصفُها. وقع ذلك هنا. */
+  margin: auto;
+
+  /* وسقفُ الارتفاع مع تمريرٍ داخليّ: ثمانَ عشرةَ قدرةً في نافذةٍ بلا سقف
+     تمتدّ خارج الشاشة، فيختفي زرُّ الحفظ تحت الحافة ولا يُعرف أنه هناك. */
+  max-block-size: min(86vh, 48rem);
+  overflow: auto;
+
   inline-size: min(30rem, 92vw);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -2342,6 +2365,41 @@ form[method="get"] .advanced-panel label {
   padding: 1.3rem 1.4rem;
   box-shadow: var(--shadow-lift);
 }
+/* نافذةُ الصلاحيات أعرض: ثمانَ عشرةَ قدرةً في عمودٍ من ٣٠ريم تصير قائمةً
+   تُمرَّر، والقرارُ يحتاج أن تُرى كلُّها معاً — «ماذا يملك هذا الدور» سؤالٌ
+   عن المجموعة لا عن سطر. */
+.modal--wide { inline-size: min(46rem, 94vw); }
+
+/* القدرات: عمودان على الشاشة العادية، وواحدٌ على الضيّقة. والمعرّفُ الخام
+   بجوار الاسم العربيّ لأنه ما يظهر في رسائل الرفض وفي `tasks.md` — فمن يقرأ
+   «`money.act` غير مسموحة» يجدها هنا بعينها. */
+.caps {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .7rem .9rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.caps legend { padding-inline: .4rem; font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+.caps__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .5rem;
+  padding: .3rem .2rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.caps__row:hover { background: var(--line-soft); border-radius: 6px; }
+.caps__row code { font-size: .72rem; color: var(--muted); }
+
+@media (min-width: 46rem) {
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2rem; }
+  .caps legend { grid-column: 1 / -1; }
+}
+
 .modal::backdrop { background: rgb(0 0 0 / .5); }
 .modal h2 { margin: 0 0 .9rem; font-size: 1.1rem; }
 .modal p { margin: 0 0 .8rem; }

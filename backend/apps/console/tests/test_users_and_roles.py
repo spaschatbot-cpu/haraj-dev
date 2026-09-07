@@ -430,3 +430,73 @@ def test_every_row_icon_is_declared():
 
     assert used <= set(ROW_ICONS), f"رسمٌ غير مُعلَن: {used - set(ROW_ICONS)}"
     assert set(ROW_ICONS) <= used, f"إعلانٌ بلا فعل: {set(ROW_ICONS) - used}"
+
+
+# ---------------------------------------------------------------------------
+# ٨ — نافذةُ الصلاحيات: تُرسل القدرات وحدها، والباقي يُكمَّل. T856
+# ---------------------------------------------------------------------------
+
+
+def test_the_capabilities_dialog_saves_without_resending_the_name(client, owner):
+    """النافذةُ شاشةُ «إدارة الصلاحيات» لا شاشةُ إعادة تسمية.
+
+    فترسل القدرات والسبب وحدهما. ولو تُرك الناقصُ ناقصاً لرفضت الاستمارةُ
+    الحفظَ على حقلٍ **لم يُعرَض أصلاً** — وذلك رفضٌ لا يفهمه من يقرأ الشاشة،
+    وهو نوعُ العطل الذي يجعل الموظّف يظنّ الزرَّ معطّلاً.
+    """
+    ConsoleRole.objects.create(
+        slug="yard",
+        label="الساحة",
+        capabilities=[Capability.CONSOLE_ACCESS],
+        reason="فريق الساحة",
+    )
+
+    response = client.post(
+        reverse("console:role-edit", args=["yard"]),
+        {
+            "capabilities": [Capability.CONSOLE_ACCESS, Capability.AUCTIONS_VIEW],
+            "reason": "يحتاجون قراءة المزادات",
+        },
+    )
+
+    assert response.status_code == 302
+    role = ConsoleRole.objects.get(slug="yard")
+    assert role.label == "الساحة", "الاسمُ ضاع لأن النافذة لم ترسله"
+    assert bundle_for("yard") == frozenset(
+        {Capability.CONSOLE_ACCESS, Capability.AUCTIONS_VIEW}
+    )
+
+
+def test_editing_a_role_leaves_an_audit_row_with_both_sides(client, owner):
+    """«من وسّع هذا الدور؟» يُسأل بعد حادثة، وجوابُه القدراتُ قبلُ وبعد."""
+    from apps.core.models import AuditLog
+
+    ConsoleRole.objects.create(
+        slug="yard2",
+        label="الساحة ٢",
+        capabilities=[Capability.CONSOLE_ACCESS],
+        reason="تجربة",
+    )
+
+    client.post(
+        reverse("console:role-edit", args=["yard2"]),
+        {
+            "capabilities": [Capability.CONSOLE_ACCESS, Capability.MONEY_VIEW],
+            "reason": "قرارُ المالية",
+        },
+    )
+
+    entry = AuditLog.objects.filter(action="console.edit_role").latest("id")
+    assert entry.before["capabilities"] == [Capability.CONSOLE_ACCESS]
+    assert Capability.MONEY_VIEW in entry.after["capabilities"]
+
+
+def test_a_built_in_role_is_not_edited_from_the_screen(client, owner):
+    """`bundle_for` تقرأ المكتوب قبل الجدول — فتعديلُ صفٍّ باسمه لا أثر له.
+
+    وشاشةٌ تقبل تعديلاً بلا أثر أسوأ من شاشةٍ ترفضه: من ضغط «احفظ» يمضي وهو
+    يظنّ أنه غيّر شيئاً.
+    """
+    response = client.get(reverse("console:role-edit", args=[Role.OWNER]))
+
+    assert response.status_code == 404

@@ -26,7 +26,7 @@
      اللوحة بلا لونٍ أساسي أصلاً. فما ليس في القائمة يسقط إلى الافتراضي. */
   var ALLOWED = {
     scheme: ["auto", "light", "dark"],
-    accent: ["azure", "violet", "teal", "emerald", "amber", "rose"],
+    accent: ["azure", "gold", "violet", "teal", "emerald", "amber", "rose"],
     sidebar: ["auto", "light", "dark", "gradient"],
     nav: ["full", "mini", "off"],
     motion: ["on", "off"]
