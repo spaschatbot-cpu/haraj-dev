@@ -16,20 +16,38 @@ and v1's screens were full of them.
 {% block heading %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
+  {% comment %} المعرض قبل الجدول: الصورة تجيب «أهذه هي؟» قبل أن يُقرأ رقم
+     الهيكل. والغلاف أولاً بترتيب `VehicleImage.Meta` نفسه، لا بترتيبٍ ثانٍ
+     يُكتب هنا فيفترق عنه.
+
+     `alt` فارغٌ عن قصد: النصّ البديل الصحيح لصورة سيارةٍ في معرضٍ هو ما تقوله
+     الصفحة فوقه بالفعل (الصنع والموديل والسنة في العنوان)، وتكرارُه سبع مرّات
+     ضجيجٌ في قارئ الشاشة. {% endcomment %}
+  {% if shots %}
+    <ul class="shots">
+      {% for shot in shots %}
+        <li data-cover="{{ shot.is_cover|yesno:"true,false" }}">
+          <img src="{{ shot.preview.url|default:shot.image.url }}" alt=""
+               loading="lazy" decoding="async">
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
   <table>
     <tr><th>المزاد</th><td>
       <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
         {{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></td></tr>
     <tr><th>اللوت</th><td>{{ vehicle.lot_number|unlocalize }}</td></tr>
     <tr><th>الحالة</th><td>{{ vehicle.get_state_display }}</td></tr>
-    <tr><th>سعر الوقوف</th><td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td></tr>
-    <tr><th>الممشى</th><td>{{ vehicle.odometer_km|unlocalize|default:"—" }}</td></tr>
+    <tr><th>سعر الوقوف</th><td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td></tr>
+    <tr><th>الممشى</th><td>{{ vehicle.odometer_km|default:"—"|unlocalize }}</td></tr>
     <tr><th>ناقل الحركة</th><td>{{ vehicle.get_transmission_display }}</td></tr>
     <tr><th>الوقود</th><td>{{ vehicle.get_fuel_type_display }}</td></tr>
     <tr><th>الحالة الفنية</th><td>{{ vehicle.get_condition_display }}</td></tr>
     <tr><th>الشريك</th><td>{{ vehicle.owner_company.name|default:"—" }}</td></tr>
     <tr><th>الفائز</th><td>{{ vehicle.awarded_to.full_name|default:"—" }}</td></tr>
-    <tr><th>سعر الرسو</th><td class="money">{{ vehicle.awarded_price|unlocalize|default:"—" }}</td></tr>
+    <tr><th>سعر الرسو</th><td class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</td></tr>
   </table>
 
   <p><a href="{% url 'console:vehicle-edit' vehicle.pk %}">تعديل البيانات</a></p>

@@ -52,6 +52,7 @@ from apps.odoo.processing import process
 from apps.odoo.tasks import MAX_ATTEMPTS
 
 from .exports import export, wants_export
+from .tones import with_tones
 from .views import console_page
 
 #: Rows per page. The inbox is read newest-first when something is wrong, and
@@ -132,11 +133,14 @@ def inbox(request):
             ],
         )
 
+    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    with_tones(page.object_list)
+
     return render(
         request,
         "console/odoo_inbox.html",
         {
-            "page": Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page")),
+            "page": page,
             "states": InboundState.choices,
             "state": state,
             "source": source,

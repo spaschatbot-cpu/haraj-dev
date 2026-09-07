@@ -1,0 +1,74 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` على الأرقام: الجوّال معرّفٌ يُنسَخ ويُلصَق في نظامٍ آخر، وفاصلةُ
+آلافٍ فيه تجعله رقماً لا يُطابِق شيئاً.
+
+سجل الإشعارات — وسبب الفشل في الصفّ لا خلف نقرة.
+
+من يفتح هذا السجلّ يفتحه بسبب فشل، فإخفاءُ نصّ الفشل خلف صفحةٍ ثانية يجعل
+الشاشة كلها خطوةً زائدة. و`data` (حمولة القالب) لا تُعرَض: `body` هو النصّ
+الذي وصل فعلاً، وهو ما يُقارَن بما يقوله العميل.
+{% endcomment %}
+{% block title %}سجل الإشعارات{% endblock %}
+{% block heading %}سجل الإشعارات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="الجوال أو الاسم أو نصّ الرسالة">
+    <select name="channel">
+      <option value="">كل القنوات</option>
+      {% for value, label in channels %}
+        <option value="{{ value }}" {% if value == channel %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>العميل</th>
+        <th>الجوال</th>
+        <th>القناة</th>
+        <th>الرسالة</th>
+        <th>الحالة</th>
+        <th>التاريخ</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td><a href="{% url 'console:customer-detail' row.user_id %}">{{ row.user.full_name }}</a></td>
+          <td class="money">{{ row.user.phone }}</td>
+          <td>{{ row.get_channel_display }}</td>
+          <td>
+            {{ row.body }}
+            <br><span class="count">{{ row.template }}</span>
+          </td>
+          <td>
+            <span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span>
+            {% if row.error %}<br><strong class="reason">{{ row.error }}</strong>{% endif %}
+          </td>
+          <td>
+            {{ row.created_at }}
+            {% comment %} لحظة الإرسال تُقال حين تختلف عن لحظة الإنشاء: الفارق
+               بينهما هو زمن الطابور، وهو نصف الجواب على «تأخّرت». {% endcomment %}
+            {% if row.sent_at %}<br><span class="count">أُرسلت {{ row.sent_at }}</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">لا إشعارات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} إشعاراً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

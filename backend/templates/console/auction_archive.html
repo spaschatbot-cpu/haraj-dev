@@ -1,0 +1,63 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` على كل رقم: المبلغ يُعرض كما يخزّنه الدفتر لا كما تنسّقه اللغة
+(المادة ٣-٢). ورقمُ المزاد ليس مبلغاً لكنه معرّف — و«٩٠٥» بفاصلة آلافٍ عربية
+ليست الرقم الذي يُبحث به.
+
+أرشيف المزادات — قراءةٌ محضة، ولا زرَّ يكتب.
+
+«إجمالي المبيعات» محسوبٌ من أسعار المركبات المرساة في المزاد نفسه، لا مقروءاً
+من عمودٍ مخزَّن كما في v1. الرقم الذي لا يعرف أحدٌ متى حُسب رقمٌ لا يُبنى عليه.
+{% endcomment %}
+{% block title %}أرشيف المزادات{% endblock %}
+{% block heading %}أرشيف المزادات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم المزاد أو رقمه">
+    <select name="state">
+      <option value="">كل الحالات المنتهية</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>الرقم</th>
+        <th>اسم المزاد</th>
+        <th>الحالة</th>
+        <th>تاريخ الانتهاء</th>
+        <th>عدد المركبات</th>
+        <th>المباعة</th>
+        <th>إجمالي المبيعات</th>
+        <th>المزايدات</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.number|unlocalize }}</td>
+          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          <td>{{ row.ends_at }}</td>
+          <td class="count">{{ row.vehicle_count|unlocalize }}</td>
+          <td class="count">{{ row.sold_count|unlocalize }}</td>
+          {% comment %} صفرٌ صريح لا خانةٌ فارغة: مزادٌ لم يبع شيئاً معلومةٌ،
+             والخانة الفارغة تُقرأ «لم يُحسب». {% endcomment %}
+          <td class="money">{{ row.sold_total|default:"0.00"|unlocalize }}</td>
+          <td><a href="{% url 'console:auction-bids' row.pk %}">المزايدات</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا مزادات منتهية مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+التحكم في صفحات المستخدمين — الاستثناءات فوق الدور، مسمّاةً.
+
+شاشة v1 تقول ما نقوله هنا حرفياً: «تجاوز فردي فوق دوره — لا يؤثر على باقي
+المستخدمين». والفرق عمودٌ واحد: هناك «صفحات مخفية: 46» رقمٌ لا يقول أيّها ولا
+لماذا، ولا يفرّق بين ما مُنح وما سُحب.
+
+وأرقامُ الإنتاج تجعل السؤال ملحّاً: «مترك» مالكٌ وله ٤٦ صفحةً مخفية. ومالكٌ
+خُفيت عنه ستٌّ وأربعون صفحة إمّا أنه ليس مالكاً فعلاً، أو أن أحداً أخفاها ولا
+أحد يذكر لماذا.
+{% endcomment %}
+{% block title %}التحكم في صفحات المستخدمين{% endblock %}
+{% block heading %}التحكم في صفحات المستخدمين{% endblock %}
+
+{% block content %}
+  <p>
+    تجاوزٌ فرديٌّ فوق الدور — لا يؤثّر على باقي المستخدمين. ولكل تجاوزٍ سببُه
+    ومَن كتبه.
+  </p>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال">
+    <select name="role">
+      <option value="">كل الأدوار</option>
+      {% for value, label in roles %}
+        <option value="{{ value }}" {% if value == role %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المستخدم</th>
+        <th>الدور</th>
+        <th>ما فوق دوره</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for person in page %}
+        <tr>
+          <td>
+            {{ person.full_name }}
+            <small>#{{ person.pk|unlocalize }}</small>
+          </td>
+          <td>{{ person.role_label }}</td>
+          <td>
+            {% for item in person.overrides %}
+              {% comment %} القدرةُ مسمّاةً لا معدودةً، والسببُ معها: «٤٦»
+                 رقمٌ لا يُتصرَّف فيه، و«سُحبت: عرض دفتر التأمينات — أثناء
+                 المراجعة» جملةٌ يُتصرَّف فيها. {% endcomment %}
+              <div>
+                {% if item.granted %}
+                  <span class="pill" data-tone="ok">مُنحت</span>
+                {% else %}
+                  <span class="pill" data-tone="bad">سُحبت</span>
+                {% endif %}
+                {{ item.label }}
+                <small>{{ item.reason }}{% if item.by %} · {{ item.by.full_name }}{% endif %}</small>
+              </div>
+            {% empty %}
+              <span class="empty">لا تجاوز — دورُه وحده</span>
+            {% endfor %}
+          </td>
+          <td><a href="{% url 'console:staff-grants' person.pk %}">تعديل ←</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="empty">لا مستخدمين مطابقين.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مستخدماً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

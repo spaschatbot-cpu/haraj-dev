@@ -1,0 +1,114 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تقرير مزايدات مستخدم.
+
+حالةُ الفراغ منقولةٌ بنصّها من v1 — «ابحث برقم الجوال أو الاسم لعرض تقرير
+المزايدات» — وهي إحسانٌ فيها: شاشةٌ تفتح على «إجمالي ٠» قبل أن تُسأل تقول
+للقارئ إن المستخدم بلا مزايدات، وهي لم تُسأل عن أحد بعد.
+
+والحالات هنا هي قسمةُ `bid_shape` نفسها، فلا يقول تقريرُ الشخص شيئاً ويقول
+تحليلُ المنصّة غيره.
+{% endcomment %}
+{% block title %}تقرير مزايدات مستخدم{% endblock %}
+{% block heading %}تقرير مزايدات مستخدم{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="phone" value="{{ phone }}" placeholder="بحث برقم الجوال">
+    <input type="search" name="name" value="{{ name }}" placeholder="أو بالاسم">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if not report %}
+    <p class="empty">ابحث برقم الجوال أو الاسم لعرض تقرير المزايدات.</p>
+
+  {% elif report.ambiguous %}
+    {% comment %} لا يُختار الأول صامتاً: تقريرٌ لشخصٍ آخر يحمل اسماً مشابهاً
+       أسوأ من لا تقرير — يُقرأ صحيحاً ويُتصرَّف فيه. {% endcomment %}
+    <p class="empty">
+      {{ report.count|unlocalize }} مستخدماً يطابق ما كتبت. ضيّق البحث —
+      الجوّال مفتاحٌ فريد والاسم يتكرّر.
+    </p>
+
+  {% elif not report.person %}
+    <p class="empty">لا مستخدم يطابق ما كتبت.</p>
+
+  {% else %}
+    <h2>
+      {{ report.person.full_name }}
+      <small>{{ report.person.phone|unlocalize }}</small>
+    </h2>
+    <p><a href="{% url 'console:customer-detail' report.person.pk %}">بيانات العميل ←</a></p>
+
+    <table>
+      <tbody>
+        <tr><th>إجمالي المزايدات</th><td class="count">{{ report.count|unlocalize }}</td></tr>
+        <tr><th>إجمالي قيمتها</th><td class="money">{{ report.value|unlocalize }}</td></tr>
+        <tr><th>أعلى مزايدة</th><td class="money">{{ report.highest|default:"—"|unlocalize }}</td></tr>
+        <tr><th>متوسط المزايدة</th><td class="money">{{ report.average|default:"—"|unlocalize }}</td></tr>
+        <tr><th>قائمة</th><td class="count">{{ report.standing|unlocalize }}</td></tr>
+        <tr><th>استُبدلت بأعلى</th><td class="count">{{ report.superseded|unlocalize }}</td></tr>
+        <tr><th>مسحوبة</th><td class="count">{{ report.withdrawn|unlocalize }}</td></tr>
+        <tr>
+          <th>محاولاتٌ منعتها البوابة</th>
+          <td class="count">
+            {{ report.refused|unlocalize }}
+            <a href="{% url 'console:why-no-bid' %}">لماذا ←</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>ما فاز به — {{ report.won_count|unlocalize }} مركبةً بـ{{ report.won_value|unlocalize }}</h2>
+    <table>
+      <thead>
+        <tr><th>المزاد</th><th>اللوت</th><th>المركبة</th><th>سعر الترسية</th><th>الحالة</th></tr>
+      </thead>
+      <tbody>
+        {% for car in report.won %}
+          <tr>
+            <td>{{ car.auction.number|unlocalize }}</td>
+            <td class="count">{{ car.lot_number|unlocalize }}</td>
+            <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a></td>
+            <td class="money">{{ car.awarded_price|default:"—"|unlocalize }}</td>
+            <td>{{ car.get_state_display }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">لم يفز بمركبة بعد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>آخر مزايداته</h2>
+    <table>
+      <thead>
+        <tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>الحالة</th><th>وقتها</th></tr>
+      </thead>
+      <tbody>
+        {% for bid in report.recent %}
+          <tr>
+            <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
+            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+            <td class="money">{{ bid.amount|unlocalize }}</td>
+            {% comment %} الحالة بالترتيب نفسه الذي تعدّ به `bid_shape`:
+               المسحوبة أوّلاً، فالمستبدَلة، فالقائمة — فلا يُقرأ صفٌّ هنا
+               بحالةٍ غير التي عُدّ بها فوق. {% endcomment %}
+            <td>
+              {% if bid.is_withdrawn %}
+                <span class="pill" data-tone="bad">مسحوبة</span>
+              {% elif bid.is_superseded %}
+                <span class="pill" data-tone="warn">استُبدلت بأعلى</span>
+              {% else %}
+                <span class="pill" data-tone="ok">قائمة</span>
+              {% endif %}
+            </td>
+            <td>{{ bid.placed_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">لا مزايدات لهذا المستخدم.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+{% endblock %}

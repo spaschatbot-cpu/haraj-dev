@@ -1,0 +1,69 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+لوحة الشريك — وكل رقمٍ فيها من الفاتورة لا من جدولٍ مرفوع.
+
+شاشة v1 المقابلة تقرأ جدولاً يُرفع بملفّ إكسل، وتقول ذلك بنفسها: «الشريك لا
+يرى أي حالة سداد من النظام المحاسبي». فللسداد هناك حقيقتان، ولا شيء يوفّق
+بينهما. وهنا «مسدَّدة» تعني فاتورةً مسدَّدة، والحالةُ محسوبةٌ من الدفعات.
+{% endcomment %}
+{% block title %}لوحة الشريك{% endblock %}
+{% block heading %}لوحة الشريك{% endblock %}
+
+{% block content %}
+  <form method="get">
+    {% include "console/_partner_pick.html" %}
+    <button type="submit">اعرض</button>
+  </form>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>مزادات فيها سياراته</th>
+        <td class="count">{{ totals.auctions|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-auctions' %}?partner={{ partner }}">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>سياراته</th>
+        <td class="count">{{ totals.vehicles|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>ما بيع منها</th>
+        <td class="count">{{ totals.won|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=sold">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>ما لم يُبع</th>
+        <td class="count">{{ totals.unsold|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=unsold">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>إجمالي أسعار الترسية</th>
+        <td class="money">{{ totals.won_value|unlocalize }}</td>
+        <td></td>
+      </tr>
+      <tr>
+        <th>غير مسدَّدة</th>
+        <td class="count">{{ totals.unpaid|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>مسدَّدة</th>
+        <td class="count">{{ totals.paid|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-paid' %}?partner={{ partner }}">افتحها ←</a></td>
+      </tr>
+      <tr>
+        <th>ما وصل من مالها</th>
+        <td class="money">{{ totals.paid_value|unlocalize }}</td>
+        <td><a href="{% url 'console:partner-payments' %}?partner={{ partner }}">سجل الدفعات ←</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="empty">
+    «مسدَّدة» هنا تعني <strong>فاتورةً مسدَّدة</strong>، والحالة محسوبةٌ من
+    الدفعات المسجَّلة. ولا يُرفع ملفٌّ ليقول إن سيارةً سُدِّدت — فلو رُفع
+    مرّتين لسُجّلت الدفعة مرّتين، وهو ما تحذّر منه شاشةُ v1 بدل أن تمنعه.
+  </p>
+{% endblock %}

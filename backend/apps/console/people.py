@@ -34,6 +34,7 @@ from apps.money.models import Invoice, InvoiceState, Transaction
 
 from .exports import export, wants_export
 from .forms import ReasonMixin
+from .tones import with_tones
 from .views import console_page
 
 PAGE_SIZE = 25
@@ -283,11 +284,14 @@ def invoices(request):
             ],
         )
 
+    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    with_tones(page.object_list)
+
     return render(
         request,
         "console/invoices.html",
         {
-            "page": Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page")),
+            "page": page,
             "states": InvoiceState.choices,
             "state": state,
             "q": search,

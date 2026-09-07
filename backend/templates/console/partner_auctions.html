@@ -1,0 +1,59 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+مزادات الشريك.
+
+عمود «سياراته» هو ما يصنع الشاشة: مزادٌ فيه ٣٨٦ سيارة وللشريك منها ٢٠٦ رقمان
+مختلفان، والخلطُ بينهما يجعله يقرأ حصّةً ليست له.
+
+و«القادمة» و«الشغال» و«المنتهية» في v1 ثلاثةُ مداخل، وهي مرشّحاتُ حالةٍ على
+هذه الشاشة. فبقيت ثلاثةَ مسارات كما يعرفها الموظّف، وتقرأها دالّةٌ واحدة.
+{% endcomment %}
+{% block title %}مزادات الشريك{% endblock %}
+{% block heading %}مزادات الشريك{% endblock %}
+
+{% block content %}
+  <form method="get">
+    {% include "console/_partner_pick.html" %}
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">اعرض</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>المزاد</th>
+        <th>الحالة</th>
+        <th>سياراته</th>
+        <th>ما بيع منها</th>
+        <th>البداية</th>
+        <th>النهاية</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.number|unlocalize }}</td>
+          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          <td class="count">{{ row.mine|unlocalize }}</td>
+          <td class="count">{{ row.sold|unlocalize }}</td>
+          <td>{{ row.starts_at }}</td>
+          <td>{{ row.ends_at }}</td>
+          <td><a href="{% url 'console:auction-bids' row.pk %}">المزايدات ←</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا مزادات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

@@ -1,0 +1,74 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` على كل مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢) — وهذه الشاشة
+تُقارَن سطراً بسطر بكشف البوابة، فالتنسيق يجعل المقارنة مستحيلة.
+
+سجل الدفعات — والفاشلة معروضةٌ كالناجحة.
+
+عمود «الحركة» هو الجسر بين ما يقوله العميل وما يقوله الدفتر: دفعةٌ نجحت ولا
+حركة لها **خللٌ**، فتُقال هنا بالحرف لا تُترك خانةً فارغة يقرؤها الموظّف
+«لم يُحسب بعد».
+{% endcomment %}
+{% block title %}سجل الدفعات{% endblock %}
+{% block heading %}سجل الدفعات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="المرجع أو الجوال أو الاسم">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المرجع</th>
+        <th>العميل</th>
+        <th>المبلغ</th>
+        <th>الغرض</th>
+        <th>المزاد</th>
+        <th>البوابة</th>
+        <th>الحالة</th>
+        <th>الحركة</th>
+        <th>متى</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td class="money">{{ row.reference }}</td>
+          <td><a href="{% url 'console:customer-detail' row.user_id %}">{{ row.user.full_name }}</a></td>
+          <td class="money">{{ row.amount|unlocalize }} {{ row.currency }}</td>
+          <td>{{ row.get_purpose_display }}</td>
+          <td>
+            {% if row.auction_id %}
+              <a href="{% url 'console:auction-detail' row.auction_id %}">{{ row.auction.number|unlocalize }}</a>
+            {% else %}<span class="empty">—</span>{% endif %}
+          </td>
+          <td>{{ row.gateway|default:"—" }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          <td>
+            {% comment %} لا فرعَ لـ«نجحت بلا قيد»: القاعدة تمنع الصفّ أصلاً
+               (`a_succeeded_intent_names_its_transaction`). فرعٌ لا يقع أبداً
+               يُقرأ حالةً ممكنة، ويُبقي في الذهن خوفاً لا محلَّ له. {% endcomment %}
+            {% if row.resulting_transaction_id %}
+              <span class="count">{{ row.resulting_transaction_id|unlocalize }}</span>
+            {% else %}<span class="empty">—</span>{% endif %}
+          </td>
+          <td>{{ row.created_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9" class="empty">لا دفعات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} دفعة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

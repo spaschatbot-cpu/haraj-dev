@@ -1,0 +1,95 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+كتالوج السيارات — البطاقات الأربع وفلاتر v1 الستّة.
+
+وعمودان من v1 غائبان عمداً: **اللون** و**شركة التأمين** لا حقلَ لهما في
+`Vehicle`، وعمودٌ فارغٌ في كل صفّ أسوأ من عمودٍ غائب. و«شركة التأمين» تحتاج
+حسماً قبل نقلها أصلاً: قيمتها في الإنتاج تشمل `مشتريات خارجيه` — وهي مصدرُ
+المركبة لا مؤمِّنُها، فالعمود هناك يحمل معنيين.
+
+و«رقم الموقف» هنا عددٌ صحيح دائماً: في v1 يحمل `384` و`AUC-1017-743` معاً،
+فلا يُفرَز ولا يجده بحثٌ برقم.
+{% endcomment %}
+{% block title %}كتالوج السيارات{% endblock %}
+{% block heading %}كتالوج السيارات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <table>
+    <tbody>
+      <tr><th>إجمالي المركبات</th><td class="count">{{ totals.vehicles|unlocalize }}</td></tr>
+      <tr><th>مزادات جارية</th><td class="count">{{ totals.live_auctions|unlocalize }}</td></tr>
+      <tr><th>سيارات بصور</th><td class="count">{{ totals.with_images|unlocalize }}</td></tr>
+      <tr><th>سيارات مفوترة</th><td class="count">{{ totals.invoiced|unlocalize }}</td></tr>
+    </tbody>
+  </table>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="شاصي أو لوحة أو اسم السيارة أو لوت">
+    <select name="state">
+      <option value="">كل حالات المزاد</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <input type="date" name="listed_from" value="{{ listed_from }}" title="من تاريخ إدراج السيارة">
+    <input type="date" name="listed_to" value="{{ listed_to }}" title="إلى تاريخ إدراج السيارة">
+    <input type="date" name="auction_from" value="{{ auction_from }}" title="من تاريخ المزاد">
+    <input type="date" name="auction_to" value="{{ auction_to }}" title="إلى تاريخ المزاد">
+    <button type="submit">تطبيق الفلاتر</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>اللوت</th>
+        <th>المزاد</th>
+        <th>السيارة</th>
+        <th>العداد</th>
+        <th>الحالة الفنية</th>
+        <th>الشاصي</th>
+        <th>اللوحة</th>
+        <th>الصور</th>
+        <th>حالة المزاد</th>
+        <th>موعد المزاد</th>
+        <th>حالة المركبة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.pk|unlocalize }}</td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td>{{ row.auction.number|unlocalize }}</td>
+          <td>
+            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+            <small>{{ row.year|unlocalize }}</small>
+          </td>
+          {% comment %} «—» واحدةٌ لا اثنتان: في v1 «...» و«—» في صفّين
+             متجاورين، ولا أحد يعرف أيّهما «لم يُقَس». {% endcomment %}
+          <td class="count">{{ row.odometer_km|default:"—"|unlocalize }}</td>
+          <td>{{ row.get_condition_display }}</td>
+          <td>{{ row.vin|default:"—" }}</td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td class="count">{{ row.image_count|unlocalize }}</td>
+          <td>{{ row.auction.get_state_display }}</td>
+          <td>{{ row.auction.starts_at }} ← {{ row.auction.ends_at }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="12" class="empty">لا مركبات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    عمودا <strong>اللون</strong> و<strong>شركة التأمين</strong> في v1 لا حقلَ
+    لهما هنا بعد. ولا يُرسَمان فارغين: عمودٌ لا يحمل شيئاً في كل صفّ يُقرأ
+    «لم يُحمَّل». و«شركة التأمين» تحتاج قراراً قبل نقلها — قيمتها في الإنتاج
+    تشمل «مشتريات خارجيه»، وهي مصدرُ المركبة لا مؤمِّنُها.
+  </p>
+{% endblock %}

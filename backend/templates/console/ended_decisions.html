@@ -1,0 +1,66 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+القرارات المنتهية — ما حُسم، مقبولاً كان أو مرفوضاً.
+
+هي الوجه الآخر لـ«قرارات الشركاء»: تلك تعرض ما **ينتظر** قراراً، وهذه ما
+**انتهى** إليه. والمرفوضةُ فيها كالمقبولة لأن السؤال «ماذا قرّرنا» لا «ماذا
+بعنا» — وv1 يجمعهما مع «المزايدات المقبولة» في شاشةٍ بستّة ألسنة، فيختلط ما
+رسا بما رُفض تحت اسمٍ واحد.
+{% endcomment %}
+{% block title %}القرارات المنتهية{% endblock %}
+{% block heading %}القرارات المنتهية{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="لوحة أو شاصي أو اسم أو رقم مزاد">
+    <select name="which">
+      <option value="">الكل ({{ awarded|add:rejected|unlocalize }})</option>
+      <option value="awarded" {% if which == "awarded" %}selected{% endif %}>رست ({{ awarded|unlocalize }})</option>
+      <option value="rejected" {% if which == "rejected" %}selected{% endif %}>رفضها المالك ({{ rejected|unlocalize }})</option>
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>المركبة</th>
+        <th>اللوحة</th>
+        <th>الشركة المالكة</th>
+        <th>سعر الوقوف</th>
+        <th>القرار</th>
+        <th>سعر الترسية</th>
+        <th>وقت القرار</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td>{% if row.owner_company %}{{ row.owner_company.name }}{% else %}—{% endif %}</td>
+          <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          {% comment %} المرفوضة بلا سعر ترسية — و«—» هنا صحيحة: لم تُرسَ،
+             فلا سعر. وصفرٌ مكانها كان سيُجمَع في تقريرٍ ما. {% endcomment %}
+          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          <td>{{ row.awarded_at|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9" class="empty">لا قرارات منتهية مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} قراراً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    ما ينتظر قراراً بعدُ مكانه
+    <a href="{% url 'console:partner-decisions' %}">قرارات الشركاء</a>.
+  </p>
+{% endblock %}

@@ -10,13 +10,13 @@ question that actually brings people here half the time is «هل وصلتنا �
 {% endcomment %}
 {% block title %}صندوق وارد أودو{% endblock %}
 {% block heading %}صندوق وارد أودو{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
      filter that is on the screen. `export_url` is this very request with one
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
-  <p><a href="{{ export_url }}">تصدير إلى إكسل</a></p>
 
   {% comment %} The url is named even here: a query string hung off a bare `?` reads as
      harmless until the console moves under another prefix and the link starts
@@ -54,7 +54,7 @@ question that actually brings people here half the time is «هل وصلتنا �
           <td>{{ row.source }}</td>
           <td>{{ row.event|default:"—" }}</td>
           <td>{{ row.subject_ref|default:"—" }}</td>
-          <td>{{ row.get_state_display }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           <td class="money">{{ row.attempts|unlocalize }}</td>
           <td>{{ row.note|default:"—" }}</td>
         </tr>

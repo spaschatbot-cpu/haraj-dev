@@ -1,0 +1,72 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تسوية الشريك — المسدَّدة وغير المسدَّدة، من الفاتورة.
+
+في v1 هذان الطابوران يُقرآن من جدولٍ يُرفع بملفّ إكسل، ورقمُهما لا يمسّ
+دفتراً. والفارق يُقاس: v1 يعدّ غير المسدَّدة ٢٩١ في شاشة الإدارة و٢٩٠ في صفحة
+الشريك، والفرقُ سيارةٌ واحدة (فورد ميلان #12276) **لم تُبع ولم يزايد عليها
+أحد** — ومع ذلك يعرض عليها زرَّ «اعتماد السداد».
+
+وهنا التسوية تبدأ من المرساة، والمرساةُ لها فائزٌ بقيدٍ في القاعدة؛ فسيارةٌ لم
+تُبع لا تدخل الحساب أصلاً.
+{% endcomment %}
+{% block title %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% endblock %}
+{% block heading %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% endblock %}
+
+{% block content %}
+  <p>
+    <a href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">غير المسدَّدة ({{ totals.unpaid|unlocalize }})</a> ·
+    <a href="{% url 'console:partner-paid' %}?partner={{ partner }}">المسدَّدة ({{ totals.paid|unlocalize }})</a>
+  </p>
+
+  <form method="get">
+    {% include "console/_partner_pick.html" %}
+    <button type="submit">اعرض</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>السيارة</th>
+        <th>اللوحة</th>
+        <th>المشتري</th>
+        <th>سعر الترسية</th>
+        <th>الفاتورة</th>
+        <th>حالتها — من الدفعات</th>
+        <th>ما وصل منها</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td>
+            {% if row.awarded_to %}
+              <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          {% if row.invoice %}
+            <td><a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a></td>
+            <td>{{ row.invoice_state }}</td>
+            <td class="money">{{ row.invoice.amount_paid|unlocalize }}</td>
+          {% else %}
+            {% comment %} «رست ولم تُفوتَر» ليست «مسدَّدة» ولا خانةً فارغة —
+               هي عملٌ ينتظر، وتُقال. {% endcomment %}
+            <td class="empty" colspan="3">رست ولم تُفوتَر بعد</td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="9" class="empty">لا سيارات في هذا الطابور.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} سيارةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

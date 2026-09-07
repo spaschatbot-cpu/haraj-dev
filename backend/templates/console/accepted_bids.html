@@ -1,0 +1,85 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+المزايدات المقبولة — صفٌّ واحدٌ لكلّ مركبةٍ رست.
+
+في v1 هذه الشاشة تعرض ٤٬٣٧٨ صفّاً، وعشرةٌ منها المتتالية لمركبةٍ واحدة بعشرة
+مزايدين — مزايداتٌ متتاليةٌ لأشخاصٍ، والمستبدَلةُ منها معروضةٌ «مقبولة». وهنا
+الصفُّ مركبةٌ لا مزايدة، و`Vehicle.awarded_to` واحدٌ بقيدٍ في القاعدة.
+
+والضريبة تُقرأ من الفاتورة لا من سعر الترسية: `money.services.tax_of` هي
+الموضع الوحيد الذي يضرب في النسبة، وتنظر في مصدر الفاتورة قبل أن تضرب. فما
+رسا ولم يُفوتَر بعدُ يقول ذلك بدل أن يعرض رقماً مخمَّناً.
+
+`unlocalize` على كل رقم: المبلغ يُعرض كما يخزّنه الدفتر (المادة ٣-٢)، واللوحة
+ورقم المزاد معرّفان يُبحَث بهما لا مبلغان.
+{% endcomment %}
+{% block title %}المزايدات المقبولة{% endblock %}
+{% block heading %}المزايدات المقبولة{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="لوحة أو شاصي أو اسم الفائز أو رقم مزاد">
+    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
+    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>المركبة</th>
+        <th>اللوحة</th>
+        <th>رقم الهيكل</th>
+        <th>الفائز</th>
+        <th>الجوال</th>
+        <th>سعر الترسية</th>
+        <th>الحالة</th>
+        <th>الفاتورة</th>
+        <th>الضريبة</th>
+        <th>الإجمالي</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td>
+            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+            <small>{{ row.year|unlocalize }}</small>
+          </td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.vin|default:"—" }}</td>
+          <td>
+            <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+          </td>
+          <td>{{ row.awarded_to.phone|unlocalize }}</td>
+          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          {% comment %} الثلاثة الأخيرة من الفاتورة أو لا شيء. و«بلا فاتورة»
+             مكتوبةٌ نصّاً لا خانةً فارغة: الفارغة تُقرأ «لم يُحسب» وهذه تقول
+             «لم يُفوتَر» — والفرق هو ما ينتظر عملاً. {% endcomment %}
+          {% if row.money.invoice %}
+            <td>
+              <a href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
+            </td>
+            <td class="money">{{ row.money.tax|unlocalize }}</td>
+            <td class="money">{{ row.money.total|unlocalize }}</td>
+          {% else %}
+            <td class="empty" colspan="3">بلا فاتورة — لا ضريبة على مبلغٍ لم يُفوتَر</td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="12" class="empty">لا مركبات مرساة مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مركبةً مرساة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  <p><a href="{% url 'console:accepted-summary' %}?q={{ q }}&amp;from={{ first }}&amp;to={{ last }}">ملخّص هذه النتائج ←</a></p>
+{% endblock %}

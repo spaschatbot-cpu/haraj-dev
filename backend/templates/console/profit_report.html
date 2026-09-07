@@ -1,0 +1,90 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تقرير الأرباح.
+
+عنوان شاشة v1 يحمل قاعدةً: «أعلى مزايد لكل مزاد، مع كسر التعادل بـMIN(id)».
+والقاعدة صحيحة وموضعُها خطأ — قاعدةٌ تعيش في نصّ عنوانٍ تُنسى يوم تُعاد كتابة
+الشاشة. وهي في v2 في `apps/bidding/settlement.py` ولها اختبارُها، وهذا
+التقرير يقرأ نتيجتها ولا يعيد كتابتها.
+
+و«رأس المال» في v1 خانةُ إدخالٍ يكتبها الموظّف في كل مرّة، والربحُ يُحسب
+عليها — فالرقم الناتج **لا يُعاد إنتاجه**. وليست هنا.
+
+وv1 يعرض «مع الضريبة» و«بدون الضريبة» بضرب الإجمالي في ١٫١٥. وهنا ثلاثة أرقام
+حقيقية: ما رسا، وما فُوتِر منه، وما وصل — والفرقُ بينها هو ما يُقرأ.
+{% endcomment %}
+{% block title %}تقرير الأرباح{% endblock %}
+{% block heading %}تقرير الأرباح{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
+    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">تطبيق</button>
+  </form>
+
+  <table>
+    <tbody>
+      <tr><th>المزادات</th><td class="count">{{ totals.auctions|unlocalize }}</td></tr>
+      <tr><th>منها ما فيه مزايدة</th><td class="count">{{ totals.with_bids|unlocalize }}</td></tr>
+      <tr><th>إيراد الترسية</th><td class="money">{{ totals.revenue|unlocalize }}</td></tr>
+      <tr><th>ما فُوتِر منه</th><td class="money">{{ totals.invoiced|unlocalize }}</td></tr>
+      <tr><th>ما وصل فعلاً</th><td class="money">{{ totals.collected|unlocalize }}</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>الاسم</th>
+        <th>الحالة</th>
+        <th>بدأ</th>
+        <th>المركبات</th>
+        <th>المباعة</th>
+        <th>غير المباعة</th>
+        <th>إيراد الترسية</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.number|unlocalize }}</td>
+          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
+          <td>{{ row.get_state_display }}</td>
+          <td>{{ row.starts_at }}</td>
+          <td class="count">{{ row.cars|unlocalize }}</td>
+          <td class="count">{{ row.sold|unlocalize }}</td>
+          {% comment %} «غير المباعة» عمودُ عملٍ لا إحصاء: هي التي تنتظر
+             قرارَ مالكٍ أو إعادةَ عرض. {% endcomment %}
+          <td class="count">{{ row.unsold|unlocalize }}</td>
+          <td class="money">{{ row.revenue|default:"0.00"|unlocalize }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا مزادات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    <strong>لا خانةَ «رأس مال» هنا.</strong> في v1 يكتبها الموظّف في كل مرّة
+    ويُحسب الربحُ عليها، فمن يفتح التقرير غداً بقيمةٍ أخرى يرى ربحاً آخر ولا
+    شيء يقول أيّهما كان. وهذا التقرير يعرض <strong>ما وقع</strong>؛ والمقارنة
+    برأس مالٍ قرارٌ يُكتب في مكانٍ يُراجَع لا خانةٌ تُملأ.
+  </p>
+  <p class="empty">
+    وقاعدةُ «أعلى مزايدٍ لكل سيارة، والأسبقُ عند التساوي» تعيش في
+    <code>apps/bidding/settlement.py</code> ولها اختبارُها — لا في عنوان هذه
+    الشاشة كما في v1.
+  </p>
+{% endblock %}

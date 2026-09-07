@@ -11,16 +11,28 @@ from apps.bidding import views as bidding_views
 
 from . import (
     actions,
+    alerts,
+    analytics,
+    archive,
     auction_moves,
     auctions,
     audit,
+    billing,
+    bulk,
+    catalog,
+    decisions,
     health,
     importexport,
     inbox,
     money,
+    partner_console,
+    partner_payments,
     partners,
+    payments,
     people,
-    views,
+    refunds,
+    staff,
+    wallet,
 )
 from . import (
     dashboard as dashboard_views,
@@ -29,8 +41,9 @@ from . import (
 app_name = "console"
 
 urlpatterns = [
-    path("", views.home, name="home"),
-    path("dashboard/", dashboard_views.dashboard, name="dashboard"),
+    # الجذر هو اللوحة. لا مسار `dashboard/` ثانٍ يعرض الشيء نفسه: عنوانان
+    # لصفحةٍ واحدة يعنيان إشارتين محفوظتين ومسارين في السجلّ لزيارةٍ واحدة.
+    path("", dashboard_views.dashboard, name="home"),
     # The way out. Deliberately **not** a row in `navigation.PAGES`: a row there
     # is a screen with a capability that both reveals and guards it, and signing
     # out is neither — it is an action, and no capability gates it, because
@@ -52,6 +65,66 @@ urlpatterns = [
     path("auctions/<int:pk>/edit/", auctions.auction_edit, name="auction-edit"),
     path("auctions/<int:pk>/state/", auction_moves.auction_state, name="auction-state"),
     path("auctions/<int:pk>/", auctions.auction_detail, name="auction-detail"),
+    path("auctions/<int:pk>/bids/", archive.auction_bids, name="auction-bids"),
+    path("archive/", archive.auction_archive, name="auction-archive"),
+    path("auctions/manage/", bulk.manage, name="auctions-manage"),
+    path("auctions/bulk/", bulk.bulk, name="auctions-bulk"),
+    path("auctions/quick-edit/", bulk.quick_edit, name="auctions-quick-edit"),
+    # قرارات المزايدات — قسمُ v1 نفسه (T830-أ). قراءةٌ محضة: الترسية في
+    # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
+    path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
+    path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
+    # التقارير والتحليلات — قسمُ v1 نفسه (T830-ب).
+    path("analytics/", analytics.reports, name="analytics"),
+    path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
+    path("analytics/active/", analytics.active_auction, name="active-auction"),
+    path("analytics/profit/", analytics.profit_report, name="profit-report"),
+    path("owners/", analytics.owners_console, name="owners-console"),
+    path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
+    path("refunds/", refunds.refunds, name="refunds"),
+    # المحفظة — الشحن والخصم (T830-ط). كلاهما يمرّ بـ`money.services` وحدها.
+    path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
+    path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
+    path(
+        "analytics/insurance/",
+        analytics.insurance_report,
+        name="insurance-report",
+    ),
+    # إدارة الأعضاء — قسمُ v1 نفسه (T830-ج).
+    path("admins/", staff.admins, name="admins"),
+    path("admins/page-control/", staff.page_control, name="page-control"),
+    # النظام والصلاحيات (T830-ﻫ).
+    path("settings/", staff.settings_page, name="settings"),
+    path("account/password/", staff.password_change, name="password-change"),
+    path("users/bids-report/", analytics.user_bids, name="user-bids"),
+    # إدارة المزادات — بقيّةُ قسم v1 (T830-د).
+    path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
+    path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
+    path("after-sales/", catalog.after_sales, name="after-sales"),
+    path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),
+    path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
+    # الفواتير (T830-ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
+    path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),
+    path("invoices/export/", billing.invoices_export, name="invoices-export"),
+    # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830-و).
+    path("partner/", partner_console.partner_console, name="partner-console"),
+    path("partner/auctions/", partner_console.partner_auctions, name="partner-auctions"),
+    path("partner/state/soon/", partner_console.partner_soon, name="partner-soon"),
+    path("partner/state/active/", partner_console.partner_active, name="partner-active"),
+    path("partner/state/ended/", partner_console.partner_ended, name="partner-ended"),
+    path("partner/vehicles/", partner_console.partner_vehicles, name="partner-vehicles"),
+    path(
+        "partner/settlement/unpaid/",
+        partner_console.partner_unpaid,
+        name="partner-unpaid",
+    ),
+    path("partner/settlement/paid/", partner_console.partner_paid, name="partner-paid"),
+    path("partner/payments/", partner_console.partner_payments, name="partner-payments"),
+    path(
+        "partner/approve/",
+        partner_payments.approve,
+        name="partner-payments-approve",
+    ),
     path("vehicles/", auctions.vehicles, name="vehicles"),
     path("vehicles/new/", auctions.vehicle_new, name="vehicle-new"),
     path("vehicles/export/", importexport.export, name="vehicles-export"),
@@ -75,6 +148,7 @@ urlpatterns = [
     path("staff/<int:pk>/grants/", people.staff_grants, name="staff-grants"),
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),
+    path("payments/", payments.payments, name="payments"),
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
     path("money/<int:pk>/actions/", actions.actions, name="money-actions"),
@@ -94,6 +168,7 @@ urlpatterns = [
         name="money-correct",
     ),
     path("health/", health.health, name="money-health"),
+    path("notifications/", alerts.notifications, name="notifications"),
     path("audit/", audit.audit, name="audit"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),

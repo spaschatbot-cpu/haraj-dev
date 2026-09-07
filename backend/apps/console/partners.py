@@ -38,6 +38,7 @@ from apps.bidding.models import Bid
 from apps.core import audit
 
 from .exports import export, wants_export
+from .tones import with_tones
 from .views import console_page
 
 #: The states a partner decision is actually pending on. `awarded` is here
@@ -88,6 +89,7 @@ def decisions(request):
         )
 
     page = Paginator(rows, 25).get_page(request.GET.get("page"))
+    with_tones(page.object_list)
 
     return render(
         request,

@@ -1,0 +1,68 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+بحث عن سيارة — خانةٌ لكل عمود، كما في v1.
+
+ولا تفتح على الثلاثةَ عشرَ ألفاً: شاشةٌ اسمها «بحث» وأولُ ما يراه القارئ
+عليها القائمةُ كلّها لم تُجب سؤاله. وحالة الفراغ منقولةٌ بنصّها من v1.
+
+والفرق عن خانةٍ واحدة ليس ذوقاً: من يبحث بلوحةٍ يعرف أنها لوحة، وخانةٌ واحدة
+تطابق النصّ في ستّة أعمدة تُرجع صفوفاً لا يفهم القارئ لماذا ظهرت.
+{% endcomment %}
+{% block title %}بحث عن سيارة{% endblock %}
+{% block heading %}بحث عن سيارة{% endblock %}
+
+{% block content %}
+  <p>اكتب في أي عمود — البحث يشمل كل المزادات ويُظهر المزاد الذي فيه السيارة.</p>
+
+  <form method="get">
+    <input type="search" name="plate" value="{{ plate }}" placeholder="رقم اللوحة">
+    <input type="search" name="vin" value="{{ vin }}" placeholder="رقم الشاسيه">
+    <input type="search" name="name" value="{{ name }}" placeholder="اسم السيارة">
+    <input type="number" name="lot" value="{{ lot }}" placeholder="رقم اللوت">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if page is None %}
+    <p class="empty">اكتب في أي حقل للبحث…</p>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>تفاصيل المركبة</th>
+          <th>رقم اللوحة</th>
+          <th>رقم الشاسيه</th>
+          <th>اللوت</th>
+          <th>سعر الوقوف</th>
+          <th>الحالة</th>
+          <th>تاريخ الإدراج</th>
+          <th>المزاد</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td>{{ row.pk|unlocalize }}</td>
+            <td>
+              <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+              <small>{{ row.year|unlocalize }}</small>
+            </td>
+            <td>{{ row.plate_number|default:"—" }}</td>
+            <td>{{ row.vin|default:"—" }}</td>
+            <td class="count">{{ row.lot_number|unlocalize }}</td>
+            <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
+            <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+            <td>{{ row.created_at }}</td>
+            <td>
+              <a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.number|unlocalize }}</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="9" class="empty">لا سيارة تطابق ما كتبت.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p>{{ page.paginator.count|unlocalize }} نتيجةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  {% endif %}
+{% endblock %}

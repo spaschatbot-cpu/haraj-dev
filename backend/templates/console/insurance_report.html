@@ -1,0 +1,72 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تقرير المحفظة — والرقم من الدفتر.
+
+شاشة v1 المقابلة تكتب مصدرها على نفسها: «إجمالي مبالغ التأمين 9,390,004.00 —
+`SUM(total_insurance_paid)`». وذلك العمود بالحرف أحدُ الثلاثة التي وجدها جرد
+T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَل. وهو نفسه «إجمالي التأمين»
+في رئيسية v1 — أي أن أكبر رقمٍ في تلك اللوحة مقروءٌ من عمودٍ محذَّرٍ منه في
+الكود ولا يُحدَّث بانتظام.
+
+وهنا يُجمَع من `money.Account` عند كل عرض. وقد يختلف عن العمود القديم يوم
+التحويل — والاختلاف هو الجواب لا المشكلة.
+{% endcomment %}
+{% block title %}تقرير المحفظة{% endblock %}
+{% block heading %}تقرير المحفظة{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <table>
+    <tbody>
+      <tr><th>عملاء لهم تأمين</th><td class="count">{{ customers|unlocalize }}</td></tr>
+      <tr><th>إجمالي مبالغ التأمين</th><td class="money">{{ total|unlocalize }}</td></tr>
+    </tbody>
+  </table>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال">
+    <input type="number" step="0.01" name="low" value="{{ low }}" placeholder="من مبلغ">
+    <input type="number" step="0.01" name="high" value="{{ high }}" placeholder="إلى مبلغ">
+    <select name="order">
+      <option value="">الأعلى أولاً</option>
+      <option value="asc" {% if order == "asc" %}selected{% endif %}>الأقل أولاً</option>
+    </select>
+    <button type="submit">تطبيق</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>الاسم</th>
+        <th>رقم الجوال</th>
+        <th>إجمالي التأمين</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.pk|unlocalize }}</td>
+          <td><a href="{% url 'console:customer-detail' row.pk %}">{{ row.full_name }}</a></td>
+          <td>{{ row.phone|unlocalize }}</td>
+          <td class="money">{{ row.insurance|unlocalize }}</td>
+          {% comment %} الرقم بابٌ إلى دفتره: من يسأل «من أين جاء» يفتح
+             الحركات التي كوّنته، لا يُصدّق العمود. {% endcomment %}
+          <td><a href="{% url 'console:money-customer' row.pk %}">دفتره ←</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا عملاء مطابقين.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} عميلاً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    كل رقمٍ هنا <strong>مجموعُ دلاء العميل الثلاثة</strong> (متاح · محجوز ·
+    مقفول) من دفتر الحركات، لا عمودٌ مخزَّن. وعميلٌ كلُّ تأمينه محجوزٌ لمزادٍ
+    جارٍ <strong>دفع</strong> تأمينه — وقراءةُ المتاح وحده كانت ستقول صفراً.
+  </p>
+{% endblock %}

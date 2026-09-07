@@ -1,0 +1,56 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+مزايدات حسب المزاد — قائمةُ اختيار.
+
+في v1 مدخلان مختلفان (`owners_console` و`managepage`) يشيران إلى المسار نفسه
+— أحدُ سبعة تكرارات في جدول الكروت. وذلك يعني أن من يُمنَع من أحدهما ويُمنَح
+الآخر يفتح الصفحة، فالمنعُ الظاهر لا يمنع.
+
+وصفحةُ المزايدات نفسها مبنيّةٌ منذ T826 وتعرض حالة كل مزايدة — مسحوبةً
+ومستبدَلةً وقائمة. فما ينقص هو المدخل.
+{% endcomment %}
+{% block title %}مزايدات حسب المزاد{% endblock %}
+{% block heading %}مزايدات حسب المزاد{% endblock %}
+
+{% block content %}
+  <p>{{ total|unlocalize }} مزايدةً في المنصّة. اختر مزاداً لتفتح مزايداته.</p>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="رقم المزاد أو اسمه">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>المزاد</th>
+        <th>الحالة</th>
+        <th>المركبات</th>
+        <th>المزايدات</th>
+        <th>المزايدون</th>
+        <th>بدأ</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.number|unlocalize }}</td>
+          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
+          <td>{{ row.get_state_display }}</td>
+          <td class="count">{{ row.cars|unlocalize }}</td>
+          <td class="count">{{ row.bids|unlocalize }}</td>
+          <td class="count">{{ row.bidders|unlocalize }}</td>
+          <td>{{ row.starts_at }}</td>
+          <td><a href="{% url 'console:auction-bids' row.pk %}">المزايدات ←</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا مزادات مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

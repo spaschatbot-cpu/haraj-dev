@@ -36,7 +36,15 @@ from apps.console.exports import XLSX_CONTENT_TYPE
 from apps.console.navigation import PAGES
 from apps.core import audit as recorder
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceSource, InvoiceState
+from apps.money.models import (
+    Invoice,
+    InvoiceSource,
+    InvoiceState,
+    PaymentIntent,
+    PaymentIntentState,
+    PaymentPurpose,
+)
+from apps.notifications.models import Channel, DeliveryState, Notification
 from apps.odoo.models import InboundMessage, InboundState
 
 pytestmark = pytest.mark.django_db
@@ -61,16 +69,20 @@ EXPORTING = {
 #: below. A page whose entry here is missing fails `test_every_page_is_covered`,
 #: so adding a screen and forgetting to prove it renders is not possible quietly.
 MUST_RENDER = {
-    "console:home": "الرئيسية",
-    # الرقم على الصفحة لا الحالة 200: لوحةٌ ترسم صفراً على بياناتٍ موجودة هي
-    # بالضبط ما شحنته v1 وكل الفحوص خضراء.
-    "console:dashboard": "إجمالي التأمين",
+    # الجذر هو لوحة التحليلات. والرقم على الصفحة لا الحالة 200: لوحةٌ ترسم
+    # صفراً على بياناتٍ موجودة هي بالضبط ما شحنته v1 وكل الفحوص خضراء.
+    "console:home": "إجمالي التأمين",
     "console:auctions": "مزاد الرندرة",
     "console:vehicles": "كامري",
     "console:vehicles-import": "استيراد",
     "console:partner-decisions": "كامري",
     "console:customers": "عميل الرندرة",
     "console:invoices": "INV/818/1",
+    # الأرشيف مزادٌ ثانٍ **منتهٍ**: مزاد `world` جارٍ عمداً (تحتاجه شاشات
+    # أخرى)، وأرشيفٌ يُرندَر فارغاً هو ما ترصده هذه المجموعة أصلاً.
+    "console:auction-archive": "مزاد الأرشيف",
+    "console:payments": "PAY-818",
+    "console:notifications": "تمّت المزايدة عليك",
     # The ledger names the bidder the way every screen does — a company
     # bids under the company's name (`accounts.services.display_name`).
     "console:money-ledger": "شركة الرندرة",
@@ -78,6 +90,74 @@ MUST_RENDER = {
     "console:audit": "console.render_check",
     "console:odoo-inbox": "payment.posted",
     "console:why-no-bid": "ليه ما يقدرش يزايد؟",
+    # المركبة المرساة نفسها التي تفتحها `partner-decisions`: الترسية تصنع
+    # الصفَّ هنا، فمركبةٌ تُرسى في التجهيزة تظهر في الشاشتين — وذلك مقصود،
+    # فالشاشتان وجهان لقرارٍ واحد.
+    "console:accepted-bids": "كامري",
+    # الرقم لا العنوان: ملخّصٌ يرسم عنوانه ثم صفراً على صفوفٍ موجودة هو
+    # بالضبط ما تفعله شاشة v1 المقابلة — تقول `0.00` وبجوارها ٤٬٣٧٨ صفّاً.
+    "console:accepted-summary": "رست ولم تُفوتَر بعد",
+    # الجملة التي تُفتح الشاشة لأجلها: مجموع الحالات الثلاث مقابل الإجمالي.
+    # في v1 الفرق ٣٣٬١١٨ ولا سطر يقوله.
+    "console:analytics-bids": "يساوي الإجمالي",
+    "console:analytics": "لوحة التقارير",
+    #  نفسه: المالك الذي يفتح كل صفحةٍ في هذه المجموعة هو أيضاً صفٌّ
+    # في قائمة المشرفين — فالشاشة تُرندَر على من يقرأها.
+    "console:admins": "المالك",
+    # حالةُ الفراغ منقولةٌ من v1 بنصّها، وهي **الحالة الافتراضية** للشاشة:
+    # تقريرٌ يفتح على أصفارٍ قبل أن يُسأل يقول إن المستخدم بلا مزايدات.
+    "console:user-bids": "ابحث برقم الجوال أو الاسم",
+    "console:vehicle-catalog": "كامري",
+    # شاشةُ بحثٍ تفتح على القائمة كلّها لم تُجب سؤال من فتحها.
+    "console:vehicle-search": "اكتب في أي حقل للبحث",
+    "console:after-sales": "كامري",
+    # الطابور فارغٌ في هذه التجهيزة عمداً: المركبة المرساة لم تُسدَّد بعد،
+    # ولا تُسلَّم سيارةٌ لم يصل مالُها. والجملة التي تقول ذلك هي المعروضة.
+    "console:vehicle-exit": "لا تُسلَّم سيارةٌ لم يصل مالُها",
+    # قسمُ «ما تملكه أنت»: قدرةٌ للقارئ نفسه، وهو الجواب عن السؤال الذي يصل
+    # الدعمَ أكثر من غيره — «لماذا لا أرى هذه الصفحة؟».
+    "console:settings": "ما تملكه أنت",
+    "console:password-change": "تغيير كلمة المرور",
+    # المالك بلا تجاوزات في هذه التجهيزة، والجملة التي تقول ذلك هي المعروضة.
+    "console:page-control": "لا تجاوز — دورُه وحده",
+    # الجملة التي بُني القسم لأجلها: «مسدَّدة» تعني فاتورةً مسدَّدة.
+    "console:partner-console": "لا يُرفع ملفٌّ ليقول إن سيارةً سُدِّدت",
+    "console:partner-auctions": "مزاد الرندرة",
+    "console:partner-soon": "مزادات الشريك",
+    "console:partner-active": "مزاد الرندرة",
+    "console:partner-ended": "مزاد الأرشيف",
+    "console:partner-vehicles": "كامري",
+    # المركبة المرساة في التجهيزة بلا فاتورةٍ عليها، فمكانها هذا الطابور.
+    "console:partner-unpaid": "كامري",
+    "console:partner-paid": "لا سيارات في هذا الطابور",
+    "console:partner-payments": "رقمٌ واحد",
+    "console:ended-decisions": "كامري",
+    # حالةُ الفراغ منقولةٌ من v1، وهي الحالة الافتراضية للشاشة.
+    "console:invoice-lookup": "أدخل رقم الشاسيه أو رقم اللوحة للبدء",
+    # العدد قبل الزرّ: من يضغط تصديراً لا يعرف أهو ثلاثةُ صفوفٍ أم ثلاثةَ
+    # عشرَ ألفاً حتى يفتح الملفّ.
+    "console:invoices-export": "فاتورةً تطابق هذا المدى",
+    # الجملة التي تجعل الرقم نافعاً — وهي شرطُه.
+    "console:active-auction": "لو أُغلق المزاد الآن",
+    "console:insurance-report": "عميل الرندرة",
+    "console:wallet-credit": "ابحث باسم العميل أو رقم جواله",
+    # الجملة التي بُنيت الشاشة لأجلها: لا خانةَ مبلغٍ حرّة.
+    "console:direct-deduct": "لا خانةَ مبلغٍ حرّة هنا",
+    # الجملة التي صارت مفتاحاً بدل أن تكون تحذيراً في v1.
+    "console:partner-payments-approve": "بصمتُه مفتاحٌ فريد",
+    # الجملة التي تقول أين تعيش القاعدة — لا في عنوان الشاشة كما في v1.
+    "console:profit-report": "لا خانةَ «رأس مال» هنا",
+    # الكرت الذي لم يُنقَل، ومكتوبٌ لماذا.
+    "console:owners-console": "ولا «تعديل مزايدة» هنا",
+    "console:auction-bids-index": "مزاد الرندرة",
+    # لا طلبات في هذه التجهيزة، والمهمّ أن الحالات الخمس تُعرض بأسمائها
+    # بدل رقمٍ واحدٍ لا يُعرف ما يعدّه.
+    "console:refunds": "ما زال يكلّفنا",
+    "console:auctions-manage": "مزاد الرندرة",
+    # العدّاد الذي بُنيت الشاشة لأجله: في v1 قيمتُه ٨١٬٤٧٥ بجوار صفرِ مزادٍ نشط.
+    "console:auctions-bulk": "صفر — الإغلاق يعمل",
+    # تُفتح بلا رقم مزاد، فتعرض قائمة الاختيار — وفيها عدد سيارات كلٍّ منها.
+    "console:auctions-quick-edit": "اكتب رقم مزادٍ لتفتح جدول عدّاداته",
 }
 
 
@@ -123,6 +203,28 @@ def world(db):
         owner_company=customer.company,
     )
 
+    # مركبةٌ **رست** لأجل «المزايدات المقبولة» و«ملخّص المقبولة» (T830-أ).
+    # ثانيةٌ لا تحويلُ الأولى: الأولى تنتظر قرار المالك وتخدم
+    # `partner-decisions`، ونقلُها كان سيُفرغ تلك الشاشة ليملأ هذه.
+    #
+    # وتُنشأ في حالتها بحقلَي الترسية معاً — `an_awarded_vehicle_names_its_winner`
+    # قيدٌ في القاعدة يرفض `AWARDED` بلا فائز، وهو الذي يجعل «صفٌّ واحدٌ لكل
+    # مركبة» ضماناً لا اتفاقاً.
+    Vehicle.objects.create(
+        auction=auction,
+        lot_number=2,
+        make="تويوتا",
+        model="كامري",
+        year=2021,
+        plate_number="ر ر ب 1655",
+        reserve_price=Decimal("40000.00"),
+        state=VehicleState.AWARDED,
+        awarded_to=customer,
+        awarded_price=Decimal("47000.00"),
+        awarded_at=now,
+        owner_company=customer.company,
+    )
+
     money.deposit_insurance(
         user=customer, amount=Decimal("30000.00"), source="cash", reference="pay-818"
     )
@@ -143,6 +245,31 @@ def world(db):
         raw_body='{"amount": "10000.00"}',
         state=InboundState.PROCESSED,
         note="تمّت",
+    )
+    # مزادٌ منتهٍ للأرشيف. لا يُنقل بـ`.update(state=…)` — يُنشأ في حالته:
+    # كتابةُ حالةٍ خارج `auctions.services` يرفضها
+    # `ops/checks/auction_state_single_writer.py`، وهو محقّ.
+    Auction.objects.create(
+        number=819,
+        title="مزاد الأرشيف",
+        starts_at=now - timezone.timedelta(days=8),
+        ends_at=now - timezone.timedelta(days=7),
+        state=AuctionState.SETTLED,
+        deposit_required=TEN_K,
+    )
+    PaymentIntent.objects.create(
+        reference="PAY-818",
+        user=customer,
+        amount=Decimal("10000.00"),
+        purpose=PaymentPurpose.INSURANCE_DEPOSIT,
+        state=PaymentIntentState.PENDING,
+    )
+    Notification.objects.create(
+        user=customer,
+        channel=Channel.SMS,
+        template="bid.outbid",
+        body="تمّت المزايدة عليك",
+        state=DeliveryState.SENT,
     )
     recorder.record(
         action="console.render_check",

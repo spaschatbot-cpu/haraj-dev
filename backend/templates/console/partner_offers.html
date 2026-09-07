@@ -23,7 +23,7 @@ that number reached the invoice conversation.
     <tr><th>الشريك</th><td>{{ vehicle.owner_company.name|default:"—" }}</td></tr>
     <tr><th>الحالة</th><td>{{ vehicle.get_state_display }}</td></tr>
     <tr><th>سعر الوقوف</th><td class="money">
-      {{ vehicle.reserve_price|unlocalize|default:"—" }}</td></tr>
+      {{ vehicle.reserve_price|default:"—"|unlocalize }}</td></tr>
     <tr><th>العرض المقبول</th><td class="money">
       {% comment %} The award's own number. Absent until there is an award: an unawarded
          car has no accepted offer, and putting the highest bid in this slot is

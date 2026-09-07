@@ -26,6 +26,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 
+from apps.auctions import cards
 from apps.auctions import services as auction_services
 from apps.auctions.listing import MAX_PAGE_SIZE, with_vehicle_counts
 from apps.auctions.models import Auction, Vehicle
@@ -35,6 +36,7 @@ from apps.core import audit
 
 from .exports import export, wants_export
 from .forms import AuctionForm, VehicleForm
+from .tones import tone_of, with_tones
 from .views import console_page
 
 #: Rows per page. Twenty-five rather than the API's twenty: a console user is
@@ -106,11 +108,14 @@ def auctions(request):
             ],
         )
 
+    page = _page(request, rows)
+    with_tones(page.object_list)
+
     return render(
         request,
         "console/auctions.html",
         {
-            "page": _page(request, rows),
+            "page": page,
             "states": AuctionState.choices,
             "state": state,
             "q": search,
@@ -197,11 +202,27 @@ def vehicles(request):
 
         return workbook_response(export_vehicles(rows), name="vehicles")
 
+    page = _page(request, rows)
+    # الصورة والنغمة تُعلَّقان على صفوف **هذه الصفحة** وحدها.
+    #
+    # و`card_queryset` قبلهما لا بعدهما: بدونه يكلّف كل صفٍّ استعلامَ غلافٍ
+    # خاصاً به — خمسون صفّاً، خمسون استعلاماً — وهو النمط الذي جعل هذه القائمة
+    # في v1 تُحمَّل في ثوانٍ. وهي الدالّة نفسها التي يستعملها API العميل، فصورةُ
+    # الغلاف في اللوحة هي صورةُ الغلاف في التطبيق بحكم البناء لا بحكم الاتفاق.
+    ids = [row.pk for row in page.object_list]
+    covers = {
+        row.pk: cards.thumbnail_of(row)
+        for row in cards.card_queryset(Vehicle.objects.filter(pk__in=ids))
+    }
+    for row in page.object_list:
+        row.thumb = covers.get(row.pk)
+        row.tone = tone_of(row.state)
+
     return render(
         request,
         "console/vehicles.html",
         {
-            "page": _page(request, rows),
+            "page": page,
             "states": VehicleState.choices,
             "state": state,
             "q": search,
@@ -229,10 +250,16 @@ def vehicle_detail(request, pk: int):
         if move.source == vehicle.state
     ]
 
+    # الصور: مرتّبةً بالغلاف أولاً ثم `position` — وهو ترتيب `VehicleImage.Meta`
+    # نفسه، فلا ترتيبَ ثانٍ يفترق عنه. ولم تكن تُعرض في اللوحة أصلاً: سبعٌ
+    # وعشرون صورة في قاعدة العرض ولا واحدةٌ منها على شاشة، بينما هي أسرع ما
+    # يجيب «أهذه السيارة التي يتكلّم عنها العميل؟».
+    shots = vehicle.images.order_by("-is_cover", "position", "pk")
+
     return render(
         request,
         "console/vehicle_detail.html",
-        {"vehicle": vehicle, "moves": moves},
+        {"vehicle": vehicle, "moves": moves, "shots": shots},
     )
 
 

@@ -1,0 +1,80 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+ما بعد البيع — وحالةُ الفاتورة **مشتقّةٌ من الدفعات المسجَّلة**.
+
+في v1 رقمُ الفاتورة شكلان: `317263` (شكل v1) و`INV/2026/08267` (شكل أودو)،
+وثلاثةُ صفوفٍ فقط من الخمسين تحمل الثاني — **وهي وحدها «مدفوعة»**. أي أن
+«مدفوعة» هناك لا تعني «وصل المال» بل «صار لها معرّفٌ في أودو».
+
+وهذا عطلُ T809: v1 يعكس حالة أودو في عمودٍ يُكتب مرّةً عند الإدخال، فحوالةٌ
+هناك كمسودّة تظهر هنا «مدفوعة» — وقد أُخرجت سيارةٌ مقابلها. وكلمةُ أودو
+معروضةٌ بجوار الحالة **دليلاً** لا حقيقة، واختلافُهما هو ما يُراد أن يُرى.
+{% endcomment %}
+{% block title %}ما بعد البيع{% endblock %}
+{% block heading %}ما بعد البيع{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="لوحة أو شاصي أو اسم السيارة أو اسم المشتري أو رقم مزاد">
+    <select name="state">
+      <option value="">كل حالات ما بعد البيع</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>المركبة</th>
+        <th>اللوحة</th>
+        <th>الشاصي</th>
+        <th>المشتري</th>
+        <th>سعر الترسية</th>
+        <th>حالة المركبة</th>
+        <th>الفاتورة</th>
+        <th>حالتها — من الدفعات</th>
+        <th>كلمة أودو</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.vin|default:"—" }}</td>
+          <td>
+            <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+            <small>{{ row.awarded_to.phone|unlocalize }}</small>
+          </td>
+          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          {% if row.billing.invoice %}
+            <td><a href="{% url 'console:invoice-detail' row.billing.invoice.pk %}">{{ row.billing.invoice.number }}</a></td>
+            <td>{{ row.billing.state }}</td>
+            <td>{{ row.billing.odoo|default:"—" }}</td>
+          {% else %}
+            <td class="empty" colspan="3">بلا فاتورة بعد</td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="11" class="empty">لا مركبات مباعة مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    عمود «حالتها» محسوبٌ من الدفعات المسجَّلة، و«كلمة أودو» معروضةٌ كما وصلت.
+    واختلافُهما ليس عطلاً في الشاشة — هو ما تُفتح لتُريَه.
+  </p>
+{% endblock %}

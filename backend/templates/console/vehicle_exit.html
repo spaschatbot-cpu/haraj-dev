@@ -1,0 +1,75 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+الخروج ونقل الملكية — لسانان لا أربعة.
+
+v1 عنده «إنشاء الخروج» و«متابعة نقل الملكية» و«أرشيف المنقولة» و«البوابة»،
+**وكلُّها تعرض الصفوف نفسها بحالة «لم يُنشأ»** — أربعُ شاشاتٍ لحالةٍ لم
+تُسجَّل قطّ في اثني عشر ألف صفّ. وهنا الخروج حالةٌ في المركبة تكتبها
+`auctions.services` وحدها، فاللسانان هما ما تحمله فعلاً.
+
+**وطابور الخروج هو المسدَّد وحده.** لا تُسلَّم سيارةٌ لم يصل مالُها، وشاشةٌ
+تعرضها في الطابور تدعو إلى ذلك — وv1 يعرض المفوتَر وغير المفوتَر معاً بلا
+تمييز.
+
+وعمود المزاد هنا رقمٌ حقيقي: في v1 يقول `0` في الخمسين صفّاً كلّها، والسيارة
+خرجت من مزادٍ له رقم.
+{% endcomment %}
+{% block title %}الخروج ونقل الملكية{% endblock %}
+{% block heading %}الخروج ونقل الملكية{% endblock %}
+
+{% block content %}
+  <p>
+    <a href="{% url 'console:vehicle-exit' %}?state=awaiting">بانتظار الخروج ({{ awaiting_count|unlocalize }})</a> ·
+    <a href="{% url 'console:vehicle-exit' %}?state=released">خرجت ({{ released_count|unlocalize }})</a>
+  </p>
+
+  <form method="get">
+    <input type="hidden" name="state" value="{{ which }}">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="سيارة أو لوحة أو شاصي أو مشتري أو جوال أو رقم مزاد">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>السيارة</th>
+        <th>اللوحة</th>
+        <th>الشاصي</th>
+        <th>المشتري</th>
+        <th>الجوال</th>
+        <th>سعر الترسية</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>
+            <a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.number|unlocalize }}</a>
+          </td>
+          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
+          <td>{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.vin|default:"—" }}</td>
+          <td><a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a></td>
+          <td>{{ row.awarded_to.phone|unlocalize }}</td>
+          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="9" class="empty">لا مركبات في هذا الطابور.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    الطابور هو <strong>المسدَّد</strong> وحده: لا تُسلَّم سيارةٌ لم يصل مالُها.
+    وما رسا ولم يُسدَّد بعدُ مكانه <a href="{% url 'console:after-sales' %}">ما بعد البيع</a>.
+  </p>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+احصائيات المزاد النشط.
+
+«لو أُغلق المزاد الآن» هي الجملة التي تجعل الشاشة نافعة، وهي في v1 صواباً —
+قيمةٌ مشروطةٌ يُقال شرطُها. وتُنقَل بنصّها، لأن رقماً بهذا الحجم بلا شرطه
+يُقرأ مبيعاتٍ وقعت.
+
+و«القيمة الحالية» مجموعُ **أعلى مزايدةٍ لكل سيارة** لا مجموعُ المزايدات:
+الثاني يجمع عشرَ مزايداتٍ على سيارةٍ واحدة فيقول إنها بيعت عشر مرّات.
+{% endcomment %}
+{% block title %}احصائيات المزاد النشط{% endblock %}
+{% block heading %}احصائيات المزاد النشط{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="number" name="number" value="{{ number }}" placeholder="رقم مزاد">
+    <button type="submit">اعرض</button>
+  </form>
+
+  {% if not shape %}
+    {% comment %} «لا مزاد جارٍ» جوابٌ صحيح لا شاشةٌ فارغة: المنصّة تعمل
+       بمزادٍ أسبوعي، وبين المزادين لا شيء يُقاس. {% endcomment %}
+    <p class="empty">
+      {% if number %}
+        لا مزاد بهذا الرقم.
+      {% else %}
+        لا مزاد جارٍ الآن. اكتب رقم مزادٍ لتقرأ صورته وقت انتهائه.
+      {% endif %}
+    </p>
+  {% else %}
+    <h2>
+      {{ shape.auction.number|unlocalize }} — {{ shape.auction.title }}
+      <small>{{ shape.auction.get_state_display }}</small>
+    </h2>
+    <p>
+      من {{ shape.auction.starts_at }} إلى {{ shape.auction.ends_at }} ·
+      <a href="{% url 'console:auction-detail' shape.auction.pk %}">افتح المزاد ←</a>
+    </p>
+
+    <table>
+      <tbody>
+        <tr><th>سيارات المزاد</th><td class="count">{{ shape.vehicles|unlocalize }}</td></tr>
+        <tr><th>سيارات عليها مزايدة</th><td class="count">{{ shape.with_bids|unlocalize }}</td></tr>
+        {% comment %} «بلا مزايدة» رقمُ عملٍ لا إحصاء: هي التي تحتاج تذكيراً
+           أو مراجعةَ سعر وقوفٍ قبل أن ينتهي المزاد. {% endcomment %}
+        <tr><th>سيارات بلا مزايدة</th><td class="count">{{ shape.without_bids|unlocalize }}</td></tr>
+        <tr><th>إجمالي المزايدات</th><td class="count">{{ shape.bids|unlocalize }}</td></tr>
+        <tr><th>عدد المزايدين</th><td class="count">{{ shape.bidders|unlocalize }}</td></tr>
+        <tr><th>أعلى مزايدة</th><td class="money">{{ shape.highest|default:"—"|unlocalize }}</td></tr>
+        <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
+      </tbody>
+    </table>
+
+    <h2>القيمة الحالية — لو أُغلق المزاد الآن</h2>
+    <table>
+      <tbody>
+        <tr>
+          <th>مجموع أعلى مزايدةٍ لكل سيارة</th>
+          <td class="money">{{ shape.if_closed_now|unlocalize }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="empty">
+      هذا رقمٌ <strong>مشروط</strong>: لو أُغلق المزاد في هذه اللحظة. وليس
+      مبيعاتٍ وقعت — المزايدة قد تُعلى، والمالك قد يرفض ما دون سعر الوقوف.
+    </p>
+    <p class="empty">
+      ولا ضريبة عليه: الضريبة تُحسب على الفاتورة حين تصدر
+      (<code>money.services.tax_of</code>)، ومبلغٌ لم يُفوتَر بعدُ لا ضريبة
+      عليه. وv1 يعرض «ضريبة القيمة 15%» على هذا الرقم نفسه.
+    </p>
+  {% endif %}
+
+  <p><a href="{% url 'console:analytics' %}">لوحة التقارير ←</a></p>
+{% endblock %}

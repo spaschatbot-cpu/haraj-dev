@@ -1,0 +1,60 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+`unlocalize` على كل مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢). والمزايدة
+محلُّ خلافٍ بطبيعتها، فرقمٌ نُسّق مرّتين رقمٌ يُختلف عليه مرّتين.
+
+مزايدات مزادٍ واحد — المسحوبة والمستبدَلة معروضتان وحالتاهما مكتوبتان.
+
+v1 يعرض القائمة الأخيرة وحدها، فيسأل الدعم «أين مزايدته؟» ولا جواب. هذه الشاشة
+تُفتح أصلاً حين يكون هناك خلاف، فالصفُّ الذي يُبحث عنه هو الصفُّ الذي سقط.
+
+والحالة محسوبةٌ في `archive._bid_state` لا هنا: قالبٌ يحسب حالةً هو مكانٌ ثانٍ
+للقاعدة ولا يُختبَر (المادة ٤-٤).
+{% endcomment %}
+{% block title %}مزايدات المزاد{% endblock %}
+{% block heading %}مزايدات مزاد «{{ auction.title }}»{% endblock %}
+{% block actions %}
+  <a href="{% url 'console:auction-detail' auction.pk %}">تفاصيل المزاد</a>
+  <a href="{% url 'console:auction-archive' %}">الأرشيف</a>
+  <a href="{{ export_url }}">تصدير إلى إكسل</a>
+{% endblock %}
+
+{% block content %}
+  <p>
+    المزاد رقم {{ auction.number|unlocalize }} · {{ auction.get_state_display }} ·
+    <span class="count">{{ vehicles|unlocalize }}</span> مركبة ·
+    <span class="count">{{ total|unlocalize }}</span> مزايدة
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المركبة</th>
+        <th>اللوحة</th>
+        <th>المزايد</th>
+        <th>الجوال</th>
+        <th>المبلغ</th>
+        <th>الحالة</th>
+        <th>الوقت</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td><a href="{% url 'console:vehicle-detail' row.vehicle_id %}">{{ row.vehicle.make }} {{ row.vehicle.model }}</a></td>
+          <td>{{ row.vehicle.plate_number|default:"—" }}</td>
+          <td><a href="{% url 'console:customer-detail' row.bidder_id %}">{{ row.bidder.full_name }}</a></td>
+          <td class="money">{{ row.bidder.phone }}</td>
+          <td class="money">{{ row.amount|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.state_word }}</span></td>
+          <td>{{ row.placed_at }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا مزايدات على هذا المزاد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تحليل المزايدات.
+
+شاشة v1 المقابلة تعرض `مقبولة 6,503` و`مرفوضة 70,146` و`نشطة 81,475` —
+مجموعها `158,124` والإجمالي المعروض `125,006`، أي فائضٌ ٣٣٬١١٨ لا تفسّره
+الشاشة. وهنا الحالات الثلاث **قسمة**: المسحوبة، فالمستبدَلة من غير المسحوب،
+فالقائمة. ومجموعُها يساوي الإجمالي، ويثبته اختبار — والسطر الذي يقول ذلك
+مرسومٌ في الصفحة كي يُرى، لا مخبوءاً في تعليق.
+
+والمرفوضة خارج القسمة: `BidRefusal` محاولةٌ منعتها بوابةُ الأهلية ولم تصر
+مزايدةً أصلاً، و`Bid.is_superseded` مزايدةٌ وقعت ثم عُلِيت. جدولان مختلفان،
+والخلطُ بينهما هو ما يجعل «٥٦٪ مرفوضة» تُقرأ عطلاً وهي الحالة الطبيعية.
+{% endcomment %}
+{% block title %}تحليل المزايدات{% endblock %}
+{% block heading %}تحليل المزايدات{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
+    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <tbody>
+      <tr><th>إجمالي المزايدات</th><td class="count">{{ shape.total|unlocalize }}</td></tr>
+      <tr><th>المزادات التي فيها مزايدة</th><td class="count">{{ shape.auctions|unlocalize }}</td></tr>
+      <tr><th>المركبات التي زُويد عليها</th><td class="count">{{ shape.vehicles|unlocalize }}</td></tr>
+      <tr><th>عدد المزايدين</th><td class="count">{{ shape.bidders|unlocalize }}</td></tr>
+      <tr><th>أعلى مزايدة</th><td class="money">{{ shape.highest|default:"—"|unlocalize }}</td></tr>
+      <tr><th>أقل مزايدة</th><td class="money">{{ shape.lowest|default:"—"|unlocalize }}</td></tr>
+      <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
+      <tr><th>إجمالي قيمة المزايدات</th><td class="money">{{ shape.value|unlocalize }}</td></tr>
+    </tbody>
+  </table>
+
+  <h2>الحالات — قسمةٌ لا تصنيف</h2>
+  <table>
+    <tbody>
+      <tr><th>قائمة</th><td class="count">{{ shape.standing|unlocalize }}</td></tr>
+      <tr><th>استُبدلت بأعلى</th><td class="count">{{ shape.superseded|unlocalize }}</td></tr>
+      <tr><th>مسحوبة</th><td class="count">{{ shape.withdrawn|unlocalize }}</td></tr>
+      {% comment %} السطر الذي تُفتح الشاشة لأجله: المجموع مرسومٌ بجوار
+         الإجمالي كي يُقارَنا بالعين. في v1 الفرق ٣٣٬١١٨ ولا سطر يقوله. {% endcomment %}
+      <tr>
+        <th>مجموع الثلاثة</th>
+        <td class="count">
+          {{ partition_total|unlocalize }}
+          {% if partition_total == shape.total %}
+            <span class="pill" data-tone="ok">يساوي الإجمالي</span>
+          {% else %}
+            <span class="pill" data-tone="bad">لا يساوي الإجمالي</span>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>محاولاتٌ لم تصر مزايدات</h2>
+  <p>
+    {{ shape.refused|unlocalize }} محاولةً منعتها بوابةُ الأهلية قبل أن تُسجَّل،
+    ولكلٍّ منها سببُها ولقطةٌ لمال صاحبها وقتَها.
+    <a href="{% url 'console:why-no-bid' %}">لماذا رُفضت ←</a>
+  </p>
+  <p class="empty">
+    هذه ليست من الأرقام أعلاه: المزايدة المستبدَلة <strong>وقعت</strong> ثم
+    عُلِيت، والمحاولة المرفوضة <strong>لم تقع</strong>. وخلطُهما هو ما يجعل
+    «مرفوضة» تبدو نصفَ المنصّة وهي ليست منها.
+  </p>
+
+  <h2>أكثر المزايدين نشاطاً</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>المزايد</th>
+        <th>الجوال</th>
+        <th>المزايدات</th>
+        <th>المركبات</th>
+        <th>إجمالي القيمة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in top %}
+        <tr>
+          <td><a href="{% url 'console:customer-detail' row.bidder__id %}">{{ row.bidder__full_name }}</a></td>
+          <td>{{ row.bidder__phone|unlocalize }}</td>
+          <td class="count">{{ row.bids|unlocalize }}</td>
+          {% comment %} عمود «المركبات» ليس في v1، وهو ما يجعل عمود المزايدات
+             مقروءاً: `5,636` مزايدة على `12` مركبة شيء، وعلى `5,000` شيءٌ
+             آخر — والرقم وحده لا يفرّق بينهما. {% endcomment %}
+          <td class="count">{{ row.vehicles|unlocalize }}</td>
+          <td class="money">{{ row.value|unlocalize }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا مزايدات بعد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

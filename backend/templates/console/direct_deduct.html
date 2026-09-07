@@ -1,0 +1,99 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+الخصم المباشر — ولا خانةَ مبلغٍ حرّة.
+
+شاشة v1: صفُّ نتائج بحثٍ، وفيه خانةُ مبلغٍ وزرُّ «خصم الآن». بلا سببٍ وبلا
+تأكيد. وأثرُها مقيسٌ في شاشتها المجاورة «صحّة المحفظة»: تسعون بلاغ «إلغاء بلا
+سبب»، وبلاغا «خصم زائد» بـ٩٬٩٩١ ريالاً، أحدهما «خرج 29,990 مقابل مدفوع
+20,000».
+
+والمشكلة ليست غياب التأكيد — هي أن «اخصم مبلغاً» ليس فعلاً محاسبياً. المال
+ينتقل من حسابٍ إلى حساب، والسؤال إلى أين. فالثلاثة المعروضة هنا هي كلُّ الطرق
+التي يخرج بها مالٌ من رصيد عميل، مسمّاةً بمقاديرها.
+{% endcomment %}
+{% block title %}خصم مباشر من التأمين{% endblock %}
+{% block heading %}خصم مباشر من التأمين{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو رقم جواله">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if not searched %}
+    <p class="empty">ابحث باسم العميل أو رقم جواله.</p>
+  {% elif not rows %}
+    <p class="empty">لا عميل يطابق ما كتبت.</p>
+  {% else %}
+    {% for row in rows %}
+      <h2>
+        {{ row.name }}
+        <small>{{ row.person.phone|unlocalize }}</small>
+      </h2>
+      <table>
+        <tbody>
+          <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
+          <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
+          <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
+        </tbody>
+      </table>
+
+      <h3>حجوزٌ قائمة — تُصادَر بسببٍ مكتوب</h3>
+      <table>
+        <thead>
+          <tr><th>الحجز</th><th>ما يضمنه</th><th>المبلغ</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for hold in row.holds %}
+            <tr>
+              <td>{{ hold.pk|unlocalize }}</td>
+              <td>
+                {% if hold.auction %}مزاد {{ hold.auction.number|unlocalize }}
+                {% elif hold.invoice %}فاتورة {{ hold.invoice.number }}
+                {% else %}—{% endif %}
+              </td>
+              <td class="money">{{ hold.amount|unlocalize }}</td>
+              {% comment %} المصادرة لا تُطلَق من هنا: صفحةُ أفعال العميل تعرض
+                 الحجز بما يضمنه وتطلب السبب — و«صادر الحجز 4102» ليست جملةً
+                 يستطيع أحدٌ التحقّق منها قبل الضغط. {% endcomment %}
+              <td><a href="{% url 'console:money-actions' row.person.pk %}">افتح أفعاله ←</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا حجوز قائمة.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>مستحقّات — تُسدَّد من رصيده</h3>
+      <table>
+        <thead>
+          <tr><th>الفاتورة</th><th>المبلغ</th><th>المتبقّي</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for invoice in row.dues %}
+            <tr>
+              <td>{{ invoice.number }}</td>
+              <td class="money">{{ invoice.amount|unlocalize }}</td>
+              <td class="money">{{ invoice.outstanding|unlocalize }}</td>
+              <td><a href="{% url 'console:invoice-detail' invoice.pk %}">افتح الفاتورة ←</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا مستحقّات.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p><a href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل ←</a></p>
+    {% endfor %}
+  {% endif %}
+
+  <p class="empty">
+    <strong>لا خانةَ مبلغٍ حرّة هنا، وذلك مقصود.</strong> المال لا «يُخصَم» —
+    ينتقل من حسابٍ إلى حساب، والسؤال إلى أين: إلى إيرادات المنصّة
+    (<strong>مصادرة</strong>، بسببٍ مكتوب وعلى حجزٍ بعينه)، أو إلى سداد فاتورة
+    (<strong>من الرصيد</strong>، ولا تأخذ أكثر من المستحقّ)، أو إلى العميل
+    (<strong>استرداد</strong>). ورقمٌ يُكتب بيدٍ بلا شيءٍ يقابله هو ما أنتج في
+    v1 «خرج 29,990 مقابل مدفوع 20,000».
+  </p>
+{% endblock %}

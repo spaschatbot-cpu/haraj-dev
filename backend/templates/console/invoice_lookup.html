@@ -1,0 +1,66 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+حالة فاتورة — الشاشة الوحيدة التي يُفتَح جوابُها لخارج الشركة.
+
+السائل شركةُ تأمينٍ أو جهةٌ تسأل عن مركبةٍ بعينها، والموظّف يقرأ لها. فثلاثة
+أشياء مقصودة هنا:
+
+* تُجيب عن مركبةٍ واحدة ولا تسرد — والحقلُ الفارغ لا يعرض الجدول كلّه.
+* ولا تعرض ما لا يخصّ السائل: **لا مشترٍ ولا جوّال ولا مبلغ**. شركةُ التأمين
+  ليست طرفاً في الثمن، وعرضُه لها تسريبٌ لا خدمة.
+* وقدرتُها `invoices.lookup` لا `invoices.view` — الثانية تفتح القائمة كلّها.
+
+وحالةُ الفاتورة مشتقّةٌ من الدفعات، فحوالةٌ في أودو كمسودّة لا تُقرأ «مدفوعة»
+— وهي القراءة التي أُخرجت سيارةٌ بناءً عليها في v1.
+{% endcomment %}
+{% block title %}حالة فاتورة{% endblock %}
+{% block heading %}حالة فاتورة{% endblock %}
+
+{% block content %}
+  <p>للاستعلام عن حالة فاتورة مركبةٍ بعينها — للتأمين والجهات الخارجية.</p>
+
+  <form method="get">
+    <input type="search" name="vin" value="{{ vin }}" placeholder="رقم الشاسيه">
+    <input type="search" name="plate" value="{{ plate }}" placeholder="رقم اللوحة">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if not found %}
+    <p class="empty">أدخل رقم الشاسيه أو رقم اللوحة للبدء.</p>
+
+  {% elif found.many %}
+    {% comment %} لا يُختار الأول: جوابٌ عن مركبةٍ غير المسؤول عنها يُقرأ
+       صحيحاً ويُبنى عليه، والسائلُ من خارج الشركة لا يملك ما يكذّبه به. {% endcomment %}
+    <p class="empty">
+      {{ found.count|unlocalize }} مركبةً تطابق ما أدخلت. الشاسيه مفتاحٌ فريد —
+      استعمله لتحديد المركبة.
+    </p>
+
+  {% elif not found.vehicle %}
+    <p class="empty">لا مركبة بهذا الشاسيه أو هذه اللوحة.</p>
+
+  {% else %}
+    <table>
+      <tbody>
+        <tr><th>المركبة</th><td>{{ found.vehicle.make }} {{ found.vehicle.model }} · {{ found.vehicle.year|unlocalize }}</td></tr>
+        <tr><th>رقم الشاسيه</th><td>{{ found.vehicle.vin|default:"—" }}</td></tr>
+        <tr><th>رقم اللوحة</th><td>{{ found.vehicle.plate_number|default:"—" }}</td></tr>
+        <tr><th>المزاد</th><td>{{ found.vehicle.auction.number|unlocalize }} — {{ found.vehicle.auction.title }}</td></tr>
+        <tr><th>حالة المركبة</th><td>{{ found.vehicle.get_state_display }}</td></tr>
+        {% if found.invoice %}
+          <tr><th>رقم الفاتورة</th><td>{{ found.invoice.number }}</td></tr>
+          <tr><th>تاريخها</th><td>{{ found.invoice.issued_at }}</td></tr>
+          <tr><th>حالتها</th><td>{{ found.state }}</td></tr>
+        {% else %}
+          <tr><th>الفاتورة</th><td class="empty">لم تُصدَر بعد</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <p class="empty">
+      هذه الشاشة تعرض حالة الفاتورة وحدها. اسمُ المشتري وجوّالُه ومبلغُ
+      الفاتورة ليست من بيانات هذا الاستعلام.
+    </p>
+  {% endif %}
+{% endblock %}

@@ -14,6 +14,16 @@ there, so a visual change touches this file and that one, nothing else.
 Flash messages render here, once, tagged (success/error/…) — the per-template
 `<p><strong>` loops are gone, because a message rendered in six places is six
 chances to show it twice or not at all.
+
+T824 أضاف إلى الإطار شيئين، وكلاهما هنا لا في كل صفحة:
+
+* **مفتاح الطيّ** في الشريط العلوي — يطوي الشريط الجانبي إلى أيقونات على
+  الشاشة العريضة، ويُخفيه على الضيّقة.
+* **درج المظهر** — مظهرٌ فاتح/داكن، وستّة ألوانٍ أساسية، وشريطٌ جانبيٌّ فاتح
+  أو داكن أو متدرّج، وإطفاءُ الحركة. الاختيار يُحفظ في المتصفّح
+  (`apps/console/static/console/theme.js`)، ولا يُرسِل شيئاً إلى الخادم —
+  ولذلك لا `<form>` فيه: `test_the_chrome_writes_nothing_but_the_way_out`
+  يشترط أن الشيء الوحيد الذي يُرسِل في الإطار هو الخروج، وهو محقّ.
 {% endcomment %}<!doctype html>
 {% load static %}
 <html lang="ar" dir="rtl">
@@ -22,14 +32,21 @@ chances to show it twice or not at all.
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
   <link rel="stylesheet" href="{% static 'console/app.css' %}">
+  {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
+     رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
+     الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
+  <script src="{% static 'console/theme.js' %}"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
   <div class="layout">
     <aside class="sidebar">
       <a class="brand" href="{% url 'console:home' %}">
-        <strong>لوحة حراج</strong>
-        <small>إدارة المزادات والمال</small>
+        <span class="brand__mark" aria-hidden="true">ح</span>
+        <span class="brand__words">
+          <strong>لوحة حراج</strong>
+          <small>إدارة المزادات والمال</small>
+        </span>
       </a>
 
       <nav class="nav" aria-label="أقسام اللوحة">
@@ -37,22 +54,83 @@ chances to show it twice or not at all.
           <h2 class="nav-sec">{{ section.label }}</h2>
           {% for page in section.pages %}
             {% url page.url_name as page_href %}
-            <a href="{{ page_href }}"{% if request.path == page_href %} class="active" aria-current="page"{% endif %}>{{ page.label }}</a>
+            {% comment %} `data-label` يحمل الاسم حين ينطوي الشريط ولا يبقى
+               للنصّ مكان، و`title` يحمل **سطر الشرح** معه: الاسم يقول أين
+               تذهب، والسطر يقول لماذا. وكان هذا السطر يُقرأ من شبكة كروتٍ في
+               الجذر وحدها، فيراه الموظّف مرّةً في اليوم عند الدخول ثم لا
+               يجده حين يحتاجه. الرمز `aria-hidden` لأنه تزيين: قارئ الشاشة
+               يقرأ الاسم من داخل الرابط كما هو. {% endcomment %}
+            <a href="{{ page_href }}" data-label="{{ page.label }}" title="{{ page.label }} — {{ page.blurb }}"{% if request.path == page_href %} class="active" aria-current="page"{% endif %}>
+              {% comment %} `<svg>` مضمَّن لا ملفٌّ يُطلب: لا شيء «قد لا يصل»،
+                 ويرث `currentColor` فيتلوّن مع القسم الحالي وحده. والمسار من
+                 `apps/console/icons.py` عبر `Page.icon_path`. {% endcomment %}
+              <svg class="nav__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ page.icon_path }}"/></svg>
+              <span class="nav__text">{{ page.label }}</span>
+            </a>
+          {% endfor %}
+          {% for row in section.planned %}
+            {% comment %} `<span>` لا `<a>` معطّل: الرابط المعطّل يبقى في
+               ترتيب المفاتيح ويُنقر بالوسط فيُفتح تبويبٌ فارغ. وما ليس رابطاً
+               لا يفعل شيئاً من ذلك. والاسم مقروءٌ كاملاً، والحالة مكتوبةٌ
+               نصّاً لا مرسومةً لوناً — «قريباً» تُقرأ بقارئ الشاشة كما تُرى.
+               ومسار v1 في `title` مرجعٌ لمن يبنيها لا وجهةٌ تُفتح. {% endcomment %}
+            <span class="nav__soon" data-label="{{ row.label }}" title="{{ row.label }} — لم تُبنَ بعد{% if row.v1_path %} · في v1: {{ row.v1_path }}{% endif %}">
+              <svg class="nav__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ row.icon_path }}"/></svg>
+              <span class="nav__text">{{ row.label }}</span>
+              <small class="nav__tag">{% if row.rebuilt %}تُبنى غيرها{% else %}قريباً{% endif %}</small>
+            </span>
           {% endfor %}
         {% endfor %}
+
+        {% comment %} الخروج في ذيل الشريط كما في v1 — **زرٌّ داخل نموذج**، لا
+           رابطاً. و`LogoutView` ترفض `GET` منذ جانغو ٥٫٠ لسببٍ يقع فعلاً:
+           رابطٌ ينهي الجلسة على `GET` ينهيها من أي `<img src>` في أي صفحةٍ
+           يفتحها الموظّف بعدها.
+
+           ولذلك أيضاً لا صفَّ له في `navigation.PAGES` — الصفُّ هناك يعني
+           رابطاً، و`test_entry_points.py` يشترط غيابه. فهو مرسومٌ هنا بيده،
+           بشكل السطر نفسه لا بشكلٍ ثانٍ. {% endcomment %}
+        {% if request.user.is_authenticated %}
+          <h2 class="nav-sec">الخروج</h2>
+          <form class="nav-out" method="post" action="{% url 'console:sign-out' %}">
+            {% csrf_token %}
+            <button type="submit" data-label="تسجيل الخروج" title="تسجيل الخروج">
+              <svg class="nav__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ sign_out_icon }}"/></svg>
+              <span class="nav__text">تسجيل الخروج</span>
+            </button>
+          </form>
+        {% endif %}
       </nav>
     </aside>
 
     <div class="shell">
       <header class="topbar">
+        {% comment %} زرٌّ لا رابط: لا وجهة له، وحالتُه تُقرأ من `aria-expanded`
+           الذي يكتبه `theme.js`. {% endcomment %}
+        <button type="button" class="icon-btn" data-nav-toggle aria-expanded="true"
+                aria-label="طيّ الشريط الجانبي أو فتحه">
+          <span aria-hidden="true">☰</span>
+        </button>
+
         {% comment %} Article 5-6: every screen says which environment it is, so nobody
            performs an irreversible action on production thinking it is staging.
            Production shouts red; the rest whisper. {% endcomment %}
         <span class="env-badge" data-env="{{ environment }}">{{ environment }}</span>
+
         {% comment %} `request` is absent when a template is rendered from its source string
            in tests — and a filter argument (`default:request.user`) is the one
            place Django resolves strictly, so the name is guarded, not defaulted. {% endcomment %}
-        {% if request.user %}<span class="user">{{ request.user.full_name }}</span>{% endif %}
+        {% if request.user %}
+          <span class="user">
+            <span class="user__mark" aria-hidden="true">{{ request.user.full_name|first }}</span>
+            {{ request.user.full_name }}
+          </span>
+        {% endif %}
+
+        <button type="button" class="icon-btn" data-themer-open aria-label="المظهر والألوان">
+          <span aria-hidden="true">◐</span>
+        </button>
+
         {% comment %} A form and not a link: `LogoutView` refuses GET since Django 5.0, and a
            URL that ends the session on GET ends it from any `<img src>` on any page
            the operator opens next. The button is styled to read as a link. {% endcomment %}
@@ -70,10 +148,87 @@ chances to show it twice or not at all.
             <p class="notice{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</p>
           {% endfor %}
         {% endif %}
-        <h1>{% block heading %}{% endblock %}</h1>
+        {% comment %} رأسُ الصفحة: العنوان في جهة، وأفعالها في الأخرى.
+           كان زرّ «تصدير إلى إكسل» فقرةً تحت العنوان في إحدى عشرة شاشة —
+           رابطاً عارياً يُقرأ جملةً لا فعلاً، ويزيح المحتوى سطراً لأسفل في كل
+           قائمة. ومكانُه الطبيعي حيث تُتوقَّع الأفعال: حافةُ الرأس.
+
+           و`{% block actions %}` فارغٌ افتراضياً، فالشاشات التي لا فعل لها لا
+           تدفع شيئاً — ولا واحدةَ منها تحتاج تعديلاً. {% endcomment %}
+        <header class="page">
+          <h1>{% block heading %}{% endblock %}</h1>
+          <div class="page__actions">{% block actions %}{% endblock %}</div>
+        </header>
         {% block content %}{% endblock %}
       </main>
     </div>
   </div>
+
+  {% comment %} درج المظهر — أزرارٌ وحدها، ولا شيء فيه يُرسِل إلى الخادم.
+     الحجاب قبله في الشجرة ليقع تحته في الطبقات. {% endcomment %}
+  <div class="themer-veil" aria-hidden="true"></div>
+  <aside class="themer" aria-hidden="true" aria-label="المظهر والألوان">
+    <div class="themer__head">
+      <h2>المظهر</h2>
+      <button type="button" class="icon-btn" data-themer-close aria-label="إغلاق">
+        <span aria-hidden="true">✕</span>
+      </button>
+    </div>
+
+    <div class="themer__group">
+      <h3>الإضاءة</h3>
+      <p class="themer__hint">«تلقائي» يتبع إعداد الجهاز، فيقلب معه في الليل.</p>
+      <div class="themer__row">
+        <button type="button" class="themer__opt" data-look="scheme" data-value="auto" aria-pressed="false">تلقائي</button>
+        <button type="button" class="themer__opt" data-look="scheme" data-value="light" aria-pressed="false">فاتح</button>
+        <button type="button" class="themer__opt" data-look="scheme" data-value="dark" aria-pressed="false">داكن</button>
+      </div>
+    </div>
+
+    <div class="themer__group">
+      <h3>اللون الأساسي</h3>
+      <p class="themer__hint">يلوّن التنقّل والأزرار والروابط. ألوانُ البطاقات
+        (المال، المزاد، الناس) لا تتغيّر — هي تصنيفٌ لا زينة.</p>
+      <div class="themer__swatches">
+        <button type="button" class="themer__swatch" data-accent="azure" data-look="accent" data-value="azure" aria-pressed="false" aria-label="أزرق" title="أزرق"></button>
+        <button type="button" class="themer__swatch" data-accent="violet" data-look="accent" data-value="violet" aria-pressed="false" aria-label="بنفسجي" title="بنفسجي"></button>
+        <button type="button" class="themer__swatch" data-accent="teal" data-look="accent" data-value="teal" aria-pressed="false" aria-label="فيروزي" title="فيروزي"></button>
+        <button type="button" class="themer__swatch" data-accent="emerald" data-look="accent" data-value="emerald" aria-pressed="false" aria-label="أخضر" title="أخضر"></button>
+        <button type="button" class="themer__swatch" data-accent="amber" data-look="accent" data-value="amber" aria-pressed="false" aria-label="كهرماني" title="كهرماني"></button>
+        <button type="button" class="themer__swatch" data-accent="rose" data-look="accent" data-value="rose" aria-pressed="false" aria-label="وردي" title="وردي"></button>
+      </div>
+    </div>
+
+    <div class="themer__group">
+      <h3>الشريط الجانبي</h3>
+      <div class="themer__row">
+        <button type="button" class="themer__opt" data-look="sidebar" data-value="auto" aria-pressed="false">يتبع المظهر</button>
+        <button type="button" class="themer__opt" data-look="sidebar" data-value="light" aria-pressed="false">فاتح</button>
+        <button type="button" class="themer__opt" data-look="sidebar" data-value="dark" aria-pressed="false">داكن</button>
+        <button type="button" class="themer__opt" data-look="sidebar" data-value="gradient" aria-pressed="false">متدرّج</button>
+      </div>
+    </div>
+
+    <div class="themer__group">
+      <h3>عرض الشريط</h3>
+      <div class="themer__row">
+        <button type="button" class="themer__opt" data-look="nav" data-value="full" aria-pressed="false">كامل</button>
+        <button type="button" class="themer__opt" data-look="nav" data-value="mini" aria-pressed="false">أيقونات</button>
+        <button type="button" class="themer__opt" data-look="nav" data-value="off" aria-pressed="false">مخفيّ</button>
+      </div>
+    </div>
+
+    <div class="themer__group">
+      <h3>الحركة</h3>
+      <p class="themer__hint">مطفأةٌ أصلاً لمن ضبط ذلك في نظامه؛ وهذا مفتاحٌ
+        لمن لا يملك ضبطه.</p>
+      <div class="themer__row">
+        <button type="button" class="themer__opt" data-look="motion" data-value="on" aria-pressed="false">تعمل</button>
+        <button type="button" class="themer__opt" data-look="motion" data-value="off" aria-pressed="false">مطفأة</button>
+      </div>
+    </div>
+
+    <button type="button" class="themer__reset" data-look-reset>إرجاع الافتراضي</button>
+  </aside>
 </body>
 </html>

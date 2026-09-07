@@ -1,0 +1,57 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+لوحة التقارير — مركزُ الأرقام، وكلُّ رقمٍ بابٌ إلى شاشته.
+
+في v1 يقول هذا المركز «المزايدات المقبولة 6,503» وتقول شاشتُها `4,378`،
+ويقول «طلبات الاسترداد 3,342» وتقول إدارة الطلبات `500` والاستردادات `0`.
+ثلاثةُ أرقامٍ لشيءٍ واحد على ثلاث شاشات، ولا واحدةٌ تقول أي مرشّحٍ تطبّق.
+
+فكلُّ رقمٍ هنا ينادي **الدالّة نفسها** التي تبني شاشته (`decisions.awarded`
+مثلاً)، والرابط تحته يفتح تلك الشاشة. فالرقم الذي يختلف عن شاشته لا يمكن أن
+يُكتب من هنا — لا لأن أحداً سيتذكّر، بل لأنه مصدرٌ واحد.
+{% endcomment %}
+{% block title %}لوحة التقارير{% endblock %}
+{% block heading %}لوحة التقارير{% endblock %}
+
+{% block content %}
+  <p>الأرقام أدناه تُقرأ من مصادر شاشاتها نفسها — اضغط أيّها لتفتح صفوفه.</p>
+
+  <table>
+    <thead>
+      <tr><th>الرقم</th><th>القيمة</th><th>من أين</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>مركبات رست</th>
+        <td class="count">{{ totals.awarded|unlocalize }}</td>
+        <td><a href="{% url 'console:accepted-bids' %}">المزايدات المقبولة ←</a></td>
+      </tr>
+      <tr>
+        <th>إجمالي أسعار الترسية</th>
+        <td class="money">{{ totals.awarded_value|unlocalize }}</td>
+        <td><a href="{% url 'console:accepted-summary' %}">ملخّص المقبولة ←</a></td>
+      </tr>
+      <tr>
+        <th>إجمالي المزايدات</th>
+        <td class="count">{{ totals.bids|unlocalize }}</td>
+        <td><a href="{% url 'console:analytics-bids' %}">تحليل المزايدات ←</a></td>
+      </tr>
+      <tr>
+        <th>محاولات منعتها البوابة</th>
+        <td class="count">{{ totals.refusals|unlocalize }}</td>
+        <td><a href="{% url 'console:why-no-bid' %}">لماذا رُفضت ←</a></td>
+      </tr>
+      <tr>
+        <th>المزادات</th>
+        <td class="count">{{ totals.auctions|unlocalize }}</td>
+        <td><a href="{% url 'console:auctions' %}">قائمة المزادات ←</a></td>
+      </tr>
+      <tr>
+        <th>المركبات</th>
+        <td class="count">{{ totals.vehicles|unlocalize }}</td>
+        <td><a href="{% url 'console:vehicles' %}">المركبات ←</a></td>
+      </tr>
+    </tbody>
+  </table>
+{% endblock %}

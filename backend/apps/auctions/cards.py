@@ -139,6 +139,23 @@ _AUCTION_BUILDERS: dict[str, Callable[[object], object]] = {
 AUCTION_CARD_FIELDS: tuple[str, ...] = tuple(_AUCTION_BUILDERS)
 
 
+def thumbnail_of(vehicle: Vehicle) -> str | None:
+    """رابطُ صورة الغلاف المصغّرة، أو `None`.
+
+    بابٌ عامٌّ إلى `_thumbnail_url` لأن لوحة الإدارة تحتاج الصورة وحدها ولا
+    تحتاج البطاقة كلها — وبناءُ بطاقةٍ من خمسة عشر مفتاحاً لقراءة مفتاحٍ واحد
+    عملٌ بلا سبب (المادة ٢).
+
+    و**لا يُنسَخ** حساب الغلاف إلى `apps.console`: أيُّ الصور غلافٌ قاعدةٌ
+    واحدة (`is_cover`، وقيدُ فرادةٍ في القاعدة يمنع اثنين)، ونسخُها هناك يجعلها
+    قاعدتين تفترقان — وهو بالضبط ما يرفضه `ops/checks/one_vehicle_card.py`.
+
+    ومن ينادي هذا على قائمةٍ يمرّرها عبر :func:`card_queryset` أوّلاً، وإلا
+    كان لكل صفٍّ استعلامُه.
+    """
+    return _thumbnail_url(vehicle)
+
+
 def auction_card(auction) -> dict:
     """One auction row. The counts come from the queryset's annotations, so
     reading them here costs nothing — and returns None if a caller forgot to

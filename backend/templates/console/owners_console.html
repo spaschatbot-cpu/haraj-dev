@@ -1,0 +1,79 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+منصة الملاك.
+
+شاشة v1 «الإدارة العليا… في صفحة واحدة موحدة»، وهي أربعةَ عشرَ كرتاً معظمُها
+روابطُ شاشاتٍ قائمة. وأولُ رابطٍ فيها يخرج من `admin_v2` إلى
+`admin2/bills/index.php` — أي أن «الصفحة الموحدة» تُحيل إلى نظامٍ ثالث.
+
+وكرتُ «تعديل المزايدات» فيها («تعديل مبلغ مزايدة معيّنة») غيرُ موجودٍ هنا،
+ومكتوبٌ أسفل الصفحة لماذا.
+
+وكلُّ رقمٍ يُقرأ من مصدر شاشته — «إجمالي المحفظة» هنا هو رقمُ «تقرير المحفظة»
+نفسه بالدالّة ذاتها، لا استعلامٌ ثانٍ ولا عمودٌ مخزَّن.
+{% endcomment %}
+{% block title %}منصة الملاك{% endblock %}
+{% block heading %}منصة الملاك{% endblock %}
+
+{% block content %}
+  <table>
+    <thead><tr><th>الرقم</th><th>القيمة</th><th>من أين</th></tr></thead>
+    <tbody>
+      <tr>
+        <th>المشرفون</th>
+        <td class="count">{{ staff|unlocalize }}</td>
+        <td><a href="{% url 'console:admins' %}">إدارة المشرفين ←</a></td>
+      </tr>
+      <tr>
+        <th>المستخدمون</th>
+        <td class="count">{{ customers|unlocalize }}</td>
+        <td><a href="{% url 'console:customers' %}">المستخدمون ←</a></td>
+      </tr>
+      <tr>
+        <th>المزادات</th>
+        <td class="count">{{ auctions|unlocalize }}</td>
+        <td><a href="{% url 'console:auctions' %}">قائمة المزادات ←</a></td>
+      </tr>
+      <tr>
+        <th>الجاري الآن</th>
+        <td class="count">{{ live|unlocalize }}</td>
+        <td><a href="{% url 'console:active-auction' %}">احصائيات المزاد النشط ←</a></td>
+      </tr>
+      <tr>
+        <th>إجمالي التأمين</th>
+        <td class="money">{{ insurance|unlocalize }}</td>
+        <td><a href="{% url 'console:insurance-report' %}">تقرير المحفظة ←</a></td>
+      </tr>
+      <tr>
+        <th>المزايدون</th>
+        <td class="count">{{ bidders|unlocalize }}</td>
+        <td><a href="{% url 'console:analytics-bids' %}">تحليل المزايدات ←</a></td>
+      </tr>
+      <tr>
+        <th>مركبات رست</th>
+        <td class="count">{{ awarded|unlocalize }}</td>
+        <td><a href="{% url 'console:accepted-bids' %}">المزايدات المقبولة ←</a></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>ما يُفتح من هنا</h2>
+  <ul>
+    <li><a href="{% url 'console:partner-decisions' %}">اتخاذ القرار</a> — ما ينتظر قرار المالك</li>
+    <li><a href="{% url 'console:ended-decisions' %}">القرارات المنتهية</a> — ما حُسم</li>
+    <li><a href="{% url 'console:auction-archive' %}">أرشيف المزادات</a></li>
+    <li><a href="{% url 'console:analytics' %}">لوحة التقارير</a></li>
+    <li><a href="{% url 'console:profit-report' %}">تقرير الأرباح</a></li>
+    <li><a href="{% url 'console:money-health' %}">صحّة المال</a></li>
+    <li><a href="{% url 'console:audit' %}">سجل التدقيق</a></li>
+  </ul>
+
+  <p class="empty">
+    <strong>ولا «تعديل مزايدة» هنا.</strong> شاشة v1 تعرض كرتاً بهذا الاسم
+    («تعديل مبلغ مزايدة معيّنة»)، وتعديلُ مبلغِ مزايدةٍ بعد وقوعها أخطرُ ما في
+    اللوحة بعد الخصم المباشر — المزايدة <strong>عرضٌ قانونيّ</strong>، ومن
+    زايد بمئةٍ لم يعرض مئةً وعشرين. وفي هذا النظام لا يُعدَّل مبلغُ مزايدة:
+    تُسحَب وتُستبدَل، فيبقى الأصلُ والبديلُ ومن فعل ولماذا.
+  </p>
+{% endblock %}

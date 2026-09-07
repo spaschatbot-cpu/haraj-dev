@@ -1,0 +1,59 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+ملخّص المقبولة — الأرقام نفسها التي تعدّها القائمة.
+
+في v1 تقول «المزايدات المقبولة» ٤٬٣٧٨ صفّاً، ويقول هذا الملخّص بجوارها
+`0.00` و`0.00` و`0` — لأن فلترَ الأولى «مقبول» وفلترَ الثانية «نشطة/مقبولة»،
+فالشاشتان تعدّان شيئين مختلفين تحت اسمٍ واحد. وهنا الاثنتان تستدعيان
+`decisions.awarded()` بالمرشّحات نفسها، ويقارنهما اختبار.
+
+و«قبل الضريبة» مجموعُ أسعار الترسية، و«الإجمالي المفوتَر» مجموعُ إجماليّات
+الفواتير الصادرة عليها. ولا يتساويان بالضرورة: الفرق هو ما رسا ولم يُفوتَر
+بعد، وهو رقمٌ يُقرأ لا فجوةٌ تُخبَّأ بضرب الأول في النسبة.
+{% endcomment %}
+{% block title %}ملخّص المقبولة{% endblock %}
+{% block heading %}ملخّص المقبولة{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="لوحة أو شاصي أو اسم الفائز أو رقم مزاد">
+    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
+    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <tbody>
+      <tr>
+        <th>مركبات رست</th>
+        <td class="count">{{ totals.count|unlocalize }}</td>
+      </tr>
+      <tr>
+        <th>إجمالي أسعار الترسية</th>
+        <td class="money">{{ totals.awarded_total|unlocalize }}</td>
+      </tr>
+      <tr>
+        <th>منها مفوتَرة</th>
+        <td class="count">{{ totals.invoiced_count|unlocalize }}</td>
+      </tr>
+      <tr>
+        <th>الضريبة على المفوتَر</th>
+        <td class="money">{{ totals.invoiced_tax|unlocalize }}</td>
+      </tr>
+      <tr>
+        <th>الإجمالي المفوتَر (شاملاً الضريبة)</th>
+        <td class="money">{{ totals.invoiced_total|unlocalize }}</td>
+      </tr>
+      {% comment %} الصفُّ الأخير هو السبب الذي تُفتح الشاشة لأجله: ما رسا ولم
+         يُفوتَر بعدُ عملٌ ينتظر، لا رقمٌ ناقص. {% endcomment %}
+      <tr>
+        <th>رست ولم تُفوتَر بعد</th>
+        <td class="count">{{ totals.uninvoiced_count|unlocalize }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><a href="{% url 'console:accepted-bids' %}?q={{ q }}&amp;from={{ first }}&amp;to={{ last }}">افتح الصفوف التي خلف هذه الأرقام ←</a></p>
+{% endblock %}

@@ -2,13 +2,13 @@
 {% load l10n %}
 {% block title %}المستخدمون{% endblock %}
 {% block heading %}المستخدمون{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
      filter that is on the screen. `export_url` is this very request with one
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
-  <p><a href="{{ export_url }}">تصدير إلى إكسل</a></p>
 
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="اسم أو جوال أو رقم هوية">

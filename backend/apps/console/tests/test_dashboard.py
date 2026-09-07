@@ -1,8 +1,9 @@
 """لوحة التحليلات — رندرةٌ على صفوفٍ حقيقية، وأرقامٌ لكلٍّ منها باب.
 
-`console:home` صفحة تنقّل عمداً: «لوحة أرقامٍ لا يستطيع أحد التصرّف فيها هي ما
-كانت عليه رئيسية v1». هذه الصفحة لا تنقض ذلك — تجيب عليه، **وأول اختبار هنا هو
-تلك الإجابة**: كل بطاقة تحمل رقماً تحمل معه وجهةً يُفعل فيها شيء.
+هذه الصفحة هي جذر اللوحة (`console:home`)، كما هي في v1. والاعتراض القديم على
+رئيسية v1 — «لوحة أرقامٍ لا يستطيع أحد التصرّف فيها» — اعتراضٌ على تلك اللوحة
+لا على كون الجذر لوحة، **وأول اختبار هنا هو الجواب عليه**: كل بطاقة تحمل رقماً
+تحمل معه وجهةً يُفعل فيها شيء.
 
 والثاني هو المادة ١-٦: **الأرقام المالية مشتقّة من الحسابات لا من عمودٍ
 مخزَّن.** جرد T302 وجد في `userss` ثلاثة أعمدة رصيدٍ مشتقّة، أحدها محذَّرٌ منه
@@ -27,7 +28,7 @@ from apps.money.models import Invoice, InvoiceSource, InvoiceState
 
 pytestmark = pytest.mark.django_db
 
-URL = "console:dashboard"
+URL = "console:home"
 TEN_K = Decimal("10000.00")
 
 
@@ -339,10 +340,44 @@ def test_the_direction_is_written_not_only_coloured(client, owner, a_platform):
 def test_the_icon_is_hidden_from_screen_readers(client, owner, a_platform):
     """تزيينيٌّ صراحةً: رمزٌ يُقرأ بصوتٍ عالٍ ضجيج، ولا يحمل معلومة."""
     page = body(client, owner)
-    icons = re.findall(r'<span class="stat__icon"([^>]*)>', page)
+    icons = re.findall(r'<svg class="stat__icon"([^>]*)>', page)
 
     assert icons, "لا رموز على البطاقات"
     assert all('aria-hidden="true"' in attrs for attrs in icons)
+    # `focusable="false"` لا زيادة: IE/Edge القديمة تجعل كل `<svg>` محطّةً في
+    # ترتيب التنقّل بالمفاتيح، فتصير كل بطاقةٍ محطّتين إحداهما لا تفعل شيئاً.
+    assert all('focusable="false"' in attrs for attrs in icons)
+
+
+def test_the_declared_stat_icons_are_the_ones_the_board_builds(owner, a_platform):
+    """`STAT_ICONS` تصريحٌ، واللوحةُ هي الحقيقة — وافتراقُهما صامت.
+
+    البطاقات تُبنى شرطياً بحسب الصلاحية، فلا يكفي عدّ ما تراه لوحةٌ ما: المالك
+    وحده يرى كل بابٍ فيها. والاتجاهان يسقطان — اسمٌ صُرِّح به وهُجر، أو بطاقةٌ
+    أُضيفت بأيقونةٍ لم تُصرَّح فتفلت من حارس «رسمٌ بلا مستعمل» في
+    `test_icons.py`، وهو الحارس الذي لا يرى إلا التصريح.
+    """
+    from apps.console.dashboard import STAT_ICONS, board_for
+
+    built = {stat.icon for stat in board_for(owner).stats if stat.icon}
+    assert built == set(STAT_ICONS), (
+        f"مُصرَّحٌ بلا بطاقة: {sorted(set(STAT_ICONS) - built)} · "
+        f"بطاقةٌ بلا تصريح: {sorted(built - set(STAT_ICONS))}"
+    )
+
+
+def test_no_two_cards_carry_the_same_drawing(owner, a_platform):
+    """رسمان متطابقان في صفٍّ واحد يجعلان البطاقتين واحدةً في لمحة.
+
+    وهذا هو الحدّ الذي منع القاعدة الأسهل — «رسمُ البطاقة هو رسمُ وجهتها»:
+    «إجمالي التأمين» و«حجوزات قائمة» تفتحان الدفتر نفسه، فلو تبعتا وجهتهما
+    حرفياً لحملتا الرسم نفسه. فالوجهةُ تُتَّبع حيث لا تتضارب، والتمايزُ يسبقها.
+    """
+    from apps.console.dashboard import board_for
+
+    drawn = [stat.icon for stat in board_for(owner).stats if stat.icon]
+    doubled = {name for name in drawn if drawn.count(name) > 1}
+    assert not doubled, f"رسمٌ على أكثر من بطاقة: {sorted(doubled)}"
 
 
 # ---------------------------------------------------------------------------

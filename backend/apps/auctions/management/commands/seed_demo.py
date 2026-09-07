@@ -38,7 +38,12 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding import services as bidding
 from apps.bidding import settlement
 from apps.money import services as money
-from apps.money.models import AccountKind
+from apps.money.models import (
+    AccountKind,
+    PaymentIntent,
+    PaymentIntentState,
+    PaymentPurpose,
+)
 
 DEPOSIT = Decimal("10000.00")
 
@@ -108,6 +113,7 @@ class Command(BaseCommand):
         # الفوترة، وبدت الشاشة معطوبة والبوابةُ تعمل تماماً. وقع ذلك فعلاً.
         self.bids(auctions["live"], bidders[:3])
         self.full_cycle(bidders[3:])
+        self.trail(bidders)
         self.summary()
 
     # -- المستخدمون ---------------------------------------------------------
@@ -393,6 +399,60 @@ class Command(BaseCommand):
             f"{len(invoices)} فاتورة، منها {paid} مسدَّدة"
         )
 
+    # -- الأثر الذي تتركه المنصّة وراءها -------------------------------------
+
+    def trail(self, people: list[User]) -> None:
+        """محاولات سدادٍ وإشعارات — الصفوف التي تقرؤها شاشتا T826.
+
+        بلا هذا تُفتح الشاشتان على «لا صفوف مطابقة»، وهي أسوأ حالٍ للنظر: من
+        ينظر لا يعرف أعُطلٌ في الشاشة أم فراغٌ في البيانات — وهو نصّ رأس هذا
+        الملف بالحرف.
+
+        و**الفاشل مقصود**: المحاولة الفاشلة والإشعار الفاشل هما الصفّان اللذان
+        تُفتح الشاشتان لأجلهما. بذرةٌ كلُّها نجاح تجعل الشاشة تبدو صحيحةً وهي
+        لم تُختبر على الحالة الوحيدة التي يُبحث فيها عنها.
+
+        ولا تُبنى `PaymentIntent` ناجحةً هنا: القاعدة فيها
+        `a_succeeded_intent_names_its_transaction`، فالنجاح يلزمه قيدٌ حقيقي —
+        وهو ما يصنعه `fund()` بمساره الخاص. الادّعاء أدقّ حين لا يُزوَّر.
+        """
+        from apps.notifications.models import Channel, DeliveryState, Notification
+
+        made = 0
+        for index, person in enumerate(people[:4]):
+            reference = f"DEMO-PAY-{person.pk}"
+            _, fresh = PaymentIntent.objects.get_or_create(
+                reference=reference,
+                defaults={
+                    "user": person,
+                    "amount": Decimal("10000.00"),
+                    "purpose": PaymentPurpose.INSURANCE_DEPOSIT,
+                    "state": (
+                        PaymentIntentState.FAILED
+                        if index % 2
+                        else PaymentIntentState.PENDING
+                    ),
+                    "gateway": "moyasar",
+                    "gateway_status_raw": "declined" if index % 2 else "initiated",
+                },
+            )
+            made += int(fresh)
+
+            failed = index % 3 == 0
+            _, born = Notification.objects.get_or_create(
+                user=person,
+                template="bid.outbid",
+                defaults={
+                    "channel": Channel.SMS,
+                    "body": "تمّت المزايدة عليك — ارفع مزايدتك قبل إغلاق المزاد.",
+                    "state": DeliveryState.FAILED if failed else DeliveryState.DELIVERED,
+                    "error": "الرقم لا يستقبل رسائل" if failed else "",
+                },
+            )
+            made += int(born)
+
+        self.stdout.write(f"أثرٌ (دفعات وإشعارات): {made} صفّاً جديداً")
+
     # -- ماذا صار ------------------------------------------------------------
 
     def summary(self) -> None:
@@ -400,6 +460,7 @@ class Command(BaseCommand):
         from apps.bidding.models import Bid
         from apps.money.models import Invoice
         from apps.money.verification import verify_ledger
+        from apps.notifications.models import Notification
 
         self.stdout.write("")
         for label, count in (
@@ -408,6 +469,8 @@ class Command(BaseCommand):
             ("صور", VehicleImage.objects.count()),
             ("مزايدات", Bid.objects.count()),
             ("فواتير", Invoice.objects.count()),
+            ("دفعات", PaymentIntent.objects.count()),
+            ("إشعارات", Notification.objects.count()),
         ):
             self.stdout.write(f"{label:10} {count}")
         problems = verify_ledger()

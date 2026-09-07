@@ -1,0 +1,65 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+شحن يدوي.
+
+شاشة v1 قائمةٌ منسدلة بالعملاء، وتحتها: «تظهر فقط السجلات المكتملة… مع إخفاء
+السجلات التجريبية أو غير المكتملة». وذلك السطر اعترافٌ بأن القاعدة فيها صفوفٌ
+ناقصة، والحلُّ هناك إخفاؤها. وهنا تُبحَث ولا تُخفى — الصفُّ الذي يظهر هو الذي
+يُصلَح.
+
+وثلاثة شروطٍ لا يشترطها v1: مرجعُ الحوالة (مفتاح التفرُّد)، وسببٌ مكتوب،
+ومبلغٌ موجب.
+{% endcomment %}
+{% block title %}شحن يدوي{% endblock %}
+{% block heading %}شحن يدوي للمحفظة{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو رقم جواله">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if not searched %}
+    <p class="empty">ابحث باسم العميل أو رقم جواله لعرض رصيده وإتمام الشحن.</p>
+  {% elif not rows %}
+    <p class="empty">لا عميل يطابق ما كتبت.</p>
+  {% else %}
+    {% for row in rows %}
+      <h2>
+        {{ row.person.full_name }}
+        <small>{{ row.person.phone|unlocalize }}</small>
+      </h2>
+      <table>
+        <tbody>
+          <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
+          <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
+          <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
+        </tbody>
+      </table>
+
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="customer" value="{{ row.person.pk }}">
+        <input type="hidden" name="q" value="{{ q }}">
+        <p>
+          <label for="amount-{{ row.person.pk }}">المبلغ</label>
+          <input id="amount-{{ row.person.pk }}" type="number" step="0.01" min="0.01" name="amount" required>
+        </p>
+        <p>
+          <label for="ref-{{ row.person.pk }}">مرجع الحوالة</label>
+          <input id="ref-{{ row.person.pk }}" type="text" name="reference" required>
+          <small>مفتاحُ التفرُّد: المرجع نفسه لا يُقيَّد مرّتين مهما ضُغط الزرّ.</small>
+        </p>
+        <p>
+          <label for="why-{{ row.person.pk }}">السبب</label>
+          <input id="why-{{ row.person.pk }}" type="text" name="reason" required>
+          <small>يدخل مذكّرة القيد وسجلَّ التدقيق.</small>
+        </p>
+        <button type="submit">اشحن</button>
+      </form>
+
+      <p><a href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل ←</a></p>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

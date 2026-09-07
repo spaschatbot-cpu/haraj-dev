@@ -52,6 +52,17 @@ class Capability(models.TextChoices):
 
     INVOICES_VIEW = "invoices.view", "عرض الفواتير والمدفوعات"
 
+    #: **أضيق من `invoices.view` عمداً.** شاشة «حالة فاتورة» (T830-ز) هي
+    #: الوحيدة في اللوحة التي يُفتَح جوابُها لقارئٍ من **خارج** الشركة —
+    #: شركةِ تأمينٍ أو جهةٍ تسأل عن مركبةٍ بعينها. فهي تُجيب عن مركبةٍ واحدة
+    #: بحالتها، ولا تعرض اسم المشتري ولا جوّاله ولا مبلغه ولا تسرد قائمة.
+    #:
+    #: وقدرةٌ منفصلة لأن المنح مختلف: من يجيب هاتفَ شركة التأمين لا يحتاج
+    #: قائمة الفواتير كلّها بمبالغها ومشتريها، ومنحُه `invoices.view` ليجيب
+    #: سؤالاً واحداً يفتح له الباقي كلّه. وهذا هو ما يفعله `StaffGrant`
+    #: النقيض: قدرةٌ صغيرة تُمنح وحدها.
+    INVOICE_LOOKUP = "invoices.lookup", "الاستعلام عن حالة فاتورة مركبة"
+
     # `invoices.manage` كانت هنا، وكانت ممنوحةً للمالك والمالية، **ولا تحرس
     # صفحةً واحدة**: لا صفَّ لها في `navigation.PAGES` ولا `require()` يطلبها.
     # فأُزيلت، لأن قدرةً كهذه ليست شيفرةً ميّتة — هي **جملةٌ كاذبة في نموذج
@@ -78,6 +89,11 @@ class Capability(models.TextChoices):
     STAFF_GRANT = "staff.grant", "منح صلاحيات الموظفين وسحبها"
 
     AUDIT_VIEW = "audit.view", "سجل التدقيق"
+
+    # سجلّ الإشعارات قدرةٌ وحده لا تحت `users.view`: «ما الذي أُرسل إلى هذا
+    # العميل» و«ما بياناته» سؤالان مختلفان، ونصُّ الرسالة قد يحمل مبلغاً أو
+    # نتيجة مزايدة. والدعم يحتاجه يومياً، والتشغيل لا.
+    NOTIFICATIONS_VIEW = "notifications.view", "سجل الإشعارات"
 
 
 class Role(models.TextChoices):
@@ -113,6 +129,7 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.PARTNERS_DECIDE,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
+            Capability.INVOICE_LOOKUP,
             Capability.DIAGNOSTICS_VIEW,
         }
     ),
@@ -122,6 +139,7 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.AUCTIONS_VIEW,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
+            Capability.INVOICE_LOOKUP,
             Capability.MONEY_VIEW,
             Capability.MONEY_ACT,
             Capability.DIAGNOSTICS_VIEW,
@@ -138,8 +156,10 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.AUCTIONS_VIEW,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
+            Capability.INVOICE_LOOKUP,
             Capability.MONEY_VIEW,
             Capability.DIAGNOSTICS_VIEW,
+            Capability.NOTIFICATIONS_VIEW,
         }
     ),
 }
@@ -173,6 +193,47 @@ def capabilities_of(user) -> frozenset[str]:
             allowed.discard(grant.capability)
 
     return frozenset(allowed)
+
+
+def role_label(user) -> str:
+    """اسمُ دور هذا الشخص كما يُقرأ على شاشة — **عرضٌ لا قرار**. T830-ج.
+
+    ولماذا هي هنا لا في الشاشة التي تعرضها: `ops/checks/one_permission_gate.py`
+    يمنع قراءة `console_role` خارج هذا الملف، وهو محقّ ولا يُستثنى — العطل
+    الذي وُضع لأجله (`hasRole` تُجيب بنعم لكل دورٍ حين يسأل المالك، فأقفلت
+    اللوحة في وجهه) نشأ **من وجود سؤال الدور أصلاً**، لا من موضعه. فالحقل
+    يبقى له قارئٌ واحد، ويخرج منه ما تحتاجه الشاشة **مصنوعاً**.
+
+    وهي لا تقرّر شيئاً: من يريد أن يعرف «هل يستطيع؟» يسأل :func:`can`، ومن
+    يريد أن يكتب اسم الدور في عمودٍ يستعمل هذه. والفرق مكتوبٌ هنا كي لا تُستعمل
+    الثانية مكان الأولى.
+
+    والدور غير المعروف **يُعرض كما هو** لا يُبتلع: صفٌّ في القاعدة بدورٍ لا
+    وجود له في :class:`Role` هجرةٌ ناقصة أو كتابةٌ بيد، والصفُّ الذي لا يظهر
+    هو الصفُّ الذي لا يُصلَح.
+    """
+    value = getattr(user, "console_role", "") or ""
+    if not value:
+        return "بلا دور — يفتح اللوحة بأدنى قدرة"
+    try:
+        return Role(value).label
+    except ValueError:
+        return f"دورٌ غير معروف: {value}"
+
+
+def role_choices() -> list[tuple[str, str]]:
+    """الأدوار كما تُعرض في قائمة اختيار — قيمةً واسماً."""
+    return [(value, Role(value).label) for value in Role.values]
+
+
+def filter_by_role(queryset, value: str):
+    """رشّح صفوف المستخدمين بدورٍ مطلوب، أو أعِدها كما هي.
+
+    مرشّحُ عرضٍ لا بوابة: يضيّق قائمةً يراها من يملك فتحها أصلاً. والقيمة التي
+    ليست دوراً **تُهمَل** ولا تُفرغ القائمة — خانةٌ في رابطٍ يكتبها أحدٌ بيده
+    يجب أن تُقرأ «لا مرشّح» لا «لا نتائج».
+    """
+    return queryset.filter(console_role=value) if value in Role.values else queryset
 
 
 def can(user, capability: str) -> bool:

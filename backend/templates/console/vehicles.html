@@ -8,13 +8,13 @@ have to undo one in their head.
 {% endcomment %}
 {% block title %}المركبات{% endblock %}
 {% block heading %}المركبات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
      filter that is on the screen. `export_url` is this very request with one
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
-  <p><a href="{{ export_url }}">تصدير إلى إكسل</a></p>
 
   <p><a href="{% url 'console:vehicle-new' %}">+ مركبة جديدة</a></p>
 
@@ -38,9 +38,24 @@ have to undo one in their head.
         <tr>
           <td>{{ vehicle.auction.number|unlocalize }}</td>
           <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
-          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
-          <td>{{ vehicle.get_state_display }}</td>
-          <td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td>
+          {% comment %} الصورة والاسم في خانةٍ واحدة: عمودُ صورٍ وحده يوسّع
+             الجدول ولا يقول شيئاً، والصورةُ بجوار اسمها تُعرّف السيارة قبل أن
+             يُقرأ الاسم — وهو ما تفعله قائمة v1. و`thumb` من `cards.thumbnail_of`
+             لا من حسابٍ هنا: أيُّ الصور غلافٌ قاعدةٌ واحدة.
+
+             والبديل نصٌّ لا فراغ: مركبةٌ بلا صورةٍ حالةٌ عادية (٢٧ صورة على
+             خمسٍ وعشرين مركبة في بذرة العرض)، ومربّعٌ فارغ يُقرأ «الصورة لم
+             تُحمَّل» لا «لا صورة لها». {% endcomment %}
+          <td>
+            <span class="thumb">
+              {% if vehicle.thumb %}
+                <img src="{{ vehicle.thumb }}" alt="" loading="lazy" decoding="async">
+              {% else %}<span class="thumb__none" aria-hidden="true">—</span>{% endif %}
+            </span>
+            <span class="thumb__name">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</span>
+          </td>
+          <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
+          <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
           <td>{{ vehicle.owner_company.name|default:"—" }}</td>
         </tr>
       {% empty %}

@@ -1,20 +1,21 @@
-"""The console's own pages, and the decorator every console page wears.
+"""The decorator every console page wears.
 
-A view here does what every view in this project does: reads a request, calls a
-service, renders. What is specific to the console is the guard — and the guard
-takes a **page name**, not a capability, so the rule that admits a caller and
-the rule that shows the link are the same row in
+The guard takes a **page name**, not a capability, so the rule that admits a
+caller and the rule that shows the link are the same row in
 :mod:`apps.console.navigation` rather than two strings that agree today.
+
+This module held `console:home` too, back when the root was a grid of cards
+explaining each screen. The root is the analytics board now — as it is in v1 —
+and the explaining line lives on each sidebar link, so the grid is gone and
+what is left here is the guard alone.
 """
 
 from __future__ import annotations
 
 from functools import wraps
 
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.shortcuts import render
 
 from apps.core.permissions import can
 
@@ -47,19 +48,3 @@ def console_page(url_name: str):
         return guarded
 
     return decorate
-
-
-@console_page("console:home")
-def home(request):
-    """What this person can do, as their own list rather than a generic menu.
-
-    The landing page is the sidebar written large on purpose: the first thing a
-    support agent needs is to know which of their questions this console can
-    answer, and a dashboard of numbers they cannot act on is what v1's home page
-    was.
-    """
-    return render(
-        request,
-        "console/home.html",
-        {"environment": settings.ENVIRONMENT_NAME},
-    )

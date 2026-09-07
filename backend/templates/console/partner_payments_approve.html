@@ -1,0 +1,90 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+اعتماد مدفوعات الشريك — ملفٌّ يُقيَّد في الدفتر، لا جدولٌ موازٍ.
+
+شاشة v1 تكتب عطلَها على نفسها: «الشريك لا يرى أي حالة سداد من النظام
+المحاسبي… صفحته تقرأ هذا الجدول فقط». فللسداد هناك حقيقتان. وهنا الصفُّ دفعةٌ
+على فاتورة، فيظهر في هذه الشاشة وفي حساب العميل وفي صحّة المال وفي صفحات
+الشريك — رقمٌ واحد.
+
+وثلاث جملٍ من v1 صارت بناءً: بصمةُ الملفّ بدل «تجنّب رفعه مرتين»، وعكسُ القيد
+بدل زرّ «حذف»، ولا «فارغ = أعلى عرض».
+{% endcomment %}
+{% block title %}اعتماد مدفوعات الشريك{% endblock %}
+{% block heading %}اعتماد مدفوعات الشريك{% endblock %}
+
+{% block content %}
+  <table>
+    <tbody>
+      <tr><th>إجمالي ما قُيّد على سيارات الشركاء</th><td class="money">{{ total|unlocalize }}</td></tr>
+      <tr><th>فواتير وصل منها مال</th><td class="count">{{ count|unlocalize }}</td></tr>
+    </tbody>
+  </table>
+
+  <h2>رفع ملفّ الدفعات</h2>
+  <form method="post" enctype="multipart/form-data" class="form-card">
+    {% csrf_token %}
+    <p>
+      <label for="sheet">ملفّ الجدول (إكسل أو CSV)</label>
+      <input id="sheet" type="file" name="sheet" required>
+      <small>التعرّف على المحتوى لا على الامتداد. حتى خمسة ميجابايت.</small>
+    </p>
+    <button type="submit">ارفع واعتمد</button>
+  </form>
+
+  <p class="empty">
+    <strong>الأعمدة المطلوبة:</strong> مفتاحٌ واحد — رقم المطالبة أو رقم
+    السيارة أو اللوحة أو الشاصي أو اللوط — و<strong>المبلغ</strong>. وملاحظات
+    اختيارية.
+  </p>
+  <p class="empty">
+    كلُّ صفٍّ يُقيَّد دفعةً على فاتورة المركبة. وصفٌّ لا يطابق مركبةً مرساةً
+    واحدةً يُتخطّى <strong>ويُذكر لك سببُه</strong>. والمبلغ مكتوبٌ في الصفّ أو
+    يُرفض الصفّ — لا «فارغ يعني أعلى عرض»: دفعةٌ تُقيَّد على رقمٍ لم يكتبه أحد
+    هي ما يُنتج فرقاً لا يُفسَّر.
+  </p>
+  <p class="empty">
+    ورفعُ الملفّ نفسه مرّتين <strong>يُرفض</strong>: بصمتُه مفتاحٌ فريد، لا
+    تحذيرٌ يُقرأ. وتصحيحُ قيدٍ يكون بعكسه لا بحذفه — فيبقى الاثنان ومعهما من
+    عكس ولماذا.
+  </p>
+
+  <h2>الملفّات المرفوعة</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>الملفّ</th>
+        <th>رفعه</th>
+        <th>متى</th>
+        <th>قُرئ</th>
+        <th>قُيّد</th>
+        <th>تُخطّي</th>
+        <th>الإجمالي</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sheet in sheets %}
+        <tr>
+          <td>
+            {{ sheet.filename|default:"—" }}
+            <small>{{ sheet.digest|slice:":12" }}</small>
+          </td>
+          <td>{{ sheet.uploaded_by.full_name }}</td>
+          <td>{{ sheet.uploaded_at }}</td>
+          <td class="count">{{ sheet.rows_read|unlocalize }}</td>
+          <td class="count">{{ sheet.rows_posted|unlocalize }}</td>
+          <td class="count">{{ sheet.rows_skipped|unlocalize }}</td>
+          <td class="money">{{ sheet.total|unlocalize }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لم يُرفع ملفٌّ بعد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>
+    <a href="{% url 'console:partner-payments' %}">سجل دفعات الشريك ←</a> ·
+    <a href="{% url 'console:partner-unpaid' %}">غير المسدَّدة ←</a>
+  </p>
+{% endblock %}

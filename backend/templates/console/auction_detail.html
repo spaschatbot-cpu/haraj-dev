@@ -35,7 +35,7 @@ somebody went looking for it.
           <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
           <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
           <td>{{ vehicle.get_state_display }}</td>
-          <td class="money">{{ vehicle.reserve_price|unlocalize|default:"—" }}</td>
+          <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
           <td>{{ vehicle.awarded_to.full_name|default:"—" }}</td>
         </tr>
       {% empty %}

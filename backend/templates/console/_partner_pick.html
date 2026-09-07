@@ -1,0 +1,18 @@
+{% comment %}
+مُنتقي الشريك — مشتركٌ بين شاشات القسم الخمس.
+
+مرّةً واحدة لا خمساً: خانةُ اختيارٍ منسوخةٌ في خمسة قوالب هي خمسةُ مواضعَ
+تفترق، وأولُ ما يفترق فيها اسمُ المعامل — فتصير شاشةٌ تقرأ `partner` وأخرى
+`company` ويظنّ القارئ أن الاختيار ضاع.
+
+و«كل الشركاء» أوّلُ الخيارات عمداً: الموظّف يفتح الشاشة ليقارن غالباً، ولا
+يُخمَّن له شريكٌ لم يطلبه.
+{% endcomment %}
+<select name="partner">
+  <option value="">كل الشركاء</option>
+  {% for company in partners %}
+    <option value="{{ company.pk }}" {% if company.pk|stringformat:"s" == partner %}selected{% endif %}>
+      {{ company.name }} ({{ company.car_count }})
+    </option>
+  {% endfor %}
+</select>

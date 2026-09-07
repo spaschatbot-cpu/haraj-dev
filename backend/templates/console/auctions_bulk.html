@@ -1,0 +1,100 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+عمليات مجمعة.
+
+شاشة v1 تعرض «مزادات نشطة 0» و«مزايدات نشطة 81,475» — والمزايدة النشطة
+مزايدةٌ على مزادٍ نشط. والزرُّ الثاني فيها («أوقف جميع المزايدات النشطة»)
+وُجد ليُصلح يدوياً ما كان يجب أن يُغلق تلقائياً؛ فهو عرَضٌ لا أداة.
+
+وهنا `auctions.services.end` تُغلق مزايدات المزاد في المعاملة نفسها، فلا زرَّ
+للمزايدات وحدها — وبدلاً منه عدّادٌ يجب أن يبقى صفراً.
+{% endcomment %}
+{% block title %}عمليات مجمعة{% endblock %}
+{% block heading %}عمليات مجمعة{% endblock %}
+
+{% block content %}
+  <table>
+    <tbody>
+      <tr><th>المزادات</th><td class="count">{{ auctions|unlocalize }}</td></tr>
+      <tr><th>الجارية الآن</th><td class="count">{{ live|length|unlocalize }}</td></tr>
+      <tr><th>إجمالي المزايدات</th><td class="count">{{ bids|unlocalize }}</td></tr>
+      <tr>
+        <th>مزايدات قائمة على مزادات منتهية</th>
+        <td class="count">
+          {{ dangling|unlocalize }}
+          {% if dangling %}
+            <span class="pill" data-tone="bad">لا يجب أن يقع</span>
+          {% else %}
+            <span class="pill" data-tone="ok">صفر — الإغلاق يعمل</span>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if dangling %}
+    {% comment %} عدّادٌ بلا صفوفٍ لا يُتصرَّف فيه. {% endcomment %}
+    <p class="empty">
+      هذا الرقم <strong>عطل</strong> لا عملٌ جماعيٌّ يُطلَق: إنهاءُ المزاد
+      يُغلق مزايداته في المعاملة نفسها، فبقاؤها قائمةً يعني أن الإغلاق لم
+      يعمل. أمثلةٌ منها:
+    </p>
+    <table>
+      <thead><tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>وقتها</th></tr></thead>
+      <tbody>
+        {% for bid in dangling_rows %}
+          <tr>
+            <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
+            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+            <td class="money">{{ bid.amount|unlocalize }}</td>
+            <td>{{ bid.placed_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <h2>إنهاء مزاداتٍ مختارة</h2>
+  {% if live %}
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <table>
+        <thead>
+          <tr><th></th><th>#</th><th>المزاد</th><th>المركبات</th><th>المزايدات</th><th>ينتهي</th></tr>
+        </thead>
+        <tbody>
+          {% for auction in live %}
+            <tr>
+              <td><input type="checkbox" name="auction" value="{{ auction.pk }}"></td>
+              <td>{{ auction.number|unlocalize }}</td>
+              <td><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.title }}</a></td>
+              <td class="count">{{ auction.cars|unlocalize }}</td>
+              <td class="count">{{ auction.bids|unlocalize }}</td>
+              <td>{{ auction.ends_at }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <p>
+        <label for="why">السبب</label>
+        <input id="why" type="text" name="reason" required>
+        <small>يدخل سجلَّ التدقيق مع كل مزادٍ يُنهى.</small>
+      </p>
+      <button type="submit">أنهِ المختار</button>
+    </form>
+  {% else %}
+    <p class="empty">لا مزاد جارٍ الآن.</p>
+  {% endif %}
+
+  <p class="empty">
+    <strong>لا زرَّ «أوقف الكلّ» هنا.</strong> «الكلّ» ليس اختياراً — هو
+    غيابُه، وv1 يكتب تحت زرِّه «⚠ عملية لا يمكن التراجع عنها بسهولة» ثم
+    ينفّذها بضغطة. وكلُّ مزادٍ هنا يمرّ بـ<code>auctions.services.end</code>
+    وحدها، فتُغلق مزايداته معه وتُرفض النقلةُ المستحيلة باسمها.
+  </p>
+  <p class="empty">
+    <strong>ولا زرَّ «أوقف كل المزايدات».</strong> المزايدة تُغلق مع مزادها،
+    وزرٌّ يغلقها وحدها يعني أن للشيء الواحد حالتين.
+  </p>
+{% endblock %}

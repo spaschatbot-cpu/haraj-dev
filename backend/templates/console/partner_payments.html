@@ -1,0 +1,64 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+سجل دفعات الشريك — الدفعات المسجَّلة، لا صفوفَ ملفٍّ مرفوع.
+
+v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأخرى: «تجنّب رفع الملف نفسه مرتين
+حتى لا تُسجَّل الدفعة مرتين» — أي أن التفرُّد **تذكيرٌ لا مفتاح**، والحماية
+جملةٌ يقرأها موظّف. وهنا الصفُّ فاتورةٌ وصل منها مال، ولها معرّفُها وتاريخُها
+من الدفتر.
+{% endcomment %}
+{% block title %}سجل دفعات الشريك{% endblock %}
+{% block heading %}سجل دفعات الشريك{% endblock %}
+
+{% block content %}
+  <form method="get">
+    {% include "console/_partner_pick.html" %}
+    <button type="submit">اعرض</button>
+  </form>
+
+  <p>إجمالي ما وصل: <strong>{{ total|unlocalize }}</strong></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>الفاتورة</th>
+        <th>التاريخ</th>
+        <th>السيارة</th>
+        <th>المزاد</th>
+        <th>العميل</th>
+        <th>قيمة الفاتورة</th>
+        <th>ما وصل منها</th>
+        <th>الحالة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td><a href="{% url 'console:invoice-detail' row.pk %}">{{ row.number }}</a></td>
+          <td>{{ row.issued_at }}</td>
+          <td>
+            {% if row.vehicle %}
+              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}">{{ row.vehicle.make }} {{ row.vehicle.model }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>{% if row.vehicle %}{{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
+          <td><a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name }}</a></td>
+          <td class="money">{{ row.amount|unlocalize }}</td>
+          <td class="money">{{ row.amount_paid|unlocalize }}</td>
+          <td>{{ row.get_state_display }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="empty">لا دفعات على سيارات هذا الشريك بعد.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} فاتورةً وصل منها مال · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+
+  <p class="empty">
+    لا رفعَ ملفٍّ هنا. الدفعة تُسجَّل على فاتورتها في الدفتر، فتظهر في هذه
+    الشاشة وفي حساب العميل وفي صحّة المال — <strong>رقمٌ واحد</strong>، لا
+    رقمٌ للمحاسبة ورقمٌ يراه الشريك.
+  </p>
+{% endblock %}

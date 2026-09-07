@@ -1,0 +1,85 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تعديل سريع للعدادات.
+
+الفكرة من v1 صحيحة: الساحةُ تقيس العدّادات دفعةً واحدة، وفتحُ صفحةِ تعديلٍ لكل
+سيارةٍ من ثلاثمئة عملٌ لا يُنجَز. وثلاثة أشياء تُضاف:
+
+* **ما تغيّر وحده يُكتب** — فحفظُ الجدول بلا تعديلٍ لا يكتب ثلاثمئة صفّ.
+* **وكلُّ تغييرٍ قيدٌ بقيمته قبلُ وبعد** — «كم كان العدّاد؟» سؤالٌ يُسأل حين
+  يشكو مشترٍ، ولا يُجاب بالقيمة الحالية.
+* **والقيمةُ الخطأ تُذكر ولا تُسقِط الجدول** — تحت `STRICT_TRANS_TABLES` كان
+  v1 يُجهض التحديث كلَّه لقيمةٍ واحدة، فيخسر الموظّفُ ما أدخله كلَّه (T808).
+{% endcomment %}
+{% block title %}تعديل سريع للعدادات{% endblock %}
+{% block heading %}تعديل سريع للعدادات{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="number" name="number" value="{{ number }}" placeholder="رقم المزاد">
+    <button type="submit">افتح</button>
+  </form>
+
+  {% if not auction %}
+    <p class="empty">اكتب رقم مزادٍ لتفتح جدول عدّاداته.</p>
+
+    <table>
+      <thead><tr><th>#</th><th>المزاد</th><th>الحالة</th><th>المركبات</th><th></th></tr></thead>
+      <tbody>
+        {% for row in auctions %}
+          <tr>
+            <td>{{ row.number|unlocalize }}</td>
+            <td>{{ row.title }}</td>
+            <td>{{ row.get_state_display }}</td>
+            {% comment %} الصفر يُقرأ قبل الفتح: في v1 بطاقة «#1005 المطبخ»
+               مكتوبٌ عليها `0 سيارة`، وتُفتح على جدولٍ فارغ. {% endcomment %}
+            <td class="count">{{ row.cars|unlocalize }}</td>
+            <td>
+              {% if row.cars %}
+                <a href="{% url 'console:auctions-quick-edit' %}?number={{ row.number|unlocalize }}">افتح ←</a>
+              {% else %}
+                <span class="empty">بلا سيارات</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  {% else %}
+    <h2>{{ auction.number|unlocalize }} — {{ auction.title }}</h2>
+
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <input type="hidden" name="number" value="{{ auction.number|unlocalize }}">
+      <table>
+        <thead>
+          <tr><th>اللوت</th><th>المركبة</th><th>اللوحة</th><th>العدّاد</th></tr>
+        </thead>
+        <tbody>
+          {% for car in cars %}
+            <tr>
+              <td class="count">{{ car.lot_number|unlocalize }}</td>
+              <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a></td>
+              <td>{{ car.plate_number|default:"—" }}</td>
+              <td>
+                <input type="number" min="0" name="meter-{{ car.pk }}"
+                       value="{{ car.odometer_km|default_if_none:'' }}"
+                       aria-label="عدّاد اللوت {{ car.lot_number|unlocalize }}">
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا سيارات في هذا المزاد.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if cars %}<button type="submit">احفظ</button>{% endif %}
+    </form>
+
+    <p class="empty">
+      الخانة الفارغة تعني <strong>«لم يُقَس»</strong> لا صفراً. وما تغيّر وحده
+      يُكتب، ولكل تغييرٍ قيدٌ يحمل القيمة قبلُ وبعد.
+    </p>
+  {% endif %}
+{% endblock %}

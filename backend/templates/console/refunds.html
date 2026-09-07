@@ -1,0 +1,80 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+الاستردادات — العددُ لكل حالة، بدل رقمٍ واحدٍ لا يُعرف ما يعدّه.
+
+في إنتاج v1 ثلاثةُ أرقامٍ لشيءٍ واحد: «لوحة التقارير» تقول ٣٬٣٤٢، و«إدارة
+الطلبات ← استرداد» تقول ٥٠٠، و«الاستردادات» نفسها تقول ٠. ولا واحدةٌ منها
+تقول أي مرشّحٍ تطبّق.
+
+وهنا مصدرٌ واحد وحالاتٌ مسمّاة، فالسؤال يصير «كم مُقدَّماً وكم نُفِّذ» وله
+جوابٌ واحد.
+{% endcomment %}
+{% block title %}الاستردادات{% endblock %}
+{% block heading %}الاستردادات{% endblock %}
+{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block content %}
+  <table>
+    <thead><tr><th>الحالة</th><th>العدد</th><th></th></tr></thead>
+    <tbody>
+      {% for row in counts %}
+        <tr>
+          <th>{{ row.label }}</th>
+          <td class="count">{{ row.count|unlocalize }}</td>
+          {% comment %} «ما زال يكلّفنا» ليست تصنيفاً بل مجموعةٌ مسمّاة
+             (`RefundRequestState.open_states`) يقرأها القيدُ في القاعدة
+             وهذه الشاشة معاً. {% endcomment %}
+          <td>{% if row.open %}<span class="pill" data-tone="warn">ما زال مفتوحاً</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      <tr>
+        <th>ما زال يكلّفنا</th>
+        <td class="count">{{ open_count|unlocalize }}</td>
+        <td class="money">{{ open_value|unlocalize }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو جواله أو المرجع">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for row in counts %}
+        <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">بحث</button>
+  </form>
+
+  <table>
+    <thead>
+      <tr>
+        <th>المرجع</th>
+        <th>العميل</th>
+        <th>الجوال</th>
+        <th>المبلغ</th>
+        <th>الحالة</th>
+        <th>قُدِّم</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td>{{ row.reference }}</td>
+          <td><a href="{% url 'console:customer-detail' row.user.pk %}">{{ row.user.full_name }}</a></td>
+          <td>{{ row.user.phone|unlocalize }}</td>
+          <td class="money">{{ row.amount|unlocalize }}</td>
+          <td>{{ row.get_state_display }}</td>
+          <td>{{ row.created_at }}</td>
+          <td><a href="{% url 'console:money-customer' row.user.pk %}">دفتره ←</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="empty">لا طلبات استرداد مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p>{{ page.paginator.count|unlocalize }} طلباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+{% endblock %}

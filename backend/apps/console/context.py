@@ -11,6 +11,7 @@ from __future__ import annotations
 from django.conf import settings
 
 from .exports import PARAM
+from .icons import path_of
 from .navigation import sidebar_for
 
 
@@ -28,6 +29,11 @@ def navigation(request) -> dict:
         "environment": settings.ENVIRONMENT_NAME,
         "app_base": settings.APP_BASE,
         "export_url": _export_url(request),
+        # الخروج سطرٌ في ذيل الشريط كما في v1، ورسمُه يأتي من هنا لأنه **ليس**
+        # صفّاً في `PAGES`: الصفّ هناك يعني رابطاً، ورابطٌ ينهي الجلسة على
+        # `GET` ينهيها من أي `<img src>` — و`test_entry_points.py` يشترط
+        # غيابه. فهو نموذجٌ يُرسَم بيده، ويأخذ رسمَه من السجلّ نفسه.
+        "sign_out_icon": path_of("exit-door"),
     }
 
 

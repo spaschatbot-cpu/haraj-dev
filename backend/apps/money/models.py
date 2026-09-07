@@ -715,3 +715,54 @@ class RefundRequest(models.Model):
 
     def __str__(self) -> str:
         return f"refund {self.reference} {self.amount} ({self.state})"
+
+
+class PaymentSheet(models.Model):
+    """دفعةٌ وصلت في ملفّ — وبصمتُها هي ما يمنع رفعها مرّتين. T830-ي.
+
+    شاشة v1 المقابلة («اعتماد مدفوعات الشريك») تكتب التحذير بنفسها:
+
+        «الصفوف تُضاف إلى المسجَّل — لا يُحذف شيء. **تجنّب رفع الملف نفسه
+         مرتين حتى لا تُسجَّل الدفعة مرتين.**»
+
+    وذلك تذكيرٌ يحلّ محلّ مفتاح. ورافعُ الملفّ مرّتين ليس مهملاً غالباً — هو
+    من انقطع اتصالُه فأعاد، أو من لم يجد رسالةَ نجاحٍ فضغط ثانيةً. والتحذير
+    لا يمنعه.
+
+    فهذا الجدول يخزّن **بصمة الملفّ** (SHA-256 على بايتاته)، وهي فريدة. ورفعُ
+    الملفّ نفسه ثانيةً يُرفض قبل أن يُقرأ صفٌّ واحد.
+
+    ولماذا صفٌّ للملفّ وليس للدفعة فقط: لأن السؤال الذي يُسأل بعد شهر هو «هذه
+    الدفعة من أين؟»، وجوابُه اسمُ الملفّ ومن رفعه ومتى — لا مبلغٌ وتاريخ.
+    """
+
+    #: بصمةُ محتوى الملفّ. فريدة: هي القاعدة نفسها لا فحصٌ في الشاشة.
+    digest = models.CharField(max_length=64, unique=True)
+
+    #: اسم الملفّ كما رفعه صاحبه. للقراءة لا للتخزين — الاسم لا يُبنى عليه
+    #: مسارٌ ولا يُشتقّ منه شيء (`ops/checks/one_upload_gate.py`).
+    filename = models.CharField(max_length=255, blank=True)
+
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="payment_sheets",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    #: كم صفّاً قُرئ، وكم منها قُيّد، وكم تُخطّي — والثلاثة تُعرض بعد الرفع.
+    rows_read = models.PositiveIntegerField(default=0)
+    rows_posted = models.PositiveIntegerField(default=0)
+    rows_skipped = models.PositiveIntegerField(default=0)
+
+    #: إجمالي ما قُيّد من هذا الملفّ. مشتقٌّ عند الرفع ويُخزَّن **كسجلّ لما
+    #: حدث**، لا كرصيدٍ يُقرأ: الرصيد يُجمع من الدفتر دائماً.
+    total = models.DecimalField(**MONEY, default=ZERO)
+
+    class Meta:
+        ordering = ["-uploaded_at", "-id"]
+        verbose_name = "دفعة مرفوعة"
+        verbose_name_plural = "الدفعات المرفوعة"
+
+    def __str__(self) -> str:
+        return f"{self.filename or self.digest[:12]} — {self.rows_posted} صفّاً"

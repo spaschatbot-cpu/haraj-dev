@@ -1,0 +1,39 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تصدير الفواتير — والعدد يُرى قبل الزرّ.
+
+في v1 التصدير رابطٌ يُضغط فيبدأ التنزيل، ولا يعرف الضاغط أهو ثلاثةُ صفوفٍ أم
+ثلاثةَ عشرَ ألفاً حتى يفتح الملف. ومن ينتظر ملفاً ثقيلاً بلا سببٍ يضغط ثانيةً.
+{% endcomment %}
+{% block title %}تصدير الفواتير{% endblock %}
+{% block heading %}تصدير الفواتير{% endblock %}
+
+{% block content %}
+  <form method="get">
+    <input type="date" name="since" value="{{ since }}" title="من تاريخ">
+    <input type="date" name="until" value="{{ until }}" title="إلى تاريخ">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for value, label in states %}
+        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">احسب</button>
+  </form>
+
+  <p>
+    <strong>{{ count|unlocalize }}</strong> فاتورةً تطابق هذا المدى.
+  </p>
+
+  {% if count %}
+    <p><a href="{{ export_url }}">نزّل ملف إكسل ←</a></p>
+  {% else %}
+    <p class="empty">لا فواتير في هذا المدى — لا شيء يُنزَّل.</p>
+  {% endif %}
+
+  <p class="empty">
+    الملفّ يحمل «كلمة أودو» عموداً بجوار الحالة المحسوبة من الدفعات. واختلافُهما
+    هو ما يُراد أن يُرى عند المطابقة، لا أن يُخفى بعمودٍ واحد.
+  </p>
+{% endblock %}
