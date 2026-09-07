@@ -49,6 +49,12 @@ class Capability(models.TextChoices):
 
     USERS_VIEW = "users.view", "عرض المستخدمين والشركات"
     USERS_MANAGE = "users.manage", "إدارة المستخدمين والشركات"
+    # الحذف ليس `users.manage`. تصحيحُ اسمٍ خطأ يُراجَع ويُعكَس؛
+    # وحذفُ حسابٍ يمحو الجوّال الذي يُعرَف به صاحبُه، فلا يبقى ما
+    # يُبحث به عنه أصلاً. وv1 كان زرُّ الحذف فيه بجوار زرّ التعديل
+    # وبالثقة نفسها — وهو أحدُ أسباب الحسابات المكرَّرة: من حُذف
+    # حسابُه بالخطأ فتح واحداً جديداً بجوّالٍ آخر.
+    USERS_DELETE = "users.delete", "حذف حسابٍ لا أثر له"
 
     INVOICES_VIEW = "invoices.view", "عرض الفواتير والمدفوعات"
 
@@ -165,6 +171,33 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
 }
 
 
+def bundle_for(slug: str) -> frozenset[str]:
+    """قدراتُ دورٍ باسمه — المكتوبةُ في الشيفرة أولاً، ثم المضافة. T838.
+
+    الأدوار الأربعة الأولى في :data:`ROLE_CAPABILITIES` **تسبق الجدول ولا
+    يُبحث عنها فيه**، وذلك مقصود: صفٌّ يمكن حذفُه، وحذفُ «المالك» يُقفل اللوحة
+    على الجميع بلا طريقٍ للعودة. ودورٌ في الجدول يحمل اسم دورٍ مكتوب لا يغيّر
+    شيئاً — لا يُقرأ أصلاً — فلا يستطيع أحدٌ أن يوسّع «الدعم» بصفٍّ جديد.
+
+    والاستعلام هنا واحد، ويقع في نفس الدالّة التي تستعلم عن `StaffGrant`
+    أصلاً؛ فليس زيادةَ رحلةٍ إلى القاعدة في مسارٍ كان بلا رحلة.
+    """
+    if slug in ROLE_CAPABILITIES:
+        return ROLE_CAPABILITIES[slug]
+    if not slug:
+        return frozenset()
+
+    from apps.accounts.models import ConsoleRole
+
+    row = ConsoleRole.objects.filter(slug=slug).values("capabilities").first()
+    if row is None:
+        return frozenset()
+    # قدرةٌ اختفت من التعداد تُهمَل هنا بصمت ولا تُمنَح: الصفُّ يبقى مقروءاً،
+    # والحساب لا يمنح اسماً لا يحرس شيئاً.
+    known = set(Capability.values)
+    return frozenset(name for name in (row["capabilities"] or []) if name in known)
+
+
 def capabilities_of(user) -> frozenset[str]:
     """Everything ``user`` may do: their role's bundle, plus and minus grants.
 
@@ -183,7 +216,7 @@ def capabilities_of(user) -> frozenset[str]:
 
     from apps.accounts.models import StaffGrant
 
-    allowed = set(ROLE_CAPABILITIES.get(getattr(user, "console_role", ""), frozenset()))
+    allowed = set(bundle_for(getattr(user, "console_role", "")))
 
     grants = StaffGrant.objects.filter(user=user)
     for grant in grants:
@@ -218,12 +251,62 @@ def role_label(user) -> str:
     try:
         return Role(value).label
     except ValueError:
-        return f"دورٌ غير معروف: {value}"
+        pass
+
+    # ثم الأدوار المضافة (T838). والترتيب هو ترتيب :func:`bundle_for` نفسه —
+    # المكتوبُ أولاً — فلا يقرأ الاسمُ دوراً وتقرأ البوابةُ غيرَه.
+    from apps.accounts.models import ConsoleRole
+
+    row = ConsoleRole.objects.filter(slug=value).values("label").first()
+    if row is not None:
+        return row["label"]
+
+    #: والدورُ الذي لا وجود له **يُعرض كما هو**: صفٌّ بدورٍ حُذف من الجدول
+    #: يبقى مرئياً حتى يُصلَح، ولا يُقرأ «بلا دور» فيُظنّ سليماً.
+    return f"دورٌ غير معروف: {value}"
 
 
 def role_choices() -> list[tuple[str, str]]:
-    """الأدوار كما تُعرض في قائمة اختيار — قيمةً واسماً."""
-    return [(value, Role(value).label) for value in Role.values]
+    """الأدوار كما تُعرض في قائمة اختيار — قيمةً واسماً.
+
+    المكتوبةُ في الشيفرة أولاً ثم المضافة، بالترتيب الذي تقرأ به البوابة.
+    ودورٌ مضافٌ باسم دورٍ مكتوب لا يُعرض مرّتين — لأنه لا يُقرأ أصلاً.
+    """
+    from apps.accounts.models import ConsoleRole
+
+    built_in = [(value, Role(value).label) for value in Role.values]
+    names = {value for value, _ in built_in}
+    added = [
+        (row["slug"], row["label"])
+        for row in ConsoleRole.objects.values("slug", "label").order_by("label")
+        if row["slug"] not in names
+    ]
+    return built_in + added
+
+
+def assign_role(user, slug: str, *, save: bool = True) -> None:
+    """اكتب دورَ هذا الشخص — **الكاتبُ الوحيد** للحقل. T839.
+
+    الحقل له قارئٌ واحد بحكم `ops/checks/one_permission_gate.py`، وله كاتبٌ
+    واحد للسبب نفسه: إسنادُ دورٍ قرارُ صلاحيات، وشاشةٌ تكتبه بيدها هي بوّابةٌ
+    ثانية — وتلك هي الحادثة التي بُني عليها هذا الملفّ كلُّه.
+
+    ودورٌ لا وجود له يُرفض هنا لا يوم يُقرأ: حسابٌ بدورٍ مكتوبٍ خطأً يُنشأ
+    بلا شكوى، ثم يفتح اللوحة بأدنى قدرةٍ ولا يعرف صاحبُه لماذا — وذلك سؤالٌ
+    يصل الدعم بعد أسبوع بلا خيطٍ يُتبَع.
+    """
+    slug = (slug or "").strip()
+    if slug and slug not in {value for value, _ in role_choices()}:
+        raise ValueError(f"دورٌ لا وجود له: {slug}")
+
+    user.console_role = slug
+    if save and user.pk:
+        user.save(update_fields=["console_role"])
+
+
+def is_built_in(slug: str) -> bool:
+    """هل هذا الدور مكتوبٌ في الشيفرة — أي لا يُحذف ولا يُعدَّل من شاشة."""
+    return slug in ROLE_CAPABILITIES
 
 
 def filter_by_role(queryset, value: str):

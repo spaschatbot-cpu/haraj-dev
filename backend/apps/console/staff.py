@@ -33,12 +33,24 @@
 
 from __future__ import annotations
 
+from django import forms
+from django.contrib import messages
+from django.contrib.auth.password_validation import validate_password
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.accounts.models import User
-from apps.core.permissions import filter_by_role, role_choices, role_label
+from apps.accounts.models import ConsoleRole, User
+from apps.core import audit
+from apps.core.permissions import (
+    Capability,
+    assign_role,
+    bundle_for,
+    filter_by_role,
+    is_built_in,
+    role_choices,
+    role_label,
+)
 
 from .exports import export, wants_export
 from .views import console_page
@@ -254,3 +266,274 @@ def password_change(request):
         form = PasswordChangeForm(request.user)
 
     return render(request, "console/password_change.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
+# الأدوار — دورٌ يُختار ويُضاف ويُحذف. T838
+# ---------------------------------------------------------------------------
+#
+# قائمة v1 المنسدلة في «إضافة مشرف» فيها أحدَ عشرَ دوراً:
+#
+#     Owner (المالك) · Admin (مدير) · Manager (مدير قسم) · Supervisor (مشرف) ·
+#     Data Entry (إدخال بيانات) · Company (شركة) · مدير (كل شيء عدا
+#     الإحصائيات) · مدخل بيانات المزادات · الساحة/العدادات (تعديل سريع) ·
+#     خدمات ما بعد البيع (اطلاع) · المالية
+#
+# **وأربعةٌ منها تكرارُ أربعةٍ أخرى بأسماءٍ مختلفة** — «Admin (مدير)» و«مدير
+# (كل شيء عدا الإحصائيات)»، و«Data Entry (إدخال بيانات)» و«مدخل بيانات
+# المزادات». وهذا ليس خطأً في التسمية: هو أثرُ أن كلَّ حاجةٍ جديدة كانت
+# تُحلّ بدورٍ جديدٍ في الشيفرة، ثم لا يجرؤ أحدٌ على حذف القديم لأنه لا يعرف
+# من يحمله.
+#
+# فالشاشة هنا تقول لكل دورٍ **كم مشرفاً يحمله**، وتحذفه حين لا يحمله أحد.
+# وهو الفرق بين قائمةٍ تطول أبداً وقائمةٍ تُنظَّف.
+#
+# وأربعةُ أدوارٍ تبقى مكتوبةً في الشيفرة ولا تُحذف من هنا: حذفُ «المالك» يُقفل
+# اللوحة على الجميع بلا طريقٍ للعودة، وذلك عطلٌ لا تُصلحه شاشة.
+
+
+class RoleForm(forms.ModelForm):
+    """دورٌ جديد: اسمٌ يُقرأ، ومعرّفٌ يُكتب في العمود، وقدراتٌ تُختار."""
+
+    capabilities = forms.MultipleChoiceField(
+        choices=Capability.choices,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="القدرات",
+        # `console.access` ليست مفروضةً هنا: دورٌ بلا دخولٍ إلى اللوحة قد يكون
+        # مقصوداً (حسابٌ يُنشأ اليوم ويُفتح له الأسبوع القادم)، والشاشة تقوله
+        # بدل أن تصحّحه بصمت.
+        help_text="بلا «فتح اللوحة» لا يدخل حاملُ الدور أصلاً.",
+    )
+
+    class Meta:
+        model = ConsoleRole
+        fields = ("label", "slug", "capabilities", "reason")
+        labels = {
+            "label": "اسم الدور",
+            "slug": "المعرّف (لاتينيّ)",
+            "reason": "لماذا هذا الدور",
+        }
+
+    def clean_slug(self) -> str:
+        """معرّفٌ يطابق دوراً مكتوباً في الشيفرة يُرفض — لأنه لن يُقرأ.
+
+        `bundle_for` تقرأ المكتوب أولاً، فصفٌّ اسمُه `owner` لا أثر له إطلاقاً.
+        وصفٌّ لا أثر له وهو معروضٌ في شاشةٍ أسوأ من رفضٍ صريح.
+        """
+        slug = (self.cleaned_data.get("slug") or "").strip()
+        if is_built_in(slug):
+            raise forms.ValidationError("هذا المعرّف لدورٍ مكتوبٍ في الشيفرة — اختر غيره.")
+        return slug
+
+
+def role_table() -> list[dict]:
+    """كل دور، ومعه عددُ حامليه وعددُ قدراته — باستعلامين لا باستعلامٍ لكلٍّ."""
+    held = {
+        row["console_role"]: row["n"]
+        for row in User.objects.filter(is_staff=True)
+        .values("console_role")
+        .annotate(n=Count("id"))
+    }
+    added = {row.slug: row for row in ConsoleRole.objects.all()}
+    labels = dict(Capability.choices)
+
+    table = []
+    for slug, label in role_choices():
+        row = added.get(slug)
+        table.append(
+            {
+                "slug": slug,
+                "label": label,
+                "built_in": is_built_in(slug),
+                "count": len(bundle_for(slug)),
+                "held": held.get(slug, 0),
+                "reason": row.reason if row else "",
+                # قدراتُ الدور **مسمّاةً بالعربية** لا بمعرّفاتها: «١٢ قدرة»
+                # رقمٌ لا يُراجَع، و`money.act` معرّفٌ للشيفرة — و«الأفعال
+                # المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى هذا
+                # الشخص المال؟». وتُبنى هنا لا في القالب: بحثٌ في قاموس لا
+                # يفعله قالبُ جانغو أصلاً، ومن يحاول يكتب مرشّحاً جديداً.
+                "capabilities": sorted(
+                    labels.get(name, name) for name in bundle_for(slug)
+                ),
+            }
+        )
+    return table
+
+
+@console_page("console:roles")
+def roles(request):
+    """الأدوار: ما يحمله كلٌّ منها، وكم مشرفاً عليه — وإضافةُ دورٍ جديد."""
+    form = RoleForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        role = form.save(commit=False)
+        role.created_by = request.user
+        role.full_clean()
+        role.save()
+        audit.record(
+            action="console.create_role",
+            entity=role,
+            actor=request.user,
+            after={"slug": role.slug, "capabilities": sorted(role.capabilities)},
+            note=role.reason,
+        )
+        messages.success(request, f"أُضيف الدور «{role.label}».")
+        return redirect("console:roles")
+
+    return render(
+        request,
+        "console/roles.html",
+        {"form": form, "rows": role_table()},
+    )
+
+
+@console_page("console:role-delete")
+def role_delete(request, slug: str):
+    """احذف دوراً لا يحمله أحد — أو اعرف من يحمله.
+
+    والرفضُ مقصود: حذفُ دورٍ يحمله سبعةٌ يترك سبعةَ حساباتٍ بدورٍ لا وجود له،
+    فتقرأ `bundle_for` مجموعةً فارغة ويخرج سبعةُ موظّفين من اللوحة في لحظةٍ
+    واحدة بلا أن يقول لهم أحدٌ لماذا.
+    """
+    role = get_object_or_404(ConsoleRole, slug=slug)
+    holders = User.objects.filter(is_staff=True, console_role=slug)
+
+    if request.method == "POST" and not holders.exists():
+        audit.record(
+            action="console.delete_role",
+            entity_type=ConsoleRole._meta.label_lower,
+            entity_id=role.pk,
+            actor=request.user,
+            before={"slug": role.slug, "capabilities": sorted(role.capabilities)},
+            note=(request.POST.get("reason") or "").strip(),
+        )
+        role.delete()
+        messages.success(request, f"حُذف الدور «{role.label}».")
+        return redirect("console:roles")
+
+    return render(
+        request,
+        "console/role_delete.html",
+        {
+            "role": role,
+            "holders": holders.order_by("full_name"),
+            "capabilities": sorted(role.capabilities),
+            "labels": dict(Capability.choices),
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# إضافة مشرف جديد — والخانةُ التي تُبطل السجلّ. T839
+# ---------------------------------------------------------------------------
+#
+# استمارة v1 أربعةُ حقول: اسم المستخدم، وكلمة المرور، ورقم الجوال، والدور،
+# ومفتاحُ حالة الحساب. وهي منقولةٌ هنا كما هي — **إلا شيئين**.
+#
+# **١. كلمةُ المرور يكتبها موظّفٌ لموظّفٍ آخر.** أي أن الأول يعرف كلمة الثاني
+# ويستطيع الدخول باسمه؛ فكلُّ قيدٍ يتركه الثاني في `AuditLog` يصير قابلاً
+# للإنكار: «لم أفعل، فلانٌ يعرف كلمتي». وذلك لا يُفسد قيداً — يُبطل السجلَّ
+# كلَّه، لأن حجّةَ الإنكار تصلح لكل صفٍّ فيه.
+#
+# فالكلمة هنا **مؤقّتة بحكم البناء**: `must_change_password` يُرفع مع الحساب،
+# والحارس في `console_page` يحوّل حاملَه إلى شاشة التغيير قبل أيّ شاشةٍ أخرى.
+# فما يعرفه المنشئ يبطل عند أوّل دخول، قبل أن يُفعل بالحساب شيء.
+#
+# **٢. والدور الافتراضيّ ليس «المالك».** في v1 القائمةُ المنسدلة تُفتح على
+# `Owner (المالك)` مختاراً — أي أن الضغط على «تسجيل» بلا انتباهٍ يُنشئ مالكاً
+# ثانياً. والافتراضُ هنا **لا شيء**، والاختيار مطلوب.
+#
+# ولا زرَّ حذفٍ في القائمة تحتها، وذلك قرارٌ سابق: حسابُ الموظّف هو الطرفُ في
+# كل قيدٍ كتبه، فحذفُه محوُ التدقيق. والبديلُ `is_active`.
+
+
+class NewAdminForm(forms.Form):
+    """مشرفٌ جديد: اسمٌ وجوّالٌ ودورٌ وكلمةٌ مؤقّتة."""
+
+    full_name = forms.CharField(label="اسم المستخدم", max_length=200)
+    phone = forms.CharField(label="رقم الجوال", max_length=12)
+    password = forms.CharField(
+        label="كلمة مرور مؤقّتة",
+        widget=forms.PasswordInput,
+        help_text="تُطلب من حاملها مرّةً واحدة، ثم يغيّرها قبل أن يفتح أي شاشة.",
+    )
+    role = forms.ChoiceField(label="الدور (الصلاحية)", choices=())
+    is_active = forms.BooleanField(label="الحساب مفعّل", required=False, initial=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # الخيارات تُقرأ عند الإنشاء لا عند الاستيراد: دورٌ يُضاف من شاشة
+        # الأدوار يجب أن يظهر هنا في الطلب التالي، لا بعد إعادة تشغيل الخادم.
+        #
+        # و«— اختر الدور —» أوّلاً بلا قيمة: v1 يفتح على `Owner (المالك)`
+        # مختاراً، فضغطةٌ بلا انتباه تُنشئ مالكاً ثانياً.
+        self.fields["role"].choices = [("", "— اختر الدور —"), *role_choices()]
+
+    def clean_phone(self) -> str:
+        """جوّالٌ مستعملٌ يُرفض بالاسم، لا برسالة قاعدة بيانات.
+
+        و`phone` مفتاحٌ فريد، فالحفظُ بلا هذا الفحص يرمي `IntegrityError`
+        ويسقط الطلب كلَّه — وهو عطل T808 بعينه في شكلٍ آخر: قيمةٌ واحدة تُسقط
+        ما أدخله الموظّف كلَّه.
+        """
+        phone = (self.cleaned_data.get("phone") or "").strip()
+        if User.objects.filter(phone=phone).exists():
+            raise forms.ValidationError("هذا الجوّال لحسابٍ قائم — افتحه بدل إنشاء ثانٍ.")
+        return phone
+
+    def clean_password(self) -> str:
+        """مصادقاتُ جانغو لا شرطان مكتوبان بيد — كما في `console:password-change`."""
+        password = self.cleaned_data.get("password") or ""
+        validate_password(password)
+        return password
+
+
+@console_page("console:admin-new")
+def admin_new(request):
+    """أنشئ حساب مشرف — بكلمةٍ مؤقّتة تبطل عند أوّل دخول."""
+    form = NewAdminForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        person = User.objects.create_user(
+            phone=form.cleaned_data["phone"],
+            full_name=form.cleaned_data["full_name"],
+            password=form.cleaned_data["password"],
+        )
+        person.is_staff = True
+        person.is_active = form.cleaned_data["is_active"]
+        person.must_change_password = True
+        # الدورُ يُكتب بالبوّابة لا هنا: إسنادُ دورٍ قرارُ صلاحيات، وحقلُه له
+        # كاتبٌ واحد كما له قارئٌ واحد (`one_permission_gate`). و`save=False`
+        # ليكون الحفظُ واحداً لا اثنين على الصفّ نفسه.
+        assign_role(person, form.cleaned_data["role"], save=False)
+        person.save(
+            update_fields=[
+                "is_staff",
+                "console_role",
+                "is_active",
+                "must_change_password",
+            ]
+        )
+        audit.record(
+            action="console.create_admin",
+            entity=person,
+            actor=request.user,
+            after={
+                "phone": person.phone,
+                # اسمُ الدور لا قيمةُ الحقل: `role_label` تخرج من البوّابة
+                # بدل قراءة `console_role` هنا، وهي أنفعُ في قيدٍ يُقرأ بعد
+                # سنة — «الدعم» تُفهم و`support` تحتاج من يترجمها.
+                "role": role_label(person),
+                "is_active": person.is_active,
+            },
+            note=f"أنشأه {request.user.full_name}؛ كلمةٌ مؤقّتة تُغيَّر عند أوّل دخول.",
+        )
+        messages.success(
+            request,
+            f"أُنشئ حساب «{person.full_name}». يغيّر كلمته عند أوّل دخول.",
+        )
+        return redirect("console:admins")
+
+    return render(request, "console/admin_new.html", {"form": form})

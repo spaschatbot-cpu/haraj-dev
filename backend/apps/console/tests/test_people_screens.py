@@ -91,7 +91,7 @@ def test_a_customer_is_found_by_name(client, manager, customer):
 def test_an_empty_search_says_so(client, manager, customer):
     body = body_of(client, reverse("console:customers"), q="لا أحد بهذا الاسم")
 
-    assert "لا مستخدمين مطابقين" in body
+    assert "لا حسابات مطابقة" in body
 
 
 def test_the_detail_shows_the_wallet_itemised_not_as_one_number(

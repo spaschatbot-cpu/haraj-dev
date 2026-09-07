@@ -104,6 +104,8 @@ MUST_RENDER = {
     #  نفسه: المالك الذي يفتح كل صفحةٍ في هذه المجموعة هو أيضاً صفٌّ
     # في قائمة المشرفين — فالشاشة تُرندَر على من يقرأها.
     "console:admins": "المالك",
+    # الأدوار: المكتوبةُ في الشيفرة تُعرض دائماً، فالصفُّ موجودٌ بلا تجهيزة.
+    "console:roles": "الأدوار",
     # حالةُ الفراغ منقولةٌ من v1 بنصّها، وهي **الحالة الافتراضية** للشاشة:
     # تقريرٌ يفتح على أصفارٍ قبل أن يُسأل يقول إن المستخدم بلا مزايدات.
     "console:user-bids": "ابحث برقم الجوال أو الاسم",
@@ -119,7 +121,6 @@ MUST_RENDER = {
     "console:settings": "ما تملكه أنت",
     "console:password-change": "تغيير كلمة المرور",
     # المالك بلا تجاوزات في هذه التجهيزة، والجملة التي تقول ذلك هي المعروضة.
-    "console:page-control": "لا تجاوز — دورُه وحده",
     # الجملة التي بُني القسم لأجلها: «مسدَّدة» تعني فاتورةً مسدَّدة.
     "console:partner-console": "لا يُرفع ملفٌّ ليقول إن سيارةً سُدِّدت",
     "console:partner-auctions": "مزاد الرندرة",
@@ -284,7 +285,13 @@ def workbook_of(response) -> list[list[str]]:
     assert response.status_code == 200
     assert response["Content-Type"] == XLSX_CONTENT_TYPE
     assert "attachment;" in response["Content-Disposition"]
-    assert response["Content-Disposition"].endswith('.xlsx"')
+    # الترويسة تحمل اسمين: `filename` لاتينيٌّ احتياطيّ، و`filename*` هو
+    # الاسم الحقيقيّ بترميز RFC 5987. واسمٌ عربيّ يُوضع بلا الثاني يخرج من
+    # جانغو مشفَّراً بـRFC 2047 فيصل سطحَ المكتب سلسلةً لا يقرؤها أحد.
+    header = response["Content-Disposition"]
+    assert '.xlsx"; ' in header, header
+    assert "filename*=UTF-8''" in header, header
+    assert header.endswith(".xlsx"), header
 
     book = load_workbook(io.BytesIO(response.content))
     sheet = book[book.sheetnames[0]]
@@ -337,7 +344,8 @@ def test_the_export_carries_the_filter_on_the_screen(client, viewer, world):
     )
 
     assert len(filtered) < len(everyone)
-    names = {row[0] for row in filtered[1:]}
+    # العمود الأول صار «المعرف» حين صارت أعمدة الشاشة أعمدة v1 — والاسم ثانياً.
+    names = {row[1] for row in filtered[1:]}
     assert names == {"عميل الرندرة"}
 
 
@@ -424,13 +432,13 @@ def test_deleting_a_display_loop_fails_this_file(client, viewer, world):
     from django.template import engines
 
     source = pathlib.Path("templates/console/customers.html").read_text(encoding="utf-8")
-    context = {"page": User.objects.all(), "q": ""}
+    context = {"rows": User.objects.all(), "q": ""}
 
     intact = engines["django"].from_string(source).render(context)
     assert "عميل الرندرة" in intact
 
     broken_source = source.replace(
-        "{% for customer in page %}", "{% for customer in nothing %}"
+        "{% for customer in rows %}", "{% for customer in nothing %}"
     )
     assert broken_source != source, "the loop this test breaks has been renamed"
 

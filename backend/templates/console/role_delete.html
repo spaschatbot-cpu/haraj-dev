@@ -1,0 +1,67 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+حذف دور — ويُرفض حين يحمله أحد.
+
+حذفُ دورٍ يحمله سبعةٌ يترك سبعةَ حساباتٍ بدورٍ لا وجود له، فتقرأ `bundle_for`
+مجموعةً فارغة ويخرج سبعةُ موظّفين من اللوحة في لحظةٍ واحدة بلا أن يقول لهم
+أحدٌ لماذا. فالشاشة تسمّيهم بدل أن تعدّهم: من يُقرأ اسمُه يُنقَل إلى دورٍ آخر
+قبل الحذف.
+{% endcomment %}
+{% block title %}حذف دور{% endblock %}
+{% block heading %}حذف الدور «{{ role.label }}»{% endblock %}
+
+{% block content %}
+  <div class="scroller">
+  <table>
+    <tbody>
+      <tr><th>المعرّف</th><td><code>{{ role.slug }}</code></td></tr>
+      <tr><th>لماذا وُجد</th><td>{{ role.reason }}</td></tr>
+      <tr><th>أنشأه</th><td>{{ role.created_by.full_name|default:"—" }}</td></tr>
+      <tr><th>متى</th><td>{{ role.created_at }}</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>ما يحمله هذا الدور</h2>
+  {% if capabilities %}
+    <ul>
+      {% for name in capabilities %}<li><code>{{ name }}</code></li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">لا قدرات — حاملُه لا يفتح اللوحة أصلاً.</p>
+  {% endif %}
+
+  {% if holders %}
+    <p class="alarm">
+      <strong>لا يُحذف:</strong> يحمله {{ holders|length|unlocalize }} من المشرفين.
+    </p>
+    <div class="scroller">
+    <table>
+      <thead><tr><th>المشرف</th><th>الجوال</th><th></th></tr></thead>
+      <tbody>
+        {% for person in holders %}
+          <tr>
+            <td>{{ person.full_name }}</td>
+            <td>{{ person.phone }}</td>
+            <td><a href="{% url 'console:staff-grants' person.pk %}">انقله إلى دورٍ آخر</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  {% else %}
+    <p class="alarm">لا مشرفَ على هذا الدور — حذفُه لا يُخرج أحداً.</p>
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <p>
+        <label for="why">السبب</label>
+        <input id="why" type="text" name="reason" required>
+        <small>يدخل سجلَّ التدقيق مع اسم الدور وقدراته، فيبقى ما كان.</small>
+      </p>
+      <button type="submit">احذف الدور</button>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'console:roles' %}">← عودة إلى الأدوار</a></p>
+{% endblock %}

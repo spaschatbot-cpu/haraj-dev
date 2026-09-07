@@ -105,7 +105,7 @@ def test_the_auction_list_shows_the_rows_not_merely_a_200(client, operator, live
 
     assert "مزاد الرياض" in body
     assert "501" in body
-    # العدُّ، وهو ما يفتح الموظّف الصفحة لأجله. وبعد T840 صار العمود يقول
+    # العدُّ، وهو ما يفتح الموظّف الصفحة لأجله. وبعد T844 صار العمود يقول
     # «٢ سيارة» لا «٢» عارياً بين وسمين — الصياغةُ هي ما تغيّر لا الرقم،
     # ولذلك ضُيّق الموضِع ولم يُحذف.
     assert "2 سيارة" in body
@@ -169,7 +169,7 @@ def test_a_car_awaiting_its_owners_decision_is_listed_before_the_others(
     body = body_of(client, reverse("console:auction-detail", args=[live.pk]))
 
     # `</a>` في المُوضِع عمداً: رقمُ اللوت في جدول المركبات داخل رابط، وبعد
-    # T839 صارت أعلى الصفحة بطاقاتٌ فيها `>1<` عارياً (عدد ما ينتظر قراراً).
+    # T843 صارت أعلى الصفحة بطاقاتٌ فيها `>1<` عارياً (عدد ما ينتظر قراراً).
     # فبحثٌ عن `>1<` في الصفحة كلّها يجد البطاقة لا الصفّ، ويقيس ترتيباً غير
     # الذي يعنيه هذا الاختبار.
     assert body.index(f">{waiting.lot_number}</a>") < body.index(">1</a>")
@@ -191,7 +191,7 @@ def test_an_auction_with_no_cars_says_so(client, operator, live):
 
 
 # ---------------------------------------------------------------------------
-# المزاد كمُجمَّع — T839
+# المزاد كمُجمَّع — T843
 # ---------------------------------------------------------------------------
 
 
@@ -240,7 +240,7 @@ def test_the_auction_screen_names_the_gap_between_the_column_and_the_clock(
 ):
     """مزادٌ حالتُه `live` وانتهى وقتُه: «جارٍ» كذبةٌ والشاشة تقولها.
 
-    قبل T839 كان `get_state_display` وحده على الصفحة، فيقرأ الموظّف «جارٍ»
+    قبل T843 كان `get_state_display` وحده على الصفحة، فيقرأ الموظّف «جارٍ»
     بينما البوّابة ترفض كل مزايدة والعميل يرى «مضى».
     """
     live.ends_at = timezone.now() - timezone.timedelta(hours=1)

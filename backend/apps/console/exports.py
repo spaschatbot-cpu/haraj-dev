@@ -64,8 +64,33 @@ def workbook_response(payload: bytes, *, name: str) -> HttpResponse:
     """
     stamp = timezone.localtime(timezone.now()).strftime("%Y%m%d-%H%M")
     response = HttpResponse(payload, content_type=XLSX_CONTENT_TYPE)
-    response["Content-Disposition"] = f'attachment; filename="{name}-{stamp}.xlsx"'
+    response["Content-Disposition"] = disposition(name, stamp)
     return response
+
+
+def disposition(name: str, stamp: str) -> str:
+    """`Content-Disposition` لملفٍّ اسمُه عربيّ — بترميز RFC 5987.
+
+    الترويسة تحمل بايتات لاتينية فقط. واسمٌ عربيٌّ يُوضع فيها كما هو يخرج من
+    جانغو مشفَّراً بـRFC 2047 (`=?utf-8?b?…?=`) — **وهو ترميزٌ لرؤوس البريد لا
+    تفهمه المتصفّحات هنا**، فيصل الملفَّ إلى سطح المكتب باسمٍ هو تلك السلسلة
+    حرفياً. وكل تصديرٍ عربيّ الاسم كان يخرج هكذا بلا أن يُلاحَظ، لأن الاختبار
+    كان يمرّ على أسماءٍ إنجليزية وحدها.
+
+    فالصيغة هنا هي التي نصّ عليها RFC 6266: `filename` لاتينيّ احتياطيّ لمن لا
+    يفهم، و`filename*=UTF-8''…` هو الاسم الحقيقيّ. والمتصفّح يفضّل الثاني حين
+    يجده — وكلُّ متصفّحٍ حيٍّ يفهمه.
+    """
+    from urllib.parse import quote
+
+    # الاحتياطيّ لا يُترجَم ولا يُنقحَر: نقحرةُ العربية إلى لاتينية تخترع اسماً
+    # لا يعرفه أحد. ويحمل الختم كاملاً، فملفّان في مجلّدٍ واحد يبقيان مميَّزين
+    # حتى عند من لا يفهم `filename*` — وذلك هو سببُ الختم أصلاً.
+    ascii_name = name if name.isascii() else "export"
+    quoted = quote(f"{name}-{stamp}.xlsx", safe="")
+    return (
+        f"attachment; filename=\"{ascii_name}-{stamp}.xlsx\"; filename*=UTF-8''{quoted}"
+    )
 
 
 def sheet_response(sheet: Sheet, *, name: str) -> HttpResponse:

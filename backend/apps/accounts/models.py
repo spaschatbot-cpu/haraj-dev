@@ -69,6 +69,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     national_id = models.CharField(max_length=20, blank=True)
 
     is_active = models.BooleanField(default=True)
+
+    #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T839.
+    #:
+    #: استمارةُ «إضافة مشرف» في v1 فيها خانةُ كلمة مرورٍ يملؤها موظّفٌ
+    #: لموظّفٍ آخر — أي أن الأول يعرف كلمة الثاني ويستطيع الدخول باسمه،
+    #: فيصير كلُّ قيدٍ يتركه الثاني في `AuditLog` **قابلاً للإنكار**:
+    #: «لم أفعل، فلانٌ يعرف كلمتي». وذلك يُبطل السجلَّ كلَّه لا صفّاً منه.
+    #:
+    #: والعلمُ هنا يُنهي تلك المعرفة عند أوّل دخول: الحارس في
+    #: `apps.console.views.console_page` يحوّل حاملَه إلى شاشة تغيير
+    #: الكلمة قبل أيّ شاشةٍ أخرى، فما يعرفه المنشئ يصير باطلاً قبل أن
+    #: يُفعل بالحساب شيء.
+    must_change_password = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
 
     #: Which bundle of console capabilities this account starts with (T801).
@@ -391,3 +404,76 @@ class StaffGrant(models.Model):
     def __str__(self) -> str:
         verb = "منح" if self.granted else "سحب"
         return f"{verb} {self.capability} → {self.user_id}"
+
+
+class ConsoleRole(models.Model):
+    """دورٌ يُنشئه المالك — حزمةُ قدراتٍ لها اسم. T838.
+
+    الأدوار الأربعة الأولى مكتوبةٌ في الشيفرة
+    (`apps.core.permissions.ROLE_CAPABILITIES`) وتبقى هناك: صفٌّ في قاعدةٍ يمكن
+    حذفُه، وحذفُ «المالك» يُقفل اللوحة على الجميع بلا طريقٍ للعودة. فالمكتوبُ
+    أرضيّة، وهذا الجدولُ ما يُضاف فوقها.
+
+    **ولماذا صار الدورُ صفّاً أصلاً:** v1 عنده أحدَ عشرَ دوراً في قائمةٍ
+    منسدلة، ومنها ما يكرّر غيرَه بأسماءٍ مختلفة («Admin (مدير)» و«مدير (كل شيء
+    عدا الإحصائيات)»، و«Data Entry» و«مدخل بيانات المزادات»). وهي ليست خطأً في
+    التسمية — هي أثرُ أن كلَّ حاجةٍ جديدة كانت تُحلّ بدورٍ جديدٍ في الشيفرة،
+    فلا أحد يجرؤ على حذف القديم لأنه لا يعرف من يحمله. والصفُّ هنا **يقول من
+    يحمله**، فيُحذف حين لا يحمله أحد.
+
+    والقدرات نصوصٌ في `JSONField` لا مفاتيحُ أجنبية: `Capability` تعدادٌ في
+    الشيفرة لا جدول، وهو الصواب — قدرةٌ لا تحرس شيئاً يرفضها
+    `ops/checks/every_capability_guards_something.py`، وذلك فحصٌ على الشيفرة
+    لا على صفوف. فالدورُ يشير إلى القدرات بالاسم، وقدرةٌ اختفت من التعداد
+    تُقرأ هنا وتُهمَل عند الحساب بدل أن تكسر كلَّ استعلامٍ على الجدول.
+    """
+
+    #: المعرّف الذي يُكتب في `User.console_role`. لاتينيٌّ لأنه يدخل عناوين
+    #: ومرشّحات، والاسمُ المعروض عربيٌّ في `label`.
+    slug = models.SlugField(max_length=32, unique=True)
+    label = models.CharField(max_length=100)
+
+    #: قيمُ `Capability` التي يحملها هذا الدور. يتحقّق منها `clean()`.
+    capabilities = models.JSONField(default=list, blank=True)
+
+    #: لماذا وُجد هذا الدور. دورٌ بلا سبب هو الدور الذي لا أحد يعرف بعد سنةٍ
+    #: هل يجوز حذفه — وذلك بعينه سببُ أحدَ عشرَ دوراً في v1.
+    reason = models.TextField()
+
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="roles_created",
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "دور لوحة"
+        verbose_name_plural = "أدوار اللوحة"
+        ordering = ("label",)
+        constraints = [
+            models.CheckConstraint(
+                condition=~models.Q(reason=""),
+                name="console_role_reason_not_blank",
+                violation_error_message="سبب إنشاء الدور مطلوب",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.label} ({self.slug})"
+
+    def clean(self) -> None:
+        """قدرةٌ لا وجود لها تُرفض عند الحفظ لا عند القراءة.
+
+        دورٌ يحمل `"users.delet"` يبدو صحيحاً في الشاشة ولا يمنح شيئاً — وهو
+        أسوأ من الرفض: من منحه يظنّ أنه منح.
+        """
+        from apps.core.permissions import Capability
+
+        known = set(Capability.values)
+        unknown = sorted(set(self.capabilities or []) - known)
+        if unknown:
+            raise ValidationError({"capabilities": f"قدراتٌ لا وجود لها: {unknown}"})

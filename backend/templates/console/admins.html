@@ -14,7 +14,15 @@
 {% endcomment %}
 {% block title %}إدارة المشرفين{% endblock %}
 {% block heading %}إدارة المشرفين{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}
+  {% comment %} ثلاثةُ أفعالٍ على هذه القائمة، لا وجهاتٌ في الشريط: إنشاءُ
+     حساب، والأدوار التي يُختار منها، والتصدير. وكانت «الأدوار» و«التحكم في
+     الصفحات» مدخلين مستقلّين في الشريط بجوار هذه الشاشة، وكلاهما لا يُفتح
+     إلا من هنا عملياً (T838 · T839). {% endcomment %}
+  <a class="button" href="{% url 'console:admin-new' %}">+ مشرف جديد</a>
+  <a class="button" href="{% url 'console:roles' %}">الأدوار والصلاحيات</a>
+  <a href="{{ export_url }}">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
   <form method="get">
@@ -32,6 +40,8 @@
     </select>
     <button type="submit">بحث</button>
   </form>
+
+  <h2>قائمة المشرفين الحالية <span class="pill">{{ page.paginator.count|unlocalize }} مشرفاً</span></h2>
 
   <div class="scroller">
     <table>
@@ -72,7 +82,13 @@
             {% if person.revoked %}−{{ person.revoked|unlocalize }}{% endif %}
             {% if not person.granted and not person.revoked %}—{% endif %}
           </td>
-          <td><a href="{% url 'console:staff-grants' person.pk %}">الصلاحيات ←</a></td>
+          <td>
+            {% comment %} مدخلان لفعلين مختلفين: «الصلاحيات» يكتب تجاوزاً،
+               و«صفحاته» يقرأ ما كُتب. وكانا في v1 شاشتين منفصلتين تعرضان
+               القائمة نفسها — فدُمجت الثانية هنا (T838). {% endcomment %}
+            <a href="{% url 'console:staff-grants' person.pk %}">الصلاحيات</a> ·
+            <a href="{% url 'console:page-control' %}?q={{ person.phone|unlocalize }}">صفحاته</a>
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="8" class="empty">لا مشرفين مطابقين.</td></tr>
@@ -84,8 +100,10 @@
   <p>{{ page.paginator.count|unlocalize }} مشرفاً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 
   <p class="empty">
-    لا حذفَ من هنا، ولا إنشاءَ حساب. الحساب المعطَّل لا يدخل ويبقى اسمُه على
-    كل ما فعل؛ والحذفُ يجرّ معه سجلَّ من فعل ماذا. وعمود «فوق دوره» يعدّ
+    لا حذفَ من هنا. الحساب المعطَّل لا يدخل ويبقى اسمُه على
+    كل ما فعل؛ والحذفُ يجرّ معه سجلَّ من فعل ماذا. والحسابُ الجديد يُنشأ
+    بكلمةٍ <strong>مؤقّتة</strong> يغيّرها صاحبُها قبل أن يفتح أي شاشة، فما
+    يعرفه المنشئ عنها يبطل عند أوّل دخول. وعمود «فوق دوره» يعدّ
     الاستثناءات: <strong>+</strong> قدرةٌ مُنحت فوق الدور،
     <strong>−</strong> قدرةٌ سُحبت منه — ولكلٍّ سببُه المكتوب في صفحة صلاحياته.
   </p>
