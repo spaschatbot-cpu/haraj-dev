@@ -2400,3 +2400,39 @@ form[method="get"] .advanced-panel label {
 }
 
 
+
+/* خانةُ المقياس: رقمٌ واحد يُقرأ بلمحة، ووصفٌ تحته، وشريطٌ حين للرقم مقام.
+   ثلاثةُ أسطرٍ متساوية الوزن تُقرأ سطراً سطراً — والصفُّ فيه ستُّ خاناتٍ
+   كهذه، فستّةَ عشرَ سطراً في صفٍّ واحد. */
+.metric { display: flex; flex-direction: column; gap: .12rem; min-inline-size: 0; }
+.metric__n {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.metric__label { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+.metric__note {
+  font-size: .74rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-inline-size: 12rem;
+}
+
+/* الشريط: نسبةٌ تُرى قبل أن تُقرأ. `role="img"` مع `aria-label` كاملة، فمن
+   لا يراه يسمع الرقمين — ولا يعتمد المعنى على اللون وحده. */
+.bar {
+  display: block;
+  block-size: .3rem;
+  inline-size: 100%;
+  max-inline-size: 7rem;
+  margin-block-start: .25rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.bar > i { display: block; block-size: 100%; background: var(--ok); border-radius: 999px; }
+.bar--warn > i { background: var(--warn); }

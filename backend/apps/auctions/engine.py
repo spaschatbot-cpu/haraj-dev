@@ -64,7 +64,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import Count, Max, Min, Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from .models import Auction, Vehicle, VehicleImage
@@ -301,6 +301,38 @@ def tick(*, now: datetime | None = None) -> dict[str, list[int]]:
     }
 
 
+def vehicle_rows(auction: Auction):
+    """سياراتُ المزاد كما تعرضها شاشتُه — استعلامٌ واحد، بترتيبٍ يقول ما يهمّ.
+
+    **الترتيب هو قيمةُ الشاشة**، لا اللوت: سيارةٌ تنتظر قرار مالكها سيارةٌ لا
+    يُدفع لأحدٍ عنها، وفي v1 كانت تقبع بترتيب اللوت في الصفحة الرابعة حتى
+    يذهب أحدٌ يبحث عنها.
+
+    وعدُّ الصور **مُعلَّقٌ في الاستعلام** لا محسوبٌ في حلقة: صفحةُ ستّمئةٍ
+    وثلاثٍ وثمانين سيارة تعني ٦٨٣ ذهاباً إلى القاعدة لو حُسب في القالب —
+    وهو بعينه ما جعل شاشة v1 تأخذ ثماني ثوانٍ.
+    """
+    from django.db.models import Case, IntegerField, Value, When
+
+    return (
+        Vehicle.objects.filter(auction=auction)
+        .select_related("owner_company")
+        .annotate(
+            # `image_count` لا `images`: الأخيرة اسمُ العلاقة نفسها على
+            # النموذج، وجانغو يرفض تعليقاً يحجب حقلاً قائماً.
+            image_count=Count("images", distinct=True),
+            urgency=Case(
+                When(state=VehicleState.AWAITING_DECISION, then=Value(0)),
+                When(state=VehicleState.BIDDING, then=Value(1)),
+                When(state=VehicleState.LISTED, then=Value(2)),
+                default=Value(3),
+                output_field=IntegerField(),
+            ),
+        )
+        .order_by("urgency", "lot_number")
+    )
+
+
 # ---------------------------------------------------------------------------
 # ٢ب — ملخّصُ الصفّ: الأعمدة التي تعرضها شاشةُ إدارة المزادات في v1
 # ---------------------------------------------------------------------------
@@ -326,6 +358,14 @@ def tick(*, now: datetime | None = None) -> dict[str, list[int]]:
 OFFERED_STATES = frozenset({VehicleState.LISTED, VehicleState.BIDDING})
 
 
+# لا سعرَ افتتاحياً ولا «أعلى مزايدة» في هذا الملخّص — المالك بالحرف: «مفيش
+# أي سعر افتتاحي في النظام كله»، و«اخفي من المشاركات أعلى مزايد».
+#
+# **والسببُ واحد: المزاد مغلق.** `type_auctions='close'` في كل صفٍّ من نسخة
+# v1 الحقيقية. ومزادٌ مغلق لا يُعلن رقماً تنطلق منه المزايدة، ولا يُظهر
+# لأحدٍ أين وصل غيرُه — وإظهارُ «أعلى مزايدة» فيه يكشف ما بُني المزادُ على
+# إخفائه. وv1 يعرض العمودين لأنه يقرأ عمودَين موجودين، لا لأنهما يعنيان
+# شيئاً هنا.
 @dataclass(frozen=True)
 class RowSummary:
     """ما يُعرض عن مزادٍ واحد في صفٍّ من قائمة الإدارة."""
@@ -336,10 +376,6 @@ class RowSummary:
 
     #: «متاحة» — معروضةٌ للعميل الآن.
     offered: int = 0
-    #: «سعر مسجل» — لها سعرُ وقوفٍ مكتوب. وv1 يسمّيه «سعر افتتاحي».
-    with_reserve: int = 0
-    reserve_low: Decimal | None = None
-    reserve_high: Decimal | None = None
 
     #: سيارةٌ **لها صورةٌ واحدة على الأقلّ**، وإجماليُّ الصور. الرقمان مختلفان
     #: عمداً: «٣١٠ سيارة · ٣٦٧٠ صورة» يقول إن التغطية كاملة، و«٣٠٠ من ٦٨٣»
@@ -349,7 +385,6 @@ class RowSummary:
 
     bids: int = 0
     bidders: int = 0
-    top_bid: Decimal | None = None
 
     #: عيّنةٌ تعرّف المزاد بلمحة: «تويوتا كامري 2023».
     sample: str = ""
@@ -392,9 +427,6 @@ def summarise(auctions) -> dict[int, RowSummary]:
             cars=Count("id"),
             makes=Count("make", distinct=True),
             offered=Count("id", filter=Q(state__in=OFFERED_STATES)),
-            with_reserve=Count("id", filter=Q(reserve_price__isnull=False)),
-            reserve_low=Min("reserve_price"),
-            reserve_high=Max("reserve_price"),
         )
         .order_by()
     ):
@@ -421,7 +453,6 @@ def summarise(auctions) -> dict[int, RowSummary]:
         .annotate(
             bids=Count("id"),
             bidders=Count("bidder_id", distinct=True),
-            top_bid=Max("amount"),
         )
         .order_by()
     ):
@@ -662,5 +693,6 @@ __all__ = [
     "summarise",
     "summarise_onto",
     "tally",
+    "vehicle_rows",
     "tick",
 ]

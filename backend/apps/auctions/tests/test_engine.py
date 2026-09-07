@@ -287,9 +287,6 @@ def test_the_summary_counts_cars_makes_and_prices(make_auction, make_vehicle):
     assert row.cars == 3
     assert row.makes == 2
     assert row.top_makes == ("تويوتا", "نيسان")
-    assert row.with_reserve == 2
-    assert row.reserve_low == Decimal("30000.00")
-    assert row.reserve_high == Decimal("50000.00")
 
 
 def test_offered_is_derived_from_the_state_not_a_second_column(
@@ -337,7 +334,6 @@ def test_a_withdrawn_bid_is_not_activity(make_auction, make_vehicle, bidder):
 
     assert row.bids == 1
     assert row.bidders == 1
-    assert row.top_bid == Decimal("40000.00")
 
 
 def test_the_image_count_says_coverage_not_only_a_total(make_auction, make_vehicle):
@@ -390,4 +386,3 @@ def test_an_auction_with_nothing_in_it_summarises_to_zeroes(make_auction):
     row = engine.summarise([auction])[auction.pk]
 
     assert (row.cars, row.images, row.bids, row.top_makes) == (0, 0, 0, ())
-    assert row.reserve_low is None

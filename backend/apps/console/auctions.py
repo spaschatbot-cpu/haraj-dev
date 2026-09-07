@@ -58,6 +58,7 @@ PAGE_SIZE = 25
 #: محتواه. والأيقونة **ليست بديلاً عن الاسم**: كلُّ زرٍّ يحمل `aria-label`
 #: و`title` بالنصّ نفسه، فمن يقرأ بقارئ شاشة أو يقف بالفأرة يسمع/يرى الكلمة.
 ACTIONS = (
+    ("status", "تغيير الحالة", "flag"),
     ("cars", "السيارات", "car"),
     ("export", "تصدير Excel", "file-excel"),
     ("fees", "الرسوم والضريبة", "pencil"),
@@ -177,14 +178,10 @@ def auctions(request):
                 "السيارات",
                 "الماركات",
                 "المعروضة",
-                "بسعر مسجّل",
-                "أقل سعر وقوف",
-                "أعلى سعر وقوف",
                 "سيارات لها صور",
                 "الصور",
                 "المزايدات",
                 "المزايدون",
-                "أعلى مزايدة",
             ],
             cell=lambda a: [
                 a.number,
@@ -196,14 +193,10 @@ def auctions(request):
                 summaries[a.pk].cars,
                 summaries[a.pk].makes,
                 summaries[a.pk].offered,
-                summaries[a.pk].with_reserve,
-                summaries[a.pk].reserve_low,
-                summaries[a.pk].reserve_high,
                 summaries[a.pk].cars_with_images,
                 summaries[a.pk].images,
                 summaries[a.pk].bids,
                 summaries[a.pk].bidders,
-                summaries[a.pk].top_bid,
             ],
         )
 
@@ -255,40 +248,22 @@ def auctions(request):
 
 @console_page("console:auction-detail")
 def auction_detail(request, pk: int):
-    """المزاد كمُجمَّع: مرحلتُه، ومركباتُه، وما يجوز فعله به.
+    """المزاد وسياراته — بحقول شاشة v1 المقابلة (`{id}/vehicles`)، لا أكثر.
 
-    المالك بالحرف: «مش عايز الصفحات يظهر فيها ولا ماليه ولا مزايدات غير
-    الصفحات المخصصه لكدا». فهذه الشاشة **لا تعرض أموال العملاء**: لا تأميناً
-    محجوزاً، ولا فاتورةً، ولا رصيداً — كلُّ ذلك له شاشاتُه في المال والمزايدات،
-    وإخراجُه هنا يكسر تصميم الصلاحيات (من يملك `auctions.view` كان يرى أرصدةً
-    لا تخصّه). حُذف قسمُ «المشاركون» وبطاقاتُ المال في T849.
+    **وما ليس على هذه الشاشة مقصودٌ غيابُه.** لا سعرَ وقوفٍ ولا فائزَ ولا
+    فاتورة: الأولُ يُحرَّر في شاشة تعديل المركبة، والأخيران **نتيجةُ بيعٍ
+    ومالُها** ومكانُهما شاشاتُ ما بعد البيع. وشاشةُ v1 المقابلة لا تعرض
+    واحداً منها — يفتحها من يملك `auctions.view`، وهو دورٌ لا يرى أموال
+    العملاء.
 
-    ولا شيء هنا يقرّر. المرحلةُ والعمليّاتُ من :mod:`apps.auctions.engine`،
-    والكتابةُ من ``services`` و``settlement``.
+    والأعمدةُ الثمانيةَ عشرَ في v1 قُرئت من `manage_vehicles.php:850-867`.
+    خمسةٌ منها لا حقلَ لها عندنا (رقم المطالبة · شركة التأمين · حالة المحرّك ·
+    المفاتيح · التسويق) — مذكورةٌ في `tasks.md` ولا تُخترَع.
     """
     auction = get_object_or_404(with_vehicle_counts(Auction.objects.all()), pk=pk)
 
-    from django.db.models import Case, IntegerField, Value, When
-
-    cars = (
-        Vehicle.objects.filter(auction=auction)
-        .select_related("owner_company", "awarded_to")
-        .annotate(
-            urgency=Case(
-                When(state=VehicleState.AWAITING_DECISION, then=Value(0)),
-                When(state=VehicleState.AWARDED, then=Value(1)),
-                default=Value(2),
-                output_field=IntegerField(),
-            )
-        )
-        .order_by("urgency", "lot_number")
-    )
-
-    # لقطةٌ واحدة بدل ستّة أسئلة موزّعة على القالب. والعمليّاتُ تأتي معها
-    # محسوبةً من آلة الحالات — وكانت تُبنى هنا بيد، ويُبنى مثلُها في
-    # `bulk.py` بشرطٍ مختلف.
     view = engine.snapshot(auction)
-    page = _page(request, cars)
+    page = _page(request, engine.vehicle_rows(auction))
     with_tones(page.object_list)
 
     return render(
@@ -301,6 +276,9 @@ def auction_detail(request, pk: int):
             # النغمةُ تُحسب هنا لا في القالب: `tones.with_tones` يقول لماذا —
             # قالبٌ يحسب نغمةً مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
             "phase_tone": tone_of_phase(view.phase),
+            "badge_label": engine.Badge(engine.badge_of(auction)).label,
+            "badge_tone": engine.BADGE_TONES.get(engine.badge_of(auction), ""),
+            "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
         },
     )
 

@@ -113,27 +113,82 @@ somebody went looking for it.
     <a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a> ·
     <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
   </p>
-  <h2>المركبات</h2>
+  <h2>المركبات <span class="count">({{ page.paginator.count|unlocalize }})</span></h2>
+  {% comment %}
+  أعمدةُ شاشة v1 المقابلة (`manage_vehicles.php:850-867`) — ثمانيةَ عشرَ
+  عموداً، منها ثلاثةَ عشرَ لها حقلٌ عندنا. والخمسةُ الباقية (رقم المطالبة ·
+  شركة التأمين · حالة المحرّك · المفاتيح · التسويق) **لا حقلَ لها**، ولا
+  تُخترَع — مذكورةٌ في `tasks.md` لتُقرَّر.
+
+  **وما ليس هنا مقصودٌ غيابُه:** لا سعرَ وقوفٍ ولا فائزَ ولا فاتورة. شاشةُ v1
+  لا تعرض واحداً منها، ومن يفتح هذه يملك `auctions.view` — دورٌ لا يرى أموال
+  العملاء ولا نتائج بيعهم.
+
+  والصفُّ الأوّل ما ينتظر قراراً: سيارةٌ معلّقةٌ على قرار مالكها لا يُدفع
+  لأحدٍ عنها، وترتيبُ اللوت يدفنها في الصفحة الرابعة.
+  {% endcomment %}
   <div class="scroller">
     <table>
-    <thead>
-      <tr><th>اللوت</th><th>المركبة</th><th>الحالة</th><th>سعر الوقوف</th><th>الفائز</th></tr>
-    </thead>
-    <tbody>
-      {% for vehicle in page %}
+      <thead>
         <tr>
-          <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
-          <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
-          <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
-          <td>{{ vehicle.awarded_to.full_name|default:"—" }}</td>
+          <th>اللوت</th>
+          <th>السيارة</th>
+          <th>السنة</th>
+          <th>الشاصي</th>
+          <th>اللوحة</th>
+          <th>نوع اللوحة</th>
+          <th>اللون</th>
+          <th>العداد</th>
+          <th>الحالة الفنية</th>
+          <th>ناقل الحركة</th>
+          <th>الوقود</th>
+          <th>الصور</th>
+          <th>المالك</th>
+          <th>الحالة</th>
+          {% if can_manage %}<th>تحكم</th>{% endif %}
         </tr>
-      {% empty %}
-        <tr><td colspan="5" class="empty">لا مركبات في هذا المزاد.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for car in page %}
+          <tr>
+            <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.lot_number|unlocalize }}</a></td>
+            <td>{{ car.make }} {{ car.model }}</td>
+            <td>{{ car.year|unlocalize }}</td>
+            <td class="tnum">{{ car.vin|default:"—" }}</td>
+            <td class="tnum">{{ car.plate_number|default:"—" }}</td>
+            <td>{{ car.get_plate_type_display }}</td>
+            <td>{{ car.get_colour_display }}</td>
+            <td class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }}{% else %}—{% endif %}</td>
+            <td>{{ car.get_condition_display }}</td>
+            <td>{{ car.get_transmission_display }}</td>
+            <td>{{ car.get_fuel_type_display }}</td>
+            {% comment %}
+            العددُ معلَّقٌ في الاستعلام (`engine.vehicle_rows`) لا محسوبٌ هنا:
+            `{{ car.images.count }}` في قالبٍ يعني استعلاماً لكل صفّ — وهو ما
+            جعل شاشة v1 تأخذ ثماني ثوانٍ.
+            {% endcomment %}
+            <td class="tnum">
+              {% if car.image_count %}{{ car.image_count|unlocalize }}{% else %}<span class="pill" data-tone="warn">بلا صور</span>{% endif %}
+            </td>
+            <td>{{ car.owner_company.name|default:"—" }}</td>
+            <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            {% if can_manage %}
+              <td class="actions">
+                <a href="{% url 'console:vehicle-detail' car.pk %}" class="act" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 14h18"/><path d="m5 14 1.5-4.5A2 2 0 0 1 8.4 8h7.2a2 2 0 0 1 1.9 1.5L19 14"/><path d="M5 14v3"/><path d="M19 14v3"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg>
+                </a>
+                <a href="{% url 'console:vehicle-edit' car.pk %}" class="act" title="تعديل" aria-label="تعديل">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                </a>
+              </td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="15" class="empty">لا مركبات في هذا المزاد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
   <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
 {% endblock %}
