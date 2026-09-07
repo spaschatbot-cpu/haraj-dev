@@ -32,32 +32,32 @@ have to undo one in their head.
         {% endfor %}
       </select>
 
-      <button type="button" class="btn-advanced{% if id_exact or park_exact %} is-active{% endif %}" id="btnAdvanced" aria-expanded="{% if id_exact or park_exact %}true{% else %}false{% endif %}">
-        <svg class="btn-advanced__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
-        <span>فلترة متقدمة</span>
-      </button>
+      <div class="dropdown-filter">
+        <button type="button" class="btn-advanced{% if id_exact or park_exact %} is-active{% endif %}" id="btnAdvanced" aria-expanded="false">
+          <svg class="btn-advanced__icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+          <span>فلترة متقدمة</span>
+        </button>
+        <div class="dropdown-filter__menu" id="advancedPanel" hidden>
+          <div class="field">
+            <label for="id_exact">معرّف المزاد المطابق</label>
+            <input type="text" id="id_exact" name="id_exact" value="{{ id_exact }}" inputmode="numeric" placeholder="ID مطابق">
+          </div>
+          <div class="field">
+            <label for="park_exact">رقم الساحة المطابق</label>
+            <input list="parks" type="text" id="park_exact" name="park_exact" value="{{ park_exact }}" placeholder="رقم الساحة">
+            <datalist id="parks">
+              {% for park in parks %}<option value="{{ park }}"></option>{% endfor %}
+            </datalist>
+          </div>
+          <button type="submit" class="btn-primary" style="inline-size: 100%; margin-block-start: .4rem;">تطبيق الفلاتر</button>
+        </div>
+      </div>
 
       <button type="submit">بحث</button>
 
       {% if q or state or id_exact or park_exact %}
         <a href="{% url 'console:auctions' %}" class="filters__reset">إلغاء الفلترة</a>
       {% endif %}
-    </div>
-
-    <div class="advanced-panel" id="advancedPanel" {% if not id_exact and not park_exact %}hidden{% endif %}>
-      <div class="advanced-panel__grid">
-        <div class="field">
-          <label for="id_exact">رقم المزاد المطابق</label>
-          <input type="text" id="id_exact" name="id_exact" value="{{ id_exact }}" inputmode="numeric" placeholder="مثال: 501">
-        </div>
-        <div class="field">
-          <label for="park_exact">الساحة المطابقة</label>
-          <input list="parks" type="text" id="park_exact" name="park_exact" value="{{ park_exact }}" placeholder="اختر أو اكتب اسم الساحة">
-          <datalist id="parks">
-            {% for park in parks %}<option value="{{ park }}"></option>{% endfor %}
-          </datalist>
-        </div>
-      </div>
     </div>
   </form>
 
@@ -88,29 +88,20 @@ have to undo one in their head.
     <table>
     <thead>
       {% comment %}
-      أعمدةُ شاشة v1 «إدارة المزادات» كما طلبها المالك: «عايز نفس الحقول و
-      اتأكد من المنطق التشغيلي بتاع كل حقل» — T844.
-
-      وكلُّ عمودٍ هنا مقروءٌ من قاعدة v1 الحقيقية لا من صورة الشاشة، ومصدرُه
-      مكتوبٌ في `auctions/engine.py` عند `RowSummary`. والفروق المقصودة عن v1
-      ثلاثة، ولكلٍّ سببُه هناك:
-
-      * «الحالة» مرحلةٌ لا عمود — v1 يقول «جارٍ» عن مزادٍ مضى وقتُه.
-      * «المشاركات» تعدّ المزايدات القائمة وحدها — v1 يعدّ المسحوبة معها.
-      * «التفعيل» مشتقٌّ من حالة السيارة — v1 عمودٌ نصّيّ ثانٍ يختلف عنها.
+      أعمدةُ شاشة v1 «إدارة المزادات» الـ12 مطابقة حرفية — T849.
       {% endcomment %}
       <tr>
-        <th data-col="id">الرقم</th>
-        <th data-col="auction">المزاد</th>
+        <th data-col="id">#</th>
+        <th data-col="auction">المزاد والملخص</th>
         <th data-col="preview">المعاينة</th>
-        <th data-col="badge">الحالة</th>
-        <th data-col="window">الفترة الزمنية</th>
         <th data-col="cars">العربيات</th>
+        <th data-col="window">الفترة الزمنية</th>
         <th data-col="prices">الأسعار</th>
         <th data-col="ready">التفعيل</th>
         <th data-col="images">الصور</th>
         <th data-col="bids">المشاركات</th>
         <th data-col="park">الموقع</th>
+        <th data-col="badge">الحالة</th>
         <th data-col="actions">تحكم</th>
       </tr>
     </thead>
@@ -119,33 +110,75 @@ have to undo one in their head.
         <tr>
           <td data-col="id"><a href="{% url 'console:auction-detail' auction.pk %}" class="row-num">{{ auction.number|unlocalize }}</a></td>
           <td data-col="auction">
-            <strong>{{ auction.title }}</strong>
-            {% if auction.summary.sample %}<br><span class="count">{{ auction.summary.sample }}</span>{% endif %}
+            <div class="stat-stack">
+              <strong class="car-title">{{ auction.display_title }}</strong>
+              <span class="auction-sub count">{{ auction.display_subtitle }}</span>
+            </div>
           </td>
           {% comment %}
-          المصغّرة **رابطٌ** لا بايتات. v1 كان يستعلم `TO_BASE64(image_blob)`
-          فوق آلاف الصفوف لرسم مربّعٍ ٥٠×٣٨، فتأخذ الصفحة ثماني ثوانٍ ويتجمّد
-          الخادم. و`loading="lazy"` يجعل المتصفّح لا يطلب إلا ما يُرى،
-          و`onerror` يُخفي المكسورة بدل أيقونة كسرٍ في كل صفّ.
+          المصغّرة: عرض 60 بكسل مع بديل سيارة SVG عند الفقد أو الخطأ كـ v1 تماماً
           {% endcomment %}
           <td data-col="preview">
-            {% if auction.summary.thumbnail %}
-              <img class="thumb" src="{{ auction.summary.thumbnail }}" alt=""
-                   loading="lazy" decoding="async" width="50" height="38"
-                   onerror="this.remove()">
-            {% else %}
-              <span class="thumb thumb--none" aria-hidden="true"></span>
-            {% endif %}
+            <div class="table-img-wrapper">
+              {% if auction.summary.thumbnail %}
+                <img class="thumb" src="{{ auction.summary.thumbnail }}" alt=""
+                     loading="lazy" decoding="async" width="60" height="42"
+                     onerror="this.onerror=null;this.parentElement.innerHTML='<span class=&quot;thumb thumb--fallback&quot;><svg viewBox=&quot;0 0 24 24&quot; aria-hidden=&quot;true&quot; style=&quot;width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round&quot;><path d=&quot;M3 14h18&quot;/><path d=&quot;m5 14 1.5-4.5A2 2 0 0 1 8.4 8h7.2a2 2 0 0 1 1.9 1.5L19 14&quot;/><path d=&quot;M5 14v3&quot;/><path d=&quot;M19 14v3&quot;/><circle cx=&quot;7.5&quot; cy=&quot;17.5&quot; r=&quot;1.5&quot;/><circle cx=&quot;16.5&quot; cy=&quot;17.5&quot; r=&quot;1.5&quot;/></svg></span>';">
+              {% else %}
+                <span class="thumb thumb--fallback"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 14h18"/><path d="m5 14 1.5-4.5A2 2 0 0 1 8.4 8h7.2a2 2 0 0 1 1.9 1.5L19 14"/><path d="M5 14v3"/><path d="M19 14v3"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg></span>
+              {% endif %}
+            </div>
           </td>
-          {% comment %}
-          البادج زرّ: نقرةٌ عليه تفتح نافذة تغيير الحالة — وهو ما طلبه المالك
-          صراحةً. و`<button>` لا `<div onclick>`: يصله التركيز بالمفتاح
-          ويُنطق «زرّ» في قارئ الشاشة. ومن لا صلاحية إدارةٍ له يرى الحبّة
-          نصّاً بلا زرّ، لا زرّاً يُرفض عند الضغط.
-          {% endcomment %}
+          <td data-col="cars">
+            <div class="stat-stack">
+              <span class="stat-main">{{ auction.summary.cars|unlocalize }} سيارة</span>
+              <span class="stat-sub count">{{ auction.summary.makes|unlocalize }} ماركة</span>
+              <span class="stat-sub count">{{ auction.summary.sample|default:"بدون عينة" }}</span>
+            </div>
+          </td>
+          <td data-col="window">
+            <div class="time-cell">
+              <span class="time-start">{{ auction.starts_at|date:"Y-m-d" }}</span>
+              <span class="time-end">{{ auction.ends_at|date:"Y-m-d" }}</span>
+            </div>
+          </td>
+          <td class="money" data-col="prices">
+            <div class="stat-stack">
+              {% if auction.summary.with_reserve %}
+                <span class="stat-main">{{ auction.summary.reserve_low|unlocalize }} – {{ auction.summary.reserve_high|unlocalize }}</span>
+              {% else %}
+                <span class="stat-main">0 – 0</span>
+              {% endif %}
+              <span class="stat-sub count">سعر افتتاحي</span>
+            </div>
+          </td>
+          <td data-col="ready">
+            <div class="stat-stack">
+              <span class="stat-main">{{ auction.summary.offered|unlocalize }} متاحة</span>
+              <span class="stat-sub count">{{ auction.summary.with_reserve|unlocalize }} بسعر مسجل</span>
+            </div>
+          </td>
+          <td data-col="images">
+            <div class="stat-stack">
+              <span class="stat-main">{{ auction.summary.cars_with_images|unlocalize }} سيارة</span>
+              <span class="stat-sub count">{{ auction.summary.images|unlocalize }} صورة</span>
+            </div>
+          </td>
+          <td data-col="bids">
+            <div class="stat-stack">
+              <span class="stat-main">{{ auction.summary.bids|unlocalize }} مزايدة</span>
+              <span class="stat-sub count">{{ auction.summary.bidders|unlocalize }} مزايد</span>
+              <span class="stat-sub count">أعلى: {% if auction.summary.top_bid %}{{ auction.summary.top_bid|unlocalize }}{% else %}0{% endif %} ر.س</span>
+            </div>
+          </td>
+          <td data-col="park">
+            <div class="stat-stack">
+              <span class="stat-main">{{ auction.location|default:"غير محدد" }}</span>
+            </div>
+          </td>
           <td data-col="badge">
             {% if can_manage %}
-              <button type="button" class="pill pill--button"
+              <button type="button" class="auction-status-badge pill pill--button"
                       data-tone="{{ auction.badge_tone }}"
                       data-open-status
                       data-pk="{{ auction.pk|unlocalize }}"
@@ -155,75 +188,20 @@ have to undo one in their head.
                       data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
                       data-sms="{{ auction.sms_reminder_at|date:'Y-m-d\TH:i' }}"
                       data-deposit="{{ auction.deposit_required|unlocalize }}"
-                      data-fee="{{ auction.admin_fee|unlocalize }}">{{ auction.badge_label }}</button>
+                      data-fee="{{ auction.admin_fee|unlocalize }}"
+                      title="اضغط لتغيير الحالة">
+                <span class="status-dot"></span> {{ auction.badge_label }}
+              </button>
             {% else %}
-              <span class="pill" data-tone="{{ auction.badge_tone }}">{{ auction.badge_label }}</span>
+              <span class="auction-status-badge pill" data-tone="{{ auction.badge_tone }}">
+                <span class="status-dot"></span> {{ auction.badge_label }}
+              </span>
             {% endif %}
             {% if auction.is_late %}<span class="pill" data-tone="bad">متأخّر</span>{% endif %}
           </td>
-          <td data-col="window">
-            {{ auction.starts_at }}<br>
-            <span class="count">إلى {{ auction.ends_at }}</span>
-          </td>
-          <td data-col="cars">
-            {{ auction.summary.cars|unlocalize }} سيارة<br>
-            <span class="count">
-              {{ auction.summary.makes|unlocalize }} ماركة
-              {% if auction.summary.top_makes %}
-                · {{ auction.summary.top_makes|join:" · " }}
-              {% endif %}
-            </span>
-          </td>
-          <td class="money" data-col="prices">
-            {% if auction.summary.with_reserve %}
-              {{ auction.summary.reserve_low|unlocalize }} – {{ auction.summary.reserve_high|unlocalize }}<br>
-              <span class="count">سعر الوقوف</span>
-            {% else %}
-              <span class="count">بلا سعر</span>
-            {% endif %}
-          </td>
-          <td data-col="ready">
-            {{ auction.summary.offered|unlocalize }} معروضة<br>
-            <span class="count">{{ auction.summary.with_reserve|unlocalize }} بسعر مسجّل</span>
-          </td>
-          <td data-col="images">
-            {{ auction.summary.cars_with_images|unlocalize }} سيارة<br>
-            <span class="count">
-              {{ auction.summary.images|unlocalize }} صورة{% if auction.summary.images_missing %}
-                · {{ auction.summary.images_missing|unlocalize }} بلا صورة{% endif %}
-            </span>
-          </td>
-          <td data-col="bids">
-            {{ auction.summary.bids|unlocalize }} مزايدة<br>
-            <span class="count">
-              {{ auction.summary.bidders|unlocalize }} مزايد ·
-              أعلى {% if auction.summary.top_bid %}{{ auction.summary.top_bid|unlocalize }}{% else %}0{% endif %} ر.س
-            </span>
-          </td>
-          <td data-col="park">{{ auction.location|default:"—" }}</td>
-          {% comment %}
-          «تحكم» في v1 ستّةُ أزرارٍ بلا نصّ، أوّلها الحذف. وهنا خمسةُ روابطَ
-          مسمّاة **ولا حذف**: المزاد لا يُحذف بل يُلغى عبر آلة الحالات، لأن
-          حذفَ صفٍّ تحته تأميناتٌ محجوزة وفواتيرُ قائمة يترك المال بلا صاحب —
-          و`on_delete=PROTECT` يرفضه في القاعدة أصلاً. والإلغاء يفكّ الحجوز
-          ويُبطل الفواتير غير المدفوعة قبل النقل، وهو ما لا يفعله زرُّ حذف.
-          {% endcomment %}
           <td data-col="actions" class="actions">
-            {% comment %}
-            أيقوناتٌ لا نصّ — T846. سبعةُ أفعالٍ نصّاً كانت تلتفّ على أربعة
-            أسطر فتمدّ الصفّ حتى يصير الجدول أطولَ من محتواه.
-
-            و**الاسم لم يُحذف**: كلُّ زرٍّ يحمل `aria-label` و`title` بالكلمة
-            نفسها، فقارئ الشاشة ينطقها والفأرة تُظهرها. وأيقونةٌ وحدها بلا
-            اسمٍ هي ما يجعل موظّفاً جديداً يضغط «إنهاء فوري» ظانّاً أنه حفظ.
-            {% endcomment %}
             {% with icon=action_icons.cars %}
               <a href="{% url 'console:auction-detail' auction.pk %}" class="act act--cars" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
-              </a>
-            {% endwith %}
-            {% with icon=action_icons.bids %}
-              <a href="{% url 'console:auction-bids' auction.pk %}" class="act act--bids" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
@@ -254,7 +232,7 @@ have to undo one in their head.
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </button>
               {% endwith %}
-              {% if auction.badge == "active" %}
+              {% if auction.badge == "active" or auction.state == "live" %}
                 {% with icon=action_icons.end %}
                   <button type="button" class="act act--danger" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
                           data-open-end
@@ -264,8 +242,8 @@ have to undo one in their head.
                   </button>
                 {% endwith %}
               {% endif %}
-              {% with icon=action_icons.edit %}
-                <a href="{% url 'console:auction-edit' auction.pk %}" class="act act--edit" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              {% with icon=action_icons.delete %}
+                <a href="{% url 'console:auction-edit' auction.pk %}" class="act act--del" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </a>
               {% endwith %}

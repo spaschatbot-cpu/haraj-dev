@@ -22,7 +22,6 @@ from django.utils import timezone
 
 from apps.auctions import engine
 from apps.auctions.states import AuctionState, VehicleState
-from apps.money import services as money
 
 pytestmark = pytest.mark.django_db
 

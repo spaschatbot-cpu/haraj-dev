@@ -33,3 +33,4 @@ backend/.design-preview/
 # تُنصَّب بالأمر نفسه على أي جهاز، و`skills-lock.json` يثبّت النسخة.
 .agents/
 .claude/skills/
+.agy-brief-*.txt

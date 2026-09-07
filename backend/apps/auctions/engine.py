@@ -48,8 +48,12 @@
     فاتورة → مركبة → مزاد → (صاحب الفاتورة، المزاد) → حجزٌ واحد
 
 وعمودٌ ثانٍ يحمل الجواب نفسه هو موضعُ قرارٍ ثانٍ (المادة ٤-٥): يوم يختلف عن
-السلسلة لا يقول أحدٌ أيّهما الصحيح. فالسلسلة تُقرأ هنا في
-:func:`deposit_behind` و:func:`participants`، وتُعرَض على الشاشة، ولا تُنسَخ.
+السلسلة لا يقول أحدٌ أيّهما الصحيح. فالسلسلة موجودةٌ في القاعدة، ولا تُقرأ
+هنا: عرضُ أموال العملاء — تأميناتٍ وفواتيرَ وأرصدة — له شاشاتُه المخصّصة في
+:mod:`apps.money` و:mod:`apps.bidding`، وإخراجُه في شاشة المزاد كان يكسر
+تصميم الصلاحيات (من يملك `auctions.view` يرى أرصدةً لا تخصّه). فحُذفت
+``participants`` و``deposit_behind`` من هذا المحرّك في T849، وبقي هنا سؤالُ
+المزاد عن نفسه: ساعتُه، ومركباتُه، وما يجوز فعله به.
 """
 
 from __future__ import annotations
@@ -60,7 +64,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import Count, Max, Min, Q, Sum
+from django.db.models import Count, Max, Min, Q
 from django.utils import timezone
 
 from .models import Auction, Vehicle, VehicleImage

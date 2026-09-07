@@ -174,17 +174,34 @@
     });
   }
 
-  /* إغلاق قائمة تخصيص الأعمدة عند النقر خارجها أو ضغط Escape */
+  /* إغلاق القوائم المنسدلة وتخصيص الأعمدة عند النقر خارجها أو ضغط Escape */
   document.addEventListener("click", function (event) {
     var details = document.querySelector("details.columns[open]");
     if (details && !details.contains(event.target)) {
       details.removeAttribute("open");
     }
+
+    if (btnAdvanced && advancedPanel && !advancedPanel.hidden) {
+      var dropdown = btnAdvanced.closest(".dropdown-filter");
+      if (dropdown && !dropdown.contains(event.target)) {
+        advancedPanel.hidden = true;
+        btnAdvanced.classList.remove("is-active");
+        btnAdvanced.setAttribute("aria-expanded", "false");
+      }
+    }
   });
+
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {
       var details = document.querySelector("details.columns[open]");
       if (details) details.removeAttribute("open");
+
+      if (btnAdvanced && advancedPanel && !advancedPanel.hidden) {
+        advancedPanel.hidden = true;
+        btnAdvanced.classList.remove("is-active");
+        btnAdvanced.setAttribute("aria-expanded", "false");
+        btnAdvanced.focus();
+      }
     }
   });
 })();

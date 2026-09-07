@@ -12,7 +12,6 @@ ordering that gives the screen its value is asserted as an ordering.
 
 from __future__ import annotations
 
-import re
 from decimal import Decimal
 
 import pytest
@@ -24,7 +23,6 @@ from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.core.models import AuditLog
 from apps.core.permissions import Capability, Role
-from apps.money import services as money
 
 from .conftest import screen_of, stamp_from
 

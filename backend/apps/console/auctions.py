@@ -58,28 +58,27 @@ PAGE_SIZE = 25
 #: محتواه. والأيقونة **ليست بديلاً عن الاسم**: كلُّ زرٍّ يحمل `aria-label`
 #: و`title` بالنصّ نفسه، فمن يقرأ بقارئ شاشة أو يقف بالفأرة يسمع/يرى الكلمة.
 ACTIONS = (
-    ("cars", "سياراته", "car"),
-    ("bids", "مزايداته", "gavel"),
-    ("export", "تصدير سياراته", "file-excel"),
-    ("fees", "الرسوم والتأمين", "coins"),
+    ("cars", "السيارات", "car"),
+    ("export", "تصدير Excel", "file-excel"),
+    ("fees", "الرسوم والضريبة", "pencil"),
     ("reschedule", "إعادة جدولة", "calendar-clock"),
-    ("end", "إنهاء فوري", "trash"),
-    ("edit", "تعديل", "pencil"),
+    ("end", "إنهاء المزاد", "square"),
+    ("delete", "حذف", "trash"),
 )
 
 
 COLUMNS = (
-    ("id", "الرقم"),
-    ("auction", "المزاد"),
+    ("id", "#"),
+    ("auction", "المزاد والملخص"),
     ("preview", "المعاينة"),
-    ("badge", "الحالة"),
-    ("window", "الفترة الزمنية"),
     ("cars", "العربيات"),
+    ("window", "الفترة الزمنية"),
     ("prices", "الأسعار"),
     ("ready", "التفعيل"),
     ("images", "الصور"),
     ("bids", "المشاركات"),
     ("park", "الموقع"),
+    ("badge", "الحالة"),
     ("actions", "تحكم"),
 )
 
@@ -169,9 +168,9 @@ def auctions(request):
             page_rows,
             name="auctions",
             headers=[
-                "الرقم",
+                "#",
                 "المزاد",
-                "المرحلة",
+                "الحالة",
                 "يبدأ",
                 "ينتهي",
                 "الموقع",
@@ -186,8 +185,6 @@ def auctions(request):
                 "المزايدات",
                 "المزايدون",
                 "أعلى مزايدة",
-                "التأمين",
-                "الرسوم الإدارية",
             ],
             cell=lambda a: [
                 a.number,
@@ -207,27 +204,31 @@ def auctions(request):
                 summaries[a.pk].bids,
                 summaries[a.pk].bidders,
                 summaries[a.pk].top_bid,
-                a.deposit_required,
-                a.admin_fee,
             ],
         )
 
     page = _page(request, rows)
     with_tones(page.object_list)
-    # المرحلةُ على كل صفّ — بلا استعلامٍ إضافي (T843). القائمةُ كانت تعرض
-    # العمود وحده، فمزادٌ انتهى وقتُه ولم يُغلَق يُقرأ «جارياً» في الصفّ الذي
-    # يُفتَح منه، وهو الصفّ الذي يجب أن يُفتَح **أولاً**.
+    # المرحلةُ على كل صفّ — بلا استعلامٍ إضافي (T843).
     engine.phases_of(page.object_list)
+    # أعمدةُ v1 كما طلبها المالك: «عايز نفس الحقول».
+    engine.summarise_onto(page.object_list)
     for row in page.object_list:
         row.phase_tone = tone_of_phase(row.phase)
         # البادج بمفردات v1 الخمس، محسوباً من الحالة والساعة واللافتة.
         row.badge = engine.badge_of(row)
         row.badge_label = engine.Badge(row.badge).label
         row.badge_tone = engine.BADGE_TONES.get(row.badge, "")
-    # أعمدةُ v1 كما طلبها المالك: «عايز نفس الحقول». أربعةُ استعلاماتٍ
-    # مجمَّعة لصفوف **الصفحة** وحدها — وv1 كان يحسبها للمزادات كلّها في كل
-    # تحميل، ثم يعدّ المزايدات المسحوبة ضمن النشاط.
-    engine.summarise_onto(page.object_list)
+
+        # عنوان وملخص v1:
+        sample = row.summary.sample if (row.summary and row.summary.sample) else ""
+        cars_count = row.summary.cars if row.summary else 0
+        offered_count = row.summary.offered if row.summary else 0
+        row.display_title = (row.title or "").strip() or sample or f"مزاد #{row.number}"
+        subtitle_lead = sample or f"عدد السيارات: {cars_count}"
+        row.display_subtitle = (
+            f"{subtitle_lead} • إجمالي {cars_count} سيارة • {offered_count} متاحة"
+        )
 
     return render(
         request,
@@ -254,19 +255,16 @@ def auctions(request):
 
 @console_page("console:auction-detail")
 def auction_detail(request, pk: int):
-    """المزاد كمُجمَّع: سياراتُه، ومن دخله وبأيّ تأمين، وما يجوز فعله به.
+    """المزاد كمُجمَّع: مرحلتُه، ومركباتُه، وما يجوز فعله به.
 
-    المالك بالحرف: «مزاد مجمع وداخله مجموعة من السيارات… المزاد الواحد مطلوب
-    عشان المشاركة فيه تأمين واحد للمزايدة فيه حتى لو هيزايد على كل السيارات
-    اللي فيه… فواتير المزاد الواحد تتربط برده بنفس التأمين بتاعه».
+    المالك بالحرف: «مش عايز الصفحات يظهر فيها ولا ماليه ولا مزايدات غير
+    الصفحات المخصصه لكدا». فهذه الشاشة **لا تعرض أموال العملاء**: لا تأميناً
+    محجوزاً، ولا فاتورةً، ولا رصيداً — كلُّ ذلك له شاشاتُه في المال والمزايدات،
+    وإخراجُه هنا يكسر تصميم الصلاحيات (من يملك `auctions.view` كان يرى أرصدةً
+    لا تخصّه). حُذف قسمُ «المشاركون» وبطاقاتُ المال في T849.
 
-    وهذه الشاشة هي المكان الذي يُرى فيه ذلك: صفٌّ لكل مشارك، فيه **تأمينٌ
-    واحد** مهما بلغ عدد سياراته، وتحته سياراته وفواتيره. وقبل T843 كان
-    الجوابُ موجوداً في القاعدة ولا شاشةَ تعرضه: الموظّف يفتح دفتر التأمينات
-    ثم قائمة الفواتير ثم يربط بيده.
-
-    ولا شيء هنا يقرّر. المرحلةُ والعمليّاتُ والمشاركون كلُّها من
-    :mod:`apps.auctions.engine`، والكتابةُ من ``services`` و``settlement``.
+    ولا شيء هنا يقرّر. المرحلةُ والعمليّاتُ من :mod:`apps.auctions.engine`،
+    والكتابةُ من ``services`` و``settlement``.
     """
     auction = get_object_or_404(with_vehicle_counts(Auction.objects.all()), pk=pk)
 

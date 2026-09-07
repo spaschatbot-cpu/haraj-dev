@@ -2241,9 +2241,162 @@ form[method="get"] .advanced-panel label {
   border-color: rgb(14, 165, 233);
   color: rgb(2, 132, 199);
 }
-.act--danger:hover {
+.act--fees:hover {
+  background: rgba(168, 85, 247, .12);
+  border-color: rgb(168, 85, 247);
+  color: rgb(147, 51, 234);
+}
+.act--danger:hover,
+.act--del:hover {
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger);
 }
+
+/* ---- شاشة المزادات: عناصر العرض المتطابقة مع v1 — T849 ---- */
+
+/* الفلترة المتقدمة المنبثقة: تطفو فوق الصفحة كقائمة منسدلة ولا تدفع الجدول */
+.dropdown-filter {
+  position: relative;
+  display: inline-block;
+}
+.btn-advanced {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-advanced:hover,
+.btn-advanced.is-active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.btn-advanced__icon {
+  inline-size: .95rem;
+  block-size: .95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dropdown-filter__menu {
+  position: absolute;
+  inset-block-start: calc(100% + .4rem);
+  inset-inline-start: 0;
+  z-index: 40;
+  min-inline-size: 19rem;
+  padding: 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+}
+.dropdown-filter__menu[hidden] {
+  display: none;
+}
+.dropdown-filter__menu .field {
+  margin-block-end: .8rem;
+}
+.dropdown-filter__menu label {
+  display: block;
+  margin-block-end: .3rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.dropdown-filter__menu input {
+  inline-size: 100%;
+}
+
+/* عمود المعاينة والمصغّرات */
+.table-img-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thumb--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 60px;
+  block-size: 42px;
+  margin-inline-end: 0;
+  color: var(--muted);
+  background: var(--line-soft);
+  border-radius: .35rem;
+}
+
+/* مكدّس الإحصاءات والخلايا المركبة */
+.stat-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.35;
+}
+.car-title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: .84rem;
+  display: block;
+}
+.auction-sub {
+  color: var(--muted);
+  font-size: .74rem;
+  display: block;
+}
+.stat-main {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: .82rem;
+  display: block;
+}
+.stat-sub {
+  color: var(--muted);
+  font-size: .74rem;
+  display: block;
+}
+
+/* الفترة الزمنية: تاريخ البدء بالأخضر والانتهاء بالأحمر */
+.time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+.time-start {
+  color: var(--ok);
+  font-weight: 700;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+}
+.time-end {
+  color: var(--danger);
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* شارة الحالة مع نقطة الحالة الدائرية */
+.auction-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.status-dot {
+  display: inline-block;
+  inline-size: .45rem;
+  block-size: .45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
 

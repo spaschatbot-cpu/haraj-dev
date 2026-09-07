@@ -55,6 +55,7 @@ DRAWN_OUTSIDE_THE_REGISTRY = {
     "file-excel",
     "calendar-clock",
     "filter",
+    "square",
 }
 
 
