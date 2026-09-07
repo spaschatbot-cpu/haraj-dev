@@ -2190,7 +2190,13 @@ form[method="get"] .advanced-panel label {
 .modal__buttons button[type="submit"] { flex: 1; }
 
 /* عمود التحكم أيقونات — T846. مربّعٌ مريح بنقلة ناعمة وحالة خطر مميزة */
-.actions { white-space: nowrap; }
+/* الأزرارُ تلتفّ ولا تُقصّ. كانت `nowrap`، فثمانيةُ أيقوناتٍ في خانةٍ
+   واحدة تخرج خارج حدّ العمود على الشاشة الضيّقة — يراها الموظّف واحدةً
+   ويظنّ الباقيَ مفقوداً. صفّان من أربعةٍ يُريان كلَّها. */
+.actions { white-space: normal; }
+.actions .act { flex: none; }
+td.actions { min-inline-size: 9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .15rem; }
 .act {
   display: inline-flex;
   align-items: center;

@@ -234,55 +234,55 @@ def tally(auction: Auction) -> VehicleTally:
 
 
 class Badge(models.TextChoices):
-    """ما يظهر في خانة «الحالة» — خمسُ كلماتٍ كما في v1، وسادسةٌ للملغى.
+    """ما يظهر في خانة «الحالة» — أربعُ كلماتٍ **تُحسب من الموعدين**.
 
-    v1 يخزّنها في عمودٍ واحد، فيخلط **دورةَ الحياة** بـ**لافتة العرض**:
-    نقلُ مزادٍ من «لاحقاً» إلى «قادم» هناك كتابةٌ في العمود نفسه الذي تقرؤه
-    التسويةُ والبوّابة. وهنا تُحسب من ثلاثة: الحالة، والساعة، ولافتةُ العرض.
+    المالك بالحرف: «الحالة تتغيّر حسب تاريخ البداية والنهاية، واعمل حقل
+    الحالة لو فيه درافت أو قريباً أو منتهي أو شغّال».
 
-    وسابعةٌ لا يعرفها v1 ولا تُخفى: `LATE` — انتهى وقتُه ولم يُغلَق، أو حان
-    ولم يبدأ. هي حالةُ عاملِ الخلفية لا حالةُ المزاد، ولها في القالب حبّةٌ
-    ثانية بجانب الأولى لا بدلاً منها.
+    **والحسابُ من الساعة لا من عمود.** العمودُ يكتبه عاملُ خلفيّة، والساعةُ
+    لا تنتظره؛ فمزادٌ حلّ موعدُه قبل دقيقتين يُقرأ هنا «شغّال» ولو لم يلحقه
+    العامل بعد. وذلك هو الفرق الذي جعل مزاداً منتهياً يُقرأ «جارياً» في
+    اللوحة و«مضى» عند العميل.
+
+    وخمسُ v1 (`later` · `upcoming` · `soon` · `active` · `ended`) صارت
+    أربعاً: الأولَيان **لافتةُ عرضٍ** على العميل لا حالةَ مزاد — تبقيان في
+    `Auction.showcase` وتُحرَّران من نافذة الحالة، ولا تُخلطان بما يقوله
+    الموعدان.
     """
 
-    LATER = "later", "لاحقاً"
-    UPCOMING = "upcoming", "قادم"
+    DRAFT = "draft", "مسودة"
     SOON = "soon", "قريباً"
-    ACTIVE = "active", "نشط"
+    ACTIVE = "active", "شغّال"
     ENDED = "ended", "منتهٍ"
     CANCELLED = "cancelled", "ملغى"
-    DRAFT = "draft", "مسودة"
 
 
 def badge_of(auction: Auction, *, now: datetime | None = None) -> Badge:
-    """كلمةُ الحالة كما يراها الموظّف — من الحالة والساعة واللافتة معاً."""
-    current = phase(auction, now=now)
+    """الحالةُ من الموعدين — والعمودُ لا يُسأل إلا عن المسودّة والملغى.
 
-    if current in (Phase.OPEN, Phase.OVERDUE_END):
-        # `OVERDUE_END` تُعرض «نشطاً» لأن الحالة المخزَّنة ما زالت كذلك،
-        # وحبّةُ «متأخّر» بجانبها هي التي تقول إن العامل لم يلحق. وإخفاؤها
-        # هنا يجعل الموظّف يبحث عن مزادٍ اختفى من القائمة.
-        return Badge.ACTIVE
-    if current in (Phase.ENDED, Phase.SETTLED):
-        return Badge.ENDED
-    if current == Phase.CANCELLED:
-        return Badge.CANCELLED
-    if current == Phase.DRAFT:
+    ``draft`` و``cancelled`` قراران لا يصنعهما الوقت: مزادٌ لم يُنشر بعد،
+    ومزادٌ أُلغي وأُعيدت تأميناتُه. وما عداهما يقوله التقويم وحده.
+    """
+    now = now or timezone.now()
+
+    if auction.state == AuctionState.DRAFT:
         return Badge.DRAFT
-    return Badge(auction.showcase)
+    if auction.state == AuctionState.CANCELLED:
+        return Badge.CANCELLED
+    if has_finished(auction, now=now):
+        return Badge.ENDED
+    if not has_started(auction, now=now):
+        return Badge.SOON
+    return Badge.ACTIVE
 
 
-#: البادج إلى نغمةِ الحبّة. هنا لا في `console/tones.py` لأن `ended` و`draft`
-#: و`cancelled` مفرداتٌ مشتركة مع الفواتير والمركبات، وثلاثتُها تعني هنا
-#: شيئاً آخر — و`active` ليست حالةً مخزَّنة أصلاً.
+#: البادج إلى نغمةِ الحبّة.
 BADGE_TONES: dict[str, str] = {
-    Badge.LATER: "",
-    Badge.UPCOMING: "info",
+    Badge.DRAFT: "",
     Badge.SOON: "warn",
     Badge.ACTIVE: "ok",
     Badge.ENDED: "",
     Badge.CANCELLED: "bad",
-    Badge.DRAFT: "",
 }
 
 
