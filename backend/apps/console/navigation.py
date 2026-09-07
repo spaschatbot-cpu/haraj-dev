@@ -331,14 +331,6 @@ PAGES: tuple[Page, ...] = (
         "shield",
     ),
     Page(
-        "console:roles",
-        "الأدوار والصلاحيات",
-        Capability.STAFF_GRANT,
-        "members",
-        "ما يحمله كل دور، وكم مشرفاً عليه — ودورٌ يُضاف ويُحذف حين لا يحمله أحد.",
-        "role-badge",
-    ),
-    Page(
         "console:profit-report",
         "تقرير الأرباح",
         Capability.MONEY_VIEW,
@@ -656,6 +648,13 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # تُفتح بزرٍّ من «إدارة المشرفين» لا من الشريط: إنشاءُ حسابٍ فعلٌ
     # على تلك القائمة لا وجهةٌ يُذهب إليها ابتداءً.
     Page("console:admin-new", "إضافة مشرف", Capability.STAFF_GRANT, ""),
+    Page("console:admin-edit", "تعديل مشرف", Capability.STAFF_GRANT, ""),
+    Page(
+        "console:admin-password-reset",
+        "إعادة تعيين كلمة مرور مشرف",
+        Capability.STAFF_GRANT,
+        "",
+    ),
     Page("console:role-delete", "حذف دور", Capability.STAFF_GRANT, ""),
     Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
     Page("console:auction-bids", "مزايدات المزاد", Capability.AUCTIONS_VIEW, ""),

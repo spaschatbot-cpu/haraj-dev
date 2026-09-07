@@ -132,6 +132,52 @@ def test_an_active_customer_still_signs_in(customer, sent):
     assert created is False
 
 
+def test_temporary_ban_blocks_sign_in_until_expired(customer, sent, manager):
+    """الحظر المؤقت يمنع الدخول حتى انقضاء مدته (T850)."""
+    from django.utils import timezone
+
+    from apps.accounts import tokens as token_service
+
+    # حظر مؤقت لمدة ساعة عبر الكاتب الوحيد
+
+    future = timezone.now() + timezone.timedelta(hours=1)
+    accounts.set_customer_access(
+        user=customer,
+        active=True,
+        reason="حظر مؤقت للتحقيق",
+        actor=manager,
+        banned_until=future,
+    )
+    customer.refresh_from_db()
+    assert customer.banned_until == future
+
+    # محاولة الدخول برمز جديد تُرفض
+    accounts.send_verification_code(phone=customer.phone)
+    with pytest.raises(AccountStopped):
+        accounts.sign_in_with_code(phone=customer.phone, code=code_from(sent[0]["body"]))
+
+    # رمز وصول قديم يُرفض أثناء الحظر
+    pair = token_service.issue_pair(customer)
+    assert token_service.resolve_access(pair["access"]) is None
+
+    # بعد انقضاء مدة الحظر المؤقت، يُسمح له بالدخول
+    past = timezone.now() - timezone.timedelta(minutes=1)
+    accounts.set_customer_access(
+        user=customer,
+        active=True,
+        reason="انتهاء الحظر",
+        actor=manager,
+        banned_until=past,
+    )
+    customer.refresh_from_db()
+
+    accounts.send_verification_code(phone=customer.phone)
+    user, _ = accounts.sign_in_with_code(
+        phone=customer.phone, code=code_from(sent[-1]["body"])
+    )
+    assert user.pk == customer.pk
+
+
 @pytest.fixture
 def sent(monkeypatch) -> list[dict]:
     """التقاطُ ما سُلِّم إلى وصلة الرسائل، بدل قراءته من سجلّ.

@@ -219,3 +219,152 @@ def test_the_owner_sees_every_card(client, owner, customer):
         "الحجوزات القائمة",
     ):
         assert title in body, title
+
+
+# ---------------------------------------------------------------------------
+# ٥ — T850: العنوان الوطني، محاولات الدخول، الآيبان، والتحقّق بالعربية
+# ---------------------------------------------------------------------------
+
+
+def test_national_address_card_is_rendered(client, owner, customer):
+    """العنوان الوطني يظهر في بطاقته بجدول ممرر، ولا حقول مكررة على User."""
+    from apps.accounts.models import NationalAddress
+
+    NationalAddress.objects.create(
+        user=customer,
+        city="الرياض",
+        district="الملقا",
+        street="طريق أنس بن مالك",
+        building_number="1234",
+        postal_code="12345",
+        additional_number="5678",
+        plot_number="9988",
+    )
+
+    body = client.get(
+        reverse("console:customer-detail", args=[customer.pk])
+    ).content.decode()
+
+    assert "العنوان الوطني" in body
+    assert "الرياض" in body
+    assert "الملقا" in body
+    assert "1234" in body
+    assert "12345" in body
+    assert "5678" in body
+
+
+def test_login_attempts_card_is_rendered(client, owner, customer):
+    """محاولات الدخول تُقرأ من PhoneVerification وتُعرض في جدول ممرّر."""
+    from django.utils import timezone
+
+    from apps.accounts.models import PhoneVerification
+
+    PhoneVerification.objects.create(
+        phone=customer.phone,
+        purpose="login",
+        code_hash="dummy",
+        expires_at=timezone.now() + timezone.timedelta(minutes=5),
+        attempts=2,
+    )
+
+    body = client.get(
+        reverse("console:customer-detail", args=[customer.pk])
+    ).content.decode()
+
+    assert "محاولات الدخول ورموز التحقق" in body
+    assert "دخول أو تسجيل" in body
+
+
+def test_iban_is_hidden_without_money_view_and_shown_with_it(client, customer):
+    """الآيبان سرٌّ ماليّ: لا يراه من يملك users.view إلا إذا ملك money.view (T850)."""
+    from apps.accounts.models import StaffGrant
+    from apps.core.permissions import can
+
+    customer.iban = "SA1234567890123456789012"
+    customer.save(update_fields=["iban"])
+
+    viewer = staff(Role.SUPPORT, "966500000803")
+    StaffGrant.objects.create(
+        user=viewer,
+        capability=Capability.MONEY_VIEW,
+        granted=False,
+        reason="لا يرى الحسابات البنكية",
+    )
+    assert not can(viewer, Capability.MONEY_VIEW)
+
+    client.force_login(viewer)
+    body = client.get(
+        reverse("console:customer-detail", args=[customer.pk])
+    ).content.decode()
+
+    # الآيبان لا يظهر في البيانات الكاملة ولا في بطاقة بنكية لموظف الدعم
+    assert customer.iban not in body
+
+    # يظهر للمالك الذي يملك MONEY_VIEW
+    owner_user = staff(Role.OWNER, "966500000804")
+    client.force_login(owner_user)
+    owner_body = client.get(
+        reverse("console:customer-detail", args=[customer.pk])
+    ).content.decode()
+
+    assert "البيانات البنكية" in owner_body
+    assert customer.iban in owner_body
+
+
+def test_no_address_columns_on_user_or_company_models():
+    """العنوان الوطني نموذج واحد — لا city على User ولا على Company بعد الهجرة."""
+    from apps.accounts.models import Company, User
+
+    user_fields = {f.name for f in User._meta.fields}
+    company_fields = {f.name for f in Company._meta.fields}
+
+    assert "city" not in user_fields
+    assert "district" not in user_fields
+    assert "postal_code" not in user_fields
+
+    assert "city" not in company_fields
+    assert "district" not in company_fields
+    assert "street" not in company_fields
+    assert "building_number" not in company_fields
+    assert "postal_code" not in company_fields
+
+
+def test_national_address_validation_rejects_bad_formats_in_arabic(customer):
+    """المعيار ٦: التحقق يرفض الصيغ الخاطئة برسائل عربية صريحة."""
+    from django.core.exceptions import ValidationError
+
+    from apps.accounts.models import NationalAddress
+
+    # رمز بريدي من 4 أرقام
+    bad_postal = NationalAddress(user=customer, postal_code="1234")
+    with pytest.raises(ValidationError) as exc:
+        bad_postal.clean()
+    assert (
+        "الرمز البريدي يجب أن يتكون من 5 أرقام" in exc.value.message_dict["postal_code"]
+    )
+
+    # رقم مبنى من 3 أرقام
+    bad_building = NationalAddress(user=customer, building_number="123")
+    with pytest.raises(ValidationError) as exc:
+        bad_building.clean()
+    assert (
+        "رقم المبنى يجب أن يتكون من 4 أرقام" in exc.value.message_dict["building_number"]
+    )
+
+    # رقم إضافي من 3 أرقام
+    bad_additional = NationalAddress(user=customer, additional_number="123")
+    with pytest.raises(ValidationError) as exc:
+        bad_additional.clean()
+    assert (
+        "الرقم الإضافي يجب أن يتكون من 4 أرقام"
+        in exc.value.message_dict["additional_number"]
+    )
+
+    # صيغة صحيحة تمر بسلام
+    valid = NationalAddress(
+        user=customer,
+        postal_code="12345",
+        building_number="1234",
+        additional_number="5678",
+    )
+    valid.clean()  # لا يرمي أي استثناء

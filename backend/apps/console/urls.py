@@ -179,7 +179,12 @@ urlpatterns = [
     path("payments/attempts/", payments.payment_attempts, name="payment-attempts"),
     path("staff/<int:pk>/grants/", people.staff_grants, name="staff-grants"),
     path("admins/new/", staff.admin_new, name="admin-new"),
-    path("admins/roles/", staff.roles, name="roles"),
+    path("admins/<int:pk>/edit/", staff.admin_edit, name="admin-edit"),
+    path(
+        "admins/<int:pk>/password-reset/",
+        staff.admin_password_reset,
+        name="admin-password-reset",
+    ),
     path("admins/roles/<slug:slug>/delete/", staff.role_delete, name="role-delete"),
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),

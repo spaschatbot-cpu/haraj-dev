@@ -39,23 +39,33 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from apps.accounts.models import ConsoleRole, User
 from apps.core import audit
 from apps.core.permissions import (
     Capability,
+    Role,
     assign_role,
     bundle_for,
     filter_by_role,
     is_built_in,
+    is_last_active_owner,
+    is_owner_account,
     role_choices,
     role_label,
+    role_of,
 )
 
+from .dashboard import Stat
 from .exports import export, wants_export
+from .icons import path_of
 from .views import console_page
 
 PAGE_SIZE = 25
+
+#: معرّفُ دور المالك، مقروءاً مرّةً — والمقارنةُ به مقارنةُ نصٍّ لا سؤالُ إذن.
+OWNER_ROLE = Role.OWNER.value
 
 
 def staff_rows(*, text: str = "", role: str = "", state: str = ""):
@@ -88,9 +98,77 @@ def staff_rows(*, text: str = "", role: str = "", state: str = ""):
     return rows.order_by("-date_joined", "-id")
 
 
+#: لسانا هذه الشاشة. **صفحةٌ واحدة لا اثنتان** (T852): «الأدوار» كانت مدخلاً
+#: مستقلاً، ولا تُفتح إلا من هنا عملياً — ومن يعدّل دوراً يريد أن يرى من يحمله
+#: في النفَس نفسه، ومن يقرأ قائمة المشرفين يسأل «وما الذي يعنيه هذا الدور؟».
+VIEWS = (("staff", "المشرفون"), ("roles", "الأدوار والصلاحيات"))
+
+
+#: رسومُ بطاقات هذه الشاشة. مكتوبةٌ هنا لأن `test_no_icon_is_drawn_for_nobody`
+#: يمسح `PAGES` و`PLANNED` وبطاقاتِ اللوحة وحدها — ورسمٌ تستعمله بطاقةُ شاشةٍ
+#: أخرى كان يُقرأ «بلا مستعمل» فيُحذف، ثم تُرسم الشاشة بفراغ. ويحرسها
+#: `test_every_card_icon_is_declared` فلا تفترق عمّا تبنيه الدالّة.
+CARD_ICONS = ("shield", "check", "lock", "key-refresh", "hourglass")
+
+
+def staff_tallies() -> list[Stat]:
+    """بطاقاتُ رأس الشاشة — بالشكل نفسه الذي تعرضه «إدارة المستخدمين».
+
+    شاشتان في القسم الواحد يقرؤهما الموظّف نفسه، فاختلافُ الشكل بينهما يُقرأ
+    نظامين لا شاشتين. والبطاقات هنا تجيب أسئلةَ هذه الشاشة: «كم يفتح اللوحة؟»
+    و«كم حسابٍ متروكٍ مفعَّلاً؟» و«كم ينتظر تغيير كلمته؟».
+    """
+    counted = User.objects.filter(is_staff=True).aggregate(
+        total=Count("id"),
+        active=Count("id", filter=Q(is_active=True)),
+        off=Count("id", filter=Q(is_active=False)),
+        waiting=Count("id", filter=Q(must_change_password=True)),
+        never=Count("id", filter=Q(last_login__isnull=True)),
+    )
+    return [
+        Stat(
+            label="إجمالي المشرفين",
+            value=f"{counted['total']:,}",
+            detail="من يفتح اللوحة بأي دور.",
+            tone="people",
+            icon="shield",
+        ),
+        Stat(
+            label="مفعّل",
+            value=f"{counted['active']:,}",
+            detail="يدخل الآن.",
+            icon="check",
+        ),
+        Stat(
+            label="معطّل",
+            value=f"{counted['off']:,}",
+            detail="لا يدخل، واسمُه باقٍ على ما فعل.",
+            tone="warn",
+            icon="lock",
+            href=f"{reverse('console:admins')}?state=off",
+            action="اعرضهم",
+        ),
+        Stat(
+            label="ينتظر تغيير الكلمة",
+            value=f"{counted['waiting']:,}",
+            detail="كلمةٌ كتبها غيرُه، وتبطل عند أوّل دخول.",
+            tone="warn" if counted["waiting"] else "plain",
+            icon="key-refresh",
+        ),
+        Stat(
+            label="لم يدخل قطّ",
+            value=f"{counted['never']:,}",
+            detail="حسابٌ أُنشئ ولم يُستعمل — يُراجَع.",
+            icon="hourglass",
+        ),
+    ]
+
+
 @console_page("console:admins")
 def admins(request):
-    """قائمة المشرفين — من يدخل اللوحة، بأي دور، ومتى دخل آخر مرّة."""
+    """المشرفون وأدوارهم — لسانان على شاشةٍ واحدة."""
+    if request.GET.get("view") == "roles":
+        return _roles_tab(request)
     rows = staff_rows(
         text=request.GET.get("q", ""),
         role=request.GET.get("role", ""),
@@ -128,6 +206,9 @@ def admins(request):
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     for person in page.object_list:
         person.role_label = role_label(person)
+        # يُحسب هنا لا في القالب: سؤالُ الدور له قارئٌ واحد
+        # (`ops/checks/one_permission_gate.py`)، وهذا سطرُ عرضٍ يخرج منه.
+        person.is_owner = is_owner_account(person)
         # يُحسب هنا لا في القالب: `{% if %}` على المساواة في قالبٍ يتكرّر في
         # كل صفٍّ ولا يُختبَر. و«حسابك الحالي» هو النصّ الذي يحلّ محلّ زرّ
         # الحذف في v1 — بقي وحده لأن الزرّ لم يُنقَل، ويبقى نافعاً: من يقرأ
@@ -143,6 +224,49 @@ def admins(request):
             "role": request.GET.get("role", ""),
             "state": request.GET.get("state", ""),
             "roles": role_choices(),
+            # الرسمُ من `icons.py` لا محرف: `👑` يرسمه نظامُ التشغيل فيختلف
+            # بين الأجهزة، ويسقط إلى مربّعٍ فارغ حين لا يجده الخطّ.
+            "crown_icon": path_of("crown"),
+            "views": VIEWS,
+            "view": "staff",
+            "cards": staff_tallies(),
+        },
+    )
+
+
+def _roles_tab(request):
+    """لسانُ الأدوار — نفسُ الشاشة، وحارسُها نفسه (`console:admins`).
+
+    ولا `console_page` عليه: هو ليس صفحةً في السجلّ بل جسمُ لسانٍ في صفحة،
+    والحارسُ وقع على `admins` قبل أن يصل هنا. وصفٌّ ثانٍ في السجلّ لعنوانٍ
+    واحد هو ما يجعل قدرتين تحرسان الشيء نفسه ثم تفترقان.
+    """
+    form = RoleForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        role = form.save(commit=False)
+        role.created_by = request.user
+        role.full_clean()
+        role.save()
+        audit.record(
+            action="console.create_role",
+            entity=role,
+            actor=request.user,
+            after={"slug": role.slug, "capabilities": sorted(role.capabilities)},
+            note=role.reason,
+        )
+        messages.success(request, f"أُضيف الدور «{role.label}».")
+        return redirect(f"{reverse('console:admins')}?view=roles")
+
+    return render(
+        request,
+        "console/roles.html",
+        {
+            "form": form,
+            "rows": role_table(),
+            "views": VIEWS,
+            "view": "roles",
+            "cards": staff_tallies(),
         },
     )
 
@@ -362,33 +486,6 @@ def role_table() -> list[dict]:
     return table
 
 
-@console_page("console:roles")
-def roles(request):
-    """الأدوار: ما يحمله كلٌّ منها، وكم مشرفاً عليه — وإضافةُ دورٍ جديد."""
-    form = RoleForm(request.POST or None)
-
-    if request.method == "POST" and form.is_valid():
-        role = form.save(commit=False)
-        role.created_by = request.user
-        role.full_clean()
-        role.save()
-        audit.record(
-            action="console.create_role",
-            entity=role,
-            actor=request.user,
-            after={"slug": role.slug, "capabilities": sorted(role.capabilities)},
-            note=role.reason,
-        )
-        messages.success(request, f"أُضيف الدور «{role.label}».")
-        return redirect("console:roles")
-
-    return render(
-        request,
-        "console/roles.html",
-        {"form": form, "rows": role_table()},
-    )
-
-
 @console_page("console:role-delete")
 def role_delete(request, slug: str):
     """احذف دوراً لا يحمله أحد — أو اعرف من يحمله.
@@ -411,7 +508,7 @@ def role_delete(request, slug: str):
         )
         role.delete()
         messages.success(request, f"حُذف الدور «{role.label}».")
-        return redirect("console:roles")
+        return redirect(f"{reverse('console:admins')}?view=roles")
 
     return render(
         request,
@@ -537,3 +634,171 @@ def admin_new(request):
         return redirect("console:admins")
 
     return render(request, "console/admin_new.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
+# تعديل مشرف — الشاشة التي لم تكن. T852
+# ---------------------------------------------------------------------------
+#
+# قُرئت من مصدر v1: `src/Controllers/Admin/AdminUserController.php::update`
+# و`src/Views/Admin/admins/index.php:307-360` (نافذةُ التعديل).
+#
+# هناك يُعدَّل المشرفُ من نافذةٍ في صفِّه بخمسة حقول: اسم المستخدم، والدور،
+# والجوّال، وكلمةُ مرورٍ جديدة (اختيارية)، وحالةُ الحساب. **وعندنا لم يكن
+# للدور بابٌ إطلاقاً**: `console:staff-grants` يمنح قدرةً فوق الدور ويسحبها،
+# ولا يغيّر الدور نفسه — فمن أُسنِد إليه دورٌ خطأ يبقى عليه، أو تُمنح له
+# قدراتٌ فرديّة تُحاكي الدور الصحيح، فتنمو الاستثناءات مكان التصحيح.
+#
+# وأربعُ حراساتٍ من v1 تُنقَل بأسبابها (`AdminUserController.php:150-175`
+# و`213-217`):
+#
+# **١. لا تُعطّل نفسك.** هناك «لا يمكن حذف نفسك»؛ وهنا الإيقاف بديلُ الحذف،
+# فالقاعدة تنتقل إليه: من يعطّل حسابه يخرج من اللوحة في منتصف الفعل ولا يبقى
+# من يعكسه.
+#
+# **٢. لا تُغيّر دورك.** ليست في v1، وهي لازمةٌ هنا: `bundle_for` تقرأ الدور،
+# فمن يخفض دوره بالخطأ يفقد الشاشة التي يصلحه منها. وv1 لا يحتاجها لأن
+# `hasRole('owner')` تُجيب بنعم دائماً للمالك — وتلك حادثتُه لا حلُّه.
+#
+# **٣. آخرُ مالكٍ لا يُنزَع ولا يُعطَّل.** هناك «لا يمكن حذف مالك النظام»
+# مطلقاً؛ وهو أشدُّ من اللازم — مالكان أحدُهما ترك العمل يجب أن يُعطَّل.
+# فالقيدُ هنا على **الأخير**: لوحةٌ بلا مالكٍ فاعل لا يفتحها أحد، ولا شاشةَ
+# تصلحها.
+#
+# **٤. والمالكُ وحده يعدّل مالكاً.** منقولةٌ كما هي.
+#
+# وكلمةُ المرور: **لا تُكتب هنا.** v1 يدع مشرفاً يكتب كلمةَ آخر (وذلك ما
+# يُبطل السجلّ — T848)، فالزرُّ هنا **يُطلق إعادةَ تعيين**: يرفع
+# `must_change_password`، فيغيّرها صاحبُها عند أوّل دخول.
+
+
+class AdminEditForm(forms.Form):
+    """ما يُعدَّل في مشرف: دورُه وجوّالُه وحالتُه. لا كلمةَ مرور."""
+
+    full_name = forms.CharField(label="الاسم", max_length=200)
+    phone = forms.CharField(label="رقم التواصل", max_length=12)
+    role = forms.ChoiceField(label="الدور (الصلاحية)", choices=(), required=False)
+    is_active = forms.BooleanField(label="الحساب مفعّل", required=False)
+    reason = forms.CharField(
+        label="السبب",
+        widget=forms.Textarea(attrs={"rows": 2}),
+        help_text="يدخل سجلّ التدقيق مع ما تغيّر قبلُ وبعد.",
+    )
+
+    def __init__(self, *args, person=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.person = person
+        self.fields["role"].choices = [("", "— بلا دور —"), *role_choices()]
+
+    def clean_phone(self) -> str:
+        """جوّالٌ لحسابٍ آخر يُرفض بالاسم لا بـ`IntegrityError` يُسقط الحفظ."""
+        phone = (self.cleaned_data.get("phone") or "").strip()
+        clash = User.objects.filter(phone=phone)
+        if self.person is not None:
+            clash = clash.exclude(pk=self.person.pk)
+        if clash.exists():
+            raise forms.ValidationError("هذا الجوّال لحسابٍ آخر.")
+        return phone
+
+
+@console_page("console:admin-edit")
+def admin_edit(request, pk: int):
+    """عدّل مشرفاً: دورَه وجوّالَه وحالتَه — وأربعُ حراساتٍ تقول لماذا لا."""
+    person = get_object_or_404(User.objects.filter(is_staff=True), pk=pk)
+
+    is_self = person.pk == request.user.pk
+    # «المالكُ وحده يعدّل مالكاً» في v1 ليست قاعدةً تُنقَل: الشاشةُ كلُّها خلف
+    # `staff.grant`، فمن وصلها يملكها. والحراسةُ التي تنفع هي التي تحت — آخرُ
+    # مالكٍ فاعل لا يُنزَع.
+    only_owner_left = is_last_active_owner(person)
+    current_role = role_of(person)
+
+    form = AdminEditForm(
+        request.POST or None,
+        person=person,
+        initial={
+            "full_name": person.full_name,
+            "phone": person.phone,
+            "role": current_role,
+            "is_active": person.is_active,
+        },
+    )
+
+    if request.method == "POST" and form.is_valid():
+        wanted_role = form.cleaned_data["role"]
+        wanted_active = form.cleaned_data["is_active"]
+
+        refusals = []
+        if is_self and not wanted_active:
+            refusals.append("لا تعطّل حسابك: تخرج من اللوحة ولا يبقى من يعيدك.")
+        if is_self and wanted_role != current_role:
+            refusals.append("لا تغيّر دورك من هنا: قد تفقد الشاشة التي تصلحه منها.")
+        if only_owner_left and (not wanted_active or wanted_role != OWNER_ROLE):
+            refusals.append("هذا آخرُ مالكٍ فاعل: لوحةٌ بلا مالك لا يفتحها أحد.")
+
+        if refusals:
+            for line in refusals:
+                messages.error(request, line)
+        else:
+            watched = ["full_name", "phone", "console_role", "is_active"]
+            before = audit.snapshot(User.objects.get(pk=pk), watched)
+            person.full_name = form.cleaned_data["full_name"]
+            person.phone = form.cleaned_data["phone"]
+            person.is_active = wanted_active
+            # الدورُ بالبوّابة: حقلُه له كاتبٌ واحد كما له قارئٌ واحد (T848).
+            assign_role(person, wanted_role, save=False)
+            person.save(update_fields=["full_name", "phone", "is_active", "console_role"])
+            audit.record(
+                action="console.edit_admin",
+                entity=person,
+                actor=request.user,
+                before=before,
+                after=audit.snapshot(person, watched),
+                note=form.cleaned_data["reason"],
+            )
+            messages.success(request, "حُفظت بيانات المشرف.")
+            return redirect("console:admins")
+
+    return render(
+        request,
+        "console/admin_edit.html",
+        {
+            "person": person,
+            "form": form,
+            "is_self": is_self,
+            "only_owner_left": only_owner_left,
+            "role_name": role_label(person),
+        },
+    )
+
+
+@console_page("console:admin-password-reset")
+def admin_password_reset(request, pk: int):
+    """أطلق إعادةَ تعيين كلمة مرور مشرف — بلا أن تكتبها أنت.
+
+    v1 يدع مشرفاً يكتب كلمة مرور آخر في خانةٍ ويمضي. والأثر ليس حساباً مكشوفاً:
+    كلُّ قيدٍ يتركه الثاني يصير قابلاً للإنكار («فلانٌ يعرف كلمتي»)، فيُبطل
+    السجلُّ كلُّه (T848). فالزرُّ هنا يرفع `must_change_password` وحده:
+    الكلمةُ الحالية تبقى صالحةً لدخولٍ واحد، وأوّلُ شاشةٍ تُطلب هي التغيير.
+    """
+    person = get_object_or_404(User.objects.filter(is_staff=True), pk=pk)
+
+    if request.method == "POST":
+        reason = (request.POST.get("reason") or "").strip()
+        if not reason:
+            messages.error(request, "السبب مطلوب — إعادةُ التعيين تُسأل عنها لاحقاً.")
+            return redirect("console:admin-password-reset", pk=pk)
+
+        person.must_change_password = True
+        person.save(update_fields=["must_change_password"])
+        audit.record(
+            action="console.force_password_change",
+            entity=person,
+            actor=request.user,
+            after={"must_change_password": True},
+            note=reason,
+        )
+        messages.success(request, f"«{person.full_name}» سيغيّر كلمته عند أوّل دخول.")
+        return redirect("console:admins")
+
+    return render(request, "console/admin_password_reset.html", {"person": person})

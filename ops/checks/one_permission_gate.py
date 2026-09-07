@@ -116,10 +116,15 @@ class GateHunter(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        if node.name in BANNED_NAMES or node.name.startswith(BANNED_PREFIXES):
-            self.hits.append(
-                (node.lineno, f"دالة تسأل عن دور: «{node.name}»")
-            )
+        # داخل البوّابة نفسها لا يُمنع الاسم: هذه هي الوحدةُ التي **وظيفتُها**
+        # أن تسأل عن الدور، وهي مستثناةٌ أصلاً من منع قراءة الحقل
+        # (`allow_role_field`). ومنعُ الاسم هنا دون ذاك تناقضٌ لا حماية: يجبر
+        # البوّابةَ على تسمية قارئها بغير اسمه، فيصير الاسمُ الصادق ممنوعاً
+        # والاسمُ المضلّل مسموحاً.
+        if not self.allow_role_field and (
+            node.name in BANNED_NAMES or node.name.startswith(BANNED_PREFIXES)
+        ):
+            self.hits.append((node.lineno, f"دالة تسأل عن دور: «{node.name}»"))
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:

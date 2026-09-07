@@ -44,8 +44,9 @@ from apps.money.models import Invoice
 
 from .views import console_page
 
-#: ما لا يُعرض أبداً. مسمّىً واحداً واحداً لأن الطرح لا يقبل «تقريباً».
-SECRET_FIELDS = frozenset({"password"})
+#: ما لا يُعرض في «البيانات الكاملة». مسمّىً واحداً واحداً.
+#: الآيبان سرٌّ ماليّ لا يُعرض إلا لمن يملك صلاحية المال (T850).
+SECRET_FIELDS = frozenset({"password", "iban"})
 
 #: كم صفّاً لكل قائمة نشاط. v1 يقطع عند ٢٠٠ وهو محقّ في المبدأ: صفحةٌ تجرّ
 #: كلَّ مزايدات عميلٍ نشط لا تُفتح، والسؤال الذي تُفتح لأجله «ماذا فعل
@@ -158,10 +159,13 @@ def activity_of(customer: User, *, viewer) -> list[dict]:
 @console_page("console:customer-detail")
 def customer_detail(request, pk: int):
     """ملفُّ عميلٍ واحد: من هو، وكم له، وماذا فعل — وما لا يُعرض له سبب."""
+    from apps.accounts.models import NationalAddress, PhoneVerification
     from apps.bidding.eligibility import money_snapshot
     from apps.odoo.models import CustomerLink
 
-    customer = get_object_or_404(User.objects.select_related("company"), pk=pk)
+    customer = get_object_or_404(
+        User.objects.select_related("company", "national_address"), pk=pk
+    )
 
     return render(
         request,
@@ -169,6 +173,11 @@ def customer_detail(request, pk: int):
         {
             "customer": customer,
             "company": Company.objects.filter(user=customer).first(),
+            "national_address": NationalAddress.objects.filter(user=customer).first(),
+            "login_attempts": PhoneVerification.objects.filter(
+                phone=customer.phone
+            ).order_by("-created_at")[:10],
+            "can_view_money": can(request.user, Capability.MONEY_VIEW),
             "wallet": money.wallet_snapshot(customer),
             "record": full_record(customer),
             # اللقطة من البوّابة نفسها التي ترفض المزايدة — فما يقوله قسمُ

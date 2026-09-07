@@ -13,15 +13,25 @@
 اليوم، وسبعةٌ تعني أن حذفه يُخرج سبعةَ موظّفين من اللوحة في لحظة.
 {% endcomment %}
 {% block title %}الأدوار والصلاحيات{% endblock %}
-{% block heading %}الأدوار والصلاحيات{% endblock %}
+{% block heading %}إدارة المشرفين{% endblock %}
+{% block actions %}
+  <a href="{% url 'console:admin-new' %}">+ مشرف جديد</a>
+{% endblock %}
 
 {% block content %}
+  {% include "console/_tabs.html" %}
+
   <p class="lede">
-    الدورُ حزمةُ قدراتٍ لها اسم. وما يزيد عن الدور أو ينقص عنه لشخصٍ بعينه
-    يُكتب في
-    <a href="{% url 'console:page-control' %}">التحكم في صفحات مشرف</a> —
-    فتعديلُ دورٍ يمسّ كلَّ من يحمله، والتجاوزُ الفرديّ يمسّ واحداً.
+    الدورُ حزمةُ قدراتٍ لها اسم — <strong>وتعديلُه يمسّ كلَّ من يحمله</strong>.
+    وما يزيد عن الدور أو ينقص عنه لشخصٍ بعينه يُكتب في
+    <a href="{% url 'console:page-control' %}">التحكم في صفحات مشرف</a>،
+    وذلك يمسّ واحداً.
   </p>
+
+  <section class="board-stats" aria-label="أرقام الشاشة">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </section>
+
 
   <div class="scroller">
   <table>
@@ -45,7 +55,7 @@
               {% endcomment %}
               <span class="pill" data-tone="ok">مكتوبٌ في الشيفرة</span>
             {% endif %}
-            {% if row.reason %}<small class="muted">{{ row.reason }}</small>{% endif %}
+            {% if row.reason %}<small class="empty">{{ row.reason }}</small>{% endif %}
           </td>
           <td><code>{{ row.slug }}</code></td>
           <td>

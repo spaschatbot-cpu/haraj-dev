@@ -145,11 +145,68 @@
         <tr><th>الممثل</th><td>{{ company.representative_name|default:"—" }}</td></tr>
         <tr><th>السجل التجاري</th><td>{{ company.commercial_register|default:"—" }}</td></tr>
         <tr><th>الرقم الضريبي</th><td>{{ company.vat_number|default:"—" }}</td></tr>
-        <tr><th>المدينة</th><td>{{ company.city|default:"—" }}</td></tr>
-        <tr><th>الحي</th><td>{{ company.district|default:"—" }}</td></tr>
-        <tr><th>الشارع</th><td>{{ company.street|default:"—" }}</td></tr>
-        <tr><th>رقم المبنى</th><td>{{ company.building_number|default:"—" }}</td></tr>
-        <tr><th>الرمز البريدي</th><td>{{ company.postal_code|default:"—" }}</td></tr>
+      </tbody>
+    </table>
+</div>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  <h2>العنوان الوطني</h2>
+  {% if national_address %}
+    <div class="scroller">
+<table>
+      <tbody>
+        <tr><th>الدولة</th><td>{{ national_address.country|default:"—" }}</td></tr>
+        <tr><th>المنطقة</th><td>{{ national_address.region|default:"—" }}</td></tr>
+        <tr><th>المدينة</th><td>{{ national_address.city|default:"—" }}</td></tr>
+        <tr><th>الحي</th><td>{{ national_address.district|default:"—" }}</td></tr>
+        <tr><th>الشارع</th><td>{{ national_address.street|default:"—" }}</td></tr>
+        <tr><th>رقم المبنى</th><td>{{ national_address.building_number|default:"—" }}</td></tr>
+        <tr><th>الرمز البريدي</th><td>{{ national_address.postal_code|default:"—" }}</td></tr>
+        <tr><th>الرقم الإضافي</th><td>{{ national_address.additional_number|default:"—" }}</td></tr>
+        <tr><th>رقم القطعة</th><td>{{ national_address.plot_number|default:"—" }}</td></tr>
+      </tbody>
+    </table>
+</div>
+  {% else %}
+    <p class="empty">لا يوجد عنوان وطني مسجّل لهذا الحساب.</p>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  <h2>محاولات الدخول ورموز التحقق</h2>
+  {% if login_attempts %}
+    <div class="scroller">
+<table>
+      <thead><tr><th>الغرض</th><th>أُرسل في</th><th>ينتهي في</th><th>المحاولات</th><th>الحالة</th></tr></thead>
+      <tbody>
+        {% for attempt in login_attempts %}
+          <tr>
+            <td>{{ attempt.get_purpose_display }}</td>
+            <td>{{ attempt.created_at }}</td>
+            <td>{{ attempt.expires_at }}</td>
+            <td>{{ attempt.attempts }}</td>
+            <td>
+              {% if attempt.consumed_at %}<span class="pill" data-tone="ok">تم التحقق</span>
+              {% elif attempt.voided_at %}<span class="pill" data-tone="bad">أُبطل</span>
+              {% elif not attempt.is_live %}<span class="pill" data-tone="warn">منتهي</span>
+              {% else %}<span class="pill">نشط</span>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+  {% else %}
+    <p class="empty">لا توجد محاولات دخول أو طلبات رموز مسجلة.</p>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  {% if can_view_money and customer.iban %}
+    <h2>البيانات البنكية</h2>
+    <div class="scroller">
+<table>
+      <tbody>
+        <tr><th>الآيبان</th><td><code>{{ customer.iban }}</code></td></tr>
       </tbody>
     </table>
 </div>

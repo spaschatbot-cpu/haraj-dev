@@ -80,7 +80,12 @@ def resolve_access(raw: str) -> AuthToken | None:
         .filter(token_hash=_hash(raw), kind=TokenKind.ACCESS)
         .first()
     )
-    if token is None or not token.is_live or not token.user.is_active:
+    if (
+        token is None
+        or not token.is_live
+        or not token.user.is_active
+        or (token.user.banned_until and token.user.banned_until > timezone.now())
+    ):
         return None
     return token
 
@@ -118,7 +123,9 @@ def rotate(raw: str) -> dict:
             if token.expires_at <= timezone.now():
                 raise InvalidRefreshToken(f"refresh token {token.pk} expired")
 
-            if not token.user.is_active:
+            if not token.user.is_active or (
+                token.user.banned_until and token.user.banned_until > timezone.now()
+            ):
                 raise InvalidRefreshToken(f"user {token.user_id} is not active")
 
             now = timezone.now()

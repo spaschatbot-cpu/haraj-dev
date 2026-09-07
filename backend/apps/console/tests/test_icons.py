@@ -20,6 +20,8 @@ import pytest
 from apps.console.dashboard import STAT_ICONS
 from apps.console.icons import ICONS, path_of
 from apps.console.navigation import DETAIL_PAGES, PAGES, PLANNED
+from apps.console.people import CARD_ICONS as CUSTOMER_CARD_ICONS
+from apps.console.staff import CARD_ICONS as STAFF_CARD_ICONS
 
 #: أوامر مسارات SVG المسموحة. الأحرف الكبيرة مطلقة والصغيرة نسبية.
 #: `Z` تغلق، و`A` قوس، و`M/L/H/V/C/S/Q/T` خطوط ومنحنيات.
@@ -48,7 +50,15 @@ def test_every_icon_name_resolves_to_a_path() -> None:
 #: ومكتوبةٌ هنا **صراحةً** كي لا يُوسَّع الحارس فيصمت: من يضيف رسماً ولا يستعمله
 #: يجد الحلَّ السهل في إضافة اسمه إلى هذه المجموعة، وسطرُ التعليق هذا هو ما
 #: يجعله يتوقّف — لا يدخل هنا إلا رسمٌ **يُقرأ من موضعٍ يُسمّى**.
-DRAWN_OUTSIDE_THE_REGISTRY = {"exit-door"}
+#: رسومٌ يقرؤها قالبٌ من متغيّرٍ في السياق لا من صفٍّ في السجلّ: بابُ الخروج
+#: (لا صفحةَ له)، وتاجُ المالك في صفِّ «إدارة المشرفين». وكلاهما يُقرأ عبر
+#: `path_of`، فيسقط `test_the_sign_out_row_gets_its_drawing_from_the_registry`
+#: لو حُذف أحدُها من هناك.
+DRAWN_OUTSIDE_THE_REGISTRY = {"exit-door", "crown"}
+
+#: ورسومُ بطاقاتِ الشاشات — مُعلَنةٌ في وحداتها لأن هذا الملفّ لا يستطيع بناءها
+#: (تحتاج قاعدة بيانات)، وكلُّ واحدةٍ يحرسها اختبارٌ في ملفّ شاشتها.
+CARD_ICONS = set(STAFF_CARD_ICONS) | set(CUSTOMER_CARD_ICONS)
 
 
 def test_no_icon_is_drawn_for_nobody() -> None:
@@ -58,6 +68,7 @@ def test_no_icon_is_drawn_for_nobody() -> None:
         | set(STAT_ICONS)
         | {row.icon for row in PLANNED}
         | DRAWN_OUTSIDE_THE_REGISTRY
+        | CARD_ICONS
     )
     assert set(ICONS) == used, f"أيقوناتٌ بلا مستعمل: {sorted(set(ICONS) - used)}"
 

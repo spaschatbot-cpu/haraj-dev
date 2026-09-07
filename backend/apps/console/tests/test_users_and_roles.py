@@ -27,6 +27,9 @@ from apps.money import services
 
 pytestmark = pytest.mark.django_db
 
+#: لسانُ الأدوار داخل «إدارة المشرفين» — لا عنوانٌ ثانٍ لصفحةٍ واحدة (T852).
+ROLES_URL = "/console/admins/?view=roles"
+
 
 def staff(role: str, phone: str = "966500000700") -> User:
     person = User.objects.create_user(phone=phone, full_name="موظّف", password="x")
@@ -189,7 +192,7 @@ def test_a_new_role_reaches_the_gate_that_admits_people(client, owner):
     البوّابة، فلو لم تقرأ الجدول لكان الدورُ الجديد بلا أثر.
     """
     client.post(
-        reverse("console:roles"),
+        ROLES_URL,
         {
             "label": "خدمات ما بعد البيع (اطلاع)",
             "slug": "aftersales",
@@ -215,7 +218,7 @@ def test_a_role_that_names_a_built_in_one_is_refused(client, owner):
     غيّر شيئاً.
     """
     client.post(
-        reverse("console:roles"),
+        ROLES_URL,
         {
             "label": "مالكٌ ثانٍ",
             "slug": "owner",
@@ -277,7 +280,7 @@ def test_the_overrides_screen_is_reached_from_the_admin_row(client, owner):
     body = client.get(reverse("console:admins")).content.decode()
 
     assert reverse("console:page-control") in body
-    assert reverse("console:roles") in body
+    assert "?view=roles" in body
 
 
 def test_the_overrides_screen_still_renders_on_its_own(client, owner):
@@ -295,7 +298,9 @@ def test_the_overrides_screen_is_not_in_the_sidebar_any_more(client, owner):
     sidebar = {page.url_name for page in PAGES}
 
     assert "console:page-control" not in sidebar
-    assert "console:roles" in sidebar
+    # «الأدوار» لم تعد صفحةً في الشريط: صارت لساناً في «إدارة المشرفين»
+    # (T852)، ومن يعدّل دوراً يريد أن يرى من يحمله في النفَس نفسه.
+    assert "console:admins" in sidebar
 
 
 # ---------------------------------------------------------------------------
@@ -387,4 +392,31 @@ def test_the_admins_screen_carries_both_buttons(client, owner):
     body = client.get(reverse("console:admins")).content.decode()
 
     assert reverse("console:admin-new") in body
-    assert reverse("console:roles") in body
+    assert "?view=roles" in body
+
+
+# ---------------------------------------------------------------------------
+# ٧ — رسومُ البطاقات: المُعلَن هو المستعمَل. T852
+# ---------------------------------------------------------------------------
+
+
+def test_every_card_icon_is_declared():
+    """`CARD_ICONS` تُقفل الحلقة التي فتحها `test_no_icon_is_drawn_for_nobody`.
+
+    ذلك الحارس يمسح `PAGES` وبطاقاتِ اللوحة، فرسمٌ تستعمله بطاقةُ شاشةٍ أخرى
+    يُقرأ «بلا مستعمل» فيُحذف — ثم تُرسم الشاشة بفراغ. فالوحدةُ تُعلن ما
+    تستعمله، **وهذا يثبت أن الإعلان صادق**: بلا هذا الاختبار يصير ثابتاً
+    يُكتب مرّةً ولا يوافق ما تبنيه الدالّة.
+    """
+    from apps.console.people import CARD_ICONS as CUSTOMER_ICONS
+    from apps.console.people import customer_tallies
+    from apps.console.staff import CARD_ICONS as STAFF_ICONS
+    from apps.console.staff import staff_tallies
+
+    for built, declared, screen in (
+        (staff_tallies(), STAFF_ICONS, "المشرفون"),
+        (customer_tallies(), CUSTOMER_ICONS, "المستخدمون"),
+    ):
+        used = {card.icon for card in built if card.icon}
+        assert used <= set(declared), f"{screen}: رسمٌ غير مُعلَن {used - set(declared)}"
+        assert set(declared) <= used, f"{screen}: إعلانٌ بلا بطاقة {set(declared) - used}"

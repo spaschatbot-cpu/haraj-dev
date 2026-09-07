@@ -94,6 +94,13 @@ class CustomerForm(ReasonMixin, forms.ModelForm):
 
 
 class CompanyForm(ReasonMixin, forms.ModelForm):
+    # حقول العنوان الوطني تُحفظ على NationalAddress التابع لـ User (T850).
+    building_number = forms.CharField(label="رقم المبنى", max_length=4, required=False)
+    street = forms.CharField(label="الشارع", max_length=255, required=False)
+    district = forms.CharField(label="الحي", max_length=255, required=False)
+    city = forms.CharField(label="المدينة", max_length=100, required=False)
+    postal_code = forms.CharField(label="الرمز البريدي", max_length=5, required=False)
+
     class Meta:
         model = Company
         fields = (
@@ -101,23 +108,36 @@ class CompanyForm(ReasonMixin, forms.ModelForm):
             "representative_name",
             "commercial_register",
             "vat_number",
-            "building_number",
-            "street",
-            "district",
-            "city",
-            "postal_code",
         )
         labels = {
             "name": "اسم الشركة",
             "representative_name": "اسم الممثل",
             "commercial_register": "السجل التجاري",
             "vat_number": "الرقم الضريبي",
-            "building_number": "رقم المبنى",
-            "street": "الشارع",
-            "district": "الحي",
-            "city": "المدينة",
-            "postal_code": "الرمز البريدي",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and hasattr(self.instance, "user"):
+            addr = getattr(self.instance.user, "national_address", None)
+            if addr:
+                self.fields["building_number"].initial = addr.building_number
+                self.fields["street"].initial = addr.street
+                self.fields["district"].initial = addr.district
+                self.fields["city"].initial = addr.city
+                self.fields["postal_code"].initial = addr.postal_code
+
+    def clean_postal_code(self):
+        val = (self.cleaned_data.get("postal_code") or "").strip()
+        if val and (len(val) != 5 or not val.isdigit()):
+            raise forms.ValidationError("الرمز البريدي يجب أن يتكون من 5 أرقام")
+        return val
+
+    def clean_building_number(self):
+        val = (self.cleaned_data.get("building_number") or "").strip()
+        if val and (len(val) != 4 or not val.isdigit()):
+            raise forms.ValidationError("رقم المبنى يجب أن يتكون من 4 أرقام")
+        return val
 
 
 # ---------------------------------------------------------------------------
@@ -179,6 +199,13 @@ def customer_rows(*, text: str = "", kind: str = "", status: str = ""):
     elif status == "stopped":
         rows = rows.filter(is_active=False)
     return rows
+
+
+#: رسومُ بطاقات هذه الشاشة. مكتوبةٌ هنا لأن `test_no_icon_is_drawn_for_nobody`
+#: يمسح `PAGES` و`PLANNED` وبطاقاتِ اللوحة وحدها — ورسمٌ تستعمله بطاقةُ شاشةٍ
+#: أخرى كان يُقرأ «بلا مستعمل» فيُحذف، ثم تُرسم الشاشة بفراغ. ويحرسها
+#: `test_every_card_icon_is_declared` أدناه فلا تفترق عمّا تبنيه الدالّة.
+CARD_ICONS = ("users", "check", "lock", "briefcase", "person-search")
 
 
 def customer_tallies() -> list[Stat]:
@@ -393,6 +420,22 @@ def company_edit(request, pk: int):
         saved = form.save(commit=False)
         saved.user = customer
         saved.save()
+
+        addr_data = {
+            "city": form.cleaned_data.get("city", ""),
+            "district": form.cleaned_data.get("district", ""),
+            "street": form.cleaned_data.get("street", ""),
+            "building_number": form.cleaned_data.get("building_number", ""),
+            "postal_code": form.cleaned_data.get("postal_code", ""),
+        }
+        if any(addr_data.values()) or getattr(customer, "national_address", None):
+            from apps.accounts.models import NationalAddress
+
+            NationalAddress.objects.update_or_create(
+                user=customer,
+                defaults=addr_data,
+            )
+
         audit.record(
             action="console.edit_company",
             entity=saved,

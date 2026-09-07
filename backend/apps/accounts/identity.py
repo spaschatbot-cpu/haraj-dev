@@ -20,8 +20,8 @@ CITIZEN = "1"
 RESIDENT = "2"
 
 
-def is_valid(value: str) -> bool:
-    """True when ``value`` is a well-formed Saudi national id or iqama.
+def is_valid(value: str, id_kind: str | None = None) -> bool:
+    """True when ``value`` is a well-formed Saudi national id or iqama (or passport).
 
     Well-formed is not the same as *real* — no register is consulted here, and
     none should be from a request path. It is enough to separate a typo from a
@@ -30,7 +30,14 @@ def is_valid(value: str) -> bool:
     """
     digits = (value or "").strip()
 
+    if id_kind == "passport":
+        return len(digits) >= 5 and digits.isalnum()
+
     if len(digits) != 10 or not digits.isdigit():
+        return False
+    if id_kind in ("national_id", CITIZEN) and digits[0] != CITIZEN:
+        return False
+    if id_kind in ("iqama", RESIDENT) and digits[0] != RESIDENT:
         return False
     if digits[0] not in (CITIZEN, RESIDENT):
         return False

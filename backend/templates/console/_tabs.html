@@ -1,0 +1,17 @@
+{% comment %}
+  لسانا «إدارة المشرفين». صفحةٌ واحدة لا اثنتان: «الأدوار» كانت مدخلاً مستقلاً
+  في الشريط ولا تُفتح إلا من هنا عملياً — ومن يعدّل دوراً يريد أن يرى من يحمله
+  في النفَس نفسه.
+
+  و`aria-current` لا اللونُ وحده: من لا يميّز التخفيت يحتاج أن يعرف أين هو،
+  وقارئُ الشاشة يقرأها «الصفحة الحالية».
+{% endcomment %}
+<nav class="tabs" aria-label="أقسام إدارة المشرفين">
+  {% for value, label in views %}
+    {% if value == view %}
+      <span class="tab" aria-current="page">{{ label }}</span>
+    {% else %}
+      <a class="tab" href="{% url 'console:admins' %}{% if value != "staff" %}?view={{ value }}{% endif %}">{{ label }}</a>
+    {% endif %}
+  {% endfor %}
+</nav>
