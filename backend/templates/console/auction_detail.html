@@ -199,15 +199,20 @@ somebody went looking for it.
           <th>السيارة</th>
           <th>السنة</th>
           <th>الشاصي</th>
+          <th>رقم المطالبة</th>
           <th>اللوحة</th>
           <th>نوع اللوحة</th>
           <th>اللون</th>
           <th>العداد</th>
+          <th>شركة التأمين</th>
           <th>الحالة الفنية</th>
+          <th>حالة المحرّك</th>
+          <th>المفاتيح</th>
           <th>ناقل الحركة</th>
           <th>الوقود</th>
           <th>الصور</th>
           <th>المالك</th>
+          <th>التسويق</th>
           <th>الحالة</th>
           {% if can_manage %}<th>تحكم</th>{% endif %}
         </tr>
@@ -223,7 +228,10 @@ somebody went looking for it.
             <td>{{ car.get_plate_type_display }}</td>
             <td>{{ car.get_colour_display }}</td>
             <td class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
+            <td>{{ car.insurance_company|default:"—" }}</td>
             <td>{{ car.get_condition_display }}</td>
+            <td>{{ car.runs_status|default:"—" }}</td>
+            <td>{{ car.key_status|default:"—" }}</td>
             <td>{{ car.get_transmission_display }}</td>
             <td>{{ car.get_fuel_type_display }}</td>
             <td class="tnum">
@@ -234,6 +242,12 @@ somebody went looking for it.
               {% endif %}
             </td>
             <td>{{ car.owner_company.name|default:"—" }}</td>
+            {% comment %}
+            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
+            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
+            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
+            {% endcomment %}
+            <td>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
             <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
             {% if can_manage %}
               <td class="actions">
@@ -247,7 +261,7 @@ somebody went looking for it.
             {% endif %}
           </tr>
         {% empty %}
-          <tr><td colspan="15" class="empty">لا مركبات في هذا المزاد.</td></tr>
+          <tr><td colspan="20" class="empty">لا مركبات في هذا المزاد.</td></tr>
         {% endfor %}
       </tbody>
     </table>

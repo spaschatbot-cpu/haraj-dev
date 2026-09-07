@@ -259,9 +259,19 @@ have to undo one in their head.
                 {% endwith %}
               {% endif %}
               {% with icon=action_icons.edit %}
-                <a href="{% url 'console:auction-edit' auction.pk %}" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+                <button type="button" class="act" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
+                        data-open-edit
+                        data-pk="{{ auction.pk|unlocalize }}"
+                        data-number="{{ auction.number|unlocalize }}"
+                        data-num="{{ auction.number|unlocalize }}"
+                        data-title="{{ auction.title }}"
+                        data-location="{{ auction.location }}"
+                        data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
+                        data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
+                        data-deposit="{{ auction.deposit_required|unlocalize }}"
+                        data-stamp="{{ auction.row_stamp }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
-                </a>
+                </button>
               {% endwith %}
               {% if can_delete %}
                 {% comment %}
@@ -447,6 +457,58 @@ have to undo one in their head.
       <p>
         <label for="feeReason">سبب التعديل</label>
         <input id="feeReason" type="text" name="reason" required>
+      </p>
+      <p class="modal__buttons">
+        <button type="submit">احفظ</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {% comment %}
+  تعديلُ بيانات المزاد نافذةً لا صفحة — المالك: «خلي زرار التعديل يكون بوب
+  اب مش صفحة». والصفحةُ باقيةٌ للطلب المباشر: رابطٌ يُفتح من سجلّ المتصفّح
+  يجب أن يُعطي شيئاً.
+
+  و`row_stamp` هنا **ليس زينة**: هو ختمُ HR-13 — بصمةُ الصفّ ساعةَ رُسمت
+  القائمة. يعود مع الإرسال، فإن اختلف عمّا في القاعدة كان أحدٌ قد كتب بين
+  اللحظتين، ويُرفض الحفظ. ونافذةٌ بلا ختمٍ تكتب فوق تعديل زميلك صامتةً.
+  {% endcomment %}
+  <dialog id="editModal" class="modal">
+    <form method="post" data-action="{% url 'console:auction-edit' 0 %}">
+      {% csrf_token %}
+      <input type="hidden" name="back" value="list">
+      <input type="hidden" name="row_stamp" data-stamp>
+      <h2>تعديل مزاد <span data-number></span></h2>
+
+      <p>
+        <label for="edNumber">رقم المزاد</label>
+        <input id="edNumber" type="text" inputmode="numeric" name="number" data-num required>
+      </p>
+      <p>
+        <label for="edTitle">العنوان</label>
+        <input id="edTitle" type="text" name="title" data-title required>
+      </p>
+      <p>
+        <label for="edLocation">الموقع</label>
+        <input id="edLocation" type="text" name="location" data-location>
+      </p>
+      <p>
+        <label for="edStarts">يبدأ (بتوقيت الرياض)</label>
+        <input id="edStarts" type="datetime-local" name="starts_at" data-starts required>
+      </p>
+      <p>
+        <label for="edEnds">ينتهي (بتوقيت الرياض)</label>
+        <input id="edEnds" type="datetime-local" name="ends_at" data-ends required>
+      </p>
+      <p>
+        <label for="edDeposit">التأمين المطلوب — ريال</label>
+        <input id="edDeposit" type="text" inputmode="decimal" name="deposit_required" data-deposit required>
+      </p>
+      <p>
+        <label for="edReason">سبب التعديل</label>
+        <input id="edReason" type="text" name="reason" required
+               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
       </p>
       <p class="modal__buttons">
         <button type="submit">احفظ</button>

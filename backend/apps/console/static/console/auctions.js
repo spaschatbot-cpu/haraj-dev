@@ -95,6 +95,13 @@
       return;
     }
 
+    var editing = hit("[data-open-edit]");
+    if (editing) {
+      openWith(document.getElementById("editModal"), editing,
+               ["num", "title", "location", "starts", "ends", "deposit", "stamp"]);
+      return;
+    }
+
     var removing = hit("[data-open-delete]");
     if (removing) {
       openWith(document.getElementById("deleteModal"), removing, []);

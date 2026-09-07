@@ -210,6 +210,11 @@ def auctions(request):
     engine.phases_of(page.object_list)
     # أعمدةُ v1 كما طلبها المالك: «عايز نفس الحقول».
     engine.summarise_onto(page.object_list)
+    # ختمُ HR-13 لكل صفّ، لتحمله نافذةُ التعديل. الاستمارةُ نفسها تحسبه —
+    # حسبةٌ ثانية هنا كانت ستُنتج ختماً لا يطابق ما يفحصه الحفظ، فيُرفض كلُّ
+    # حفظٍ صحيح.
+    for row in page.object_list:
+        row.row_stamp = AuctionForm(instance=row).initial.get("row_stamp", "")
     for row in page.object_list:
         row.phase_tone = tone_of_phase(row.phase)
         # البادج بمفردات v1 الخمس، محسوباً من الحالة والساعة واللافتة.
@@ -536,8 +541,19 @@ def auction_new(request):
 
 @console_page("console:auction-edit")
 def auction_edit(request, pk: int):
+    """تعديلُ بيانات المزاد — **نافذةٌ من القائمة**، والصفحةُ احتياطٌ لا غير.
+
+    المالك: «خلي زرار التعديل اللي في صفحة إدارة المزادات يكون بوب أب مش
+    صفحة». وبقيت الصفحةُ تُرسم للطلب المباشر (`GET`) — رابطٌ يُفتح من سجلّ
+    المتصفّح أو يُشارَك يجب أن يُعطي شيئاً.
+
+    **ورفضُ الاستمارة يعود إلى القائمة برسائله**، لا إلى صفحةٍ ثانية: من
+    فتح نافذةً على القائمة يتوقّع أن يرجع إليها. وأخطاءُ الحقول تُقال في
+    `messages` لأن النافذةَ لا تحمل أخطاءَ حقلٍ بجانب حقلها.
+    """
     auction = get_object_or_404(Auction.objects.all(), pk=pk)
     form = AuctionForm(request.POST or None, instance=auction)
+    from_list = request.POST.get("back") == "list"
 
     if request.method == "POST":
         saved = _save(
@@ -548,8 +564,15 @@ def auction_edit(request, pk: int):
             instance=Auction.objects.get(pk=pk),
         )
         if saved is not None:
-            messages.success(request, "حُفظت التعديلات.")
+            messages.success(request, f"حُفظت تعديلات مزاد {saved.number}.")
+            if from_list:
+                return redirect("console:auctions")
             return redirect("console:auction-detail", pk=pk)
+        if from_list:
+            for field, errors in form.errors.items():
+                label = form.fields[field].label if field in form.fields else field
+                messages.error(request, f"{label}: {' · '.join(errors)}")
+            return redirect("console:auctions")
 
     return render(
         request,
@@ -558,7 +581,6 @@ def auction_edit(request, pk: int):
     )
 
 
-@console_page("console:vehicle-new")
 def vehicle_new(request):
     """A new car, born `draft` and listed only through the service."""
     form = VehicleForm(request.POST or None)
