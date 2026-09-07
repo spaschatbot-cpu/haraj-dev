@@ -89,6 +89,18 @@
     var scheme = look.scheme;
     if (scheme === "auto") scheme = dark && dark.matches ? "dark" : "light";
 
+    /* صفحةٌ تُثبّت مظهرها تُحترم — `data-force-scheme` على <html>. صفحةُ
+       الدخول وحدها تفعلها اليوم، بطلب المالك: «عايز تصميم اللوجين بيج يكون
+       فاتح». والقرار هنا لا في تلك الصفحة، لأن كتابة `data-scheme` بيدٍ ثانية
+       في قالبٍ تجعل هذا السطر يمسحها بعد جزءٍ من الثانية — وهي بالضبط
+       الومضةُ التي وُجد هذا الملفُّ حاجزاً لمنعها.
+
+       وما تخسره: من اختار الداكن يرى بابَ اللوحة فاتحاً. مقبولٌ لأن الباب
+       يُفتح مرّةً عند بدء الجلسة، وما بعده يتبع اختياره كاملاً — وهو ما
+       تراجعنا عنه من T827 بطلبٍ صريح. */
+    var forced = root.getAttribute("data-force-scheme");
+    if (ALLOWED.scheme.indexOf(forced) !== -1 && forced !== "auto") scheme = forced;
+
     root.setAttribute("data-scheme", scheme);
     root.setAttribute("data-accent", look.accent);
     root.setAttribute("data-sidebar", look.sidebar);

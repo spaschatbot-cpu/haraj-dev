@@ -303,3 +303,20 @@
 * ٦ اختبارات في `apps/auctions/tests/test_bidding_screen.py`، ومنها أن
   **الكرت لم يكبر**.
 
+
+---
+
+### ↪ محرّك المزاد — نُفِّذ في **T839** (الفيز ٠٠٩)
+
+منطقُ المزاد الواحد الذي تخدم عليه كلُّ الشاشات — `apps/auctions/engine.py`،
+و`Phase` ومرحلتاها الزائدتان، و`participants` و`deposit_behind` —
+كُتب هنا في نطاق هذا الفيز، ووُثِّق في
+`specs/009-admin-console/tasks.md` تحت **T839** لأن الشاشةَ التي طلبها المالك
+هي مخرَجه المرئيّ، ولأن ترقيم `T8xx` لهذا الفيز.
+
+وما يخصّ هذا الفيز منه:
+
+* `Auction.is_open_for_bidding` لم يعد يحسب الساعة — يفوّض إلى المحرّك.
+* حرّاسُ النقلات الثلاثة في `states.py` تنادي `has_started`/`has_finished`.
+* `services.due_to_activate`/`due_to_end` صارتا نداءين، لا استعلامين مكرَّرين.
+* الحارس `ops/checks/one_auction_clock.py` يمنع الجواب الرابع.

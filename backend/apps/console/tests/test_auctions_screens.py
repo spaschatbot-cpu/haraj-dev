@@ -12,6 +12,7 @@ ordering that gives the screen its value is asserted as an ordering.
 
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 import pytest
@@ -23,8 +24,9 @@ from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.core.models import AuditLog
 from apps.core.permissions import Capability, Role
+from apps.money import services as money
 
-from .conftest import stamp_from
+from .conftest import screen_of, stamp_from
 
 pytestmark = pytest.mark.django_db
 
@@ -103,8 +105,10 @@ def test_the_auction_list_shows_the_rows_not_merely_a_200(client, operator, live
 
     assert "مزاد الرياض" in body
     assert "501" in body
-    # The counts, which is what an operator opens this page for.
-    assert ">2<" in body.replace(" ", "").replace("\n", "")
+    # العدُّ، وهو ما يفتح الموظّف الصفحة لأجله. وبعد T840 صار العمود يقول
+    # «٢ سيارة» لا «٢» عارياً بين وسمين — الصياغةُ هي ما تغيّر لا الرقم،
+    # ولذلك ضُيّق الموضِع ولم يُحذف.
+    assert "2 سيارة" in body
 
 
 def test_an_empty_list_says_so_instead_of_rendering_nothing(client, operator):
@@ -164,7 +168,11 @@ def test_a_car_awaiting_its_owners_decision_is_listed_before_the_others(
 
     body = body_of(client, reverse("console:auction-detail", args=[live.pk]))
 
-    assert body.index(f">{waiting.lot_number}<") < body.index(">1<")
+    # `</a>` في المُوضِع عمداً: رقمُ اللوت في جدول المركبات داخل رابط، وبعد
+    # T839 صارت أعلى الصفحة بطاقاتٌ فيها `>1<` عارياً (عدد ما ينتظر قراراً).
+    # فبحثٌ عن `>1<` في الصفحة كلّها يجد البطاقة لا الصفّ، ويقيس ترتيباً غير
+    # الذي يعنيه هذا الاختبار.
+    assert body.index(f">{waiting.lot_number}</a>") < body.index(">1</a>")
 
 
 def test_the_auction_detail_shows_its_cars(client, operator, live):
@@ -180,6 +188,77 @@ def test_an_auction_with_no_cars_says_so(client, operator, live):
     body = body_of(client, reverse("console:auction-detail", args=[live.pk]))
 
     assert "لا مركبات في هذا المزاد" in body
+
+
+# ---------------------------------------------------------------------------
+# المزاد كمُجمَّع — T839
+# ---------------------------------------------------------------------------
+
+
+def _hold(bidder, auction, amount="10000.00"):
+    """تأمينٌ محجوز، عبر خدمة المال — لا صفَّ حجزٍ مكتوبٍ بيد (المادة ١-٢)."""
+    money.deposit_insurance(
+        user=bidder,
+        amount=Decimal(amount),
+        source="cash",
+        reference=f"screen-test/{auction.pk}/{bidder.pk}",
+    )
+    return money.hold_for_auction(user=bidder, auction=auction, amount=Decimal(amount))
+
+
+def test_the_auction_screen_shows_one_deposit_for_all_the_cars_a_bidder_won(
+    client, operator, live
+):
+    """المالك بالحرف: «تأمين واحد… حتى لو هيزايد على كل السيارات اللي فيه».
+
+    وقبل هذه الشاشة كان الجواب في القاعدة ولا شاشةَ تعرضه: الموظّف يفتح دفتر
+    التأمينات ثم قائمة الفواتير ثم يربط بيده.
+    """
+    buyer = User.objects.create_user(
+        phone="966500000441", full_name="مشتري المُجمَّع", password="x"
+    )
+    _hold(buyer, live)
+    for lot in (1, 2, 3):
+        a_car(live, lot, state=VehicleState.AWARDED, awarded_to=buyer)
+
+    body = screen_of(body_of(client, reverse("console:auction-detail", args=[live.pk])))
+
+    assert "مشتري المُجمَّع" in body
+    # صفٌّ واحد للمشتري، وفيه ثلاث سيارات وتأمينٌ **واحد**. والعدّ على خانات
+    # الصفّ لا على الصفحة: البطاقة أعلاها تعرض تأمين الدخول أيضاً، وعدُّ
+    # النصّ في الصفحة كلّها يخلط الاثنين.
+    row = re.search(
+        r"<tr>(?:(?!</tr>).)*مشتري المُجمَّع(?:(?!</tr>).)*</tr>", body, re.S
+    )
+    assert row, "لا صفَّ للمشتري في جدول المشاركين"
+    assert row.group(0).count("10000.00") == 1
+    assert "لوت 1" in row.group(0) and "لوت 3" in row.group(0)
+
+
+def test_the_auction_screen_names_the_gap_between_the_column_and_the_clock(
+    client, operator, live
+):
+    """مزادٌ حالتُه `live` وانتهى وقتُه: «جارٍ» كذبةٌ والشاشة تقولها.
+
+    قبل T839 كان `get_state_display` وحده على الصفحة، فيقرأ الموظّف «جارٍ»
+    بينما البوّابة ترفض كل مزايدة والعميل يرى «مضى».
+    """
+    live.ends_at = timezone.now() - timezone.timedelta(hours=1)
+    live.save(update_fields=["ends_at"])
+
+    body = screen_of(body_of(client, reverse("console:auction-detail", args=[live.pk])))
+
+    assert "انتهى وقته ولم يُغلَق" in body
+    assert "تخلّف عنه العامل" in body
+
+
+def test_an_operation_that_is_not_available_yet_says_why(client, operator, live):
+    """زرٌّ يعمل ثم يرفض يُنتج تذكرتَي دعم: واحدةً لأنه رفض، وأخرى لأنه ظهر."""
+    a_car(live, 1)
+
+    body = screen_of(body_of(client, reverse("console:auction-detail", args=[live.pk])))
+
+    assert "المزاد لم ينته بعد" in body
 
 
 # ---------------------------------------------------------------------------

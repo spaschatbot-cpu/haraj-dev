@@ -70,6 +70,12 @@ class PriceNameHunter(ast.NodeVisitor):
     def _check(self, name: str | None, lineno: int) -> None:
         if not name or name in ALLOWED_NAMES:
             return
+        # `reserve_price__isnull` قراءةٌ لـ`reserve_price` نفسه، لا اسمٌ ثانٍ:
+        # جانغو يكتب الاستعلام بلاحقةٍ على اسم الحقل. وإرسابُ الحارس عليه
+        # يدفع الكاتب إلى الالتفاف — إلى `exclude(...)` أو إلى حقلٍ وسيط —
+        # وكلاهما أسوأ من القراءة المباشرة التي وُجد الحارس ليضمنها.
+        if name.split("__", 1)[0] in ALLOWED_NAMES:
+            return
         # A test named `test_an_award_needs_a_price` is describing the rule,
         # not adding a second price.
         if name.startswith("test_"):

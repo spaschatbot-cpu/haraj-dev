@@ -39,7 +39,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Q
+from django.db.models import F, Q, Sum
 
 MONEY = {"max_digits": 14, "decimal_places": 2}
 ZERO = Decimal("0.00")
@@ -400,6 +400,30 @@ class InvoiceSource(models.TextChoices):
     ODOO_SYNC = "odoo_sync", "من أودو"
 
 
+class InvoiceQuerySet(models.QuerySet):
+    def unpaid_by_customer(self) -> dict[int, Decimal]:
+        """ما بقي على كل عميلٍ في هذه الفواتير — رقمٌ يُعرض، لا حكمٌ يُبنى.
+
+        وهو هنا لا في `apps/auctions` لسببين:
+
+        * **الحساب مِلكُ محرّك المال.** ``Invoice.outstanding`` تعرف أن
+          الملغاة صفر وأن المدفوع لا يتجاوز المبلغ (يفرضه
+          `invoice_paid_not_above_amount`)، وشاشةٌ تطرح العمودين بنفسها تنسى
+          الشرطين يوم يتغيّران.
+        * **و`one_eligibility_gate` محقّ.** قراءةُ ``outstanding`` خارج
+          البوّابة تعني — عنده — أن أحداً يحكم على مزايد، ولا يستطيع فحصٌ
+          نصّيّ أن يميّز الحكم من الجمع؛ وقد أثبت اختبارُه ذلك حين حاولت
+          تضييقَه فسقط. فالجوابُ أن يبقى الحارس كما هو ويعود الحسابُ إلى
+          صاحبه، لا أن يُوسَّع ليقبل حالتي.
+        """
+        return {
+            row["customer_id"]: row["unpaid"]
+            for row in self.values("customer_id").annotate(
+                unpaid=Sum(F("amount") - F("amount_paid"))
+            )
+        }
+
+
 class Invoice(models.Model):
     """What a customer owes us.
 
@@ -445,6 +469,8 @@ class Invoice(models.Model):
     due_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    objects = InvoiceQuerySet.as_manager()
 
     class Meta:
         constraints = [

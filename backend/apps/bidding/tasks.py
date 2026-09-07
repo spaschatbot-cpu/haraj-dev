@@ -24,6 +24,7 @@ import logging
 from celery import shared_task
 from django.utils import timezone
 
+from apps.auctions import engine
 from apps.auctions.models import Auction
 from apps.auctions.states import AuctionState
 from apps.core.locks import single_instance
@@ -55,11 +56,10 @@ def settle_ended_auctions(now=None) -> dict:
         if not acquired:
             return {"skipped": "another instance holds the lock"}
 
-        due = list(
-            Auction.objects.filter(state=AuctionState.ENDED, ends_at__lte=now).order_by(
-                "ends_at"
-            )
-        )
+        # الطابور من المحرّك لا من هنا: شرطُ «انتهى وقتُه» كان مكتوباً في هذا
+        # السطر وفي `services.due_to_end` وفي `Auction.is_open_for_bidding`،
+        # ثلاثَ مرّاتٍ بثلاث أيدٍ.
+        due = list(engine.due_to_settle(now=now).order_by("ends_at"))
 
         settled: list[int] = []
         failed: list[int] = []

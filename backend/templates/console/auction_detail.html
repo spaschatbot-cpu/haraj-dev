@@ -7,6 +7,17 @@ on a money value, and an operator comparing this screen to the ledger must not
 have to undo one in their head.
 {% endcomment %}
 {% comment %}
+شاشةُ المزاد كمُجمَّع — T839.
+
+المالك بالحرف: «مزاد مجمع وداخله مجموعة من السيارات. المزاد الواحد مطلوب عشان
+المشاركة فيه تأمين واحد للمزايدة فيه حتى لو هيزايد على كل السيارات اللي فيه.
+ولو زايد وكسب سيارات، السيارات تتربط بالتأمين ده — يعني فواتير المزاد الواحد
+تتربط برده بنفس التأمين بتاعه بعد اتخاذ القرار».
+
+فترتيبُ الأقسام هو ترتيبُ السؤال: أين المزاد الآن ← ماذا أفعل به ← من فيه
+وبكم ← ما سياراته. والمشاركون قبل السيارات عمداً: صفحةُ سياراتٍ من خمسين
+لوتاً تدفع صفَّ التأمين خارج الشاشة، وهو الصفّ الذي وُجدت الشاشة لأجله.
+
 Cars waiting on their owner's decision come first, then awarded ones, then the
 rest. That ordering is the screen's whole value: a car waiting on a decision is
 a car nobody is being paid for, and in v1 it sat in lot order on page four until
@@ -17,14 +28,153 @@ somebody went looking for it.
 {% block heading %}مزاد {{ auction.number|unlocalize }} — {{ auction.title }}{% endblock %}
 
 {% block content %}
+  {% comment %}
+  المرحلةُ لا الحالة. `get_state_display` يقول «جارٍ» عن مزادٍ انتهى وقتُه ولم
+  يُغلَق بعد، لأنه يقرأ العمود وحده والعمودَ يكتبه عاملُ خلفيّة. والمرحلة تعرف
+  الفرق وتسمّيه.
+  {% endcomment %}
   <p>
-    <strong>{{ auction.get_state_display }}</strong> ·
-    {{ auction.vehicle_count|unlocalize }} مركبة، منها {{ auction.open_vehicle_count|unlocalize }} معروضة ·
+    <span class="pill" data-tone="{{ phase_tone }}">{{ view.phase_label }}</span>
+    {% if view.is_late %}
+      <span class="pill" data-tone="bad">تخلّف عنه العامل</span>
+    {% endif %}
+    ·
+    {{ view.cars.total|unlocalize }} مركبة ·
     من {{ auction.starts_at }} إلى {{ auction.ends_at }}
   </p>
 
-  <p><a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a></p>
+  {% if view.is_late %}
+    <div class="notice warning">
+      <strong>العمود والساعة لا يتّفقان.</strong>
+      {% if view.phase == "overdue_end" %}
+        انتهى وقتُ هذا المزاد وحالتُه ما زالت «جارٍ»: لا مزايدةَ تُقبل فيه،
+        والعميل يرى عدّاداً يقول «مضى». يُغلَق من «العمليّات» أدناه، أو يُترك
+        لعامل الخلفية إن كان يعمل.
+      {% else %}
+        حان وقتُ بدء هذا المزاد ولم يُفتَح بعد. يُفتَح من «العمليّات» أدناه.
+      {% endif %}
+    </div>
+  {% endif %}
 
+  <div class="cards">
+    <div class="card">
+      <strong>{{ view.cars.total|unlocalize }}</strong>
+      <span>مركبة في المزاد</span>
+    </div>
+    <div class="card">
+      <strong>{{ view.cars.awaiting_decision|unlocalize }}</strong>
+      <span>تنتظر قرار مالكها</span>
+    </div>
+    <div class="card">
+      <strong>{{ view.cars.sold|unlocalize }}</strong>
+      <span>رست على مشترٍ</span>
+    </div>
+    <div class="card">
+      <strong class="money">{{ view.held|unlocalize }}</strong>
+      <span>ريالاً تأميناً محجوزاً على هذا المزاد</span>
+    </div>
+    <div class="card">
+      <strong class="money">{{ auction.deposit_required|unlocalize }}</strong>
+      <span>تأمين الدخول — مرّةً واحدة لكل مشارك مهما بلغ عدد سياراته</span>
+    </div>
+    <div class="card">
+      <strong class="money">{{ auction.admin_fee|unlocalize }}</strong>
+      <span>رسوم إدارية — تُدفع ولا تُردّ، وغير التأمين</span>
+    </div>
+  </div>
+
+  <h2>العمليّات</h2>
+  {% comment %}
+  النقلات من آلة الحالات لا من هذا القالب، ومعها **سببُ تعطّل** ما لا يجوز
+  الآن. وزرٌّ لنقلةٍ ترفضها الآلة زرٌّ لا يُنتج إلا رسالة خطأ؛ وزرٌّ مطفأ بلا
+  سبب يُنتج تذكرةَ دعم. فيُعرض الاثنان: ما يجوز في القائمة، وما لا يجوز تحتها
+  بسببه المكتوب.
+
+  وزرُّ الإلغاء **ليس** نقلة حالة وحدها حين يكون المزاد منتهياً: الشاشة توجّهه
+  إلى `settlement.cancel_auction` الذي يفكّ كل حجز ويُبطل كل فاتورة غير مدفوعة
+  قبل النقل. القاعدة في الشاشة لا هنا، لأن قالباً يحمل قاعدةً مالية هو نسخةٌ
+  ثانية تنحرف بصمت.
+  {% endcomment %}
+  {% if view.operations %}
+    <form method="post" action="{% url 'console:auction-state' auction.pk %}">
+      {% csrf_token %}
+      <select name="target">
+        {% for move in view.operations %}
+          {% if move.allowed %}
+            <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <input type="text" name="reason" placeholder="سبب التغيير" required>
+      <button type="submit">نفّذ</button>
+    </form>
+
+    <ul>
+      {% for move in view.operations %}
+        {% if not move.allowed %}
+          <li>
+            <span class="pill">{{ move.label }}</span>
+            غير متاحة الآن — {{ move.blocked_by }}
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">لا انتقال متاح من هذه الحالة.</p>
+  {% endif %}
+
+  <p>
+    <a href="{% url 'console:auction-edit' auction.pk %}">تعديل المزاد</a> ·
+    <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
+  </p>
+
+  <h2>المشاركون <span class="count">({{ participants|length|unlocalize }})</span></h2>
+  {% comment %}
+  صفٌّ لكل مشارك، وفيه **تأمينٌ واحد** — هذا هو المُجمَّع كما وصفه المالك.
+  والقائمة تضمّ من له حجزٌ قائم **أو** من كسب سيارة: من سدّد فاتورته فُكّ حجزُه
+  وبقي مشترياً، وحصرُها على أصحاب الحجوز يُخفيه؛ ومن حجز ولم يكسب يبقى لأن
+  ماله محجوزٌ ولسؤال «لماذا» جوابٌ هنا.
+  {% endcomment %}
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المشارك</th>
+          <th>التأمين المحجوز</th>
+          <th>ما كسبه</th>
+          <th>قيمة الترسية</th>
+          <th>مفوتر</th>
+          <th>غير مسدَّد</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in participants %}
+          <tr>
+            <td>{{ row.customer.full_name|default:row.customer }}</td>
+            <td class="money">
+              {% if row.has_deposit %}
+                {{ row.held_amount|unlocalize }}
+              {% else %}
+                <span class="pill" data-tone="warn">فُكّ</span>
+              {% endif %}
+            </td>
+            <td>
+              {% for vehicle in row.won %}
+                <a href="{% url 'console:vehicle-detail' vehicle.pk %}">لوت {{ vehicle.lot_number|unlocalize }}</a>{% if not forloop.last %} · {% endif %}
+              {% empty %}—{% endfor %}
+            </td>
+            <td class="money">{{ row.won_total|unlocalize }}</td>
+            <td class="money">{{ row.invoiced_total|unlocalize }}</td>
+            <td class="money">{{ row.unpaid|unlocalize }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="empty">لا مشارك في هذا المزاد بعد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>المركبات</h2>
   <div class="scroller">
     <table>
     <thead>
@@ -35,7 +185,7 @@ somebody went looking for it.
         <tr>
           <td><a href="{% url 'console:vehicle-detail' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
           <td>{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</td>
-          <td>{{ vehicle.get_state_display }}</td>
+          <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
           <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
           <td>{{ vehicle.awarded_to.full_name|default:"—" }}</td>
         </tr>
@@ -47,26 +197,4 @@ somebody went looking for it.
 </div>
 
   <p>{{ page.paginator.count }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
-
-  <h2>تغيير حالة المزاد</h2>
-  {% comment %}
-  النقلات من آلة الحالات لا من هذا القالب. وزرُّ الإلغاء هنا **ليس** نقلة حالة
-  وحدها حين يكون المزاد منتهياً: الشاشة توجّهه إلى `settlement.cancel_auction`
-  الذي يفكّ كل حجز ويُبطل كل فاتورة غير مدفوعة قبل النقل. القاعدة في الشاشة لا
-  هنا، لأن قالباً يحمل قاعدةً مالية هو نسخةٌ ثانية تنحرف بصمت.
-  {% endcomment %}
-  {% if moves %}
-    <form method="post" action="{% url 'console:auction-state' auction.pk %}">
-      {% csrf_token %}
-      <select name="target">
-        {% for move in moves %}
-          <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
-        {% endfor %}
-      </select>
-      <input type="text" name="reason" placeholder="سبب التغيير" required>
-      <button type="submit">نفّذ</button>
-    </form>
-  {% else %}
-    <p class="empty">لا انتقال متاح من هذه الحالة.</p>
-  {% endif %}
 {% endblock %}

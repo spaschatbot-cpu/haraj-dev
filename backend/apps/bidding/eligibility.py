@@ -31,7 +31,8 @@ from django.conf import settings
 from django.db.models import Sum
 from django.utils import timezone
 
-from apps.auctions.states import AuctionState, VehicleState
+from apps.auctions import engine
+from apps.auctions.states import VehicleState
 from apps.money.models import (
     MONEY,
     UNPAID_INVOICE_STATES,
@@ -47,6 +48,13 @@ from apps.money.models import (
 )
 
 from .models import RefusalReason
+
+#: المراحل التي تعني «انتهى» لا «لم يبدأ». مشتقّةٌ من `Phase` لا مكتوبةٌ
+#: بأسماء الحالات، فالمرحلة `OVERDUE_END` — انتهى وقتُه ولم يُغلَق بعد — تعني
+#: للعميل ما تعنيه `ENDED` بالضبط، ولا حالةَ مخزَّنةً تقولها.
+ENDED_PHASES = frozenset(
+    {engine.Phase.ENDED, engine.Phase.SETTLED, engine.Phase.OVERDUE_END}
+)
 
 __all__ = [
     "BIDDABLE_VEHICLE_STATES",
@@ -296,11 +304,14 @@ def check_eligibility(
         )
 
     # --- the sale itself ---------------------------------------------------
-    if auction.state in (AuctionState.ENDED, AuctionState.SETTLED) or (
-        auction.state == AuctionState.LIVE and now >= auction.ends_at
-    ):
+    # المرحلة من المحرّك، لا من مقارنةٍ بالساعة هنا. كان هذان الفرعان يعيدان
+    # بناء `is_open_for_bidding` بيدٍ ثانية، فصار للسؤال جوابان — وثالثٌ في
+    # اللوحة لا ينظر إلى الساعة أصلاً. الرفضان يبقيان اثنين لأن ما يفعله
+    # العميل يختلف: «انتهى» يُغلق الباب، و«لم يبدأ» يقول انتظر.
+    current = engine.phase(auction, now=now)
+    if current in ENDED_PHASES:
         return refuse(RefusalReason.AUCTION_ENDED, "انتهى وقت هذا المزاد.")
-    if auction.state != AuctionState.LIVE or now < auction.starts_at:
+    if current not in engine.BIDDABLE_PHASES:
         return refuse(
             RefusalReason.AUCTION_NOT_LIVE,
             "المزاد غير مفتوح للمزايدة الآن.",

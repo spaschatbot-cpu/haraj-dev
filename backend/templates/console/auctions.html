@@ -32,9 +32,28 @@ have to undo one in their head.
   <div class="scroller">
     <table>
     <thead>
+      {% comment %}
+      أعمدةُ شاشة v1 «إدارة المزادات» كما طلبها المالك: «عايز نفس الحقول و
+      اتأكد من المنطق التشغيلي بتاع كل حقل» — T840.
+
+      وكلُّ عمودٍ هنا مقروءٌ من قاعدة v1 الحقيقية لا من صورة الشاشة، ومصدرُه
+      مكتوبٌ في `auctions/engine.py` عند `RowSummary`. والفروق المقصودة عن v1
+      ثلاثة، ولكلٍّ سببُه هناك:
+
+      * «الحالة» مرحلةٌ لا عمود — v1 يقول «جارٍ» عن مزادٍ مضى وقتُه.
+      * «المشاركات» تعدّ المزايدات القائمة وحدها — v1 يعدّ المسحوبة معها.
+      * «التفعيل» مشتقٌّ من حالة السيارة — v1 عمودٌ نصّيّ ثانٍ يختلف عنها.
+      {% endcomment %}
       <tr>
-        <th>الرقم</th><th>العنوان</th><th>الحالة</th>
-        <th>يبدأ</th><th>ينتهي</th><th>المركبات</th><th>المعروضة</th>
+        <th>الرقم</th><th>المزاد</th><th>الحالة</th>
+        <th>الفترة الزمنية</th>
+        <th>العربيات</th>
+        <th>الأسعار</th>
+        <th>التفعيل</th>
+        <th>الصور</th>
+        <th>المشاركات</th>
+        <th>الموقع</th>
+        <th>تحكم</th>
       </tr>
     </thead>
     <tbody>
@@ -42,14 +61,71 @@ have to undo one in their head.
         <tr>
           <td><a href="{% url 'console:auction-detail' auction.pk %}">{{ auction.number|unlocalize }}</a></td>
           <td>{{ auction.title }}</td>
-          <td><span class="pill" data-tone="{{ auction.tone }}">{{ auction.get_state_display }}</span></td>
-          <td>{{ auction.starts_at }}</td>
-          <td>{{ auction.ends_at }}</td>
-          <td>{{ auction.vehicle_count|unlocalize }}</td>
-          <td>{{ auction.open_vehicle_count|unlocalize }}</td>
+          {% comment %}
+          المرحلة لا الحالة (T839): العمودُ يكتبه عاملُ خلفيّة والساعةُ لا
+          تنتظره، فمزادٌ انتهى وقتُه ولم يُغلَق بعد كان يُقرأ هنا «جارياً»
+          وهو لا يقبل مزايدة. و«متأخّر» حبّةٌ ثانية لأن الأولى تسمّي الحال
+          والثانية تسمّي أن أحداً يجب أن يتصرّف.
+          {% endcomment %}
+          <td>
+            <span class="pill" data-tone="{{ auction.phase_tone }}">{{ auction.phase_label }}</span>
+            {% if auction.is_late %}<span class="pill" data-tone="bad">متأخّر</span>{% endif %}
+          </td>
+          <td>
+            {{ auction.starts_at }}<br>
+            <span class="count">إلى {{ auction.ends_at }}</span>
+          </td>
+          <td>
+            {{ auction.summary.cars|unlocalize }} سيارة<br>
+            <span class="count">
+              {{ auction.summary.makes|unlocalize }} ماركة
+              {% if auction.summary.top_makes %}
+                · {{ auction.summary.top_makes|join:" · " }}
+              {% endif %}
+            </span>
+          </td>
+          <td class="money">
+            {% if auction.summary.with_reserve %}
+              {{ auction.summary.reserve_low|unlocalize }} – {{ auction.summary.reserve_high|unlocalize }}<br>
+              <span class="count">سعر الوقوف</span>
+            {% else %}
+              <span class="count">بلا سعر</span>
+            {% endif %}
+          </td>
+          <td>
+            {{ auction.summary.offered|unlocalize }} معروضة<br>
+            <span class="count">{{ auction.summary.with_reserve|unlocalize }} بسعر مسجّل</span>
+          </td>
+          <td>
+            {{ auction.summary.cars_with_images|unlocalize }} سيارة<br>
+            <span class="count">
+              {{ auction.summary.images|unlocalize }} صورة{% if auction.summary.images_missing %}
+                · {{ auction.summary.images_missing|unlocalize }} بلا صورة{% endif %}
+            </span>
+          </td>
+          <td>
+            {{ auction.summary.bids|unlocalize }} مزايدة<br>
+            <span class="count">
+              {{ auction.summary.bidders|unlocalize }} مزايد ·
+              أعلى {% if auction.summary.top_bid %}{{ auction.summary.top_bid|unlocalize }}{% else %}0{% endif %} ر.س
+            </span>
+          </td>
+          <td>{{ auction.location|default:"—" }}</td>
+          {% comment %}
+          «تحكم» في v1 ستّةُ أزرارٍ بلا نصّ، أوّلها الحذف. وهنا خمسةُ روابطَ
+          مسمّاة **ولا حذف**: المزاد لا يُحذف بل يُلغى عبر آلة الحالات، لأن
+          حذفَ صفٍّ تحته تأميناتٌ محجوزة وفواتيرُ قائمة يترك المال بلا صاحب —
+          و`on_delete=PROTECT` يرفضه في القاعدة أصلاً. والإلغاء يفكّ الحجوز
+          ويُبطل الفواتير غير المدفوعة قبل النقل، وهو ما لا يفعله زرُّ حذف.
+          {% endcomment %}
+          <td>
+            <a href="{% url 'console:auction-detail' auction.pk %}">سياراته</a> ·
+            <a href="{% url 'console:auction-bids' auction.pk %}">مزايداته</a> ·
+            <a href="{% url 'console:auction-edit' auction.pk %}">تعديل</a>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" class="empty">لا مزادات مطابقة.</td></tr>
+        <tr><td colspan="11" class="empty">لا مزادات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

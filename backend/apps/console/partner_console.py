@@ -45,6 +45,7 @@ from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import Company
+from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.money import services as money
@@ -158,7 +159,7 @@ def auctions_of(partner: str = "", state: str = ""):
     ).order_by("-starts_at", "-number")
 
 
-def _auctions_screen(request, state: str = ""):
+def _auctions_screen(request, state: str = "", *, only=None):
     """جسمُ شاشة مزادات الشريك — يشترك فيه أربعةُ مداخل.
 
     ولماذا أربعةُ **دوالّ** فوقه لا دالّةٌ واحدة بأربعة مسارات: `console_page`
@@ -168,6 +169,10 @@ def _auctions_screen(request, state: str = ""):
     """
     partner = request.GET.get("partner", "")
     rows = auctions_of(partner, state or request.GET.get("state", ""))
+    if only is not None:
+        # `only` ضيقٌ على ما بناه `auctions_of`، لا استعلامٌ بديل: الفلترةُ
+        # بالشريك تبقى واحدةً لكل المداخل الأربعة، ويضيف المدخلُ شرطَه فوقها.
+        rows = rows.filter(pk__in=only)
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
@@ -200,8 +205,13 @@ def partner_soon(request):
 
 @console_page("console:partner-active")
 def partner_active(request):
-    """المزاد الشغال — الجاري الآن."""
-    return _auctions_screen(request, AuctionState.LIVE)
+    """المزاد الشغال — الجاري الآن **بالساعة**، لا بالعمود وحده.
+
+    الشريكُ يفتح هذه ليرى أين ماله الآن. ومزادٌ حالتُه `live` وانتهى وقتُه
+    ولم يُغلَق بعدُ ليس شغّالاً: لا مزايدةَ تُقبل فيه، وعرضُه هنا يقول للشريك
+    إن سيارته ما زالت تُنافس عليها وهي لا تُنافس.
+    """
+    return _auctions_screen(request, AuctionState.LIVE, only=engine.open_now())
 
 
 @console_page("console:partner-ended")

@@ -136,18 +136,16 @@ def due_to_activate(now: datetime | None = None):
     a Riyadh wall clock, `apps.core.time.from_display` turns it into UTC once,
     and no query ever converts anything (Article 3-1).
     """
-    now = now or timezone.now()
-    return Auction.objects.filter(
-        state=AuctionState.SCHEDULED, starts_at__lte=now
-    ).order_by("starts_at")
+    from .engine import due_to_start
+
+    return due_to_start(now=now).order_by("starts_at")
 
 
 def due_to_end(now: datetime | None = None):
     """Live auctions whose end moment has passed."""
-    now = now or timezone.now()
-    return Auction.objects.filter(state=AuctionState.LIVE, ends_at__lte=now).order_by(
-        "ends_at"
-    )
+    from .engine import due_to_finish
+
+    return due_to_finish(now=now).order_by("ends_at")
 
 
 def activate_due(now: datetime | None = None) -> list[int]:

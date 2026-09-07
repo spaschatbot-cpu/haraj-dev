@@ -17,7 +17,6 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
-from django.utils import timezone
 
 from apps.core import uploads
 
@@ -90,8 +89,19 @@ class Auction(models.Model):
 
     @property
     def is_open_for_bidding(self) -> bool:
-        now = timezone.now()
-        return self.state == AuctionState.LIVE and self.starts_at <= now < self.ends_at
+        """يفوّض إلى :mod:`apps.auctions.engine` — ولا يحسب الساعة هنا.
+
+        كان هذا السطر يحسبها بنفسه، و`bidding/eligibility.py` يحسبها ثانيةً
+        بفرعين، واللوحة لا تحسبها أصلاً وتعدّ `state=LIVE` وحدها. ثلاثةُ
+        أجوبةٍ لسؤالٍ واحد، وقد اختلفت فعلاً: مزادٌ حالتُه `live` وانتهى وقتُه
+        قبل تسع ساعات كان «جارياً» على اللوحة و«مضى» عند العميل.
+
+        والاستيراد داخل الدالّة لا في رأس الملفّ: `engine` يستورد `models`،
+        فاستيرادُه هنا في الأعلى دورةٌ مغلقة.
+        """
+        from .engine import is_open_for_bidding
+
+        return is_open_for_bidding(self)
 
 
 class Transmission(models.TextChoices):
