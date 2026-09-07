@@ -222,15 +222,16 @@ def auctions(request):
         row.badge_label = engine.Badge(row.badge).label
         row.badge_tone = engine.BADGE_TONES.get(row.badge, "")
 
-        # عنوان وملخص v1:
+        # العنوان وحده تحته العددان — لا عيّنةَ سيارة.
+        #
+        # كان السطرُ يبدأ باسم عيّنةٍ فيقرأ الموظّف «تويوتا كامري تويوتا كامري
+        # 2025» — تكرارٌ لأن `vehicle_name` في v1 مكتوبٌ في الماركة والطراز
+        # معاً. والعيّنةُ لها عمودُها (العربيات)، ووجودُها هنا يدفع الرقمين
+        # اللذين يفتح الموظّف الشاشة لأجلهما إلى آخر السطر.
         sample = row.summary.sample if (row.summary and row.summary.sample) else ""
-        cars_count = row.summary.cars if row.summary else 0
-        offered_count = row.summary.offered if row.summary else 0
         row.display_title = (row.title or "").strip() or sample or f"مزاد #{row.number}"
-        subtitle_lead = sample or f"عدد السيارات: {cars_count}"
-        row.display_subtitle = (
-            f"{subtitle_lead} • إجمالي {cars_count} سيارة • {offered_count} متاحة"
-        )
+        row.cars_total = row.summary.cars if row.summary else 0
+        row.cars_offered = row.summary.offered if row.summary else 0
 
     return render(
         request,
