@@ -338,23 +338,11 @@ def customers(request):
     )
 
 
-@console_page("console:customer-detail")
-def customer_detail(request, pk: int):
-    """One customer: who they are, what they owe, and what their deposit is doing."""
-    customer = get_object_or_404(User.objects.select_related("company"), pk=pk)
-
-    return render(
-        request,
-        "console/customer_detail.html",
-        {
-            "customer": customer,
-            "company": Company.objects.filter(user=customer).first(),
-            "wallet": money.wallet_snapshot(customer),
-            "invoices": Invoice.objects.filter(customer=customer).order_by("-issued_at")[
-                :20
-            ],
-        },
-    )
+# ملفُّ العميل الكامل انتقل إلى `apps/console/customer_file.py`: هو الوحيد
+# الذي يستورد من `apps.bidding` (بوّابة الأهلية)، وذلك الاستيراد يُدخل ملفَّه
+# كلَّه في نطاق `ops/checks/one_eligibility_gate.py` — وهذا الملفُّ يقرأ
+# `national_id` في استمارته وتصديره، فيسقط الحارس عليه بحقّ. والملفُّ الذي
+# يكلّم البوّابة غيرُ الملفِّ الذي يرسم القوائم.
 
 
 @console_page("console:customer-edit")
@@ -533,7 +521,6 @@ __all__ = [
     "CompanyForm",
     "CustomerForm",
     "company_edit",
-    "customer_detail",
     "customer_edit",
     "customers",
     "invoice_detail",

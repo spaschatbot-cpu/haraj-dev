@@ -45,7 +45,7 @@ def console_page(url_name: str):
         @wraps(view)
         @login_required
         def guarded(request, *args, **kwargs):
-            # كلمةٌ كتبها غيرُه تُغيَّر قبل أي شيء (T839). ويُستثنى مسارُ
+            # كلمةٌ كتبها غيرُه تُغيَّر قبل أي شيء (T848). ويُستثنى مسارُ
             # التغيير نفسه وإلّا دار على نفسه، والخروجُ ليس صفحةً هنا أصلاً.
             if (
                 getattr(request.user, "must_change_password", False)

@@ -1,65 +1,290 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-The wallet is itemised, never a single number. v1 showed one figure and a
-customer read "رصيدك 10,000" as money he could withdraw — it was pinned to a bid.
+ملفّ العميل الكامل — وثلاثةُ أعطالٍ في نظيره عند v1.
+
+**١.** هناك يُقرأ رقم العميل في أودو، وإن كان فارغاً صار `0` في الاستعلام —
+فتُعرض على هذه الصفحة مالياتُ وصورُ آيبان **كل** عميلٍ يحمل `customer_id = 0`.
+والربط هنا صفٌّ في `odoo.CustomerLink`، فغيابُه غيابُ صفٍّ لا قيمةٌ فارغة.
+
+**٢.** والوديعة «الحرّة» ليست حرّةً دائماً — وذلك أذكى ما في شاشة v1. والحساب
+هنا من بوّابة الأهلية نفسها، فما يقوله هذا القسم هو ما سيقوله الرفضُ حرفياً.
+
+**٣.** وقائمةُ ما يُخفى هناك مكتوبةٌ باليد (٧ صور و٧ أسرار)، فعمودٌ يُضاف غداً
+يظهر بلا قرار. وهنا تُبنى من النموذج ويُطرح منها السرُّ المسمّى.
 {% endcomment %}
 
-{% block title %}{{ customer.full_name }}{% endblock %}
-{% block heading %}{{ customer.full_name }}{% endblock %}
+{% block title %}{{ customer.full_name|default:"عميل" }}{% endblock %}
+{% block heading %}{{ customer.full_name|default:"حساب بلا اسم" }}{% endblock %}
 
 {% block content %}
+  {% comment %} الشارات أولاً: من يفتح ملفّ عميلٍ يسأل «هل يستطيع الدخول؟»
+     و«أفردٌ أم شركة؟» قبل أي رقم. {% endcomment %}
+  <p>
+    {% if customer.is_active %}
+      <span class="pill" data-tone="ok">نشط</span>
+    {% else %}
+      <span class="pill" data-tone="bad">محظور</span>
+    {% endif %}
+    <span class="pill">{{ customer.get_account_type_display }}</span>
+    {% if customer.phone_verified_at %}
+      <span class="pill" data-tone="ok">الجوّال موثَّق</span>
+    {% else %}
+      <span class="pill" data-tone="warn">الجوّال غير موثَّق</span>
+    {% endif %}
+    {% if customer.is_staff %}<span class="pill" data-tone="warn">موظّف</span>{% endif %}
+  </p>
+
   <p>
     <a href="{% url 'console:customer-edit' customer.pk %}">تعديل البيانات</a> ·
     <a href="{% url 'console:company-edit' customer.pk %}">
       {% if company %}تعديل الشركة{% else %}إضافة شركة{% endif %}</a>
+    {% if not customer.is_staff %}
+      · <a href="{% url 'console:customer-access' customer.pk %}">الوصول</a>
+    {% endif %}
+    · <a href="{% url 'console:money-customer' customer.pk %}">دفتره</a>
   </p>
 
+  {# ------------------------------------------------------------------ #}
+  <h2>التأمين — وما منه يُنفَق فعلاً</h2>
   <div class="scroller">
-    <table>
-    <tr><th>الجوال</th><td>{{ customer.phone }}</td></tr>
-    <tr><th>البريد</th><td>{{ customer.email|default:"—" }}</td></tr>
-    <tr><th>نوع الحساب</th><td>{{ customer.get_account_type_display }}</td></tr>
-    <tr><th>رقم الهوية</th><td>{{ customer.national_id|default:"—" }}</td></tr>
-    <tr><th>الجوال موثَّق</th><td>{{ customer.phone_verified_at|default:"لا" }}</td></tr>
-    {% if company %}
-      <tr><th>الشركة</th><td>{{ company.name }}</td></tr>
-      <tr><th>السجل التجاري</th><td>{{ company.commercial_register|default:"—" }}</td></tr>
-      <tr><th>الرقم الضريبي</th><td>{{ company.vat_number|default:"—" }}</td></tr>
-    {% endif %}
-  </table>
-</div>
-
-  <h2>التأمين</h2>
-  <div class="scroller">
-    <table>
-    <thead><tr><th>الدلو</th><th>المبلغ</th></tr></thead>
+<table>
     <tbody>
-      {% for bucket in wallet.buckets %}
-        <tr><td>{{ bucket.label }}</td>
-            <td class="money">{{ bucket.amount|unlocalize }}</td></tr>
-      {% endfor %}
-      <tr><th>الإجمالي</th><th class="money">{{ wallet.total|unlocalize }}</th></tr>
-    </tbody>
-  </table>
-</div>
-
-  <h2>الفواتير</h2>
-  <div class="scroller">
-    <table>
-    <thead><tr><th>الرقم</th><th>المبلغ</th><th>المسدَّد</th><th>الحالة</th></tr></thead>
-    <tbody>
-      {% for invoice in invoices %}
+      <tr>
+        <th>الحرّ في الدفتر</th>
+        <td class="money">{{ gate.insurance_free|unlocalize }}</td>
+      </tr>
+      {% if gate.refund_pending %}
+        {% comment %} طلبُ الاسترداد لا يحرّك الدفتر حتى تؤكّد المحاسبة الصرف،
+           فالمبلغ يبقى «حرّاً» بين اللحظتين — وتلك فجوةٌ حُجزت فيها العشرة
+           آلاف نفسها لمزادٍ ثم صُرفت استرداداً. {% endcomment %}
         <tr>
-          <td><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
-          <td class="money">{{ invoice.amount|unlocalize }}</td>
-          <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
-          <td>{{ invoice.get_state_display }}</td>
+          <th>مطلوبٌ استردادُه ولم يُصرَف</th>
+          <td class="money">−{{ gate.refund_pending|unlocalize }}</td>
         </tr>
-      {% empty %}
-        <tr><td colspan="4" class="empty">لا فواتير.</td></tr>
+      {% endif %}
+      <tr>
+        <th>القابل للإنفاق على مزادٍ جديد</th>
+        <td class="money"><strong>{{ gate.spendable_insurance|unlocalize }}</strong></td>
+      </tr>
+      <tr>
+        <th>محجوز على مزادات</th>
+        <td class="money">{{ gate.insurance_held|unlocalize }}</td>
+      </tr>
+      <tr>
+        <th>مقفول</th>
+        <td class="money">{{ gate.insurance_locked|unlocalize }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+  {% if gate.outstanding_dues %}
+    {% comment %} هذا هو «محجوز لمستحقات ⚠️» عند v1، مقولاً بأرقامنا: الوديعة
+       تبدو متاحة، والبوّابة سترفض المزايدة أصلاً حتى تُسدَّد. {% endcomment %}
+    <p class="alarm">
+      <strong>عليه مستحقات {{ gate.outstanding_dues|unlocalize }}.</strong>
+      فما فوقُ يبدو متاحاً وهو ليس كذلك: البوّابة ترفض المزايدة حتى تُسدَّد،
+      ووديعتُه مقفولةٌ ما دام مديناً. وهذا الرقم من البوّابة نفسها التي سترفض
+      — لا من حسابٍ ثانٍ يشبهها.
+    </p>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  <h2>الربط بأودو</h2>
+  {% if odoo_links %}
+    <div class="scroller">
+<table>
+      <thead><tr><th>رقم العميل في أودو</th><th>الأساسي</th><th>ملاحظة</th><th>رُبط</th></tr></thead>
+      <tbody>
+        {% for link in odoo_links %}
+          <tr>
+            <td><code>{{ link.odoo_customer_id }}</code></td>
+            <td>{% if link.is_primary %}<span class="pill" data-tone="ok">نعم</span>{% else %}—{% endif %}</td>
+            <td>{{ link.note|default:"—" }}</td>
+            <td>{{ link.linked_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+  {% else %}
+    {% comment %} الغياب يُقال صراحةً: في v1 يصير المعرّفُ الفارغ صفراً،
+       فتُعرض ماليةُ كل من يحمل صفراً على أنها ماليةُ هذا العميل. {% endcomment %}
+    <p class="empty">
+      غير مربوطٍ بأودو. ولا استعلامَ يُبنى على هذا الغياب — ولذلك لا تُعرض
+      هنا أرقامُ أحدٍ آخر.
+    </p>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  <h2>البيانات الكاملة</h2>
+  <div class="scroller">
+<table>
+    <tbody>
+      {% for label, value in record %}
+        <tr>
+          <th>{{ label }}</th>
+          <td>{% if value == None or value == "" %}<span class="empty">—</span>{% else %}{{ value }}{% endif %}</td>
+        </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+  <p class="empty">
+    كلُّ عمودٍ في الصفّ إلا ما سُمّي سرّاً — مبنيّاً من النموذج لا من قائمةٍ
+    مكتوبةٍ باليد، فحقلٌ يُضاف غداً يظهر هنا ولا يُنسى.
+  </p>
+
+  {% if company %}
+    <h2>الشركة</h2>
+    <div class="scroller">
+<table>
+      <tbody>
+        <tr><th>الاسم</th><td>{{ company.name }}</td></tr>
+        <tr><th>الممثل</th><td>{{ company.representative_name|default:"—" }}</td></tr>
+        <tr><th>السجل التجاري</th><td>{{ company.commercial_register|default:"—" }}</td></tr>
+        <tr><th>الرقم الضريبي</th><td>{{ company.vat_number|default:"—" }}</td></tr>
+        <tr><th>المدينة</th><td>{{ company.city|default:"—" }}</td></tr>
+        <tr><th>الحي</th><td>{{ company.district|default:"—" }}</td></tr>
+        <tr><th>الشارع</th><td>{{ company.street|default:"—" }}</td></tr>
+        <tr><th>رقم المبنى</th><td>{{ company.building_number|default:"—" }}</td></tr>
+        <tr><th>الرمز البريدي</th><td>{{ company.postal_code|default:"—" }}</td></tr>
+      </tbody>
+    </table>
+</div>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
+  {% for card in activity %}
+    <h2>{{ card.title }}</h2>
+
+    {% if card.kind == "bids" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>المزاد</th><th>المركبة</th><th>المبلغ</th><th>الحالة</th><th>وقتها</th></tr></thead>
+        <tbody>
+          {% for bid in card.rows %}
+            <tr>
+              <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
+              <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+              <td class="money">{{ bid.amount|unlocalize }}</td>
+              <td>
+                {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
+                {% elif bid.is_superseded %}<span class="pill" data-tone="warn">استُبدلت بأعلى</span>
+                {% else %}<span class="pill" data-tone="ok">قائمة</span>{% endif %}
+              </td>
+              <td>{{ bid.placed_at }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="empty">لا مزايدات.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+
+    {% elif card.kind == "invoices" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>الرقم</th><th>المبلغ</th><th>المسدَّد</th><th>الحالة</th></tr></thead>
+        <tbody>
+          {% for invoice in card.rows %}
+            <tr>
+              <td><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
+              <td class="money">{{ invoice.amount|unlocalize }}</td>
+              <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
+              <td>{{ invoice.get_state_display }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا فواتير.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+
+    {% elif card.kind == "payments" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>المرجع</th><th>المبلغ</th><th>الحالة</th><th>قيدٌ ناتج</th><th>متى</th></tr></thead>
+        <tbody>
+          {% for intent in card.rows %}
+            <tr>
+              <td>{{ intent.reference }}</td>
+              <td class="money">{{ intent.amount|unlocalize }}</td>
+              <td>{{ intent.get_state_display }}</td>
+              <td>{{ intent.resulting_transaction_id|default:"—" }}</td>
+              <td>{{ intent.created_at }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="empty">لا محاولات دفع.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+
+    {% elif card.kind == "refunds" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>المرجع</th><th>المبلغ</th><th>الحالة</th><th>قُدِّم</th></tr></thead>
+        <tbody>
+          {% for refund in card.rows %}
+            <tr>
+              <td>{{ refund.reference }}</td>
+              <td class="money">{{ refund.amount|unlocalize }}</td>
+              <td>{{ refund.get_state_display }}</td>
+              <td>{{ refund.created_at }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا طلبات استرداد.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+
+    {% elif card.kind == "entries" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>الحساب</th><th>مدين</th><th>دائن</th><th>الحركة</th></tr></thead>
+        <tbody>
+          {% for entry in card.rows %}
+            <tr>
+              <td>{{ entry.account.get_kind_display }}</td>
+              <td class="money">{{ entry.debit|unlocalize }}</td>
+              <td class="money">{{ entry.credit|unlocalize }}</td>
+              <td>{{ entry.transaction.get_kind_display }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="empty">لا قيود.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+
+    {% elif card.kind == "holds" %}
+      <div class="scroller">
+<table>
+        <thead><tr><th>المبلغ</th><th>السبب</th><th>المزاد</th><th>الفاتورة</th><th>منذ</th></tr></thead>
+        <tbody>
+          {% for hold in card.rows %}
+            <tr>
+              <td class="money">{{ hold.amount|unlocalize }}</td>
+              <td>{{ hold.get_reason_display }}</td>
+              <td>{% if hold.auction_id %}{{ hold.auction.number|unlocalize }}{% else %}—{% endif %}</td>
+              <td>{% if hold.invoice_id %}{{ hold.invoice.number }}{% else %}—{% endif %}</td>
+              <td>{{ hold.created_at }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="empty">لا حجوزات قائمة.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+    {% endif %}
+  {% endfor %}
+
+  <p class="empty">
+    كلُّ قائمةٍ فوق مقطوعةٌ عند خمسين صفّاً، وكلٌّ منها لا تُعرض إلا لمن يملك
+    قدرتها: المزايدات لمن يرى المزادات، والدفترُ لمن يرى المال. وv1 يعرض الستّ
+    لكل من يفتح الصفحة.
+  </p>
 {% endblock %}

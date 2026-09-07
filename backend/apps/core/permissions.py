@@ -172,7 +172,7 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
 
 
 def bundle_for(slug: str) -> frozenset[str]:
-    """قدراتُ دورٍ باسمه — المكتوبةُ في الشيفرة أولاً، ثم المضافة. T838.
+    """قدراتُ دورٍ باسمه — المكتوبةُ في الشيفرة أولاً، ثم المضافة. T847.
 
     الأدوار الأربعة الأولى في :data:`ROLE_CAPABILITIES` **تسبق الجدول ولا
     يُبحث عنها فيه**، وذلك مقصود: صفٌّ يمكن حذفُه، وحذفُ «المالك» يُقفل اللوحة
@@ -253,7 +253,7 @@ def role_label(user) -> str:
     except ValueError:
         pass
 
-    # ثم الأدوار المضافة (T838). والترتيب هو ترتيب :func:`bundle_for` نفسه —
+    # ثم الأدوار المضافة (T847). والترتيب هو ترتيب :func:`bundle_for` نفسه —
     # المكتوبُ أولاً — فلا يقرأ الاسمُ دوراً وتقرأ البوابةُ غيرَه.
     from apps.accounts.models import ConsoleRole
 
@@ -285,7 +285,7 @@ def role_choices() -> list[tuple[str, str]]:
 
 
 def assign_role(user, slug: str, *, save: bool = True) -> None:
-    """اكتب دورَ هذا الشخص — **الكاتبُ الوحيد** للحقل. T839.
+    """اكتب دورَ هذا الشخص — **الكاتبُ الوحيد** للحقل. T848.
 
     الحقل له قارئٌ واحد بحكم `ops/checks/one_permission_gate.py`، وله كاتبٌ
     واحد للسبب نفسه: إسنادُ دورٍ قرارُ صلاحيات، وشاشةٌ تكتبه بيدها هي بوّابةٌ

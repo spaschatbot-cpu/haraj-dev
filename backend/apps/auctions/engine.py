@@ -453,7 +453,8 @@ def summarise(auctions) -> dict[int, RowSummary]:
     # وv1 كان يعدّ الصفوف كلَّها فيقول «٦٥١٨ مزايدة» وفيها مسحوبةٌ ومتجاوَزة —
     # فيُقرأ الرقم نشاطاً وهو ليس كذلك، و«أعلى» يُعلن رقماً لا يشتري به أحد.
     for row in (
-        Bid.objects.live().filter(vehicle__auction_id__in=ids)
+        Bid.objects.live()
+        .filter(vehicle__auction_id__in=ids)
         .values("vehicle__auction_id")
         .annotate(
             bids=Count("id"),
