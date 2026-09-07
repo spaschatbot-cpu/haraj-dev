@@ -20,6 +20,7 @@ import pytest
 from django.db import IntegrityError, connection, transaction
 
 from apps.auctions.models import Vehicle
+from apps.auctions.tests.conftest import insert_raw
 
 pytestmark = pytest.mark.django_db
 
@@ -27,18 +28,16 @@ VIN = "JTDBE32K123456789"
 
 
 def _insert_raw(auction_id: int, lot_number: int, vin: str) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO auctions_vehicle
-                (auction_id, lot_number, make, model, year, vin, plate_number,
-                 plate_type, transmission, fuel_type, condition, state,
-                 created_at, updated_at)
-            VALUES (%s, %s, 'تويوتا', 'كامري', 2022, %s, '', 'private',
-                    'unknown', 'unknown', 'unknown', 'draft', now(), now())
-            """,
-            [auction_id, lot_number, vin],
-        )
+    """Straight to SQL, so the partial index answers and not `full_clean`."""
+    insert_raw(
+        Vehicle,
+        auction_id=auction_id,
+        lot_number=lot_number,
+        vin=vin,
+        make="تويوتا",
+        model="كامري",
+        year=2022,
+    )
 
 
 def test_the_same_vin_twice_in_one_auction_fails(make_auction, make_vehicle):

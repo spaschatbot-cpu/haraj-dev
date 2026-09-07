@@ -345,6 +345,7 @@ def vehicle_payload(auction: Auction, **extra) -> dict:
         "make": "هوندا",
         "model": "أكورد",
         "year": "2021",
+        "colour": "silver",
         "plate_type": "private",
         "transmission": "unknown",
         "fuel_type": "unknown",

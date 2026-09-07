@@ -1,4 +1,4 @@
-"""سجل الدفعات — كل محاولة سدادٍ وما صارت إليه. T826.
+"""سجل الدفعات — كل محاولة سدادٍ وما صارت إليه. T835.
 
 الشاشة من لوحة v1 (`/payments`)، وأعمدتها هناك أربعة: رقم الفاتورة، والمبلغ،
 والحالة، ومعرّف الصفّ. وهذه تعرض ما لم يكن هناك، لأن الأسئلة التي فُتحت لأجلها
@@ -22,6 +22,14 @@
 `apps/core/permissions.py` عند حذف `invoices.manage`. فهذه الشاشة تقرأ، ويوم
 يُبنى الفعل يأتي بقدرته وصفحته معاً. زرٌّ هنا اليوم يعني قاعدةَ مالٍ في وحدة
 عرض، وهو ما يرفضه `ops/checks/money_single_writer.py` أصلاً.
+
+وشاشتان هنا لا واحدة
+=====================
+«سجل الدفعات» يقرأ ما قُيِّد (:class:`~apps.money.models.Payment`)، و«محاولات
+الدفع» تقرأ ما جرت محاولتُه (:class:`~apps.money.models.PaymentIntent`) —
+والفرقُ بينهما هو الجواب عن «دفعتُ ولم يصل»، فالمحاولةُ الفاشلة ليست دفعة.
+وهما في وحدةٍ واحدة لأن سؤال الدعم واحد، ومن يفتح إحداهما يحتاج الأخرى في
+النفَس نفسه.
 """
 
 from __future__ import annotations
@@ -29,9 +37,10 @@ from __future__ import annotations
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import render
+from django.utils import timezone
 
 from apps.accounts.services import find_by_phone
-from apps.money.models import PaymentIntent
+from apps.money.models import PaymentIntent, PaymentIntentState
 
 from .exports import export, wants_export
 from .tones import with_tones
@@ -122,4 +131,51 @@ def payments(request):
             "state": request.GET.get("state", ""),
             "states": PaymentIntent._meta.get_field("state").choices,
         },
+    )
+
+
+# -------------------------------------------------------------------------
+# محاولات الدفع عبر البوابة — الجواب عن «دفعتُ ولم يصل». T827
+# -------------------------------------------------------------------------
+
+STALE_AFTER = timezone.timedelta(hours=1)
+
+#: كم صفّاً يُعرض بلا بحث. الشاشة تُفتح بسؤالٍ عن عميلٍ بعينه غالباً، وقائمةٌ
+#: طويلة بلا سؤال ليست تشخيصاً.
+LIMIT = 100
+
+
+@console_page("console:payment-attempts")
+def payment_attempts(request):
+    """محاولاتُ الدفع، وأحدثُها أوّلاً؛ ويُبحَث بجوّالٍ أو مرجع.
+
+    البحث بالجوّال لأن سؤال الدعم يبدأ منه: العميل يعرف رقمه ولا يعرف
+    `reference` كتبه الخادم لنفسه.
+    """
+    query = (request.GET.get("q") or "").strip()
+
+    rows = PaymentIntent.objects.select_related("user", "resulting_transaction")
+    if query:
+        rows = rows.filter(
+            Q(user__phone__icontains=query)
+            | Q(reference__icontains=query)
+            | Q(gateway_payment_id__icontains=query)
+        )
+
+    cutoff = timezone.now() - STALE_AFTER
+    attempts = []
+    for intent in rows.order_by("-created_at")[:LIMIT]:
+        stale = intent.state == PaymentIntentState.PENDING and intent.created_at < cutoff
+        # نجحت ولم تُقيَّد: يمنعها قيدٌ في القاعدة، وتُحسب هنا ليكون الصفر
+        # جواباً لا صمتاً.
+        unposted = (
+            intent.state == PaymentIntentState.SUCCEEDED
+            and intent.resulting_transaction_id is None
+        )
+        attempts.append({"intent": intent, "stale": stale, "unposted": unposted})
+
+    return render(
+        request,
+        "console/payment_attempts.html",
+        {"attempts": attempts, "q": query, "stale_after_hours": 1},
     )

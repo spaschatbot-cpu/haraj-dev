@@ -67,24 +67,18 @@ const VEHICLE = {
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
-  title: "تويوتا كامري 2022",
+  reference: "#91",
+  title: "تويوتا كامري",
   make: "تويوتا",
   model: "كامري",
   year: 2022,
   odometer_km: 84000,
-  transmission: "automatic",
-  transmission_label: "أوتوماتيك",
-  fuel_type: "petrol",
-  fuel_type_label: "بنزين",
+  colour: "silver",
+  colour_label: "فضي",
   condition: "good",
   condition_label: "جيدة",
-  plate_type: "private",
-  plate_type_label: "خصوصي",
-  reserve_price: "48500.75",
+  location: "الرياض / طريق الحائر",
   state: "listed",
-  state_label: "معروضة",
-  listing_state: "open",
-  owner_company_name: "شركة المعارض",
   thumbnail_url: null,
 };
 
@@ -229,30 +223,32 @@ describe("ترشيح مركبات المزاد", () => {
 describe("صفحة المركبة", () => {
   const params = Promise.resolve({ id: "91" });
 
-  it("J5 — الاسم والسعر في الـHTML بلا جافاسكربت", async () => {
+  it("J5 — الاسم والمواصفات في الـHTML بلا جافاسكربت", async () => {
     const html = await render(VehiclePage({ params }));
 
-    expect(html).toContain("تويوتا كامري 2022");
-    expect(html).toContain("48500.75");
+    expect(html).toContain("تويوتا كامري");
+    //: «مواصفات المركبة» كما يعرضها v1: الموديل وسنة الصنع واللون والممشى
+    //: والمدينة — خمسةٌ لا غير.
+    expect(html).toContain("اللون");
+    expect(html).toContain("المدينة");
   });
 
-  it("السعر كما وصل بالضبط — بلا تقريب ولا فاصل آلاف", async () => {
-    // Article 3-2 at the last possible moment. A separator inserted here is a
-    // display transformation a customer has to undo in their head before they
-    // can compare this page with an invoice.
+  it("ولا سعر على الصفحة — v1 لا يعرضه", async () => {
+    //: طلب المالك «بدون زيادة» (2026-09-06). وليست مسألةَ ذوق: الصفحة تُفتح
+    //: بلا دخول، فسعرٌ عليها يُخبر كلَّ من يفتحها بأقلّ ما يقبله البائع قبل
+    //: أن يزايد أحد. ويصل السعر من يحتاجه عبر بوابة الأهلية.
     const html = await render(VehiclePage({ params }));
 
-    expect(html).toContain("48500.75");
-    expect(html).not.toContain("48,500");
-    expect(html).not.toContain("48500.8");
+    expect(html).not.toContain("48500.75");
+    expect(html).not.toContain("سعر الوقوف");
   });
 
   it("بيانات وصفية حقيقية، لا العنوان مكرَّراً", async () => {
     const metadata = await vehicleMetadata({ params });
 
-    expect(metadata.title).toBe("تويوتا كامري 2022");
+    expect(metadata.title).toBe("تويوتا كامري");
     expect(metadata.description).toContain("84,000 كم");
-    expect(metadata.description).toContain("أوتوماتيك");
+    expect(metadata.description).toContain("فضي");
   });
 
   it("بيانات منظَّمة للمركبة، بلا سعر معروض", async () => {
@@ -265,19 +261,18 @@ describe("صفحة المركبة", () => {
     expect(html).not.toContain('"offers"');
   });
 
-  it("لا يعرض صفر لمركبة بلا سعر وقوف", async () => {
-    // A car whose owner set no floor is a different thing from a car whose
-    // floor is zero, and printing a number for the first is a number nobody
-    // chose.
+  it("ممشى غير معروف شرطةٌ لا صفر", async () => {
+    //: مركبةٌ لم يُقَس ممشاها ليست مركبةً ممشاها صفر، وv1 يكتب شرطةً حرفياً.
+    //: وهذه هي القاعدة نفسها التي كانت على السعر قبل أن يخرج من الصفحة.
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => answer({ ...VEHICLE, reserve_price: null })),
+      vi.fn(async () => answer({ ...VEHICLE, odometer_km: null })),
     );
 
     const html = await render(VehiclePage({ params }));
 
-    expect(html).toContain("لم يُحدَّد");
-    expect(html).not.toContain("0.00");
+    expect(html).toContain("—");
+    expect(html).not.toContain("0 كم");
   });
 });
 

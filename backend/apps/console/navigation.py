@@ -54,9 +54,9 @@ class Page:
 
     #: اسمُ أيقونتها في :mod:`apps.console.icons` — لا مسارُها ولا رمزُها.
     #:
-    #: كانت رمزاً نصّياً (`🔨`) في T824، وحُجّتها أن الخطّ قد لا يصل. والثمن
+    #: كانت رمزاً نصّياً (`🔨`) في T833، وحُجّتها أن الخطّ قد لا يصل. والثمن
     #: أن نظام التشغيل هو الذي يرسمه: ملوّناً بأسلوبٍ لا يشبه اللوحة، ومختلفاً
-    #: بين ويندوز وأندرويد — ستّة عشر رسماً لستّة عشر أسلوباً (T829).
+    #: بين ويندوز وأندرويد — ستّة عشر رسماً لستّة عشر أسلوباً (T837).
     #:
     #: و`<svg>` مضمَّنٌ في الصفحة لا يُحمَّل ولا «قد لا يصل»، ويرث
     #: `currentColor` فيتلوّن مع القسم الحالي ومع اللون الأساسي المختار.
@@ -140,7 +140,7 @@ class Planned:
         return path_of(self.icon)
 
 
-#: أقسام الشريط، **بأسماء v1 نفسها وترتيبها** (T829).
+#: أقسام الشريط، **بأسماء v1 نفسها وترتيبها** (T837).
 #:
 #: كانت أربعةً من اختراعنا — «التشغيل اليومي» و«المال» و«التشخيص» و«الإدارة» —
 #: وهي تسميةٌ معقولة ولا أحد يعرفها. والمالك وموظّفوه يعملون على قائمة v1 كل
@@ -657,6 +657,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
         Capability.AUCTIONS_MANAGE,
         "",
     ),
+    Page("console:vehicle-relist", "إعادة عرض مركبة", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-new", "مزاد جديد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
     Page("console:auction-state", "نقلة مزاد", Capability.AUCTIONS_MANAGE, ""),
@@ -682,6 +683,7 @@ DETAIL_PAGES: tuple[Page, ...] = (
     Page("console:customer-detail", "بيانات العميل", Capability.USERS_VIEW, ""),
     Page("console:customer-edit", "تعديل العميل", Capability.USERS_MANAGE, ""),
     Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
+    Page("console:customer-access", "وصول العميل", Capability.USERS_MANAGE, ""),
     # ليست `users.manage`: تعديلُ بيانات عميلٍ وتوسيعُ ما يستطيعه موظّف في
     # اللوحة كلّها ثقتان مختلفتان، وv1 جمعهما في علمٍ واحد.
     Page("console:staff-grants", "صلاحيات موظف", Capability.STAFF_GRANT, ""),
@@ -691,6 +693,23 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # exception carries `money.exception` on top of it — the one action that
     # puts a bidder in an auction with nothing behind their bid is not the same
     # trust as confiscating a deposit that is already ours to take.
+    # القراءة والإغلاق صلاحيتان: الدعم يقرأ الطابور ليجيب «أين استردادي؟»،
+    # وإغلاقُ قضيةٍ قرارٌ يقول «لا استرداد» — وهو من ثقة `money.act`.
+    Page(
+        "console:refund-queue",
+        "طابور عجز الاسترداد",
+        Capability.MONEY_VIEW,
+        "diagnostics",
+        "أودو طلب سحب وديعةٍ مرهونة — ما لم يُنفَّذ وينتظر قراراً.",
+    ),
+    Page("console:refund-resolve", "إغلاق عجز استرداد", Capability.MONEY_ACT, ""),
+    Page(
+        "console:payment-attempts",
+        "محاولات الدفع",
+        Capability.MONEY_VIEW,
+        "diagnostics",
+        "ما حدث لمحاولة دفعٍ: لم تصل البوابة، أم رفضتها، أم نجحت ولم تُقيَّد.",
+    ),
     Page("console:money-actions", "أفعال مالية", Capability.MONEY_ACT, ""),
     Page("console:money-confiscate", "مصادرة حجز", Capability.MONEY_ACT, ""),
     Page("console:money-correct", "تصحيح حركة", Capability.MONEY_ACT, ""),
@@ -713,7 +732,7 @@ def pages_for(user) -> tuple[Page, ...]:
     كانت `can(user, …)` تُنادى لكل صفحةٍ في السجلّ، وكلُّ نداءٍ منها استعلامٌ
     على `StaffGrant` — فرسمُ الشريط الجانبي وحده كان ثلاثة عشر استعلاماً،
     و**كلُّ شاشةٍ تُضاف كانت تجعل كل صفحةٍ في اللوحة أبطأ باستعلام**. كشفته
-    T826: إضافة ثلاث شاشاتٍ رفعت صفحة «ليه ما يقدرش يزايد؟» من ١٩ استعلاماً
+    T835: إضافة ثلاث شاشاتٍ رفعت صفحة «ليه ما يقدرش يزايد؟» من ١٩ استعلاماً
     إلى ٢٢، فأسقطت ميزانيةً مكتوبةً في اختبارٍ منذ T608.
 
     والإصلاح هنا لا في `can()`: حفظُ الجواب على كائن المستخدم كان سيجعل

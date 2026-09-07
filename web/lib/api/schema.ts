@@ -1317,24 +1317,18 @@ export interface components {
             /** Format: date-time */
             auction_ends_at: string;
             lot_number: number;
+            reference: string;
             title: string;
             make: string;
             model: string;
             year: number;
+            colour: string;
+            colour_label: string;
             odometer_km: number | null;
-            transmission: string;
-            transmission_label: string;
-            fuel_type: string;
-            fuel_type_label: string;
             condition: string;
             condition_label: string;
-            plate_type: string;
-            plate_type_label: string;
-            reserve_price: string | null;
+            location: string;
             state: string;
-            state_label: string;
-            listing_state: string;
-            owner_company_name: string | null;
             thumbnail_url: string | null;
         };
         /** @description A page of cars, its total, and the three tab counters.

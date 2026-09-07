@@ -47,6 +47,9 @@ from apps.money.models import (
 
 DEPOSIT = Decimal("10000.00")
 
+#: ألوانٌ تدور على المركبات، فيُرى الحقل مملوءاً على الشاشة.
+COLOURS = ["silver", "black", "white", "grey", "blue", "gold"]
+
 #: مركباتٌ تُقرأ على الشاشة كأنها حقيقية — واسمُ المزاد يفرّقها.
 FLEET = [
     ("تويوتا", "كامري", 2022, "أوتوماتيك", "بنزين", 45_000, "70000.00", (196, 30, 58)),
@@ -162,6 +165,7 @@ class Command(BaseCommand):
                     "ends_at": now + timezone.timedelta(hours=ends),
                     "state": state,
                     "deposit_required": DEPOSIT,
+                    "location": "الرياض / طريق الحائر",
                 },
             )
             # **تُجدَّد النافذة في كل تشغيل، وهذا ليس تجميلاً.** بذرةٌ تكتب
@@ -206,7 +210,8 @@ class Command(BaseCommand):
                 "ended": VehicleState.LISTED,
             }[key]
             for lot, row in enumerate(fleet, start=1):
-                make, model, year, gear, fuel, km, reserve, _ = row
+                make, model, year, _gear, _fuel, km, reserve, _rgb = row
+                colour = COLOURS[(lot - 1) % len(COLOURS)]
                 Vehicle.objects.get_or_create(
                     auction=auction,
                     lot_number=lot,
@@ -218,7 +223,8 @@ class Command(BaseCommand):
                         "odometer_km": km,
                         "transmission": "automatic",
                         "fuel_type": "petrol",
-                        "condition": "running",
+                        "condition": "accident",
+                        "colour": colour,
                         "reserve_price": Decimal(reserve),
                         "state": state,
                     },
@@ -402,7 +408,7 @@ class Command(BaseCommand):
     # -- الأثر الذي تتركه المنصّة وراءها -------------------------------------
 
     def trail(self, people: list[User]) -> None:
-        """محاولات سدادٍ وإشعارات — الصفوف التي تقرؤها شاشتا T826.
+        """محاولات سدادٍ وإشعارات — الصفوف التي تقرؤها شاشتا T835.
 
         بلا هذا تُفتح الشاشتان على «لا صفوف مطابقة»، وهي أسوأ حالٍ للنظر: من
         ينظر لا يعرف أعُطلٌ في الشاشة أم فراغٌ في البيانات — وهو نصّ رأس هذا

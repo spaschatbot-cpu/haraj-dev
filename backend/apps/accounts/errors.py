@@ -97,6 +97,22 @@ class RegistrationNeedsName(DomainError):
     default_message = "أدخل الاسم لإنشاء الحساب."
 
 
+class AccountStopped(DomainError):
+    """حسابٌ أوقفه موظّفٌ يطلب رمزاً جديداً ويدخل به.
+
+    `is_active` كان يُفحَص في `tokens.verify` و`tokens.rotate` وحدهما — أي أنه
+    يقطع الرمز **القائم** ولا يمنع رمزاً جديداً. فالموقوف يطلب رمزاً بجوّاله،
+    يدخل، ويأخذ زوجاً جديداً: الإيقاف يصمد حتى أوّل رسالةٍ نصّية.
+
+    والرفض **بعد** فحص الرمز لا قبله، وذلك مقصود: رفضٌ يسبق الفحص يجعل هذه
+    النقطة تُجيب «هل هذا الرقم موقوف؟» لمن يجرّب أرقاماً، وهو سؤالٌ لا يحقّ
+    لمجهولٍ أن يعرف جوابه. ومن يعرف رمزاً صحيحاً يملك الجوّال فعلاً.
+    """
+
+    code = "account_stopped"
+    default_message = "هذا الحساب موقوف. تواصل مع خدمة العملاء."
+
+
 class VerificationCodeUndeliverable(DomainError):
     """We decided to send a code and the provider would not carry it.
 

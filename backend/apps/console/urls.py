@@ -70,11 +70,11 @@ urlpatterns = [
     path("auctions/manage/", bulk.manage, name="auctions-manage"),
     path("auctions/bulk/", bulk.bulk, name="auctions-bulk"),
     path("auctions/quick-edit/", bulk.quick_edit, name="auctions-quick-edit"),
-    # قرارات المزايدات — قسمُ v1 نفسه (T830-أ). قراءةٌ محضة: الترسية في
+    # قرارات المزايدات — قسمُ v1 نفسه (T830أ). قراءةٌ محضة: الترسية في
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
-    # التقارير والتحليلات — قسمُ v1 نفسه (T830-ب).
+    # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
     path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
     path("analytics/active/", analytics.active_auction, name="active-auction"),
@@ -82,7 +82,7 @@ urlpatterns = [
     path("owners/", analytics.owners_console, name="owners-console"),
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
-    # المحفظة — الشحن والخصم (T830-ط). كلاهما يمرّ بـ`money.services` وحدها.
+    # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
     path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
     path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
     path(
@@ -90,23 +90,23 @@ urlpatterns = [
         analytics.insurance_report,
         name="insurance-report",
     ),
-    # إدارة الأعضاء — قسمُ v1 نفسه (T830-ج).
+    # إدارة الأعضاء — قسمُ v1 نفسه (T830ج).
     path("admins/", staff.admins, name="admins"),
     path("admins/page-control/", staff.page_control, name="page-control"),
-    # النظام والصلاحيات (T830-ﻫ).
+    # النظام والصلاحيات (T830ﻫ).
     path("settings/", staff.settings_page, name="settings"),
     path("account/password/", staff.password_change, name="password-change"),
     path("users/bids-report/", analytics.user_bids, name="user-bids"),
-    # إدارة المزادات — بقيّةُ قسم v1 (T830-د).
+    # إدارة المزادات — بقيّةُ قسم v1 (T830د).
     path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
     path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
     path("after-sales/", catalog.after_sales, name="after-sales"),
     path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),
     path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
-    # الفواتير (T830-ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
+    # الفواتير (T830ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
     path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),
     path("invoices/export/", billing.invoices_export, name="invoices-export"),
-    # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830-و).
+    # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830و).
     path("partner/", partner_console.partner_console, name="partner-console"),
     path("partner/auctions/", partner_console.partner_auctions, name="partner-auctions"),
     path("partner/state/soon/", partner_console.partner_soon, name="partner-soon"),
@@ -137,6 +137,9 @@ urlpatterns = [
     path("vehicles/<int:pk>/edit/", auctions.vehicle_edit, name="vehicle-edit"),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
+    path(
+        "vehicles/<int:pk>/relist/", auction_moves.vehicle_relist, name="vehicle-relist"
+    ),
     path("partners/", partners.decisions, name="partner-decisions"),
     path("partners/<int:pk>/", partners.offers, name="partner-offers"),
     path("partners/<int:pk>/award/", partners.award, name="partner-award"),
@@ -145,6 +148,10 @@ urlpatterns = [
     path("customers/<int:pk>/", people.customer_detail, name="customer-detail"),
     path("customers/<int:pk>/edit/", people.customer_edit, name="customer-edit"),
     path("customers/<int:pk>/company/", people.company_edit, name="company-edit"),
+    path("customers/<int:pk>/access/", people.customer_access, name="customer-access"),
+    path("refunds/queue/", refunds.refund_queue, name="refund-queue"),
+    path("refunds/<int:pk>/resolve/", refunds.refund_resolve, name="refund-resolve"),
+    path("payments/attempts/", payments.payment_attempts, name="payment-attempts"),
     path("staff/<int:pk>/grants/", people.staff_grants, name="staff-grants"),
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),

@@ -132,7 +132,7 @@ def test_the_agent_finds_it_without_being_told_a_url(agent):
     assert PAGE in listed
     row = next(page for page in PAGES if page.url_name == PAGE)
     assert row.capability == Capability.DIAGNOSTICS_VIEW
-    # «المحفظة» لا «diagnostics»: الأقسام صارت أقسام v1 بأسمائها في T829،
+    # «المحفظة» لا «diagnostics»: الأقسام صارت أقسام v1 بأسمائها في T837،
     # وهناك يقع «🔎 لماذا لا يستطيع العميل المزايدة؟» تحت المحفظة — وهو موضعه
     # الصحيح، فالسؤال الذي تجيبه الشاشة سؤالٌ عن مال العميل لا عن صحّة النظام.
     # والقدرة لم تتغيّر: `DIAGNOSTICS_VIEW` تحرسها كما كانت، والقسمُ عرضٌ لا حراسة.

@@ -256,10 +256,28 @@ def vehicle_detail(request, pk: int):
     # يجيب «أهذه السيارة التي يتكلّم عنها العميل؟».
     shots = vehicle.images.order_by("-is_cover", "position", "pk")
 
+    # وجهاتُ إعادة العرض: المزادات التي لم تبدأ بعد. الحيّ ليس منها — لوتٌ
+    # يظهر بعد أن قرأ الناس القائمة هو مزادٌ تغيّر تحت من يزايد فيه (T828).
+    from apps.auctions.states import VEHICLE_MOVE_INDEX
+
+    may_relist = (vehicle.state, VehicleState.RELISTED) in VEHICLE_MOVE_INDEX
+    destinations = (
+        Auction.objects.filter(
+            state__in=(AuctionState.DRAFT, AuctionState.SCHEDULED)
+        ).order_by("starts_at")
+        if may_relist
+        else Auction.objects.none()
+    )
+
     return render(
         request,
         "console/vehicle_detail.html",
-        {"vehicle": vehicle, "moves": moves, "shots": shots},
+        {
+            "vehicle": vehicle,
+            "moves": moves,
+            "shots": shots,
+            "destinations": destinations,
+        },
     )
 
 

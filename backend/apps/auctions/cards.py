@@ -17,19 +17,17 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from django.conf import settings
 from django.db.models import Prefetch
 
 from .models import (
-    FuelType,
-    PlateType,
-    Transmission,
     Vehicle,
+    VehicleColour,
     VehicleCondition,
     VehicleImage,
-    VehicleState,
 )
 from .states import AuctionState
-from .visibility import listing_state, phase_of
+from .visibility import phase_of
 
 
 def _label(choices, value: str) -> str:
@@ -63,12 +61,34 @@ def _cover(vehicle: Vehicle) -> VehicleImage | None:
 
 
 def _thumbnail_url(vehicle: Vehicle) -> str | None:
+    """The cover thumbnail, addressed from wherever the caller happens to be.
+
+    `FieldFile.url` is a path, and a path only works while the server that
+    rendered the page is the server that holds the file. Neither client is
+    that server: the web is a separate Next app (Vercel in production) and the
+    mobile app is not a server at all. So the browser asked **its own** origin
+    for `/media/...` and every card image came back 404 — cards complete,
+    pictures broken.
+
+    `MEDIA_BASE_URL` empty keeps the old relative path, which is right for the
+    console: same server, same origin.
+    """
     cover = _cover(vehicle)
     if cover is None or not cover.thumbnail:
         return None
-    return cover.thumbnail.url
+    return f"{settings.MEDIA_BASE_URL}{cover.thumbnail.url}"
 
 
+#: ما يعرضه الكرت — **وهو ما يعرضه v1، لا أقلّ ولا أكثر** (طلب المالك
+#: 2026-09-06، والقياس في `specs/011-customer-web/v1-card-parity.md`).
+#:
+#: وستّةٌ حُذفت لأن v1 لا يعرضها: **سعر الوقوف** وناقل الحركة ونوع الوقود
+#: ونوع اللوحة واسم الشركة المالكة ونصوص الحالة. وحذفُها من **الكرت** لا
+#: يمسّ النموذج: `reserve_price` يبقى السعر الوحيد (T406) وتقرؤه بوابةُ
+#: الأهلية والتسوية، ويصل شاشةَ المزايدة عبر `minimum_bid` من
+#: `check_eligibility` — حيث يحتاجه المزايد فعلاً. كرتٌ يعرض سعر الوقوف
+#: يُخبر كلَّ متصفّحٍ بأقلّ ما يقبله البائع قبل أن يزايد أحد.
+#:
 #: key → how to read it off a vehicle. The single source of the card's shape.
 _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "id": lambda v: v.pk,
@@ -93,27 +113,28 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "phase": lambda v: phase_of(v.auction.state),
     "auction_starts_at": lambda v: v.auction.starts_at,
     "auction_ends_at": lambda v: v.auction.ends_at,
+    # «الموقف» على كرت v1 — رقم موضع المركبة في الساحة.
     "lot_number": lambda v: v.lot_number,
-    "title": lambda v: f"{v.make} {v.model} {v.year}",
+    # الرقم المرجعي: `#10565` على صورة كرت v1. هو معرّف المركبة نفسه، ويُعرض
+    # لأن العميل يذكره حين يسأل الدعم — «السيارة رقم كذا».
+    "reference": lambda v: f"#{v.pk}",
+    # الماركة والطراز وحدهما. سنةُ الصنع شارةٌ مستقلّة على كرت v1، وذكرُها في
+    # العنوان أيضاً تكرارٌ للبيانات نفسها في بطاقةٍ واحدة.
+    "title": lambda v: f"{v.make} {v.model}",
     "make": lambda v: v.make,
     "model": lambda v: v.model,
     "year": lambda v: v.year,
+    "colour": lambda v: v.colour,
+    "colour_label": lambda v: _label(VehicleColour, v.colour),
     "odometer_km": lambda v: v.odometer_km,
-    "transmission": lambda v: v.transmission,
-    "transmission_label": lambda v: _label(Transmission, v.transmission),
-    "fuel_type": lambda v: v.fuel_type,
-    "fuel_type_label": lambda v: _label(FuelType, v.fuel_type),
     "condition": lambda v: v.condition,
     "condition_label": lambda v: _label(VehicleCondition, v.condition),
-    "plate_type": lambda v: v.plate_type,
-    "plate_type_label": lambda v: _label(PlateType, v.plate_type),
-    # The one price. There is no "starting price", no "estimated value" and no
-    # screen-local calculation — T406, enforced by a CI check.
-    "reserve_price": lambda v: _amount(v.reserve_price),
+    # موقع المزاد: «الرياض / طريق الحائر». على المزاد لا على المركبة.
+    "location": lambda v: v.auction.location,
+    # الحالة تبقى **رمزاً** لا نصّاً: زرّ «مزايدة» على كرت v1 يُفعَّل أو
+    # يُعطَّل بها، والعميل يحتاج القيمة ليقرّر. أما نصّها المعروض
+    # («الحالة تحت المزايدة») فلا يعرضه v1، فذهب.
     "state": lambda v: v.state,
-    "state_label": lambda v: _label(VehicleState, v.state),
-    "listing_state": lambda v: listing_state(v),
-    "owner_company_name": lambda v: v.owner_company.name if v.owner_company_id else None,
     "thumbnail_url": _thumbnail_url,
 }
 

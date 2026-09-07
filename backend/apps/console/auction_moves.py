@@ -1,4 +1,6 @@
-"""نقلات المزاد — الشاشة الوحيدة في اللوحة التي تكلّم التسوية. T823.
+"""نقلات المزاد وإعادةُ عرض مركبة — شاشات اللوحة التي تكلّم التسوية.
+
+T823 و T828.
 
 **ولماذا ملفٌّ خاص، لا دالّةٌ في `auctions.py`.** نطاق
 `ops/checks/one_eligibility_gate.py` هو «كلُّ وحدةٍ تستورد من `apps.bidding`»،
@@ -14,6 +16,7 @@
 from __future__ import annotations
 
 from django.contrib import messages
+from django.db import IntegrityError, transaction
 from django.shortcuts import get_object_or_404, redirect
 
 from apps.auctions import services as auction_services
@@ -97,3 +100,95 @@ def auction_state(request, pk: int):
     )
     messages.success(request, f"المزاد صار «{AuctionState(auction.state).label}».")
     return redirect("console:auction-detail", pk=pk)
+
+
+# ---------------------------------------------------------------------------
+# T828 — سيارةٌ رفضها مالكها تعود لمزادٍ لاحق
+# ---------------------------------------------------------------------------
+#
+# `settlement.relist_vehicle` كانت **بلا مستدعٍ**: الشريك يرفض السعر فتصير
+# المركبة `rejected`، ثم لا شيء. والدالّة التي تعيدها إلى الدورة مبنيّةٌ
+# ومختبَرة ولا يبلغها موظّف.
+#
+# وهي هنا لا في `auctions.py` لنفس سبب T823: نطاق
+# `ops/checks/one_eligibility_gate.py` هو «كلُّ وحدةٍ تستورد من `apps.bidding`»،
+# وذاك الملفّ يعرض `deposit_required` عرضاً لا قراراً.
+
+
+#: المزادات التي تصلح وجهةً. الحيّ ليس منها: لوتٌ يظهر بعد أن قرأ الناس
+#: القائمة هو مزادٌ تغيّر تحت من يزايد فيه.
+DESTINATION_STATES = (AuctionState.DRAFT, AuctionState.SCHEDULED)
+
+
+@console_page("console:vehicle-relist")
+def vehicle_relist(request, pk: int):
+    """أعِد سيارةً إلى دورةٍ لاحقة، بسببٍ مكتوب.
+
+    والقاعدة التي تحرسها هذه الشاشة أدقّ من «انقلها»: الاستبعاد يخصّ الدورة
+    التي وقع فيها، والترسيةُ السابقة لا تسافر — سيارةٌ معروضةٌ في أبريل تُظهر
+    فائز مارس هي الطريقة التي يُقال بها لعميلٍ إنه يملك ما لا يملك.
+    `relist_vehicle` تفعل ذلك؛ وما تضيفه الشاشة هو أن يبلغها إنسان.
+    """
+    from apps.auctions.models import Auction, Vehicle
+    from apps.bidding import settlement
+
+    vehicle = get_object_or_404(Vehicle.objects.select_related("auction"), pk=pk)
+
+    if request.method != "POST":
+        return redirect("console:vehicle-detail", pk=pk)
+
+    reason = (request.POST.get("reason") or "").strip()
+    if not reason:
+        messages.error(request, "سبب الإعادة مطلوب.")
+        return redirect("console:vehicle-detail", pk=pk)
+
+    target = Auction.objects.filter(
+        pk=request.POST.get("auction") or 0, state__in=DESTINATION_STATES
+    ).first()
+    if target is None:
+        messages.error(request, "اختر مزاداً لم يبدأ بعد.")
+        return redirect("console:vehicle-detail", pk=pk)
+
+    try:
+        lot_number = int(request.POST.get("lot_number") or 0)
+    except ValueError:
+        lot_number = 0
+    if lot_number <= 0:
+        messages.error(request, "رقم اللوت مطلوب.")
+        return redirect("console:vehicle-detail", pk=pk)
+
+    before = audit.snapshot(
+        vehicle, ["auction_id", "lot_number", "state", "awarded_to_id"]
+    )
+
+    try:
+        with transaction.atomic():
+            settlement.relist_vehicle(vehicle, into=target, lot_number=lot_number)
+    except IntegrityError:
+        # `one_lot_per_auction` قيدٌ في القاعدة، وبلوغه من شاشةٍ صفحةُ خطأ.
+        # ونقطةُ حفظٍ خاصّة لأن `IntegrityError` داخل معاملةٍ قائمة تُسمّمها،
+        # فيسقط قيدُ التدقيق أدناه بـ`TransactionManagementError`.
+        messages.error(request, f"رقم اللوت {lot_number} مستعمل في المزاد المختار.")
+        return redirect("console:vehicle-detail", pk=pk)
+    except Exception as refusal:
+        # جملة الآلة كما هي — ولا فحصَ للحالة قبلها. كُتب هنا `_may_relist`
+        # يرفض مبكراً برسالةٍ من صياغتي، فجُرّب نزعُه ولم يسقط اختبارٌ واحد:
+        # `relist_vehicle` ترفض بنفسها عبر `relist`، وآلةُ الحالات هي التي
+        # تفرّق بين «لا نقلة» و«ليست جاهزة». فكان السطر يُعيد صياغة جملةٍ
+        # أدقّ منه، وذلك ما ينهى عنه `vehicle_state` بنصّه.
+        messages.error(request, str(refusal))
+        return redirect("console:vehicle-detail", pk=pk)
+
+    vehicle.refresh_from_db()
+    audit.record(
+        action="console.relist_vehicle",
+        entity=vehicle,
+        actor=request.user,
+        before=before,
+        after=audit.snapshot(
+            vehicle, ["auction_id", "lot_number", "state", "awarded_to_id"]
+        ),
+        note=reason,
+    )
+    messages.success(request, f"أُعيدت إلى مزاد {target.number} باللوت {lot_number}.")
+    return redirect("console:vehicle-detail", pk=pk)

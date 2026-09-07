@@ -14,23 +14,21 @@ import pytest
 from django.db import IntegrityError, connection, transaction
 
 from apps.auctions.models import Vehicle, VehicleImage
+from apps.auctions.tests.conftest import insert_raw
 
 pytestmark = pytest.mark.django_db
 
 
 def _insert_raw(auction_id: int, lot_number: int) -> None:
-    with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO auctions_vehicle
-                (auction_id, lot_number, make, model, year, vin, plate_number,
-                 plate_type, transmission, fuel_type, condition, state,
-                 created_at, updated_at)
-            VALUES (%s, %s, 'تويوتا', 'كامري', 2022, '', '', 'private',
-                    'unknown', 'unknown', 'unknown', 'draft', now(), now())
-            """,
-            [auction_id, lot_number],
-        )
+    """Straight to SQL, so the index answers and not `full_clean`."""
+    insert_raw(
+        Vehicle,
+        auction_id=auction_id,
+        lot_number=lot_number,
+        make="تويوتا",
+        model="كامري",
+        year=2022,
+    )
 
 
 def test_a_duplicate_lot_number_fails_in_the_database(make_auction, make_vehicle):
@@ -71,30 +69,14 @@ def test_the_constraint_exists_under_the_name_the_code_expects(make_auction):
 
 
 def _insert_cover(vehicle_id: int, name: str, position: int) -> None:
-    """Insert straight through SQL, so the *index* answers and not `full_clean`.
-
-    The columns are read off the model rather than typed out. A hand-written
-    list here is a second list of this table's columns, and it broke the moment
-    HR-12 added `preview`: a test about **covers** failed with a NOT NULL error
-    about a thumbnail tier, which tells a reader nothing about what it guards.
-    Bypassing the ORM is the point of this helper; bypassing it for the column
-    *names* was never part of that.
-    """
-    values = {"vehicle_id": vehicle_id, "image": name, "position": position}
-    values["is_cover"] = True
-    for field in VehicleImage._meta.fields:
-        if field.primary_key or field.attname in values:
-            continue
-        if not field.null:
-            values[field.attname] = field.get_default()
-
-    columns = ", ".join(values)
-    placeholders = ", ".join(["%s"] * len(values))
-    with connection.cursor() as cursor:
-        cursor.execute(
-            f"INSERT INTO auctions_vehicleimage ({columns}) VALUES ({placeholders})",
-            list(values.values()),
-        )
+    """Same reason, same helper — the columns are read off the model."""
+    insert_raw(
+        VehicleImage,
+        vehicle_id=vehicle_id,
+        image=name,
+        position=position,
+        is_cover=True,
+    )
 
 
 def test_only_one_cover_image_per_vehicle(make_auction, make_vehicle):

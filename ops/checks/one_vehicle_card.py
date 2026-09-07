@@ -86,6 +86,11 @@ NOT_A_CARD = {
     # added appears everywhere. Nothing here would want a new card field, which
     # is exactly the test of whether an exemption is honest.
     BACKEND / "apps" / "bidding" / "live.py",
+    #: `seed_demo` يبني **مزادات ومركبات**، لا بطاقات. وقاموسه الذي يُمسَك هنا
+    #: هو جدولُ المزادات الثلاثة (`title` و`state` و`location`) — ثلاثة أسماء
+    #: صارت تلتقي في الكرت بعد تكافؤ v1، فبدت للفحص كرتاً. وهو أمرُ تطويرٍ لا
+    #: يعمل خارج `DEBUG`، ولا يرسم شيئاً لأحد.
+    BACKEND / "apps" / "auctions" / "management" / "commands" / "seed_demo.py",
 }
 
 SKIP_PARTS = {"__pycache__", "migrations", ".venv", "node_modules"}

@@ -1,4 +1,4 @@
-"""الاستردادات، ومزايدات حسب المزاد. T830-ل.
+"""الاستردادات، وطابور العجز، ومزايدات حسب المزاد. T826 · T830ل · T835.
 
 شاشتان من قائمتين مختلفتين، وتجمعهما ملاحظةٌ واحدة: كلتاهما في v1 **تعرض
 رقماً لا يطابق شاشةً أخرى تعرض الشيء نفسه**.
@@ -27,21 +27,41 @@
 نفسه** — أحدُ سبعة تكرارات في جدول الكروت (الشاشة ٣٧-ب). وهي شاشةُ اختيار:
 اختر مزاداً لترى مزايداته.
 
-و`console:auction-bids` مبنيّةٌ منذ T826 وتعرض مزايدات مزادٍ بعينه بحالة كلٍّ
+و`console:auction-bids` مبنيّةٌ منذ T835 وتعرض مزايدات مزادٍ بعينه بحالة كلٍّ
 منها. فما ينقص مدخلُها: قائمةٌ تُختار منها. وهذا ما هنا.
+
+
+طابور العجز
+===========
+`HR-09` بنى `odoo.RefundShortfall`: أودو يطلب سحب وديعةٍ مرهونة، فيُفتح صفٌّ
+يقول كم طُلب وكم كان متاحاً وكم العجز، ولا يُنفَّذ شيء آلياً. ومُسجَّلٌ في
+`tasks.md` أن **«لا شاشة للطابور بعد»** — أي أن الصفّ يُكتب ولا يبلغه موظّف،
+والعميل يسأل «أين استردادي؟» وجوابه مكتوبٌ عندنا في جدولٍ لا باب له.
+
+**والقراءة والإغلاق صلاحيتان لا واحدة.** المستودع يقسم المال ثلاثاً — قراءةُ
+الدفتر، والفعل فيه، ومنحُ استثناء — لأن v1 جمعها في علمٍ واحد «فمن يقرأ رصيداً
+كان يستطيع مصادرته». والقراءة هنا تشخيصٌ يحتاجه الدعم ليجيب العميل؛ والإغلاق
+قرارٌ يقول «لا استرداد» أو «صُرف بطريقةٍ أخرى»، وهو من ثقة `money.act`.
+
+**ولا يُصلَح شيءٌ آلياً هنا،** لنفس سبب `BalanceCheck`: حسابُ المنصّة لا يقرّر
+هل سُلّمت السيارة. يقرّر إنسانٌ، ويقول كيف.
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from apps.auctions.models import Auction
 from apps.bidding.models import Bid
+from apps.core import audit
 from apps.money.models import RefundRequest, RefundRequestState
+from apps.odoo.models import RefundShortfall
 
 from .exports import export, wants_export
 from .views import console_page
@@ -150,7 +170,7 @@ def auctions_with_bids(text: str = ""):
 def auction_bids_index(request):
     """مزايدات حسب المزاد: اختر مزاداً لتفتح مزايداته.
 
-    و`console:auction-bids` هي التي تعرضها، وهي مبنيّةٌ منذ T826 بحالة كل
+    و`console:auction-bids` هي التي تعرضها، وهي مبنيّةٌ منذ T835 بحالة كل
     مزايدة — مسحوبةً ومستبدَلةً وقائمة. فما ينقص هو المدخل، وهو هذا.
     """
     rows = auctions_with_bids(request.GET.get("q", ""))
@@ -165,3 +185,77 @@ def auction_bids_index(request):
             "total": Bid.objects.count(),
         },
     )
+
+
+# -------------------------------------------------------------------------
+# طابور العجز — الرقم في اللوحة له باب. T826
+# -------------------------------------------------------------------------
+
+LIMIT = 200
+
+
+@console_page("console:refund-queue")
+def refund_queue(request):
+    """ما ينتظر قراراً، أطولُه انتظاراً أوّلاً.
+
+    الترتيب بالانتظار لا بالمعرّف: السؤال الذي تجيبه هذه الصفحة هو «من ينتظر
+    استرداده منذ متى»، والمعرّف لا يقول شيئاً عن ذلك. نظير ترتيب
+    `partner-decisions` بالسبب نفسه.
+    """
+    open_cases = (
+        RefundShortfall.objects.filter(resolved_at__isnull=True)
+        .select_related("user", "message")
+        .order_by("opened_at")[:LIMIT]
+    )
+    closed = (
+        RefundShortfall.objects.filter(resolved_at__isnull=False)
+        .select_related("user", "resolved_by")
+        .order_by("-resolved_at")[:20]
+    )
+    return render(
+        request,
+        "console/refund_queue.html",
+        {"cases": open_cases, "closed": closed},
+    )
+
+
+@console_page("console:refund-resolve")
+def refund_resolve(request, pk: int):
+    """أغلق قضيةً بقرارٍ مكتوب. الكتابة الوحيدة على هذه الشاشة."""
+    case = get_object_or_404(RefundShortfall.objects.select_related("user"), pk=pk)
+
+    if request.method != "POST":
+        return redirect("console:refund-queue")
+
+    resolution = (request.POST.get("resolution") or "").strip()
+    if not resolution:
+        # القيد `a_closed_shortfall_names_its_decision` يمنع الفارغ في القاعدة،
+        # لكن بلوغه من شاشةٍ صفحةُ خطأ لا جملةٌ بجانب الخانة. ومسافاتٌ بيضاء
+        # تمرّ من `CHECK` وليست قراراً.
+        messages.error(request, "قرار الإغلاق مطلوب.")
+        return redirect("console:refund-queue")
+
+    if case.resolved_at is not None:
+        # إغلاقٌ ثانٍ يمحو اسم من أغلق أولاً وقراره — وهو ما يُسأل عنه لاحقاً.
+        # والرفض هنا لا في القاعدة: لا قيدَ يمنعه، ولأن صفحتين مفتوحتين على
+        # الطابور حالةٌ عاديّة لا نادرة.
+        messages.error(request, "هذه القضية مُغلقة، ولها قرارٌ واسم من أغلقها.")
+        return redirect("console:refund-queue")
+
+    before = audit.snapshot(case, ["resolved_at", "resolution", "shortfall"])
+
+    case.resolved_at = timezone.now()
+    case.resolution = resolution
+    case.resolved_by = request.user
+    case.save(update_fields=["resolved_at", "resolution", "resolved_by"])
+
+    audit.record(
+        action="console.resolve_refund_shortfall",
+        entity=case,
+        actor=request.user,
+        before=before,
+        after=audit.snapshot(case, ["resolved_at", "resolution", "shortfall"]),
+        note=resolution,
+    )
+    messages.success(request, "أُغلقت القضية.")
+    return redirect("console:refund-queue")

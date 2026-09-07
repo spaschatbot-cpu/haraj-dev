@@ -182,3 +182,35 @@ def the_edge_is_metered_in_a_deployed_environment(app_configs, **kwargs) -> list
         )
 
     return findings
+
+
+@register(Tags.security, deploy=True)
+def media_base_url_is_absolute_in_production(app_configs, **kwargs):
+    """A relative media URL in production is every image broken, silently.
+
+    The clients are separate origins — Next on Vercel, and a phone app that is
+    no origin at all — so a path like `/media/...` resolves against *their*
+    address and 404s. Nothing raises: the JSON is valid, the card renders, and
+    only the picture is missing. That is exactly the defect nobody reports for
+    a week, and it happened here.
+
+    A deploy check rather than a test because the value is an environment
+    variable: no test knows what production will be handed, and the moment to
+    refuse is `manage.py check --deploy`, before the release goes out.
+    """
+    if settings.DEBUG:
+        return []
+    base = getattr(settings, "MEDIA_BASE_URL", "")
+    if base.startswith(("http://", "https://")):
+        return []
+    return [
+        Error(
+            "MEDIA_BASE_URL فارغ أو ليس عنواناً مطلقاً.",
+            hint=(
+                "اضبطه على أصل الملفّات — S3/CloudFront في الإنتاج. ومسارٌ "
+                "نسبيّ يجعل كل صورة تُطلب من أصل العميل فترجع 404، بلا خطأ "
+                "في أي سجلّ."
+            ),
+            id="core.E010",
+        )
+    ]

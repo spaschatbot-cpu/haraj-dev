@@ -64,24 +64,18 @@ const VEHICLE = {
   auction_number: 811,
   auction_state: "live",
   lot_number: 14,
-  title: "تويوتا كامري 2022",
+  reference: "#91",
+  title: "تويوتا كامري",
   make: "تويوتا",
   model: "كامري",
   year: 2022,
   odometer_km: 84000,
-  transmission: "automatic",
-  transmission_label: "أوتوماتيك",
-  fuel_type: "petrol",
-  fuel_type_label: "بنزين",
+  colour: "silver",
+  colour_label: "فضي",
   condition: "good",
   condition_label: "جيدة",
-  plate_type: "private",
-  plate_type_label: "خصوصي",
-  reserve_price: "48500.75",
+  location: "الرياض / طريق الحائر",
   state: "listed",
-  state_label: "معروضة",
-  listing_state: "open",
-  owner_company_name: "شركة المعارض",
   thumbnail_url: null,
 };
 
@@ -215,9 +209,8 @@ describe("المفضّلة", () => {
   });
 
   it("فشل قراءة المفضّلة لا يُسقط صفحة المركبة", async () => {
-    // The car, its price and its specification are what this page is for. A
-    // hollow heart is a smaller loss than a 500 on a page arriving from a
-    // search result.
+    // The car and its specification are what this page is for. A hollow heart
+    // is a smaller loss than a 500 on a page arriving from a search result.
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input: RequestInfo | URL) => {
@@ -230,8 +223,8 @@ describe("المفضّلة", () => {
 
     const html = await render(VehiclePage({ params: Promise.resolve({ id: "91" }) }));
 
-    expect(html).toContain("تويوتا كامري 2022");
-    expect(html).toContain("48500.75");
+    expect(html).toContain("تويوتا كامري");
+    expect(html).toContain("اللون");
   });
 });
 

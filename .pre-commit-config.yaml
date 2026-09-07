@@ -101,3 +101,21 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+
+      # رقمٌ واحد لتاسكين مرجعٌ مكسور: من يسأل «ما هذا التاسك؟» يجد جوابين.
+      # ويعمل على markdown لا على python — التصادم يقع في `tasks.md`.
+      - id: no-task-number-twice
+        name: one task number, one task
+        entry: uv run --directory backend python ../ops/checks/no_task_number_twice.py
+        language: system
+        files: '^specs/.*/tasks\.md$'
+        pass_filenames: false
+
+      # `LANGUAGE_CODE = "ar"` يعرض `10000.00` كـ`10000,00`. ومن يطابق شاشةً
+      # بدفترٍ لا يُطلب منه أن يفكّ تحويل عرضٍ في رأسه.
+      - id: console-money-is-shown-raw
+        name: money on screen matches the ledger
+        entry: uv run --directory backend python ../ops/checks/console_money_is_shown_raw.py
+        language: system
+        files: '^backend/templates/console/.*\.html$'
+        pass_filenames: false

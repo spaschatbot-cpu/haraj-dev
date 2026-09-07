@@ -22,7 +22,6 @@ from apps.auctions.cards import VEHICLE_CARD_FIELDS, card_queryset, vehicle_card
 from apps.auctions.listing import vehicle_page
 from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
-from apps.auctions.visibility import ListingState
 
 pytestmark = pytest.mark.django_db
 
@@ -49,38 +48,53 @@ def test_every_path_produces_the_same_field_set(live_auction, make_vehicle, staf
     assert direct == listed == set(VEHICLE_CARD_FIELDS)
 
 
-def test_the_card_carries_the_one_price_as_text(live_auction, make_vehicle):
+def test_the_card_carries_no_price_at_all(live_auction, make_vehicle):
+    """‏v1 لا يعرض سعراً على الكرت، وطلب المالك «بدون زيادة» (2026-09-06).
+
+    والحذف من **الكرت** لا يمسّ النموذج: `reserve_price` يبقى السعر الوحيد
+    (T406) وتقرؤه بوابةُ الأهلية والتسوية. ويصل شاشةَ المزايدة عبر
+    `minimum_bid` من `check_eligibility` — حيث يحتاجه المزايد فعلاً، وبعد أن
+    عرف الخادمُ من هو.
+
+    وليست مسألةَ ذوق: كرتٌ يحمل سعر الوقوف يُخبر كلَّ متصفّحٍ — ومن لم يسجّل
+    دخوله — بأقلّ ما يقبله البائع، قبل أن يزايد أحد.
+    """
     vehicle = make_vehicle(
         live_auction, state=VehicleState.LISTED, reserve_price=Decimal("50000.10")
     )
 
     card = vehicle_card(vehicle)
 
-    assert card["reserve_price"] == "50000.10"
-    assert isinstance(card["reserve_price"], str)  # never a float, Article 3-2
-    assert not [key for key in card if "price" in key and key != "reserve_price"]
+    assert not [key for key in card if "price" in key], sorted(card)
+    assert vehicle.reserve_price == Decimal("50000.10"), "أُزيل من النموذج لا من الكرت"
 
 
 def test_specifications_are_on_the_card_without_a_second_query(
     live_auction, make_vehicle, django_assert_num_queries
 ):
-    """T407 — the specs are columns, so reading them costs nothing extra."""
+    """T407 — the specs are columns, so reading them costs nothing extra.
+
+    والمواصفات هي ما يعرضه v1: سنة الصنع واللون والممشى والحالة والموقع. ولا
+    ناقلَ حركةٍ ولا وقودَ ولا نوعَ لوحة — لا يعرضها كرت v1، والطلب «بدون
+    زيادة». وهي باقيةٌ على النموذج، تُحرّرها اللوحة ويقرؤها من يحتاجها.
+    """
     make_vehicle(
         live_auction,
         state=VehicleState.LISTED,
         odometer_km=120_000,
-        transmission="automatic",
-        fuel_type="petrol",
-        condition="running",
+        colour="silver",
+        condition="accident",
     )
 
     with django_assert_num_queries(2):  # the vehicles, and the cover prefetch
         cards = [vehicle_card(v) for v in card_queryset(Vehicle.objects.all())]
 
     assert cards[0]["odometer_km"] == 120_000
-    assert cards[0]["transmission_label"] == "أوتوماتيك"
-    assert cards[0]["fuel_type_label"] == "بنزين"
-    assert cards[0]["condition_label"] == "تسير"
+    assert cards[0]["colour_label"] == "فضي"
+    assert cards[0]["condition_label"] == "حادث"
+    assert cards[0]["location"] == live_auction.location
+    for gone in ("transmission", "fuel_type", "plate_type", "owner_company_name"):
+        assert gone not in cards[0], f"{gone} ما زال على الكرت وv1 لا يعرضه"
 
 
 def test_fifty_cards_cost_the_same_queries_as_one(
@@ -96,7 +110,12 @@ def test_fifty_cards_cost_the_same_queries_as_one(
     assert len(cards) == 50
 
 
-def test_the_card_says_both_states_and_does_not_confuse_them(make_auction, make_vehicle):
+def test_the_card_carries_the_state_as_a_code_and_no_prose(make_auction, make_vehicle):
+    """الحالة رمزاً لا نصّاً.
+
+    زرّ «مزايدة» على كرت v1 يُفعَّل أو يُعطَّل بها، فالعميل يحتاج القيمة.
+    أما نصّها المعروض («الحالة تحت المزايدة») و«حالة العرض» فلا يعرضهما v1.
+    """
     hidden = make_vehicle(
         make_auction(state=AuctionState.DRAFT), state=VehicleState.LISTED
     )
@@ -104,17 +123,25 @@ def test_the_card_says_both_states_and_does_not_confuse_them(make_auction, make_
     card = vehicle_card(hidden)
 
     assert card["state"] == VehicleState.LISTED
-    assert card["listing_state"] == ListingState.HIDDEN
+    assert "state_label" not in card
+    assert "listing_state" not in card
 
 
-def test_a_partner_owned_card_names_its_owner(live_auction, make_vehicle, partner):
+def test_a_partner_owned_card_does_not_name_its_owner(
+    live_auction, make_vehicle, partner
+):
+    """‏v1 لا يعرض اسم الشركة المالكة على الكرت — ولا نحن الآن.
+
+    وله وجهٌ ثانٍ غير التكافؤ: اسمُ المالك على كرتٍ عامّ يخبر المزايدين بمن
+    يبيع، وذلك ما لا يقرّره الكرت.
+    """
     card = vehicle_card(
         make_vehicle(
             live_auction, state=VehicleState.LISTED, owner_company=partner.company
         )
     )
 
-    assert card["owner_company_name"] == "شركة الشريك"
+    assert "owner_company_name" not in card
 
 
 def test_a_card_with_no_cover_image_says_so_rather_than_guessing(

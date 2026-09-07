@@ -196,9 +196,9 @@ def test_no_link_in_the_tree_is_written_by_hand():
 
 
 def test_no_template_puts_unlocalize_before_its_default():
-    """حارسٌ يعمل ولا يُشغَّل هو حارسٌ لا يعمل. T830-د.
+    """حارسٌ يعمل ولا يُشغَّل هو حارسٌ لا يعمل. T830د.
 
-    `ops/checks/default_runs_before_unlocalize.py` كُتب في T828 ولم يُوصَل
+    `ops/checks/default_runs_before_unlocalize.py` كُتب في T836 ولم يُوصَل
     بالحزمة، فبقي يُشغَّل بـ`just lint` وحدها — و`just` هنا يبدأ كل أمرٍ
     بـ`uv run`، وهو غير مثبَّت (CLAUDE.md §7). فمرَّت الحزمةُ **خضراءَ على
     إحدى عشرة مخالفةً أُدخلت في هذه الجلسة نفسها**، ولم يُمسَك إلا بتشغيلٍ

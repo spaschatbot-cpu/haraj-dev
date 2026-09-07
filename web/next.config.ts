@@ -32,6 +32,36 @@ const nextConfig: NextConfig = {
    * وأثرُه في الإنتاج **صفر**: الإعداد لا يقرأه إلا `next dev`.
    */
   allowedDevOrigins: ["127.0.0.1"],
+
+  /**
+   * من أين يُسمح بجلب الصور.
+   *
+   * ‏`next/image` يرفض أي مضيفٍ غير مُصرَّح — وهو محقّ: بلا هذه القائمة يصير
+   * مُحسِّن الصور وكيلاً مفتوحاً يجلب أي عنوان يضعه أحدٌ في البيانات.
+   *
+   * والمضيف ليس مضيفنا: الخلفية على أصلٍ آخر (AWS)، والصور في الإنتاج على
+   * S3/CloudFront. فيُقرأ من البيئة، ويُضاف المضيف المحلّي في التطوير وحده —
+   * وقد سقطت الصفحة كلّها بـ«hostname 127.0.0.1 is not configured» قبل هذا.
+   */
+  images: {
+    // ‏Next 16 يرفض جلب صورة من عنوانٍ خاصّ (`127.0.0.1`) حمايةً من SSRF —
+    // وهو محقّ: مُحسِّن الصور يجلب ما يُملى عليه، وعنوانٌ داخليّ في البيانات
+    // يجعله نافذةً على الشبكة الداخلية. **وفي التطوير وحده** تُرفَع الحماية،
+    // لأن الخلفية هناك على `127.0.0.1:8000` بالضرورة. وفي الإنتاج المضيف
+    // عامٌّ (CloudFront) فلا حاجة إليها، والشرط أدناه يمنعها.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV !== "production",
+    remotePatterns: [
+      ...(process.env.NEXT_PUBLIC_MEDIA_HOST
+        ? [new URL(`${process.env.NEXT_PUBLIC_MEDIA_HOST}/**`)]
+        : []),
+      ...(process.env.NODE_ENV === "production"
+        ? []
+        : ([
+            { protocol: "http", hostname: "127.0.0.1", port: "8000", pathname: "/media/**" },
+            { protocol: "http", hostname: "localhost", port: "8000", pathname: "/media/**" },
+          ] as const)),
+    ],
+  },
 };
 
 export default nextConfig;
