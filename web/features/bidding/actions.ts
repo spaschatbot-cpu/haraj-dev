@@ -33,10 +33,31 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader } from "@/lib/session";
+import { authHeader, clearSession } from "@/lib/session";
+
+/**
+ * رفضٌ سببه أن الجلسة انتهت — لا رفضُ مزايدة.
+ *
+ * ‏`authentication_failed` ليس سبباً من أسباب الرفض المُعدَّدة في
+ * `apps/bidding/eligibility.py`: العميل لم يُمنع، بل لم يُعرَف. وعرضُه في
+ * لافتة المزايدة يقول «حاول ثانيةً» لمن لا تنفعه محاولة — يحتاج أن يدخل.
+ *
+ * والكوكيّتان تُمسحان: كوكي الوصول مات، وتركُ الشاشة تعرض هيكل «الداخل»
+ * بعده هو نفسه العطل الذي وُلد `middleware.ts` لأجله.
+ */
+const SESSION_GONE = "authentication_failed";
 
 async function refuse(error: unknown, back: string): Promise<never> {
   const store = await cookies();
+
+  if (error instanceof ApiError && error.code === SESSION_GONE) {
+    clearSession(store);
+    setFlash(store, {
+      code: SESSION_GONE,
+      message: "انتهت جلستك. سجّل دخولك ثم أعد المحاولة.",
+    });
+    redirect(`/sign-in?next=${encodeURIComponent(back)}`);
+  }
 
   setFlash(store, {
     // The enumerated reason itself — `no_deposit`, `unpaid_dues`,

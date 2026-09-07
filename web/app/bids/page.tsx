@@ -24,7 +24,7 @@ import { Pagination } from "@/features/catalog/Pagination";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
-import { takeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { amount, count, dateTime } from "@/lib/format";
 import { readPaging, toParams } from "@/lib/paging";
 import { authHeader, hasSession } from "@/lib/session";
@@ -44,7 +44,7 @@ export default async function BidsPage({
   const store = await cookies();
   if (!hasSession(store)) redirect("/sign-in");
 
-  const flash = takeFlash(store);
+  const flash = readFlash(store);
   const headers = authHeader(store);
   const query = toParams(await searchParams);
   const { limit, offset } = readPaging(query);

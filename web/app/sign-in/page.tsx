@@ -21,7 +21,7 @@ import { redirect } from "next/navigation";
 import { sendCode, verifyCode } from "@/features/auth/actions";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
-import { takeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { hasSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -44,7 +44,7 @@ export default async function SignInPage({
   const params = await searchParams;
   const phone = typeof params.phone === "string" ? params.phone : "";
   const sent = params.sent === "1";
-  const flash = takeFlash(store);
+  const flash = readFlash(store);
 
   return (
     <PageShell title={sent ? "أدخل الرمز" : "الدخول"}>

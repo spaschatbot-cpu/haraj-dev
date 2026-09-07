@@ -96,7 +96,14 @@ export async function verifyCode(form: FormData): Promise<void> {
   }
 
   const store = await cookies();
-  setSession(store, { access: tokens.access, refresh: tokens.refresh });
+  //: و`expires_in` معه: عمرُ الكوكي = عمرُ الرمز، فغيابُه إشارةُ انتهاءٍ
+  //: يقرؤها `middleware.ts` ليبدّله. بلا هذا يعيش الكوكي يوماً كاملاً على
+  //: رمزٍ عمره ربع ساعة، فتقول الشاشة «داخل» وكل فعلٍ يردّ 401.
+  setSession(store, {
+    access: tokens.access,
+    refresh: tokens.refresh,
+    expiresIn: tokens.expires_in,
+  });
 
   redirect(AFTER_SIGN_IN);
 }

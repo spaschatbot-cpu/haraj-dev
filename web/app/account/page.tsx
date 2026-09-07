@@ -24,7 +24,7 @@ import { signOut } from "@/features/auth/actions";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
-import { takeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { authHeader, hasSession } from "@/lib/session";
 
 export const metadata: Metadata = {
@@ -50,7 +50,7 @@ export default async function AccountPage() {
   const store = await cookies();
   if (!hasSession(store)) redirect("/sign-in");
 
-  const flash = takeFlash(store);
+  const flash = readFlash(store);
   const headers = authHeader(store);
 
   let profile;

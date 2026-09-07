@@ -38,7 +38,7 @@ import { LiveBids, type LiveBid } from "@/features/bidding/LiveBids";
 import { FavouriteButton } from "@/features/favourites/FavouriteButton";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
-import { takeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { authHeader, hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
@@ -108,7 +108,7 @@ export default async function VehiclePage({ params }: Params) {
   // two readers would consume it twice and show it in one place only, at random.
   const store = await cookies();
   const signedIn = hasSession(store);
-  const flash = takeFlash(store);
+  const flash = readFlash(store);
 
   // Whether *this* customer has marked this car. Read from the server rather
   // than remembered in the browser: a heart that reflects a client-side toggle

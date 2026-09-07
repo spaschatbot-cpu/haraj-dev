@@ -16,6 +16,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   ACCESS_COOKIE,
@@ -155,5 +157,57 @@ describe("the guard that keeps tokens out of readable storage", () => {
     } finally {
       await rm(scratch, { recursive: true, force: true });
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// الجلسة تجدّد نفسها — والعطلان اللذان منعا ذلك
+// ---------------------------------------------------------------------------
+
+describe("تجديد الجلسة", () => {
+  it("الوسيط يعمل على عقدة لا على الحافّة", async () => {
+    /*
+      قِيس (2026-09-07): على الحافّة يرسل عميلُ العقد `POST` **بلا جسم**،
+      فتردّ الخلفية «هذا الحقل مطلوب» ويُقرأ ذلك رفضاً للرمز — فتُمسح الجلسة
+      بدل أن تُجدَّد. أي أن السطر الواحد أدناه هو الفرق بين تجديدٍ وخروجٍ
+      كامل، ولا شيء في الأنواع يمسك حذفه.
+    */
+    const source = await readFile(join("middleware.ts"), "utf8");
+
+    expect(source).toMatch(/export const runtime = "nodejs"/);
+  });
+
+  it("عمرُ كوكي الوصول عمرُ الرمز، لا يوماً كاملاً", async () => {
+    //: كان يوماً بينما الرمز ربع ساعة، فتقول `hasSession` «داخل» على رمزٍ
+    //: ميت: الشاشة تعرض صندوق المزايدة وكل فعلٍ يردّ 401. وغيابُ الكوكي هو
+    //: ما يقرؤه الوسيط ليجدّد، فإطالتُه تُعطّل التجديد أيضاً.
+    const source = await readFile(join("lib", "session.ts"), "utf8");
+
+    expect(source).toMatch(/expiresIn/);
+    expect(source).not.toMatch(/ACCESS_MAX_AGE = 60 \* 60 \* 24/);
+  });
+
+  it("قراءة الرسالة لا تحذفها — الحذف في الوسيط", async () => {
+    /*
+      `takeFlash` كانت تحذف الكوكي وهي تُنادى من **سبع** مكوّنات خادم، وNext
+      يرفض تعديل كوكي في رندرة: كل فعلٍ يضع رسالةً ثم يحوّل كان ينتهي بخطأ
+      خادم. ولم يكشفه اختبار لأن `next/headers` مستبدَلٌ بمخزنٍ متساهل — ولذلك
+      يُقاس المصدر هنا، ويحرسه `ops/checks/web_renders_never_write_cookies.mjs`.
+    */
+    const source = await readFile(join("lib", "flash.ts"), "utf8");
+
+    expect(source).toMatch(/export function readFlash/);
+    expect(source).not.toMatch(/export function takeFlash/);
+
+    const body = source.slice(source.indexOf("export function readFlash"));
+    expect(body).not.toMatch(/store\.delete\(/);
+  });
+
+  it("ولا رندرة تكتب كوكي — الحارس يمرّ على الشجرة كما هي", async () => {
+    const { violations } = await import(
+      "../../../ops/checks/web_renders_never_write_cookies.mjs"
+    );
+
+    expect(await violations()).toEqual([]);
   });
 });

@@ -22,7 +22,7 @@ import { payInvoice } from "@/features/wallet/actions";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
-import { takeFlash } from "@/lib/flash";
+import { readFlash } from "@/lib/flash";
 import { amount, dateTime } from "@/lib/format";
 import { readNumber } from "@/lib/paging";
 import { authHeader, hasSession } from "@/lib/session";
@@ -50,7 +50,7 @@ export default async function InvoicePage({
 
   const { id } = await params;
   const invoiceId = readNumber(id, 0);
-  const flash = takeFlash(store);
+  const flash = readFlash(store);
   const headers = authHeader(store);
 
   let invoice;
