@@ -232,9 +232,10 @@ class Command(BaseCommand):
             # `ignore_conflicts`: الجوّالُ مفتاحٌ فريد، وv1 يحوي مكرَّرات —
             # وهي حقيقةٌ في بياناته لا عطلٌ عندنا. الأوّلُ يفوز ويُعدّ الباقي.
             User.objects.bulk_create(batch, batch_size=1000, ignore_conflicts=True)
-            found = {p.phone: p for p in User.objects.filter(
-                phone__in=[p.phone for p in batch]
-            )}
+            found = {
+                p.phone: p
+                for p in User.objects.filter(phone__in=[p.phone for p in batch])
+            }
             made = {
                 key: found[person.phone]
                 for key, person in made.items()
@@ -266,9 +267,7 @@ class Command(BaseCommand):
             key = (str(row.get("auction_id")), lot)
             if key in lots:
                 # `one_lot_per_auction` قيدٌ في القاعدة، وv1 يحوي مكرَّرات.
-                self._reject(
-                    "مركبة: رقمُ لوتٍ مكرَّر في المزاد نفسه", row["id"], str(lot)
-                )
+                self._reject("مركبة: رقمُ لوتٍ مكرَّر في المزاد نفسه", row["id"], str(lot))
                 skipped += 1
                 continue
             lots.add(key)

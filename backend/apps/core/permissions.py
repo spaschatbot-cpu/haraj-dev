@@ -309,6 +309,48 @@ def assign_role(user, slug: str, *, save: bool = True) -> None:
         user.save(update_fields=["console_role"])
 
 
+def role_of(user) -> str:
+    """معرّفُ دور هذا الشخص — **قراءةٌ واحدة، وليست إذناً**. T852.
+
+    الحقل له قارئٌ واحد بحكم `ops/checks/one_permission_gate.py`، وشاشةٌ تحتاج
+    أن تعرف الدور **لتكتبه في استمارة** أو لتقارن ما اختير بما هو قائم تسأله
+    من هنا. ومن يريد أن يعرف «هل يستطيع؟» يسأل :func:`can` — والفرقُ مكتوبٌ
+    هنا كي لا تُستعمل هذه مكان تلك.
+    """
+    return getattr(user, "console_role", "") or ""
+
+
+def is_last_active_owner(person) -> bool:
+    """أهذا آخرُ مالكٍ **فاعل** في اللوحة؟ T852.
+
+    ليس سؤالَ صلاحية — هو سؤالُ سلامة: لوحةٌ لا مالكَ فاعلَ فيها لا يفتحها
+    أحد، ولا شاشةَ تصلحها، ولا طريقَ للعودة إلا من قاعدة البيانات مباشرةً.
+    وv1 يعالجها بمنع حذف أي مالكٍ مطلقاً — وهو أشدُّ من اللازم: مالكان
+    أحدُهما ترك العمل **يجب** أن يُعطَّل. فالقيدُ هنا على الأخير وحده.
+
+    وهي هنا لا في الشاشة لأنها تقرأ حقل الدور، ولذلك الحقل قارئٌ واحد.
+    """
+    from apps.accounts.models import User
+
+    if role_of(person) != Role.OWNER or not getattr(person, "is_active", False):
+        return False
+    return (
+        not User.objects.filter(is_staff=True, is_active=True, console_role=Role.OWNER)
+        .exclude(pk=person.pk)
+        .exists()
+    )
+
+
+def is_owner_account(user) -> bool:
+    """أيحمل هذا الحساب دور المالك؟ — **للعرض والسلامة، لا للإذن**.
+
+    تُستعمل لرسم التاج بجوار الاسم، ولمنع نزع آخر مالك. ولا يجوز أن تُستعمل
+    للسماح بشيء: ذلك ما يسأله :func:`can`، و`hasRole('owner')` في v1 تُجيب
+    بنعم لكل دورٍ يُسأل عنه حين يكون السائل مالكاً — وتلك حادثتُه لا حلُّه.
+    """
+    return role_of(user) == Role.OWNER
+
+
 def is_built_in(slug: str) -> bool:
     """هل هذا الدور مكتوبٌ في الشيفرة — أي لا يُحذف ولا يُعدَّل من شاشة."""
     return slug in ROLE_CAPABILITIES

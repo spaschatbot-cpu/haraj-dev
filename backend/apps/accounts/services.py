@@ -340,7 +340,10 @@ def sign_in_with_code(*, phone: str, code: str, full_name: str = "") -> tuple[Us
     #
     # وهنا لا في `user_for_verified_phone` وحدها: تلك تُستدعى أيضاً من مسار
     # تغيير الجوّال، وهو تصحيحُ بياناتٍ لحسابٍ قائم لا فتحُ جلسةٍ جديدة.
-    if existing is not None and not existing.is_active:
+    if existing is not None and (
+        not existing.is_active
+        or (existing.banned_until and existing.banned_until > timezone.now())
+    ):
         raise AccountStopped(f"{phone} موقوف")
 
     return user_for_verified_phone(phone=phone, full_name=full_name)
@@ -652,9 +655,29 @@ def save_company_profile(*, user: User, fields: dict) -> Company:
 
     before = None if is_new else audit.snapshot(existing, REQUIRED_COMPANY_FIELDS)
     company = existing or Company(user=user)
+
+    company_direct_fields = {
+        "name",
+        "representative_name",
+        "commercial_register",
+        "vat_number",
+    }
+    address_fields = {"building_number", "street", "district", "city", "postal_code"}
+
     for field, value in fields.items():
-        setattr(company, field, value)
+        if field in company_direct_fields:
+            setattr(company, field, value)
     company.save()
+
+    addr_data = {
+        field: value for field, value in fields.items() if field in address_fields
+    }
+    if addr_data:
+        from apps.accounts.models import NationalAddress
+
+        addr, _ = NationalAddress.objects.update_or_create(user=user, defaults=addr_data)
+        user.national_address = addr
+        company.user = user
 
     # The account becomes a company account by having one. Deriving it here
     # rather than trusting a flag in the request body means nobody bids under a
@@ -763,8 +786,15 @@ def set_capability(
 
 
 @transaction.atomic
-def set_customer_access(*, user: User, active: bool, reason: str, actor: User) -> User:
-    """أوقف عميلاً عن الدخول أو أعِد تفعيله — الكاتب الوحيد لـ`is_active`.
+def set_customer_access(
+    *,
+    user: User,
+    active: bool,
+    reason: str,
+    actor: User,
+    banned_until: timezone.datetime | None = None,
+) -> User:
+    """أوقف عميلاً عن الدخول أو أعِد تفعيله — الكاتب الوحيد لـ`is_active` و`banned_until`.
 
     الحقل كان قائماً وليس من حقول أي استمارة: إيقاف مزايدٍ يقع بيدٍ على قاعدة
     البيانات، بلا سببٍ مقروء ولا اسم فاعلٍ ولا صفٍّ في سجلّ التدقيق. وإيقافُ
@@ -784,17 +814,31 @@ def set_customer_access(*, user: User, active: bool, reason: str, actor: User) -
     if not text:
         raise ValueError("سبب الإيقاف أو الإعادة مطلوب")
 
-    before = {"is_active": user.is_active}
+    before = {
+        "is_active": user.is_active,
+        "banned_until": str(user.banned_until) if user.banned_until else None,
+    }
+    update_fields = []
     if user.is_active != active:
         user.is_active = active
-        user.save(update_fields=["is_active"])
+        update_fields.append("is_active")
+
+    if user.banned_until != banned_until:
+        user.banned_until = banned_until
+        update_fields.append("banned_until")
+
+    if update_fields:
+        user.save(update_fields=update_fields)
 
     audit.record(
         action="console.set_customer_access",
         entity=user,
         actor=actor,
         before=before,
-        after={"is_active": active},
+        after={
+            "is_active": active,
+            "banned_until": str(user.banned_until) if user.banned_until else None,
+        },
         note=text,
     )
     return user

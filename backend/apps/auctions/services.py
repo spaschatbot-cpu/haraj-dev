@@ -310,9 +310,7 @@ def add_image(vehicle: Vehicle, file, *, position: int = 0, cover: bool = False)
     return image
 
 
-def cascade_auction_vehicles(
-    auction: Auction, old_status: str, new_status: str
-) -> int:
+def cascade_auction_vehicles(auction: Auction, old_status: str, new_status: str) -> int:
     """Cascade auction status change to matching vehicles (T849).
 
     In v1: only vehicles whose status was in sync with the auction's previous

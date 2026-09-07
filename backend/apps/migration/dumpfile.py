@@ -43,9 +43,7 @@ _CREATE = re.compile(r"^CREATE TABLE `([^`]+)` \($")
 #: سطرُ عمودٍ داخل التعريف: `` `name` type ... `` — والقيودُ تبدأ بكلماتٍ
 #: محجوزة، فتُستثنى بالاسم لا بالترتيب.
 _COLUMN = re.compile(r"^\s+`([^`]+)`\s")
-_NOT_A_COLUMN = re.compile(
-    r"^\s+(PRIMARY|UNIQUE|KEY|CONSTRAINT|FULLTEXT|SPATIAL|CHECK)"
-)
+_NOT_A_COLUMN = re.compile(r"^\s+(PRIMARY|UNIQUE|KEY|CONSTRAINT|FULLTEXT|SPATIAL|CHECK)")
 
 #: `INSERT INTO \`name\` VALUES (…),(…);`
 _INSERT = re.compile(r"^INSERT INTO `([^`]+)` VALUES ")

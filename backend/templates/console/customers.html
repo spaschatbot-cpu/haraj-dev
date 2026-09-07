@@ -19,9 +19,9 @@
     حسابات الأفراد والشركات: من هو، وهل يستطيع الدخول، وكم له عندنا في الدفتر.
   </p>
 
-  <div class="stats">
+  <section class="board-stats" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
-  </div>
+  </section>
 
   {% comment %} I5: كل قائمة تُصدَّر، والتصديرُ يحمل المرشّح الذي على الشاشة.
      `export_url` هو هذا الطلب نفسه بمعامل واحد يُضاف، يُبنى في
@@ -90,7 +90,7 @@
               {% if customer.full_name %}{{ customer.full_name }}{% else %}<span class="empty">بلا اسم</span>{% endif %}
             </a>
             {% if customer.company.city %}
-              <small class="muted">{{ customer.company.city }}</small>
+              <small class="empty">{{ customer.company.city }}</small>
             {% endif %}
           </td>
           <td>{{ customer.phone }}</td>

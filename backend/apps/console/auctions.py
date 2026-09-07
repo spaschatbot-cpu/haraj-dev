@@ -57,6 +57,21 @@ PAGE_SIZE = 25
 #: نصّاً كانت تلتفّ على أربعة أسطر وتمدّ الصفّ حتى يُقرأ الجدول أطولَ من
 #: محتواه. والأيقونة **ليست بديلاً عن الاسم**: كلُّ زرٍّ يحمل `aria-label`
 #: و`title` بالنصّ نفسه، فمن يقرأ بقارئ شاشة أو يقف بالفأرة يسمع/يرى الكلمة.
+#: رسومُ صفِّ هذه الشاشة — المُعلنُ منها هو المستعمَل، ويحرسه
+#: `test_every_row_icon_is_declared`. و`test_no_icon_is_drawn_for_nobody` يمسح
+#: `PAGES` وبطاقاتِ اللوحة وحدها، فرسمٌ يقرؤه صفُّ جدولٍ كان يُعدّ «بلا مستعمل»
+#: فيُحذف — ثم يُرسم الصفُّ بفراغ.
+ROW_ICONS = (
+    "flag",
+    "car",
+    "file-excel",
+    "coins",
+    "calendar-clock",
+    "square",
+    "pencil",
+    "trash",
+)
+
 ACTIONS = (
     ("status", "تغيير الحالة", "flag"),
     ("cars", "السيارات", "car"),
@@ -582,8 +597,16 @@ def auction_edit(request, pk: int):
     )
 
 
+@console_page("console:vehicle-new")
 def vehicle_new(request):
-    """A new car, born `draft` and listed only through the service."""
+    """A new car, born `draft` and listed only through the service.
+
+    والزخرفةُ فوقها ليست تفصيلاً: سقطت في فرعٍ آخر، فصارت الصفحة **بلا حارسٍ
+    إطلاقاً** — يفتحها أيُّ حسابٍ داخل، ويقبل `POST` منه، بما فيه حسابُ شركةٍ
+    شريكة. وأمسكها `test_no_console_page_answers_a_partner` بـ200 مكان 403.
+    وذلك بعينه ما بُني له `every_capability_guards_something`: صفحةٌ في السجلّ
+    بقدرةٍ لا تحرسها الشيفرة هي صفحةٌ مفتوحة.
+    """
     form = VehicleForm(request.POST or None)
 
     if request.method == "POST":

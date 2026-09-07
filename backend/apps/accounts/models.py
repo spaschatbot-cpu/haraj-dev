@@ -50,6 +50,17 @@ class AccountType(models.TextChoices):
     COMPANY = "company", "شركة"
 
 
+class Gender(models.TextChoices):
+    MALE = "male", "ذكر"
+    FEMALE = "female", "أنثى"
+
+
+class IdKind(models.TextChoices):
+    NATIONAL_ID = "national_id", "هوية وطنية"
+    IQAMA = "iqama", "إقامة"
+    PASSPORT = "passport", "جواز سفر"
+
+
 class User(AbstractBaseUser, PermissionsMixin):
     # unique=True already indexes the column; a second db_index would only cost
     # writes. 12 is the exact length of 9665XXXXXXXX — the CHECK below is what
@@ -58,7 +69,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         "الجوال", max_length=12, unique=True, validators=[saudi_mobile]
     )
     full_name = models.CharField("الاسم الكامل", max_length=200)
+    name_ar = models.CharField("الاسم بالعربي", max_length=255, blank=True)
+    name_en = models.CharField("الاسم بالإنجليزي", max_length=255, blank=True)
     email = models.EmailField("البريد", blank=True)
+    birth_date = models.DateField("تاريخ الميلاد", null=True, blank=True)
+    gender = models.CharField("الجنس", max_length=8, choices=Gender.choices, blank=True)
+    id_kind = models.CharField(
+        "نوع الهوية", max_length=16, choices=IdKind.choices, blank=True
+    )
 
     account_type = models.CharField(
         "نوع الحساب",
@@ -74,6 +92,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     national_id = models.CharField("رقم الهوية", max_length=20, blank=True)
 
     is_active = models.BooleanField("الحساب مفعّل", default=True)
+    banned_until = models.DateTimeField("محظور حتى", null=True, blank=True)
+
+    #: الآيبان: مسجَّل ومحميّ بصلاحية مالية (T850).
+    iban = models.CharField("الآيبان", max_length=50, blank=True)
 
     #: كلمةُ مرورٍ كتبها **شخصٌ آخر**، فلا تصلح للاستمرار. T848.
     #:
@@ -172,13 +194,6 @@ class Company(models.Model):
     commercial_register = models.CharField(max_length=32, blank=True)
     vat_number = models.CharField(max_length=32, blank=True)
 
-    # ZATCA national address
-    building_number = models.CharField(max_length=8, blank=True)
-    street = models.CharField(max_length=200, blank=True)
-    district = models.CharField(max_length=200, blank=True)
-    city = models.CharField(max_length=100, blank=True)
-    postal_code = models.CharField(max_length=8, blank=True)
-
     class Meta:
         verbose_name = "شركة"
         verbose_name_plural = "الشركات"
@@ -194,6 +209,111 @@ class Company(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+    # ZATCA national address moved to NationalAddress (T850).
+    # Properties provide transparent access without duplicating columns on Company.
+    def _national_address(self):
+        try:
+            return self.user.national_address
+        except Exception:
+            return None
+
+    @property
+    def building_number(self) -> str:
+        addr = self._national_address()
+        return addr.building_number if addr else ""
+
+    @building_number.setter
+    def building_number(self, val: str) -> None:
+        pass
+
+    @property
+    def street(self) -> str:
+        addr = self._national_address()
+        return addr.street if addr else ""
+
+    @street.setter
+    def street(self, val: str) -> None:
+        pass
+
+    @property
+    def district(self) -> str:
+        addr = self._national_address()
+        return addr.district if addr else ""
+
+    @district.setter
+    def district(self, val: str) -> None:
+        pass
+
+    @property
+    def city(self) -> str:
+        addr = self._national_address()
+        return addr.city if addr else ""
+
+    @city.setter
+    def city(self, val: str) -> None:
+        pass
+
+    @property
+    def postal_code(self) -> str:
+        addr = self._national_address()
+        return addr.postal_code if addr else ""
+
+    @postal_code.setter
+    def postal_code(self, val: str) -> None:
+        pass
+
+
+class NationalAddress(models.Model):
+    """العنوان الوطني الموحد للعميل (فرد أو شركة). T850.
+
+    العنوان الوطني كان على Company وحدها، والأفراد في v1 يملكون عناوين على userss.
+    القاعدة الواحدة في مكان واحد: يملكه User، وتُنقل إليه عناوين الشركات بهجرة بيانات،
+    ويشمل صيغ العنوان الوطني السعودي النظامية.
+    """
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="national_address",
+        verbose_name="المستخدم",
+    )
+    country = models.CharField(
+        "الدولة", max_length=255, default="المملكة العربية السعودية", blank=True
+    )
+    region = models.CharField("المنطقة", max_length=255, blank=True)
+    city = models.CharField("المدينة", max_length=100, blank=True)
+    district = models.CharField("الحي", max_length=255, blank=True)
+    street = models.CharField("الشارع", max_length=255, blank=True)
+    building_number = models.CharField("رقم المبنى", max_length=4, blank=True)
+    postal_code = models.CharField("الرمز البريدي", max_length=5, blank=True)
+    additional_number = models.CharField("الرقم الإضافي", max_length=4, blank=True)
+    plot_number = models.CharField("رقم القطعة", max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "عنوان وطني"
+        verbose_name_plural = "العناوين الوطنية"
+
+    def __str__(self) -> str:
+        parts = [self.city, self.district, self.street]
+        return " · ".join(p for p in parts if p) or f"عنوان {self.user_id}"
+
+    def clean(self) -> None:
+        errors: dict[str, str] = {}
+        if self.postal_code and (
+            len(self.postal_code) != 5 or not self.postal_code.isdigit()
+        ):
+            errors["postal_code"] = "الرمز البريدي يجب أن يتكون من 5 أرقام"
+        if self.building_number and (
+            len(self.building_number) != 4 or not self.building_number.isdigit()
+        ):
+            errors["building_number"] = "رقم المبنى يجب أن يتكون من 4 أرقام"
+        if self.additional_number and (
+            len(self.additional_number) != 4 or not self.additional_number.isdigit()
+        ):
+            errors["additional_number"] = "الرقم الإضافي يجب أن يتكون من 4 أرقام"
+        if errors:
+            raise ValidationError(errors)
 
 
 # --------------------------------------------------------------------------

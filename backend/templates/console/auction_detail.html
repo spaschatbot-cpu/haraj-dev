@@ -273,12 +273,16 @@ somebody went looking for it.
     </div>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المركبات">
+        {% comment %} بادئةُ اللوحة إعدادٌ (`APP_BASE`)، ورابطٌ نسبيٌّ يُكتب
+           بيده يعمل هنا ويسقط أوّلَ ما تُفتح الصفحة من مسارٍ آخر. ولوحاتُ v1
+           انتقلت بين ثلاث بادئات، وانكسر كلُّ رابطٍ مكتوبٍ بيده في كل مرّة —
+           صامتاً. {% endcomment %}
         {% if page.has_previous %}
-          <a href="?page={{ page.previous_page_number }}" class="pagination__btn">السابق</a>
+          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.previous_page_number }}" class="pagination__btn">السابق</a>
         {% endif %}
         <span class="pagination__current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
         {% if page.has_next %}
-          <a href="?page={{ page.next_page_number }}" class="pagination__btn">التالي</a>
+          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.next_page_number }}" class="pagination__btn">التالي</a>
         {% endif %}
       </nav>
     {% endif %}

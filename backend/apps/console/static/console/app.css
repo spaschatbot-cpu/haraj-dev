@@ -1880,6 +1880,62 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    ======================================================================== */
 
 .toolbar { margin: 0 0 .9rem; }
+/* ---- الألسنة -------------------------------------------------------------
+   «الأدوار» كانت صفحةً في الشريط بجوار «إدارة المشرفين»، وكلتاهما لا تُفتح
+   إلا من الأخرى عملياً — فصارتا لسانين على شاشةٍ واحدة (T852).
+
+   والحالةُ محمولةٌ على `aria-current` لا على اللون وحده: من لا يميّز التخفيت
+   يحتاج أن يعرف أين هو، وقارئُ الشاشة يقرؤها «الصفحة الحالية». والخطُّ السفليّ
+   بسمك بكسلين لأن الحدَّ الكامل يجعل اللسان زرّاً — وهو ليس زرّاً. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .25rem;
+  margin-block-end: 1rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.tab {
+  padding: .5rem .9rem;
+  border-block-end: 2px solid transparent;
+  margin-block-end: -1px;
+  font-weight: 600;
+  font-size: .88rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.tab:hover { color: var(--ink); border-block-end-color: var(--line); }
+
+.tab[aria-current="page"] {
+  color: var(--brand-dark);
+  border-block-end-color: var(--brand);
+}
+
+/* سطرُ الشرح تحت العنوان. جملةٌ واحدة تقول ما تجيبه الشاشة — وv1 يضعها في
+   كل صفحةٍ من صفحاته، وهي إحسانٌ فيه: العنوان يسمّي، وهذا يقول لماذا تُفتح. */
+.lede {
+  margin-block: -.4rem 1.1rem;
+  max-inline-size: 62ch;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.7;
+}
+
+/* رسمٌ صغير داخل خليّة جدول — التاجُ بجوار «المالك» مثلاً. يرث `currentColor`
+   فيتلوّن مع نصّه، و`aria-hidden` في القالب لأنه تزيينٌ والاسمُ مكتوبٌ بجواره. */
+.row-icon {
+  inline-size: 1em;
+  block-size: 1em;
+  vertical-align: -.12em;
+  margin-inline-end: .2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 
 /* زر الإجراء الرئيسي في رأس الصفحة: يبرز بلون المنظومة المصمت لتمييز الإنشاء عن التصدير */
 .page__actions .btn-primary {
@@ -2001,6 +2057,40 @@ form[method="get"] .advanced-panel label {
   gap: .75rem;
   margin: 0 0 .75rem;
 }
+/* أربعةُ أصنافٍ كُتبت في قوالب شاشة المزادات (T846 · T853) ولم تُوصَف —
+   وجدها `ops/checks/every_class_is_styled.py` أوّلَ ما شُغِّل. وصنفٌ بلا قاعدة
+   لا يكسر شيئاً، ولذلك يبقى: الصفحة تُرسم وكلُّ فحصٍ أخضر والشكلُ وحده خطأ. */
+
+/* أرقامٌ تستقيم خاناتُها في عمود — مثل `td.count` تماماً، ولكن على عنصرٍ
+   داخل الخليّة لا على الخليّة نفسها. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* أفعالُ شريط الجدول: تُدفَع إلى الحافة المقابلة للمعلومة. */
+.table-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+  margin-inline-start: auto;
+}
+
+/* «١٢ صفّاً · صفحة ٢ من ٥» — سطرٌ خافتٌ تحت الجدول. */
+.table-footer__count {
+  color: var(--muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* استمارةُ نقلةٍ داخل صفحة المزاد: سطرٌ واحد ينكسر على الضيّق، لا بطاقةٌ
+   تفصل الفعل عمّا يقع عليه. */
+.operations-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-block: .6rem 1rem;
+}
+
 .table-bar__info {
   display: flex;
   align-items: center;

@@ -1,0 +1,62 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تعديل مشرف — صفحةٌ لا نافذة.
+
+في v1 نافذةٌ بخمسة حقول تُفتح فوق الجدول (`Views/Admin/admins/index.php:307`).
+والنافذةُ تُغلَق بالخطأ فيضيع ما كُتب، ولا رابطَ لها يُرسَل إلى زميل، ولا تظهر
+في السجلّ. فصارت صفحةً لها عنوان.
+
+ولا خانةَ كلمة مرورٍ هنا: v1 يدع مشرفاً يكتب كلمةَ آخر، فيصير كلُّ قيدٍ يتركه
+الثاني قابلاً للإنكار. وإعادةُ التعيين زرٌّ مستقلّ يغيّرها صاحبُها بنفسه.
+{% endcomment %}
+{% block title %}تعديل مشرف{% endblock %}
+{% block heading %}تعديل «{{ person.full_name }}»{% endblock %}
+
+{% block content %}
+  <p>
+    <span class="pill">{{ role_name }}</span>
+    {% if person.is_active %}
+      <span class="pill" data-tone="ok">مفعّل</span>
+    {% else %}
+      <span class="pill" data-tone="bad">معطّل</span>
+    {% endif %}
+    {% if is_self %}<span class="pill" data-tone="warn">حسابك الحالي</span>{% endif %}
+  </p>
+
+  {% if is_self %}
+    {% comment %} تُقال قبل الاستمارة لا بعد الرفض: من يقرأ السبب أوّلاً لا
+       يحاول، ومن يُرفض بعد الحفظ يظنّ الشاشة معطوبة. {% endcomment %}
+    <p class="alarm">
+      هذا حسابك: لا تستطيع تعطيله ولا تغيير دورك منه. من يعطّل حسابه يخرج من
+      اللوحة في منتصف الفعل ولا يبقى من يعيده، ومن يخفض دوره قد يفقد الشاشة
+      التي يصلحه منها.
+    </p>
+  {% endif %}
+
+  {% if only_owner_left %}
+    <p class="alarm">
+      <strong>هذا آخرُ مالكٍ فاعل.</strong> لا يُعطَّل ولا يُنزَع دورُه —
+      لوحةٌ بلا مالكٍ فاعل لا يفتحها أحد، ولا شاشةَ تصلحها. عيّن مالكاً آخر
+      أوّلاً.
+    </p>
+  {% endif %}
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">احفظ</button>
+  </form>
+
+  <p>
+    <a href="{% url 'console:staff-grants' person.pk %}">صلاحياتٌ فوق دوره</a> ·
+    <a href="{% url 'console:admin-password-reset' person.pk %}">إعادة تعيين كلمة المرور</a> ·
+    <a href="{% url 'console:admins' %}">← قائمة المشرفين</a>
+  </p>
+
+  <p class="empty">
+    <strong>الدورُ يمسّ كلَّ من يحمله؛ والتجاوزُ الفرديّ يمسّ واحداً.</strong>
+    فمن يحتاج شاشةً واحدةً زيادةً تُمنح له من «صلاحياته»، ولا يُنقل إلى دورٍ
+    أوسع — وتلك هي الطريقة التي تنمو بها الأدوار حتى يصير لكل شخصٍ دورُه.
+  </p>
+{% endblock %}
