@@ -372,6 +372,20 @@ somebody went looking for it.
                 <a href="{% url 'console:vehicle-edit' car.pk %}" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
                 </a>
+                {% comment %} نقلٌ وحذفٌ — نظيرُ عمود التحكّم في v1 (T872). كلاهما
+                   يفتح نافذةً مشتركةً في أسفل الجدول فيُملأ فيها معرّفُ الصفّ:
+                   الفعلُ يمرّ بـ`vehicle_bulk` الآمن (الخدمةُ الوحيدة · سببٌ
+                   إلزاميّ · حذفٌ يرفضه PROTECT على ما له أثر). {% endcomment %}
+                <button type="button" class="act act--move" title="نقل إلى مزادٍ آخر"
+                        aria-label="نقل إلى مزادٍ آخر"
+                        data-row-move data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.move }}"/></svg>
+                </button>
+                <button type="button" class="act act--danger" title="حذف السيارة"
+                        aria-label="حذف السيارة"
+                        data-row-delete data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.delete }}"/></svg>
+                </button>
               </td>
             {% endif %}
           </tr>
@@ -383,6 +397,90 @@ somebody went looking for it.
   </div>
 
   </form>
+
+  {% if can_manage %}
+  {% comment %}
+  نافذتا فعلٍ على صفٍّ مفرد — نظيرُ عمود التحكّم في v1 (T872). كلٌّ تبعث إلى
+  `console:auction-vehicles-bulk` بمركبةٍ واحدة، فتمرّ بالمنطق الآمن نفسه الذي
+  يمرّ به الشريطُ المجمَّع: `move_vehicle` الخدمةُ الوحيدة، وسببٌ إلزاميٌّ في
+  التدقيق، وحذفٌ يرفضه PROTECT على مركبةٍ لها مزايدةٌ أو فاتورة (بخلاف v1 الذي
+  يحذف ويترك الأثر يتيماً). و`<dialog>` لا `<div>`: حبسُ التركيز والإغلاقُ
+  بـEscape والإعتامُ من المتصفّح.
+  {% endcomment %}
+
+  <dialog class="modal row-modal" data-row-move-modal>
+    <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="move">
+      <input type="hidden" name="vehicle" data-row-pk>
+      <h2 class="row-modal__title">نقل اللوت <span data-row-lot></span> إلى مزادٍ آخر</h2>
+      <label class="row-modal__field">
+        <span>المزاد الوجهة</span>
+        <select name="target" required>
+          <option value="">— اختر مزاداً —</option>
+          {% for row in move_targets %}
+            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="row-modal__field">
+        <span>السبب</span>
+        <input type="text" name="reason" required placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+      </label>
+      <p class="row-modal__note">النقلُ إلى مزادٍ بدأ مرفوض — يُدخل سيارةً في منتصف الشوط.</p>
+      <div class="row-modal__foot">
+        <button type="submit" class="btn-primary">انقل</button>
+        <button type="button" data-row-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal row-modal" data-row-delete-modal>
+    <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="delete">
+      <input type="hidden" name="vehicle" data-row-pk>
+      <h2 class="row-modal__title">حذف اللوت <span data-row-lot></span>؟</h2>
+      <p class="row-modal__note">
+        مركبةٌ عليها مزايدةٌ أو فاتورةٌ لا تُحذف — القاعدةُ تمنعه، والبديلُ سحبُها
+        من العرض لا محوُها. والحذفُ لا رجعةَ فيه.
+      </p>
+      <label class="row-modal__field">
+        <span>السبب</span>
+        <input type="text" name="reason" required placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+      </label>
+      <div class="row-modal__foot">
+        <button type="submit" class="btn-danger-sm">احذف</button>
+        <button type="button" data-row-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+  (function () {
+    var moveModal = document.querySelector('[data-row-move-modal]');
+    var delModal = document.querySelector('[data-row-delete-modal]');
+    function wire(trigger, modal) {
+      if (!modal || !modal.showModal) return;
+      document.querySelectorAll('[' + trigger + ']').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          // معرّفُ الصفّ يُنقَل إلى الحقل المخفيّ، واللوتُ إلى العنوان — نافذةٌ
+          // واحدةٌ تخدم كلَّ الصفوف، تُملأ من الصفّ المضغوط.
+          modal.querySelector('[data-row-pk]').value = btn.getAttribute('data-pk');
+          var lot = modal.querySelector('[data-row-lot]');
+          if (lot) lot.textContent = btn.getAttribute('data-lot');
+          modal.showModal();
+        });
+      });
+      modal.querySelector('[data-row-close]').addEventListener('click', function () {
+        modal.close();
+      });
+    }
+    wire('data-row-move', moveModal);
+    wire('data-row-delete', delModal);
+  })();
+  </script>
+  {% endif %}
 
   <div class="table-footer">
     <div class="table-footer__count">

@@ -361,6 +361,10 @@ def auction_detail(request, pk: int):
                 "view": icons.path_of("car"),
                 "edit": icons.path_of("pencil"),
                 "end": icons.path_of("square"),
+                # أفعالُ الصفّ المفردة — نظيرُ عمود التحكّم في v1. T872
+                "images": icons.path_of("eye"),
+                "move": icons.path_of("layers"),
+                "delete": icons.path_of("trash"),
             },
         },
     )

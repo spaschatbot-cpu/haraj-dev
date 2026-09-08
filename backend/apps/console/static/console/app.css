@@ -3831,3 +3831,63 @@ input[type="radio"] {
   block-size: 1.05rem;
   cursor: pointer;
 }
+
+/* ---- أفعالُ الصفّ المفردة: نقلٌ وحذف — نظيرُ عمود التحكّم في v1 (T872) --- */
+/* «نقل» ليس خطراً ولا فعلاً عادياً: يحرّك سيارةً بين مزادين، فلونٌ ثالثٌ
+   هادئٌ (brand) يميّزه عن «تفاصيل/تعديل» المحايدة وعن «حذف» الحمراء. */
+.act--move {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  color: var(--brand-dark);
+}
+.act--move:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+.row-modal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-inline-size: 26rem;
+  inline-size: 90vw;
+  background: var(--panel);
+  color: var(--ink);
+}
+.row-modal::backdrop { background: rgb(0 0 0 / 45%); }
+.row-modal form { padding: 1.2rem 1.3rem; }
+.row-modal__title { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 800; }
+.row-modal__field { display: flex; flex-direction: column; gap: .3rem; margin-block-end: .9rem; }
+.row-modal__field span { font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
+.row-modal__field input,
+.row-modal__field select {
+  inline-size: 100%;
+  block-size: 2.3rem;
+  padding-inline: .65rem;
+  font-size: .88rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink);
+}
+.row-modal__note {
+  margin: 0 0 1rem;
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.row-modal__foot {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding-block-start: .9rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.row-modal__foot button[type="button"] {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .45rem 1.1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
