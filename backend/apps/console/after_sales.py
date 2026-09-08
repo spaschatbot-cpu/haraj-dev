@@ -56,7 +56,7 @@ from django.urls import reverse
 
 from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import AuctionState
-from apps.money.models import Invoice, InvoiceState, Transaction
+from apps.money.models import Invoice, InvoiceSource, InvoiceState, Transaction
 
 #: حالاتُ المركبة التي تعني «بيعت» — من `catalog` نفسِها ولا تُكتب ثانيةً:
 #: قائمتان تنسى إحداهما `released` يوماً، فتختفي سيارةٌ خرجت من الشاشة
@@ -174,6 +174,8 @@ def sold_rows(
             invoice_odoo=latest_invoice_field("odoo_state_raw"),
             invoice_amount=latest_invoice_field("amount"),
             invoice_paid=latest_invoice_field("amount_paid"),
+            invoice_issued=latest_invoice_field("issued_at"),
+            invoice_source=latest_invoice_field("source"),
         )
         .order_by("-awarded_at", "-id")
     )
@@ -401,9 +403,11 @@ def after_sales(request):
     with_tones(page.object_list)
     covers(page.object_list)
 
+    source_labels = dict(InvoiceSource.choices)
     for row in page.object_list:
         row.invoice_label = state_label(row.invoice_state)
         row.invoice_residual = residual_of(row)
+        row.invoice_source_label = source_labels.get(row.invoice_source, "—")
         # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
         row.settled_by_sheet = row.pk in sheet_ids
 

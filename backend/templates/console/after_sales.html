@@ -35,7 +35,7 @@
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
-  <form method="get" class="filters">
+  <form method="get" class="filters filters--row">
     <div class="filters__main">
       <input id="q" type="search" name="q" value="{{ q }}"
              placeholder="لوحة · شاصي · رقم مطالبة · اسم المركبة · لون · اسم المشتري أو جوّاله · رقم"
@@ -177,16 +177,29 @@
                 {% include "console/_act_icon.html" with path=icon_open %}
               </a>
               {% if row.invoice_number %}
+                {% comment %} كلُّ حقول السند في `data-*` على الصفّ نفسه —
+                   فالنافذةُ تُملأ بلا رحلةِ خادم. v1 يحمّل `iframe` من مسارٍ
+                   جديد لكل ضغطة (صفحةٌ كاملة + Bootstrap)، وهذه بياناتٌ مرسومةٌ
+                   أصلاً في الصفّ. {% endcomment %}
                 <button type="button" class="act act--review" data-opens="invoiceCard"
-                        title="تفاصيل الفاتورة" aria-label="تفاصيل الفاتورة"
-                        data-vehicle="{{ row.make }} {{ row.model }} — لوت {{ row.lot_number|unlocalize }}"
+                        title="سند الدفع" aria-label="سند الدفع"
+                        data-vehicle="{{ row.make }} {{ row.model }}"
+                        data-lot="{{ row.lot_number|unlocalize }}"
+                        data-auction="{{ row.auction.number|unlocalize }}"
+                        data-plate="{{ row.plate_number|default:'—' }}"
+                        data-chassis="{{ row.vin|default:'—' }}"
+                        data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
+                        data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
+                        data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
                         data-number="{{ row.invoice_number }}"
                         data-href="{% url 'console:invoice-detail' row.invoice_pk %}"
                         data-state="{{ row.invoice_label }}"
+                        data-source="{{ row.invoice_source_label }}"
                         data-odoo="{{ row.invoice_odoo|default:'—' }}"
                         data-amount="{{ row.invoice_amount|unlocalize }}"
                         data-paid="{{ row.invoice_paid|unlocalize }}"
                         data-residual="{{ row.invoice_residual|unlocalize }}"
+                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
                         data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
                   {% include "console/_act_icon.html" with path=icon_invoice %}
                 </button>
@@ -213,28 +226,71 @@
 {% endblock %}
 
 {% block scripts %}
-  <dialog id="invoiceCard" class="modal">
-    <h2>فاتورة «<span data-inv-vehicle></span>»</h2>
+  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا صفحةٌ في `iframe` كـv1.
 
-    {% comment %} كلُّ زوجٍ في `.record__pair`: `.record` شبكةٌ، والـ`dt`
-       و`dd` عاريين فيها يصيران خليّتين متجاورتين في **صفوفٍ مختلفة** —
-       فتبعد القيمةُ عن عنوانها بعرض النافذة. {% endcomment %}
-    <dl class="record">
-      <div class="record__pair"><dt>رقم الفاتورة</dt><dd><a data-inv-href><span data-inv-number></span></a></dd></div>
-      <div class="record__pair"><dt>حالتها — من الدفعات</dt><dd><span data-inv-state></span></dd></div>
-      <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
-      <div class="record__pair"><dt>المبلغ</dt><dd class="money tnum"><span data-inv-amount></span></dd></div>
-      <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span></dd></div>
-      <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span></dd></div>
-      <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
-    </dl>
+     v1 يفتح `<iframe>` يحمّل صفحةً كاملة من `/invoice?inv=…` (مستند HTML كامل
+     + Bootstrap + رحلةُ خادم) لكل ضغطة. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً،
+     فالنافذةُ تُملأ من `data-*` بلا شبكة — أسرعُ وأبسط.
+
+     **وبحقولنا نحن لا حقول v1.** سندُ v1 يعرض «قيمة المركبة» و«رسوم إدارية»
+     مقسومتين، وفاتورتُنا تخزّن `amount` واحداً (الإجمالي) — فلا نخترع تقسيماً
+     لا نملكه. ونعرض ما عندنا: الإجمالي والمسدَّد والباقي، والحالةَ **مشتقّةً
+     من الدفعات** لا كلمةَ أودو. {% endcomment %}
+  <dialog id="invoiceCard" class="modal voucher">
+    <header class="voucher__head">
+      <div>
+        <h2>سند دفع</h2>
+        <p class="voucher__num"><span data-inv-number></span></p>
+      </div>
+      <div class="voucher__actions noprint">
+        <button type="button" class="btn-sm" data-inv-print>طباعة</button>
+        <a class="btn-sm" data-inv-href>فتح الفاتورة</a>
+      </div>
+    </header>
+
+    <section class="voucher__grid">
+      <div class="voucher__block">
+        <h3>الأطراف</h3>
+        <dl class="record">
+          <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
+          <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+        </dl>
+      </div>
+
+      <div class="voucher__block">
+        <h3>المركبة</h3>
+        <dl class="record">
+          <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
+          <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
+          <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
+          <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
+          <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
+          <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="voucher__money">
+      <h3>المبلغ</h3>
+      <dl class="record">
+        <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
+        <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
+        <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+        <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
+        <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
+        <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+        <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
+        <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
+      </dl>
+    </section>
 
     <p class="empty">
-      «حالتها» محسوبةٌ من الدفعات المسجَّلة، و«كلمة أودو» معروضةٌ كما وصلت.
-      واختلافُهما ليس عطلاً في الشاشة — هو ما تُفتح لتُريَه.
+      هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
+      أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA) تصدر
+      من إدارة الحسابات.
     </p>
 
-    <div class="modal__buttons">
+    <div class="modal__buttons noprint">
       <button type="button" data-close>إغلاق</button>
     </div>
   </dialog>
