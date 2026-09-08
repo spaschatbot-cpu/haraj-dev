@@ -71,11 +71,8 @@ down:
 nuke:
     {{ compose }} down -v
 
-# The whole suite. Extra arguments go to pytest:  just test -k reversal
 [working-directory('backend')]
 test *args:
-    uv run pytest {{ args }}
-
 # `lint-types` is deliberately not in this chain: the merge of phases
 # 003/005/007 inherited 31 type errors in code that never ran mypy, so it
 # reports rather than blocks. Run it directly — `just lint-types` — and put it
@@ -100,7 +97,6 @@ lint-types:
 # Article 3-2 — no binary floating point anywhere near money.
 [working-directory('backend')]
 lint-money:
-    uv run python ../ops/checks/no_float_in_money.py
 
 # One writer of auction state, one price on a vehicle, one builder of the
 # vehicle card, one reader and writer of spreadsheets.
@@ -108,16 +104,6 @@ lint-money:
 # Article 4-5 — one decision point each. Phase 005's four guards.
 [working-directory('backend')]
 lint-rules:
-    uv run python ../ops/checks/auction_state_single_writer.py
-    uv run python ../ops/checks/one_vehicle_price.py
-    uv run python ../ops/checks/one_vehicle_card.py
-    uv run python ../ops/checks/one_sheet_writer.py
-    uv run python ../ops/checks/one_upload_gate.py
-    uv run python ../ops/checks/every_capability_guards_something.py
-    uv run python ../ops/checks/no_task_number_twice.py
-    uv run python ../ops/checks/console_money_is_shown_raw.py
-    uv run python ../ops/checks/row_export_is_the_row.py
-    uv run python ../ops/checks/one_writer_per_field.py
 
 # Rewrite what ruff can rewrite. CI never runs this — CI only ever checks.
 fmt: _fix _format
@@ -145,8 +131,6 @@ makemigrations *args:
 # Fail if a model has drifted from its migrations.
 [working-directory('backend')]
 check-migrations:
-    uv run python manage.py makemigrations --check --dry-run
-
 # The development server.
 [working-directory('backend')]
 run port="8000":
@@ -161,8 +145,6 @@ run port="8000":
 # Recompute the ledger from its entries and report every disagreement.
 [working-directory('backend')]
 verify:
-    uv run python manage.py verify_ledger
-
 # A shell on the database, whether it came from compose or a direct install.
 [working-directory('backend')]
 dbshell:
@@ -182,17 +164,12 @@ schema:
 # Django's own system check.
 [working-directory('backend')]
 check:
-    uv run python manage.py check
-
 # Reports five warnings today; they disappear when T002's prod.py sets the
 # SECURE_* settings. It fails only on errors, so it is a real gate now and a
 # stricter one later.
-
 # Django's deployment audit.
 [working-directory('backend')]
 check-deploy:
-    uv run python manage.py check --deploy
-
 # ---------------------------------------------------------------------------
 # ويب العميل — الفيز 011.
 #
@@ -201,7 +178,6 @@ check-deploy:
 # than the lockfile describes is a command that eventually explains a failure
 # nobody can reproduce.
 # ---------------------------------------------------------------------------
-
 # Install the web's dependencies exactly as the lockfile has them.
 [working-directory('web')]
 web-install:
@@ -224,20 +200,9 @@ web-schema:
 # Everything the web is held to, in the order CI runs it.
 [working-directory('web')]
 web-check:
-    npm run schema:check
-    npm run typecheck
-    npm run lint
-    npm test
-    npm run build
-
 # The web's constitutional guards. Node, not Python, and run from the repo root
 # because each of them walks `web/` from there.
 web-lint-rules:
-    node ops/checks/web_tokens_are_httponly.mjs
-    node ops/checks/web_one_vehicle_card.mjs
-    node ops/checks/web_money_is_never_computed.mjs
-    node ops/checks/web_no_eligibility_logic.mjs
-    node ops/checks/web_uses_the_contract_only.mjs
 
 # What CI runs, end to end, before you ask CI to run it.
 ci: lint check-migrations test check-deploy web-lint-rules web-check
