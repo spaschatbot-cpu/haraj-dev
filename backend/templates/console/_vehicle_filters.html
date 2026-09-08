@@ -62,10 +62,16 @@
              name="{{ field.name }}" value="{{ field.value }}"
              placeholder="{{ field.label }}">
     {% endfor %}
-    <button type="submit" class="btn-primary">بحث</button>
   </div>
 
-  {% if filters.has_active %}
-    <a href="{{ filters.clear_url }}" class="filters__reset">امسح كل الفلاتر</a>
-  {% endif %}
+  {% comment %}
+  زرُّ البحث خارج الشبكة: داخلها كان يأخذ خانةً كالخانات فيقع في وسط الصفّ
+  الثاني بين حقلين، لا في طرفٍ يُقصَد. وهنا صفٌّ وحده مع «امسح الكل».
+  {% endcomment %}
+  <div class="filters__actions">
+    <button type="submit" class="btn-primary">بحث</button>
+    {% if filters.has_active %}
+      <a href="{{ filters.clear_url }}" class="filters__reset">امسح كل الفلاتر</a>
+    {% endif %}
+  </div>
 </form>

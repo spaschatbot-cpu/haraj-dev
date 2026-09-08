@@ -3164,21 +3164,30 @@ form.filters {
 .filters__grid {
   inline-size: 100%;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
-  gap: .45rem;
+  /* أعمدةٌ أضيق (8rem): ثمانُ خاناتٍ في صفٍّ واحد على الشاشة العريضة، لا
+     ستٌّ وسطرٌ ناقص. وحقلُ الرقم لا يحتاج عرضَ حقلِ الاسم. */
+  grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
+  gap: .4rem;
   align-items: center;
 }
 .filters__grid input[type="search"] {
   inline-size: 100%;
   min-inline-size: 0;
-  block-size: 2.2rem;
-  padding-inline: .6rem;
-  font-size: .84rem;
+  block-size: 2rem;
+  padding-inline: .55rem;
+  font-size: .82rem;
 }
-.filters__grid button[type="submit"] {
+.filters__actions {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-block-start: .5rem;
+}
+.filters__actions button[type="submit"] {
   margin: 0;
-  block-size: 2.2rem;
-  padding-inline: 1rem;
+  block-size: 2rem;
+  padding-inline: 1.6rem;
   font-size: .84rem;
   white-space: nowrap;
 }
