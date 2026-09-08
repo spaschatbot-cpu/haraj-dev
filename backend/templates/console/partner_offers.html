@@ -50,8 +50,7 @@ that number reached the invoice conversation.
             <form method="post" action="{% url 'console:partner-award' vehicle.pk %}">
               {% csrf_token %}
               <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
-              <input type="text" name="reason" placeholder="سبب القرار" required>
-              <button type="submit">رسِّ على هذا</button>
+<button type="submit">رسِّ على هذا</button>
             </form>
           </td>
         </tr>
@@ -67,7 +66,6 @@ that number reached the invoice conversation.
     {% csrf_token %}
     {% comment %} "Nobody offered enough" and "the owner pulled it" are different facts
        with opposite next steps, and v1 lost the distinction. {% endcomment %}
-    <input type="text" name="reason" placeholder="سبب الرفض" required>
-    <button type="submit">المالك رفض كل العروض</button>
+<button type="submit">المالك رفض كل العروض</button>
   </form>
 {% endblock %}

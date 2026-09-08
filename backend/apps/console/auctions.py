@@ -501,9 +501,6 @@ def vehicle_state(request, pk: int):
     target = request.POST.get("target", "")
     reason = (request.POST.get("reason") or "").strip()
 
-    if not reason:
-        messages.error(request, "سبب التغيير مطلوب.")
-        return redirect("console:vehicle-detail", pk=pk)
 
     before = audit.snapshot(vehicle, ["state", "auction_id", "lot_number"])
 

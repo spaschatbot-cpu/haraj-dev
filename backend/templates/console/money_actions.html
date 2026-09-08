@@ -50,9 +50,7 @@ and the rule lives where the next caller inherits it.
             <form method="post"
                   action="{% url 'console:money-confiscate' hold.pk %}">
               {% csrf_token %}
-              <input type="text" name="reason" required
-                     placeholder="سبب المصادرة">
-              <button type="submit">مصادرة</button>
+<button type="submit">مصادرة</button>
             </form>
 
             {% comment %} The exception is offered only to whoever may grant one. A form
@@ -63,9 +61,7 @@ and the rule lives where the next caller inherits it.
               <form method="post"
                     action="{% url 'console:money-exception' hold.pk %}">
                 {% csrf_token %}
-                <input type="text" name="reason" required
-                       placeholder="سبب الاستثناء">
-                <button type="submit">منح استثناء مزايدة</button>
+<button type="submit">منح استثناء مزايدة</button>
               </form>
             {% endif %}
           </td>
@@ -99,9 +95,7 @@ and the rule lives where the next caller inherits it.
               <form method="post"
                     action="{% url 'console:money-correct' movement.pk %}">
                 {% csrf_token %}
-                <input type="text" name="reason" required
-                       placeholder="سبب التصحيح">
-                <button type="submit">تصحيح</button>
+<button type="submit">تصحيح</button>
               </form>
             {% endif %}
           </td>

@@ -75,9 +75,6 @@ def auction_state(request, pk: int):
     target = request.POST.get("target", "")
     reason = (request.POST.get("reason") or "").strip()
 
-    if not reason:
-        messages.error(request, "سبب التغيير مطلوب.")
-        return redirect("console:auction-detail", pk=pk)
 
     before = audit.snapshot(auction, ["state", "number", "title"])
 
@@ -138,9 +135,6 @@ def vehicle_relist(request, pk: int):
         return redirect("console:vehicle-detail", pk=pk)
 
     reason = (request.POST.get("reason") or "").strip()
-    if not reason:
-        messages.error(request, "سبب الإعادة مطلوب.")
-        return redirect("console:vehicle-detail", pk=pk)
 
     target = Auction.objects.filter(
         pk=request.POST.get("auction") or 0, state__in=DESTINATION_STATES

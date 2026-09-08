@@ -54,6 +54,40 @@
   var modal = document.querySelector('[data-columns-modal]');
   if (!openBtn || !modal || !modal.showModal) return;
 
+  var tableKey = modal.querySelector('[name="table_key"]').value;
+  var storeKey = 'cols:' + tableKey;
+
+  // **يُطبَّق عند كل تحميلٍ من `localStorage`** — لا اعتماداً على ما رسمه
+  // السيرفر. القاعدةُ هي المصدرُ الدائم (للأجهزة الأخرى)، لكن المتصفّح قد
+  // يخدم صفحةً من كاشٍ قديمٍ رغم `no-store`، فتظهر الأعمدةُ كأن التخصيص لم
+  // يُحفَظ. وهذا السطرُ يطبّق آخرَ اختيارٍ على هذا الجهاز فوراً، مهما جاءت
+  // الصفحةُ من كاش. والقاعدةُ تُحدّثه على أجهزةٍ لم تره بعد.
+  function applyHidden(keys) {
+    var set = {};
+    keys.forEach(function (k) { set[k] = true; });
+    document.querySelectorAll('table [data-col]').forEach(function (cell) {
+      var k = cell.getAttribute('data-col');
+      // المقفولُ (اللوت) لا `data-col-row` له، فلا يُخفى أبداً؛ وما ليس في
+      // القائمة يُظهَر صراحةً — فإظهارُ عمودٍ يعكس إخفاءه السابق.
+      if (modal.querySelector('[data-col-row="' + k + '"]')) {
+        cell.hidden = !!set[k];
+      }
+    });
+  }
+  function applyStored() {
+    try {
+      var stored = localStorage.getItem(storeKey);
+      if (stored) { applyHidden(JSON.parse(stored)); }
+    } catch (e) {}
+  }
+  // الـ`<script>` فوق الجدول في الصفحة، فقد يشتغل قبل أن تُرسَم صفوفُه —
+  // فيُؤجَّل التطبيقُ إلى اكتمال الـDOM إن كان لا يزال يُحمَّل.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyStored);
+  } else {
+    applyStored();
+  }
+
   openBtn.addEventListener('click', function () { modal.showModal(); });
   modal.querySelector('[data-columns-close]').addEventListener('click', function () {
     modal.close();
@@ -78,14 +112,12 @@
       // المتصفّحات تخدمه من bfcache رغم `no-store`، فيبدو أن شيئاً لم يقع.
       // فنُخفي ونُظهر الأعمدةَ من حالة الخانات مباشرةً — أثرٌ فوريٌّ لا يمرّ
       // بالشبكة ولا بالكاش.
-      var wanted = {};
+      var hiddenKeys = [];
       modal.querySelectorAll('[data-col-row] input[type="checkbox"]').forEach(function (cb) {
-        wanted[cb.value] = cb.checked;
+        if (!cb.checked) { hiddenKeys.push(cb.value); }
       });
-      document.querySelectorAll('table [data-col]').forEach(function (cell) {
-        var key = cell.getAttribute('data-col');
-        if (key in wanted) { cell.hidden = !wanted[key]; }
-      });
+      try { localStorage.setItem(storeKey, JSON.stringify(hiddenKeys)); } catch (e) {}
+      applyHidden(hiddenKeys);
     }).catch(function () {
       // لو فشل الطلب، دع الاستمارة ترسل نفسها كما كانت — لا نبتلع الخطأ.
       form.submit();

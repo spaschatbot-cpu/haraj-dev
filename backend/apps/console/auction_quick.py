@@ -139,9 +139,6 @@ def auction_showcase(request, pk: int):
 
     badge = request.POST.get("badge", "")
     reason = _reason(request)
-    if not reason:
-        messages.error(request, "سبب التغيير مطلوب.")
-        return _back(request, auction)
 
     fields = ["state", "showcase", "starts_at", "ends_at"]
     before = audit.snapshot(auction, fields)
@@ -262,9 +259,6 @@ def auction_reschedule(request, pk: int):
         return redirect("console:auctions")
 
     reason = _reason(request)
-    if not reason:
-        messages.error(request, "سبب إعادة الجدولة مطلوب.")
-        return _back(request, auction)
 
     problem = _read_window(request, auction)
     if problem:
@@ -326,9 +320,6 @@ def auction_fees(request, pk: int):
         return redirect("console:auctions")
 
     reason = _reason(request)
-    if not reason:
-        messages.error(request, "سبب التعديل مطلوب.")
-        return _back(request, auction)
 
     fields = ["deposit_required", "admin_fee"]
     before = audit.snapshot(auction, fields)
@@ -380,9 +371,6 @@ def auction_end_now(request, pk: int):
         return redirect("console:auctions")
 
     reason = _reason(request)
-    if not reason:
-        messages.error(request, "سبب الإنهاء الفوري مطلوب.")
-        return _back(request, auction)
 
     fields = ["state", "ends_at"]
     before = audit.snapshot(auction, fields)
@@ -441,9 +429,6 @@ def auction_delete(request, pk: int):
         return redirect("console:auctions")
 
     reason = _reason(request)
-    if not reason:
-        messages.error(request, "سبب الحذف مطلوب.")
-        return _back(request, auction)
 
     cars = auction.vehicles.count()
     holds = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).count()

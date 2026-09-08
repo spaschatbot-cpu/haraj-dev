@@ -67,9 +67,6 @@ def vehicles_bulk(request, pk: int):
         return back
 
     reason = (request.POST.get("reason") or "").strip()
-    if not reason:
-        messages.error(request, "السبب مطلوب — الفعل المجمَّع يُسأل عنه لاحقاً.")
-        return back
 
     rows = list(_chosen(request, auction))
     if not rows:

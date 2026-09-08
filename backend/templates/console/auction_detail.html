@@ -247,12 +247,6 @@ somebody went looking for it.
     <div class="bulkbar" data-bulkbar hidden>
       <span class="bulkbar__count"><b data-pick-count>0</b> مركبة مختارة</span>
 
-      <label class="bulkbar__field">
-        <span>السبب</span>
-        <input type="text" name="reason" required
-               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
-      </label>
-
       <span class="bulkbar__group">
         <select name="state" aria-label="الحالة الجديدة">
           {% for value, label in bulk_states %}
@@ -423,11 +417,7 @@ somebody went looking for it.
           {% endfor %}
         </select>
       </label>
-      <label class="row-modal__field">
-        <span>السبب</span>
-        <input type="text" name="reason" required placeholder="يُسجَّل في سجلّ التدقيق باسمك">
-      </label>
-      <p class="row-modal__note">النقلُ إلى مزادٍ بدأ مرفوض — يُدخل سيارةً في منتصف الشوط.</p>
+      <p class="row-modal__note">النقلُ إلى مزادٍ بدأ مرفوض — يُدخل سيارةً في منتصف الشوط. ويُسجَّل الفعلُ في السجلّ باسمك تلقائياً.</p>
       <div class="row-modal__foot">
         <button type="submit" class="btn-primary">انقل</button>
         <button type="button" data-row-close>إلغاء</button>
@@ -445,10 +435,6 @@ somebody went looking for it.
         مركبةٌ عليها مزايدةٌ أو فاتورةٌ لا تُحذف — القاعدةُ تمنعه، والبديلُ سحبُها
         من العرض لا محوُها. والحذفُ لا رجعةَ فيه.
       </p>
-      <label class="row-modal__field">
-        <span>السبب</span>
-        <input type="text" name="reason" required placeholder="يُسجَّل في سجلّ التدقيق باسمك">
-      </label>
       <div class="row-modal__foot">
         <button type="submit" class="btn-danger-sm">احذف</button>
         <button type="button" data-row-close>إلغاء</button>
@@ -515,10 +501,6 @@ somebody went looking for it.
         <p class="notice warning">
           تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
         </p>
-        <p>
-          <label for="endReason">سبب الإنهاء الفوري (إلزامي للتدقيق)</label>
-          <input id="endReason" type="text" name="reason" required placeholder="اكتب سبب الإنهاء الفوري...">
-        </p>
         <p class="modal__buttons">
           <button type="submit" class="act--danger" style="color: #fff; background: var(--danger); border: none; padding: .5rem 1rem; border-radius: .4rem; font-weight: 700; cursor: pointer;">أنهِ الآن</button>
           <button type="button" data-close>إلغاء</button>
@@ -555,11 +537,6 @@ somebody went looking for it.
           الموعد يُغيَّر من <strong>إعادة الجدولة</strong>، والتأمين والرسوم من
           <strong>الرسوم والتأمين</strong> في قائمة المزادات — لكلٍّ نافذتُه
           وقواعدُه.
-        </p>
-        <p>
-          <label for="edReason">سبب التعديل</label>
-          <input id="edReason" type="text" name="reason" required
-                 placeholder="يُسجَّل في سجلّ التدقيق باسمك">
         </p>
         <p class="modal__buttons">
           <button type="submit">احفظ</button>

@@ -704,11 +704,6 @@ class AccessForm(forms.Form):
         error_messages={"required": "سبب الإيقاف أو الإعادة مطلوب."},
     )
 
-    def clean_reason(self) -> str:
-        reason = (self.cleaned_data.get("reason") or "").strip()
-        if not reason:
-            raise forms.ValidationError("سبب الإيقاف أو الإعادة مطلوب.")
-        return reason
 
 
 @console_page("console:customer-access")
