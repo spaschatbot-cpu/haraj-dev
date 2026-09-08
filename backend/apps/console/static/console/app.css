@@ -2256,6 +2256,889 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   color: var(--danger);
 }
 
+/* شريط تحكم الجدول: يجمع إحصاء النتائج مع زر تخصيص الأعمدة فوق رأس الجدول */
+.table-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: 0 0 .75rem;
+}
+/* أربعةُ أصنافٍ كُتبت في قوالب شاشة المزادات (T846 · T853) ولم تُوصَف —
+   وجدها `ops/checks/every_class_is_styled.py` أوّلَ ما شُغِّل. وصنفٌ بلا قاعدة
+   لا يكسر شيئاً، ولذلك يبقى: الصفحة تُرسم وكلُّ فحصٍ أخضر والشكلُ وحده خطأ. */
+
+/* أرقامٌ تستقيم خاناتُها في عمود — مثل `td.count` تماماً، ولكن على عنصرٍ
+   داخل الخليّة لا على الخليّة نفسها. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* أفعالُ شريط الجدول: تُدفَع إلى الحافة المقابلة للمعلومة. */
+.table-bar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+  margin-inline-start: auto;
+}
+
+/* «١٢ صفّاً · صفحة ٢ من ٥» — سطرٌ خافتٌ تحت الجدول. */
+.table-footer__count {
+  color: var(--muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* استمارةُ نقلةٍ داخل صفحة المزاد: سطرٌ واحد ينكسر على الضيّق، لا بطاقةٌ
+   تفصل الفعل عمّا يقع عليه. */
+.operations-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-block: .6rem 1rem;
+}
+
+.table-bar__info {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* تخصيص الأعمدة: قائمة منسدلة عائمة فوق الصفحة تحفظ التفضيل بالجهاز ولا تدفع بيانات الجدول */
+.columns {
+  position: relative;
+  display: inline-block;
+  margin: 0;
+}
+.columns summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: .82rem;
+  color: var(--ink-soft);
+  user-select: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: .35rem .75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: border-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.columns summary:hover {
+  color: var(--brand-dark);
+  border-color: var(--field-border);
+}
+.columns[open] > summary {
+  color: var(--brand-dark);
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+}
+.columns__grid {
+  position: absolute;
+  inset-block-start: calc(100% + .4rem);
+  inset-inline-end: 0;
+  z-index: 20;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lift);
+  padding: .75rem;
+  min-inline-size: 18.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .45rem .8rem;
+  margin: 0;
+}
+.columns__grid label {
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: .2rem .35rem;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background .12s ease, color .12s ease;
+}
+.columns__grid label:hover {
+  background: var(--raised);
+  color: var(--ink);
+}
+.columns__grid input[type="checkbox"] {
+  accent-color: var(--brand);
+  cursor: pointer;
+  margin: 0;
+}
+
+/* رقم المزاد كمعرّف مميز: يسهل النقر والتعرف عليه */
+.row-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+.row-num:hover {
+  text-decoration: underline;
+}
+
+/* المصغّرة: مقاسٌ ثابت في الترميز وفي الورقة لمنع القفزات عند وصول الصورة */
+.thumb--none {
+  display: inline-block;
+  inline-size: 3.1rem;
+  block-size: 2.4rem;
+  border-radius: .4rem;
+  background: var(--line-soft);
+}
+
+/* الحبّة زرّاً: تفاعل بصري واضح عند الوقوف مع المحافظة على معيار الحالة */
+.pill--button {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: .74rem;
+  transition: transform .1s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.pill--button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px var(--ring);
+  border-color: currentColor;
+}
+.pill--filter {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .7rem;
+}
+
+/* تذييل الجدول والتنقل بين الصفحات: يلتحم بأسفل الغلاف ككتلة متصلة */
+.table-footer, .scroller + p, table + p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin: -.4rem 0 1.6rem;
+  padding: .65rem 1rem;
+  border: 1px solid var(--line);
+  border-block-start: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+  box-shadow: var(--shadow);
+}
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+.pagination__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--raised);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease;
+}
+.pagination__btn:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+.pagination__current {
+  font-size: .78rem;
+  color: var(--muted);
+  padding: 0 .3rem;
+}
+
+/* ---- النوافذ -------------------------------------------------------------
+   `<dialog>` يعطينا حبسَ التركيز وEscape و`::backdrop` بلا سطر جافاسكربت.
+   والعرض `min(30rem, 92vw)` فلا تفيض على الهاتف. */
+.modal {
+  /* التوسيطُ صريحٌ لا متروكٌ للمتصفّح: قاعدةُ `dialog` الافتراضية تضع
+     `margin: auto`، وأيُّ قاعدةٍ سابقة تمسّ `margin` على العناصر تُلغيها —
+     فتنزل النافذةُ إلى أسفل الشاشة وتظهر نصفُها. وقع ذلك هنا. */
+  margin: auto;
+
+  /* وسقفُ الارتفاع مع تمريرٍ داخليّ: ثمانَ عشرةَ قدرةً في نافذةٍ بلا سقف
+     تمتدّ خارج الشاشة، فيختفي زرُّ الحفظ تحت الحافة ولا يُعرف أنه هناك. */
+  max-block-size: min(86vh, 48rem);
+  overflow: auto;
+
+  inline-size: min(30rem, 92vw);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  color: var(--ink);
+  padding: 1.3rem 1.4rem;
+  box-shadow: var(--shadow-lift);
+}
+/* نافذةُ الصلاحيات أعرض: ثمانَ عشرةَ قدرةً في عمودٍ من ٣٠ريم تصير قائمةً
+   تُمرَّر، والقرارُ يحتاج أن تُرى كلُّها معاً — «ماذا يملك هذا الدور» سؤالٌ
+   عن المجموعة لا عن سطر. */
+.modal--wide { inline-size: min(46rem, 94vw); }
+
+/* القدرات: عمودان على الشاشة العادية، وواحدٌ على الضيّقة. والمعرّفُ الخام
+   بجوار الاسم العربيّ لأنه ما يظهر في رسائل الرفض وفي `tasks.md` — فمن يقرأ
+   «`money.act` غير مسموحة» يجدها هنا بعينها. */
+.caps {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .7rem .9rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.caps legend { padding-inline: .4rem; font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+.caps__row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .5rem;
+  padding: .3rem .2rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.caps__row:hover { background: var(--line-soft); border-radius: 6px; }
+.caps__row code { font-size: .72rem; color: var(--muted); }
+
+@media (min-width: 46rem) {
+  .caps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.2rem; }
+  .caps legend { grid-column: 1 / -1; }
+}
+
+.modal::backdrop { background: rgb(0 0 0 / .5); }
+.modal h2 { margin: 0 0 .9rem; font-size: 1.1rem; }
+.modal p { margin: 0 0 .8rem; }
+.modal label { display: block; margin-block-end: .25rem; font-size: .86rem; font-weight: 600; }
+.modal input[type="text"],
+.modal input[type="datetime-local"],
+.modal select { inline-size: 100%; max-inline-size: none; }
+.modal .count { display: block; margin-block-start: .25rem; }
+.modal__buttons { display: flex; gap: .5rem; margin: 1.1rem 0 0; }
+.modal__buttons button[type="submit"] { flex: 1; }
+
+/* عمود التحكم أيقونات — T846. مربّعٌ مريح بنقلة ناعمة وحالة خطر مميزة */
+/* الأزرارُ تلتفّ ولا تُقصّ. كانت `nowrap`، فثمانيةُ أيقوناتٍ في خانةٍ
+   واحدة تخرج خارج حدّ العمود على الشاشة الضيّقة — يراها الموظّف واحدةً
+   ويظنّ الباقيَ مفقوداً. صفّان من أربعةٍ يُريان كلَّها. */
+.actions { white-space: normal; }
+.actions .act { flex: none; }
+td.actions { min-inline-size: 9rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .15rem; }
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  margin: .1rem;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: .45rem;
+  background: var(--panel);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease, transform .08s ease;
+}
+.act svg {
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.act:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  transform: translateY(-1px);
+}
+.act--edit:hover {
+  background: rgba(34, 197, 94, .12);
+  border-color: rgb(34, 197, 94);
+  color: rgb(22, 163, 74);
+}
+.act--export:hover {
+  background: rgba(20, 184, 166, .12);
+  border-color: rgb(20, 184, 166);
+  color: rgb(13, 148, 136);
+}
+.act--cars:hover {
+  background: rgba(234, 179, 8, .12);
+  border-color: rgb(234, 179, 8);
+  color: rgb(202, 138, 4);
+}
+.act--reschedule:hover {
+  background: rgba(14, 165, 233, .12);
+  border-color: rgb(14, 165, 233);
+  color: rgb(2, 132, 199);
+}
+.act--fees:hover {
+  background: rgba(168, 85, 247, .12);
+  border-color: rgb(168, 85, 247);
+  color: rgb(147, 51, 234);
+}
+/* الخطرُ يُقرأ ساكناً لا عند المرور. T860
+   ----------------------------------------------------------------------
+   كانت الألوانُ كلُّها على `:hover` وحده، فالعمودُ سبعُ أيقوناتٍ رماديّةٍ
+   متطابقة: «التعديل» و«الحذف» لا يُفرَّق بينهما إلا بتمرير المؤشّر وقراءة
+   التلميح. وزرُّ الحذف بالذات لا يُكتشَف بالنقر.
+   فالخطرُ وحده يحمل لونَه ساكناً — لونان في العمود لا سبعة، والفرقُ يُقرأ
+   قبل النقر لا بعده. */
+.act--danger,
+.act--del {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  color: var(--danger);
+}
+.act--danger:hover,
+.act--del:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.act--grants:hover {
+  background: rgba(99, 102, 241, .12);
+  border-color: rgb(99, 102, 241);
+  color: rgb(79, 70, 229);
+}
+.act--pages:hover {
+  background: rgba(14, 165, 233, .12);
+  border-color: rgb(14, 165, 233);
+  color: rgb(2, 132, 199);
+}
+.act--key:hover {
+  background: rgba(245, 158, 11, .12);
+  border-color: rgb(245, 158, 11);
+  color: rgb(217, 119, 6);
+}
+
+/* ملاحظات المشرفين والتدقيق الإداري */
+.staff-notes {
+  margin-block-start: 1.5rem;
+  padding: .85rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.staff-notes > summary {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  user-select: none;
+}
+.staff-notes > summary:hover {
+  color: var(--brand);
+}
+.staff-notes__icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.staff-notes__body {
+  margin-block-start: .75rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--line-soft);
+  font-size: .84rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.staff-notes__body p {
+  margin: .35rem 0;
+}
+
+/* ---- شاشة المزادات: عناصر العرض المتطابقة مع v1 — T849 ---- */
+
+/* الفلترة المتقدمة المنبثقة: تطفو فوق الصفحة كقائمة منسدلة ولا تدفع الجدول */
+.dropdown-filter {
+  position: relative;
+  display: inline-block;
+}
+.btn-advanced {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-advanced:hover,
+.btn-advanced.is-active {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.btn-advanced__icon {
+  inline-size: .95rem;
+  block-size: .95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.dropdown-filter__menu {
+  position: absolute;
+  inset-block-start: calc(100% + .4rem);
+  inset-inline-start: 0;
+  z-index: 40;
+  min-inline-size: 19rem;
+  padding: 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lift);
+}
+.dropdown-filter__menu[hidden] {
+  display: none;
+}
+.dropdown-filter__menu .field {
+  margin-block-end: .8rem;
+}
+.dropdown-filter__menu label {
+  display: block;
+  margin-block-end: .3rem;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.dropdown-filter__menu input {
+  inline-size: 100%;
+}
+
+/* عمود المعاينة والمصغّرات */
+.table-img-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.thumb--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 60px;
+  block-size: 42px;
+  margin-inline-end: 0;
+  color: var(--muted);
+  background: var(--line-soft);
+  border-radius: .35rem;
+}
+
+/* مكدّس الإحصاءات والخلايا المركبة */
+.stat-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.35;
+}
+.car-title {
+  font-weight: 700;
+  color: var(--ink);
+  font-size: .84rem;
+  display: block;
+}
+.auction-sub {
+  color: var(--muted);
+  font-size: .74rem;
+  display: block;
+}
+.stat-main {
+  font-weight: 600;
+  color: var(--ink);
+  font-size: .82rem;
+  display: block;
+}
+.stat-sub {
+  color: var(--muted);
+  font-size: .74rem;
+  display: block;
+}
+
+/* الفترة الزمنية: تاريخ البدء بالأخضر والانتهاء بالأحمر */
+.time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+.time-start {
+  color: var(--ok);
+  font-weight: 700;
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+}
+.time-end {
+  color: var(--danger);
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* شارة الحالة مع نقطة الحالة الدائرية */
+.auction-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+.status-dot {
+  display: inline-block;
+  inline-size: .45rem;
+  block-size: .45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+
+
+/* خانةُ المقياس: رقمٌ واحد يُقرأ بلمحة، ووصفٌ تحته، وشريطٌ حين للرقم مقام.
+   ثلاثةُ أسطرٍ متساوية الوزن تُقرأ سطراً سطراً — والصفُّ فيه ستُّ خاناتٍ
+   كهذه، فستّةَ عشرَ سطراً في صفٍّ واحد. */
+.metric { display: flex; flex-direction: column; gap: .12rem; min-inline-size: 0; }
+.metric__n {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.metric__label { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+.metric__note {
+  font-size: .74rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-inline-size: 12rem;
+}
+
+/* الشريط: نسبةٌ تُرى قبل أن تُقرأ. `role="img"` مع `aria-label` كاملة، فمن
+   لا يراه يسمع الرقمين — ولا يعتمد المعنى على اللون وحده. */
+.bar {
+  display: block;
+  block-size: .3rem;
+  inline-size: 100%;
+  max-inline-size: 7rem;
+  margin-block-start: .25rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.bar > i { display: block; block-size: 100%; background: var(--ok); border-radius: 999px; }
+.bar--warn > i { background: var(--warn); }
+
+/* ---- شاشة تفاصيل المزاد وتوزيع عناصره — T850 ---- */
+
+/* إلغاء قيود النماذج العريضة داخل شاشات المزاد */
+#bulkForm,
+form.filters {
+  max-width: none;
+  inline-size: 100%;
+}
+#bulkForm {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+.operations-panel .operations-form {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  inline-size: 100%;
+}
+
+/* كارت المزاد الرئيسي والشبكة الوصفية */
+.auction-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.5rem;
+  margin-block-end: 1.25rem;
+}
+.auction-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .8rem;
+  padding-block-end: 1rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.auction-card__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.auction-card__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.auction-card__badges {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  flex-wrap: wrap;
+}
+.auction-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12.5rem, 100%), 1fr));
+  gap: .75rem;
+  margin-block-start: 1rem;
+}
+.auction-meta-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  padding: .75rem .95rem;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.auction-meta-item:hover {
+  border-color: var(--line);
+  background: var(--panel);
+}
+.auction-meta-icon {
+  flex: none;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: .45rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--brand-dark);
+}
+.auction-meta-icon svg {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.auction-meta-body {
+  min-inline-size: 0;
+  flex: 1;
+}
+.auction-meta-label {
+  display: block;
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-block-end: .15rem;
+}
+.auction-meta-value {
+  display: block;
+  font-size: .94rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* لوحة إدارة العمليات ودورة الحياة */
+.operations-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.15rem 1.4rem;
+  margin-block-end: 1.4rem;
+}
+.operations-panel__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  flex-wrap: wrap;
+  margin-block-end: 1rem;
+  padding-block-end: .75rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.operations-panel__head h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.operations-form__fields {
+  display: flex;
+  align-items: flex-end;
+  gap: .75rem;
+  flex-wrap: wrap;
+}
+.operations-form__fields .field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  flex: 1;
+  min-inline-size: 14rem;
+}
+.operations-form__fields label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.operations-form__fields input,
+.operations-form__fields select {
+  inline-size: 100%;
+  max-inline-size: none;
+}
+.operations-idle {
+  padding: .65rem .9rem;
+  background: var(--raised);
+  border-radius: var(--radius);
+  color: var(--muted);
+  font-size: .84rem;
+}
+.operations-blocked {
+  margin-block-start: .9rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px dashed var(--line);
+}
+.operations-blocked__label {
+  display: block;
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-block-end: .45rem;
+}
+.operations-blocked__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.operations-blocked__list li {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  background: var(--raised);
+  padding: .25rem .6rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-soft);
+  font-size: .78rem;
+}
+.blocked-reason {
+  color: var(--muted);
+}
+
+/* أزرار مساعدة */
+.btn-danger-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .35rem .75rem;
+  border: 1px solid var(--danger-line);
+  border-radius: .4rem;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease;
+}
+.btn-danger-sm:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .3rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-sm:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.code-font {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .78rem;
+  direction: ltr;
+  display: inline-block;
+}
+.pill--count {
+  background: var(--line-soft);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-secondary:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
 /* ---- شريط الفلاتر: نمطُ اللوحة نفسُه، صفٌّ يلفّ لا شبكةٌ ممتدّة ------ */
 /* أوّلُ ما شُحن كان شبكةً بثمانية أعمدة فوقها ثمانيةُ عناوينَ تكرّر النائبَ
    في الخانة تحتها، وتحتها ثلاثةُ أسطرِ تبويباتٍ وزرٌّ رابعٌ وحده — خمسةُ
@@ -2335,6 +3218,9 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   background: rgba(255, 255, 255, .25);
   color: #fff;
 }
+/* `.filters__main` هنا **لا يُلغي اللفَّ**: كانت هذه القاعدة أخصَّ من
+   `.filters__main` الأساسية وبلا `flex-wrap`، فصفُّ الفلاتر في شاشة المزادات
+   يطفح أفقياً بدل أن يلفّ. */
 .filters .filters__main {
   display: flex;
   flex-wrap: wrap;
