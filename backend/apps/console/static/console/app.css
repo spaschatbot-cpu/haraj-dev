@@ -3166,16 +3166,22 @@ form.filters {
   display: grid;
   /* أعمدةٌ أضيق (8rem): ثمانُ خاناتٍ في صفٍّ واحد على الشاشة العريضة، لا
      ستٌّ وسطرٌ ناقص. وحقلُ الرقم لا يحتاج عرضَ حقلِ الاسم. */
-  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
-  gap: .55rem .7rem;
+  /* عرضٌ ثابتٌ متساوٍ، لا `1fr` يمطّط: الحقولُ تأخذ حجمها المريح والفراغُ
+     الزائد يقع على الطرف، فلا تتلاصق حوافُّها حين تملأ العرض. */
+  grid-template-columns: repeat(auto-fit, 10rem);
+  justify-content: start;
+  gap: .5rem .9rem;
   align-items: center;
+}
+@media (max-width: 640px) {
+  .filters__grid { grid-template-columns: 1fr 1fr; }
 }
 .filters__grid input[type="search"] {
   inline-size: 100%;
   min-inline-size: 0;
-  block-size: 2.15rem;
-  padding-inline: .65rem;
-  font-size: .82rem;
+  block-size: 1.9rem;
+  padding-inline: .6rem;
+  font-size: .8rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
