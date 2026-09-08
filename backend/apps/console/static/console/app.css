@@ -4071,3 +4071,31 @@ dialog.row-modal {
 .vehicle-facts .money { font-variant-numeric: tabular-nums; }
 .vehicle-facts .fact--pending { color: var(--muted); font-size: .82rem; }
 .vehicle-facts__foot { margin: 1rem 0 0; }
+
+/* ---- صفُّ فلاترٍ تحت رأس الجدول — أسلوبُ v1 -------------------------------
+   كان بحثُ كل عمودٍ في صندوقٍ منفصلٍ فوق الجدول؛ والمالك أراد أسلوبَ العرض
+   القديم: مُدخَلٌ صغيرٌ **تحت كل عمود** محاذٍ له. الصفُّ لاصقٌ تحت الرأس عند
+   التمرير كالرأس نفسِه، فيبقى الفلترُ مرئياً على جدولٍ طويل. T878 */
+.col-filters th {
+  padding: .25rem .35rem;
+  background: var(--raised);
+  position: sticky;
+  /* تحت صفِّ الرأس مباشرةً: الرأسُ لاصقٌ عند 0، وارتفاعُه ~2.4rem. */
+  top: 2.6rem;
+  z-index: 2;
+}
+.col-filter {
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: .3rem .45rem;
+  font-size: .78rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+}
+.col-filter:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--ring);
+}

@@ -319,6 +319,36 @@ somebody went looking for it.
           <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
           {% if can_manage %}<th>تحكم</th>{% endif %}
         </tr>
+        {% comment %} صفُّ فلاترٍ **تحت كل عمود** كما في v1 (`vehColFilter`): كان
+           عندنا الفلاترُ في صندوقٍ منفصلٍ فوق الجدول، والمالك أراد أسلوبَ العرض
+           القديم — مُدخَلٌ محاذٍ لعموده. يبقى server-side (يحافظ على الترقيم):
+           عند Enter أو تغيّرٍ يبني `auctions.js` الرابطَ بالفلاتر والتبويبات
+           ويذهب. الأعمدةُ بلا فلترٍ خليّتُها فارغة. T878 {% endcomment %}
+        {% with sc=filters.search_by_col %}
+        <tr class="col-filters" data-col-filters>
+          {% if can_manage %}<th class="pick"></th>{% endif %}
+          <th data-col="lot"><input type="search" class="col-filter" data-colfilter="{{ sc.lot.name }}" value="{{ sc.lot.value }}" placeholder="{{ sc.lot.label }}" aria-label="فلتر {{ sc.lot.label }}"></th>
+          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.car.name }}" value="{{ sc.car.value }}" placeholder="{{ sc.car.label }}" aria-label="فلتر {{ sc.car.label }}"></th>
+          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.year.name }}" value="{{ sc.year.value }}" placeholder="{{ sc.year.label }}" aria-label="فلتر {{ sc.year.label }}"></th>
+          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.vin.name }}" value="{{ sc.vin.value }}" placeholder="{{ sc.vin.label }}" aria-label="فلتر {{ sc.vin.label }}"></th>
+          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.claim.name }}" value="{{ sc.claim.value }}" placeholder="{{ sc.claim.label }}" aria-label="فلتر {{ sc.claim.label }}"></th>
+          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.plate.name }}" value="{{ sc.plate.value }}" placeholder="{{ sc.plate.label }}" aria-label="فلتر {{ sc.plate.label }}"></th>
+          <th data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.colour.name }}" value="{{ sc.colour.value }}" placeholder="{{ sc.colour.label }}" aria-label="فلتر {{ sc.colour.label }}"></th>
+          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.insurance.name }}" value="{{ sc.insurance.value }}" placeholder="{{ sc.insurance.label }}" aria-label="فلتر {{ sc.insurance.label }}"></th>
+          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}></th>
+          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}></th>
+          {% if can_manage %}<th></th>{% endif %}
+        </tr>
+        {% endwith %}
       </thead>
       <tbody>
         {% for car in page %}
@@ -616,4 +646,37 @@ somebody went looking for it.
 
 {% block scripts %}
   <script src="{% static 'console/auctions.js' %}"></script>
+  {% if can_manage %}
+  <script>
+  {% comment %} فلاترُ الأعمدة تحت الرأس — أسلوبُ v1، ولكن server-side كي لا
+     تكذب على صفحةٍ مُرقَّمة (فلترةٌ في المتصفّح تُخفي صفوفَ الصفحة الحالية
+     وحدها وتقول «٢» وخلفها مئة). عند Enter أو تغيّرٍ يُبنى الرابطُ بكل
+     الفلاتر مع التبويبات الحالية (الحالة/الصور/التسويق)، ويُسقَط `page`. T878
+  {% endcomment %}
+  (function () {
+    var row = document.querySelector('[data-col-filters]');
+    if (!row) return;
+    var inputs = row.querySelectorAll('[data-colfilter]');
+    function go() {
+      var params = new URLSearchParams();
+      var cur = new URLSearchParams(location.search);
+      ['state', 'photos', 'marketing'].forEach(function (k) {
+        if (cur.get(k)) params.set(k, cur.get(k));
+      });
+      inputs.forEach(function (inp) {
+        var v = inp.value.trim();
+        if (v) params.set(inp.getAttribute('data-colfilter'), v);
+      });
+      var qs = params.toString();
+      location.href = location.pathname + (qs ? '?' + qs : '');
+    }
+    inputs.forEach(function (inp) {
+      inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); go(); }
+      });
+      inp.addEventListener('change', go);
+    });
+  })();
+  </script>
+  {% endif %}
 {% endblock %}

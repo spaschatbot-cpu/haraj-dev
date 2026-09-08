@@ -55,16 +55,12 @@
       {% endfor %}
     </nav>
   </div>
-  <div class="filters__grid">
-    {% for field in filters.search %}
-      <label class="sr-only" for="vf-{{ field.name }}">{{ field.label }}</label>
-      <input type="search" id="vf-{{ field.name }}"
-             name="{{ field.name }}" value="{{ field.value }}"
-             placeholder="{{ field.label }}">
-    {% endfor %}
-    <button type="submit" class="btn-primary filters__search">بحث</button>
-    {% if filters.has_active %}
-      <a href="{{ filters.clear_url }}" class="filters__reset">امسح الكل</a>
-    {% endif %}
-  </div>
+  {% comment %} خاناتُ البحث لكل عمودٍ انتقلت إلى **رأس الجدول** تحت كل عمود
+     (أسلوبُ v1)، فلم تعد هنا. ويبقى «امسح الكل» ظاهراً حين يوجد فلترٌ نشط،
+     فمن رشّح أعمدةً كثيرة يمسحها بضغطة. T878 {% endcomment %}
+  {% if filters.has_active %}
+    <div class="filters__grid">
+      <a href="{{ filters.clear_url }}" class="filters__reset">امسح كل الفلاتر</a>
+    </div>
+  {% endif %}
 </form>

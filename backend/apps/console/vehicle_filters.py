@@ -349,6 +349,19 @@ def state(params, auction) -> dict:
         {"name": key, "label": label, "value": _get(params, key)}
         for key, label in SEARCH_FIELDS
     ]
+    # خريطةُ «عمودُ الجدول ← فلترُه»، ليوضع كلُّ مُدخَلٍ **تحت عموده** في رأس
+    # الجدول كما في v1 (`vehColFilter data-col`)، لا في صندوقٍ منفصل فوقه.
+    # المفتاحُ هو `data-col` في القالب.
+    search_by_col = {
+        "lot": search[0],
+        "car": search[1],
+        "year": search[2],
+        "vin": search[3],
+        "claim": search[4],
+        "plate": search[5],
+        "colour": search[6],
+        "insurance": search[7],
+    }
     has_active = (
         any(item["value"].strip() for item in search)
         or bool(current_state)
@@ -357,6 +370,7 @@ def state(params, auction) -> dict:
     )
     return {
         "search": search,
+        "search_by_col": search_by_col,
         "state": current_state,
         "photos": current_photos,
         "marketing": current_marketing,
