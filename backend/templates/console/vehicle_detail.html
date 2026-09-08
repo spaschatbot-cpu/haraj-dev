@@ -54,7 +54,7 @@
     <div><dt>الوصف / النبذة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>حالة التفعيل</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>المدينة / موقع المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>للتسويق</dt><dd>{% if vehicle.is_marketing %}نعم — للدعاية لا للبيع{% else %}لا{% endif %}</dd></div>
+    <div><dt>التسويق</dt><dd>{% if vehicle.is_marketing %}سيارة شريك التسويق (التعاونية){% else %}عاديّة{% endif %}</dd></div>
     <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
     <div><dt>الشريك المالك</dt><dd>{{ vehicle.owner_company.name|default:"—" }}</dd></div>
     <div><dt>الفائز</dt><dd>{{ vehicle.awarded_to.full_name|default:"—" }}</dd></div>

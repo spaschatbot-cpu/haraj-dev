@@ -625,17 +625,45 @@ def auction_new(request):
     form = AuctionForm(request.POST or None)
 
     if request.method == "POST":
-        auction = _save(
-            request, form, action="console.create_auction", fields=AUCTION_FIELDS
-        )
+        # الرقمُ يُخصَّص في `AuctionForm.save` (max+1). سباقُ منشئَين قد يقع على
+        # الرقم نفسه فيرفضه القيدُ الفريد — نعيد المحاولة، وكلُّ محاولةٍ تُعيد
+        # حساب الرقم. القيدُ هو الحارس، وهذا مجرّد لطفٍ يتفادى صفحةَ خطأ.
+        from django.db import IntegrityError
+
+        auction = None
+        if form.is_valid():
+            for _attempt in range(6):
+                try:
+                    auction = _save(
+                        request,
+                        form,
+                        action="console.create_auction",
+                        fields=AUCTION_FIELDS,
+                    )
+                    break
+                except IntegrityError:
+                    form.instance.pk = None  # فشل الإدراج → أعِد الحساب والمحاولة
+                    continue
         if auction is not None:
-            messages.success(request, f"أُنشئ المزاد {auction.number}.")
+            # الخطوة ٢ كـ v1: بعد إعدادات المزاد ننتقل إلى صفحته لإضافة السيارات
+            # والصور. المزادُ وُلد `draft` فلا يظهر للعملاء حتى يُجدوَل بسياراته.
+            messages.success(
+                request,
+                f"أُنشئ المزاد {auction.number} (مسودّة). الخطوة ٢: أضِف السيارات والصور.",
+            )
             return redirect("console:auction-detail", pk=auction.pk)
+
+    # الرقمُ التالي المعروض للموظّف — نفسُ حساب `AuctionForm.save` (max+1).
+    # معاينةٌ لا التزام: قد يتغيّر لو أُنشئ مزادٌ بين العرض والحفظ، و`save`
+    # يُعيد الحساب حينها. لكن عرضَ الرقم الفعليّ أوضحُ من «يُخصَّص تلقائياً».
+    from django.db.models import Max
+
+    next_number = (Auction.objects.aggregate(m=Max("number"))["m"] or 0) + 1
 
     return render(
         request,
         "console/auction_form.html",
-        {"form": form, "auction": None},
+        {"form": form, "auction": None, "next_number": next_number},
     )
 
 

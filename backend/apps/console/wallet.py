@@ -201,3 +201,36 @@ def direct_deduct(request):
         "console/direct_deduct.html",
         {"q": text, "rows": rows, "searched": found is not None},
     )
+
+
+@console_page("console:bank-topups")
+def bank_topups(request):
+    """طلباتُ شحن التأمين بتحويلٍ بنكيّ — للقراءة فقط.
+
+    قرار المالك (٢٠٢٦-٠٩-٠٨): اللوحةُ تقرأ ولا تعتمد — الاعتمادُ فعلُ أودو.
+    فلا زرَّ «اعتماد» ولا «رفض» هنا: تُعرَض الطلباتُ وحالاتُها وإيصالاتُها
+    ليراها المالية، ويُرحّلونها في أودو، فيقيَّد الائتمانُ عبر المسار الوارد.
+    """
+    from django.core.paginator import Paginator
+
+    from apps.money.models import BankTopupRequest, BankTopupState
+
+    state = (request.GET.get("state") or "").strip()
+    rows = BankTopupRequest.objects.select_related("user").order_by("-created_at", "-id")
+    if state:
+        rows = rows.filter(state=state)
+
+    counts = [
+        {"value": s.value, "label": s.label, "n": rows.model.objects.filter(state=s.value).count()}
+        for s in BankTopupState
+    ]
+    open_count = BankTopupRequest.objects.filter(
+        state__in=BankTopupState.open_states()
+    ).count()
+
+    page = Paginator(rows, 50).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "console/bank_topups.html",
+        {"page": page, "counts": counts, "open_count": open_count, "state": state},
+    )

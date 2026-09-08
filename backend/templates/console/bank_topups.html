@@ -1,0 +1,77 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+طلباتُ شحن التأمين بتحويلٍ بنكيّ — للقراءة فقط. اللوحةُ تعرض الطلباتِ وحالاتِها
+وإيصالاتِها؛ الاعتمادُ فعلُ أودو (قرار المالك ٢٠٢٦-٠٩-٠٨)، فلا زرَّ اعتمادٍ ولا
+رفضٍ هنا. الرفعُ لا يحرّك الدفتر: يُقيَّد الائتمانُ حين يؤكّد أودو عبر المسار
+الوارد.
+{% endcomment %}
+{% block title %}طلبات الشحن البنكي{% endblock %}
+{% block heading %}طلبات الشحن البنكي{% endblock %}
+
+{% block content %}
+  <div class="scroller">
+    <table>
+      <thead><tr><th>الحالة</th><th>العدد</th><th></th></tr></thead>
+      <tbody>
+        {% for row in counts %}
+          <tr>
+            <th>{{ row.label }}</th>
+            <td class="count">{{ row.n|unlocalize }}</td>
+            <td>{% if row.value == "submitted" and row.n %}<span class="pill" data-tone="warn">قيد المراجعة</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <form method="get">
+    <select name="state">
+      <option value="">كل الحالات</option>
+      {% for row in counts %}
+        <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">تصفية</button>
+  </form>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المرجع</th>
+          <th>العميل</th>
+          <th>الجوال</th>
+          <th>المبلغ</th>
+          <th>الحالة</th>
+          <th>الإيصال</th>
+          <th>قُدِّم</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td>{{ row.reference }}</td>
+            <td>{{ row.user.full_name }}</td>
+            <td>{{ row.user.phone|unlocalize }}</td>
+            <td class="money">{{ row.amount|unlocalize }}</td>
+            <td>{{ row.get_state_display }}</td>
+            <td>
+              {% if row.receipt %}
+                <a href="{{ row.receipt.url }}" target="_blank" rel="noopener">عرض ←</a>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ row.created_at }}</td>
+            <td><a href="{% url 'console:money-customer' row.user.pk %}">دفتره ←</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="empty">لا طلباتِ شحنٍ بنكيّ مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p>{{ page.paginator.count|unlocalize }} طلباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+     {% if open_count %}· <strong>{{ open_count|unlocalize }}</strong> قيد المراجعة{% endif %}</p>
+{% endblock %}

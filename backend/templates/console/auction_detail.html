@@ -52,6 +52,22 @@ somebody went looking for it.
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
     تصدير إكسل
   </a>
+  {% if can_manage %}
+    {% comment %} رفعُ ملف سيارات لهذا المزاد — كـ v1: يختار الموظّفُ الملفَّ
+       فيُرفَع فوراً، وتدخل الصفوفُ هذا المزاد (default_auction). صيغةُ الملف
+       نفسُها التي يصدّرها زرُّ التصدير — تصديرٌ ثم استيرادٌ بلا تحويل. {% endcomment %}
+    <form method="post" action="{% url 'console:auction-vehicles-import' auction.pk %}"
+          enctype="multipart/form-data" style="display:inline">
+      {% csrf_token %}
+      <label class="btn-secondary" title="رفع ملف إكسل/CSV بسيارات هذا المزاد" style="cursor:pointer">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 21V10M7.5 13.5 12 9l4.5 4.5M4 4h16"/></svg>
+        رفع إكسل
+        <input type="file" name="sheet" accept=".xlsx,.csv" required
+               style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+               onchange="if(this.files.length){this.form.submit();}">
+      </label>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
@@ -279,7 +295,17 @@ somebody went looking for it.
           </h3>
           <div class="veh-card__meta">
             <span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span>
-            {% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+            {% comment %} زرُّ toggle لا حبّةُ عرض: التسويقُ مِلكيّة تُقلَب من
+               الكارت فوراً بـAJAX كما في v1 (T877). محروسٌ بـ`can_manage`؛
+               لغير المدير حبّةٌ للقراءة فقط. {% endcomment %}
+            {% if can_manage %}
+              <button type="button" class="mkt-toggle{% if car.is_marketing %} is-on{% endif %}"
+                      data-marketing-toggle data-pk="{{ car.pk|unlocalize }}"
+                      data-on="{{ car.is_marketing|yesno:"1,0" }}"
+                      title="اضغط للتبديل: سيارة الشريك أو عاديّة">{% if car.is_marketing %}تسويق{% else %}عاديّة{% endif %}</button>
+            {% elif car.is_marketing %}
+              <span class="pill" data-tone="info">تسويق</span>
+            {% endif %}
           </div>
           <div class="veh-card__chips">
             <span class="chip">لوت {{ car.lot_number|unlocalize }}</span>
@@ -450,6 +476,28 @@ somebody went looking for it.
 
     document.querySelectorAll('[data-row-detail], [data-row-edit], [data-row-add]').forEach(function (btn) {
       btn.addEventListener('click', function () { openUrl(btn.getAttribute('data-url')); });
+    });
+
+    // زرُّ التسويق: يقلب `is_marketing` فوراً بـAJAX، كما في v1 — لا reload.
+    var csrf = document.querySelector('[name="csrfmiddlewaretoken"]');
+    csrf = csrf ? csrf.value : '';
+    document.querySelectorAll('[data-marketing-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = btn.getAttribute('data-on') !== '1';
+        btn.disabled = true;
+        fetch('/console/vehicles/' + btn.getAttribute('data-pk') + '/marketing/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf },
+          body: 'is_marketing=' + (next ? '1' : '0'),
+          credentials: 'same-origin',
+        }).then(function (r) { return r.json(); }).then(function (p) {
+          if (p.ok) {
+            btn.setAttribute('data-on', next ? '1' : '0');
+            btn.classList.toggle('is-on', next);
+            btn.textContent = next ? 'تسويق' : '—';
+          }
+        }).finally(function () { btn.disabled = false; });
+      });
     });
   })();
   </script>

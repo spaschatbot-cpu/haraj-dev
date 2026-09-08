@@ -384,6 +384,14 @@ PAGES: tuple[Page, ...] = (
         "plus-wallet",
     ),
     Page(
+        "console:bank-topups",
+        "طلبات الشحن البنكي",
+        Capability.MONEY_VIEW,
+        "wallet",
+        "طلباتُ شحن التأمين بتحويلٍ بنكيّ وإيصالاتها — للقراءة؛ الاعتمادُ في أودو.",
+        "receipt",
+    ),
+    Page(
         "console:money-ledger",
         "سجل المحفظة",
         Capability.MONEY_VIEW,

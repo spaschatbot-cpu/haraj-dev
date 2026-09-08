@@ -1,11 +1,11 @@
 {% extends "console/base.html" %}
+{% load l10n %}
 {% block title %}{% if auction %}تعديل مزاد{% else %}مزاد جديد{% endif %}{% endblock %}
 {% block heading %}
-  {% if auction %}تعديل المزاد {{ auction.number|unlocalize }}{% else %}مزاد جديد{% endif %}
+  {% if auction %}تعديل المزاد {{ auction.number|unlocalize }}{% else %}إنشاء مزاد{% endif %}
 {% endblock %}
 
 {% block content %}
-{% load l10n %}
   {% comment %}
   استمارةٌ مقسّمةٌ إلى أقسامٍ يقرؤها الموظّف كما يفكّر: مَن ومتى وبكم. وهي
   نفسُها للإضافة والتعديل — كلُّ حقلٍ يُرسَم إن كان في الفورم وحده، فنافذةُ
@@ -15,7 +15,35 @@
   والحالةُ ليست حقلاً عمداً: المزادُ يولد مسودّةً وينتقل عبر
   `apps.auctions.services` وحده، وبوّابتُه ترفض — من بين أشياء — جدولةَ مزادٍ
   بلا سيارات. وطريقةُ العرض (`showcase`) لافتةٌ لا حالة، فتظهر هنا.
+
+  الإنشاءُ خطوتان كـ v1: (١) إعدادات المزاد هنا، ثم (٢) إضافة السيارات والصور
+  في صفحة المزاد بعد الحفظ. الـstepper يقول أين نحن من الخطوتين.
   {% endcomment %}
+
+  {% if not auction %}
+  <style>
+    .stepper{display:flex;gap:.5rem;align-items:center;margin:0 0 1.25rem;flex-wrap:wrap}
+    .stepper__step{display:flex;align-items:center;gap:.5rem;padding:.5rem .9rem;border-radius:.6rem;
+      background:var(--surface-2,#f1f3f5);color:var(--muted,#6b7280);font-weight:600;font-size:.9rem}
+    .stepper__step[data-active]{background:var(--accent,#2563eb);color:#fff}
+    .stepper__num{display:inline-flex;width:1.5rem;height:1.5rem;border-radius:50%;
+      align-items:center;justify-content:center;background:rgba(255,255,255,.25);font-size:.85rem}
+    .stepper__step:not([data-active]) .stepper__num{background:rgba(0,0,0,.08)}
+    .stepper__arrow{color:var(--muted,#9ca3af)}
+    .vat-static{display:flex;flex-direction:column;gap:.35rem}
+    .vat-static input{background:var(--surface-2,#f1f3f5);cursor:not-allowed}
+    .field__hint--policy{color:var(--muted,#6b7280)}
+  </style>
+  <nav class="stepper" aria-label="خطوات إنشاء المزاد">
+    <span class="stepper__step" data-active>
+      <span class="stepper__num">١</span> إعدادات المزاد
+    </span>
+    <span class="stepper__arrow" aria-hidden="true">←</span>
+    <span class="stepper__step">
+      <span class="stepper__num">٢</span> السيارات والصور
+    </span>
+  </nav>
+  {% endif %}
 
   {% if form.non_field_errors %}
     <div class="notice notice--error">
@@ -23,15 +51,25 @@
     </div>
   {% endif %}
 
-  <form method="post" class="auction-form">
+  <form method="post" class="auction-form" data-auction-form>
     {% csrf_token %}
 
     <section class="form-section">
       <h2 class="form-section__title">هويّة المزاد</h2>
       <div class="form-grid">
-        {% include "console/_field.html" with field=form.number %}
-        {% include "console/_field.html" with field=form.title wide=True %}
-        {% include "console/_field.html" with field=form.location wide=True %}
+        {% if auction %}
+          {% comment %} نافذةُ التعديل تحمل حقلَ الرقم (هويّة). {% endcomment %}
+          {% include "console/_field.html" with field=form.number %}
+        {% else %}
+          {% comment %} الإنشاء: الرقمُ يُخصَّص تلقائياً من القاعدة — عرضٌ فقط. {% endcomment %}
+          <div class="field vat-static">
+            <label for="auction_number_auto">رقم المزاد</label>
+            <input id="auction_number_auto" type="text" value="{{ next_number|unlocalize }}" readonly tabindex="-1" aria-readonly="true">
+            <small class="field__hint field__hint--policy">يُخصَّص تلقائياً من القاعدة عند الحفظ</small>
+          </div>
+        {% endif %}
+        {% include "console/_field.html" with field=form.title %}
+        {% include "console/_field.html" with field=form.location %}
       </div>
     </section>
 
@@ -39,10 +77,13 @@
       <section class="form-section">
         <h2 class="form-section__title">التوقيت والعرض</h2>
         <div class="form-grid">
-          {% include "console/_field.html" with field=form.starts_at %}
-          {% include "console/_field.html" with field=form.ends_at %}
-          {% include "console/_field.html" with field=form.showcase wide=True %}
-          {% include "console/_field.html" with field=form.sms_reminder_at wide=True %}
+          {% comment %} المرحلة أولاً: هي التي تقرّر إن كانت التواريخ مطلوبة.
+             «لاحقاً/قادم» بلا تواريخ (مخفيّ أو معلَنٌ بلا عدّاد)، و«قريباً» بعدّادٍ
+             فتلزمها. الجافاسكربت أدناه يعكس ذلك على الحقول لحظياً. {% endcomment %}
+          {% include "console/_field.html" with field=form.showcase wide=True hint="لاحقاً: مخفيّ · قادم: معلَنٌ بلا عدّاد · قريباً: بعدّادٍ للبداية" %}
+          {% include "console/_field.html" with field=form.starts_at hint="مطلوبٌ لمرحلة «قريباً» فقط" %}
+          {% include "console/_field.html" with field=form.ends_at hint="مطلوبٌ لمرحلة «قريباً» فقط" %}
+          {% include "console/_field.html" with field=form.sms_reminder_at %}
         </div>
       </section>
     {% endif %}
@@ -51,10 +92,17 @@
       <section class="form-section">
         <h2 class="form-section__title">المال</h2>
         {% comment %} التأمينُ يُحجَز ويُردّ، والرسمُ يُدفَع ولا يُردّ — عمودان
-           لا واحد، ومكتوبٌ تحت كلٍّ ما هو، فلا يُخلَطان يوم يُردّ التأمين. {% endcomment %}
-        <div class="form-grid">
+           لا واحد، ومكتوبٌ تحت كلٍّ ما هو، فلا يُخلَطان يوم يُردّ التأمين.
+           والضريبةُ ليست حقلَ مزاد: تُحسب مركزياً في `money.services` بنسبةٍ
+           واحدة (١٥٪)، فتُعرَض هنا للعلم فقط ولا تُدخَل. {% endcomment %}
+        <div class="form-grid form-grid--money">
           {% include "console/_field.html" with field=form.deposit_required hint="يُحجَز على المزايد ويُردّ إن لم يفز" %}
           {% include "console/_field.html" with field=form.admin_fee hint="يُدفَع ولا يُردّ" %}
+          <div class="field vat-static">
+            <label for="vat_display">نسبة الضريبة</label>
+            <input id="vat_display" type="text" value="١٥٪" readonly tabindex="-1" aria-readonly="true">
+            <small class="field__hint field__hint--policy">ثابتةٌ بالنظام وتُطبَّق على الفاتورة — ليست إعداد مزاد</small>
+          </div>
         </div>
       </section>
     {% endif %}
@@ -70,7 +118,9 @@
     {% for field in form.hidden_fields %}{{ field }}{% endfor %}
 
     <div class="form-actions">
-      <button type="submit" class="btn-primary">حفظ</button>
+      <button type="submit" class="btn-primary">
+        {% if auction %}حفظ{% else %}حفظ ومتابعة لإضافة السيارات ←{% endif %}
+      </button>
       {% if auction %}
         <a href="{% url 'console:auction-detail' auction.pk %}" class="btn-cancel">إلغاء</a>
       {% else %}
@@ -78,4 +128,31 @@
       {% endif %}
     </div>
   </form>
+
+  {% if form.showcase %}
+  <script>
+  // منطق تشغيل v1: المرحلة تقرّر إلزام التواريخ. «قريباً» وحدها تلزمهما (عدّاد)؛
+  // «لاحقاً/قادم» لا، فيُنشأ المزاد بالاسم وحده. عكسٌ لحظيّ على الحقول — والخادم
+  // يفرض القاعدة نفسها في `AuctionForm.clean`، فالجافاسكربت راحةٌ لا حارس.
+  (function () {
+    var form = document.querySelector('[data-auction-form]');
+    if (!form) return;
+    var stage = form.querySelector('[name="showcase"]');
+    var starts = form.querySelector('[name="starts_at"]');
+    var ends = form.querySelector('[name="ends_at"]');
+    if (!stage) return;
+    function sync() {
+      var needsDates = stage.value === 'soon';
+      [starts, ends].forEach(function (el) {
+        if (!el) return;
+        el.required = needsDates;
+        var wrap = el.closest('.field');
+        if (wrap) wrap.style.opacity = needsDates ? '1' : '.75';
+      });
+    }
+    stage.addEventListener('change', sync);
+    sync();
+  })();
+  </script>
+  {% endif %}
 {% endblock %}

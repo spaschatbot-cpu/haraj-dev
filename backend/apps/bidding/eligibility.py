@@ -209,16 +209,35 @@ def money_snapshot(user) -> MoneySnapshot:
 def _dues(user) -> tuple[Decimal, Decimal]:
     """``(everything owed, what of it still blocks bidding)``.
 
-    The two numbers differ when an owner has granted an exception (T515): the
-    debt is still a debt and the snapshot must say so, but a named person with
-    a written reason has decided it will not stop this bidder. Recording only
-    the second number would erase the debt from the history; gating on the
-    first would make the exception meaningless.
+    The two numbers differ for two reasons, and both keep the debt in the
+    history while letting the bidder through:
+
+    * **An owner has granted an exception** (T515): a named person with a
+      written reason decided this debt will not stop this bidder.
+    * **The debt is already secured by a locked deposit** (قرار المالك
+      ٢٠٢٦-٠٩-٠٨): the customer owes money, but a deposit of theirs is pinned to
+      that debt — so it is covered, and a *second* free deposit is genuinely
+      theirs to bid with. This is v1's "المدين يزايد بوديعة ثانية" رule, made
+      sound: what secures the debt is money that actually moved to
+      ``insurance_locked``, not a flag, and it stays there until the invoice is
+      paid. The unsecured remainder still blocks — and the write path
+      (:func:`apps.money.services.secure_dues`) locks a free deposit to any
+      unsecured invoice *before* this gate runs, so by bid time an
+      already-invoiced debt is always covered and only a debtor with no surplus
+      is refused.
+
+    Gating on the first number would make both meaningless; recording only the
+    second would erase the debt from the ledger's story.
     """
-    unpaid = list(Invoice.objects.filter(customer=user, state__in=UNPAID_INVOICE_STATES))
+    unpaid = list(
+        Invoice.objects.filter(
+            customer=user, state__in=UNPAID_INVOICE_STATES
+        ).select_related("vehicle")
+    )
     if not unpaid:
         return ZERO, ZERO
 
+    # A debt does not block when a named exception covers it…
     excused = set(
         Hold.objects.filter(
             owner=user,
@@ -231,9 +250,35 @@ def _dues(user) -> tuple[Decimal, Decimal]:
         .values_list("invoice_id", flat=True)
     )
 
+    # …or when a locked deposit already secures it: directly by invoice, or via
+    # the auction's single pledge (one deposit covers every invoice of that
+    # auction — HR-01).
+    secured = set(
+        Hold.objects.filter(
+            owner=user,
+            state=HoldState.ACTIVE,
+            reason=HoldReason.DUES,
+            invoice__in=unpaid,
+        ).values_list("invoice_id", flat=True)
+    )
+    auction_ids = {inv.vehicle.auction_id for inv in unpaid if inv.vehicle_id}
+    if auction_ids:
+        pledged = set(
+            Hold.objects.filter(
+                owner=user,
+                state=HoldState.ACTIVE,
+                reason=HoldReason.DUES,
+                auction_id__in=auction_ids,
+            ).values_list("auction_id", flat=True)
+        )
+        for inv in unpaid:
+            if inv.vehicle_id and inv.vehicle.auction_id in pledged:
+                secured.add(inv.pk)
+
+    covered = excused | secured
     total = sum((invoice.outstanding for invoice in unpaid), start=ZERO)
     blocking = sum(
-        (invoice.outstanding for invoice in unpaid if invoice.pk not in excused),
+        (invoice.outstanding for invoice in unpaid if invoice.pk not in covered),
         start=ZERO,
     )
     return total, blocking
