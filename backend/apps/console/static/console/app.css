@@ -3695,7 +3695,10 @@ form[method="get"] .filters__grid input[type="search"] {
   inline-size: 90vw;
   background: var(--panel);
   color: var(--ink);
+  color-scheme: light dark;
 }
+.columns-modal form,
+.columns-list { background: var(--panel); }
 .columns-modal::backdrop { background: rgb(0 0 0 / 45%); }
 .columns-modal form { padding: 1.1rem 1.2rem; }
 .columns-modal__head h2 { margin: 0 0 .2rem; font-size: 1.05rem; }
@@ -3716,6 +3719,7 @@ form[method="get"] .filters__grid input[type="search"] {
   border-radius: var(--radius);
   cursor: grab;
 }
+.columns-list__row { background: var(--panel); }
 .columns-list__row:hover { background: var(--raised); }
 .columns-list__row.is-dragging { opacity: .5; border-color: var(--brand); }
 .columns-list__grip { color: var(--muted); font-size: 1rem; cursor: grab; user-select: none; }

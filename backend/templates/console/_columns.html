@@ -59,6 +59,31 @@
     modal.close();
   });
 
+  // الحفظُ بـfetch ثم **إعادةُ تحميلٍ قسريّة**، لا submitٌ عاديّ: الـsubmit
+  // يمرّ بـ302 ثم GET، والمتصفّح يخدم ذلك الـGET من bfcache — النسخة التي
+  // كانت قبل الحفظ — فتبقى الأعمدةُ كما كانت والموظّف يظنّ الحفظ لم يقع.
+  // `location.reload()` يتخطّى bfcache ويجلب الجدول بتخصيصه الجديد.
+  var form = modal.querySelector('[data-columns-form]');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      credentials: 'same-origin',
+    }).then(function () {
+      modal.close();
+      // URLٌ بمُعامِلٍ فريدٍ لا `reload`: بعضُ المتصفّحات تخدم `reload` من
+      // bfcache رغم `no-store`، فتبقى الأعمدةُ كما كانت. عنوانٌ لم يُزَر من
+      // قبل يُجلَب حتماً، ويحافظ على فلاتر الجدول القائمة.
+      var u = new URL(window.location.href);
+      u.searchParams.set('_c', Date.now());
+      window.location.href = u.toString();
+    }).catch(function () {
+      // لو فشل الطلب، دع الاستمارة ترسل نفسها كما كانت — لا نبتلع الخطأ.
+      form.submit();
+    });
+  });
+
   // السحبُ لإعادة الترتيب: الصفُّ يحمل حقلاً مخفياً `order`، والحفظُ يقرأ
   // ترتيبَ هذه الحقول كما هي في DOM — فتحريكُ الصفّ يحرّك قيمته معه.
   var list = modal.querySelector('[data-columns-sortable]');

@@ -68,7 +68,14 @@ def console_page(url_name: str):
             # مخرَج تلك النقاط أيضاً.
             timezone.activate(ZoneInfo(settings.DISPLAY_TIME_ZONE))
             try:
-                return view(request, *args, **kwargs)
+                response = view(request, *args, **kwargs)
+                # لا bfcache على صفحات اللوحة: المتصفّح كان يخدم نسخةً محفوظة
+                # بعد كلّ فعلٍ (تخصيصُ أعمدة، حفظُ فلتر)، فيبدو أن الحفظ لم
+                # يقع والشاشةُ لم تتغيّر. `no-store` يمنع الحفظ في bfcache،
+                # فكلُّ عودةٍ إلى صفحةٍ تُجلَب طازجةً بحالتها بعد الفعل.
+                if hasattr(response, "headers"):
+                    response.headers["Cache-Control"] = "no-store, must-revalidate"
+                return response
             finally:
                 # الخيوطُ يُعاد استعمالها: منطقةٌ مفعَّلةٌ لا تُعاد تُسرّب
                 # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة.
