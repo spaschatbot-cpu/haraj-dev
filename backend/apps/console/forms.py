@@ -314,6 +314,7 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "make": "الماركة",
             "model": "الموديل",
             "year": "السنة",
+            "colour": "اللون",
             "vin": "رقم الهيكل",
             "plate_number": "رقم اللوحة",
             "plate_type": "نوع اللوحة",

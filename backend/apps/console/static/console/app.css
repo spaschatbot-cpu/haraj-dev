@@ -3771,9 +3771,18 @@ form[method="get"] .filters__grid input[type="search"] {
   gap: .9rem 1.1rem;
 }
 .form-grid .field { display: flex; flex-direction: column; gap: .3rem; }
+/* حقلُ خانةِ الاختيار: الخانةُ والعنوانُ في صفٍّ أفقيّ، لا عنوانٌ فوق خانةٍ
+   تمتدّ على العرض. */
+.form-grid .field:has(input[type="checkbox"]) {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+}
+.form-grid .field:has(input[type="checkbox"]) label { margin: 0; }
 .form-grid .field--wide { grid-column: 1 / -1; }
 .form-grid .field label { font-size: .84rem; font-weight: 700; color: var(--ink-soft); }
-.form-grid .field input,
+.form-grid .field input:not([type="checkbox"]):not([type="radio"]),
 .form-grid .field select {
   inline-size: 100%;
   block-size: 2.3rem;

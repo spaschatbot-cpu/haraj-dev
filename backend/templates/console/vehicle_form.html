@@ -5,22 +5,79 @@
 {% endblock %}
 
 {% block content %}
+{% load l10n %}
   {% comment %}
-  Neither the state nor the award is a field here. An award typed by hand is an
-  award with no bid behind it and no money moved for it; correcting one is
-  `bidding.settlement.replace_winner`, which moves the invoice and the deposit
-  with it.
+  استمارةٌ مقسّمةٌ إلى أقسامٍ يقرؤها الموظّف كما يفكّر — كاستمارة المزاد. T875.
+  لا الحالةُ ولا الترسيةُ حقلٌ هنا: ترسيةٌ تُكتب باليد ترسيةٌ بلا مزايدةٍ ولا
+  مالٍ تحرّك، وتصحيحُها `replace_winner` الذي ينقل الفاتورةَ والتأمين معها.
+
+  `action` صريح: الاستمارةُ قد تُحقَن في نافذةٍ على صفحةٍ أخرى (جدولُ المزاد)،
+  فبلا action تبعث إلى تلك الصفحة لا إلى وجهتها.
   {% endcomment %}
-  {% comment %} action صريحٌ: الاستمارةُ قد تُحقَن في نافذةٍ على صفحةٍ أخرى
-     (جدولُ المزاد)، فبلا action تبعث إلى تلك الصفحة لا إلى وجهتها. {% endcomment %}
-  <form method="post" action="{% if vehicle %}{% url 'console:vehicle-edit' vehicle.pk %}{% else %}{% url 'console:vehicle-new' %}{% endif %}">
+
+  {% if form.non_field_errors %}
+    <div class="notice notice--error">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="auction-form"
+        action="{% if vehicle %}{% url 'console:vehicle-edit' vehicle.pk %}{% else %}{% url 'console:vehicle-new' %}{% endif %}">
     {% csrf_token %}
-    {% include "console/_form.html" %}
-    <button type="submit">حفظ</button>
-    {% if vehicle %}
-      <a href="{% url 'console:vehicle-detail' vehicle.pk %}">إلغاء</a>
-    {% else %}
-      <a href="{% url 'console:vehicles' %}">إلغاء</a>
-    {% endif %}
+
+    <section class="form-section">
+      <h2 class="form-section__title">الهويّة</h2>
+      <div class="form-grid">
+        {% include "console/_field.html" with field=form.auction wide=True %}
+        {% include "console/_field.html" with field=form.lot_number %}
+        {% include "console/_field.html" with field=form.year %}
+        {% include "console/_field.html" with field=form.make %}
+        {% include "console/_field.html" with field=form.model %}
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2 class="form-section__title">المواصفات</h2>
+      <div class="form-grid">
+        {% include "console/_field.html" with field=form.vin %}
+        {% include "console/_field.html" with field=form.plate_number %}
+        {% include "console/_field.html" with field=form.plate_type %}
+        {% include "console/_field.html" with field=form.colour %}
+        {% include "console/_field.html" with field=form.odometer_km %}
+        {% include "console/_field.html" with field=form.transmission %}
+        {% include "console/_field.html" with field=form.fuel_type %}
+        {% include "console/_field.html" with field=form.condition %}
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2 class="form-section__title">الفحص والتأمين</h2>
+      <div class="form-grid">
+        {% include "console/_field.html" with field=form.claim_number %}
+        {% include "console/_field.html" with field=form.insurance_company %}
+        {% include "console/_field.html" with field=form.runs_status %}
+        {% include "console/_field.html" with field=form.key_status %}
+      </div>
+    </section>
+
+    <section class="form-section">
+      <h2 class="form-section__title">العرض والمال</h2>
+      <div class="form-grid">
+        {% include "console/_field.html" with field=form.reserve_price hint="سعر الوقوف — أقلّ ما يُباع به" %}
+        {% include "console/_field.html" with field=form.owner_company %}
+        {% include "console/_field.html" with field=form.is_marketing wide=True %}
+      </div>
+    </section>
+
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">حفظ</button>
+      {% if vehicle %}
+        <a href="{% url 'console:vehicle-detail' vehicle.pk %}" class="btn-cancel">إلغاء</a>
+      {% else %}
+        <a href="{% url 'console:vehicles' %}" class="btn-cancel">إلغاء</a>
+      {% endif %}
+    </div>
   </form>
 {% endblock %}
