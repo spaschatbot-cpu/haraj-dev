@@ -122,7 +122,10 @@
               <small class="empty">{{ row.auction.title }}</small>
             </td>
             <td>
-              <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+              {% comment %} المركبةُ نصٌّ لا رابط بطلب المالك — الضغطُ عليها
+                 لا يفتح صفحة. وأيقونةُ «فتح ملفّ المركبة» في عمود «عرض» تفعله
+                 صراحةً لمن أراد. {% endcomment %}
+              <span>{{ row.make }} {{ row.model }}</span>
               {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
             </td>
             {% comment %} «الموديل» عمودٌ مستقلٌّ كما في v1، وهو سنةُ الصنع —
@@ -161,8 +164,11 @@
             </td>
             <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
             <td>
+              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك. وتفاصيلُها
+                 في سند الدفع (أيقونة «عرض»)، ومنه زرُّ «فتح الفاتورة» صراحةً.
+              {% endcomment %}
               {% if row.invoice_number %}
-                <a href="{% url 'console:invoice-detail' row.invoice_pk %}">{{ row.invoice_number }}</a>
+                <span class="tnum code-font">{{ row.invoice_number }}</span>
               {% else %}
                 <span class="empty">—</span>
               {% endif %}
