@@ -3162,6 +3162,7 @@ form.filters {
    تتقاسم ما بقي من العرض فيقع ستٌّ في سطرٍ واثنتان في الثاني، وأعراضُها
    مختلفة — وذلك ما يجعل الشريط يُقرأ غيرَ منظَّم. */
 .filters__grid {
+  inline-size: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
   gap: .45rem;
@@ -3184,6 +3185,7 @@ form.filters {
 
 /* والتبويباتُ ثلاثةُ أعمدةٍ متساوية لا ثلاثةُ أسطرٍ متكدّسة. */
 .filters__tabs {
+  inline-size: 100%;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
   gap: .4rem 1.2rem;
@@ -3584,20 +3586,24 @@ form.filters {
    ----------------------------------------------------------------------
    ملتصقٌ بأسفل النافذة (`sticky`) لأن الجدولَ ثلاثمئةُ صفّ: من اختار في
    أعلاه ثم مرّر لأسفل يجب أن يبقى الفعلُ في يده، لا أن يعود ليجده. */
+/* الشريطُ **فوق** الجدول لا تحته، ولاصقٌ من أعلى: المزادُ ثلاثمئة سيارة،
+   ومن اختار في الصفّ الأربعين لا يجد شريطاً تحته إلا بعد تمريرٍ إلى القاع.
+   وفوقَه يبقى في المكان الذي جاء منه الاختيار. والظلُّ انقلب معه — كان
+   يُلقى إلى أعلى ليفصله عمّا فوقه، وصار إلى أسفل. */
 .bulkbar {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-start: 0;
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
-  margin-block: .75rem 0;
+  margin-block: 0 .75rem;
   padding: .6rem .8rem;
   border: 1px solid var(--brand);
   border-radius: .6rem;
   background: var(--panel);
-  box-shadow: 0 -6px 18px rgb(0 0 0 / 12%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 12%);
 }
 .bulkbar[hidden] {
   display: none !important;
