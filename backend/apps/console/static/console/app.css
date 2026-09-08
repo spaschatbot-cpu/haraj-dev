@@ -2028,29 +2028,48 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    فأربعٌ أو خمسٌ في صفٍّ واحد على الشاشة العادية، وارتفاعُها ثلثُ الأولى:
    عنوانٌ ورقمٌ وسطرٌ خافت، والرسمُ صغيرٌ في الحافة. T852. */
 .board-stats--compact {
-  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
-  gap: .55rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(12.5rem, 100%), 1fr));
+  gap: .65rem;
   margin-block-end: 1.1rem;
 }
 
 .board-stats--compact .stat {
-  gap: .15rem;
-  padding: .6rem .75rem;
-  border-radius: 10px;
-  border-inline-start-width: 2px;
-  box-shadow: none;
+  gap: .25rem;
+  padding: .75rem .95rem;
+  border-radius: 12px;
+  border-inline-start-width: 3px;
+  box-shadow: var(--shadow-sm);
+  min-block-size: 6.2rem;
+  justify-content: space-between;
 }
 
-.board-stats--compact .stat__value { font-size: 1.45rem; line-height: 1.25; }
-.board-stats--compact .stat__label { font-size: .72rem; }
-.board-stats--compact .stat__icon { inline-size: 1rem; block-size: 1rem; }
-.board-stats--compact .stat__top { margin-block-end: .1rem; }
+.board-stats--compact .stat__value {
+  font-size: 1.65rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: start;
+  direction: rtl;
+}
+.board-stats--compact .stat__label {
+  font-size: .8rem;
+  font-weight: 600;
+}
+.board-stats--compact .stat__icon {
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  padding: .45rem;
+  border-radius: 9px;
+}
+.board-stats--compact .stat__top {
+  margin-block-end: .35rem;
+}
 
-/* السطرُ الخافت يبقى — هو ما يقول **ما الذي يعدّه** الرقم — ولكنّه أصغر،
-   ولا يُطوى: عدّادٌ بلا تعريفٍ هو ما جعل «مزادات نشطة ٠» و«مزايدات نشطة
-   ٨١٤٧٥» يتعايشان في v1 دون أن يسأل أحد. */
-.board-stats--compact .stat__detail { font-size: .68rem; line-height: 1.45; }
-.board-stats--compact .stat__action { font-size: .68rem; }
+.board-stats--compact .stat__detail {
+  font-size: .72rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.board-stats--compact .stat__action { font-size: .72rem; }
 
 /* ---- الألسنة -------------------------------------------------------------
    «الأدوار» كانت صفحةً في الشريط بجوار «إدارة المشرفين»، وكلتاهما لا تُفتح
@@ -2564,6 +2583,61 @@ td.actions { min-inline-size: 9rem; }
   background: var(--danger-soft);
   border-color: var(--danger);
   color: var(--danger);
+}
+.act--grants:hover {
+  background: rgba(99, 102, 241, .12);
+  border-color: rgb(99, 102, 241);
+  color: rgb(79, 70, 229);
+}
+.act--pages:hover {
+  background: rgba(14, 165, 233, .12);
+  border-color: rgb(14, 165, 233);
+  color: rgb(2, 132, 199);
+}
+.act--key:hover {
+  background: rgba(245, 158, 11, .12);
+  border-color: rgb(245, 158, 11);
+  color: rgb(217, 119, 6);
+}
+
+/* ملاحظات المشرفين والتدقيق الإداري */
+.staff-notes {
+  margin-block-start: 1.5rem;
+  padding: .85rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.staff-notes > summary {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  cursor: pointer;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  user-select: none;
+}
+.staff-notes > summary:hover {
+  color: var(--brand);
+}
+.staff-notes__icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.staff-notes__body {
+  margin-block-start: .75rem;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--line-soft);
+  font-size: .84rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.staff-notes__body p {
+  margin: .35rem 0;
 }
 
 /* ---- شاشة المزادات: عناصر العرض المتطابقة مع v1 — T849 ---- */

@@ -1,79 +1,62 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-إدارة المشرفين — أعمدةُ v1 وأفعالُها، وأربعةُ فروقٍ بسببها.
-
-قُرئت من `src/Views/Admin/admins/index.php:223-292`. وأعمدةُ v1 ستّة: المشرف ·
-الدور والصلاحية · رقم التواصل · حالة الحساب · تاريخ الإنشاء · إجراءات. وثلاثةُ
-أفعالٍ في الصفّ: ✏️ تعديل · 📄 الصفحات · 🗑 حذف.
-
-**١. عمودان يُضافان:** «آخر دخول» — وv1 يعرض «نشط الآن» في ٣٧ من ٣٧، أي عمودٌ
-لا يحمل إلا قيمةً واحدة؛ وآخرُ دخولٍ هو ما يُمسَك به الحسابُ المتروك مفعَّلاً
-بعد أن ترك صاحبُه العمل. و«فوق دوره» — وv1 يقول «صفحات مخفية: ٤٦» رقماً لا
-يقول أيَّها ولا لماذا.
-
-**٢. ولا زرَّ حذف.** v1 يعرضه ويستثني اثنين بنصّ («لا يمكن حذف مالك»، «حسابك
-الحالي») — والاستثناءان صحيحان والزرُّ نفسه هو الخطأ: حسابُ الموظّف هو الطرفُ
-في كل قيدٍ كتبه، فحذفُه محوُ التدقيق. والبديلُ تعطيلٌ من شاشة التعديل.
-
-**٣. والتعديل صفحةٌ لا نافذة:** نافذةٌ تحمل خمسة حقول تُغلَق بالخطأ فيضيع ما
-كُتب، ولا رابطَ لها يُرسَل إلى زميل.
-
-**٤. ولا خانةَ كلمة مرورٍ يكتبها مشرفٌ لآخر** — الزرُّ يُطلق إعادةَ تعيين
-يغيّرها صاحبُها عند أوّل دخول (T848).
+إدارة المشرفين — شاشة موحدة ومطورة بصرياً لتحكم كامل في الطاقم الإداري والصلاحيات.
 {% endcomment %}
 {% block title %}إدارة المشرفين{% endblock %}
 {% block heading %}إدارة المشرفين{% endblock %}
+
 {% block actions %}
-  {% comment %} فعلان على هذه القائمة: إنشاءُ حساب، والتصدير. و«الأدوار»
-     صارت **لساناً** في الشاشة نفسها لا زرّاً يغادرها (T852) — ومن يعدّل
-     دوراً يريد أن يرى من يحمله في النفَس نفسه. وكانت هي و«التحكم في الصفحات»
-     مدخلين مستقلّين في الشريط، وكلاهما لا يُفتح إلا من هنا عملياً. {% endcomment %}
-  <a href="{% url 'console:admin-new' %}">+ مشرف جديد</a>
-  <a href="{{ export_url }}">تصدير إلى إكسل</a>
+  <a href="{% url 'console:admin-new' %}" class="btn-primary">+ مشرف جديد</a>
+  <a href="{{ export_url }}" class="btn-secondary" title="تصدير بيانات المشرفين إلى ملف إكسل">تصدير إلى إكسل</a>
 {% endblock %}
 
 {% block content %}
   {% include "console/_tabs.html" %}
 
-  <p class="lede">
-    إدارةٌ لصلاحيات الوصول والتوثيق في حسابات الطاقم الإداري.
+  <p class="lede" style="margin-block-start: .6rem; margin-block-end: 1rem;">
+    إدارةٌ لصلاحيات الوصول والتوثيق في حسابات الطاقم الإداري وتعيين الأدوار والاستثناءات.
   </p>
 
   <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
-
   <form method="get" class="filters">
-    <p>
-      <label for="q">البحث</label>
-      <input id="q" type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال">
-    </p>
-    <p>
-      <label for="role">الدور</label>
-      <select id="role" name="role">
+    <div class="filters__main">
+      <input id="q" type="search" name="q" value="{{ q }}" placeholder="ابحث بالاسم أو رقم الجوال..." aria-label="البحث في المشرفين">
+
+      <select id="role" name="role" aria-label="الدور">
         <option value="">كل الأدوار</option>
         {% for value, label in roles %}
           <option value="{{ value }}" {% if value == role %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-    </p>
-    <p>
-      <label for="state">الحالة</label>
-      <select id="state" name="state">
+
+      <select id="state" name="state" aria-label="الحالة">
         <option value="">مفعّل ومعطّل</option>
-        <option value="active" {% if state == "active" %}selected{% endif %}>المفعّل وحده</option>
-        <option value="off" {% if state == "off" %}selected{% endif %}>المعطّل وحده</option>
+        <option value="active" {% if state == "active" %}selected{% endif %}>المفعّل فقط</option>
+        <option value="off" {% if state == "off" %}selected{% endif %}>المعطّل فقط</option>
       </select>
-    </p>
-    <p><button type="submit">بحث</button></p>
+
+      <button type="submit" class="btn-primary" style="margin: 0;">بحث</button>
+
+      {% if q or role or state %}
+        <a href="{% url 'console:admins' %}" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
+    </div>
   </form>
 
-  <h2>
-    قائمة المشرفين الحالية
-    <span class="pill">{{ page.paginator.count|unlocalize }} مشرفاً</span>
-  </h2>
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
+        قائمة المشرفين الحالية <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+      </h2>
+    </div>
+    <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
+      <a href="{{ export_url }}" class="btn-sm" title="تصدير المشرفين إلى إكسل">تصدير إكسل</a>
+    </div>
+  </div>
 
   <div class="scroller">
     <table>
@@ -86,81 +69,120 @@
           <th>آخر دخول</th>
           <th>تاريخ الإنشاء</th>
           <th>فوق دوره</th>
-          <th>إجراءات</th>
+          <th style="min-inline-size: 9.5rem; text-align: center;">إجراءات</th>
         </tr>
       </thead>
       <tbody>
         {% for person in page %}
           <tr>
             <td>
-              {{ person.full_name }}
-              <small class="empty">#{{ person.pk|unlocalize }}{% if person.is_you %} · حسابك الحالي{% endif %}</small>
+              <div style="display: flex; flex-direction: column; gap: .15rem;">
+                <strong style="color: var(--ink); font-weight: 700;">{{ person.full_name }}</strong>
+                <div style="display: flex; align-items: center; gap: .35rem; font-size: .8rem;">
+                  <span class="code-font" style="color: var(--muted);">#{{ person.pk|unlocalize }}</span>
+                  {% if person.is_you %}
+                    <span class="pill" data-tone="brand" style="font-size: .7rem; padding: .1rem .35rem;">حسابك الحالي</span>
+                  {% endif %}
+                </div>
+              </div>
             </td>
             <td>
-              {% comment %} الرسمُ يميّز المالك عن غيره — و`crown` مسارٌ في
-                 `icons.py` لا محرف: `👑` يرسمه نظامُ التشغيل فيختلف بين
-                 الأجهزة ويسقط إلى مربّعٍ حين لا يجده. {% endcomment %}
               {% if person.is_owner %}
-                <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ crown_icon }}"/></svg>
-              {% endif %}
-              {{ person.role_label }}
-            </td>
-            <td>{{ person.phone|default:"غير متوفر"|unlocalize }}</td>
-            <td>
-              {% if person.is_active %}
-                <span class="pill" data-tone="ok">مفعّل</span>
+                <span class="pill" data-tone="gold" style="display: inline-flex; align-items: center; gap: .35rem; font-weight: 700;">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;"><path d="{{ crown_icon }}"/></svg>
+                  {{ person.role_label }}
+                </span>
               {% else %}
-                <span class="pill" data-tone="bad">معطّل</span>
+                <span class="pill" style="font-weight: 600;">{{ person.role_label }}</span>
               {% endif %}
-              {% if person.must_change_password %}
-                {% comment %} حالةٌ ثالثة ليست في v1: حسابٌ أُنشئ بكلمةٍ كتبها
-                   غيرُه ولم يُغيّرها بعد — فهو مفعّلٌ ولا يفتح شاشةً واحدة.
-                {% endcomment %}
-                <span class="pill" data-tone="warn">ينتظر تغيير الكلمة</span>
-              {% endif %}
-            </td>
-            {% comment %} «لم يدخل قطّ» نصّاً لا خانةً فارغة: حسابٌ أُنشئ ولم
-               يُستعمل حالةٌ تُراجَع، والفراغ يُقرأ «لم يُحمَّل». {% endcomment %}
-            <td>{{ person.last_login|default:"لم يدخل قطّ" }}</td>
-            <td>{{ person.date_joined }}</td>
-            <td class="count">
-              {% if person.granted %}+{{ person.granted|unlocalize }}{% endif %}
-              {% if person.revoked %}−{{ person.revoked|unlocalize }}{% endif %}
-              {% if not person.granted and not person.revoked %}—{% endif %}
             </td>
             <td>
-              {% comment %} أربعةُ أفعال، ولكلٍّ صفحتُه: التعديل يكتب الدور
-                 والحالة، و«الصلاحيات» يكتب تجاوزاً فوق الدور، و«صفحاته» يقرأ
-                 ما كُتب، وإعادةُ التعيين تُبطل كلمةً يعرفها غيرُ صاحبها.
-              {% endcomment %}
-              <a href="{% url 'console:admin-edit' person.pk %}">تعديل</a> ·
-              <a href="{% url 'console:staff-grants' person.pk %}">الصلاحيات</a> ·
-              <a href="{% url 'console:page-control' %}?q={{ person.phone|unlocalize }}">صفحاته</a> ·
-              <a href="{% url 'console:admin-password-reset' person.pk %}">كلمة المرور</a>
+              <span class="tnum code-font">{{ person.phone|default:"غير متوفر"|unlocalize }}</span>
+            </td>
+            <td>
+              <div style="display: flex; flex-wrap: wrap; gap: .25rem; align-items: center;">
+                {% if person.is_active %}
+                  <span class="pill" data-tone="ok">مفعّل</span>
+                {% else %}
+                  <span class="pill" data-tone="bad">معطّل</span>
+                {% endif %}
+                {% if person.must_change_password %}
+                  <span class="pill" data-tone="warn" title="حساب أُنشئ بكلمة مؤقتة وينتظر تغييرها">تغيير الكلمة</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              {% if person.last_login %}
+                <span class="tnum" style="font-size: .85rem;">{{ person.last_login|date:"Y-m-d H:i" }}</span>
+              {% else %}
+                <span class="pill" data-tone="warn" style="font-size: .75rem;">لم يدخل قطّ</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="tnum" style="font-size: .85rem;">{{ person.date_joined|date:"Y-m-d" }}</span>
+            </td>
+            <td class="count" style="text-align: center;">
+              {% if person.granted %}
+                <span class="pill" data-tone="ok" title="قدرات ممنوحة فوق الدور الأساسي">+{{ person.granted|unlocalize }}</span>
+              {% endif %}
+              {% if person.revoked %}
+                <span class="pill" data-tone="bad" title="قدرات مسحوبة من الدور الأساسي">−{{ person.revoked|unlocalize }}</span>
+              {% endif %}
+              {% if not person.granted and not person.revoked %}
+                <span style="color: var(--muted);">—</span>
+              {% endif %}
+            </td>
+            <td class="actions" style="text-align: center; justify-content: center;">
+              <a href="{% url 'console:admin-edit' person.pk %}" class="act act--edit" title="تعديل بيانات المشرف والدور والحالة" aria-label="تعديل بيانات المشرف والدور والحالة">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.edit }}"/></svg>
+              </a>
+              <a href="{% url 'console:staff-grants' person.pk %}" class="act act--grants" title="الصلاحيات والاستثناءات الخاصة فوق الدور" aria-label="الصلاحيات والاستثناءات الخاصة فوق الدور">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.grants }}"/></svg>
+              </a>
+              <a href="{% url 'console:page-control' %}?q={{ person.phone|unlocalize }}" class="act act--pages" title="التحكم في صفحات وشاشات المشرف" aria-label="التحكم في صفحات وشاشات المشرف">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.pages }}"/></svg>
+              </a>
+              <a href="{% url 'console:admin-password-reset' person.pk %}" class="act act--key" title="إعادة تعيين كلمة المرور للمشرف" aria-label="إعادة تعيين كلمة المرور للمشرف">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.password }}"/></svg>
+              </a>
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="8" class="empty">لا مشرفين مطابقين.</td></tr>
+          <tr><td colspan="8" class="empty">لا يوجد مشرفون مطابقون لمعايير البحث.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <p>
-    {{ page.paginator.count|unlocalize }} مشرفاً ·
-    صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
-  </p>
+  <div class="table-footer">
+    <span>
+      {{ page.paginator.count|unlocalize }} مشرفاً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+    </span>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات المشرفين">
+        {% if page.has_previous %}
+          <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">السابق</a>
+        {% endif %}
+        <span class="pagination__current">{{ page.number|unlocalize }}</span>
+        {% if page.has_next %}
+          <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">التالي</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
 
-  <p class="empty">
-    <strong>لا حذفَ من هنا.</strong> v1 يعرض زرَّ حذفٍ ويستثني منه «المالك»
-    و«حسابك الحالي» بنصٍّ — والاستثناءان صحيحان والزرُّ نفسه هو الخطأ: حسابُ
-    الموظّف هو الطرفُ في كل قيدٍ كتبه في سجلّ التدقيق، فحذفُه محوُ ذلك السجلّ.
-    والبديلُ <strong>تعطيلٌ</strong> من صفحة التعديل: لا يدخل، ويبقى اسمُه على
-    كل ما فعل.
-  </p>
-  <p class="empty">
-    وعمود «فوق دوره» يعدّ الاستثناءات: <strong>+</strong> قدرةٌ مُنحت فوق
-    الدور، <strong>−</strong> قدرةٌ سُحبت منه — ولكلٍّ سببُه المكتوب في صفحة
-    صلاحياته. وv1 يقول «صفحات مخفية: ٤٦» رقماً لا يقول أيَّها ولا لماذا.
-  </p>
+  <details class="staff-notes">
+    <summary>
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="staff-notes__icon"><path d="{{ help_icon }}"/></svg>
+      <span>سياسات إدارة حسابات المشرفين والتدقيق الإداري</span>
+    </summary>
+    <div class="staff-notes__body">
+      <p>
+        <strong>سياسة عدم الحذف:</strong> حساب الموظف طرفٌ أساسي في كل قيد كتبه في سجل التدقيق المالي والإداري (<code>AuditLog</code>)، وحذف الحساب يؤدي لإتلاف سجلات التدقيق أو كسر القيود المرجعية. لذلك يتم إيقاف الوصول عبر <strong>التعطيل</strong> من صفحة التعديل، مع بقاء اسمه وسجلاته التاريخية محفوظة وموثقة.
+      </p>
+      <p>
+        <strong>عمود «فوق دوره»:</strong> يوضح الاستثناءات المحددة لهذا الحساب: <strong>(+)</strong> قدرة ممنوحة إضافية فوق الدور الأساسي، أو <strong>(−)</strong> قدرة مسحوبة منه، مع توثيق سبب كل استثناء في صفحة الصلاحيات.
+      </p>
+    </div>
+  </details>
 {% endblock %}

@@ -227,6 +227,13 @@ def admins(request):
             # الرسمُ من `icons.py` لا محرف: `👑` يرسمه نظامُ التشغيل فيختلف
             # بين الأجهزة، ويسقط إلى مربّعٍ فارغ حين لا يجده الخطّ.
             "crown_icon": path_of("crown"),
+            "help_icon": path_of("help"),
+            "action_icons": {
+                "edit": path_of("pencil"),
+                "grants": path_of("shield"),
+                "pages": path_of("layers"),
+                "password": path_of("key-refresh"),
+            },
             "views": VIEWS,
             "view": "staff",
             "cards": staff_tallies(),
