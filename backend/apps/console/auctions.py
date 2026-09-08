@@ -435,6 +435,22 @@ def vehicles(request):
 
 
 @console_page("console:vehicle-detail")
+
+def _modal(request):
+    """هل يُطلَب هذا العرضُ نافذةً؟ ولو نعم فأيُّ قالبِ أساسٍ يُستعمَل.
+
+    `?modal=1` يأتي من زرٍّ في جدولٍ يفتح تفاصيلَ صفٍّ أو تعديلَه في مكانه.
+    فيُرندَر المحتوى وحده (`_modal_base`) بلا شريطٍ جانبيٍّ ولا ترويسة، ويُحقَن
+    في `<dialog>`. والطلبُ المباشر (رابطٌ مُشارَك، سجلّ متصفّح) يبقى صفحةً
+    كاملة — فالوجهان من قالبٍ واحد.
+    """
+    is_modal = (
+        request.GET.get("modal") == "1"
+        or request.headers.get("X-Requested-With") == "fetch"
+    )
+    return is_modal, "console/_modal_base.html" if is_modal else "console/base.html"
+
+
 def vehicle_detail(request, pk: int):
     """One car: what it is, where it stands, and where it may go next.
 
@@ -473,6 +489,7 @@ def vehicle_detail(request, pk: int):
         else Auction.objects.none()
     )
 
+    _is_modal, base_template = _modal(request)
     return render(
         request,
         "console/vehicle_detail.html",
@@ -481,6 +498,7 @@ def vehicle_detail(request, pk: int):
             "moves": moves,
             "shots": shots,
             "destinations": destinations,
+            "base_template": base_template,
         },
     )
 
@@ -678,6 +696,7 @@ def vehicle_edit(request, pk: int):
     """
     vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
     form = VehicleForm(request.POST or None, instance=vehicle)
+    is_modal, base_template = _modal(request)
 
     if request.method == "POST":
         saved = _save(
@@ -689,8 +708,17 @@ def vehicle_edit(request, pk: int):
         )
         if saved is not None:
             messages.success(request, "حُفظت التعديلات.")
+            # نافذةٌ حفظت بنجاح: تُغلَق ويُعاد تحميلُ الجدول خلفها. الـview
+            # يقول ذلك بـ204 (لا محتوى) بدل توجيهٍ إلى صفحةٍ كاملة تُبتلع في
+            # `<dialog>`. والطلبُ المباشر يبقى توجيهاً.
+            if is_modal:
+                from django.http import HttpResponse
+
+                return HttpResponse(status=204)
             return redirect("console:vehicle-detail", pk=pk)
 
     return render(
-        request, "console/vehicle_form.html", {"form": form, "vehicle": vehicle}
+        request,
+        "console/vehicle_form.html",
+        {"form": form, "vehicle": vehicle, "base_template": base_template},
     )

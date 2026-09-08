@@ -360,12 +360,14 @@ somebody went looking for it.
             <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
             {% if can_manage %}
               <td class="actions">
-                <a href="{% url 'console:vehicle-detail' car.pk %}" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات">
+                <button type="button" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات"
+                        data-row-detail data-url="{% url 'console:vehicle-detail' car.pk %}?modal=1">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
-                </a>
-                <a href="{% url 'console:vehicle-edit' car.pk %}" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة">
+                </button>
+                <button type="button" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة"
+                        data-row-edit data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
-                </a>
+                </button>
                 {% comment %} نقلٌ وحذفٌ — نظيرُ عمود التحكّم في v1 (T872). كلاهما
                    يفتح نافذةً مشتركةً في أسفل الجدول فيُملأ فيها معرّفُ الصفّ:
                    الفعلُ يمرّ بـ`vehicle_bulk` الآمن (الخدمةُ الوحيدة · سببٌ
@@ -464,6 +466,62 @@ somebody went looking for it.
     }
     wire('data-row-move', moveModal);
     wire('data-row-delete', delModal);
+  })();
+  </script>
+
+  {% comment %}
+  نافذةُ التفاصيل/التعديل — تُجلَب بـAJAX وتُحقَن. T875. المحتوى يأتي من
+  `vehicle-detail`/`vehicle-edit` بـ`?modal=1` (قالبُ أساسٍ بلا شريط)، فلا
+  يُكرَّر هنا ولا يُرسَم لكلّ صفٍّ ٢١ حقلاً. والحفظُ يعيد 204 فتُغلَق النافذةُ
+  ويُعاد تحميلُ الجدول.
+  {% endcomment %}
+  <dialog class="modal row-ajax-modal" data-ajax-modal>
+    <div data-ajax-body></div>
+  </dialog>
+
+  <script>
+  (function () {
+    var modal = document.querySelector('[data-ajax-modal]');
+    var body = modal ? modal.querySelector('[data-ajax-body]') : null;
+    if (!modal || !modal.showModal) return;
+
+    function openUrl(url) {
+      fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          body.innerHTML = html;
+          modal.showModal();
+          wireForm();
+          // زرُّ «إلغاء» داخل المحتوى المحقون يغلق النافذة بدل مغادرة الصفحة.
+          body.querySelectorAll('a.btn-cancel, [data-close]').forEach(function (el) {
+            el.addEventListener('click', function (e) { e.preventDefault(); modal.close(); });
+          });
+        });
+    }
+
+    // حفظُ استمارة التعديل بـAJAX: 204 يعني نجاحاً، فتُغلَق النافذةُ ويُعاد
+    // تحميلُ الجدول ليُظهر التعديل. أخطاءُ الحقول تعود HTMLاً فيُحقَن ثانيةً
+    // بأخطائه بجانب كل حقل.
+    function wireForm() {
+      var form = body.querySelector('form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        fetch(form.getAttribute('action') || location.href, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'fetch' },
+        }).then(function (r) {
+          if (r.status === 204) { modal.close(); window.location.reload(); return; }
+          return r.text().then(function (html) { body.innerHTML = html; wireForm(); });
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-row-detail], [data-row-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () { openUrl(btn.getAttribute('data-url')); });
+    });
   })();
   </script>
   {% endif %}

@@ -3924,3 +3924,33 @@ dialog.row-modal {
     0 24px 60px -12px rgb(0 0 0 / 45%),
     0 8px 20px -8px rgb(0 0 0 / 35%);
 }
+
+/* نافذةُ التفاصيل/التعديل المحقونة (T875): أوسعُ لأنها تحمل استمارةً بأقسام
+   أو شبكةَ تفاصيل — لا سطرَ تأكيدٍ كنوافذ الصفّ. */
+.row-ajax-modal {
+  inline-size: min(48rem, 94vw);
+  max-block-size: 88vh;
+  padding: 1.4rem 1.5rem;
+}
+.row-ajax-modal .auction-form,
+.row-ajax-modal .form-section { max-inline-size: none; }
+
+/* ---- شبكةُ تفاصيل السيارة: زوجُ اسمٍ وقيمة، بحقول v1 (T875) ---------- */
+.vehicle-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: 0;
+  margin: 0 0 1rem;
+}
+.vehicle-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .55rem .3rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.vehicle-facts dt { font-weight: 700; color: var(--ink-soft); font-size: .84rem; margin: 0; }
+.vehicle-facts dd { margin: 0; text-align: start; }
+.vehicle-facts .money { font-variant-numeric: tabular-nums; }
+.vehicle-facts .fact--pending { color: var(--muted); font-size: .82rem; }
+.vehicle-facts__foot { margin: 1rem 0 0; }

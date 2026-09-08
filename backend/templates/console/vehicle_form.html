@@ -1,4 +1,4 @@
-{% extends "console/base.html" %}
+{% extends base_template|default:"console/base.html" %}
 {% block title %}{% if vehicle %}تعديل مركبة{% else %}مركبة جديدة{% endif %}{% endblock %}
 {% block heading %}
   {% if vehicle %}تعديل {{ vehicle.make }} {{ vehicle.model }}{% else %}مركبة جديدة{% endif %}
@@ -11,7 +11,9 @@
   `bidding.settlement.replace_winner`, which moves the invoice and the deposit
   with it.
   {% endcomment %}
-  <form method="post">
+  {% comment %} action صريحٌ: الاستمارةُ قد تُحقَن في نافذةٍ على صفحةٍ أخرى
+     (جدولُ المزاد)، فبلا action تبعث إلى تلك الصفحة لا إلى وجهتها. {% endcomment %}
+  <form method="post" action="{% if vehicle %}{% url 'console:vehicle-edit' vehicle.pk %}{% else %}{% url 'console:vehicle-new' %}{% endif %}">
     {% csrf_token %}
     {% include "console/_form.html" %}
     <button type="submit">حفظ</button>
