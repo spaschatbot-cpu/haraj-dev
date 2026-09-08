@@ -673,7 +673,18 @@ def vehicle_new(request):
     وذلك بعينه ما بُني له `every_capability_guards_something`: صفحةٌ في السجلّ
     بقدرةٍ لا تحرسها الشيفرة هي صفحةٌ مفتوحة.
     """
-    form = VehicleForm(request.POST or None)
+    is_modal, base_template = _modal(request)
+
+    # المزادُ الحاليُّ يأتي في `?auction=` حين تُفتح الإضافةُ من داخل صفحة
+    # مزادٍ بعينه (زرُّ «إضافة مركبة» هناك)، فيُملأ به الحقلُ سلفاً — والموظّفُ
+    # في مزاد ١٠٠٢ يضيف إليه لا يبحث عنه في قائمةٍ من خمسمئة. ويبقى الحقلُ
+    # قابلاً للتغيير: إضافةٌ عامّةٌ من «مركبة جديدة» حالةٌ قائمة أيضاً.
+    scope = request.GET.get("auction", "")
+    scoped_auction = (
+        Auction.objects.filter(pk=int(scope)).first() if scope.isdigit() else None
+    )
+    initial = {"auction": scoped_auction.pk} if scoped_auction else {}
+    form = VehicleForm(request.POST or None, initial=initial)
 
     if request.method == "POST":
         vehicle = _save(
@@ -681,9 +692,20 @@ def vehicle_new(request):
         )
         if vehicle is not None:
             messages.success(request, f"أُنشئت المركبة (لوت {vehicle.lot_number}).")
-            return redirect("console:vehicle-detail", pk=vehicle.pk)
+            # نافذةٌ حفظت: تُغلَق ويُعاد تحميلُ جدول المزاد خلفها (٢٠٤ كالتعديل).
+            # والطلبُ المباشر يعود إلى صفحة مزاد المركبة لتُرى في سياقها، لا إلى
+            # صفحةِ مركبةٍ مفردةٍ تُخرج الموظّفَ من المزاد الذي يبنيه.
+            if is_modal:
+                from django.http import HttpResponse
 
-    return render(request, "console/vehicle_form.html", {"form": form, "vehicle": None})
+                return HttpResponse(status=204)
+            return redirect("console:auction-detail", pk=vehicle.auction_id)
+
+    return render(
+        request,
+        "console/vehicle_form.html",
+        {"form": form, "vehicle": None, "base_template": base_template},
+    )
 
 
 @console_page("console:vehicle-edit")

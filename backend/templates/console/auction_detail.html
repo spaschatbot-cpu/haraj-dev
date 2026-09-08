@@ -27,7 +27,16 @@ somebody went looking for it.
 
 {% block actions %}
   {% if can_manage %}
-    <button type="button" class="btn-primary"
+    {% comment %} إضافةُ مركبةٍ إلى **هذا** المزاد — كانت في v1 زرّاً بارزاً على
+       الشاشة (➕ إضافة مركبة جديدة)، وغابت هنا فكان الموظّفُ يخرج إلى «مركبة
+       جديدة» ثم يبحث عن مزاده في قائمةٍ من خمسمئة. تفتح نافذةَ النموذج نفسها
+       (fetch) والمزادُ مملوءٌ سلفاً بـ`?auction=`. T877 {% endcomment %}
+    <button type="button" class="btn-primary" data-row-add
+            data-url="{% url 'console:vehicle-new' %}?auction={{ auction.pk|unlocalize }}&modal=1">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 5v14M5 12h14"/></svg>
+      إضافة مركبة
+    </button>
+    <button type="button" class="btn-secondary"
             data-open-edit
             data-pk="{{ auction.pk|unlocalize }}"
             data-number="{{ auction.number|unlocalize }}"
@@ -519,7 +528,7 @@ somebody went looking for it.
       });
     }
 
-    document.querySelectorAll('[data-row-detail], [data-row-edit]').forEach(function (btn) {
+    document.querySelectorAll('[data-row-detail], [data-row-edit], [data-row-add]').forEach(function (btn) {
       btn.addEventListener('click', function () { openUrl(btn.getAttribute('data-url')); });
     });
   })();
