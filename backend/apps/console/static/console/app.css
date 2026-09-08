@@ -2634,33 +2634,9 @@ form[method="get"] .advanced-panel input[type="search"] {
    `#voucherPrint` مخفيٌّ على الشاشة دائماً؛ وعند الطباعة، إن كان ممتلئاً،
    يُخفى كلُّ ما عداه ويظهر وحدَه. والشرطُ `:not(:empty)` يُبقي طباعةَ الصفحة
    العاديّة (والسندُ مغلق، فالهدفُ فارغ) سليمةً. */
-#voucherPrint { display: none; }
-@media print {
-  /* كلاسٌ على `body` لا `:has()`: أوسعُ توافقاً، ويُضاف فقط أثناء طباعة
-     السند فتبقى طباعةُ الصفحة العاديّة سليمة. */
-  body.is-printing-voucher * { visibility: hidden; }
-  body.is-printing-voucher #voucherPrint,
-  body.is-printing-voucher #voucherPrint * { visibility: visible; }
-  body.is-printing-voucher #voucherPrint {
-    display: block;
-    position: fixed;
-    inset: 0;
-    padding: 1.5rem;
-    background: #fff;
-    color: #000;
-  }
-  body.is-printing-voucher #voucherPrint .voucher__head {
-    border-block-end: 2px solid #333;
-    margin-block-end: 1rem;
-    padding-block-end: .6rem;
-  }
-  body.is-printing-voucher #voucherPrint .voucher__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-block-end: 1rem;
-  }
-}
+/* طباعةُ السند تجري في `<iframe>` مستقلٍّ بأنماطه (انظر `after_sales.js`)، لا
+   بطباعة هذه الصفحة — فلا حاجةَ إلى قواعد `@media print` هنا. `<dialog open>`
+   في الطبقة العليا يُرسَم فوق أيّ طباعةٍ للصفحة، فكانت تخرج صفحةٌ فارغة. */
 
 /* القدرات: عمودان على الشاشة العادية، وواحدٌ على الضيّقة. والمعرّفُ الخام
    بجوار الاسم العربيّ لأنه ما يظهر في رسائل الرفض وفي `tasks.md` — فمن يقرأ

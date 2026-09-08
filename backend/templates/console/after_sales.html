@@ -308,9 +308,8 @@
     </div>
   </dialog>
 
-  {% comment %} هدفُ الطباعة: يُملأ بنسخةٍ من `.voucher__doc` عند الطباعة
-     ويُفرَّغ بعدها. فارغٌ فلا يظهر — و`@media print` يظهره وحدَه. {% endcomment %}
-  <div id="voucherPrint" aria-hidden="true"></div>
-
-  <script src="{% static 'console/after_sales.js' %}" defer></script>
+  {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
+     نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —
+     وهو ما حدث. يُزاد الرقمُ مع كل تعديلٍ في الملفّ. {% endcomment %}
+  <script src="{% static 'console/after_sales.js' %}?v=3" defer></script>
 {% endblock %}
