@@ -3945,21 +3945,36 @@ dialog.row-modal {
 .row-ajax-modal .form-section { max-inline-size: none; }
 
 /* ---- شبكةُ تفاصيل السيارة: زوجُ اسمٍ وقيمة، بحقول v1 (T875) ---------- */
+/* كلُّ حقلٍ خليّةٌ عموديّة: عنوانٌ صغيرٌ خافتٌ فوق، وقيمةٌ واضحةٌ تحته —
+   لا `space-between` أفقيٌّ يقذف القيمةَ إلى الطرف المقابل فتقفز العين. وثلاثةُ
+   أعمدةٍ على الشاشة العريضة، تنزل إلى عمودٍ على الضيّقة. */
 .vehicle-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
-  gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: .1rem .4rem;
   margin: 0 0 1rem;
 }
 .vehicle-facts > div {
   display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: .55rem .3rem;
-  border-block-end: 1px solid var(--line-soft);
+  flex-direction: column;
+  gap: .1rem;
+  padding: .5rem .6rem;
+  border-radius: var(--radius);
 }
-.vehicle-facts dt { font-weight: 700; color: var(--ink-soft); font-size: .84rem; margin: 0; }
-.vehicle-facts dd { margin: 0; text-align: start; }
+.vehicle-facts > div:hover { background: var(--raised); }
+.vehicle-facts dt {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: .74rem;
+  margin: 0;
+}
+.vehicle-facts dd {
+  margin: 0;
+  font-size: .92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.vehicle-facts dd a { font-weight: 600; }
 .vehicle-facts .money { font-variant-numeric: tabular-nums; }
-.vehicle-facts .fact--pending { color: var(--muted); font-size: .82rem; }
-.vehicle-facts__foot { margin: 1rem 0 0; }
+.vehicle-facts .fact--pending { color: var(--muted); font-size: .8rem; font-weight: 400; }
+.vehicle-facts__foot { margin: 1.1rem 0 0; }

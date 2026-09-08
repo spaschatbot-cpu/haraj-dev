@@ -352,9 +352,9 @@ somebody went looking for it.
             </td>
             <td data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>{{ car.owner_company.name|default:"—" }}</td>
             {% comment %}
-            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
-            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
-            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
+            التسويقُ ليس حالةً بل **مِلكيّة**: `is_marketing` يعني أن السيارة لشريك
+            التسويق (التعاونية) فتظهر في لوحته — لا أنها «للدعاية لا للبيع». صُحِّح
+            الفهمُ في T877. فحبّةٌ بجانب الحالة تقول لِمن السيارة، لا بدلاً منها.
             {% endcomment %}
             <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
             <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>

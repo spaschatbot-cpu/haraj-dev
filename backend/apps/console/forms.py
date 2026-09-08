@@ -328,7 +328,13 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "insurance_company": "شركة التأمين",
             "runs_status": "حالة المحرّك",
             "key_status": "المفاتيح",
-            "is_marketing": "للتسويق لا للبيع",
+            "is_marketing": "التسويق",
+        }
+        # الحقلُ select (لا/تسويق) كما في v1، لا checkbox — لأن معناه ليس
+        # نعم/لا بل **لِمن السيارة**: سيارةُ شريك التسويق (التعاونية) التي تظهر
+        # في لوحته، أو سيارةٌ عاديّة. T877.
+        widgets = {
+            "is_marketing": forms.Select(choices=[(False, "لا"), (True, "تسويق")]),
         }
 
     def clean(self):
