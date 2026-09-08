@@ -57,8 +57,12 @@
     dialog.showModal();
   }
 
-  /* الطباعة: انسخ جسمَ السند إلى `#voucherPrint`، اطبع، ثم فرِّغه — فلا يبقى
-     ظاهراً على الشاشة ولا في طباعةٍ لاحقةٍ للصفحة. */
+  /* الطباعة: انسخ جسمَ السند إلى `#voucherPrint`، **أغلق النافذة** (كي تخرج
+     من الطبقة العليا فلا تحجب الطباعة)، اطبع، ثم فرِّغ وأعِد الفتح.
+
+     إغلاقُ النافذة هو الفرق: `<dialog open>` في الطبقة العليا يظلّ يُرسَم فوق
+     كلِّ شيءٍ في الطباعة مهما أخفينا الجسمَ خلفه، فتخرج صفحةٌ فارغة. مغلقةً
+     تختفي تماماً، ويُطبَع الجسمُ المنسوخ في التدفّق العاديّ وحدَه. */
   function printVoucher(dialog) {
     var doc = dialog.querySelector(".voucher__doc");
     var target = document.getElementById("voucherPrint");
@@ -67,14 +71,18 @@
       return;
     }
     target.innerHTML = doc.innerHTML;
+    document.body.classList.add("is-printing-voucher");
+    dialog.close();
+
     var clear = function () {
       target.innerHTML = "";
+      document.body.classList.remove("is-printing-voucher");
       window.removeEventListener("afterprint", clear);
     };
     window.addEventListener("afterprint", clear);
     window.print();
     /* احتياطٌ لمتصفّحٍ لا يُطلق `afterprint`: تفريغٌ مؤجَّل. */
-    setTimeout(clear, 1000);
+    setTimeout(clear, 1500);
   }
 
   document.addEventListener("click", function (event) {

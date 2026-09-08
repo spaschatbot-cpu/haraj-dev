@@ -2636,10 +2636,12 @@ form[method="get"] .advanced-panel input[type="search"] {
    العاديّة (والسندُ مغلق، فالهدفُ فارغ) سليمةً. */
 #voucherPrint { display: none; }
 @media print {
-  body:has(#voucherPrint:not(:empty)) * { visibility: hidden; }
-  #voucherPrint:not(:empty),
-  #voucherPrint:not(:empty) * { visibility: visible; }
-  #voucherPrint:not(:empty) {
+  /* كلاسٌ على `body` لا `:has()`: أوسعُ توافقاً، ويُضاف فقط أثناء طباعة
+     السند فتبقى طباعةُ الصفحة العاديّة سليمة. */
+  body.is-printing-voucher * { visibility: hidden; }
+  body.is-printing-voucher #voucherPrint,
+  body.is-printing-voucher #voucherPrint * { visibility: visible; }
+  body.is-printing-voucher #voucherPrint {
     display: block;
     position: fixed;
     inset: 0;
@@ -2647,11 +2649,16 @@ form[method="get"] .advanced-panel input[type="search"] {
     background: #fff;
     color: #000;
   }
-  #voucherPrint .voucher__head { border-block-end: 2px solid #333; }
-  #voucherPrint .voucher__grid {
+  body.is-printing-voucher #voucherPrint .voucher__head {
+    border-block-end: 2px solid #333;
+    margin-block-end: 1rem;
+    padding-block-end: .6rem;
+  }
+  body.is-printing-voucher #voucherPrint .voucher__grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    margin-block-end: 1rem;
   }
 }
 
