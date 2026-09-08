@@ -31,7 +31,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=895">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=896">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
@@ -253,5 +253,27 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
      `<head>`: لا شيء فيه يمسّ أول رسم، فحجبُ العرض لأجله ثمنٌ بلا مقابل —
      بخلاف `theme.js` الذي يكتب سماتِ المظهر قبل الرسم عمداً. {% endcomment %}
   {% block scripts %}{% endblock %}
+
+  {% comment %}
+  إغلاقُ أي نافذةٍ بالنقر خارجها — موحّدٌ لكل اللوحة. T876. `<dialog>` يجعل
+  الخلفَ (`::backdrop`) جزءاً من العنصر نفسِه، فنقرةٌ «داخل» الـdialog تقع في
+  الحقيقة على الخلف حين تكون خارج صندوق المحتوى. فنقارن موضعَ النقرة بحدود
+  المحتوى: خارجَها = نقرةٌ على الخلف = إغلاق. ويُستثنى ما `[data-no-outside-close]`
+  لنافذةٍ لا يصحّ إغلاقُها بالخطأ (لا شيء منها اليوم).
+  {% endcomment %}
+  <script>
+  (function () {
+    document.addEventListener('click', function (e) {
+      var dlg = e.target;
+      if (dlg.tagName !== 'DIALOG' || !dlg.open) return;
+      if (dlg.hasAttribute('data-no-outside-close')) return;
+      // النقرةُ على عنصر `<dialog>` نفسِه (لا على أبنائه) تعني الخلف.
+      var r = dlg.getBoundingClientRect();
+      var inside = e.clientX >= r.left && e.clientX <= r.right &&
+                   e.clientY >= r.top && e.clientY <= r.bottom;
+      if (!inside) { dlg.close(); }
+    });
+  })();
+  </script>
 </body>
 </html>
