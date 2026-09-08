@@ -204,6 +204,7 @@
                         data-state="{{ row.invoice_label }}"
                         data-source="{{ row.invoice_source_label }}"
                         data-odoo="{{ row.invoice_odoo|default:'—' }}"
+                        data-odoo-url="{{ row.odoo_invoice_url }}"
                         data-amount="{{ row.invoice_amount|unlocalize }}"
                         data-paid="{{ row.invoice_paid|unlocalize }}"
                         data-residual="{{ row.invoice_residual|unlocalize }}"
@@ -241,63 +242,76 @@
      لا نملكه. ونعرض ما عندنا: الإجمالي والمسدَّد والباقي، والحالةَ **مشتقّةً
      من الدفعات** لا كلمةَ أودو. {% endcomment %}
   <dialog id="invoiceCard" class="modal voucher">
-    <header class="voucher__head">
-      <div>
+    <div class="voucher__actions noprint">
+      <button type="button" class="btn-sm" data-inv-print>طباعة</button>
+      {% comment %} الفاتورةُ الضريبيّة في أودو — يُظهرها JS فقط حين للفاتورة
+         معرّفٌ هناك و`ODOO_BASE_URL` مضبوط. ففاتورةٌ محليّةٌ لم تُزامَن لا
+         فاتورةَ ضريبيّةَ لها، وفي التطوير يبقى مخفيّاً. {% endcomment %}
+      <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
+      <a class="btn-sm" data-inv-href>فتح الفاتورة</a>
+    </div>
+
+    {% comment %} جسمُ السند في `.voucher__doc` — منه يُنسَخ إلى منطقة الطباعة.
+       الطباعةُ لا تطبع النافذةَ نفسها: `<dialog open>` في «الطبقة العليا»
+       وطباعتُها bug في المتصفّح يظهر صفحةً فارغة. فتُنسَخ إلى عنصرٍ في التدفّق
+       العاديّ (`#voucherPrint`) ويُطبَع هو. {% endcomment %}
+    <div class="voucher__doc">
+      <header class="voucher__head">
         <h2>سند دفع</h2>
         <p class="voucher__num"><span data-inv-number></span></p>
-      </div>
-      <div class="voucher__actions noprint">
-        <button type="button" class="btn-sm" data-inv-print>طباعة</button>
-        <a class="btn-sm" data-inv-href>فتح الفاتورة</a>
-      </div>
-    </header>
+      </header>
 
-    <section class="voucher__grid">
-      <div class="voucher__block">
-        <h3>الأطراف</h3>
+      <section class="voucher__grid">
+        <div class="voucher__block">
+          <h3>الأطراف</h3>
+          <dl class="record">
+            <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
+            <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+          </dl>
+        </div>
+
+        <div class="voucher__block">
+          <h3>المركبة</h3>
+          <dl class="record">
+            <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
+            <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
+            <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
+            <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
+            <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
+            <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="voucher__money">
+        <h3>المبلغ</h3>
         <dl class="record">
-          <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
-          <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+          <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
+          <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
+          <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+          <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
+          <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
+          <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+          <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
+          <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
         </dl>
-      </div>
+      </section>
 
-      <div class="voucher__block">
-        <h3>المركبة</h3>
-        <dl class="record">
-          <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
-          <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
-          <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
-          <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
-          <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
-          <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
-        </dl>
-      </div>
-    </section>
-
-    <section class="voucher__money">
-      <h3>المبلغ</h3>
-      <dl class="record">
-        <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
-        <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
-        <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
-        <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
-        <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
-        <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
-        <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
-        <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
-      </dl>
-    </section>
-
-    <p class="empty">
-      هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
-      أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA) تصدر
-      من إدارة الحسابات.
-    </p>
+      <p class="empty">
+        هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
+        أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA)
+        تصدر من إدارة الحسابات عبر أودو.
+      </p>
+    </div>
 
     <div class="modal__buttons noprint">
       <button type="button" data-close>إغلاق</button>
     </div>
   </dialog>
+
+  {% comment %} هدفُ الطباعة: يُملأ بنسخةٍ من `.voucher__doc` عند الطباعة
+     ويُفرَّغ بعدها. فارغٌ فلا يظهر — و`@media print` يظهره وحدَه. {% endcomment %}
+  <div id="voucherPrint" aria-hidden="true"></div>
 
   <script src="{% static 'console/after_sales.js' %}" defer></script>
 {% endblock %}

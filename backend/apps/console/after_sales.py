@@ -49,6 +49,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery, Sum
 from django.shortcuts import render
@@ -174,6 +175,7 @@ def sold_rows(
             invoice_paid=latest_invoice_field("amount_paid"),
             invoice_issued=latest_invoice_field("issued_at"),
             invoice_source=latest_invoice_field("source"),
+            invoice_odoo_id=latest_invoice_field("odoo_invoice_id"),
         )
         .order_by("-awarded_at", "-id")
     )
@@ -406,6 +408,7 @@ def after_sales(request):
         row.invoice_label = state_label(row.invoice_state)
         row.invoice_residual = residual_of(row)
         row.invoice_source_label = source_labels.get(row.invoice_source, "—")
+        row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
         # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
         row.settled_by_sheet = row.pk in sheet_ids
 
@@ -452,6 +455,22 @@ def residual_of(row) -> Decimal:
     if row.invoice_amount is None:
         return ZERO
     return (row.invoice_amount or ZERO) - (row.invoice_paid or ZERO)
+
+
+def odoo_move_url(odoo_id: str) -> str:
+    """رابطُ الفاتورة الضريبيّة في أودو — أو فراغٌ إن لا فاتورةَ هناك.
+
+    نفسُ بناء v1: `{base}/web#id={id}&model=account.move&view_type=form`. ولا
+    يُبنى إلا حين يجتمع أمران — عنوانُ أودو مضبوطٌ في البيئة، وللفاتورة معرّفٌ
+    هناك. ففاتورةٌ محليّةٌ لم تُزامَن لا فاتورةَ ضريبيّةَ لها، وزرٌّ يفتح لا شيء
+    أسوأ من غيابه. ولذلك يبقى الزرُّ مخفيّاً في التطوير حيث `ODOO_BASE_URL`
+    فارغٌ والفواتيرُ محليّة.
+    """
+    base = (getattr(settings, "ODOO_BASE_URL", "") or "").rstrip("/")
+    ref = (odoo_id or "").strip()
+    if not base or not ref:
+        return ""
+    return f"{base}/web#id={ref}&model=account.move&view_type=form"
 
 
 def ended_auctions():

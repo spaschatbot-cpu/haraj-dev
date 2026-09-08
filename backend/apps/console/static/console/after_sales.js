@@ -5,11 +5,11 @@
  * مرسومةٌ أصلاً في الصفّ، فتُقرأ من `data-*` بلا رحلةِ شبكةٍ ولا انتظار.
  *
  * **و`<dialog>` لا `<div>` بطبقةٍ مرسومة:** المتصفّح يحبس التركيز، ويُغلق
- * بـEscape، ويُعتم الخلف بـ`::backdrop`، ويُعلنها نافذةً لقارئ الشاشة —
- * أربعةٌ كان كلٌّ منها سطرَ جافاسكربت يُنسى واحدٌ منها دائماً.
+ * بـEscape، ويُعتم الخلف بـ`::backdrop`، ويُعلنها نافذةً لقارئ الشاشة.
  *
- * **ونافذةٌ واحدة تُملأ، لا نافذةٌ في كل صفّ:** خمسون صفّاً × عناصرُ السند =
- * ألفٌ من العناصر المخفيّة في كل تحميل لو كانت في القالب.
+ * **والطباعةُ بنسخةٍ لا بالنافذة:** `<dialog open>` في «الطبقة العليا»، وطباعتُها
+ * bug في المتصفّح يُخرج صفحةً فارغة. فيُنسَخ جسمُ السند إلى عنصرٍ في التدفّق
+ * العاديّ (`#voucherPrint`) ويُطبَع هو، ثم يُفرَّغ.
  */
 (function () {
   "use strict";
@@ -40,7 +40,41 @@
     var link = dialog.querySelector("[data-inv-href]");
     if (link) link.setAttribute("href", source.dataset.href || "#");
 
+    /* الفاتورةُ الضريبيّة تظهر فقط حين لها رابطٌ في أودو — وإلا بقيت مخفيّة:
+       فاتورةٌ محليّةٌ لا فاتورةَ ضريبيّةَ لها، وزرٌّ يفتح لا شيء أسوأ من غيابه. */
+    var odoo = dialog.querySelector("[data-inv-odoo-url]");
+    if (odoo) {
+      var odooUrl = source.dataset.odooUrl || "";
+      if (odooUrl) {
+        odoo.setAttribute("href", odooUrl);
+        odoo.hidden = false;
+      } else {
+        odoo.removeAttribute("href");
+        odoo.hidden = true;
+      }
+    }
+
     dialog.showModal();
+  }
+
+  /* الطباعة: انسخ جسمَ السند إلى `#voucherPrint`، اطبع، ثم فرِّغه — فلا يبقى
+     ظاهراً على الشاشة ولا في طباعةٍ لاحقةٍ للصفحة. */
+  function printVoucher(dialog) {
+    var doc = dialog.querySelector(".voucher__doc");
+    var target = document.getElementById("voucherPrint");
+    if (!doc || !target) {
+      window.print();
+      return;
+    }
+    target.innerHTML = doc.innerHTML;
+    var clear = function () {
+      target.innerHTML = "";
+      window.removeEventListener("afterprint", clear);
+    };
+    window.addEventListener("afterprint", clear);
+    window.print();
+    /* احتياطٌ لمتصفّحٍ لا يُطلق `afterprint`: تفريغٌ مؤجَّل. */
+    setTimeout(clear, 1000);
   }
 
   document.addEventListener("click", function (event) {
@@ -54,11 +88,11 @@
       return;
     }
 
-    /* الطباعةُ تطبع السندَ وحده: ورقةُ الطباعة في `app.css` تُخفي كلَّ شيءٍ
-       سوى النافذة المفتوحة. */
-    if (event.target.closest("[data-inv-print]")) {
+    var printer = event.target.closest("[data-inv-print]");
+    if (printer) {
       event.preventDefault();
-      window.print();
+      var host = printer.closest("dialog");
+      if (host) printVoucher(host);
       return;
     }
 

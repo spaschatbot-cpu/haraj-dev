@@ -2627,27 +2627,32 @@ form[method="get"] .advanced-panel input[type="search"] {
 .voucher__total { font-size: 1.15rem; font-weight: 800; }
 
 /* ---- طباعةُ السند وحدَه ---------------------------------------------------
-   السندُ نافذةٌ فوق لوحةٍ كاملةٍ بشريطٍ جانبيّ ورأس. وطباعةُ الصفحة كما هي
-   تطبعها كلَّها. فعند الطباعة يُخفى كلُّ شيءٍ سوى النافذة المفتوحة، وتُبسَط
-   هي مستنداً على الورق: بلا خلفيةٍ داكنةٍ ولا سقفِ ارتفاعٍ ولا أزرار. */
+   لا تُطبَع النافذةُ نفسها: `<dialog open>` في «الطبقة العليا» (top layer)،
+   وطباعتُها bug في المتصفّح يُخرج **صفحةً فارغة** — وقع ذلك. فالجسمُ يُنسَخ
+   عند الطباعة إلى `#voucherPrint` (عنصرٌ في التدفّق العاديّ) ويُطبَع هو.
+
+   `#voucherPrint` مخفيٌّ على الشاشة دائماً؛ وعند الطباعة، إن كان ممتلئاً،
+   يُخفى كلُّ ما عداه ويظهر وحدَه. والشرطُ `:not(:empty)` يُبقي طباعةَ الصفحة
+   العاديّة (والسندُ مغلق، فالهدفُ فارغ) سليمةً. */
+#voucherPrint { display: none; }
 @media print {
-  /* مقصورٌ على وجود سندٍ مفتوح (`:has`): بدونه تبقى طباعةُ الصفحة العادية
-     كما هي، فلا يُخفى كلُّ شيءٍ حين يطبع الموظّفُ الجدولَ لا السند. */
-  body:has(dialog.voucher[open]) * { visibility: hidden; }
-  dialog.voucher[open],
-  dialog.voucher[open] * { visibility: visible; }
-  dialog.voucher[open] {
+  body:has(#voucherPrint:not(:empty)) * { visibility: hidden; }
+  #voucherPrint:not(:empty),
+  #voucherPrint:not(:empty) * { visibility: visible; }
+  #voucherPrint:not(:empty) {
+    display: block;
     position: fixed;
     inset: 0;
-    inline-size: 100%;
-    max-block-size: none;
-    border: 0;
-    box-shadow: none;
+    padding: 1.5rem;
     background: #fff;
     color: #000;
   }
-  dialog.voucher[open]::backdrop { display: none; }
-  .noprint { display: none !important; }
+  #voucherPrint .voucher__head { border-block-end: 2px solid #333; }
+  #voucherPrint .voucher__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
 }
 
 /* القدرات: عمودان على الشاشة العادية، وواحدٌ على الضيّقة. والمعرّفُ الخام
