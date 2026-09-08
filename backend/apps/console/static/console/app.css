@@ -1935,6 +1935,91 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
 }
 .row-actions .row-icon { margin-inline-end: 0; inline-size: 1.05rem; block-size: 1.05rem; }
 
+/* ---- قوائمُ النشاط المطويّة ----------------------------------------------
+   ملفُّ العميل ستُّ قوائمَ بمئتي صفٍّ مجتمعة، ومن يفتحه يسأل عن **واحدة**.
+   فكلٌّ مطويّةٌ بعدّادها ظاهر: المطويُّ يُعرف حجمُه قبل فتحه، والصفحةُ تُقرأ
+   في شاشةٍ واحدة بدل تمريرٍ طويل.
+
+   و`<details>` لا لوحُ ألسنةٍ بجافاسكربت: تعمل بلا سطرٍ واحد، وتبقى في
+   الطباعة، ويفتحها `Ctrl+F` حين يبحث الموظّف عن رقمٍ داخلها. T857 */
+.activity {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  margin: 0 0 .7rem;
+  overflow: hidden;
+}
+
+.activity > summary {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
+}
+
+/* المثلّثُ الافتراضيّ يقع على اليسار في RTL أحياناً ويختلف بين المتصفّحات —
+   فيُطفأ ويُرسم سهمٌ بحرفٍ واحد يدور مع الفتح. */
+.activity > summary::-webkit-details-marker { display: none; }
+
+.activity > summary::after {
+  content: "‹";
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 1.1rem;
+  transition: transform .15s ease;
+}
+
+.activity[open] > summary::after { transform: rotate(-90deg); }
+.activity > summary:hover { background: var(--raised); }
+.activity__title { font-size: .95rem; }
+
+/* الجدولُ داخلها بلا حدٍّ ولا ظلّ: المطويّةُ هي البطاقة، وحدّان متداخلان
+   يصنعان خطّاً مزدوجاً عند الحافة. */
+.activity table {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+}
+
+/* ---- شبكةُ «البيانات الكاملة» --------------------------------------------
+   أربعون حقلاً في عمودٍ واحد شريطٌ يُمرَّر، وفي شبكةٍ تُمسح بالعين. و`<dl>`
+   هو الوسمُ الصحيح لزوجِ اسمٍ وقيمة، فيُعلنه قارئُ الشاشة زوجاً لا صفَّ جدول
+   بلا رأس. T857 */
+.record {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: .1rem .9rem;
+  margin: 0 0 1.3rem;
+  padding: .8rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.record__pair {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  padding: .4rem 0;
+  border-block-end: 1px solid var(--line-soft);
+}
+
+.record dt {
+  flex: 0 0 9.5rem;
+  color: var(--muted);
+  font-size: .78rem;
+}
+
+.record dd {
+  margin: 0;
+  font-size: .86rem;
+  overflow-wrap: anywhere;
+}
+
 /* ---- شريطُ بطاقاتٍ مضغوط -------------------------------------------------
    بطاقاتُ اللوحة الرئيسية كبيرةٌ عن قصد: هي الصفحة كلُّها. وبطاقاتُ رأس شاشةِ
    قائمةٍ ليست كذلك — تحتها جدولٌ هو الغرض، فبطاقةٌ بارتفاع الشاشة تدفعه تحت

@@ -119,18 +119,17 @@
 
   {# ------------------------------------------------------------------ #}
   <h2>البيانات الكاملة</h2>
-  <div class="scroller">
-<table>
-    <tbody>
-      {% for label, value in record %}
-        <tr>
-          <th>{{ label }}</th>
-          <td>{% if value == None or value == "" %}<span class="empty">—</span>{% else %}{{ value }}{% endif %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  {% comment %} شبكةُ تعريفاتٍ لا جدولَ صفّين: أربعون حقلاً في عمودٍ واحد
+     شريطٌ يُمرَّر، وفي شبكةٍ تُمسح بالعين. و`<dl>` هو الوسمُ الصحيح لزوجِ
+     اسمٍ وقيمة — وقارئُ الشاشة يعلن «اسم ٣ من ١٤». {% endcomment %}
+  <dl class="record">
+    {% for label, value in record %}
+      <div class="record__pair">
+        <dt>{{ label }}</dt>
+        <dd>{% if value == None or value == "" %}<span class="empty">—</span>{% else %}{{ value }}{% endif %}</dd>
+      </div>
+    {% endfor %}
+  </dl>
   <p class="empty">
     كلُّ عمودٍ في الصفّ إلا ما سُمّي سرّاً — مبنيّاً من النموذج لا من قائمةٍ
     مكتوبةٍ باليد، فحقلٌ يُضاف غداً يظهر هنا ولا يُنسى.
@@ -213,8 +212,16 @@
   {% endif %}
 
   {# ------------------------------------------------------------------ #}
+  {% comment %} ستُّ قوائمَ بمئتي صفٍّ مجتمعة، ومن يفتح الصفحة يسأل عن
+     **واحدة**. فكلٌّ مطويّةٌ بعدّادها ظاهراً: المطويُّ يُعرف حجمُه، والمفتوحُ
+     هو المقصود. و`<details>` تعمل بلا سطر جافاسكربت، وتبقى في الصفحة
+     المطبوعة وفي بحث المتصفّح (Ctrl+F يفتحها). {% endcomment %}
   {% for card in activity %}
-    <h2>{{ card.title }}</h2>
+    <details class="activity"{% if card.open %} open{% endif %}>
+      <summary>
+        <span class="activity__title">{{ card.title }}</span>
+        <span class="pill">{{ card.rows|length|unlocalize }}</span>
+      </summary>
 
     {% if card.kind == "bids" %}
       <div class="scroller">
@@ -337,6 +344,7 @@
       </table>
 </div>
     {% endif %}
+    </details>
   {% endfor %}
 
   <p class="empty">

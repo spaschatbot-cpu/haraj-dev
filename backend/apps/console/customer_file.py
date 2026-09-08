@@ -98,6 +98,11 @@ def activity_of(customer: User, *, viewer) -> list[dict]:
             {
                 "title": "المزايدات",
                 "kind": "bids",
+                # أوّلُ قائمةٍ تُفتح، والباقي مطويّ. والسبب أن الصفحة ستُّ
+                # قوائمَ بمئتي صفٍّ مجتمعة، ومن يفتحها يسأل عن **واحدة** —
+                # وستٌّ مفتوحةٌ تعني تمريراً طويلاً قبل الوصول إلى المقصود.
+                # والعددُ في العنوان يبقى ظاهراً، فالمطويُّ يُعرف حجمُه.
+                "open": True,
                 "rows": Bid.objects.filter(bidder=customer)
                 .select_related("vehicle", "vehicle__auction")
                 .order_by("-placed_at")[:ACTIVITY_LIMIT],
