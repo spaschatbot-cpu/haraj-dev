@@ -3891,3 +3891,36 @@ input[type="radio"] {
   color: var(--ink-soft);
   cursor: pointer;
 }
+
+/* ==== تصميمٌ موحّدٌ لكل النوافذ في النظام (T874) ==================== */
+/* يستهدف عنصرَ `dialog` نفسَه، فيشمل `.modal` و`.columns-modal` و`.row-modal`
+   وأيَّ نافذةٍ قادمة بلا تكرار. القواعدُ الخاصّة بكلٍّ (المقاس) تبقى، وهذا
+   يوحّد الأرضيّةَ والحدّ والظلّ والحركة. */
+dialog[open] {
+  animation: dialog-in .16s cubic-bezier(.2, .7, .3, 1);
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* الخلفُ المموّه: زجاجيٌّ شفّافٌ لا حجبٌ أسودُ صلب — يُبقي سياقَ الشاشة
+   مرئياً خلف النافذة، فيُقرأ أنها طبقةٌ فوق العمل لا شاشةٌ أخرى. */
+dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  backdrop-filter: blur(4px) saturate(1.1);
+  -webkit-backdrop-filter: blur(4px) saturate(1.1);
+}
+
+/* الظلُّ العميقُ والحدُّ الناعم: يرفعان النافذةَ عن الخلف المموّه. تُطبَّق على
+   الثلاثة صراحةً لأن `box-shadow` كان مختلفاً بين `.modal` و`.row-modal`. */
+dialog.modal,
+dialog.columns-modal,
+dialog.row-modal {
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset,
+    0 24px 60px -12px rgb(0 0 0 / 45%),
+    0 8px 20px -8px rgb(0 0 0 / 35%);
+}
