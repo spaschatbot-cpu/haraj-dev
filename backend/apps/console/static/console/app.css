@@ -4099,3 +4099,81 @@ dialog.row-modal {
   border-color: var(--brand);
   box-shadow: 0 0 0 2px var(--ring);
 }
+
+/* ---- كروتُ اختيار المزاد — أسلوبُ عرض v1 (`chooser.php`) -----------------
+   الاختيارُ كروتٌ لا جدول: بطاقةُ مزادٍ تُنقَر كلُّها، أكبرُ هدفَ لمسٍ وأوضحُ
+   إيقاعاً من صفٍّ يُقرأ يميناً ويساراً. T879 */
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.2rem;
+}
+.pick-card {
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.pick-card:hover {
+  border-color: var(--brand);
+  box-shadow: var(--shadow-lift);
+  transform: translateY(-2px);
+}
+.pick-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+}
+.pick-card__id {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--raised);
+  padding: .12rem .5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}
+.pick-card__title {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.pick-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+}
+/* شريحةٌ صغيرة — بيانٌ واحدٌ لا يُفعَل. تُستعمل في كروت المزاد والسيارة. */
+.chip {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  padding: .18rem .55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.chip--count { color: var(--brand-dark); border-color: var(--brand); }
+.pick-card__cta {
+  margin-block-start: auto;
+  padding: .55rem .8rem;
+  background: var(--brand-solid);
+  color: #fff;
+  font-weight: 800;
+  font-size: .85rem;
+  text-align: center;
+  border-radius: var(--radius);
+}

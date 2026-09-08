@@ -1,61 +1,53 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-إدارة مزاد + سياراته — مدخلٌ واحد بدل ثلاثة.
+اختر مزاداً — كروتٌ لا جدول، كأسلوب عرض v1 (`chooser.php`).
 
-v1 يفصل «إدارة مزاد + سياراته» عن «تعديل سريع للعدادات» عن «قائمة المزادات»،
-وكلُّها اختيارُ مزادٍ ثم فتحُ صفحته. وهي هنا مدخلٌ واحد يقول ما يمكن فعله
-بكلّ مزاد، لأن ما يليه هو نفسه في الثلاثة.
+الاختيارُ في v1 بطاقةُ مزادٍ تُنقَر كلُّها (شارةُ الحالة · `#المعرّف` · الاسمُ ·
+عددُ السيارات · زرُّ الفتح)، لا صفَّ جدولٍ يُقرأ بالعين يميناً ويساراً. والكارتُ
+هدفُ لمسٍ أكبر، ويقول ما يمكن فعله في نظرة.
 
-وعمود «المركبات» يُقرأ قبل الضغط: في v1 بطاقاتُ «⚡ اختر مزاد» فيها ما هو
-`0 سيارة` (`#1005 المطبخ`)، وبطاقةٌ تُفتح على لا شيء ليست اختصاراً.
+**والعددُ يُقرأ قبل الضغط:** بطاقةٌ فيها `0 سيارة` (المطبخ) تُفتح على لا شيء —
+فالصفرُ في وجه الكارت لا خلف الضغطة.
 {% endcomment %}
-{% block title %}إدارة مزاد + سياراته{% endblock %}
+{% block title %}اختر مزاداً{% endblock %}
 {% block heading %}إدارة مزاد + سياراته{% endblock %}
 
+{% block actions %}
+  <a href="{% url 'console:auction-new' %}" class="btn-primary">+ مزاد جديد</a>
+{% endblock %}
+
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="رقم المزاد أو اسمه">
-    <button type="submit">بحث</button>
+  <p class="lede">اختر مزاداً لتفتح صفحة سياراته: إضافةً وتعديلاً وصوراً من مكان واحد.</p>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="ابحث برقم المزاد أو اسمه…" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q %}<a href="{% url 'console:auctions-manage' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
   </form>
 
-  <div class="scroller">
-    <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>المزاد</th>
-        <th>الحالة</th>
-        <th>المركبات</th>
-        <th>يبدأ</th>
-        <th>ينتهي</th>
-        <th>ما يمكن فعله</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in rows %}
-        <tr>
-          <td>{{ row.number|unlocalize }}</td>
-          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
-          <td>{{ row.get_state_display }}</td>
-          {% comment %} الصفر يُقرأ قبل الضغط لا بعده. {% endcomment %}
-          <td class="count">{{ row.cars|unlocalize }}</td>
-          <td>{{ row.starts_at }}</td>
-          <td>{{ row.ends_at }}</td>
-          <td>
-            <a href="{% url 'console:auction-detail' row.pk %}">سياراته</a> ·
-            <a href="{% url 'console:auction-edit' row.pk %}">تعديله</a> ·
-            <a href="{% url 'console:auction-bids' row.pk %}">مزايداته</a>
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="7" class="empty">لا مزادات مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div class="pick-grid">
+    {% for row in rows %}
+      <a class="pick-card" href="{% url 'console:auction-detail' row.pk %}">
+        <div class="pick-card__head">
+          <span class="pick-card__id">#{{ row.number|unlocalize }}</span>
+          <span class="pill" data-tone="{% if row.state == 'live' %}ok{% elif row.state == 'scheduled' %}info{% elif row.state == 'cancelled' %}bad{% else %}plain{% endif %}">{{ row.get_state_display }}</span>
+        </div>
+        <h3 class="pick-card__title">{{ row.title }}</h3>
+        <div class="pick-card__meta">
+          <span class="chip chip--count">{{ row.cars|unlocalize }} سيارة</span>
+          <span class="chip">يبدأ {{ row.starts_at|date:"Y-m-d" }}</span>
+          <span class="chip">ينتهي {{ row.ends_at|date:"Y-m-d" }}</span>
+        </div>
+        <span class="pick-card__cta">فتح إدارة + سيارات <span aria-hidden="true">←</span></span>
+      </a>
+    {% empty %}
+      <p class="empty">لا مزادات مطابقة.</p>
+    {% endfor %}
+  </div>
 
-  <p>{{ total|unlocalize }} مزاداً · تُعرض أول مئة.</p>
-
-  <p><a href="{% url 'console:auction-new' %}">+ مزاد جديد</a></p>
+  <p class="table-footer__count">{{ total|unlocalize }} مزاداً · تُعرض أول مئة.</p>
 {% endblock %}
