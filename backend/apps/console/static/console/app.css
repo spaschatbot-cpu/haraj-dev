@@ -4086,3 +4086,28 @@ dialog.row-modal {
 .vehicle-facts .money { font-variant-numeric: tabular-nums; }
 .vehicle-facts .fact--pending { color: var(--muted); font-size: .8rem; font-weight: 400; }
 .vehicle-facts__foot { margin: 1.1rem 0 0; }
+
+/* ---- زرُّ التسويق على الصفّ: toggle لا حبّة عرض (T877) --------------- */
+.mkt-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .2rem .6rem;
+  font-size: .76rem;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.mkt-toggle:hover { border-color: var(--brand); color: var(--brand-dark); }
+.mkt-toggle.is-on {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.mkt-toggle::before { content: "📣"; font-size: .7rem; opacity: 0; }
+.mkt-toggle.is-on::before { opacity: 1; }
+.mkt-toggle:disabled { opacity: .5; cursor: wait; }

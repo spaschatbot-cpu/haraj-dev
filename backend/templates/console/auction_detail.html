@@ -356,7 +356,18 @@ somebody went looking for it.
             التسويق (التعاونية) فتظهر في لوحته — لا أنها «للدعاية لا للبيع». صُحِّح
             الفهمُ في T877. فحبّةٌ بجانب الحالة تقول لِمن السيارة، لا بدلاً منها.
             {% endcomment %}
-            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
+            {% comment %} زرُّ toggle لا حبّةُ عرض: التسويقُ يُقلَب من الصفّ فوراً
+               كما في v1 — سيارةُ الشريك أو عاديّة. محروسٌ بـ`can_manage`. {% endcomment %}
+            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>
+              {% if can_manage %}
+                <button type="button" class="mkt-toggle{% if car.is_marketing %} is-on{% endif %}"
+                        data-marketing-toggle data-pk="{{ car.pk|unlocalize }}"
+                        data-on="{{ car.is_marketing|yesno:"1,0" }}"
+                        title="اضغط للتبديل: سيارة الشريك أو عاديّة">{% if car.is_marketing %}تسويق{% else %}—{% endif %}</button>
+              {% else %}
+                {% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}
+              {% endif %}
+            </td>
             <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
             {% if can_manage %}
               <td class="actions">
@@ -521,6 +532,28 @@ somebody went looking for it.
 
     document.querySelectorAll('[data-row-detail], [data-row-edit]').forEach(function (btn) {
       btn.addEventListener('click', function () { openUrl(btn.getAttribute('data-url')); });
+    });
+
+    // زرُّ التسويق: يقلب `is_marketing` فوراً بـAJAX، كما في v1 — لا reload.
+    var csrf = document.querySelector('[name="csrfmiddlewaretoken"]');
+    csrf = csrf ? csrf.value : '';
+    document.querySelectorAll('[data-marketing-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = btn.getAttribute('data-on') !== '1';
+        btn.disabled = true;
+        fetch('/console/vehicles/' + btn.getAttribute('data-pk') + '/marketing/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf },
+          body: 'is_marketing=' + (next ? '1' : '0'),
+          credentials: 'same-origin',
+        }).then(function (r) { return r.json(); }).then(function (p) {
+          if (p.ok) {
+            btn.setAttribute('data-on', next ? '1' : '0');
+            btn.classList.toggle('is-on', next);
+            btn.textContent = next ? 'تسويق' : '—';
+          }
+        }).finally(function () { btn.disabled = false; });
+      });
     });
   })();
   </script>

@@ -206,3 +206,39 @@ def _say_refusals(request, refused) -> None:
         messages.error(request, f"لوت {vehicle.lot_number or vehicle.pk}: {why}")
     if len(refused) > 8:
         messages.error(request, f"و{len(refused) - 8} مركبةً أخرى رُفضت للسبب نفسه.")
+
+
+def marketing_toggle(request, pk: int):
+    """اقلب وسمَ التسويق على مركبةٍ واحدة من زرِّ صفّها — نظيرُ v1. T877.
+
+    التسويقُ في v1 `is_marketing`: هل السيارةُ لشريك التسويق (التعاونية) فتظهر
+    في لوحته؟ وزرُّ الصفّ هناك يقلبه فوراً بلا مغادرةِ الشاشة
+    (`manage_vehicles.php:955`, `quick-update`). فهنا نقطةُ POST تُرجِع JSON،
+    يستدعيها زرُّ العمود بـfetch ويقلب الحبّةَ في مكانها.
+
+    و`is_marketing` تحديثُ حقلٍ بسيط لا نقلةُ حالة، فلا يمرّ بآلة الحالات
+    (`move_vehicle`) — لكنّه يُسجَّل في التدقيق باسم من قلبه، كأيّ كتابة.
+    """
+    from django.http import JsonResponse
+
+    from apps.core.permissions import Capability, can
+
+    if not request.user.is_authenticated or not can(
+        request.user, Capability.AUCTIONS_MANAGE
+    ):
+        return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)
+
+    vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    on = request.POST.get("is_marketing") == "1"
+    if vehicle.is_marketing != on:
+        vehicle.is_marketing = on
+        vehicle.save(update_fields=["is_marketing"])
+        audit.record(
+            action="console.vehicle_marketing_toggle",
+            entity=vehicle,
+            actor=request.user,
+            after={"is_marketing": on},
+        )
+    return JsonResponse({"ok": True, "is_marketing": on})

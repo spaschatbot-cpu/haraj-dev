@@ -180,6 +180,12 @@ urlpatterns = [
     ),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
+    # قلبُ وسم التسويق على مركبةٍ واحدة — زرُّ الصفّ. T877
+    path(
+        "vehicles/<int:pk>/marketing/",
+        vehicle_bulk.marketing_toggle,
+        name="vehicle-marketing",
+    ),
     path(
         "vehicles/<int:pk>/relist/", auction_moves.vehicle_relist, name="vehicle-relist"
     ),
