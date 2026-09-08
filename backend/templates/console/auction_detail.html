@@ -219,6 +219,8 @@ somebody went looking for it.
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
       </a>
+      {% comment %} مكوّنُ تخصيص الأعمدة — نفسُه على كل جدول. T869 {% endcomment %}
+      {% include "console/_columns.html" %}
     </div>
   </div>
 
@@ -289,25 +291,29 @@ somebody went looking for it.
             <th class="pick"><input type="checkbox" data-pick-all
                                     title="اختر كل ما في هذه الصفحة"></th>
           {% endif %}
-          <th>اللوت</th>
-          <th>السيارة</th>
-          <th>السنة</th>
-          <th>الشاصي</th>
-          <th>رقم المطالبة</th>
-          <th>اللوحة</th>
-          <th>نوع اللوحة</th>
-          <th>اللون</th>
-          <th>العداد</th>
-          <th>شركة التأمين</th>
-          <th>الحالة الفنية</th>
-          <th>حالة المحرّك</th>
-          <th>المفاتيح</th>
-          <th>ناقل الحركة</th>
-          <th>الوقود</th>
-          <th>الصور</th>
-          <th>المالك</th>
-          <th>التسويق</th>
-          <th>الحالة</th>
+          {% comment %} كلُّ رأسٍ يحمل `data-col` ويُخفى بـ`hidden` من
+             `cols_hidden` — والخليّةُ تحته تحمل المفتاح نفسه، فيغيبان معاً.
+             لا تُعاد ترتيباً هنا: الترتيبُ في `columns.layout_for` ولم يُطبَّق
+             على DOM بعد (مرحلةٌ ثانية)، والإخفاءُ وحده يغطّي جدولاً بلا فراغ. {% endcomment %}
+          <th data-col="lot">اللوت</th>
+          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}>السيارة</th>
+          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}>السنة</th>
+          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}>الشاصي</th>
+          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}>رقم المطالبة</th>
+          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}>اللوحة</th>
+          <th data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>نوع اللوحة</th>
+          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>اللون</th>
+          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}>العداد</th>
+          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>شركة التأمين</th>
+          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>الحالة الفنية</th>
+          <th data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>حالة المحرّك</th>
+          <th data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>المفاتيح</th>
+          <th data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>ناقل الحركة</th>
+          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>الوقود</th>
+          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>الصور</th>
+          <th data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>المالك</th>
+          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>التسويق</th>
+          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
           {% if can_manage %}<th>تحكم</th>{% endif %}
         </tr>
       </thead>
@@ -320,27 +326,27 @@ somebody went looking for it.
                        data-pick aria-label="اختر لوت {{ car.lot_number|unlocalize }}">
               </td>
             {% endif %}
-            <td><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
-            <td><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
-            <td><span class="tnum">{{ car.year|unlocalize }}</span></td>
-            <td class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
-            <td class="tnum">{{ car.claim_number|default:"—" }}</td>
-            <td class="tnum">{{ car.plate_number|default:"—" }}</td>
-            <td>{{ car.get_plate_type_display }}</td>
-            <td>{{ car.get_colour_display }}</td>
-            <td class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
-            <td>{{ car.insurance_company|default:"—" }}</td>
-            <td>{{ car.get_condition_display }}</td>
-            <td>{{ car.runs_status|default:"—" }}</td>
-            <td>{{ car.key_status|default:"—" }}</td>
-            <td>{{ car.get_transmission_display }}</td>
-            <td>{{ car.get_fuel_type_display }}</td>
+            <td data-col="lot"><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
+            <td data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
+            <td data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}><span class="tnum">{{ car.year|unlocalize }}</span></td>
+            <td data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %} class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
+            <td data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.claim_number|default:"—" }}</td>
+            <td data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.plate_number|default:"—" }}</td>
+            <td data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>{{ car.get_plate_type_display }}</td>
+            <td data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>{{ car.get_colour_display }}</td>
+            <td data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %} class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
+            <td data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>{{ car.insurance_company|default:"—" }}</td>
+            <td data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>{{ car.get_condition_display }}</td>
+            <td data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>{{ car.runs_status|default:"—" }}</td>
+            <td data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>{{ car.key_status|default:"—" }}</td>
+            <td data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>{{ car.get_transmission_display }}</td>
+            <td data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>{{ car.get_fuel_type_display }}</td>
             {% comment %}
             العددُ **بابٌ** لا خبر — كما في v1، حيث زرُّ عمود الصور هو ما يفتح
             المعرض. وحبّةٌ تقول «بلا صور» ولا تُفتح تترك من قرأها يبحث عن مكان
             الرفع في شاشةٍ أخرى، وتلك هي الخطوة التي تُنسى فتُشحن سيارةٌ بلا صورة.
             {% endcomment %}
-            <td class="tnum">
+            <td data-col="images"{% if "images" in cols_hidden %} hidden{% endif %} class="tnum">
               <a href="{% url 'console:vehicle-images' car.pk %}"
                  title="معرض صور المركبة">
                 {% if car.image_count %}
@@ -350,14 +356,14 @@ somebody went looking for it.
                 {% endif %}
               </a>
             </td>
-            <td>{{ car.owner_company.name|default:"—" }}</td>
+            <td data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>{{ car.owner_company.name|default:"—" }}</td>
             {% comment %}
             «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
             في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
             منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
             {% endcomment %}
-            <td>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
-            <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
+            <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
             {% if can_manage %}
               <td class="actions">
                 <a href="{% url 'console:vehicle-detail' car.pk %}" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات">

@@ -1,0 +1,84 @@
+{% comment %}
+مكوّنُ تخصيص الأعمدة — مشترَكٌ بين كل جداول اللوحة. T869.
+
+يأخذ من السياق: `columns_layout` (قائمةُ `ResolvedColumn` من
+`columns.layout_for`) و`columns_table_key` (مفتاحُ الجدول). يرسم زرّاً يفتح
+`<dialog>` فيه صفٌّ لكل عمودٍ غير مقفول: خانةُ إظهارٍ ومقبضُ سحبٍ لإعادة
+الترتيب. الحفظُ POST إلى `console:columns-save`، والصفحةُ تُعاد فتُرسَم
+بالأعمدة الجديدة.
+
+و`<dialog>` لا `<div>` بطبقة: المتصفّح يحبس التركيز ويُغلق بـEscape ويعتم
+الخلف — ثلاثةٌ كان كلٌّ منها سطرَ جافاسكربت يُنسى.
+{% endcomment %}
+{% if columns_layout %}
+<button type="button" class="btn-sm" data-columns-open
+        aria-haspopup="dialog">تخصيص الأعمدة</button>
+
+<dialog class="modal columns-modal" data-columns-modal>
+  <form method="post" action="{% url 'console:columns-save' %}" data-columns-form>
+    {% csrf_token %}
+    <input type="hidden" name="table_key" value="{{ columns_table_key }}">
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+    <header class="columns-modal__head">
+      <h2>الأعمدة الظاهرة</h2>
+      <p>أخفِ ما لا تحتاجه، واسحب لإعادة الترتيب. يُحفظ لك وحدك.</p>
+    </header>
+
+    <ul class="columns-list" data-columns-sortable>
+      {% for col in columns_layout %}
+        {% if not col.locked %}
+          <li class="columns-list__row" draggable="true" data-col-row="{{ col.key }}">
+            <span class="columns-list__grip" aria-hidden="true">⠿</span>
+            <label class="columns-list__label">
+              <input type="checkbox" name="visible" value="{{ col.key }}"
+                     {% if col.visible %}checked{% endif %}>
+              <span>{{ col.label }}</span>
+            </label>
+            <input type="hidden" name="order" value="{{ col.key }}" data-col-order>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+
+    <footer class="columns-modal__foot">
+      <button type="submit" class="btn-primary">احفظ</button>
+      <button type="button" data-columns-close>إلغاء</button>
+    </footer>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  var openBtn = document.querySelector('[data-columns-open]');
+  var modal = document.querySelector('[data-columns-modal]');
+  if (!openBtn || !modal || !modal.showModal) return;
+
+  openBtn.addEventListener('click', function () { modal.showModal(); });
+  modal.querySelector('[data-columns-close]').addEventListener('click', function () {
+    modal.close();
+  });
+
+  // السحبُ لإعادة الترتيب: الصفُّ يحمل حقلاً مخفياً `order`، والحفظُ يقرأ
+  // ترتيبَ هذه الحقول كما هي في DOM — فتحريكُ الصفّ يحرّك قيمته معه.
+  var list = modal.querySelector('[data-columns-sortable]');
+  var dragging = null;
+  list.addEventListener('dragstart', function (e) {
+    dragging = e.target.closest('[data-col-row]');
+    if (dragging) dragging.classList.add('is-dragging');
+  });
+  list.addEventListener('dragend', function () {
+    if (dragging) dragging.classList.remove('is-dragging');
+    dragging = null;
+  });
+  list.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    var over = e.target.closest('[data-col-row]');
+    if (!over || over === dragging || !dragging) return;
+    var rect = over.getBoundingClientRect();
+    var after = (e.clientY - rect.top) / rect.height > 0.5;
+    list.insertBefore(dragging, after ? over.nextSibling : over);
+  });
+})();
+</script>
+{% endif %}

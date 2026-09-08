@@ -77,3 +77,45 @@ def console_page(url_name: str):
         return guarded
 
     return decorate
+
+
+def columns_save(request):
+    """احفظ تخصيصَ أعمدةِ جدولٍ لهذا الموظّف، ثم أعِده إلى حيث كان.
+
+    ليست `@console_page`: لا شاشةَ لها في الشريط ولا صفحةَ تُفتح — هي نقطةُ
+    كتابةٍ يستدعيها مكوّنُ الأعمدة من أيّ جدول. وحارسُها `CONSOLE_ACCESS` وحده:
+    من يفتح اللوحة يخصّص أعمدةَ ما يراه، والرؤيةُ نفسُها محروسةٌ في شاشة الجدول.
+    """
+    from django.contrib.auth.decorators import login_required as _login
+    from django.shortcuts import redirect
+    from django.utils.http import url_has_allowed_host_and_scheme
+
+    from apps.core.permissions import Capability, can
+
+    from . import columns
+
+    if not request.user.is_authenticated:
+        raise PermissionDenied
+    if not can(request.user, Capability.CONSOLE_ACCESS):
+        raise PermissionDenied
+    if request.method != "POST":
+        raise PermissionDenied
+
+    table_key = request.POST.get("table_key", "")
+    if table_key not in columns.TABLES:
+        raise PermissionDenied
+
+    # `visible` تحمل ما بقي ظاهراً؛ المخفيُّ هو ما في السجلّ وليس فيها. وقراءةُ
+    # «المخفيّ» من الطلب مباشرةً تثق بالمتصفّح في إرسال كل مفتاح، وحذفُ خانةٍ
+    # من الطلب أسهلُ من قلبها — فنشتقّ المخفيَّ طرحاً لا استقبالاً.
+    all_keys = [c.key for c in columns.TABLES[table_key]]
+    visible = set(request.POST.getlist("visible"))
+    hidden = [k for k in all_keys if k not in visible]
+    ordering = request.POST.getlist("order")
+
+    columns.save_layout(request.user, table_key, hidden=hidden, ordering=ordering)
+
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return redirect(nxt)
+    return redirect("console:home")

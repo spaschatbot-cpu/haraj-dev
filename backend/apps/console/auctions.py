@@ -36,7 +36,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
-from . import icons, vehicle_bulk, vehicle_filters
+from . import columns, icons, vehicle_bulk, vehicle_filters
 from .exports import export, wants_export
 from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
@@ -327,6 +327,10 @@ def auction_detail(request, pk: int):
             "auction": auction,
             "page": page,
             "filters": vehicle_filters.state(request.GET, auction),
+            # تخصيصُ أعمدة الجدول — القائمةُ للمكوّن، والمخفيُّ للخلايا. T869
+            "columns_layout": columns.layout_for(request.user, "auction_vehicles"),
+            "columns_table_key": "auction_vehicles",
+            "cols_hidden": columns.hidden_keys(request.user, "auction_vehicles"),
             "view": view,
             "allowed_operations": allowed_operations,
             "blocked_operations": blocked_operations,
