@@ -1,82 +1,243 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
-ما بعد البيع — وحالةُ الفاتورة **مشتقّةٌ من الدفعات المسجَّلة**.
+ما بعد البيع — أعمدةُ v1 كاملةً، وحالةُ الفاتورة **مشتقّةٌ من الدفعات**.
 
-في v1 رقمُ الفاتورة شكلان: `317263` (شكل v1) و`INV/2026/08267` (شكل أودو)،
-وثلاثةُ صفوفٍ فقط من الخمسين تحمل الثاني — **وهي وحدها «مدفوعة»**. أي أن
-«مدفوعة» هناك لا تعني «وصل المال» بل «صار لها معرّفٌ في أودو».
+**لماذا نافذةٌ لا عمودٌ سادسَ عشر.** فاتورةُ الصفّ فيها ستّةُ أرقام (المبلغ
+والمسدَّد والباقي والحالة وكلمةُ أودو ورقمُها)، وستّةُ أعمدةٍ إضافية تجعل
+الجدولَ يمرَّر أفقياً مرّتين قبل أن يُرى المشتري. فالصفُّ يحمل الستّة في
+`data-*`، وأيقونةُ الفاتورة تفتحها في `<dialog>` — والمتصفّح يحبس التركيز
+ويُغلق بـEscape ويُعتم الخلف بلا سطرِ جافاسكربت لكلٍّ منها.
 
-وهذا عطلُ T809: v1 يعكس حالة أودو في عمودٍ يُكتب مرّةً عند الإدخال، فحوالةٌ
-هناك كمسودّة تظهر هنا «مدفوعة» — وقد أُخرجت سيارةٌ مقابلها. وكلمةُ أودو
-معروضةٌ بجوار الحالة **دليلاً** لا حقيقة، واختلافُهما هو ما يُراد أن يُرى.
+**وv1 يجلب النافذة من الخادم** (`fetch` لكل ضغطة على «عرض»). وهذه بيانات
+الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا صفحةُ خطأٍ داخل
+نافذة.
+
+**والصورةُ عمودٌ لأنه يُسأل عنه:** «السيارة البيضا اللي في مزاد ٥٠» جملةٌ
+تُقال في الهاتف، والصورةُ تُجيبها في نظرة. ومصدرُها غلافُ المركبة باستعلامٍ
+واحدٍ لكل الصفحة (`covers`) لا واحدٍ لكل صفّ.
 {% endcomment %}
 {% block title %}ما بعد البيع{% endblock %}
 {% block heading %}ما بعد البيع{% endblock %}
 
+{% block actions %}
+  <a href="{{ export_url }}" title="تصدير كلّ النتائج المطابقة للمرشّحات — لا الصفحة المعروضة وحدها">تصدير إلى إكسل</a>
+{% endblock %}
+
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="لوحة أو شاصي أو اسم السيارة أو اسم المشتري أو رقم مزاد">
-    <select name="state">
-      <option value="">كل حالات ما بعد البيع</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  <p class="lede">
+    كلُّ مركبةٍ رست في مزادٍ منتهٍ: من أخذها، وبكم، وأين وصلت فاتورتُها.
+    و<strong>حالةُ الفاتورة محسوبةٌ من الدفعات المسجَّلة</strong> — وكلمةُ أودو
+    بجوارها دليلاً لا حقيقة، واختلافُهما هو ما تُفتح الشاشة لتُريَه.
+  </p>
+
+  <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </section>
+
+  <form method="get" class="filters">
+    <div class="filters__main">
+      <input id="q" type="search" name="q" value="{{ q }}"
+             placeholder="لوحة · شاصي · رقم مطالبة · اسم المركبة · لون · اسم المشتري أو جوّاله · رقم"
+             aria-label="البحث">
+
+      <select id="auction" name="auction" aria-label="المزاد">
+        <option value="">كل المزادات المنتهية</option>
+        {% for number, title in auctions %}
+          <option value="{{ number|unlocalize }}"{% if auction == number|stringformat:"s" %} selected{% endif %}>
+            #{{ number|unlocalize }} — {{ title }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <select id="pay" name="pay" aria-label="حالة الفاتورة">
+        <option value="">كل حالات الفاتورة</option>
+        {% for value, label in pay_choices %}
+          <option value="{{ value }}"{% if value == pay %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="mkt" name="mkt" aria-label="التسويق">
+        <option value="">تسويق: الكل</option>
+        <option value="yes"{% if mkt == "yes" %} selected{% endif %}>سيارات تسويق</option>
+        <option value="no"{% if mkt == "no" %} selected{% endif %}>سياراتنا</option>
+      </select>
+
+      <select id="settle" name="settle" aria-label="سداد الشريك">
+        <option value="">سداد الشريك: الكل</option>
+        <option value="yes"{% if settle == "yes" %} selected{% endif %}>سُدِّدت من ملفّ</option>
+        <option value="no"{% if settle == "no" %} selected{% endif %}>لم تُسدَّد من ملفّ</option>
+      </select>
+
+      <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
+        {% for choice in row_choices %}
+          <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn-primary">بحث</button>
+
+      {% if filtered %}
+        <a href="{% url 'console:after-sales' %}" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
+    </div>
   </form>
 
-  <div class="scroller">
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <h2>المركبات المباعة <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
+    </div>
+    <div class="table-bar__actions">
+      <a href="{{ export_url }}" class="btn-sm" title="تصدير كلّ النتائج المطابقة">تصدير إكسل</a>
+    </div>
+  </div>
+
+  <div class="scroller scroller--wide">
     <table>
-    <thead>
-      <tr>
-        <th>المزاد</th>
-        <th>اللوت</th>
-        <th>المركبة</th>
-        <th>اللوحة</th>
-        <th>الشاصي</th>
-        <th>المشتري</th>
-        <th>سعر الترسية</th>
-        <th>حالة المركبة</th>
-        <th>الفاتورة</th>
-        <th>حالتها — من الدفعات</th>
-        <th>كلمة أودو</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
+      <thead>
         <tr>
-          <td>{{ row.auction.number|unlocalize }}</td>
-          <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
-          <td>
-            <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
-            <small>{{ row.awarded_to.phone|unlocalize }}</small>
-          </td>
-          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-          {% if row.billing.invoice %}
-            <td><a href="{% url 'console:invoice-detail' row.billing.invoice.pk %}">{{ row.billing.invoice.number }}</a></td>
-            <td>{{ row.billing.state }}</td>
-            <td>{{ row.billing.odoo|default:"—" }}</td>
-          {% else %}
-            <td class="empty" colspan="3">بلا فاتورة بعد</td>
-          {% endif %}
+          <th>الموقف</th>
+          <th>المزاد</th>
+          <th>المركبة</th>
+          <th>الصورة</th>
+          <th>اللوحة</th>
+          <th>العداد</th>
+          <th>اللون</th>
+          <th>الشاصي</th>
+          <th>رقم المطالبة</th>
+          <th>المشتري</th>
+          <th>المعرّف</th>
+          <th>سعر الترسية</th>
+          <th>حالة المركبة</th>
+          <th>الفاتورة</th>
+          <th>حالتها — من الدفعات</th>
+          <th>إجراءات</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="11" class="empty">لا مركبات مباعة مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="count">{{ row.lot_number|unlocalize }}</td>
+            <td>
+              #{{ row.auction.number|unlocalize }}
+              <small class="empty">{{ row.auction.title }}</small>
+            </td>
+            <td>
+              <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+              <small class="empty">{{ row.year|unlocalize }}</small>
+              {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+            </td>
+            <td>
+              {% comment %} `loading="lazy"` لأن خمسين صورةً في تحميلٍ واحد
+                 تؤخّر الجدولَ نفسَه، والجدولُ هو الغرض. {% endcomment %}
+              {% if row.cover %}
+                <span class="thumb">
+                  <img src="{{ row.cover.thumbnail.url|default:row.cover.image.url }}"
+                       alt="صورة {{ row.make }} {{ row.model }}" loading="lazy" decoding="async">
+                </span>
+              {% else %}
+                <span class="thumb thumb--none" title="لا صورة على هذه المركبة">—</span>
+              {% endif %}
+            </td>
+            <td><span class="tnum code-font">{{ row.plate_number|default:"—" }}</span></td>
+            <td class="count">
+              {% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>{{ row.get_colour_display|default:"—" }}</td>
+            <td><span class="tnum code-font">{{ row.vin|default:"—" }}</span></td>
+            <td><span class="tnum code-font">{{ row.claim_number|default:"—" }}</span></td>
+            <td>
+              {% if row.awarded_to %}
+                <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+                <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
+              {% else %}
+                <span class="empty">—</span>
+              {% endif %}
+            </td>
+            <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
+            <td class="money tnum">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+            <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+            <td>
+              {% if row.invoice_number %}
+                <a href="{% url 'console:invoice-detail' row.invoice_pk %}">{{ row.invoice_number }}</a>
+              {% else %}
+                <span class="empty">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.invoice_number %}
+                <span class="pill" data-tone="{% if row.invoice_state == 'paid' %}ok{% elif row.invoice_state == 'cancelled' %}bad{% elif row.invoice_state == 'partial' %}warn{% else %}plain{% endif %}">{{ row.invoice_label }}</span>
+              {% else %}
+                <span class="empty">بلا فاتورة بعد</span>
+              {% endif %}
+            </td>
+            <td class="actions">
+              <a href="{% url 'console:vehicle-detail' row.pk %}" class="act"
+                 title="فتح ملفّ المركبة" aria-label="فتح ملفّ المركبة">
+                {% include "console/_act_icon.html" with path=icon_open %}
+              </a>
+              {% if row.invoice_number %}
+                <button type="button" class="act act--review" data-opens="invoiceCard"
+                        title="تفاصيل الفاتورة" aria-label="تفاصيل الفاتورة"
+                        data-vehicle="{{ row.make }} {{ row.model }} — لوت {{ row.lot_number|unlocalize }}"
+                        data-number="{{ row.invoice_number }}"
+                        data-href="{% url 'console:invoice-detail' row.invoice_pk %}"
+                        data-state="{{ row.invoice_label }}"
+                        data-odoo="{{ row.invoice_odoo|default:'—' }}"
+                        data-amount="{{ row.invoice_amount|unlocalize }}"
+                        data-paid="{{ row.invoice_paid|unlocalize }}"
+                        data-residual="{{ row.invoice_residual|unlocalize }}"
+                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
+                  {% include "console/_act_icon.html" with path=icon_invoice %}
+                </button>
+              {% endif %}
+              {% if row.awarded_to %}
+                <a href="{% url 'console:customer-detail' row.awarded_to.pk %}" class="act act--cars"
+                   title="فتح ملفّ المشتري" aria-label="فتح ملفّ المشتري">
+                  {% include "console/_act_icon.html" with path=icon_buyer %}
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="16" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p>{{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
-
-  <p class="empty">
-    عمود «حالتها» محسوبٌ من الدفعات المسجَّلة، و«كلمة أودو» معروضةٌ كما وصلت.
-    واختلافُهما ليس عطلاً في الشاشة — هو ما تُفتح لتُريَه.
+  <p class="table-footer__count">
+    {{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة
+    {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
   </p>
+{% endblock %}
+
+{% block scripts %}
+  <dialog id="invoiceCard" class="modal">
+    <h2>فاتورة «<span data-inv-vehicle></span>»</h2>
+
+    {% comment %} كلُّ زوجٍ في `.record__pair`: `.record` شبكةٌ، والـ`dt`
+       و`dd` عاريين فيها يصيران خليّتين متجاورتين في **صفوفٍ مختلفة** —
+       فتبعد القيمةُ عن عنوانها بعرض النافذة. {% endcomment %}
+    <dl class="record">
+      <div class="record__pair"><dt>رقم الفاتورة</dt><dd><a data-inv-href><span data-inv-number></span></a></dd></div>
+      <div class="record__pair"><dt>حالتها — من الدفعات</dt><dd><span data-inv-state></span></dd></div>
+      <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+      <div class="record__pair"><dt>المبلغ</dt><dd class="money tnum"><span data-inv-amount></span></dd></div>
+      <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span></dd></div>
+      <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span></dd></div>
+      <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
+    </dl>
+
+    <p class="empty">
+      «حالتها» محسوبةٌ من الدفعات المسجَّلة، و«كلمة أودو» معروضةٌ كما وصلت.
+      واختلافُهما ليس عطلاً في الشاشة — هو ما تُفتح لتُريَه.
+    </p>
+
+    <div class="modal__buttons">
+      <button type="button" data-close>إغلاق</button>
+    </div>
+  </dialog>
+
+  <script src="{% static 'console/after_sales.js' %}" defer></script>
 {% endblock %}

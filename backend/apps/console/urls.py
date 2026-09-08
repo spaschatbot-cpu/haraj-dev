@@ -11,6 +11,7 @@ from apps.bidding import views as bidding_views
 
 from . import (
     actions,
+    after_sales,
     alerts,
     analytics,
     archive,
@@ -133,7 +134,7 @@ urlpatterns = [
     # إدارة المزادات — بقيّةُ قسم v1 (T830د).
     path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
     path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
-    path("after-sales/", catalog.after_sales, name="after-sales"),
+    path("after-sales/", after_sales.after_sales, name="after-sales"),
     path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),
     path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
     # الفواتير (T830ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.

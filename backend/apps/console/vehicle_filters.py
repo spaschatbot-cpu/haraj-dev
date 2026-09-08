@@ -142,7 +142,7 @@ def _apply_text(rows, params):
     )
     hits: list[int] = []
     for values in rows.values_list("pk", *columns):
-        record = dict(zip(("pk", *columns), values))
+        record = dict(zip(("pk", *columns), values, strict=True))
         if _matches(record, wanted, colour_labels):
             hits.append(record["pk"])
     return rows.filter(pk__in=hits)
