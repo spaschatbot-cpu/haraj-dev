@@ -231,8 +231,17 @@ have to undo one in their head.
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
+            {% comment %}
+            تصديرُ **هذا** المزاد لا تصديرُ الصفحة: `export_url` هو الطلبُ
+            الحاليّ بمعامل `export` — صحيحٌ في زرّ الشريط أعلى الشاشة، وخطأٌ
+            على الصفّ. فكان زرُّ التصدير في كلّ صفّ يُنزّل الملفَّ نفسه:
+            أربعةً وخمسين مزاداً في ثمانية كيلوبايت، لا سيارات المزاد المنقور.
+            وهو عطلٌ صامت — الملفُّ ينزل، فلا شيء يقول إنه الملفّ الخطأ.
+            {% endcomment %}
             {% with icon=action_icons.export %}
-              <a href="{{ export_url }}" class="act act--export" title="{{ icon.0 }}" aria-label="{{ icon.0 }}">
+              <a href="{% url 'console:auction-detail' auction.pk %}?export=xlsx"
+                 class="act act--export" title="{{ icon.0 }} — {{ auction.number }}"
+                 aria-label="{{ icon.0 }} لمزاد {{ auction.number }}">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
