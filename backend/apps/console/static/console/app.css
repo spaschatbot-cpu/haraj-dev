@@ -2309,45 +2309,6 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   color: var(--danger);
 }
 
-/* الفلترة المتقدمة: شبكة حقول مدمجة وأنيقة */
-.advanced-panel {
-  inline-size: 100%;
-  padding-block: .25rem;
-}
-.advanced-panel[hidden] {
-  display: none !important;
-}
-.advanced-panel__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(10.5rem, 100%), 1fr));
-  gap: .45rem .65rem;
-}
-.advanced-panel .field {
-  display: flex;
-  flex-direction: column;
-  gap: .2rem;
-}
-form[method="get"] .advanced-panel label {
-  display: block;
-  font-size: .75rem;
-  color: var(--muted);
-  font-weight: 700;
-  margin: 0;
-}
-.advanced-panel input,
-form[method="get"] .advanced-panel input[type="search"] {
-  flex: initial;
-  inline-size: 100%;
-  min-inline-size: 0;
-  block-size: 2.15rem;
-  min-block-size: 2.15rem;
-  padding: .25rem .55rem;
-  font-size: .82rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--panel);
-}
-
 /* شريط تحكم الجدول: يجمع إحصاء النتائج مع زر تخصيص الأعمدة فوق رأس الجدول */
 .table-bar {
   display: flex;
@@ -3286,30 +3247,115 @@ form.filters {
   color: var(--brand-dark);
 }
 
-/* تبويبات الفلاتر كأزرار حبّية مرنة */
+/* ---- شريط الفلاتر: نمطُ اللوحة نفسُه، صفٌّ يلفّ لا شبكةٌ ممتدّة ------ */
+/* أوّلُ ما شُحن كان شبكةً بثمانية أعمدة فوقها ثمانيةُ عناوينَ تكرّر النائبَ
+   في الخانة تحتها، وتحتها ثلاثةُ أسطرِ تبويباتٍ وزرٌّ رابعٌ وحده — خمسةُ
+   أسطرٍ تدفع الجدولَ تحت الطيّة. */
+
+/* عنوانٌ للقارئ الآليّ وحده: النائبُ في الخانة يقول الاسمَ، وعنوانٌ فوقه
+   يقوله مرّتين — لكن حقلاً بلا `<label>` لا يُعلَن اسمُه لقارئ الشاشة. */
+.sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* شبكةُ الخانات: أعمدةٌ **متساوية** تلفّ بالتساوي. وبالـ`flex` كانت الثمانُ
+   تتقاسم ما بقي من العرض فيقع ستٌّ في سطرٍ واثنتان في الثاني، وأعراضُها
+   مختلفة — وذلك ما يجعل الشريط يُقرأ غيرَ منظَّم. */
+.filters__grid {
+  inline-size: 100%;
+  display: grid;
+  /* أعمدةٌ أضيق (8rem): ثمانُ خاناتٍ في صفٍّ واحد على الشاشة العريضة، لا
+     ستٌّ وسطرٌ ناقص. وحقلُ الرقم لا يحتاج عرضَ حقلِ الاسم. */
+  /* flexٌ يلفّ لا شبكة: الحقولُ بعرضٍ ثابتٍ صغير، والزرُّ **جنبها** في الطرف
+     بعرض محتواه — لا في صفٍّ وحده. والعرضُ الثابت يمنع التمطيط على الشاشة
+     العريضة، فتبقى صغيرةً كما طلب المالك، والفراغُ الزائد على الطرف. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 1.1rem;
+  row-gap: .7rem;
+  align-items: center;
+}
+/* الخصوصيةُ عاليةٌ عمداً: قاعدةٌ عامّة `form[method="get"] input[type="search"]`
+   تفرض `min-inline-size: 12rem` و`flex: 1 1 14rem`، فالحقلُ كان يطفح خارج
+   خانته إلى 192 بكسل مهما ضاقت الشبكة. فنبطل الحدّ الأدنى والـflex هنا. */
+.filters .filters__grid input[type="search"],
+form[method="get"] .filters__grid input[type="search"] {
+  flex: 0 0 8rem;
+  inline-size: 8rem;
+  min-inline-size: 8rem;
+  max-inline-size: 8rem;
+  block-size: 1.85rem;
+  padding-inline: .55rem;
+  font-size: .78rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+/* الزرُّ جنب الحقول بعرض محتواه، لا خانةً في الصفّ. */
+.filters__search {
+  flex: 0 0 auto;
+  margin: 0;
+  block-size: 1.85rem;
+  padding-inline: 1.3rem;
+  font-size: .8rem;
+}
+.filters .filters__grid .filters__reset { flex: 0 0 auto; margin: 0; }
+.filters__actions {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin-block-start: .5rem;
+}
+.filters__actions button[type="submit"] {
+  margin: 0;
+  block-size: 2rem;
+  padding-inline: 1.6rem;
+  font-size: .84rem;
+  white-space: nowrap;
+}
+
+/* والتبويباتُ ثلاثةُ أعمدةٍ متساوية لا ثلاثةُ أسطرٍ متكدّسة. */
+.filters__tabs {
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr));
+  gap: .4rem 1.2rem;
+  padding-block-end: .6rem;
+  margin-block-end: .2rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+
 .filters .tabs {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: .4rem;
+  gap: .35rem;
   margin-block-end: 0;
-  padding-block: .35rem;
-  border-block-end: 1px dashed var(--line-soft);
-}
-.filters .tabs:last-of-type {
+  padding-block: 0;
   border-block-end: none;
 }
 .filters .tabs .vf-label {
-  min-inline-size: 4.2rem;
   font-size: .78rem;
   font-weight: 700;
   color: var(--muted);
+  margin-inline-end: .15rem;
 }
+.filters .tabs .vf-label::after { content: ":"; }
 .filters .tabs .tab {
   display: inline-flex;
   align-items: center;
-  gap: .35rem;
-  padding: .24rem .65rem;
+  gap: .3rem;
+  padding: .2rem .6rem;
   font-size: .78rem;
   font-weight: 600;
   border: 1px solid var(--line);
@@ -3318,7 +3364,7 @@ form.filters {
   color: var(--ink-soft);
   text-decoration: none;
   margin-block-end: 0;
-  transition: all .12s ease;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
 }
 .filters .tabs .tab:hover {
   background: var(--brand-soft);
@@ -3334,20 +3380,20 @@ form.filters {
   background: rgba(255, 255, 255, .25);
   color: #fff;
 }
+/* `.filters__main` هنا **لا يُلغي اللفَّ**: كانت هذه القاعدة أخصَّ من
+   `.filters__main` الأساسية وبلا `flex-wrap`، فصفُّ الفلاتر في شاشة المزادات
+   يطفح أفقياً بدل أن يلفّ. */
 .filters .filters__main {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: .75rem;
-  padding-block-start: .45rem;
-  border-block-start: 1px solid var(--line-soft);
-  margin-block-start: .2rem;
+  gap: .5rem;
 }
 .filters .filters__main button[type="submit"] {
   margin-inline-start: 0;
   padding: .35rem 1.4rem;
   font-size: .84rem;
 }
-
 
 /* عددا المزاد تحت اسمه: رقمان بارزان ووصفٌ خافت — لا سطرُ نصٍّ متساوي الوزن.
    الموظّف يفتح الشاشة ليعرف «كم فيه وكم متاح»، فيجب أن يُقرآ قبل الاسم لا
@@ -3681,20 +3727,24 @@ form.filters {
    ----------------------------------------------------------------------
    ملتصقٌ بأسفل النافذة (`sticky`) لأن الجدولَ ثلاثمئةُ صفّ: من اختار في
    أعلاه ثم مرّر لأسفل يجب أن يبقى الفعلُ في يده، لا أن يعود ليجده. */
+/* الشريطُ **فوق** الجدول لا تحته، ولاصقٌ من أعلى: المزادُ ثلاثمئة سيارة،
+   ومن اختار في الصفّ الأربعين لا يجد شريطاً تحته إلا بعد تمريرٍ إلى القاع.
+   وفوقَه يبقى في المكان الذي جاء منه الاختيار. والظلُّ انقلب معه — كان
+   يُلقى إلى أعلى ليفصله عمّا فوقه، وصار إلى أسفل. */
 .bulkbar {
   position: sticky;
-  inset-block-end: 0;
+  inset-block-start: 0;
   z-index: 5;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
-  margin-block: .75rem 0;
+  margin-block: 0 .75rem;
   padding: .6rem .8rem;
   border: 1px solid var(--brand);
   border-radius: .6rem;
   background: var(--panel);
-  box-shadow: 0 -6px 18px rgb(0 0 0 / 12%);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 12%);
 }
 .bulkbar[hidden] {
   display: none !important;
@@ -3743,3 +3793,281 @@ form.filters {
   color: var(--muted);
   white-space: nowrap;
 }
+
+/* ---- تخصيص الأعمدة: نافذةٌ ومكوّنٌ مشترك (T869) --------------------- */
+.columns-modal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-inline-size: 22rem;
+  inline-size: 90vw;
+  background: var(--panel);
+  color: var(--ink);
+  color-scheme: light dark;
+}
+.columns-modal form,
+.columns-list { background: var(--panel); }
+.columns-modal::backdrop { background: rgb(0 0 0 / 45%); }
+.columns-modal form { padding: 1.1rem 1.2rem; }
+.columns-modal__head h2 { margin: 0 0 .2rem; font-size: 1.05rem; }
+.columns-modal__head p { margin: 0 0 .8rem; font-size: .82rem; color: var(--muted); }
+.columns-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-block-size: 22rem;
+  overflow-y: auto;
+}
+.columns-list__row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem .5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: grab;
+}
+.columns-list__row { background: var(--panel); }
+.columns-list__row:hover { background: var(--raised); }
+.columns-list__row.is-dragging { opacity: .5; border-color: var(--brand); }
+.columns-list__grip { color: var(--muted); font-size: 1rem; cursor: grab; user-select: none; }
+.columns-list__label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex: 1;
+  font-size: .88rem;
+  cursor: pointer;
+}
+.columns-modal__foot {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-block-start: 1rem;
+  padding-block-start: .8rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.columns-modal__foot button[type="button"] {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .4rem 1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* ---- استمارةُ المزاد المقسّمة (T870) --------------------------------- */
+.auction-form { max-inline-size: 46rem; }
+.form-section {
+  margin-block-end: 1.4rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+}
+.form-section__title {
+  margin: 0 0 .9rem;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+  padding-block-end: .5rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .9rem 1.1rem;
+}
+.form-grid .field { display: flex; flex-direction: column; gap: .3rem; }
+/* حقلُ خانةِ الاختيار: الخانةُ والعنوانُ في صفٍّ أفقيّ، لا عنوانٌ فوق خانةٍ
+   تمتدّ على العرض. */
+.form-grid .field:has(input[type="checkbox"]) {
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+}
+.form-grid .field:has(input[type="checkbox"]) label { margin: 0; }
+.form-grid .field--wide { grid-column: 1 / -1; }
+.form-grid .field label { font-size: .84rem; font-weight: 700; color: var(--ink-soft); }
+.form-grid .field input:not([type="checkbox"]):not([type="radio"]),
+.form-grid .field select {
+  inline-size: 100%;
+  block-size: 2.3rem;
+  padding-inline: .65rem;
+  font-size: .88rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink);
+}
+.form-grid .field select { block-size: 2.4rem; }
+.form-grid .field--error input,
+.form-grid .field--error select { border-color: var(--danger); }
+.field__hint { font-size: .76rem; color: var(--muted); }
+.field__error { font-size: .78rem; color: var(--danger); }
+.form-actions { display: flex; align-items: center; gap: .8rem; }
+.btn-cancel {
+  padding: .5rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.btn-cancel:hover { background: var(--raised); }
+@media (max-width: 560px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ==== شريطُ التمرير وخاناتُ الاختيار — ثيمُ اللوحة في النظام كلّه (T871) ==== */
+
+/* شريطُ التمرير: رفيعٌ بلون الثيم لا الأسودُ العريض الافتراضيّ. يُطبَّق على
+   كل ما يُمرَّر في اللوحة — الجداول، والنوافذ، والقوائم — مصدرٌ واحد. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+::-webkit-scrollbar { inline-size: 10px; block-size: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--brand); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* خاناتُ الاختيار: مربّعٌ بلون الثيم يمتلئ بالعلامة عند التحديد، لا المربّعُ
+   الرماديُّ الافتراضيّ المختلفُ بين المتصفّحات. `accent-color` سطرٌ واحدٌ
+   يلوّنها في كل متصفّحٍ حديث ويبقي سلوكَها الأصليّ (تركيزٌ، لوحةُ مفاتيح). */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  cursor: pointer;
+}
+
+/* ---- أفعالُ الصفّ المفردة: نقلٌ وحذف — نظيرُ عمود التحكّم في v1 (T872) --- */
+/* «نقل» ليس خطراً ولا فعلاً عادياً: يحرّك سيارةً بين مزادين، فلونٌ ثالثٌ
+   هادئٌ (brand) يميّزه عن «تفاصيل/تعديل» المحايدة وعن «حذف» الحمراء. */
+.act--move {
+  border-color: color-mix(in srgb, var(--brand) 35%, var(--line));
+  color: var(--brand-dark);
+}
+.act--move:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+.row-modal {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-inline-size: 26rem;
+  inline-size: 90vw;
+  background: var(--panel);
+  color: var(--ink);
+}
+.row-modal::backdrop { background: rgb(0 0 0 / 45%); }
+.row-modal form { padding: 1.2rem 1.3rem; }
+.row-modal__title { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 800; }
+.row-modal__field { display: flex; flex-direction: column; gap: .3rem; margin-block-end: .9rem; }
+.row-modal__field span { font-size: .82rem; font-weight: 700; color: var(--ink-soft); }
+.row-modal__field input,
+.row-modal__field select {
+  inline-size: 100%;
+  block-size: 2.3rem;
+  padding-inline: .65rem;
+  font-size: .88rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink);
+}
+.row-modal__note {
+  margin: 0 0 1rem;
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.row-modal__foot {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  padding-block-start: .9rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.row-modal__foot button[type="button"] {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: .45rem 1.1rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+/* ==== تصميمٌ موحّدٌ لكل النوافذ في النظام (T874) ==================== */
+/* يستهدف عنصرَ `dialog` نفسَه، فيشمل `.modal` و`.columns-modal` و`.row-modal`
+   وأيَّ نافذةٍ قادمة بلا تكرار. القواعدُ الخاصّة بكلٍّ (المقاس) تبقى، وهذا
+   يوحّد الأرضيّةَ والحدّ والظلّ والحركة. */
+dialog[open] {
+  animation: dialog-in .16s cubic-bezier(.2, .7, .3, 1);
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(6px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* الخلفُ المموّه: زجاجيٌّ شفّافٌ لا حجبٌ أسودُ صلب — يُبقي سياقَ الشاشة
+   مرئياً خلف النافذة، فيُقرأ أنها طبقةٌ فوق العمل لا شاشةٌ أخرى. */
+dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  backdrop-filter: blur(4px) saturate(1.1);
+  -webkit-backdrop-filter: blur(4px) saturate(1.1);
+}
+
+/* الظلُّ العميقُ والحدُّ الناعم: يرفعان النافذةَ عن الخلف المموّه. تُطبَّق على
+   الثلاثة صراحةً لأن `box-shadow` كان مختلفاً بين `.modal` و`.row-modal`. */
+dialog.modal,
+dialog.columns-modal,
+dialog.row-modal {
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset,
+    0 24px 60px -12px rgb(0 0 0 / 45%),
+    0 8px 20px -8px rgb(0 0 0 / 35%);
+}
+
+/* نافذةُ التفاصيل/التعديل المحقونة (T875): أوسعُ لأنها تحمل استمارةً بأقسام
+   أو شبكةَ تفاصيل — لا سطرَ تأكيدٍ كنوافذ الصفّ. */
+.row-ajax-modal {
+  inline-size: min(48rem, 94vw);
+  max-block-size: 88vh;
+  padding: 1.4rem 1.5rem;
+}
+.row-ajax-modal .auction-form,
+.row-ajax-modal .form-section { max-inline-size: none; }
+
+/* ---- شبكةُ تفاصيل السيارة: زوجُ اسمٍ وقيمة، بحقول v1 (T875) ---------- */
+.vehicle-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: 0;
+  margin: 0 0 1rem;
+}
+.vehicle-facts > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .55rem .3rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.vehicle-facts dt { font-weight: 700; color: var(--ink-soft); font-size: .84rem; margin: 0; }
+.vehicle-facts dd { margin: 0; text-align: start; }
+.vehicle-facts .money { font-variant-numeric: tabular-nums; }
+.vehicle-facts .fact--pending { color: var(--muted); font-size: .82rem; }
+.vehicle-facts__foot { margin: 1rem 0 0; }

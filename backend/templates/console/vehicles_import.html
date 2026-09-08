@@ -13,7 +13,7 @@ off a screen.
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <p><input type="file" name="sheet" accept=".xlsx,.csv" required></p>
-    <p><input type="text" name="reason" placeholder="سبب الاستيراد"></p>
+    <p></p>
     <p>
       {% comment %} A preview runs the same code and rolls it back, so what it reports is
          what would actually happen. {% endcomment %}

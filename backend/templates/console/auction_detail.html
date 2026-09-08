@@ -186,63 +186,14 @@ somebody went looking for it.
   </section>
 
   {% comment %}
-  إدارة دورة حياة المزاد والعمليات
+  **حُذفت لوحةُ «إدارة دورة حياة المزاد والعمليات»** بطلب المالك (٨ سبتمبر
+  ٢٠٢٦). كانت تحمل: منتقيَ «الانتقال إلى» وخانةَ سببٍ إلزاميّ وزرَّ «تنفيذ
+  الانتقال»، وتحتها قائمةَ الانتقالات الممنوعة بأسبابها.
+
+  وما ذهب معها: **تغييرُ حالة المزاد من هذه الشاشة**، وقراءةُ سببِ منعِ
+  الانتقالات غير المتاحة. والنقلاتُ نفسُها باقيةٌ في `console:auction-state`
+  وفي أفعال الصفّ على `console:auctions` — الشاشةُ هنا صارت للمركبات وحدها.
   {% endcomment %}
-  {% if can_manage %}
-    <div class="operations-panel">
-      <div class="operations-panel__head">
-        <div style="display: flex; align-items: center; gap: .5rem;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:18px;block-size:18px;color:var(--brand-dark);"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"/></svg>
-          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink);">إدارة دورة حياة المزاد والعمليات</h3>
-        </div>
-        {% if auction.state == "live" or badge == "active" %}
-          <button type="button" class="btn-danger-sm" data-open-end data-pk="{{ auction.pk|unlocalize }}" data-number="{{ auction.number|unlocalize }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.end }}"/></svg>
-            إنهاء فوري للمزاد
-          </button>
-        {% endif %}
-      </div>
-
-      {% if allowed_operations %}
-        <form method="post" action="{% url 'console:auction-state' auction.pk %}" class="operations-form">
-          {% csrf_token %}
-          <div class="operations-form__fields">
-            <div class="field" style="flex: 1 1 14rem;">
-              <label for="targetState">الانتقال إلى</label>
-              <select id="targetState" name="target">
-                {% for move in allowed_operations %}
-                  <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field" style="flex: 2 1 20rem;">
-              <label for="stateReason">سبب التغيير (إلزامي للتدقيق والتوثيق)</label>
-              <input id="stateReason" type="text" name="reason" placeholder="اكتب سبب تغيير الحالة..." required>
-            </div>
-            <button type="submit" class="btn-primary" style="margin-block-start: 0; min-block-size: 2.35rem;">تنفيذ الانتقال</button>
-          </div>
-        </form>
-      {% else %}
-        <div class="operations-idle">
-          <span>لا توجد نقلات حالة مباشرة متاحة حالياً عبر النموذج في هذه المرحلة.</span>
-        </div>
-      {% endif %}
-
-      {% if blocked_operations %}
-        <div class="operations-blocked">
-          <span class="operations-blocked__label">الانتقالات المعلقة والشروط غير المستوفاة:</span>
-          <ul class="operations-blocked__list">
-            {% for move in blocked_operations %}
-              <li>
-                <span class="pill">{{ move.label }}</span>
-                <span class="blocked-reason">غير متاحة الآن — {{ move.blocked_by }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-    </div>
-  {% endif %}
 
   {% comment %}
   فلاتر مركبات المزاد
@@ -268,6 +219,8 @@ somebody went looking for it.
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
       </a>
+      {% comment %} مكوّنُ تخصيص الأعمدة — نفسُه على كل جدول. T869 {% endcomment %}
+      {% include "console/_columns.html" %}
     </div>
   </div>
 
@@ -283,101 +236,6 @@ somebody went looking for it.
   <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
         id="bulkForm">
     {% csrf_token %}
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr>
-          {% if can_manage %}
-            <th class="pick"><input type="checkbox" data-pick-all
-                                    title="اختر كل ما في هذه الصفحة"></th>
-          {% endif %}
-          <th>اللوت</th>
-          <th>السيارة</th>
-          <th>السنة</th>
-          <th>الشاصي</th>
-          <th>رقم المطالبة</th>
-          <th>اللوحة</th>
-          <th>نوع اللوحة</th>
-          <th>اللون</th>
-          <th>العداد</th>
-          <th>شركة التأمين</th>
-          <th>الحالة الفنية</th>
-          <th>حالة المحرّك</th>
-          <th>المفاتيح</th>
-          <th>ناقل الحركة</th>
-          <th>الوقود</th>
-          <th>الصور</th>
-          <th>المالك</th>
-          <th>التسويق</th>
-          <th>الحالة</th>
-          {% if can_manage %}<th>تحكم</th>{% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for car in page %}
-          <tr>
-            {% if can_manage %}
-              <td class="pick">
-                <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
-                       data-pick aria-label="اختر لوت {{ car.lot_number|unlocalize }}">
-              </td>
-            {% endif %}
-            <td><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
-            <td><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
-            <td><span class="tnum">{{ car.year|unlocalize }}</span></td>
-            <td class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
-            <td class="tnum">{{ car.claim_number|default:"—" }}</td>
-            <td class="tnum">{{ car.plate_number|default:"—" }}</td>
-            <td>{{ car.get_plate_type_display }}</td>
-            <td>{{ car.get_colour_display }}</td>
-            <td class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
-            <td>{{ car.insurance_company|default:"—" }}</td>
-            <td>{{ car.get_condition_display }}</td>
-            <td>{{ car.runs_status|default:"—" }}</td>
-            <td>{{ car.key_status|default:"—" }}</td>
-            <td>{{ car.get_transmission_display }}</td>
-            <td>{{ car.get_fuel_type_display }}</td>
-            {% comment %}
-            العددُ **بابٌ** لا خبر — كما في v1، حيث زرُّ عمود الصور هو ما يفتح
-            المعرض. وحبّةٌ تقول «بلا صور» ولا تُفتح تترك من قرأها يبحث عن مكان
-            الرفع في شاشةٍ أخرى، وتلك هي الخطوة التي تُنسى فتُشحن سيارةٌ بلا صورة.
-            {% endcomment %}
-            <td class="tnum">
-              <a href="{% url 'console:vehicle-images' car.pk %}"
-                 title="معرض صور المركبة">
-                {% if car.image_count %}
-                  <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
-                {% else %}
-                  <span class="pill" data-tone="warn">بلا صور</span>
-                {% endif %}
-              </a>
-            </td>
-            <td>{{ car.owner_company.name|default:"—" }}</td>
-            {% comment %}
-            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
-            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
-            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
-            {% endcomment %}
-            <td>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
-            <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
-            {% if can_manage %}
-              <td class="actions">
-                <a href="{% url 'console:vehicle-detail' car.pk %}" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
-                </a>
-                <a href="{% url 'console:vehicle-edit' car.pk %}" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
-                </a>
-              </td>
-            {% endif %}
-          </tr>
-        {% empty %}
-          <tr><td colspan="21" class="empty">لا مركبات في هذا المزاد.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
   {% if can_manage %}
     {% comment %}
     الشريطُ مخفيٌّ حتى يُختار شيء — شريطُ أفعالٍ دائم فوق جدولٍ لا شيء مختارٌ
@@ -388,12 +246,6 @@ somebody went looking for it.
     {% endcomment %}
     <div class="bulkbar" data-bulkbar hidden>
       <span class="bulkbar__count"><b data-pick-count>0</b> مركبة مختارة</span>
-
-      <label class="bulkbar__field">
-        <span>السبب</span>
-        <input type="text" name="reason" required
-               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
-      </label>
 
       <span class="bulkbar__group">
         <select name="state" aria-label="الحالة الجديدة">
@@ -425,7 +277,254 @@ somebody went looking for it.
       <button type="submit" name="op" value="delete" class="bulkbar__danger">احذف</button>
     </div>
   {% endif %}
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          {% if can_manage %}
+            <th class="pick"><input type="checkbox" data-pick-all
+                                    title="اختر كل ما في هذه الصفحة"></th>
+          {% endif %}
+          {% comment %} كلُّ رأسٍ يحمل `data-col` ويُخفى بـ`hidden` من
+             `cols_hidden` — والخليّةُ تحته تحمل المفتاح نفسه، فيغيبان معاً.
+             لا تُعاد ترتيباً هنا: الترتيبُ في `columns.layout_for` ولم يُطبَّق
+             على DOM بعد (مرحلةٌ ثانية)، والإخفاءُ وحده يغطّي جدولاً بلا فراغ. {% endcomment %}
+          <th data-col="lot">اللوت</th>
+          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}>السيارة</th>
+          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}>السنة</th>
+          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}>الشاصي</th>
+          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}>رقم المطالبة</th>
+          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}>اللوحة</th>
+          <th data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>نوع اللوحة</th>
+          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>اللون</th>
+          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}>العداد</th>
+          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>شركة التأمين</th>
+          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>الحالة الفنية</th>
+          <th data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>حالة المحرّك</th>
+          <th data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>المفاتيح</th>
+          <th data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>ناقل الحركة</th>
+          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>الوقود</th>
+          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>الصور</th>
+          <th data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>المالك</th>
+          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>التسويق</th>
+          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
+          {% if can_manage %}<th>تحكم</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for car in page %}
+          <tr>
+            {% if can_manage %}
+              <td class="pick">
+                <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
+                       data-pick aria-label="اختر لوت {{ car.lot_number|unlocalize }}">
+              </td>
+            {% endif %}
+            <td data-col="lot"><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
+            <td data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
+            <td data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}><span class="tnum">{{ car.year|unlocalize }}</span></td>
+            <td data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %} class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
+            <td data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.claim_number|default:"—" }}</td>
+            <td data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.plate_number|default:"—" }}</td>
+            <td data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>{{ car.get_plate_type_display }}</td>
+            <td data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>{{ car.get_colour_display }}</td>
+            <td data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %} class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
+            <td data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>{{ car.insurance_company|default:"—" }}</td>
+            <td data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>{{ car.get_condition_display }}</td>
+            <td data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>{{ car.runs_status|default:"—" }}</td>
+            <td data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>{{ car.key_status|default:"—" }}</td>
+            <td data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>{{ car.get_transmission_display }}</td>
+            <td data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>{{ car.get_fuel_type_display }}</td>
+            {% comment %}
+            العددُ **بابٌ** لا خبر — كما في v1، حيث زرُّ عمود الصور هو ما يفتح
+            المعرض. وحبّةٌ تقول «بلا صور» ولا تُفتح تترك من قرأها يبحث عن مكان
+            الرفع في شاشةٍ أخرى، وتلك هي الخطوة التي تُنسى فتُشحن سيارةٌ بلا صورة.
+            {% endcomment %}
+            <td data-col="images"{% if "images" in cols_hidden %} hidden{% endif %} class="tnum">
+              <a href="{% url 'console:vehicle-images' car.pk %}"
+                 title="معرض صور المركبة">
+                {% if car.image_count %}
+                  <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
+                {% else %}
+                  <span class="pill" data-tone="warn">بلا صور</span>
+                {% endif %}
+              </a>
+            </td>
+            <td data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>{{ car.owner_company.name|default:"—" }}</td>
+            {% comment %}
+            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
+            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
+            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
+            {% endcomment %}
+            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
+            <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            {% if can_manage %}
+              <td class="actions">
+                <button type="button" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات"
+                        data-row-detail data-url="{% url 'console:vehicle-detail' car.pk %}?modal=1">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
+                </button>
+                <button type="button" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة"
+                        data-row-edit data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
+                </button>
+                {% comment %} نقلٌ وحذفٌ — نظيرُ عمود التحكّم في v1 (T872). كلاهما
+                   يفتح نافذةً مشتركةً في أسفل الجدول فيُملأ فيها معرّفُ الصفّ:
+                   الفعلُ يمرّ بـ`vehicle_bulk` الآمن (الخدمةُ الوحيدة · سببٌ
+                   إلزاميّ · حذفٌ يرفضه PROTECT على ما له أثر). {% endcomment %}
+                <button type="button" class="act act--move" title="نقل إلى مزادٍ آخر"
+                        aria-label="نقل إلى مزادٍ آخر"
+                        data-row-move data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.move }}"/></svg>
+                </button>
+                <button type="button" class="act act--danger" title="حذف السيارة"
+                        aria-label="حذف السيارة"
+                        data-row-delete data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.delete }}"/></svg>
+                </button>
+              </td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="21" class="empty">لا مركبات في هذا المزاد.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
   </form>
+
+  {% if can_manage %}
+  {% comment %}
+  نافذتا فعلٍ على صفٍّ مفرد — نظيرُ عمود التحكّم في v1 (T872). كلٌّ تبعث إلى
+  `console:auction-vehicles-bulk` بمركبةٍ واحدة، فتمرّ بالمنطق الآمن نفسه الذي
+  يمرّ به الشريطُ المجمَّع: `move_vehicle` الخدمةُ الوحيدة، وسببٌ إلزاميٌّ في
+  التدقيق، وحذفٌ يرفضه PROTECT على مركبةٍ لها مزايدةٌ أو فاتورة (بخلاف v1 الذي
+  يحذف ويترك الأثر يتيماً). و`<dialog>` لا `<div>`: حبسُ التركيز والإغلاقُ
+  بـEscape والإعتامُ من المتصفّح.
+  {% endcomment %}
+
+  <dialog class="modal row-modal" data-row-move-modal>
+    <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="move">
+      <input type="hidden" name="vehicle" data-row-pk>
+      <h2 class="row-modal__title">نقل اللوت <span data-row-lot></span> إلى مزادٍ آخر</h2>
+      <label class="row-modal__field">
+        <span>المزاد الوجهة</span>
+        <select name="target" required>
+          <option value="">— اختر مزاداً —</option>
+          {% for row in move_targets %}
+            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <p class="row-modal__note">النقلُ إلى مزادٍ بدأ مرفوض — يُدخل سيارةً في منتصف الشوط. ويُسجَّل الفعلُ في السجلّ باسمك تلقائياً.</p>
+      <div class="row-modal__foot">
+        <button type="submit" class="btn-primary">انقل</button>
+        <button type="button" data-row-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog class="modal row-modal" data-row-delete-modal>
+    <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="delete">
+      <input type="hidden" name="vehicle" data-row-pk>
+      <h2 class="row-modal__title">حذف اللوت <span data-row-lot></span>؟</h2>
+      <p class="row-modal__note">
+        مركبةٌ عليها مزايدةٌ أو فاتورةٌ لا تُحذف — القاعدةُ تمنعه، والبديلُ سحبُها
+        من العرض لا محوُها. والحذفُ لا رجعةَ فيه.
+      </p>
+      <div class="row-modal__foot">
+        <button type="submit" class="btn-danger-sm">احذف</button>
+        <button type="button" data-row-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+  (function () {
+    var moveModal = document.querySelector('[data-row-move-modal]');
+    var delModal = document.querySelector('[data-row-delete-modal]');
+    function wire(trigger, modal) {
+      if (!modal || !modal.showModal) return;
+      document.querySelectorAll('[' + trigger + ']').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          // معرّفُ الصفّ يُنقَل إلى الحقل المخفيّ، واللوتُ إلى العنوان — نافذةٌ
+          // واحدةٌ تخدم كلَّ الصفوف، تُملأ من الصفّ المضغوط.
+          modal.querySelector('[data-row-pk]').value = btn.getAttribute('data-pk');
+          var lot = modal.querySelector('[data-row-lot]');
+          if (lot) lot.textContent = btn.getAttribute('data-lot');
+          modal.showModal();
+        });
+      });
+      modal.querySelector('[data-row-close]').addEventListener('click', function () {
+        modal.close();
+      });
+    }
+    wire('data-row-move', moveModal);
+    wire('data-row-delete', delModal);
+  })();
+  </script>
+
+  {% comment %}
+  نافذةُ التفاصيل/التعديل — تُجلَب بـAJAX وتُحقَن. T875. المحتوى يأتي من
+  `vehicle-detail`/`vehicle-edit` بـ`?modal=1` (قالبُ أساسٍ بلا شريط)، فلا
+  يُكرَّر هنا ولا يُرسَم لكلّ صفٍّ ٢١ حقلاً. والحفظُ يعيد 204 فتُغلَق النافذةُ
+  ويُعاد تحميلُ الجدول.
+  {% endcomment %}
+  <dialog class="modal row-ajax-modal" data-ajax-modal>
+    <div data-ajax-body></div>
+  </dialog>
+
+  <script>
+  (function () {
+    var modal = document.querySelector('[data-ajax-modal]');
+    var body = modal ? modal.querySelector('[data-ajax-body]') : null;
+    if (!modal || !modal.showModal) return;
+
+    function openUrl(url) {
+      fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          body.innerHTML = html;
+          modal.showModal();
+          wireForm();
+          // زرُّ «إلغاء» داخل المحتوى المحقون يغلق النافذة بدل مغادرة الصفحة.
+          body.querySelectorAll('a.btn-cancel, [data-close]').forEach(function (el) {
+            el.addEventListener('click', function (e) { e.preventDefault(); modal.close(); });
+          });
+        });
+    }
+
+    // حفظُ استمارة التعديل بـAJAX: 204 يعني نجاحاً، فتُغلَق النافذةُ ويُعاد
+    // تحميلُ الجدول ليُظهر التعديل. أخطاءُ الحقول تعود HTMLاً فيُحقَن ثانيةً
+    // بأخطائه بجانب كل حقل.
+    function wireForm() {
+      var form = body.querySelector('form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        fetch(form.getAttribute('action') || location.href, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'fetch' },
+        }).then(function (r) {
+          if (r.status === 204) { modal.close(); window.location.reload(); return; }
+          return r.text().then(function (html) { body.innerHTML = html; wireForm(); });
+        });
+      });
+    }
+
+    document.querySelectorAll('[data-row-detail], [data-row-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function () { openUrl(btn.getAttribute('data-url')); });
+    });
+  })();
+  </script>
+  {% endif %}
 
   <div class="table-footer">
     <div class="table-footer__count">
@@ -459,10 +558,6 @@ somebody went looking for it.
         <h2>إنهاء فوري لمزاد <span data-number>{{ auction.number|unlocalize }}</span></h2>
         <p class="notice warning">
           تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
-        </p>
-        <p>
-          <label for="endReason">سبب الإنهاء الفوري (إلزامي للتدقيق)</label>
-          <input id="endReason" type="text" name="reason" required placeholder="اكتب سبب الإنهاء الفوري...">
         </p>
         <p class="modal__buttons">
           <button type="submit" class="act--danger" style="color: #fff; background: var(--danger); border: none; padding: .5rem 1rem; border-radius: .4rem; font-weight: 700; cursor: pointer;">أنهِ الآن</button>
@@ -500,11 +595,6 @@ somebody went looking for it.
           الموعد يُغيَّر من <strong>إعادة الجدولة</strong>، والتأمين والرسوم من
           <strong>الرسوم والتأمين</strong> في قائمة المزادات — لكلٍّ نافذتُه
           وقواعدُه.
-        </p>
-        <p>
-          <label for="edReason">سبب التعديل</label>
-          <input id="edReason" type="text" name="reason" required
-                 placeholder="يُسجَّل في سجلّ التدقيق باسمك">
         </p>
         <p class="modal__buttons">
           <button type="submit">احفظ</button>

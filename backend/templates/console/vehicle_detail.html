@@ -1,28 +1,22 @@
-{% extends "console/base.html" %}
+{% extends base_template|default:"console/base.html" %}
 {% load l10n %}
 {% comment %}
-`unlocalize` on every amount: money is shown exactly as the ledger stores it.
-A thousands separator or a localised decimal comma is a display transformation
-on a money value, and an operator comparing this screen to the ledger must not
-have to undo one in their head.
-{% endcomment %}
-{% comment %}
-The moves offered come from the state machine, not from this template. A button
-for a transition the machine refuses is a button that produces an error message,
-and v1's screens were full of them.
+تفاصيلُ السيارة — **بحقول v1 وترتيبِه**، لا اختراعاً. T875.
+
+المصدر: استمارةُ السيارة في v1 (`manage_vehicles.php`)، أحدَ وعشرين حقلاً.
+ما له مقابلٌ في نموذج v2 يُعرَض بقيمته، وما لا حقلَ له بعد (الأبواب · الوزن ·
+أيام الفحص · تقرير الفحص · الوصف · التفعيل · المدينة) يُذكَر باسمه و«—» فلا
+يظنّ القارئُ أن الحقل غائبٌ عن السيارة بل عن المستورِد. `unlocalize` على كل
+مبلغٍ ورقم: يُقرأ كما يُخزَّن، بلا فاصلةٍ يُزيلها من يقارن.
+
+ولا «تغيير حالة» ولا «إعادة عرض» هنا: التفاصيلُ **عرضٌ** لا لوحةُ تحكّم —
+تلك أفعالٌ لها أزرارُها في صفّ الجدول (T872)، وخلطُها بالعرض هو ما رفضه المالك.
 {% endcomment %}
 
 {% block title %}مركبة {{ vehicle.pk }}{% endblock %}
 {% block heading %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
-  {% comment %} المعرض قبل الجدول: الصورة تجيب «أهذه هي؟» قبل أن يُقرأ رقم
-     الهيكل. والغلاف أولاً بترتيب `VehicleImage.Meta` نفسه، لا بترتيبٍ ثانٍ
-     يُكتب هنا فيفترق عنه.
-
-     `alt` فارغٌ عن قصد: النصّ البديل الصحيح لصورة سيارةٍ في معرضٍ هو ما تقوله
-     الصفحة فوقه بالفعل (الصنع والموديل والسنة في العنوان)، وتكرارُه سبع مرّات
-     ضجيجٌ في قارئ الشاشة. {% endcomment %}
   {% if shots %}
     <ul class="shots">
       {% for shot in shots %}
@@ -34,63 +28,40 @@ and v1's screens were full of them.
     </ul>
   {% endif %}
 
-  <div class="scroller">
-    <table>
-    <tr><th>المزاد</th><td>
-      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">
-        {{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></td></tr>
-    <tr><th>اللوت</th><td>{{ vehicle.lot_number|unlocalize }}</td></tr>
-    <tr><th>الحالة</th><td>{{ vehicle.get_state_display }}</td></tr>
-    <tr><th>سعر الوقوف</th><td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td></tr>
-    <tr><th>الممشى</th><td>{{ vehicle.odometer_km|default:"—"|unlocalize }}</td></tr>
-    <tr><th>ناقل الحركة</th><td>{{ vehicle.get_transmission_display }}</td></tr>
-    <tr><th>الوقود</th><td>{{ vehicle.get_fuel_type_display }}</td></tr>
-    <tr><th>الحالة الفنية</th><td>{{ vehicle.get_condition_display }}</td></tr>
-    <tr><th>الشريك</th><td>{{ vehicle.owner_company.name|default:"—" }}</td></tr>
-    <tr><th>الفائز</th><td>{{ vehicle.awarded_to.full_name|default:"—" }}</td></tr>
-    <tr><th>سعر الرسو</th><td class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</td></tr>
-  </table>
-</div>
+  <dl class="vehicle-facts">
+    <div><dt>المزاد</dt><dd>
+      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">{{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></dd></div>
+    <div><dt>رقم اللوت</dt><dd>{{ vehicle.lot_number|unlocalize }}</dd></div>
+    <div><dt>الماركة</dt><dd>{{ vehicle.make|default:"—" }}</dd></div>
+    <div><dt>الموديل</dt><dd>{{ vehicle.model|default:"—" }}</dd></div>
+    <div><dt>السنة</dt><dd>{{ vehicle.year|unlocalize }}</dd></div>
+    <div><dt>رقم الهيكل</dt><dd>{{ vehicle.vin|default:"—" }}</dd></div>
+    <div><dt>رقم اللوحة</dt><dd>{{ vehicle.plate_number|default:"—" }}</dd></div>
+    <div><dt>نوع اللوحة</dt><dd>{{ vehicle.get_plate_type_display|default:"—" }}</dd></div>
+    <div><dt>العداد</dt><dd>{% if vehicle.odometer_km %}{{ vehicle.odometer_km|unlocalize }} كم{% else %}—{% endif %}</dd></div>
+    <div><dt>اللون</dt><dd>{{ vehicle.get_colour_display|default:"—" }}</dd></div>
+    <div><dt>الحالة الفنية</dt><dd>{{ vehicle.get_condition_display|default:"—" }}</dd></div>
+    <div><dt>الأبواب</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>الوزن / نوع الوقود</dt><dd>{{ vehicle.get_fuel_type_display|default:"—" }}</dd></div>
+    <div><dt>ناقل الحركة</dt><dd>{{ vehicle.get_transmission_display|default:"—" }}</dd></div>
+    <div><dt>سعر الوقوف</dt><dd class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</dd></div>
+    <div><dt>رقم المطالبة</dt><dd>{{ vehicle.claim_number|default:"—" }}</dd></div>
+    <div><dt>شركة التأمين</dt><dd>{{ vehicle.insurance_company|default:"—" }}</dd></div>
+    <div><dt>حالة المحرّك (فحص MVPI)</dt><dd>{{ vehicle.runs_status|default:"—" }}</dd></div>
+    <div><dt>المفاتيح</dt><dd>{{ vehicle.key_status|default:"—" }}</dd></div>
+    <div><dt>أيام الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>تقرير الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>الوصف / النبذة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>حالة التفعيل</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>المدينة / موقع المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>للتسويق</dt><dd>{% if vehicle.is_marketing %}نعم — للدعاية لا للبيع{% else %}لا{% endif %}</dd></div>
+    <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
+    <div><dt>الشريك المالك</dt><dd>{{ vehicle.owner_company.name|default:"—" }}</dd></div>
+    <div><dt>الفائز</dt><dd>{{ vehicle.awarded_to.full_name|default:"—" }}</dd></div>
+    <div><dt>سعر الرسو</dt><dd class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</dd></div>
+  </dl>
 
-  <p><a href="{% url 'console:vehicle-edit' vehicle.pk %}">تعديل البيانات</a></p>
-
-  <h2>تغيير الحالة</h2>
-  {% if moves %}
-    <form method="post" action="{% url 'console:vehicle-state' vehicle.pk %}">
-      {% csrf_token %}
-      <select name="target">
-        {% for move in moves %}
-          <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
-        {% endfor %}
-      </select>
-      {% comment %} Required, and recorded. A car that moved and nobody can say why is the
-         row support cannot explain to the partner who owns it. {% endcomment %}
-      <input type="text" name="reason" placeholder="سبب التغيير" required>
-      <button type="submit">نفّذ</button>
-    </form>
-  {% else %}
-    <p class="empty">لا انتقال متاح من هذه الحالة.</p>
-  {% endif %}
-
-  <h2>إعادة العرض في مزاد لاحق</h2>
-  {% comment %}
-  الاستبعاد يخصّ الدورة التي وقع فيها، والترسيةُ السابقة لا تسافر: سيارةٌ
-  معروضةٌ في أبريل تُظهر فائز مارس تقول لعميلٍ إنه يملك ما لا يملك. والوجهات
-  مزاداتٌ لم تبدأ بعد فقط.
-  {% endcomment %}
-  {% if destinations %}
-    <form method="post" action="{% url 'console:vehicle-relist' vehicle.pk %}">
-      {% csrf_token %}
-      <select name="auction">
-        {% for auction in destinations %}
-          <option value="{{ auction.pk }}">{{ auction.number|unlocalize }} — {{ auction.title }}</option>
-        {% endfor %}
-      </select>
-      <input type="number" name="lot_number" min="1" placeholder="رقم اللوت" required>
-      <input type="text" name="reason" placeholder="سبب الإعادة" required>
-      <button type="submit">أعِد العرض</button>
-    </form>
-  {% else %}
-    <p class="empty">لا إعادة عرضٍ من هذه الحالة، أو لا مزاد قادم.</p>
-  {% endif %}
+  <p class="vehicle-facts__foot">
+    <a href="{% url 'console:vehicle-edit' vehicle.pk %}" class="btn-sm">تعديل البيانات</a>
+  </p>
 {% endblock %}

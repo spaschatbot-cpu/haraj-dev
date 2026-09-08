@@ -1,0 +1,149 @@
+{% comment %}
+مكوّنُ تخصيص الأعمدة — مشترَكٌ بين كل جداول اللوحة. T869.
+
+يأخذ من السياق: `columns_layout` (قائمةُ `ResolvedColumn` من
+`columns.layout_for`) و`columns_table_key` (مفتاحُ الجدول). يرسم زرّاً يفتح
+`<dialog>` فيه صفٌّ لكل عمودٍ غير مقفول: خانةُ إظهارٍ ومقبضُ سحبٍ لإعادة
+الترتيب. الحفظُ POST إلى `console:columns-save`، والصفحةُ تُعاد فتُرسَم
+بالأعمدة الجديدة.
+
+و`<dialog>` لا `<div>` بطبقة: المتصفّح يحبس التركيز ويُغلق بـEscape ويعتم
+الخلف — ثلاثةٌ كان كلٌّ منها سطرَ جافاسكربت يُنسى.
+{% endcomment %}
+{% if columns_layout %}
+<button type="button" class="btn-sm" data-columns-open
+        aria-haspopup="dialog">تخصيص الأعمدة</button>
+
+<dialog class="modal columns-modal" data-columns-modal>
+  <form method="post" action="{% url 'console:columns-save' %}" data-columns-form>
+    {% csrf_token %}
+    <input type="hidden" name="table_key" value="{{ columns_table_key }}">
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+    <header class="columns-modal__head">
+      <h2>الأعمدة الظاهرة</h2>
+      <p>أخفِ ما لا تحتاجه، واسحب لإعادة الترتيب. يُحفظ لك وحدك.</p>
+    </header>
+
+    <ul class="columns-list" data-columns-sortable>
+      {% for col in columns_layout %}
+        {% if not col.locked %}
+          <li class="columns-list__row" draggable="true" data-col-row="{{ col.key }}">
+            <span class="columns-list__grip" aria-hidden="true">⠿</span>
+            <label class="columns-list__label">
+              <input type="checkbox" name="visible" value="{{ col.key }}"
+                     {% if col.visible %}checked{% endif %}>
+              <span>{{ col.label }}</span>
+            </label>
+            <input type="hidden" name="order" value="{{ col.key }}" data-col-order>
+          </li>
+        {% endif %}
+      {% endfor %}
+    </ul>
+
+    <footer class="columns-modal__foot">
+      <button type="submit" class="btn-primary">احفظ</button>
+      <button type="button" data-columns-close>إلغاء</button>
+    </footer>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  var openBtn = document.querySelector('[data-columns-open]');
+  var modal = document.querySelector('[data-columns-modal]');
+  if (!openBtn || !modal || !modal.showModal) return;
+
+  var tableKey = modal.querySelector('[name="table_key"]').value;
+  var storeKey = 'cols:' + tableKey;
+
+  // **يُطبَّق عند كل تحميلٍ من `localStorage`** — لا اعتماداً على ما رسمه
+  // السيرفر. القاعدةُ هي المصدرُ الدائم (للأجهزة الأخرى)، لكن المتصفّح قد
+  // يخدم صفحةً من كاشٍ قديمٍ رغم `no-store`، فتظهر الأعمدةُ كأن التخصيص لم
+  // يُحفَظ. وهذا السطرُ يطبّق آخرَ اختيارٍ على هذا الجهاز فوراً، مهما جاءت
+  // الصفحةُ من كاش. والقاعدةُ تُحدّثه على أجهزةٍ لم تره بعد.
+  function applyHidden(keys) {
+    var set = {};
+    keys.forEach(function (k) { set[k] = true; });
+    document.querySelectorAll('table [data-col]').forEach(function (cell) {
+      var k = cell.getAttribute('data-col');
+      // المقفولُ (اللوت) لا `data-col-row` له، فلا يُخفى أبداً؛ وما ليس في
+      // القائمة يُظهَر صراحةً — فإظهارُ عمودٍ يعكس إخفاءه السابق.
+      if (modal.querySelector('[data-col-row="' + k + '"]')) {
+        cell.hidden = !!set[k];
+      }
+    });
+  }
+  function applyStored() {
+    try {
+      var stored = localStorage.getItem(storeKey);
+      if (stored) { applyHidden(JSON.parse(stored)); }
+    } catch (e) {}
+  }
+  // الـ`<script>` فوق الجدول في الصفحة، فقد يشتغل قبل أن تُرسَم صفوفُه —
+  // فيُؤجَّل التطبيقُ إلى اكتمال الـDOM إن كان لا يزال يُحمَّل.
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyStored);
+  } else {
+    applyStored();
+  }
+
+  openBtn.addEventListener('click', function () { modal.showModal(); });
+  modal.querySelector('[data-columns-close]').addEventListener('click', function () {
+    modal.close();
+  });
+
+  // الحفظُ بـfetch ثم **إعادةُ تحميلٍ قسريّة**، لا submitٌ عاديّ: الـsubmit
+  // يمرّ بـ302 ثم GET، والمتصفّح يخدم ذلك الـGET من bfcache — النسخة التي
+  // كانت قبل الحفظ — فتبقى الأعمدةُ كما كانت والموظّف يظنّ الحفظ لم يقع.
+  // `location.reload()` يتخطّى bfcache ويجلب الجدول بتخصيصه الجديد.
+  var form = modal.querySelector('[data-columns-form]');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    fetch(form.action, {
+      method: 'POST',
+      body: new FormData(form),
+      credentials: 'same-origin',
+    }).then(function (r) {
+      if (!r.ok) { form.submit(); return; }
+      modal.close();
+      // **يُطبَّق على الجدول في مكانه، لا بإعادة تحميل**: الحفظُ في القاعدة
+      // نجح (للثبات عبر الأجهزة)، لكن الاعتمادَ على `reload` كان يفشل — بعض
+      // المتصفّحات تخدمه من bfcache رغم `no-store`، فيبدو أن شيئاً لم يقع.
+      // فنُخفي ونُظهر الأعمدةَ من حالة الخانات مباشرةً — أثرٌ فوريٌّ لا يمرّ
+      // بالشبكة ولا بالكاش.
+      var hiddenKeys = [];
+      modal.querySelectorAll('[data-col-row] input[type="checkbox"]').forEach(function (cb) {
+        if (!cb.checked) { hiddenKeys.push(cb.value); }
+      });
+      try { localStorage.setItem(storeKey, JSON.stringify(hiddenKeys)); } catch (e) {}
+      applyHidden(hiddenKeys);
+    }).catch(function () {
+      // لو فشل الطلب، دع الاستمارة ترسل نفسها كما كانت — لا نبتلع الخطأ.
+      form.submit();
+    });
+  });
+
+  // السحبُ لإعادة الترتيب: الصفُّ يحمل حقلاً مخفياً `order`، والحفظُ يقرأ
+  // ترتيبَ هذه الحقول كما هي في DOM — فتحريكُ الصفّ يحرّك قيمته معه.
+  var list = modal.querySelector('[data-columns-sortable]');
+  var dragging = null;
+  list.addEventListener('dragstart', function (e) {
+    dragging = e.target.closest('[data-col-row]');
+    if (dragging) dragging.classList.add('is-dragging');
+  });
+  list.addEventListener('dragend', function () {
+    if (dragging) dragging.classList.remove('is-dragging');
+    dragging = null;
+  });
+  list.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    var over = e.target.closest('[data-col-row]');
+    if (!over || over === dragging || !dragging) return;
+    var rect = over.getBoundingClientRect();
+    var after = (e.clientY - rect.top) / rect.height > 0.5;
+    list.insertBefore(dragging, after ? over.nextSibling : over);
+  });
+})();
+</script>
+{% endif %}

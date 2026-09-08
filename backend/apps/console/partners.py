@@ -172,9 +172,6 @@ def award(request, pk: int):
         return redirect("console:partner-offers", pk=pk)
 
     reason = (request.POST.get("reason") or "").strip()
-    if not reason:
-        messages.error(request, "سبب القرار مطلوب.")
-        return redirect("console:partner-offers", pk=pk)
 
     bid = Bid.objects.live().filter(pk=request.POST.get("bid"), vehicle=vehicle).first()
     if bid is None:
@@ -221,9 +218,6 @@ def reject(request, pk: int):
         return redirect("console:partner-offers", pk=pk)
 
     reason = (request.POST.get("reason") or "").strip()
-    if not reason:
-        messages.error(request, "سبب الرفض مطلوب.")
-        return redirect("console:partner-offers", pk=pk)
 
     from apps.auctions.services import reject as reject_vehicle
 

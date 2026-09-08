@@ -36,7 +36,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
-from . import icons, vehicle_bulk, vehicle_filters
+from . import columns, icons, vehicle_bulk, vehicle_filters
 from .exports import export, wants_export
 from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
@@ -327,6 +327,10 @@ def auction_detail(request, pk: int):
             "auction": auction,
             "page": page,
             "filters": vehicle_filters.state(request.GET, auction),
+            # تخصيصُ أعمدة الجدول — القائمةُ للمكوّن، والمخفيُّ للخلايا. T869
+            "columns_layout": columns.layout_for(request.user, "auction_vehicles"),
+            "columns_table_key": "auction_vehicles",
+            "cols_hidden": columns.hidden_keys(request.user, "auction_vehicles"),
             "view": view,
             "allowed_operations": allowed_operations,
             "blocked_operations": blocked_operations,
@@ -357,6 +361,10 @@ def auction_detail(request, pk: int):
                 "view": icons.path_of("car"),
                 "edit": icons.path_of("pencil"),
                 "end": icons.path_of("square"),
+                # أفعالُ الصفّ المفردة — نظيرُ عمود التحكّم في v1. T872
+                "images": icons.path_of("eye"),
+                "move": icons.path_of("layers"),
+                "delete": icons.path_of("trash"),
             },
         },
     )
@@ -427,6 +435,22 @@ def vehicles(request):
 
 
 @console_page("console:vehicle-detail")
+
+def _modal(request):
+    """هل يُطلَب هذا العرضُ نافذةً؟ ولو نعم فأيُّ قالبِ أساسٍ يُستعمَل.
+
+    `?modal=1` يأتي من زرٍّ في جدولٍ يفتح تفاصيلَ صفٍّ أو تعديلَه في مكانه.
+    فيُرندَر المحتوى وحده (`_modal_base`) بلا شريطٍ جانبيٍّ ولا ترويسة، ويُحقَن
+    في `<dialog>`. والطلبُ المباشر (رابطٌ مُشارَك، سجلّ متصفّح) يبقى صفحةً
+    كاملة — فالوجهان من قالبٍ واحد.
+    """
+    is_modal = (
+        request.GET.get("modal") == "1"
+        or request.headers.get("X-Requested-With") == "fetch"
+    )
+    return is_modal, "console/_modal_base.html" if is_modal else "console/base.html"
+
+
 def vehicle_detail(request, pk: int):
     """One car: what it is, where it stands, and where it may go next.
 
@@ -465,6 +489,7 @@ def vehicle_detail(request, pk: int):
         else Auction.objects.none()
     )
 
+    _is_modal, base_template = _modal(request)
     return render(
         request,
         "console/vehicle_detail.html",
@@ -473,6 +498,7 @@ def vehicle_detail(request, pk: int):
             "moves": moves,
             "shots": shots,
             "destinations": destinations,
+            "base_template": base_template,
         },
     )
 
@@ -493,9 +519,6 @@ def vehicle_state(request, pk: int):
     target = request.POST.get("target", "")
     reason = (request.POST.get("reason") or "").strip()
 
-    if not reason:
-        messages.error(request, "سبب التغيير مطلوب.")
-        return redirect("console:vehicle-detail", pk=pk)
 
     before = audit.snapshot(vehicle, ["state", "auction_id", "lot_number"])
 
@@ -550,7 +573,11 @@ def _save(request, form, *, action: str, fields: list[str], instance=None):
     return saved
 
 
-AUCTION_FIELDS = ["number", "title", "starts_at", "ends_at", "deposit_required"]
+AUCTION_FIELDS = [
+    "number", "title", "location", "showcase",
+    "starts_at", "ends_at", "sms_reminder_at",
+    "deposit_required", "admin_fee",
+]
 
 #: ما تكتبه نافذةُ التعديل — هويّةُ المزاد وحدها. T859.
 #:
@@ -669,6 +696,7 @@ def vehicle_edit(request, pk: int):
     """
     vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
     form = VehicleForm(request.POST or None, instance=vehicle)
+    is_modal, base_template = _modal(request)
 
     if request.method == "POST":
         saved = _save(
@@ -680,8 +708,17 @@ def vehicle_edit(request, pk: int):
         )
         if saved is not None:
             messages.success(request, "حُفظت التعديلات.")
+            # نافذةٌ حفظت بنجاح: تُغلَق ويُعاد تحميلُ الجدول خلفها. الـview
+            # يقول ذلك بـ204 (لا محتوى) بدل توجيهٍ إلى صفحةٍ كاملة تُبتلع في
+            # `<dialog>`. والطلبُ المباشر يبقى توجيهاً.
+            if is_modal:
+                from django.http import HttpResponse
+
+                return HttpResponse(status=204)
             return redirect("console:vehicle-detail", pk=pk)
 
     return render(
-        request, "console/vehicle_form.html", {"form": form, "vehicle": vehicle}
+        request,
+        "console/vehicle_form.html",
+        {"form": form, "vehicle": vehicle, "base_template": base_template},
     )

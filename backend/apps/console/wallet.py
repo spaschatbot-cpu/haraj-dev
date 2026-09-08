@@ -132,9 +132,6 @@ def _do_credit(request):
         # مرّتين — وهو ما يفعله v1.
         messages.error(request, "مرجع الحوالة مطلوب — وهو ما يمنع التقييد مرّتين.")
         return redirect(back)
-    if not reason:
-        messages.error(request, "السبب مطلوب: «من شحن ولماذا» سؤالٌ يُسأل بعد شهر.")
-        return redirect(back)
 
     already = money.find_transaction(money.deposit_key("cash", reference))
     if already is not None:

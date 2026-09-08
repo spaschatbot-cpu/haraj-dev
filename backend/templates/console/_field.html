@@ -1,0 +1,18 @@
+{% comment %}
+حقلٌ واحدٌ في استمارة: عنوانُه، ومُدخَلُه، وتلميحُه، وخطؤه تحته. مشترَكٌ بين
+استمارات اللوحة. `field` قد يكون فارغاً (الحقلُ ليس في هذا الفورم) فلا يُرسَم
+شيء — فيكتب القالبُ الأبُ أسماءَ حقولٍ لا يملكها كلُّ فورمٍ بلا فرع.
+
+`wide` يمدّ الحقلَ على عمودَي الشبكة (العنوانُ والملاحظةُ أطولُ من خانةِ رقم).
+`hint` سطرُ شرحٍ تحت الحقل — لا خطأٌ، بل ما يقوله المبلغ.
+{% endcomment %}
+{% if field %}
+  <div class="field{% if wide %} field--wide{% endif %}{% if field.errors %} field--error{% endif %}">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+    {% if hint %}<small class="field__hint">{{ hint }}</small>{% endif %}
+    {% if field.errors %}
+      <strong class="field__error">{{ field.errors|join:" · " }}</strong>
+    {% endif %}
+  </div>
+{% endif %}

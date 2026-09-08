@@ -106,9 +106,6 @@ def _end_selected(request):
     if not chosen:
         messages.error(request, "لم يُختَر مزاد. «أوقف الكلّ» ليس اختياراً.")
         return redirect("console:auctions-bulk")
-    if not reason:
-        messages.error(request, "السبب مطلوب — الإنهاء الجماعي يُسأل عنه لاحقاً.")
-        return redirect("console:auctions-bulk")
 
     ended, refused = [], []
     for auction in Auction.objects.filter(pk__in=chosen):

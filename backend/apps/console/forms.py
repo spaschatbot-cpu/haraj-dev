@@ -57,18 +57,25 @@ class DisplayDateTimeField(forms.DateTimeField):
 
 
 class ReasonMixin(forms.Form):
-    """Every console write carries a written reason.
+    """Every console write is logged — **who, what, when** — automatically.
 
-    Spec 009 asks it of financial actions; it is asked here of edits too, for
-    the same reason support gives: a row that changed and nobody can say why is
-    a row nobody can explain to the partner who owns it.
+    كان السببُ حقلاً **إلزامياً** على كل تعديل (T870 وما قبله). وأزاله المالك
+    من النظام كلّه (T873): الاحتكاكُ اليوميّ — كتابةُ سببٍ لكل حركة — لا يوازيه
+    نفعٌ حين يسجّل سجلُّ التدقيق الفاعلَ والفعلَ والوقت والقيمةَ قبله وبعده
+    تلقائياً في `audit.record`. فالسببُ بقي حقلاً **اختيارياً**: من أراد أن
+    يكتب ملاحظةً كتبها، ومن لم يُرد مضى، والسجلُّ يعرف من فعل ماذا ومتى بلا
+    كتابةٍ منه.
+
+    ويبقى إلزاميّاً في موضعٍ واحد — منحُ الصلاحيات والأدوار — لأن قيدَ القاعدة
+    يفرضه هناك (`grant_reason_not_blank`) وتغييرُ الوصول أوّلُ ما يسأل عنه
+    التدقيق. وذلك نموذجُه الخاصّ لا هذا المزيج.
     """
 
     reason = forms.CharField(
-        label="سبب التعديل",
+        label="ملاحظة (اختياري)",
         max_length=500,
-        widget=forms.TextInput(attrs={"placeholder": "لماذا هذا التغيير؟"}),
-        error_messages={"required": "سبب التعديل مطلوب."},
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "ملاحظةٌ تُحفظ في السجلّ — إن شئت"}),
     )
 
     #: HR-13 — ختمُ حالة الصفّ ساعةَ رُسمت الاستمارة.
@@ -137,12 +144,6 @@ class ReasonMixin(forms.Form):
         payload = "|".join(f"{name}={getattr(instance, name)!r}" for name in names)
         return hashlib.sha256(payload.encode()).hexdigest()[:32]
 
-    def clean_reason(self) -> str:
-        reason = (self.cleaned_data.get("reason") or "").strip()
-        if not reason:
-            raise forms.ValidationError("سبب التعديل مطلوب.")
-        return reason
-
     def clean(self):
         cleaned = super().clean()
 
@@ -174,17 +175,26 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             "number",
             "title",
             "location",
+            "showcase",
             "starts_at",
             "ends_at",
+            "sms_reminder_at",
             "deposit_required",
+            "admin_fee",
         )
         labels = {
             "number": "رقم المزاد",
             "title": "العنوان",
             "location": "الموقع",
+            # `showcase` لا `state`: المزادُ يولد مسودّةً وينتقل بالخدمة، وهذا
+            # يقول كيف يُعرض قبل أن يبدأ (لاحقاً/قادم/قريباً) — لافتةٌ لا حالة.
+            "showcase": "طريقة العرض قبل البدء",
             "starts_at": "يبدأ",
             "ends_at": "ينتهي",
+            "sms_reminder_at": "موعد تذكير الرسائل (اختياري)",
             "deposit_required": "التأمين المطلوب",
+            # الرسمُ يُدفع ولا يُردّ، والتأمينُ يُحجَز ويُردّ — عمودان لا واحد.
+            "admin_fee": "الرسوم الإدارية",
         }
         error_messages = {
             "number": {"unique": "رقم المزاد مستعمل في مزاد آخر."},
@@ -192,12 +202,16 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
         field_classes = {
             "starts_at": DisplayDateTimeField,
             "ends_at": DisplayDateTimeField,
+            "sms_reminder_at": DisplayDateTimeField,
         }
         widgets = {
             "starts_at": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
             "ends_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "sms_reminder_at": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
         }
@@ -300,6 +314,7 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "make": "الماركة",
             "model": "الموديل",
             "year": "السنة",
+            "colour": "اللون",
             "vin": "رقم الهيكل",
             "plate_number": "رقم اللوحة",
             "plate_type": "نوع اللوحة",
