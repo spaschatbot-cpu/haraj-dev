@@ -1,82 +1,315 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
-ما بعد البيع — وحالةُ الفاتورة **مشتقّةٌ من الدفعات المسجَّلة**.
+ما بعد البيع — أعمدةُ v1 كاملةً، وحالةُ الفاتورة **مشتقّةٌ من الدفعات**.
 
-في v1 رقمُ الفاتورة شكلان: `317263` (شكل v1) و`INV/2026/08267` (شكل أودو)،
-وثلاثةُ صفوفٍ فقط من الخمسين تحمل الثاني — **وهي وحدها «مدفوعة»**. أي أن
-«مدفوعة» هناك لا تعني «وصل المال» بل «صار لها معرّفٌ في أودو».
+**لماذا نافذةٌ لا عمودٌ سادسَ عشر.** فاتورةُ الصفّ فيها ستّةُ أرقام (المبلغ
+والمسدَّد والباقي والحالة وكلمةُ أودو ورقمُها)، وستّةُ أعمدةٍ إضافية تجعل
+الجدولَ يمرَّر أفقياً مرّتين قبل أن يُرى المشتري. فالصفُّ يحمل الستّة في
+`data-*`، وأيقونةُ الفاتورة تفتحها في `<dialog>` — والمتصفّح يحبس التركيز
+ويُغلق بـEscape ويُعتم الخلف بلا سطرِ جافاسكربت لكلٍّ منها.
 
-وهذا عطلُ T809: v1 يعكس حالة أودو في عمودٍ يُكتب مرّةً عند الإدخال، فحوالةٌ
-هناك كمسودّة تظهر هنا «مدفوعة» — وقد أُخرجت سيارةٌ مقابلها. وكلمةُ أودو
-معروضةٌ بجوار الحالة **دليلاً** لا حقيقة، واختلافُهما هو ما يُراد أن يُرى.
+**وv1 يجلب النافذة من الخادم** (`fetch` لكل ضغطة على «عرض»). وهذه بيانات
+الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا صفحةُ خطأٍ داخل
+نافذة.
+
+**والصورةُ عمودٌ لأنه يُسأل عنه:** «السيارة البيضا اللي في مزاد ٥٠» جملةٌ
+تُقال في الهاتف، والصورةُ تُجيبها في نظرة. ومصدرُها غلافُ المركبة باستعلامٍ
+واحدٍ لكل الصفحة (`covers`) لا واحدٍ لكل صفّ.
 {% endcomment %}
 {% block title %}ما بعد البيع{% endblock %}
 {% block heading %}ما بعد البيع{% endblock %}
 
+{% block actions %}
+  <a href="{{ export_url }}" title="تصدير كلّ النتائج المطابقة للمرشّحات — لا الصفحة المعروضة وحدها">تصدير إلى إكسل</a>
+{% endblock %}
+
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="لوحة أو شاصي أو اسم السيارة أو اسم المشتري أو رقم مزاد">
-    <select name="state">
-      <option value="">كل حالات ما بعد البيع</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  <p class="lede">
+    كلُّ مركبةٍ رست في مزادٍ منتهٍ: من أخذها، وبكم، وأين وصلت فاتورتُها.
+    و<strong>حالةُ الفاتورة محسوبةٌ من الدفعات المسجَّلة</strong> — وكلمةُ أودو
+    بجوارها دليلاً لا حقيقة، واختلافُهما هو ما تُفتح الشاشة لتُريَه.
+  </p>
+
+  <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </section>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input id="q" type="search" name="q" value="{{ q }}"
+             placeholder="لوحة · شاصي · رقم مطالبة · اسم المركبة · لون · اسم المشتري أو جوّاله · رقم"
+             aria-label="البحث">
+
+      <select id="auction" name="auction" aria-label="المزاد">
+        <option value="">كل المزادات المنتهية</option>
+        {% for number, title in auctions %}
+          <option value="{{ number|unlocalize }}"{% if auction == number|stringformat:"s" %} selected{% endif %}>
+            #{{ number|unlocalize }} — {{ title }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <select id="pay" name="pay" aria-label="حالة الفاتورة">
+        <option value="">كل حالات الفاتورة</option>
+        {% for value, label in pay_choices %}
+          <option value="{{ value }}"{% if value == pay %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+
+      <select id="mkt" name="mkt" aria-label="التسويق">
+        <option value="">تسويق: الكل</option>
+        <option value="yes"{% if mkt == "yes" %} selected{% endif %}>سيارات تسويق</option>
+        <option value="no"{% if mkt == "no" %} selected{% endif %}>سياراتنا</option>
+      </select>
+
+      <select id="settle" name="settle" aria-label="سداد الشريك">
+        <option value="">سداد الشريك: الكل</option>
+        <option value="yes"{% if settle == "yes" %} selected{% endif %}>سُدِّدت من ملفّ</option>
+        <option value="no"{% if settle == "no" %} selected{% endif %}>لم تُسدَّد من ملفّ</option>
+      </select>
+
+      <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
+        {% for choice in row_choices %}
+          <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn-primary">بحث</button>
+
+      {% if filtered %}
+        <a href="{% url 'console:after-sales' %}" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
+    </div>
   </form>
 
-  <div class="scroller">
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <h2>المركبات المباعة <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
+    </div>
+    <div class="table-bar__actions">
+      <a href="{{ export_url }}" class="btn-sm" title="تصدير كلّ النتائج المطابقة">تصدير إكسل</a>
+    </div>
+  </div>
+
+  <div class="scroller scroller--wide">
     <table>
-    <thead>
-      <tr>
-        <th>المزاد</th>
-        <th>اللوت</th>
-        <th>المركبة</th>
-        <th>اللوحة</th>
-        <th>الشاصي</th>
-        <th>المشتري</th>
-        <th>سعر الترسية</th>
-        <th>حالة المركبة</th>
-        <th>الفاتورة</th>
-        <th>حالتها — من الدفعات</th>
-        <th>كلمة أودو</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
+      <thead>
         <tr>
-          <td>{{ row.auction.number|unlocalize }}</td>
-          <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
-          <td>
-            <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
-            <small>{{ row.awarded_to.phone|unlocalize }}</small>
-          </td>
-          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-          {% if row.billing.invoice %}
-            <td><a href="{% url 'console:invoice-detail' row.billing.invoice.pk %}">{{ row.billing.invoice.number }}</a></td>
-            <td>{{ row.billing.state }}</td>
-            <td>{{ row.billing.odoo|default:"—" }}</td>
-          {% else %}
-            <td class="empty" colspan="3">بلا فاتورة بعد</td>
-          {% endif %}
+          <th>الموقف</th>
+          <th>المزاد</th>
+          <th>المركبة</th>
+          <th>الموديل</th>
+          <th>الصورة</th>
+          <th>اللوحة</th>
+          <th>العداد</th>
+          <th>اللون</th>
+          <th>الشاصي</th>
+          <th>رقم المطالبة</th>
+          <th>المشتري</th>
+          <th>معرف المركبة</th>
+          <th>الفاتورة</th>
+          <th>حالة الفاتورة</th>
+          <th>عرض</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="11" class="empty">لا مركبات مباعة مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td class="count">{{ row.lot_number|unlocalize }}</td>
+            <td>
+              #{{ row.auction.number|unlocalize }}
+              <small class="empty">{{ row.auction.title }}</small>
+            </td>
+            <td>
+              {% comment %} المركبةُ نصٌّ لا رابط بطلب المالك — الضغطُ عليها
+                 لا يفتح صفحة. وأيقونةُ «فتح ملفّ المركبة» في عمود «عرض» تفعله
+                 صراحةً لمن أراد. {% endcomment %}
+              <span>{{ row.make }} {{ row.model }}</span>
+              {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+            </td>
+            {% comment %} «الموديل» عمودٌ مستقلٌّ كما في v1، وهو سنةُ الصنع —
+               «موديل ٢٠٢١» في العُرف. وكان مدموجاً في «المركبة»، والمالك ردّه
+               عموداً على حِدَة التزاماً بترويسة v1. {% endcomment %}
+            <td class="count">{{ row.year|unlocalize }}</td>
+            <td>
+              {% comment %} `loading="lazy"` لأن خمسين صورةً في تحميلٍ واحد
+                 تؤخّر الجدولَ نفسَه، والجدولُ هو الغرض. {% endcomment %}
+              {% if row.cover %}
+                <span class="thumb">
+                  <img src="{{ row.cover.thumbnail.url|default:row.cover.image.url }}"
+                       alt="صورة {{ row.make }} {{ row.model }}" loading="lazy" decoding="async">
+                </span>
+              {% else %}
+                <span class="thumb thumb--none" title="لا صورة على هذه المركبة">—</span>
+              {% endif %}
+            </td>
+            <td><span class="tnum code-font">{{ row.plate_number|default:"—" }}</span></td>
+            <td class="count">
+              {% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>{{ row.get_colour_display|default:"—" }}</td>
+            <td><span class="tnum code-font">{{ row.vin|default:"—" }}</span></td>
+            <td><span class="tnum code-font">{{ row.claim_number|default:"—" }}</span></td>
+            <td>
+              {% comment %} اسمُ المشتري نصٌّ لا رابط — بطلب المالك: الضغطُ
+                 عليه لا يفتح صفحةً. ومن أراد ملفَّ المشتري فأيقونةُ «فتح ملفّ
+                 المشتري» في عمود «عرض» تفعله صراحةً. {% endcomment %}
+              {% if row.awarded_to %}
+                <span>{{ row.awarded_to.full_name }}</span>
+                <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
+              {% else %}
+                <span class="empty">—</span>
+              {% endif %}
+            </td>
+            <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
+            <td>
+              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك. وتفاصيلُها
+                 في سند الدفع (أيقونة «عرض»)، ومنه زرُّ «فتح الفاتورة» صراحةً.
+              {% endcomment %}
+              {% if row.invoice_number %}
+                <span class="tnum code-font">{{ row.invoice_number }}</span>
+              {% else %}
+                <span class="empty">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if row.invoice_number %}
+                <span class="pill" data-tone="{% if row.invoice_state == 'paid' %}ok{% elif row.invoice_state == 'cancelled' %}bad{% elif row.invoice_state == 'partial' %}warn{% else %}plain{% endif %}">{{ row.invoice_label }}</span>
+              {% else %}
+                <span class="empty">بلا فاتورة بعد</span>
+              {% endif %}
+            </td>
+            <td class="actions">
+              {% comment %} فعلٌ واحد: سندُ الفاتورة. أُزيلت أيقونتا «فتح ملفّ
+                 المركبة» و«فتح ملفّ المشتري» بطلب المالك — لا تُفتح صفحةٌ من
+                 هذه الشاشة إلا سندَ الدفع. {% endcomment %}
+              {% if row.invoice_number %}
+                {% comment %} كلُّ حقول السند في `data-*` على الصفّ نفسه —
+                   فالنافذةُ تُملأ بلا رحلةِ خادم. v1 يحمّل `iframe` من مسارٍ
+                   جديد لكل ضغطة (صفحةٌ كاملة + Bootstrap)، وهذه بياناتٌ مرسومةٌ
+                   أصلاً في الصفّ. {% endcomment %}
+                <button type="button" class="act act--review" data-opens="invoiceCard"
+                        title="سند الدفع" aria-label="سند الدفع"
+                        data-vehicle="{{ row.make }} {{ row.model }}"
+                        data-lot="{{ row.lot_number|unlocalize }}"
+                        data-auction="{{ row.auction.number|unlocalize }}"
+                        data-plate="{{ row.plate_number|default:'—' }}"
+                        data-chassis="{{ row.vin|default:'—' }}"
+                        data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
+                        data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
+                        data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
+                        data-number="{{ row.invoice_number }}"
+                        data-href="{% url 'console:invoice-detail' row.invoice_pk %}"
+                        data-state="{{ row.invoice_label }}"
+                        data-source="{{ row.invoice_source_label }}"
+                        data-odoo="{{ row.invoice_odoo|default:'—' }}"
+                        data-odoo-url="{{ row.odoo_invoice_url }}"
+                        data-amount="{{ row.invoice_amount|unlocalize }}"
+                        data-paid="{{ row.invoice_paid|unlocalize }}"
+                        data-residual="{{ row.invoice_residual|unlocalize }}"
+                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
+                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
+                  {% include "console/_act_icon.html" with path=icon_invoice %}
+                </button>
+              {% else %}
+                <span class="empty">—</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="15" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p>{{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
-
-  <p class="empty">
-    عمود «حالتها» محسوبٌ من الدفعات المسجَّلة، و«كلمة أودو» معروضةٌ كما وصلت.
-    واختلافُهما ليس عطلاً في الشاشة — هو ما تُفتح لتُريَه.
+  <p class="table-footer__count">
+    {{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة
+    {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
   </p>
+{% endblock %}
+
+{% block scripts %}
+  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا صفحةٌ في `iframe` كـv1.
+
+     v1 يفتح `<iframe>` يحمّل صفحةً كاملة من `/invoice?inv=…` (مستند HTML كامل
+     + Bootstrap + رحلةُ خادم) لكل ضغطة. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً،
+     فالنافذةُ تُملأ من `data-*` بلا شبكة — أسرعُ وأبسط.
+
+     **وبحقولنا نحن لا حقول v1.** سندُ v1 يعرض «قيمة المركبة» و«رسوم إدارية»
+     مقسومتين، وفاتورتُنا تخزّن `amount` واحداً (الإجمالي) — فلا نخترع تقسيماً
+     لا نملكه. ونعرض ما عندنا: الإجمالي والمسدَّد والباقي، والحالةَ **مشتقّةً
+     من الدفعات** لا كلمةَ أودو. {% endcomment %}
+  <dialog id="invoiceCard" class="modal voucher">
+    <div class="voucher__actions noprint">
+      <button type="button" class="btn-sm" data-inv-print>طباعة</button>
+      {% comment %} الفاتورةُ الضريبيّة في أودو — يُظهرها JS فقط حين للفاتورة
+         معرّفٌ هناك و`ODOO_BASE_URL` مضبوط. ففاتورةٌ محليّةٌ لم تُزامَن لا
+         فاتورةَ ضريبيّةَ لها، وفي التطوير يبقى مخفيّاً. {% endcomment %}
+      <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
+    </div>
+
+    {% comment %} جسمُ السند في `.voucher__doc` — منه يُنسَخ إلى منطقة الطباعة.
+       الطباعةُ لا تطبع النافذةَ نفسها: `<dialog open>` في «الطبقة العليا»
+       وطباعتُها bug في المتصفّح يظهر صفحةً فارغة. فتُنسَخ إلى عنصرٍ في التدفّق
+       العاديّ (`#voucherPrint`) ويُطبَع هو. {% endcomment %}
+    <div class="voucher__doc">
+      <header class="voucher__head">
+        <h2>سند دفع</h2>
+        <p class="voucher__num"><span data-inv-number></span></p>
+      </header>
+
+      <section class="voucher__grid">
+        <div class="voucher__block">
+          <h3>الأطراف</h3>
+          <dl class="record">
+            <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
+            <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+          </dl>
+        </div>
+
+        <div class="voucher__block">
+          <h3>المركبة</h3>
+          <dl class="record">
+            <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
+            <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
+            <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
+            <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
+            <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
+            <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="voucher__money">
+        <h3>المبلغ</h3>
+        <dl class="record">
+          <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
+          <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
+          <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+          <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
+          <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
+          <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+          <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
+          <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
+        </dl>
+      </section>
+
+      <p class="empty">
+        هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
+        أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA)
+        تصدر من إدارة الحسابات عبر أودو.
+      </p>
+    </div>
+
+    <div class="modal__buttons noprint">
+      <button type="button" data-close>إغلاق</button>
+    </div>
+  </dialog>
+
+  {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
+     نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —
+     وهو ما حدث. يُزاد الرقمُ مع كل تعديلٍ في الملفّ. {% endcomment %}
+  <script src="{% static 'console/after_sales.js' %}?v=3" defer></script>
 {% endblock %}

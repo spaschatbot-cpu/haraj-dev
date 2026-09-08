@@ -749,6 +749,21 @@ form[method="get"] button[type="submit"] { margin-inline-start: auto; }
 }
 .scroller > table { margin: 0; }
 
+/* ---- جدولٌ لا يُضغَط ------------------------------------------------------
+   `table { width: 100% }` يجعل الجدولَ يملأ غلافه مهما كثرت أعمدتُه — وذلك
+   صحيحٌ لثمانية أعمدة وخطأٌ لستّة عشر: في «ما بعد البيع» انضغط عمودُ المزاد
+   إلى ٦٧ بكسلاً فلفَّ اسمَ المزاد ثلاثةَ أسطر، وانضغطت خانةُ الأفعال فنزلت
+   أيقوناتُها الثلاث واحدةً تحت واحدة — فصار ارتفاعُ الصفّ ١٤٢ بكسلاً، أي
+   خمسةُ صفوفٍ في الشاشة بدل اثني عشر.
+
+   والعرضُ الأدنى يجعل `.scroller` يمرّر أفقياً كما بُني ليفعل. وثمنُه صريح:
+   من يقرأ آخرَ الأعمدة يمرّر — وهو أرخص من قراءة خمسة صفوفٍ في نظرة. */
+.scroller--wide > table { min-inline-size: 92rem; }
+.scroller--wide td,
+.scroller--wide th { white-space: nowrap; }
+/* والسطرُ الخافت تحت القيمة يبقى سطراً ثانياً مقصوداً، لا لفّاً عارضاً. */
+.scroller--wide td small { display: block; }
+
 table {
   border-collapse: separate;
   border-spacing: 0;
@@ -2215,6 +2230,44 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   flex: 0 0 auto;
   min-inline-size: 8.5rem;
 }
+
+/* ---- شريطُ فلاترٍ في سطرٍ واحد ------------------------------------------
+   شاشةُ «ما بعد البيع» تحمل بحثاً وخمسَ قوائم وزرّاً وإلغاءً — سبعةُ عناصرَ
+   تلفُّ سطرين بالعرض الافتراضيّ (`min-inline-size: 8.5rem` × ٥ لا تتّسع).
+   والمالك يريدها سطراً واحداً منظّماً.
+
+   فالبحثُ يأخذ ضعفَ حصّة القائمة (`flex: 2`)، والقوائمُ تتقاسم الباقي
+   بالتساوي وتُسمَح بالانكماش (`min-inline-size: 0` يلغي الأدنى الموروث)،
+   والزرُّ ثابت. `nowrap` على المكتب، ويعود `wrap` تحت ١١٠٠ بكسل كي لا
+   تنسحق على شاشةٍ ضيّقة. */
+.filters--row .filters__main {
+  flex-wrap: nowrap;
+}
+.filters--row .filters__main > * {
+  min-inline-size: 0;
+}
+.filters--row .filters__main input[type="search"] {
+  flex: 2 1 9rem;
+}
+.filters--row .filters__main select {
+  flex: 1 1 6.5rem;
+  min-inline-size: 0;
+}
+.filters--row .filters__main .btn-primary,
+.filters--row .filters__reset {
+  flex: 0 0 auto;
+}
+.filters--row .filters__reset {
+  margin-inline-start: 0;
+}
+@media (max-width: 1100px) {
+  .filters--row .filters__main {
+    flex-wrap: wrap;
+  }
+  .filters--row .filters__main select {
+    flex: 1 1 8rem;
+  }
+}
 /* زر الفلترة المتقدمة في شريط الفلاتر */
 .btn-advanced {
   display: inline-flex;
@@ -2490,6 +2543,61 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    تُمرَّر، والقرارُ يحتاج أن تُرى كلُّها معاً — «ماذا يملك هذا الدور» سؤالٌ
    عن المجموعة لا عن سطر. */
 .modal--wide { inline-size: min(46rem, 94vw); }
+
+/* ---- سندُ الدفع في نافذة --------------------------------------------------
+   نافذةٌ أعرضُ قليلاً تحمل مستنداً منظّماً في أقسام: رأسٌ فيه الرقمُ وأزرارُ
+   الفعل، ثم شبكةُ «الأطراف/المركبة» جنباً إلى جنب، ثم كتلةُ المبلغ. القصدُ
+   أن يُقرأ السندُ في نظرةٍ لا أن يُمرَّر. T869. */
+.voucher { inline-size: min(42rem, 94vw); }
+.voucher__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding-block-end: .8rem;
+  margin-block-end: 1rem;
+  border-block-end: 2px solid var(--line);
+}
+.voucher__head h2 { margin: 0; }
+.voucher__num {
+  margin: .15rem 0 0;
+  color: var(--muted);
+  font-size: .85rem;
+}
+.voucher__actions { display: flex; gap: .4rem; flex: 0 0 auto; }
+/* «الأطراف» و«المركبة» عمودان على المكتب، يطويان إلى واحدٍ على الضيّق. */
+.voucher__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: 1rem;
+  margin-block-end: 1rem;
+}
+.voucher__block h3,
+.voucher__money h3 {
+  margin: 0 0 .4rem;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.voucher__block .record,
+.voucher__money .record {
+  grid-template-columns: 1fr;
+  margin: 0;
+}
+/* الإجمالي المستحقّ أبرزُ سطرٍ في السند: هو ما يُقرأ أوّلاً. */
+.voucher__total { font-size: 1.15rem; font-weight: 800; }
+
+/* ---- طباعةُ السند وحدَه ---------------------------------------------------
+   لا تُطبَع النافذةُ نفسها: `<dialog open>` في «الطبقة العليا» (top layer)،
+   وطباعتُها bug في المتصفّح يُخرج **صفحةً فارغة** — وقع ذلك. فالجسمُ يُنسَخ
+   عند الطباعة إلى `#voucherPrint` (عنصرٌ في التدفّق العاديّ) ويُطبَع هو.
+
+   `#voucherPrint` مخفيٌّ على الشاشة دائماً؛ وعند الطباعة، إن كان ممتلئاً،
+   يُخفى كلُّ ما عداه ويظهر وحدَه. والشرطُ `:not(:empty)` يُبقي طباعةَ الصفحة
+   العاديّة (والسندُ مغلق، فالهدفُ فارغ) سليمةً. */
+/* طباعةُ السند تجري في `<iframe>` مستقلٍّ بأنماطه (انظر `after_sales.js`)، لا
+   بطباعة هذه الصفحة — فلا حاجةَ إلى قواعد `@media print` هنا. `<dialog open>`
+   في الطبقة العليا يُرسَم فوق أيّ طباعةٍ للصفحة، فكانت تخرج صفحةٌ فارغة. */
 
 /* القدرات: عمودان على الشاشة العادية، وواحدٌ على الضيّقة. والمعرّفُ الخام
    بجوار الاسم العربيّ لأنه ما يظهر في رسائل الرفض وفي `tasks.md` — فمن يقرأ

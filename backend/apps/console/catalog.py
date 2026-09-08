@@ -1,6 +1,6 @@
-"""كتالوج السيارات، والبحث عنها، وما بعد البيع، والخروج. T830د.
+"""كتالوج السيارات، والبحث عنها، والخروج. T830د.
 
-أربع شاشاتٍ من قسم «إدارة المزادات» في v1، وكلُّها استعلامٌ واحد على
+ثلاثُ شاشاتٍ من قسم «إدارة المزادات» في v1، وكلُّها استعلامٌ واحد على
 :class:`Vehicle` بمرشّحاتٍ مختلفة — ولذلك ملفٌّ واحد: الفرق بينها **سؤالٌ**
 لا بنية.
 
@@ -8,8 +8,11 @@
 |---|---|
 | كتالوج السيارات | ما الذي عندنا، وبأي حال؟ |
 | بحث عن سيارة | أين هذه السيارة بعينها؟ |
-| ما بعد البيع | ما الذي بيع، ولمن، وهل وصل ماله؟ |
 | الخروج ونقل الملكية | ما الذي بيع وسُدِّد ولم يخرج بعد؟ |
+
+و«ما بعد البيع» خرجت من هنا إلى `after_sales.py` (T869): صارت خمسَ مرشّحاتٍ
+وستّةَ عشرَ عموداً وبطاقاتٍ ونافذةَ فاتورةٍ وتصديراً — أي أنها لم تعد
+«الاستعلامَ نفسَه بسؤالٍ آخر»، وهو الشرطُ الذي جمع هذه الشاشات في ملفّ.
 
 خمسة أعطالٍ مقيسةٍ في v1 لا تُنقَل
 ===================================
@@ -65,8 +68,6 @@ from django.utils.dateparse import parse_date
 from apps.auctions import engine
 from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
-from apps.money import services as money
-from apps.money.models import Invoice
 
 from .exports import export, wants_export
 from .tones import with_tones
@@ -295,75 +296,6 @@ def vehicle_search(request):
             "vin": request.GET.get("vin", ""),
             "name": request.GET.get("name", ""),
             "lot": request.GET.get("lot", ""),
-        },
-    )
-
-
-def sold(*, text: str = "", state: str = ""):
-    """ما بيع: مركبةٌ رست ومعها من أخذها وفاتورتها."""
-    rows = (
-        Vehicle.objects.filter(state__in=SOLD)
-        .select_related("auction", "awarded_to")
-        .order_by("-awarded_at", "-id")
-    )
-
-    text = (text or "").strip()
-    if text:
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-            | Q(awarded_to__full_name__icontains=text)
-            | Q(awarded_to__phone__icontains=text)
-        )
-        if text.isdigit():
-            matches |= Q(lot_number=int(text)) | Q(auction__number=int(text))
-        rows = rows.filter(matches)
-
-    state = (state or "").strip()
-    if state in VehicleState.values:
-        rows = rows.filter(state=state)
-    return rows
-
-
-def invoice_of(vehicle: Vehicle) -> dict:
-    """فاتورةُ هذه المركبة وحالتُها — **مشتقّةً من الدفعات لا من عمود**.
-
-    وهذا هو T809 بعينه: v1 يعكس حالة أودو في عمودٍ يُكتب مرّةً عند الإدخال،
-    فحوالةٌ هناك كمسودّة تظهر هنا «مدفوعة» — وأُخرجت سيارةٌ مقابلها. وكلمةُ
-    أودو تُعرض بجوار الحالة **دليلاً** لا حقيقة.
-    """
-    invoice = (
-        Invoice.objects.filter(vehicle=vehicle).order_by("-issued_at", "-id").first()
-    )
-    if invoice is None:
-        return {"invoice": None, "state": "", "odoo": ""}
-    return {
-        "invoice": invoice,
-        "state": money.derive_invoice_state(invoice),
-        "odoo": invoice.odoo_state_raw,
-    }
-
-
-@console_page("console:after-sales")
-def after_sales(request):
-    """ما بعد البيع: ما بيع، ولمن، وهل وصل مالُه."""
-    rows = sold(text=request.GET.get("q", ""), state=request.GET.get("state", ""))
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
-
-    for vehicle in page.object_list:
-        vehicle.billing = invoice_of(vehicle)
-
-    return render(
-        request,
-        "console/after_sales.html",
-        {
-            "page": page,
-            "q": request.GET.get("q", ""),
-            "state": request.GET.get("state", ""),
-            "states": [(value, VehicleState(value).label) for value in SOLD],
         },
     )
 
