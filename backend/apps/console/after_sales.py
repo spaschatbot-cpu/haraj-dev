@@ -13,9 +13,13 @@
 
 **١ — عمودا «المركبة» و«الموديل» في v1 يطبعان الجملة مرّتين.** في لقطة
 الإنتاج: «لكزس ايه اس 300 لكزس ايه اس 300» في خانةٍ واحدة، و«لكزس ايه اس 300»
-في التي بجوارها. وذلك لأن `vehicle_name` هناك حقلٌ حرٌّ كُتب فيه الاسمُ
-كاملاً، و`vehicle_brand + model` يُطبعان بعده. فعمودٌ واحد هنا: `make model`
-وتحته السنة — نفسُ المعلومة، مرّةً واحدة.
+في التي بجوارها — وذلك لأن `vehicle_name` هناك حقلٌ حرٌّ كُتب فيه الاسمُ
+كاملاً، و`vehicle_brand + model` يُطبعان بعده.
+
+والعمودان **قائمان كما في ترويسة v1** بطلب المالك (الالتزام بالهيدر حرفياً)،
+لكن بلا التكرار: «المركبة» هي `make model` («لكزس ES 350»)، و«الموديل» هي
+سنةُ الصنع («٢٠٢١») — «موديل ٢٠٢١» في العُرف السعوديّ. نفسُ عمودَي v1، ومعلومةٌ
+مختلفة في كلٍّ منهما.
 
 **٢ — «حالة الفاتورة» كانت تُطبع بالإنجليزية.** القالبُ كان يكتب
 `{{ row.billing.state }}` وهي قيمةُ التعداد لا اسمُها، فيقرأ الموظّفُ `paid`
@@ -46,18 +50,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.core.paginator import Paginator
-from django.db.models import (
-    CharField,
-    Count,
-    Exists,
-    F,
-    OuterRef,
-    Q,
-    Subquery,
-    Sum,
-    Value,
-)
-from django.db.models.functions import Cast, Concat
+from django.db.models import Count, F, OuterRef, Q, Subquery, Sum
 from django.shortcuts import render
 from django.urls import reverse
 
@@ -118,6 +111,42 @@ def latest_invoice_field(name: str):
     )
 
 
+def sheet_settled_vehicle_ids() -> frozenset[int]:
+    """معرّفاتُ المركبات التي دخلت دفعتُها بملفّ شريكٍ مرفوع — باستعلامٍ **واحد**.
+
+    ولماذا مجموعةٌ تُحسب مرّةً لا استعلامٌ فرعيٌّ في كل صفّ
+    ========================================================
+
+    كان هذا المرشّح استعلاماً فرعياً `Exists` بادئتُه
+    `payment:{invoice_pk}:sheet:`، و`invoice_pk` فيه هو **نفسه** استعلامٌ فرعيّ
+    (آخرُ فاتورة). فبوستجرس لا يقدر أن يجعلها مدىً على الفهرس — يمسح جدولَ
+    :class:`~apps.money.models.Transaction` **مسحاً كاملاً لكل صفّ**
+    (`EXPLAIN`: تكلفةُ ٢٣٤٠٤، `Seq Scan`). على صفحةٍ من خمسين محتمل، وفي
+    :func:`tallies` كارثة: المسحُ الكامل × كلِّ الصفوف المطابقة = تعليقٌ على
+    البيانات الحقيقية (أربعةٌ وأربعون ألفاً).
+
+    والبادئةُ الثابتة `"payment:"` **مدىٌ على الفهرس الفريد** لا مسح، ودفعاتُ
+    الملفّات قليلةٌ أصلاً — فمسحةٌ واحدةٌ في كل تحميل، لا واحدةٌ لكل صفّ.
+
+    والمفتاحُ يُفكَّك لا يُطابَق بـ`LIKE '%'` وسطاً: شكلُه
+    `payment:{invoice}:sheet:{digest}:{line}`، فرقمُ الفاتورة هو الجزءُ الثاني.
+    """
+    invoice_ids = set()
+    keys = Transaction.objects.filter(
+        idempotency_key__startswith="payment:",
+        idempotency_key__contains=":sheet:",
+    ).values_list("idempotency_key", flat=True)
+    for key in keys:
+        parts = key.split(":")
+        if len(parts) >= 3 and parts[1].isdigit():
+            invoice_ids.add(int(parts[1]))
+    if not invoice_ids:
+        return frozenset()
+    return frozenset(
+        Invoice.objects.filter(pk__in=invoice_ids).values_list("vehicle_id", flat=True)
+    )
+
+
 def sold_rows(
     *,
     text: str = "",
@@ -125,34 +154,26 @@ def sold_rows(
     pay: str = "",
     marketing: str = "",
     settled: str = "",
+    sheet_ids: frozenset[int] = frozenset(),
 ):
     """صفوفُ ما بعد البيع بمرشّحات v1 الخمسة.
 
     والمرشّحاتُ تُطبَّق على استعلامٍ واحد يخدم الشاشةَ والبطاقاتِ والتصدير
     معاً، فلا يعني المرشّحُ شيئاً على الشاشة وشيئاً في الملفّ.
-    """
-    invoice_pk = latest_invoice_field("pk")
 
+    و`sheet_ids` تأتي محسوبةً من :func:`sheet_settled_vehicle_ids` — لا تُحسب
+    هنا كي لا تتكرّر بين الصفوف والبطاقات والتصدير في الطلب الواحد.
+    """
     rows = (
         Vehicle.objects.filter(state__in=SOLD)
         .select_related("auction", "awarded_to")
         .annotate(
-            invoice_pk=invoice_pk,
+            invoice_pk=latest_invoice_field("pk"),
             invoice_number=latest_invoice_field("number"),
             invoice_state=latest_invoice_field("state"),
             invoice_odoo=latest_invoice_field("odoo_state_raw"),
             invoice_amount=latest_invoice_field("amount"),
             invoice_paid=latest_invoice_field("amount_paid"),
-            # مفتاحُ القيد نصٌّ يحمل رقمَ الفاتورة — انظر رأس الملفّ.
-            settled_by_sheet=Exists(
-                Transaction.objects.filter(
-                    idempotency_key__startswith=Concat(
-                        Value("payment:"),
-                        Cast(OuterRef("invoice_pk"), CharField()),
-                        Value(":sheet:"),
-                    )
-                )
-            ),
         )
         .order_by("-awarded_at", "-id")
     )
@@ -195,19 +216,25 @@ def sold_rows(
         rows = rows.filter(is_marketing=False)
 
     settled = (settled or "").strip()
+    # المرشّحُ على `pk__in` لمجموعةٍ محسوبةٍ سلفاً — فهرسٌ لا مسح. و«لا» تُقصي
+    # لا تُطابق `False`: مركبةٌ ليست في المجموعة هي التي لم تُسدَّد من ملفّ.
     if settled == "yes":
-        rows = rows.filter(settled_by_sheet=True)
+        rows = rows.filter(pk__in=sheet_ids)
     elif settled == "no":
-        rows = rows.filter(settled_by_sheet=False)
+        rows = rows.exclude(pk__in=sheet_ids)
 
     return rows
 
 
-def tallies(rows) -> list[Stat]:
+def tallies(rows, sheet_ids: frozenset[int]) -> list[Stat]:
     """خمسةُ أرقامٍ عن **الصفوف المعروضة**، لا عن الجدول كلِّه.
 
     وذلك مقصود: من رشّح على مزادٍ بعينه يسأل عن ذلك المزاد، وبطاقةٌ تعدّ
     اثني عشر ألفاً بجوار جدولٍ فيه أربعون تجيب سؤالاً لم يُطرح.
+
+    و«سُدِّدت من ملفّ» **خارج التجميعة الكبرى**: كانت `Count` بمرشّحٍ على
+    الاستعلام الفرعيّ الماسح، فتُحوِّل التجميعةَ من مسحٍ واحدٍ رخيص إلى مسحٍ
+    لجدول القيود لكل صفّ. وهي الآن عدٌّ مستقلٌّ على `pk__in` — فهرسٌ لا مسح.
     """
     counted = rows.aggregate(
         total=Count("pk", distinct=True),
@@ -218,13 +245,14 @@ def tallies(rows) -> list[Stat]:
             filter=Q(invoice_state__in=(InvoiceState.OPEN, InvoiceState.PARTIAL)),
         ),
         marketing=Count("pk", distinct=True, filter=Q(is_marketing=True)),
-        settled=Count("pk", distinct=True, filter=Q(settled_by_sheet=True)),
         residual=Sum(
             F("invoice_amount") - F("invoice_paid"),
             filter=Q(invoice_state__in=(InvoiceState.OPEN, InvoiceState.PARTIAL)),
         ),
     )
     residual = counted["residual"] or ZERO
+    # يحترمُ كلَّ المرشّحات القائمة: عدُّ المطابقِ الذي هو أيضاً في المجموعة.
+    settled_count = rows.filter(pk__in=sheet_ids).count() if sheet_ids else 0
 
     return [
         Stat(
@@ -257,7 +285,7 @@ def tallies(rows) -> list[Stat]:
         ),
         Stat(
             label="سُدِّدت من ملفّ شريك",
-            value=f"{counted['settled']:,}",
+            value=f"{settled_count:,}",
             detail="دخلت دفعتُها بملفٍّ مرفوع، وقُيّدت في الدفتر كغيرها.",
             tone="money",
             icon=CARD_ICONS["settled"],
@@ -301,8 +329,16 @@ def after_sales(request):
     marketing = request.GET.get("mkt", "")
     settled = request.GET.get("settle", "")
 
+    # تُحسب مرّةً للطلب كلِّه: الصفوفُ والبطاقاتُ والتصدير تقرؤها، فلا تتكرّر.
+    sheet_ids = sheet_settled_vehicle_ids()
+
     rows = sold_rows(
-        text=text, auction=auction, pay=pay, marketing=marketing, settled=settled
+        text=text,
+        auction=auction,
+        pay=pay,
+        marketing=marketing,
+        settled=settled,
+        sheet_ids=sheet_ids,
     )
 
     if wants_export(request):
@@ -356,7 +392,7 @@ def after_sales(request):
                 residual_of(row),
                 row.invoice_odoo,
                 "نعم" if row.is_marketing else "لا",
-                "نعم" if row.settled_by_sheet else "لا",
+                "نعم" if row.pk in sheet_ids else "لا",
             ],
         )
 
@@ -368,6 +404,8 @@ def after_sales(request):
     for row in page.object_list:
         row.invoice_label = state_label(row.invoice_state)
         row.invoice_residual = residual_of(row)
+        # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
+        row.settled_by_sheet = row.pk in sheet_ids
 
     return render(
         request,
@@ -375,7 +413,7 @@ def after_sales(request):
         {
             "page": page,
             "rows": page.object_list,
-            "cards": tallies(rows),
+            "cards": tallies(rows, sheet_ids),
             "q": text,
             "auction": auction,
             "pay": pay,

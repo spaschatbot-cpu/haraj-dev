@@ -99,6 +99,7 @@
           <th>الموقف</th>
           <th>المزاد</th>
           <th>المركبة</th>
+          <th>الموديل</th>
           <th>الصورة</th>
           <th>اللوحة</th>
           <th>العداد</th>
@@ -106,12 +107,10 @@
           <th>الشاصي</th>
           <th>رقم المطالبة</th>
           <th>المشتري</th>
-          <th>المعرّف</th>
-          <th>سعر الترسية</th>
-          <th>حالة المركبة</th>
+          <th>معرف المركبة</th>
           <th>الفاتورة</th>
-          <th>حالتها — من الدفعات</th>
-          <th>إجراءات</th>
+          <th>حالة الفاتورة</th>
+          <th>عرض</th>
         </tr>
       </thead>
       <tbody>
@@ -124,9 +123,12 @@
             </td>
             <td>
               <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
-              <small class="empty">{{ row.year|unlocalize }}</small>
               {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
             </td>
+            {% comment %} «الموديل» عمودٌ مستقلٌّ كما في v1، وهو سنةُ الصنع —
+               «موديل ٢٠٢١» في العُرف. وكان مدموجاً في «المركبة»، والمالك ردّه
+               عموداً على حِدَة التزاماً بترويسة v1. {% endcomment %}
+            <td class="count">{{ row.year|unlocalize }}</td>
             <td>
               {% comment %} `loading="lazy"` لأن خمسين صورةً في تحميلٍ واحد
                  تؤخّر الجدولَ نفسَه، والجدولُ هو الغرض. {% endcomment %}
@@ -155,8 +157,6 @@
               {% endif %}
             </td>
             <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
-            <td class="money tnum">{{ row.awarded_price|default:"—"|unlocalize }}</td>
-            <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
             <td>
               {% if row.invoice_number %}
                 <a href="{% url 'console:invoice-detail' row.invoice_pk %}">{{ row.invoice_number }}</a>
@@ -200,7 +200,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="16" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
+          <tr><td colspan="15" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
         {% endfor %}
       </tbody>
     </table>
