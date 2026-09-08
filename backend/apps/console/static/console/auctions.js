@@ -124,6 +124,42 @@
   });
 
   /* ------------------------------------------------------------------------
+     الاختيارُ والشريط المجمَّع — شاشة مركبات المزاد. T865
+     ------------------------------------------------------------------------
+     الشريطُ يظهر عند أوّل اختيار ويختفي عند آخر إلغاء. وشريطُ أفعالٍ دائم
+     فوق جدولٍ لا شيء مختارٌ فيه يقول «اضغط» ثم يقول «لم تُختَر مركبة».
+
+     و«اختر الكلّ» على **هذه الصفحة** لا على النتائج كلّها: v1 يعِد باختيار
+     كل النتائج ثم يرسل معرّفات الصفحة وحدها، فيقرأ الموظّف «تم» ويظنّ
+     الثلاثمئة قد تحرّكت وقد تحرّك خمسة وعشرون. والوعدُ هنا بقدر ما يُنفَّذ. */
+  var bulkBar = document.querySelector("[data-bulkbar]");
+  var pickCount = document.querySelector("[data-pick-count]");
+
+  function picks() {
+    return document.querySelectorAll("[data-pick]:checked");
+  }
+
+  function syncBulk() {
+    if (!bulkBar) return;
+    var many = picks().length;
+    bulkBar.hidden = many === 0;
+    if (pickCount) pickCount.textContent = String(many);
+  }
+
+  document.addEventListener("change", function (event) {
+    var all = event.target.closest ? event.target.closest("[data-pick-all]") : null;
+    if (all) {
+      var boxes = document.querySelectorAll("[data-pick]");
+      for (var i = 0; i < boxes.length; i++) boxes[i].checked = all.checked;
+      syncBulk();
+      return;
+    }
+    if (event.target.closest && event.target.closest("[data-pick]")) syncBulk();
+  });
+
+  syncBulk();
+
+  /* ------------------------------------------------------------------------
      تخصيص الأعمدة
      ------------------------------------------------------------------------
      الإخفاء بـ`hidden` على كل `<th>` و`<td>` يحمل `data-col` نفسه — لا على

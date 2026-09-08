@@ -411,10 +411,15 @@ def test_every_card_icon_is_declared():
     from apps.console.people import CARD_ICONS as CUSTOMER_ICONS
     from apps.console.people import customer_tallies
     from apps.console.staff import CARD_ICONS as STAFF_ICONS
-    from apps.console.staff import staff_tallies
+    from apps.console.staff import roles_tallies, staff_tallies
 
+    # `staff.CARD_ICONS` تخدم **شاشتين**: المشرفون والأدوار. وكان الاختبار
+    # يقابلها بـ`staff_tallies()` وحدها، فرسمُ `layers` — تستعمله بطاقةٌ في
+    # شاشة الأدوار — يُقرأ «إعلاناً بلا بطاقة». وذلك ثقبٌ في الاتجاهين:
+    # بطاقاتُ شاشة الأدوار لم تكن محروسةً أصلاً، وأيُّ رسمٍ فيها كان يمرّ
+    # غيرَ مُعلَن. فالمقابلةُ الآن على اجتماع الشاشتين. T861
     for built, declared, screen in (
-        (staff_tallies(), STAFF_ICONS, "المشرفون"),
+        (list(staff_tallies()) + list(roles_tallies()), STAFF_ICONS, "المشرفون والأدوار"),
         (customer_tallies(), CUSTOMER_ICONS, "المستخدمون"),
     ):
         used = {card.icon for card in built if card.icon}

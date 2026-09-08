@@ -34,6 +34,7 @@ from . import (
     people,
     refunds,
     staff,
+    vehicle_bulk,
     wallet,
 )
 from . import (
@@ -90,6 +91,12 @@ urlpatterns = [
         name="auction-end-now",
     ),
     path("auctions/<int:pk>/", auctions.auction_detail, name="auction-detail"),
+    # الشريطُ المجمَّع على مركبات المزاد — نظيرُ v1. T865
+    path(
+        "auctions/<int:pk>/vehicles/bulk/",
+        vehicle_bulk.vehicles_bulk,
+        name="auction-vehicles-bulk",
+    ),
     path("auctions/<int:pk>/bids/", archive.auction_bids, name="auction-bids"),
     path("archive/", archive.auction_archive, name="auction-archive"),
     path("auctions/manage/", bulk.manage, name="auctions-manage"),

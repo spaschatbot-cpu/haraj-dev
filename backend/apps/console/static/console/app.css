@@ -3059,7 +3059,9 @@ td.actions { min-inline-size: 9rem; }
    =========================================================================== */
 .role-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  /* `min(360px, 100%)` لا `360px` عارياً: حدٌّ أدنى مطلق أوسع من حاويته
+     يدفع الشبكة خارج الشاشة، فتُسحب الصفحة أفقياً على الجوّال. T861 */
+  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
   gap: 1.25rem;
   margin-block: 1.5rem;
 }
@@ -3321,3 +3323,104 @@ td.actions { min-inline-size: 9rem; }
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
+
+
+/* سطرٌ يقول أين يُفعَل ما لا يُفعَل هنا. T859 · T860
+   ----------------------------------------------------------------------
+   يظهر في نافذةٍ نُزع منها حقلٌ لأن نافذةً أخرى تملكه، وعلى شاشةٍ مُرشَّحة
+   تقول على أيّ شيءٍ رُشِّحت. وهو **إرشادٌ لا تحذير**: هادئٌ بلا لون خطر،
+   ومفصولٌ عن الحقول بخطٍّ جانبيّ كي لا يُقرأ عنواناً لما تحته. */
+.hint {
+  margin: .6rem 0;
+  padding: .5rem .7rem;
+  border-inline-start: 3px solid var(--line-strong, var(--line));
+  border-radius: .3rem;
+  background: var(--panel-soft, var(--panel));
+  color: var(--ink-soft);
+  font-size: .8rem;
+  line-height: 1.6;
+}
+.hint strong { color: var(--ink); font-weight: 700; }
+.hint a { color: var(--brand-dark); }
+
+/* خطأُ حقلٍ تحت حقله. كان لوناً مكتوباً `style=""` ثلاثَ مرّاتٍ في قالبٍ
+   واحد، والصنفُ الذي بجانبه لا يصفه أحد — فتغييرُ لون الأخطاء غداً يعني
+   البحثَ في القوالب لا في الورقة. T861 */
+.field-error {
+  display: block;
+  margin-block-start: .3rem;
+  color: var(--danger);
+  font-size: .78rem;
+  font-weight: 600;
+}
+
+/* زرُّ الرجوع فوق عنوان الصفحة. T864
+   ----------------------------------------------------------------------
+   فوقه لا بجانبه: العنوانُ هو الشاشة التي أنت فيها، والرجوعُ سياقٌ لها —
+   وسطرٌ صغير فوقه يُقرأ «أنت هنا، وجئت من هناك» بلا أن ينافس العنوان. */
+.page__back {
+  display: block;
+  margin-block-end: .2rem;
+  color: var(--ink-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.page__back:hover { color: var(--brand-dark); text-decoration: underline; }
+
+/* غلافُ التمرير بعرضٍ مقيَّد أو بفراغٍ تحته — صنفاً لا `style=""`.
+   والصنفُ يجب أن يبقى آخرَ ما في الوسم قبل `<table>`: حارسُ الأغلفة
+   يقرأ `class="…scroller…">` ملتصقاً بالجدول، و`style` بعده يُخفيه عنه. */
+.scroller--narrow { max-inline-size: 42rem; margin-block-end: 1.5rem; }
+.scroller--spaced { margin-block-end: 2rem; }
+
+/* الشريطُ المجمَّع على مركبات المزاد. T865
+   ----------------------------------------------------------------------
+   ملتصقٌ بأسفل النافذة (`sticky`) لأن الجدولَ ثلاثمئةُ صفّ: من اختار في
+   أعلاه ثم مرّر لأسفل يجب أن يبقى الفعلُ في يده، لا أن يعود ليجده. */
+.bulkbar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-block: .75rem 0;
+  padding: .6rem .8rem;
+  border: 1px solid var(--brand);
+  border-radius: .6rem;
+  background: var(--panel);
+  box-shadow: 0 -6px 18px rgb(0 0 0 / 12%);
+}
+.bulkbar__count { font-size: .82rem; font-weight: 700; color: var(--ink); }
+.bulkbar__count b { color: var(--brand-dark); font-variant-numeric: tabular-nums; }
+.bulkbar__field { display: inline-flex; align-items: center; gap: .35rem; flex: 1 1 14rem; }
+.bulkbar__field span { font-size: .78rem; color: var(--ink-soft); white-space: nowrap; }
+.bulkbar__field input { flex: 1; min-inline-size: 0; }
+.bulkbar__group { display: inline-flex; align-items: center; gap: .25rem; }
+.bulkbar select,
+.bulkbar input[type="text"] {
+  padding: .3rem .45rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: .8rem;
+}
+.bulkbar button {
+  padding: .35rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: var(--panel);
+  color: var(--brand-dark);
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bulkbar button:hover { background: var(--brand-soft); border-color: var(--brand); }
+.bulkbar__danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
+.bulkbar__danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+
+/* عمودُ الاختيار: ضيّقٌ ولا يتمدّد مع الجدول. */
+.pick { inline-size: 2.2rem; text-align: center; }

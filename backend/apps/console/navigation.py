@@ -76,6 +76,16 @@ class Page:
 
         return path_of(self.icon)
 
+    #: الشاشةُ التي يعود إليها زرُّ «رجوع» — **اسمُ مسارٍ بلا وسائط**. T864
+    #:
+    #: صفحاتُ التفصيل تُفتح من قائمةٍ ولا مدخلَ لها في الشريط، فالخروجُ منها
+    #: كان بسهم المتصفّح وحده — و`history.back()` بعد `POST` يعيد إرسالَ
+    #: الاستمارة أو يقع على صفحةٍ من موقعٍ آخر. فالوجهةُ **مصرَّحة** هنا.
+    #:
+    #: وبلا وسائط عمداً: أبٌ يحتاج `pk` يعني أن كل قالبٍ يبني الرابط بيده،
+    #: وذاك ما يرفضه `console_urls_are_named`. والآباءُ كلُّهم قوائم.
+    parent: str = ""
+
 
 @dataclass(frozen=True)
 class Section:
@@ -152,6 +162,10 @@ class Planned:
 #: يُسقَط. وكان `sidebar_for` يُسقطه، والحجّة أن «عنواناً بلا صفحاتٍ تحته وعدٌ
 #: بصفحةٍ لا يستطيع القارئ فتحها» — وهي حجّةٌ انقلبت حين تبيّن أن القارئ يعرف
 #: القائمة عن ظهر قلب: انظر :class:`Planned`.
+#: جذرُ اللوحة — إليه يعود كلُّ ما لا أبَ له. T864
+HOME = "console:home"
+
+
 SECTIONS: tuple[Section, ...] = (
     # في v1 الجذرُ نفسه هو «لوحة التحليلات والإحصائيات»، و«الرئيسية» رابطٌ
     # فوق كل الأقسام لا داخل واحدٍ منها. فهذا القسم أوّلها ويحمل الاثنتين.
@@ -265,6 +279,7 @@ PAGES: tuple[Page, ...] = (
         "partner",
         "ما رسا ولم يصل مالُه — من حالة الفاتورة لا من ملفٍّ مرفوع.",
         "hourglass",
+        parent="console:partner-console",
     ),
     Page(
         "console:partner-paid",
@@ -289,6 +304,7 @@ PAGES: tuple[Page, ...] = (
         "partner",
         "ملفُّ الدفعات يُقيَّد في الدفتر — وبصمتُه تمنع رفعه مرّتين.",
         "upload",
+        parent="console:partner-payments",
     ),
     Page(
         "console:partner-decisions",
@@ -644,44 +660,173 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # هما شاشتان تعرضان القائمة نفسها بعمودٍ مختلف، فيفتح الموظّف إحداهما ثم
     # يكتشف أن ما يريده في الأخرى بالاسم نفسه تقريباً. فصارت تُفتح من صفِّ
     # المشرف وخرجت من الشريط — مدخلان إلى القائمة الواحدة أحدُهما زائد.
-    Page("console:page-control", "التحكم في صفحات مشرف", Capability.STAFF_GRANT, ""),
+    Page(
+        "console:page-control",
+        "التحكم في صفحات مشرف",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
     # تُفتح بزرٍّ من «إدارة المشرفين» لا من الشريط: إنشاءُ حسابٍ فعلٌ
     # على تلك القائمة لا وجهةٌ يُذهب إليها ابتداءً.
-    Page("console:admin-new", "إضافة مشرف", Capability.STAFF_GRANT, ""),
-    Page("console:admin-edit", "تعديل مشرف", Capability.STAFF_GRANT, ""),
+    Page(
+        "console:admin-new",
+        "إضافة مشرف",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
+    Page(
+        "console:admin-edit",
+        "تعديل مشرف",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
     Page(
         "console:admin-password-reset",
         "إعادة تعيين كلمة مرور مشرف",
         Capability.STAFF_GRANT,
         "",
+        parent="console:admins",
     ),
-    Page("console:admin-delete", "حذف مشرف", Capability.STAFF_GRANT, ""),
-    Page("console:role-edit", "تعديل دور", Capability.STAFF_GRANT, ""),
-    Page("console:role-delete", "حذف دور", Capability.STAFF_GRANT, ""),
-    Page("console:auction-detail", "تفاصيل المزاد", Capability.AUCTIONS_VIEW, ""),
-    Page("console:auction-bids", "مزايدات المزاد", Capability.AUCTIONS_VIEW, ""),
-    Page("console:vehicle-detail", "تفاصيل المركبة", Capability.AUCTIONS_VIEW, ""),
+    Page(
+        "console:admin-delete",
+        "حذف مشرف",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
+    Page(
+        "console:role-edit",
+        "تعديل دور",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
+    Page(
+        "console:role-delete",
+        "حذف دور",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
+    Page(
+        "console:auction-detail",
+        "تفاصيل المزاد",
+        Capability.AUCTIONS_VIEW,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-bids",
+        "مزايدات المزاد",
+        Capability.AUCTIONS_VIEW,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:vehicle-detail",
+        "تفاصيل المركبة",
+        Capability.AUCTIONS_VIEW,
+        "",
+        parent="console:vehicles",
+    ),
     Page(
         "console:vehicle-state",
         "تغيير حالة المركبة",
         Capability.AUCTIONS_MANAGE,
         "",
+        parent="console:vehicles",
     ),
-    Page("console:vehicle-relist", "إعادة عرض مركبة", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:auction-new", "مزاد جديد", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:auction-edit", "تعديل مزاد", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:auction-state", "نقلة مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page(
+        "console:vehicle-relist",
+        "إعادة عرض مركبة",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:vehicles",
+    ),
+    Page(
+        "console:auction-new",
+        "مزاد جديد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-edit",
+        "تعديل مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-state",
+        "نقلة مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
     # العمليّات السريعة — T846. كلُّها `AUCTIONS_MANAGE`: من يرى القائمة
     # (`AUCTIONS_VIEW`) لا يُنهي مزاداً بضغطة.
-    Page("console:auction-showcase", "حالة مزاد", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:auction-reschedule", "جدولة مزاد", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:auction-fees", "رسوم مزاد", Capability.AUCTIONS_MANAGE, ""),
+    Page(
+        "console:auction-showcase",
+        "حالة مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-reschedule",
+        "جدولة مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-fees",
+        "رسوم مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
     # حذفٌ بقدرةٍ خاصّة — أضيق من `AUCTIONS_MANAGE`: من يدير مزاداً يومياً
     # لا يُعطى زرّاً يمحوه.
-    Page("console:auction-delete", "حذف مزاد", Capability.AUCTIONS_DELETE, ""),
-    Page("console:auction-end-now", "إنهاء مزاد", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:vehicle-new", "مركبة جديدة", Capability.AUCTIONS_MANAGE, ""),
-    Page("console:vehicle-edit", "تعديل مركبة", Capability.AUCTIONS_MANAGE, ""),
+    Page(
+        "console:auction-delete",
+        "حذف مزاد",
+        Capability.AUCTIONS_DELETE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-vehicles-bulk",
+        "عمليات مجمّعة على المركبات",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:auction-end-now",
+        "إنهاء مزاد",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:auctions",
+    ),
+    Page(
+        "console:vehicle-new",
+        "مركبة جديدة",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:vehicles",
+    ),
+    Page(
+        "console:vehicle-edit",
+        "تعديل مركبة",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:vehicles",
+    ),
     # Downloads, not pages: a sidebar entry that starts a file download is a
     # link an operator clicks by accident.
     Page(
@@ -689,28 +834,96 @@ DETAIL_PAGES: tuple[Page, ...] = (
         "تصدير المركبات",
         Capability.AUCTIONS_IMPORT,
         "",
+        parent="console:vehicles",
     ),
     Page(
         "console:vehicles-import-errors",
         "الصفوف المرفوضة",
         Capability.AUCTIONS_IMPORT,
         "",
+        parent="console:vehicles-import",
     ),
-    Page("console:partner-offers", "العروض", Capability.PARTNERS_DECIDE, ""),
-    Page("console:partner-award", "الترسية", Capability.PARTNERS_DECIDE, ""),
-    Page("console:partner-reject", "رفض المالك", Capability.PARTNERS_DECIDE, ""),
-    Page("console:customer-detail", "بيانات العميل", Capability.USERS_VIEW, ""),
-    Page("console:customer-edit", "تعديل العميل", Capability.USERS_MANAGE, ""),
-    Page("console:company-edit", "تعديل الشركة", Capability.USERS_MANAGE, ""),
-    Page("console:customer-access", "وصول العميل", Capability.USERS_MANAGE, ""),
+    Page(
+        "console:partner-offers",
+        "العروض",
+        Capability.PARTNERS_DECIDE,
+        "",
+        parent="console:partner-decisions",
+    ),
+    Page(
+        "console:partner-award",
+        "الترسية",
+        Capability.PARTNERS_DECIDE,
+        "",
+        parent="console:partner-decisions",
+    ),
+    Page(
+        "console:partner-reject",
+        "رفض المالك",
+        Capability.PARTNERS_DECIDE,
+        "",
+        parent="console:partner-decisions",
+    ),
+    Page(
+        "console:customer-detail",
+        "بيانات العميل",
+        Capability.USERS_VIEW,
+        "",
+        parent="console:customers",
+    ),
+    Page(
+        "console:customer-edit",
+        "تعديل العميل",
+        Capability.USERS_MANAGE,
+        "",
+        parent="console:customers",
+    ),
+    Page(
+        "console:company-edit",
+        "تعديل الشركة",
+        Capability.USERS_MANAGE,
+        "",
+        parent="console:customers",
+    ),
+    Page(
+        "console:customer-access",
+        "وصول العميل",
+        Capability.USERS_MANAGE,
+        "",
+        parent="console:customers",
+    ),
     # قدرةٌ وحدها لا `users.manage`: انظر التعليق عند
     # `Capability.USERS_DELETE`.
-    Page("console:customer-delete", "حذف حساب", Capability.USERS_DELETE, ""),
+    Page(
+        "console:customer-delete",
+        "حذف حساب",
+        Capability.USERS_DELETE,
+        "",
+        parent="console:customers",
+    ),
     # ليست `users.manage`: تعديلُ بيانات عميلٍ وتوسيعُ ما يستطيعه موظّف في
     # اللوحة كلّها ثقتان مختلفتان، وv1 جمعهما في علمٍ واحد.
-    Page("console:staff-grants", "صلاحيات موظف", Capability.STAFF_GRANT, ""),
-    Page("console:invoice-detail", "تفاصيل الفاتورة", Capability.INVOICES_VIEW, ""),
-    Page("console:money-customer", "دفتر عميل", Capability.MONEY_VIEW, ""),
+    Page(
+        "console:staff-grants",
+        "صلاحيات موظف",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:admins",
+    ),
+    Page(
+        "console:invoice-detail",
+        "تفاصيل الفاتورة",
+        Capability.INVOICES_VIEW,
+        "",
+        parent="console:invoices",
+    ),
+    Page(
+        "console:money-customer",
+        "دفتر عميل",
+        Capability.MONEY_VIEW,
+        "",
+        parent="console:money-ledger",
+    ),
     # The three writes. `money-actions` carries `money.act`, and granting an
     # exception carries `money.exception` on top of it — the one action that
     # puts a bidder in an auction with nothing behind their bid is not the same
@@ -723,26 +936,65 @@ DETAIL_PAGES: tuple[Page, ...] = (
         Capability.MONEY_VIEW,
         "diagnostics",
         "أودو طلب سحب وديعةٍ مرهونة — ما لم يُنفَّذ وينتظر قراراً.",
+        parent="console:refunds",
     ),
-    Page("console:refund-resolve", "إغلاق عجز استرداد", Capability.MONEY_ACT, ""),
+    Page(
+        "console:refund-resolve",
+        "إغلاق عجز استرداد",
+        Capability.MONEY_ACT,
+        "",
+        parent="console:refund-queue",
+    ),
     Page(
         "console:payment-attempts",
         "محاولات الدفع",
         Capability.MONEY_VIEW,
         "diagnostics",
         "ما حدث لمحاولة دفعٍ: لم تصل البوابة، أم رفضتها، أم نجحت ولم تُقيَّد.",
+        parent="console:payments",
     ),
-    Page("console:money-actions", "أفعال مالية", Capability.MONEY_ACT, ""),
-    Page("console:money-confiscate", "مصادرة حجز", Capability.MONEY_ACT, ""),
-    Page("console:money-correct", "تصحيح حركة", Capability.MONEY_ACT, ""),
+    Page(
+        "console:money-actions",
+        "أفعال مالية",
+        Capability.MONEY_ACT,
+        "",
+        parent="console:money-ledger",
+    ),
+    Page(
+        "console:money-confiscate",
+        "مصادرة حجز",
+        Capability.MONEY_ACT,
+        "",
+        parent="console:money-ledger",
+    ),
+    Page(
+        "console:money-correct",
+        "تصحيح حركة",
+        Capability.MONEY_ACT,
+        "",
+        parent="console:money-ledger",
+    ),
     Page(
         "console:money-exception",
         "منح استثناء مزايدة",
         Capability.MONEY_EXCEPTION,
         "",
+        parent="console:money-ledger",
     ),
-    Page("console:odoo-message", "رسالة واردة", Capability.ODOO_INBOX, ""),
-    Page("console:odoo-replay", "إعادة تشغيل رسالة", Capability.ODOO_INBOX, ""),
+    Page(
+        "console:odoo-message",
+        "رسالة واردة",
+        Capability.ODOO_INBOX,
+        "",
+        parent="console:odoo-inbox",
+    ),
+    Page(
+        "console:odoo-replay",
+        "إعادة تشغيل رسالة",
+        Capability.ODOO_INBOX,
+        "",
+        parent="console:odoo-inbox",
+    ),
 )
 
 
@@ -788,6 +1040,37 @@ def sidebar_for(user) -> list[dict]:
             grouped.append({"label": section.label, "pages": built, "planned": soon})
 
     return grouped
+
+
+def back_for(url_name: str) -> Page | None:
+    """الشاشةُ التي يعود إليها زرُّ «رجوع» من ``url_name``، أو ``None`` للجذر. T864.
+
+    ثلاث قواعد، وكلُّها من السجلّ لا من المتصفّح:
+
+    * صفحةُ تفصيلٍ تعود إلى **أبيها المصرَّح**: مركبةٌ إلى المركبات، وقرارُ
+      شريكٍ إلى قرارات الشركاء.
+    * صفحةٌ في الشريط تعود إلى **الرئيسية**.
+    * الرئيسيةُ نفسها لا زرَّ لها — الرجوعُ منها خروجٌ من اللوحة.
+
+    ولماذا لا ``history.back()``
+    ============================
+    لأنه يعود إلى **الطلب** السابق لا إلى الشاشة السابقة. وبعد `POST` وإعادة
+    توجيه يعود إلى الاستمارة المرسَلة، وفي تبويبٍ فُتح برابطٍ مباشر يخرج من
+    الموقع كلّه إلى حيث كان القارئ قبله. والوجهةُ المصرَّحة تعرف أين تذهب في
+    الحالتين، وتُقرأ قبل النقر لأنها تحمل **اسم** ما تعود إليه.
+    """
+    for page in (*PAGES, *DETAIL_PAGES):
+        if page.url_name != url_name:
+            continue
+        if page.parent:
+            return next(
+                (row for row in (*PAGES, *DETAIL_PAGES) if row.url_name == page.parent),
+                None,
+            )
+        if page.url_name == HOME:
+            return None
+        return next((row for row in PAGES if row.url_name == HOME), None)
+    return None
 
 
 def capability_for(url_name: str) -> str | None:

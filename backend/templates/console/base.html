@@ -31,7 +31,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=860">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=865">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
@@ -155,8 +155,24 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
 
            و`{% block actions %}` فارغٌ افتراضياً، فالشاشات التي لا فعل لها لا
            تدفع شيئاً — ولا واحدةَ منها تحتاج تعديلاً. {% endcomment %}
+        {% comment %}
+        زرُّ «رجوع» على كل شاشة، ووجهتُه من سجلّ الشاشات لا من تاريخ المتصفّح. T864
+
+        و`history.back()` كان الحلَّ الواضح وهو خطأ: يعود إلى **الطلب** السابق
+        لا إلى الشاشة السابقة. فبعد `POST` وإعادة توجيه يعود إلى الاستمارة
+        المرسَلة، وفي تبويبٍ فُتح برابطٍ مباشر يخرج من اللوحة كلّها.
+
+        وهنا يحمل الزرُّ **اسمَ** ما يعود إليه، فيُقرأ قبل النقر: «→ المزادات»
+        لا سهمٌ لا يُعرف إلى أين. والرئيسيةُ وحدها بلا زرّ — لا شيء فوقها.
+        {% endcomment %}
         <header class="page">
-          <h1>{% block heading %}{% endblock %}</h1>
+          <h1>
+            {% if back_to %}
+              <a class="page__back" href="{% url back_to.url_name %}"
+                 title="رجوع إلى {{ back_to.label }}">← {{ back_to.label }}</a>
+            {% endif %}
+            {% block heading %}{% endblock %}
+          </h1>
           <div class="page__actions">{% block actions %}{% endblock %}</div>
         </header>
         {% block content %}{% endblock %}

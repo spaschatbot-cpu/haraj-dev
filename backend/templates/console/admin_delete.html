@@ -7,7 +7,7 @@
 {% block heading %}حذف حساب المشرف «{{ person.full_name }}»{% endblock %}
 
 {% block content %}
-  <div class="scroller" style="max-inline-size: 42rem; margin-block-end: 1.5rem;">
+  <div class="scroller scroller--narrow">
     <table>
       <tbody>
         <tr>
@@ -68,6 +68,23 @@
       {% elif is_target_owner %}
         <p style="margin: 0 0 .5rem;">
           <strong>مالك النظام:</strong> لا يمكن حذف حسابات مالكي المنصة. إذا كان الموظف قد غادر العمل، يمكنك تعطيل حسابه من شاشة التعديل.
+        </p>
+      {% elif footprint %}
+        {% comment %}
+        وهذا هو المنعُ الثالث، وهو الذي كان ناقصاً. T861
+
+        كان الحذفُ يمرّ على هذا الحساب بعد أن يُفرَّغ اسمُه من كل قيدٍ كتبه
+        (`AuditLog.actor = NULL`) — فتقول الصفحة «تم بنجاح»، ويبقى السجلُّ
+        بعدد أسطره، ولا يُفقَد إلا **من فعل**. ولا يُسأل عنه إلا يوم يُسأل.
+        {% endcomment %}
+        <p style="margin: 0 0 .5rem;">
+          <strong>لهذا الحساب أثرٌ في السجلّ:</strong>
+          {% for what, many in history.items %}{{ what }} {{ many|unlocalize }}{% if not forloop.last %} · {% endif %}{% endfor %}.
+          وحذفُه يمحو اسمَه عن كلّ ما فعل — يبقى السجلّ ويصير الفاعل مجهولاً.
+        </p>
+        <p style="margin: 0 0 .5rem;">
+          <strong>البديل:</strong> عطِّل الحساب. لا يدخل اللوحة بعدها، ويبقى
+          اسمُه على ما فعل.
         </p>
       {% endif %}
       <p style="margin: .75rem 0 0;">

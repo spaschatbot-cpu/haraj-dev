@@ -862,9 +862,46 @@ def admin_password_reset(request, pk: int):
     return render(request, "console/admin_password_reset.html", {"person": person})
 
 
+def history_of(person: User) -> dict[str, int]:
+    """أثرُ هذا الموظّف في السجلّات التي تحميه القاعدة بـPROTECT. T861.
+
+    ثلاثةُ مراجعَ إلى حساب الموظّف، وكلُّها **تاريخ** لا بيانات: من فعل، ومن
+    منح، ومن أنشأ دوراً. وكونُها `PROTECT` في القاعدة ليس عائقاً تقنيّاً
+    يُلتَفّ عليه — هو القرار مكتوباً حيث لا يُنسى.
+    """
+    from apps.accounts.models import ConsoleRole, StaffGrant
+    from apps.core.models import AuditLog
+
+    return {
+        "أسطر تدقيق": AuditLog.objects.filter(actor=person).count(),
+        "استثناءات منحها": StaffGrant.objects.filter(granted_by=person).count(),
+        "أدوار أنشأها": ConsoleRole.objects.filter(created_by=person).count(),
+    }
+
+
 @console_page("console:admin-delete")
 def admin_delete(request, pk: int):
-    """احذف حساب مشرف من اللوحة — متاح للمالك فقط مع حراسة الحساب الحالي والمالك."""
+    """احذف حساب مشرفٍ **لم يفعل شيئاً بعد** — وما عداه يُعطَّل ولا يُحذف.
+
+    لماذا لا يُحذف من كتب
+    =====================
+    كان هذا المسار يمرّر الحذف بثلاثة أسطر:
+
+        AuditLog.objects.filter(actor=person).update(actor=None)
+        StaffGrant.objects.filter(granted_by=person).update(granted_by=None)
+        ConsoleRole.objects.filter(created_by=person).update(created_by=None)
+
+    وهي **محوُ التدقيق** بعينه: كلُّ فعلٍ فعله ذلك الموظّف — ردُّ تأمين، إلغاء
+    مزاد، منحُ صلاحية — يصير مجهولَ الفاعل إلى الأبد. والقيدُ `PROTECT` في
+    القاعدة موضوعٌ ليمنع هذا بالضبط، والأسطرُ الثلاثة تُبطله قبل أن يعمل.
+
+    ولا يُكتشَف بعدها: الصفحة تقول «تم بنجاح»، والسجلُّ باقٍ بعدد أسطره، وكلُّ
+    ما فُقد هو **اسمُ من فعل** — ولا يُسأل عنه إلا يوم يُسأل، ويومَها لا جواب.
+
+    فالحذفُ هنا للحساب الذي لا أثرَ له وحده: أُنشئ بالخطأ، أو أُنشئ ولم
+    يُستعمل. وما عداه يُعطَّل (`is_active = False`) — لا يدخل، ويبقى اسمُه
+    على ما فعل.
+    """
     is_owner = is_owner_account(request.user) or request.user.is_superuser
     if not is_owner:
         messages.error(request, "حذف حسابات المشرفين متاح لمالك النظام فقط.")
@@ -874,7 +911,9 @@ def admin_delete(request, pk: int):
 
     is_self = person.pk == request.user.pk
     is_target_owner = is_owner_account(person)
-    blocked = is_self or is_target_owner
+    history = history_of(person)
+    footprint = sum(history.values())
+    blocked = is_self or is_target_owner or bool(footprint)
 
     if request.method == "POST":
         if is_self:
@@ -883,6 +922,17 @@ def admin_delete(request, pk: int):
         if is_target_owner:
             messages.warning(request, "لا يمكن حذف مالك النظام.")
             return redirect("console:admins")
+        if footprint:
+            # يقول **العدد**: «لا يمكن» بلا رقمٍ يُقرأ عناداً من الشاشة،
+            # وبرقمٍ يُقرأ سبباً — ويدلّ على الفعل الذي يصحّ مكانه.
+            detail = " · ".join(f"{k}: {v}" for k, v in history.items() if v)
+            messages.error(
+                request,
+                f"«{person.full_name}» له أثرٌ في السجلّ ({detail}) — "
+                "وحذفُه يمحو اسمَه عن كل ما فعل. عطِّل الحساب بدل حذفه: "
+                "لا يدخل، ويبقى السجلّ كاملاً.",
+            )
+            return redirect("console:admin-edit", pk=person.pk)
 
         reason = (request.POST.get("reason") or "").strip()
         role_title = role_label(person)
@@ -904,14 +954,9 @@ def admin_delete(request, pk: int):
             note=reason or f"حذف حساب المشرف {name} بواسطة {request.user.full_name}",
         )
 
-        from apps.accounts.models import ConsoleRole, StaffGrant
-        from apps.core.models import AuditLog
-
-        # فك أي ارتباطات حماية تمنع الحذف في القاعدة
-        AuditLog.objects.filter(actor=person).update(actor=None)
-        StaffGrant.objects.filter(granted_by=person).update(granted_by=None)
-        ConsoleRole.objects.filter(created_by=person).update(created_by=None)
-
+        # ولا فكَّ ارتباطٍ قبله. الحسابُ بلا أثرٍ يُحذف كما هو، ولو رمت
+        # القاعدةُ `ProtectedError` هنا فذلك مرجعٌ لم يُحسب في `history_of`
+        # — ويجب أن يُضاف إليها، لا أن يُنزع بـ`update(... =None)`.
         person.delete()
         messages.success(request, f"تم حذف حساب المشرف «{name}» ({phone}) بنجاح.")
         return redirect("console:admins")
@@ -923,6 +968,8 @@ def admin_delete(request, pk: int):
             "person": person,
             "is_self": is_self,
             "is_target_owner": is_target_owner,
+            "history": {k: v for k, v in history.items() if v},
+            "footprint": footprint,
             "blocked": blocked,
             "role_name": role_label(person),
             "trash_icon": path_of("trash"),

@@ -113,21 +113,61 @@ def test_the_state_column_carries_two_values_not_one(client, viewer, crew):
 
 
 def test_no_row_offers_to_delete_anybody(client, viewer, crew):
-    """الزرُّ نفسه هو الخطأ، لا استثناؤه: حسابُ الموظّف طرفٌ في كل قيدٍ كتبه.
+    """لا صفَّ يحذف **بنقرة**، ولا نموذجَ حذفٍ في الجدول. T861.
 
-    ويُقرأ من **صفوف الجدول** لا من الصفحة: الفقرةُ تحت الجدول تشرح لماذا لا
-    حذف، فبحثٌ عن الكلمة في الصفحة كلها كان سيسقط على شرحها هي.
+    كان هذا التوكيد «لا زرَّ حذفٍ البتّة»، وهو منعُ الوسيلة لا العلّة. والعلّة
+    أن حسابَ الموظّف طرفٌ في كل قيدٍ كتبه، فحذفُه محوُ التدقيق — ولها اليوم
+    توكيدُها الخاصّ في :func:`test_an_admin_who_acted_is_never_deleted`،
+    يمنع الفعل نفسه من كل باب.
+
+    وما يبقى محروساً هنا أن الحذف **لا يقع من الصفّ**: صفحةُ تأكيدٍ تقرأ
+    وتُقرَّر، لا زرٌّ في جدولٍ من ثلاثين سطراً بجوار «تعديل».
     """
     body = client.get(reverse("console:admins")).content.decode()
     rows = body.split("<tbody>")[1].split("</tbody>")[0]
 
-    assert "حذف" not in rows
-    assert "delete" not in rows.lower()
-    assert 'method="post"' not in rows.lower()
+    assert 'method="post"' not in rows.lower(), "صفٌّ يحذف بنقرةٍ بلا صفحة تأكيد."
 
     # ولا في الإطار كلّه: النموذج الوحيد في الصفحة هو البحث () والخروج.
     main = body.split("<main>")[1].split("</main>")[0]
     assert 'method="post"' not in main.lower()
+
+
+def test_an_admin_who_acted_is_never_deleted(client, viewer, crew):
+    """من كتب قيداً لا يُحذف — ولا يُفرَّغ اسمُه من قيده ليُحذف. T861.
+
+    والعطلُ الذي وقع فعلاً: مسارُ الحذف كان يمرّ بثلاثة أسطر تُفرِّغ المرجع
+    قبل الحذف —
+
+        AuditLog.objects.filter(actor=person).update(actor=None)
+
+    — فيُبطل القيدَ `PROTECT` الموضوع لمنع هذا بالضبط. والنتيجة أن الصفحة
+    تقول «تم بنجاح»، ويبقى السجلُّ بعدد أسطره، ولا يُفقَد إلا **من فعل**.
+
+    ولا يُكتشَف: لا انهيار، ولا رقمٌ خطأ. يُسأل يوماً «من ردّ هذا التأمين»
+    فلا جواب.
+    """
+    from apps.core import audit
+    from apps.core.models import AuditLog
+
+    off, _ = crew
+    audit.record(
+        action="console.test_footprint",
+        entity_type="accounts.user",
+        entity_id=off.pk,
+        actor=off,
+        note="أثرٌ مصنوع ليُمنع الحذف به",
+    )
+    rows_before = AuditLog.objects.count()
+
+    response = client.post(
+        reverse("console:admin-delete", args=[off.pk]), {"reason": "محاولة حذف"}
+    )
+
+    assert User.objects.filter(pk=off.pk).exists(), "حُذف حسابٌ له أثرٌ في السجلّ."
+    assert AuditLog.objects.filter(actor=off).exists(), "فُرِّغ اسمُ الفاعل من قيده."
+    assert AuditLog.objects.count() == rows_before, "تغيّر عددُ أسطر السجلّ."
+    assert response.status_code in (302, 200)
 
 
 def test_the_exceptions_column_separates_a_grant_from_a_revoke(client, viewer, crew):

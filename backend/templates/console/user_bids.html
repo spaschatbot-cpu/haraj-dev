@@ -45,7 +45,14 @@
       <table>
       <tbody>
         <tr><th>إجمالي المزايدات</th><td class="count">{{ report.count|unlocalize }}</td></tr>
+        {% comment %}
+        «مزادات شارك فيها» غيرُ «إجمالي المزايدات»، والفرقُ يقول من هو العميل:
+        أربعون مزايدةً في مزادٍ واحد عميلُ مزادٍ واحد، وأربعون في عشرين عميلٌ
+        دائم — والرقمُ الأوّل وحده لا يفرّق. T863
+        {% endcomment %}
+        <tr><th>مزادات شارك فيها</th><td class="count">{{ report.auctions|unlocalize }}</td></tr>
         <tr><th>إجمالي قيمتها</th><td class="money">{{ report.value|unlocalize }}</td></tr>
+        <tr><th>شاملةً الضريبة</th><td class="money">{{ report.value_with_tax|unlocalize }}</td></tr>
         <tr><th>أعلى مزايدة</th><td class="money">{{ report.highest|default:"—"|unlocalize }}</td></tr>
         <tr><th>متوسط المزايدة</th><td class="money">{{ report.average|default:"—"|unlocalize }}</td></tr>
         <tr><th>قائمة</th><td class="count">{{ report.standing|unlocalize }}</td></tr>

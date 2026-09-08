@@ -12,7 +12,7 @@ from django.conf import settings
 
 from .exports import PARAM
 from .icons import path_of
-from .navigation import sidebar_for
+from .navigation import back_for, sidebar_for
 
 
 def navigation(request) -> dict:
@@ -34,7 +34,21 @@ def navigation(request) -> dict:
         # `GET` ينهيها من أي `<img src>` — و`test_entry_points.py` يشترط
         # غيابه. فهو نموذجٌ يُرسَم بيده، ويأخذ رسمَه من السجلّ نفسه.
         "sign_out_icon": path_of("exit-door"),
+        # زرُّ «رجوع» على كل شاشة — من السجلّ لا من تاريخ المتصفّح. T864
+        #
+        # ومعالجُ سياق لا سطرٌ في كل عرض: الشاشاتُ ستٌّ وتسعون، وواحدةٌ تُنسى
+        # هي الشاشة التي يعلق فيها الموظّف. والحسابُ رخيص — مسحُ سجلٍّ ثابتٍ
+        # في الذاكرة، بلا استعلام.
+        "back_to": _back_to(request),
     }
+
+
+def _back_to(request):
+    """صفحةُ الرجوع لهذا الطلب، أو ``None`` للجذر وما ليس شاشةَ لوحة."""
+    match = getattr(request, "resolver_match", None)
+    if match is None or not match.view_name:
+        return None
+    return back_for(match.view_name)
 
 
 def _export_url(request) -> str:

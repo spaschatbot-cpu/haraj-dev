@@ -8,7 +8,7 @@
 
 {% block actions %}
   <a href="{% url 'console:admin-new' %}" class="btn-primary">+ مشرف جديد</a>
-  <a href="{{ export_url }}" class="btn-secondary" title="تصدير بيانات المشرفين إلى ملف إكسل">تصدير إلى إكسل</a>
+  <a href="{{ export_url }}" title="تصدير بيانات المشرفين إلى ملف إكسل">تصدير إلى إكسل</a>
 {% endblock %}
 
 {% block content %}
@@ -166,11 +166,11 @@
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المشرفين">
         {% if page.has_previous %}
-          <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">السابق</a>
+          <a href="{% url 'console:admins' %}?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">السابق</a>
         {% endif %}
         <span class="pagination__current">{{ page.number|unlocalize }}</span>
         {% if page.has_next %}
-          <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">التالي</a>
+          <a href="{% url 'console:admins' %}?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if role %}&role={{ role }}{% endif %}{% if state %}&state={{ state }}{% endif %}">التالي</a>
         {% endif %}
       </nav>
     {% endif %}

@@ -98,14 +98,14 @@
       {% csrf_token %}
       
       {% if form.non_field_errors %}
-        <div class="notice bad">{{ form.non_field_errors }}</div>
+        <div class="notice error">{{ form.non_field_errors }}</div>
       {% endif %}
 
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; align-items: start;">
         <div class="field">
           <label for="{{ form.capability.id_for_label }}">الصلاحية المستهدفة</label>
           {{ form.capability }}
-          {% if form.capability.errors %}<small class="field-error" style="color: var(--danger);">{{ form.capability.errors.0 }}</small>{% endif %}
+          {% if form.capability.errors %}<small class="field-error">{{ form.capability.errors.0 }}</small>{% endif %}
         </div>
 
         <div class="field">
@@ -116,14 +116,14 @@
               <span>تأكيد المنح (حدد الخيار للمنح الإضافي، أو اتركه فارغاً للسحب والمنع)</span>
             </label>
           </div>
-          {% if form.granted.errors %}<small class="field-error" style="color: var(--danger);">{{ form.granted.errors.0 }}</small>{% endif %}
+          {% if form.granted.errors %}<small class="field-error">{{ form.granted.errors.0 }}</small>{% endif %}
         </div>
       </div>
 
       <div class="field">
         <label for="{{ form.reason.id_for_label }}">سبب الاستثناء (إلزامي للتوثيق والتدقيق)</label>
         <input type="text" name="reason" id="{{ form.reason.id_for_label }}" value="{{ form.reason.value|default:'' }}" placeholder="اكتب سبب منح أو سحب هذه الصلاحية بالتفصيل..." required>
-        {% if form.reason.errors %}<small class="field-error" style="color: var(--danger);">{{ form.reason.errors.0 }}</small>{% endif %}
+        {% if form.reason.errors %}<small class="field-error">{{ form.reason.errors.0 }}</small>{% endif %}
       </div>
 
       <div style="display: flex; gap: .75rem; align-items: center;">
@@ -142,7 +142,7 @@
     </div>
   </div>
 
-  <div class="scroller" style="margin-block-end: 2rem;">
+  <div class="scroller scroller--spaced">
     <table>
       <thead>
         <tr>

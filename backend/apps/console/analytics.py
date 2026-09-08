@@ -48,6 +48,7 @@ from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid, BidRefusal
+from apps.money import services as money
 from apps.money.models import AccountKind, Invoice
 
 from .decisions import AWARDED as DECISION_AWARDED
@@ -234,11 +235,33 @@ def report_for(*, phone: str = "", name: str = "") -> dict | None:
     )
     won = awarded().filter(awarded_to=person)
 
+    # كم **مزاداً مختلفاً** دخل، لا كم مزايدةً قدّم. T863
+    #
+    # الرقمان يفترقان كثيراً: من زايد على أربعين سيارةً في مزادٍ واحد ليس
+    # كمن زايد على أربعين سيارةً في عشرين مزاداً — والأوّل عميلُ مزادٍ
+    # واحد، والثاني عميلٌ دائم. و«٤٠ مزايدة» وحدها لا تفرّق بينهما.
+    #
+    # والعدُّ على `vehicle__auction`: المزايدةُ على مركبة، والمركبةُ في مزاد.
+    spread = bids.values("vehicle__auction").distinct().count()
+
+    # وإجماليٌّ **شاملَ الضريبة**، من الموضع الوحيد الذي يضربها. T863
+    #
+    # `tax_added_to` لا حسابٌ هنا: `ops/checks/one_tax_rule.py` يرفض موضعاً
+    # ثانياً يضرب بالنسبة ومعه حقّ — و«١٥٪» مكتوبةً في شاشةٍ ثانية هي كيف
+    # تختلف شاشتان في اليوم الذي تتغيّر فيه النسبة.
+    #
+    # ومبالغُ المزايدات **لا تحمل الضريبة**، فهي `tax_added_to` لا `tax_of`:
+    # الثانية تسأل عن فاتورةٍ ومصدرِها، ولا فاتورةَ هنا تُسأل.
+    total = numbers["value"] or ZERO
+    with_tax = money.tax_added_to(total).total if total else ZERO
+
     return {
         "person": person,
         "ambiguous": False,
         "count": numbers["count"] or 0,
-        "value": numbers["value"] or ZERO,
+        "auctions": spread,
+        "value": total,
+        "value_with_tax": with_tax,
         "highest": numbers["highest"],
         "average": _rounded(numbers["average"]),
         # قسمةُ الحالات نفسها التي في  — الشاشتان تعدّان بالقاعدة

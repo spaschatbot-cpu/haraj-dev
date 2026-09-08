@@ -36,7 +36,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
-from . import icons
+from . import icons, vehicle_bulk
 from .exports import export, wants_export
 from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
@@ -329,6 +329,22 @@ def auction_detail(request, pk: int):
             "badge_label": engine.Badge(engine.badge_of(auction)).label,
             "badge_tone": engine.BADGE_TONES.get(engine.badge_of(auction), ""),
             "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
+            # ختمُ HR-13 لنافذة التعديل هنا كما في القائمة: المالك أراد
+            # التعديلَ نافذةً في **كلّ** شاشة، والنافذةُ بلا ختمٍ تكتب فوق
+            # تعديل زميلٍ صامتةً.
+            "row_stamp": AuctionIdentityForm(instance=auction).initial.get(
+                "row_stamp", ""
+            ),
+            # الشريطُ المجمَّع: حالاتُه من سجلٍّ مغلق، ووجهاتُ النقل مزاداتٌ
+            # **لم تبدأ** — نقلُ مركبةٍ إلى مزادٍ جارٍ يُدخلها في منتصف الشوط.
+            "bulk_states": vehicle_bulk.BULK_STATES,
+            "move_targets": [
+                row
+                for row in Auction.objects.exclude(pk=auction.pk).order_by("-number")[
+                    :50
+                ]
+                if not engine.has_started(row)
+            ],
             "action_icons": {
                 "view": icons.path_of("car"),
                 "edit": icons.path_of("pencil"),

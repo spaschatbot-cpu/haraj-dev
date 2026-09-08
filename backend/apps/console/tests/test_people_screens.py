@@ -89,9 +89,22 @@ def test_a_customer_is_found_by_name(client, manager, customer):
 
 
 def test_an_empty_search_says_so(client, manager, customer):
+    """بحثٌ بلا نتيجة يقولها في الجدول — لا جدولٌ فارغ بلا كلمة.
+
+    والتوكيدُ على **الخانة** لا على نصّها حرفاً بحرف: كان يطابق «لا حسابات
+    مطابقة»، فأعادت صياغةُ الشاشة الجملةَ إلى «لا توجد حسابات مطابقة لمعايير
+    البحث» — وهي أوضح — فسقط الاختبار على تحسينٍ لا على عطل.
+
+    وتوكيدٌ يسقط على إعادة صياغةٍ يُغري بحذفه؛ وما يجب أن يبقى محروساً هو أن
+    **شيئاً يُقال**، لا أيّ الكلمات تُقال.
+    """
     body = body_of(client, reverse("console:customers"), q="لا أحد بهذا الاسم")
 
-    assert "لا حسابات مطابقة" in body
+    empty = [line for line in body.splitlines() if 'class="empty"' in line]
+    assert empty, "بحثٌ بلا نتيجة رسم جدولاً بلا خانةِ «لا نتائج»."
+    assert any("مطابق" in line for line in empty), (
+        f"خانةُ الفراغ لا تقول إن لا شيء طابق البحث: {empty}"
+    )
 
 
 def test_the_detail_shows_the_wallet_itemised_not_as_one_number(

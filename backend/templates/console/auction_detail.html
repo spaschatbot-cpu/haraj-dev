@@ -27,9 +27,20 @@ somebody went looking for it.
 
 {% block actions %}
   <a href="{% url 'console:auctions' %}">← قائمة المزادات</a>
-  <a href="{% url 'console:auction-bids' auction.pk %}">مزايدات هذا المزاد</a>
   {% if can_manage %}
-    <a href="{% url 'console:auction-edit' auction.pk %}" class="btn-primary">تعديل المزاد</a>
+    {% comment %}
+    نافذةٌ لا صفحة، هنا كما في القائمة — المالك: «التعديل يكون بوباب في كل
+    صفحات إدارة المزاد». والصفحةُ باقيةٌ خلف الرابط المباشر (`GET`) لمن
+    يفتحها من سجلّ المتصفّح. T862
+    {% endcomment %}
+    <button type="button" class="btn-primary"
+            data-open-edit
+            data-pk="{{ auction.pk|unlocalize }}"
+            data-number="{{ auction.number|unlocalize }}"
+            data-num="{{ auction.number|unlocalize }}"
+            data-title="{{ auction.title }}"
+            data-location="{{ auction.location }}"
+            data-stamp="{{ row_stamp }}">تعديل المزاد</button>
   {% endif %}
   <a href="{{ export_url }}" title="تصدير مركبات المزاد إلى ملف إكسل">تصدير إكسل</a>
 {% endblock %}
@@ -191,10 +202,26 @@ somebody went looking for it.
     </div>
   </div>
 
+  {% comment %}
+  الاختيارُ والشريطُ المجمَّع — نظيرُ v1. T865
+
+  مزادٌ من ثلاثمئة سيارة لا يُضبط سيارةً سيارة: هناك خانةُ اختيارٍ في كل صفّ
+  وشريطٌ يظهر عند أوّل اختيار بأربعة أفعال. وهي أفعالُ اليوم الواقعيّ.
+
+  والنموذجُ يلفّ الجدولَ **والشريط** معاً: خاناتُ الاختيار في الصفوف وحقولُ
+  الفعل في الشريط، فكلاهما يُرسَل في طلبٍ واحد بلا سطر جافاسكربت يجمعهما.
+  {% endcomment %}
+  <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
+        id="bulkForm">
+    {% csrf_token %}
   <div class="scroller">
     <table>
       <thead>
         <tr>
+          {% if can_manage %}
+            <th class="pick"><input type="checkbox" data-pick-all
+                                    title="اختر كل ما في هذه الصفحة"></th>
+          {% endif %}
           <th>اللوت</th>
           <th>السيارة</th>
           <th>السنة</th>
@@ -220,6 +247,12 @@ somebody went looking for it.
       <tbody>
         {% for car in page %}
           <tr>
+            {% if can_manage %}
+              <td class="pick">
+                <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
+                       data-pick aria-label="اختر لوت {{ car.lot_number|unlocalize }}">
+              </td>
+            {% endif %}
             <td><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
             <td><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
             <td><span class="tnum">{{ car.year|unlocalize }}</span></td>
@@ -261,11 +294,60 @@ somebody went looking for it.
             {% endif %}
           </tr>
         {% empty %}
-          <tr><td colspan="20" class="empty">لا مركبات في هذا المزاد.</td></tr>
+          <tr><td colspan="21" class="empty">لا مركبات في هذا المزاد.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+
+  {% if can_manage %}
+    {% comment %}
+    الشريطُ مخفيٌّ حتى يُختار شيء — شريطُ أفعالٍ دائم فوق جدولٍ لا شيء مختارٌ
+    فيه يقول «اضغط» ثم يقول «لم تُختَر مركبة». وv1 يفعل ذلك بالضبط.
+
+    ولا فعلَ بلا سبب: الحقلُ إلزاميّ، والسبب يُكتب في سجلّ التدقيق. وأربعةُ
+    أفعالٍ في نموذجٍ واحد، ويفرّقها `op` على الزرّ المضغوط.
+    {% endcomment %}
+    <div class="bulkbar" data-bulkbar hidden>
+      <span class="bulkbar__count"><b data-pick-count>0</b> مركبة مختارة</span>
+
+      <label class="bulkbar__field">
+        <span>السبب</span>
+        <input type="text" name="reason" required
+               placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+      </label>
+
+      <span class="bulkbar__group">
+        <select name="state" aria-label="الحالة الجديدة">
+          {% for value, label in bulk_states %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="state">انقل الحالة</button>
+      </span>
+
+      <span class="bulkbar__group">
+        <select name="target" aria-label="المزاد الوجهة">
+          <option value="">— انقل إلى مزاد —</option>
+          {% for row in move_targets %}
+            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="move">انقل</button>
+      </span>
+
+      <span class="bulkbar__group">
+        <button type="submit" name="op" value="marketing" formnovalidate
+                onclick="this.form.marketing.value='on'">سوّق</button>
+        <button type="submit" name="op" value="marketing"
+                onclick="this.form.marketing.value='off'">أوقف التسويق</button>
+        <input type="hidden" name="marketing" value="on">
+      </span>
+
+      <button type="submit" name="op" value="delete" class="bulkbar__danger">احذف</button>
+    </div>
+  {% endif %}
+  </form>
 
   <div class="table-footer">
     <div class="table-footer__count">
@@ -302,6 +384,48 @@ somebody went looking for it.
         </p>
         <p class="modal__buttons">
           <button type="submit" class="act--danger" style="color: #fff; background: var(--danger); border: none; padding: .5rem 1rem; border-radius: .4rem; font-weight: 700; cursor: pointer;">أنهِ الآن</button>
+          <button type="button" data-close>إلغاء</button>
+        </p>
+      </form>
+    </dialog>
+  {% endif %}
+
+  {% if can_manage %}
+    {% comment %}
+    هويّةُ المزاد وحدها — لا موعدَ ولا تأمين. الموعدُ تملكه «إعادة الجدولة»
+    والتأمينُ تملكه «الرسوم»، وحارس `one_writer_per_field` يرفض ظهورهما في
+    نافذتين. T859 · T862
+    {% endcomment %}
+    <dialog id="editModal" class="modal">
+      <form method="post" data-action="{% url 'console:auction-edit' auction.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="row_stamp" data-stamp>
+        <h2>تعديل مزاد <span data-number>{{ auction.number|unlocalize }}</span></h2>
+
+        <p>
+          <label for="edNumber">رقم المزاد</label>
+          <input id="edNumber" type="text" inputmode="numeric" name="number" data-num required>
+        </p>
+        <p>
+          <label for="edTitle">العنوان</label>
+          <input id="edTitle" type="text" name="title" data-title required>
+        </p>
+        <p>
+          <label for="edLocation">الموقع</label>
+          <input id="edLocation" type="text" name="location" data-location>
+        </p>
+        <p class="hint">
+          الموعد يُغيَّر من <strong>إعادة الجدولة</strong>، والتأمين والرسوم من
+          <strong>الرسوم والتأمين</strong> في قائمة المزادات — لكلٍّ نافذتُه
+          وقواعدُه.
+        </p>
+        <p>
+          <label for="edReason">سبب التعديل</label>
+          <input id="edReason" type="text" name="reason" required
+                 placeholder="يُسجَّل في سجلّ التدقيق باسمك">
+        </p>
+        <p class="modal__buttons">
+          <button type="submit">احفظ</button>
           <button type="button" data-close>إلغاء</button>
         </p>
       </form>
