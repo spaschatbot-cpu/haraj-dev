@@ -422,21 +422,33 @@ def test_the_summary_costs_the_same_for_three_auctions_as_for_ten(
     وعمودٌ واحدٌ محسوبٌ في حلقةٍ يعني خمسةً وعشرين ذهاباً إلى القاعدة لكل
     عمود، وهو ما كان يفعله v1.
 
-    وكان مكتوباً «أربعة استعلامات» رقماً ثابتاً، فلمّا أُضيف قسمُ العيّنة
-    والمصغَّرة (استعلامان مجمَّعان) سقط الاختبار — **وهو سليم**: الرقم ستّة
-    الآن. فصار يقيس ما يعنيه بدل أن يقيس رقماً: ثلاثةُ مزادات وعشرةٌ بالعدد
-    نفسه. ورقمٌ يُحدَّث يدوياً كلَّما نما الكود هو رقمٌ يُحدَّث بلا قراءة.
+    وكُتب مرّتين رقماً ثابتاً — «أربعة» ثم «ستّة» — وسقط في المرّتين على
+    استعلامٍ **مجمَّعٍ** أُضيف بحقّ: قسمُ العيّنة والمصغَّرة أوّلاً، ثم عدّادُ
+    «تنتظر قراراً» في T860. وفي المرّة الثانية بقي أحمرَ على `main` لأن الرقم
+    وحده تغيّر ولا شيء في الكود انكسر.
+
+    فلا رقمَ هنا بعد اليوم. الاختبارُ يقارن الثلاثةَ بالعشرة: استعلامٌ مجمَّعٌ
+    جديدٌ يزيد الاثنين معاً فيبقى أخضرَ بحقّ، واستعلامٌ في حلقةٍ يزيد العشرةَ
+    وحدها فيسقط — وهو وحده ما جاء هذا الاختبار لأجله.
     """
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
     few = [make_auction(AuctionState.LIVE) for _ in range(3)]
     many = [make_auction(AuctionState.LIVE) for _ in range(10)]
     for auction in few + many:
         make_vehicle(auction, VehicleState.LISTED, lot_number=1)
 
-    with django_assert_num_queries(6):
+    with CaptureQueriesContext(connection) as for_three:
         engine.summarise(few)
 
-    with django_assert_num_queries(6):
+    with CaptureQueriesContext(connection) as for_ten:
         engine.summarise(many)
+
+    assert len(for_ten) == len(for_three), (
+        f"الملخّصُ كلّف {len(for_three)} استعلاماً لثلاثة مزادات "
+        f"و{len(for_ten)} لعشرة — أي أن استعلاماً صار في حلقة"
+    )
 
 
 def test_an_auction_with_nothing_in_it_summarises_to_zeroes(make_auction):

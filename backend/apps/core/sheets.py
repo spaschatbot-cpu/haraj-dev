@@ -55,7 +55,20 @@ class Sheet:
         return cls._read_csv(data)
 
     @classmethod
+    def read_table(cls, data: bytes) -> list[list[str]]:
+        """Parse bytes into raw string rows without assuming row 0 is the header."""
+        if not data:
+            raise SheetError("الملف فارغ")
+        if data[:4] == ZIP_MAGIC:
+            return cls._raw_xlsx(data)
+        return cls._raw_csv(data)
+
+    @classmethod
     def _read_csv(cls, data: bytes) -> Sheet:
+        return cls._from_table(cls._raw_csv(data))
+
+    @classmethod
+    def _raw_csv(cls, data: bytes) -> list[list[str]]:
         try:
             text = data.decode(CSV_ENCODING)
         except UnicodeDecodeError as exc:
@@ -64,11 +77,14 @@ class Sheet:
             ) from exc
 
         reader = csv.reader(io.StringIO(text, newline=""))
-        table = [[cell.strip() for cell in row] for row in reader]
-        return cls._from_table(table)
+        return [[cell.strip() for cell in row] for row in reader]
 
     @classmethod
     def _read_xlsx(cls, data: bytes) -> Sheet:
+        return cls._from_table(cls._raw_xlsx(data))
+
+    @classmethod
+    def _raw_xlsx(cls, data: bytes) -> list[list[str]]:
         try:
             workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
         except Exception as exc:  # openpyxl raises a zoo of exception types
@@ -77,7 +93,7 @@ class Sheet:
         worksheet = workbook[workbook.sheetnames[0]]
         table = [[cls._as_text(cell) for cell in row] for row in worksheet.iter_rows()]
         workbook.close()
-        return cls._from_table(table)
+        return table
 
     @staticmethod
     def _as_text(cell) -> str:

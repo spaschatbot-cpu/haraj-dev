@@ -24,6 +24,7 @@ about our intentions.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -46,6 +47,40 @@ class VehicleImportError(Exception):
     """The file itself could not be used — not a single row's problem."""
 
 
+# ---------------------------------------------------------------------------
+# Normalization & Digit Folding (T867)
+# ---------------------------------------------------------------------------
+
+ARABIC_INDIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+HAMZA_AND_LETTERS = str.maketrans({"أ": "ا", "إ": "ا", "آ": "ا", "ى": "ي", "ة": "ه"})
+TASHKEEL_AND_TATWEEL = re.compile(r"[\u064B-\u065F\u0670\u0640]")
+NON_ALPHANUM = re.compile(r"[^\w]+", re.UNICODE)
+
+
+def fold_digits(text: str) -> str:
+    """طيّ الأرقام في خلايا البيانات إلى ASCII مع تحويل الفاصلة العشرية العربية."""
+    return text.translate(ARABIC_INDIC_DIGITS).replace("٫", ".")
+
+
+def normalize_header_cell(text: str) -> str:
+    """تطبيع اسم العمود قبل المطابقة مع جدول المرادفات (v1: 3385-3482):
+    1. طيّ الأرقام العربية-الهندية والفارسية إلى ASCII.
+    2. حذف التشكيل والتطويل ـ.
+    3. توحيد الهمزات: أ إ آ ← ا، ى ← ي، ة ← ه.
+    4. lowercase للإنجليزية.
+    5. طيّ المسافات والرموز غير الأبجدية-الرقمية إلى _ وحذف الزوائد.
+    """
+    if not text:
+        return ""
+    text = text.translate(ARABIC_INDIC_DIGITS)
+    text = TASHKEEL_AND_TATWEEL.sub("", text)
+    text = text.translate(HAMZA_AND_LETTERS)
+    text = text.lower()
+    text = NON_ALPHANUM.sub("_", text).strip("_")
+    text = re.sub(r"_+", "_", text)
+    return text
+
+
 def _choice_writer(choices):
     def write(value: str) -> str:
         try:
@@ -65,6 +100,12 @@ def _choice_reader(choices, arabic_name: str):
     """
     by_label = {str(choice.label).strip(): choice.value for choice in choices}
     by_value = {choice.value: choice.value for choice in choices}
+    by_normalized = {
+        normalize_header_cell(str(choice.label)): choice.value for choice in choices
+    }
+    by_normalized.update(
+        {normalize_header_cell(choice.value): choice.value for choice in choices}
+    )
 
     def read(raw: str):
         text = raw.strip()
@@ -72,6 +113,9 @@ def _choice_reader(choices, arabic_name: str):
             return by_label[text]
         if text in by_value:
             return by_value[text]
+        norm = normalize_header_cell(text)
+        if norm in by_normalized:
+            return by_normalized[norm]
         allowed = "، ".join(str(choice.label) for choice in choices)
         raise ValueError(
             f"قيمة «{arabic_name}» غير معروفة: «{text}» — المسموح: {allowed}"
@@ -82,7 +126,7 @@ def _choice_reader(choices, arabic_name: str):
 
 def _read_int(name: str, *, minimum: int | None = None):
     def read(raw: str):
-        text = raw.strip()
+        text = fold_digits(raw.strip()).replace(",", "").replace("،", "")
         if text == "":
             return None
         try:
@@ -98,7 +142,7 @@ def _read_int(name: str, *, minimum: int | None = None):
 
 def _read_amount(name: str):
     def read(raw: str):
-        text = raw.strip().replace(",", "")
+        text = fold_digits(raw.strip()).replace(",", "").replace("،", "")
         if text == "":
             return None
         try:
@@ -245,6 +289,211 @@ COLUMNS_BY_HEADER = {column.header: column for column in COLUMNS}
 AUCTION_HEADER = "رقم المزاد"
 LOT_HEADER = "رقم اللوت"
 
+#: مرادفاتُ العناوين، **صفٌّ لكل عمود** — مستخرجةٌ من `normalizeHeaderCell`
+#: في v1 (`AuctionController.php:3385-3482`). T867.
+#:
+#: ولماذا زوجٌ من الصفوف لا قاموسٌ مسطَّح: القاموسُ المسطَّح كان يقرؤه
+#: `ops/checks/one_vehicle_card.py` **كرتَ مركبةٍ ثانياً** — مفاتيحُه `make`
+#: و`model` و`year` و`lot_number`، وذلك بالضبط شكلُ الكرت الذي يحرسه. والصفُّ
+#: هنا يقول «هذا العمود، وهذه أسماؤه»، وهو ما يُقرأ ويُراجَع أصلاً: عمودٌ
+#: يُضاف صفٌّ يُضاف، ومرادفٌ يُضاف كلمةٌ تُضاف في صفّه.
+HEADER_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("رقم المزاد", ("رقم_المزاد", "المزاد", "auction", "auction_id", "auction_number")),
+    ("رقم اللوت", ("رقم_اللوت", "اللوت", "رقم_الموقف", "lot", "lot_no", "lot_number")),
+    (
+        "الماركة",
+        (
+            "الماركه", "الماركة", "vehicle_brand", "brand", "make",
+            "اسم_السياره", "اسم_السيارة", "اسم_المركبه", "اسم_المركبة",
+            "vehicle_name", "car_name",
+        ),
+    ),
+    ("الطراز", ("الطراز", "الموديل", "model")),
+    (
+        "سنة الصنع",
+        ("سنه_الصنع", "سنة_الصنع", "السنه", "السنة", "year_of_manufacture", "year"),
+    ),
+    (
+        "رقم الهيكل",
+        ("رقم_الهيكل", "رقم_الشاسيه", "الشاصي", "chassis_number", "chassis", "vin"),
+    ),
+    ("رقم اللوحة", ("رقم_اللوحه", "رقم_اللوحة", "plate_number", "plate")),
+    ("نوع اللوحة", ("نوع_اللوحه", "نوع_اللوحة", "plate_type")),
+    (
+        "الممشى",
+        ("الممشي", "الممشى", "المسافه", "المسافة", "mileage", "odometer", "odometer_km"),
+    ),
+    (
+        "ناقل الحركة",
+        ("ناقل_الحركه", "ناقل_الحركة", "القير", "transmission", "gear"),
+    ),
+    # `the_weight` **ليس هنا عمداً.** عنوانُه في v1 «الوزن / نوع الوقود»
+    # وواجهةُ العميل تعرضه وقوداً — ولا يقول الكودُ أيَّهما تحمل الصفوف فعلاً.
+    # وربطُه بالوقود تخمينٌ يكتب في عمودٍ تعداديّ، فيصير خطأً لا يُميَّز عن
+    # قيمةٍ صحيحة. السؤالُ عند المالك، وحتى يُجاب يبقى العمود مُهمَلاً باسمه.
+    ("الوقود", ("الوقود", "نوع_الوقود", "fuel", "fuel_type")),
+    (
+        "الحالة الفنية",
+        (
+            "الحاله_الفنيه", "الحالة_الفنية", "الحاله", "الحالة",
+            "vehicle_condition", "the_condition", "condition",
+        ),
+    ),
+    (
+        "سعر الوقوف",
+        ("سعر_الوقوف", "السعر_الابتدائي", "starting_price", "start_price", "reserve_price"),
+    ),
+    (
+        "حالة المركبة",
+        ("حاله_المركبه", "حالة_المركبة", "vehicle_status", "status"),
+    ),
+    (
+        "حالة العرض",
+        (
+            "حاله_العرض", "حالة_العرض", "حاله_النشر", "حالة_النشر",
+            "activation_status", "حاله_التفعيل", "حالة_التفعيل",
+        ),
+    ),
+    # **الشريكُ المالك ليس شركةَ التأمين.** الأولُ مفتاحٌ أجنبيٌّ إلى شركةٍ
+    # شريكة، والثانيةُ حقلٌ نصّيٌّ قائمٌ بذاته في `models.py`. وربطُهما — كما
+    # وقع في أوّل نسخةٍ من هذا الجدول — يجعل ملفّاً فيه «شركة التأمين» يبحث
+    # عن شريكٍ بهذا الاسم فلا يجده.
+    ("الشريك المالك", ("الشريك_المالك",)),
+)
+
+#: القاموسُ الذي تُطابَق به الخلايا. يُبنى من `HEADER_ALIASES` ولا يُكتب بيده:
+#: مصدران للمرادفات مصدران يفترقان (المادة ٤-٥).
+HEADER_SYNONYMS: dict[str, str] = {
+    alias: canonical for canonical, aliases in HEADER_ALIASES for alias in aliases
+}
+
+#: أعمدةٌ يعرفها v1 **ولا عمودَ لها في المستورِد بعد**. تُذكَر بأسمائها
+#: للموظّف بدل أن تُبتلع في «أعمدة غير معروفة»:
+#:
+#: خمسةٌ منها لها **حقلٌ جاهزٌ في `models.py`** (اللون، ورقم المطالبة،
+#: والمفاتيح، وحالة المحرك، والتسويق) وينقصها صفٌّ في `COLUMNS` وحده — وذلك
+#: تاسكٌ قائمٌ بذاته لأنه يغيّر ملفَّ التصدير أيضاً. والباقي بلا حقلٍ أصلاً.
+#:
+#: و`mvpi_status` هنا لا مع «حالة المحرك»: العميلُ في v1 يفضّل `runs_status`
+#: ويقع على `mvpi_status` عند غيابه (`AuctionApiController.php:638`) — أهما
+#: حقلٌ واحدٌ أم اثنان سؤالٌ عند المالك، ودمجُهما هنا يجيب عنه نيابةً عنه.
+KNOWN_BUT_NOT_A_COLUMN: dict[str, str] = {
+    alias: label
+    for label, aliases in (
+        ("اللون", ("the_color", "color", "اللون")),
+        (
+            "رقم المطالبة",
+            ("claim_number", "claim", "claim_no", "رقم_المطالبه", "رقم_المطالبة",
+             "المطالبه", "المطالبة"),
+        ),
+        ("شركة التأمين", ("insurance_company", "شركه_التامين", "شركة_التأمين")),
+        ("المفاتيح", ("key_status", "المفتاح", "المفاتيح")),
+        ("عدد الأبواب", ("the_doors", "عدد_الابواب", "عدد_الأبواب")),
+        ("حالة المحرك", ("mvpi_status", "حاله_المحرك", "حالة_المحرك")),
+        ("الوزن أو نوع الوقود", ("the_weight", "نوع_الوقود_الوزن", "الوزن")),
+        ("التسويق", ("is_marketing", "marketing", "التسويق", "تسويق")),
+        ("الوصف", ("overview", "الوصف")),
+        ("تقرير الفحص", ("inspection_report_media", "رابط_تقرير_الفحص")),
+        ("أيام الفحص", ("inspection_days", "ايام_الفحص")),
+        ("موقع المعاينة", ("preview_site", "موقع_المعاينه", "موقع_المعاينة")),
+        ("وقت المعاينة", ("وقت_المعاينه", "وقت_المعاينة")),
+        ("فترات المعاينة", ("time_periods", "فترات_المعاينه", "فترات_المعاينة")),
+        ("وقت الإدخال", ("input_time", "وقت_الادخال", "وقت_الإدخال")),
+        ("ملاحظات الحالة", ("condition_notes",)),
+        ("المعرّف", ("id", "المعرف")),
+        ("مزايدة تلقائية", ("auto_bid", "مزايده_تلقائيه", "مزايدة_تلقائية")),
+        ("قيمة المزايدة", ("bidamount", "قيمه_المزايده", "قيمة_المزايدة")),
+    )
+    for alias in aliases
+}
+
+#: مؤشرات v1 الأربعة لاكتشاف صف الرأس (looksLikeVehicleHeader 3362-3371):
+#: vehicle_name أو vehicle_brand (الماركة) أو starting_price (سعر الوقوف) أو vehicle_condition (الحالة الفنية).
+HEADER_INDICATORS: set[str] = {
+    "الماركة",
+    "سعر الوقوف",
+    "الحالة الفنية",
+    "vehicle_name",
+    "vehicle_brand",
+    "starting_price",
+    "vehicle_condition",
+}
+
+
+def resolve_header_cell(cell: str) -> str:
+    """الاسمُ المعياريُّ للخلية — أو اسمُها المفهوم إن كانت معروفةً بلا عمود.
+
+    والفرقُ بين الاثنين هو ما يقرؤه الموظّف: «أُهمل `the_color`» يقرؤها خطأً
+    في ملفّه، و«اللون — عمودٌ معروف لا يُستورَد بعد» يقرؤها نقصاً في المستورِد.
+    """
+    norm = normalize_header_cell(cell)
+    if not norm:
+        return ""
+    mapped = HEADER_SYNONYMS.get(norm)
+    if mapped is not None and mapped in COLUMNS_BY_HEADER:
+        return mapped
+    known = KNOWN_BUT_NOT_A_COLUMN.get(norm)
+    if known is not None:
+        return known
+    return cell.strip()
+
+
+def looks_like_vehicle_header(row: list[str]) -> bool:
+    """v1: looksLikeVehicleHeader (3362-3371)."""
+    for cell in row:
+        norm = normalize_header_cell(cell)
+        if not norm:
+            continue
+        mapped = HEADER_SYNONYMS.get(norm, norm)
+        if mapped in HEADER_INDICATORS or norm in HEADER_INDICATORS:
+            return True
+    return False
+
+
+def detect_header(
+    raw_table: list[list[str]],
+) -> tuple[int | None, list[str] | None]:
+    """امسح أول 5 صفوف غير فارغة بحثاً عن الرأس.
+    أول صف يطابق looks_like_vehicle_header هو الرأس وما قبله يُهمل.
+    وإن لم يطابق أي منها فالملف بلا رأس (الوضع الموضعي).
+    """
+    scanned = 0
+    for idx, row in enumerate(raw_table):
+        if not any(cell.strip() for cell in row):
+            continue
+        scanned += 1
+        if looks_like_vehicle_header(row):
+            canonical_headers = [resolve_header_cell(cell) for cell in row]
+            return idx, canonical_headers
+        if scanned >= 5:
+            break
+    return None, None
+
+
+# Header-mapped uploads only. The positional (header-less) reader
+# further down is left untouched on purpose: adding a column
+# there would shift every index and silently corrupt the sheets
+# people already use.
+# الترتيب الموضعي لملفات v1 القديمة (عقدٌ مع ملفات المالك):
+# إدخال عمود في وسطه يزيح كل ما بعده (v1: 3556-3559).
+POSITIONAL_MAP: tuple[str, ...] = (
+    "vehicle_name",         # 0
+    "starting_price",       # 1
+    "vehicle_condition",    # 2
+    "vehicle_brand",        # 3
+    "model",                # 4
+    "year_of_manufacture",  # 5
+    "mileage",              # 6
+    "the_color",            # 7
+    "Plate_number",         # 8
+    "chassis_number",       # 9
+    "insurance_company",    # 10
+    "overview",             # 11
+    "condition_notes",      # 12
+    "lot_number",           # 13 (v2 row identity)
+    "auction_number",       # 14 (v2 row identity)
+)
+
 
 # ---------------------------------------------------------------------------
 # Export
@@ -335,7 +584,11 @@ class ImportReport:
         )
 
 
-def import_vehicles(data: bytes) -> ImportReport:
+def import_vehicles(
+    data: bytes,
+    *,
+    default_auction: Auction | int | None = None,
+) -> ImportReport:
     """Read a file and apply it, row by row, rejecting what it must.
 
     One row's problem never stops the rest: an operator uploading a hundred
@@ -343,23 +596,100 @@ def import_vehicles(data: bytes) -> ImportReport:
     that rolls the lot back over a typo in row 57.
     """
     try:
-        sheet = Sheet.read(data)
+        raw_table = Sheet.read_table(data)
     except SheetError as exc:
         raise VehicleImportError(str(exc)) from exc
 
-    for header in (AUCTION_HEADER, LOT_HEADER):
-        if header not in sheet.headers:
-            raise VehicleImportError(f"الملف ينقصه عمود «{header}»")
+    non_empty = [r for r in raw_table if any(cell.strip() for cell in r)]
+    if not non_empty:
+        raise VehicleImportError("الملف لا يحتوي على أي صف")
 
-    known = [h for h in sheet.headers if h in COLUMNS_BY_HEADER]
-    report = ImportReport(
-        ignored_headers=[h for h in sheet.headers if h not in COLUMNS_BY_HEADER]
-    )
-
+    header_idx, canonical_headers = detect_header(raw_table)
     auctions: dict[int, Auction] = {}
 
-    for index, record in enumerate(sheet.records(), start=2):
-        _apply_row(record, known, index, auctions, report)
+    if header_idx is not None:
+        # ── الوضع ذو الرأس (Header-mapped Mode) ──
+        headers = canonical_headers or []
+
+        if AUCTION_HEADER not in headers and default_auction is None:
+            raise VehicleImportError(f"الملف ينقصه عمود «{AUCTION_HEADER}»")
+
+        if LOT_HEADER not in headers:
+            raise VehicleImportError(f"الملف ينقصه عمود «{LOT_HEADER}»")
+
+        known = [h for h in headers if h in COLUMNS_BY_HEADER]
+        # عمودٌ نعرفه ولا نستورده يُسمّى بما يعنيه، لا بما كُتب في الملفّ —
+        # ورأسٌ لا نعرفه يبقى كما كتبه صاحبُه ليجده في ملفّه.
+        recognised = set(KNOWN_BUT_NOT_A_COLUMN.values())
+        report = ImportReport(
+            ignored_headers=[
+                f"{h} (معروف، لا يُستورَد بعد)" if h in recognised else h
+                for h in headers
+                if h not in COLUMNS_BY_HEADER and h
+            ]
+        )
+
+        for row_idx in range(header_idx + 1, len(raw_table)):
+            row = raw_table[row_idx]
+            if not any(cell.strip() for cell in row):
+                continue
+            padded_row = (row + [""] * len(headers))[: len(headers)]
+            record = dict(zip(headers, padded_row))
+            _apply_row(
+                record,
+                known,
+                row_idx + 1,
+                auctions,
+                report,
+                default_auction=default_auction,
+            )
+
+        return report
+
+    # ── الوضع الموضعي (Positional Mode) ──
+    # ملف بلا رأس يُقرأ بالفهارس كما في mapVehicleCsvRow.
+    # والخلية الأولى فارغة ⇒ الصف يُهمل بلا خطأ.
+    max_width = max((len(r) for r in raw_table), default=0)
+    if max_width < 6:
+        raise VehicleImportError(f"الملف ينقصه عمود «{AUCTION_HEADER}»")
+
+    report = ImportReport()
+    for row_idx, row in enumerate(raw_table):
+        line_number = row_idx + 1
+        if not any(cell.strip() for cell in row):
+            continue
+        vehicle_name = row[0].strip() if len(row) > 0 else ""
+        if vehicle_name == "":
+            # الخليّةُ الأولى فارغةً ⇒ الصفُّ يُهمَل بلا خطأ.
+            continue
+
+        make_candidate = (
+            row[3].strip() if len(row) > 3 and row[3].strip() else vehicle_name
+        )
+        lot_val = row[13].strip() if len(row) > 13 else ""
+        auction_val = row[14].strip() if len(row) > 14 else ""
+
+        record = {
+            AUCTION_HEADER: auction_val,
+            LOT_HEADER: lot_val,
+            "الماركة": make_candidate,
+            "الطراز": row[4].strip() if len(row) > 4 else "",
+            "سنة الصنع": row[5].strip() if len(row) > 5 else "",
+            "سعر الوقوف": row[1].strip() if len(row) > 1 else "",
+            "الحالة الفنية": row[2].strip() if len(row) > 2 else "",
+            "الممشى": row[6].strip() if len(row) > 6 else "",
+            "رقم اللوحة": row[8].strip() if len(row) > 8 else "",
+            "رقم الهيكل": row[9].strip() if len(row) > 9 else "",
+        }
+        known = [h for h in record if h in COLUMNS_BY_HEADER]
+        _apply_row(
+            record,
+            known,
+            line_number,
+            auctions,
+            report,
+            default_auction=default_auction,
+        )
 
     return report
 
@@ -370,6 +700,8 @@ def _apply_row(
     row_number: int,
     auctions: dict[int, Auction],
     report: ImportReport,
+    *,
+    default_auction: Auction | int | None = None,
 ) -> None:
     lot_text = record.get(LOT_HEADER, "").strip()
 
@@ -382,6 +714,12 @@ def _apply_row(
         raw = record.get(header, "")
         if column.read is None:
             continue
+        if (
+            column.header == AUCTION_HEADER
+            and raw.strip() == ""
+            and (default_auction is not None or Auction.objects.count() == 1)
+        ):
+            continue
         if column.required and raw.strip() == "":
             reject(f"«{column.header}» مطلوب وفارغ")
             return
@@ -393,8 +731,25 @@ def _apply_row(
 
     auction_number = values.get(AUCTION_HEADER)
     lot_number = values.get(LOT_HEADER)
+
+    if auction_number is None and default_auction is not None:
+        if isinstance(default_auction, Auction):
+            auction_number = default_auction.number
+            auctions[auction_number] = default_auction
+        else:
+            auction_number = int(default_auction)
+    elif auction_number is None and Auction.objects.count() == 1:
+        single_auction = Auction.objects.first()
+        auction_number = single_auction.number
+        auctions[auction_number] = single_auction
+
     if auction_number is None or lot_number is None:
-        reject("رقم المزاد ورقم اللوت مطلوبان")
+        if lot_number is None and auction_number is not None:
+            reject(f"«{LOT_HEADER}» مطلوب وفارغ")
+        elif auction_number is None and lot_number is not None:
+            reject(f"«{AUCTION_HEADER}» مطلوب وفارغ")
+        else:
+            reject("رقم المزاد ورقم اللوت مطلوبان")
         return
 
     auction = auctions.get(auction_number)
