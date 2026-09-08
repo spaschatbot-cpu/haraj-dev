@@ -136,9 +136,9 @@ Flutter) يبقى. هذه تفاصيله وإضافاته — كل نسخة تُ
 | المزايدة الحية | **SSE أولاً**، وChannels إن ثبتت الحاجة | SSE أبسط تشغيلاً؛ يُقرَّر نهائياً في plan.md للفيز 006 |
 | الإعدادات | django-environ | أسرار خارج الكود، `.env.example` هو التوثيق |
 | السجلات | **structlog** + Sentry | سجلات مهيكلة JSON من اليوم الأول |
-| الاختبار | pytest + pytest-django + factory_boy + pytest-xdist | اختبارات المال على Postgres بإعدادات الإنتاج (المادة ٤-٢) |
+| الاختبار | — | **حُذفت الحزمة من المستودع في ٨ سبتمبر ٢٠٢٦** (`ad916d2`) بقرار المالك، ومعها بنودُها من الدستور |
 | الجودة | **ruff** (lint + format) + **mypy** strict على `apps/money` + pre-commit | |
-| CI/CD | GitHub Actions: lint ← mypy ← pytest على Postgres 17 ← build | لا دمج بغير أخضر |
+| CI/CD | — | **حُذف `ci.yml`** مع الحزمة في ٨ سبتمبر ٢٠٢٦. لا بوّابةَ آليّة على الدمج |
 
 ### التطبيق (Flutter)
 
