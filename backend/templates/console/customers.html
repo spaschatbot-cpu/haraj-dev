@@ -1,69 +1,67 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-إدارة المستخدمين — أعمدة v1 نفسها، وعمودُ الرصيد يقول رقماً.
-
-في إنتاج v1 هذا الجدول فيه أربعةٌ وأربعون ألف صفّ، و**عمود «الرصيد» فيها
-كلِّها `0 SAR`**: عمودٌ مشتقٌّ مخزَّنٌ على المستخدم لا يحدّثه شيء (جرد T302).
-والرصيد هنا مجموعُ حسابات العميل في الدفتر، فلا مكانَ يمكن أن يُهمَل تحديثُه.
-
-و«غير معرف» في v1 اسمٌ حرفيٌّ يُكتب مكان الاسم الغائب — فيبحث عنه الموظّف
-كاسمٍ ويجد آلافاً. الغيابُ هنا يُعرض غياباً.
+إدارة المستخدمين — تصميم متكامل ومطور يجمع بين الفلاتر السريعة، إحصاءات الحسابات، والأرصدة الدقيقة المشتقة من الدفتر.
 {% endcomment %}
 {% block title %}إدارة المستخدمين{% endblock %}
 {% block heading %}إدارة المستخدمين{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+
+{% block actions %}
+  <a href="{{ export_url }}" class="btn-secondary" title="تصدير بيانات المستخدمين إلى ملف إكسل">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
-  <p class="lede">
-    حسابات الأفراد والشركات: من هو، وهل يستطيع الدخول، وكم له عندنا في الدفتر.
+  <p class="lede" style="margin-block-start: .6rem; margin-block-end: 1rem;">
+    حسابات الأفراد والشركات: بيانات الهوية والتواصل، حالة التفعيل، والأرصدة المستحقة في الدفتر المالي.
   </p>
 
   <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
-  {% comment %} I5: كل قائمة تُصدَّر، والتصديرُ يحمل المرشّح الذي على الشاشة.
-     `export_url` هو هذا الطلب نفسه بمعامل واحد يُضاف، يُبنى في
-     `apps.console.context` — فلا قالبَ يكتب مساراً بيده.
-
-     وأسماء الخانات هي أسماء v1 حرفياً (`q` · `account_type` · `status` ·
-     `per_page`)، فرابطٌ محفوظٌ عند موظّف يفتح هنا على النتيجة نفسها.
-  {% endcomment %}
   <form method="get" class="filters">
-    <p>
-      <label for="q">البحث</label>
+    <div class="filters__main">
       <input id="q" type="search" name="q" value="{{ q }}"
-             placeholder="الاسم، الجوال، الهوية…">
-    </p>
-    <p>
-      <label for="account_type">نوع الحساب</label>
-      <select id="account_type" name="account_type">
-        <option value="">الكل</option>
+             placeholder="ابحث بالاسم، الجوال، أو رقم الهوية..." aria-label="البحث">
+
+      <select id="account_type" name="account_type" aria-label="نوع الحساب">
+        <option value="">كل أنواع الحسابات</option>
         {% for value, label in types %}
           <option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-    </p>
-    <p>
-      <label for="status">الحالة</label>
-      <select id="status" name="status">
-        <option value="">الكل</option>
+
+      <select id="status" name="status" aria-label="الحالة">
+        <option value="">كل الحالات</option>
         {% for value, label in statuses %}
           <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
-    </p>
-    <p>
-      <label for="per_page">النتائج</label>
-      <select id="per_page" name="per_page">
+
+      <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
         {% for choice in row_choices %}
-          <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} صفّاً</option>
+          <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
         {% endfor %}
       </select>
-    </p>
-    <p><button type="submit">بحث</button></p>
+
+      <button type="submit" class="btn-primary" style="margin: 0;">بحث</button>
+
+      {% if q or kind or status or size != 25 %}
+        <a href="{% url 'console:customers' %}" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
+    </div>
   </form>
+
+  <div class="table-bar">
+    <div class="table-bar__info">
+      <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
+        قائمة المستخدمين <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+      </h2>
+    </div>
+    <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
+      <a href="{{ export_url }}" class="btn-sm" title="تصدير نتائج الصفحة إلى ملف إكسل">تصدير إكسل</a>
+    </div>
+  </div>
 
   <div class="scroller">
     <table>
@@ -75,75 +73,94 @@
           <th>رقم الهوية</th>
           <th>النوع</th>
           <th>الحالة</th>
-          <th>الرصيد</th>
-          <th>الإجراءات</th>
+          <th>الرصيد المالي</th>
+          <th style="min-inline-size: 9rem; text-align: center;">إجراءات</th>
         </tr>
       </thead>
-    <tbody>
-      {% for customer in rows %}
-        <tr>
-          <td class="count">#{{ customer.pk|unlocalize }}</td>
-          <td>
-            <a href="{% url 'console:customer-detail' customer.pk %}">
-              {% comment %} الغياب غيابٌ لا اسم: v1 يكتب «غير معرف» في خانة
-                 الاسم، فيصير نصّاً يُبحث عنه ويُفرَز به. {% endcomment %}
-              {% if customer.full_name %}{{ customer.full_name }}{% else %}<span class="empty">بلا اسم</span>{% endif %}
-            </a>
-            {% if customer.company.city %}
-              <small class="empty">{{ customer.company.city }}</small>
-            {% endif %}
-          </td>
-          <td>{{ customer.phone }}</td>
-          <td>{{ customer.national_id|default:"—" }}</td>
-          <td>{{ customer.get_account_type_display }}</td>
-          <td>
-            {% if customer.is_active %}
-              <span class="pill" data-tone="ok">نشط</span>
-            {% else %}
-              <span class="pill" data-tone="bad">محظور</span>
-            {% endif %}
-          </td>
-          {% comment %} من الدفتر لا من عمودٍ مخزَّن — وهو الفرق بين رقمٍ
-             وبين `0 SAR` في أربعةٍ وأربعين ألف صفّ. {% endcomment %}
-          <td class="money">{{ customer.wallet_total|unlocalize }}</td>
-          <td class="row-actions">
-            {% comment %} رسومٌ لا كلمات: أربعُ كلماتٍ في خليّةٍ تكسر الصفَّ
-               سطرين، والجدولُ هو غرضُ الشاشة. والاسمُ في `title` و`aria-label`
-               — فمن يقرأ بالصوت يسمعه، ومن يمرّ بالفأرة يراه. {% endcomment %}
-            <a href="{% url 'console:customer-detail' customer.pk %}" title="افتح الملفّ" aria-label="افتح الملفّ">
-              <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_open }}"/></svg>
-            </a>
-            <a href="{% url 'console:customer-edit' customer.pk %}" title="تعديل البيانات" aria-label="تعديل البيانات">
-              <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_edit }}"/></svg>
-            </a>
-            {% comment %} شاشة الوصول ترفض الموظّفين (`is_staff=False`)، فلا
-               يُعرض رابطٌ يفتح على 404. {% endcomment %}
-            {% if not customer.is_staff %}
-              <a href="{% url 'console:customer-access' customer.pk %}" title="إيقاف الوصول أو إعادته" aria-label="إيقاف الوصول أو إعادته">
-                <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_access }}"/></svg>
+      <tbody>
+        {% for customer in rows %}
+          <tr>
+            <td>
+              <span class="code-font" style="color: var(--muted); font-size: .85rem;">#{{ customer.pk|unlocalize }}</span>
+            </td>
+            <td>
+              <a href="{% url 'console:customer-detail' customer.pk %}" style="text-decoration: none; color: inherit;">
+                <strong style="color: var(--ink); font-weight: 700; display: block;">
+                  {% if customer.full_name %}{{ customer.full_name }}{% else %}<span class="empty">بلا اسم</span>{% endif %}
+                </strong>
+                {% if customer.company.city %}
+                  <small style="color: var(--muted); font-size: .8rem;">{{ customer.company.city }}</small>
+                {% endif %}
               </a>
-            {% endif %}
-            {% comment %} الحذف قدرةٌ وحدها (`users.delete`)، فلا يظهر لمن
-               يملك التعديل وحده. والشاشة التي يفتحها ترفض أكثر ممّا تقبل:
-               حسابٌ له مزايدةٌ أو فاتورة لا يُحذف. {% endcomment %}
-            {% if can_delete %}
-              <a class="danger" href="{% url 'console:customer-delete' customer.pk %}" title="حذف الحساب" aria-label="حذف الحساب">
-                <svg class="row-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon_delete }}"/></svg>
+            </td>
+            <td>
+              <span class="tnum code-font">{{ customer.phone }}</span>
+            </td>
+            <td>
+              <span class="tnum code-font">{{ customer.national_id|default:"—" }}</span>
+            </td>
+            <td>
+              {% if customer.account_type == "company" %}
+                <span class="pill" data-tone="brand">{{ customer.get_account_type_display }}</span>
+              {% else %}
+                <span class="pill">{{ customer.get_account_type_display }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div style="display: flex; flex-wrap: wrap; gap: .25rem; align-items: center;">
+                {% if customer.is_active %}
+                  <span class="pill" data-tone="ok">نشط</span>
+                {% else %}
+                  <span class="pill" data-tone="bad">محظور</span>
+                {% endif %}
+                {% if customer.is_staff %}
+                  <span class="pill" data-tone="plain" title="حساب موظف في الطاقم الإداري">إداري</span>
+                {% endif %}
+              </div>
+            </td>
+            <td>
+              <span class="money tnum" style="font-weight: 700; color: var(--ink);">{{ customer.wallet_total|unlocalize }} ر.س</span>
+            </td>
+            <td class="actions" style="text-align: center; justify-content: center;">
+              <a href="{% url 'console:customer-detail' customer.pk %}" class="act" title="عرض ملف العميل والحركات" aria-label="عرض ملف العميل والحركات">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ icon_open }}"/></svg>
               </a>
-            {% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="8" class="empty">لا حسابات مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+              <a href="{% url 'console:customer-edit' customer.pk %}" class="act act--edit" title="تعديل بيانات العميل" aria-label="تعديل بيانات العميل">
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ icon_edit }}"/></svg>
+              </a>
+              {% if not customer.is_staff %}
+                <a href="{% url 'console:customer-access' customer.pk %}" class="act act--reschedule" title="إيقاف وصول العميل أو استعادته" aria-label="إيقاف وصول العميل أو استعادته">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ icon_access }}"/></svg>
+                </a>
+              {% endif %}
+              {% if can_delete %}
+                <a href="{% url 'console:customer-delete' customer.pk %}" class="act act--danger" title="حذف حساب العميل" aria-label="حذف حساب العميل">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ icon_delete }}"/></svg>
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="empty">لا توجد حسابات مطابقة لمعايير البحث.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  {% comment %} العدد الحقيقيّ للصفحات: v1 يقول «إجمالي النتائج ٤٤٬١٩١» ثم
-     يعرض أربع صفحات — وهي ألفٌ وسبعمئة وثمانٍ وستون. {% endcomment %}
-  <p>
-    {{ page.paginator.count|unlocalize }} حساباً ·
-    صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
-  </p>
+  <div class="table-footer">
+    <span>
+      {{ page.paginator.count|unlocalize }} حساباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+    </span>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات المستخدمين">
+        {% if page.has_previous %}
+          <a href="?page={{ page.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if kind %}&account_type={{ kind }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if size != 25 %}&per_page={{ size }}{% endif %}">السابق</a>
+        {% endif %}
+        <span class="pagination__current">{{ page.number|unlocalize }}</span>
+        {% if page.has_next %}
+          <a href="?page={{ page.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if kind %}&account_type={{ kind }}{% endif %}{% if status %}&status={{ status }}{% endif %}{% if size != 25 %}&per_page={{ size }}{% endif %}">التالي</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </div>
 {% endblock %}
