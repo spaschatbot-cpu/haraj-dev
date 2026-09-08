@@ -149,8 +149,11 @@
             <td><span class="tnum code-font">{{ row.vin|default:"—" }}</span></td>
             <td><span class="tnum code-font">{{ row.claim_number|default:"—" }}</span></td>
             <td>
+              {% comment %} اسمُ المشتري نصٌّ لا رابط — بطلب المالك: الضغطُ
+                 عليه لا يفتح صفحةً. ومن أراد ملفَّ المشتري فأيقونةُ «فتح ملفّ
+                 المشتري» في عمود «عرض» تفعله صراحةً. {% endcomment %}
               {% if row.awarded_to %}
-                <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+                <span>{{ row.awarded_to.full_name }}</span>
                 <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
               {% else %}
                 <span class="empty">—</span>
