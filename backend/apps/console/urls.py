@@ -185,6 +185,12 @@ urlpatterns = [
         vehicle_images.gallery,
         name="vehicle-images",
     ),
+    # صورةُ العرض بضغطةٍ من الكارت — نظيرُ `set-display-image` في v1.
+    path(
+        "vehicles/<int:pk>/display-image/",
+        vehicle_images.set_display_image,
+        name="vehicle-display-image",
+    ),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
     # قلبُ وسم التسويق على مركبةٍ واحدة — زرُّ الصفّ. T877

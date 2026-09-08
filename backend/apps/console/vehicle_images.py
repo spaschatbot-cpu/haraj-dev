@@ -189,3 +189,48 @@ def _picked(request, vehicle: Vehicle) -> VehicleImage | None:
         messages.error(request, "الصورة غير موجودة في هذه المركبة.")
         return None
     return image
+
+
+def set_display_image(request, pk: int):
+    """رفعُ **صورة العرض** لمركبةٍ بضغطةٍ من كارت شاشة المزاد — نظيرُ v1.
+
+    v1 (`manage.php`): صورةُ الكارت نفسُها زرّ — الضغطُ عليها يفتح منتقيَ ملفٍّ،
+    وأولُ اختيارٍ يُرفع فوراً ويصير «صورة العرض» (`set-display-image`). المثلُ
+    هنا: طلبٌ واحد بملفٍّ واحد، يردّ JSON فتتحدّث الشاشةُ بلا مغادرة.
+
+    والفارقُ عن v1 أن الصورة تمرّ بالخطّ المُعقَّم (`add_image`) ثم يرفعها
+    `set_cover` غلافاً — وهو ينزل الغلافَ القديم في المعاملة نفسها، فلا يصطدم
+    قيدُ `one_cover_image_per_vehicle` ولا تبقى المركبةُ بلا غلاف. وv1 كان
+    يُدخل نسخةً ثانيةً من البايتات نفسها فتظهر الصورةُ مرّتين في المعرض.
+
+    ليست `@console_page`: فعلٌ على كارتٍ لا صفحةٌ في الشريط — يُحرَس بالصلاحية
+    مباشرةً ويردّ JSON دائماً.
+    """
+    from django.http import JsonResponse
+
+    from apps.core.permissions import Capability, can
+
+    if not request.user.is_authenticated or not can(request.user, Capability.AUCTIONS_MANAGE):
+        return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)
+
+    vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    uploaded = request.FILES.get("image")
+    if uploaded is None:
+        return JsonResponse({"ok": False, "message": "لم يُختَر ملف."}, status=400)
+
+    try:
+        image = auction_services.add_image(vehicle, uploaded, cover=False)
+    except UploadRejected as refusal:
+        return JsonResponse({"ok": False, "message": str(refusal)}, status=400)
+
+    auction_services.set_cover(image)
+    audit.record(
+        action="console.vehicle_display_image",
+        entity=vehicle,
+        actor=request.user,
+        after={"image": image.pk},
+        note="رفعُ صورة العرض من شاشة المزاد",
+    )
+    return JsonResponse({"ok": True, "image": image.pk})

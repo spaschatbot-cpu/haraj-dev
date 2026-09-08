@@ -277,18 +277,32 @@ somebody went looking for it.
   <div class="veh-grid">
     {% for car in page %}
       <article class="veh-card">
-        <a class="veh-card__img" href="{% url 'console:vehicle-images' car.pk %}"
-           title="معرض صور المركبة">
-          {% comment %} الخلفيّةُ «لا صورة» طبقةٌ سفلى دائمة، والصورةُ فوقها؛
-             فإن فشل تحميلُها (`onerror`) أُزيلت وظهرت الخلفية — بلا أيقونة
-             كسرٍ. كما يفعل v1 بـ`onerror`. {% endcomment %}
-          <span class="veh-card__noimg">لا صورة عرض</span>
-          {% if car.thumb %}
-            <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
-                 loading="lazy" decoding="async" onerror="this.remove()">
-          {% endif %}
-          {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
-        </a>
+        {% comment %} صورةُ الكارت نفسُها زرُّ **صورة العرض** — كـ v1
+           (`data-action="display-image"` في `manage.php`): الضغطُ يفتح منتقيَ
+           ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض. والفارغةُ تقول
+           «اضغط لرفع صورة العرض» لا «لا صورة» — الفراغُ دعوةٌ لا خبر.
+           ولغير المديرِ تبقى رابطاً للمعرض: لا يرفع من لا يملك. {% endcomment %}
+        {% if can_manage %}
+          <button type="button" class="veh-card__img" data-display-image
+                  data-pk="{{ car.pk|unlocalize }}" title="اضغط لرفع صورة العرض">
+            <span class="veh-card__noimg">📷 اضغط لرفع صورة العرض</span>
+            {% if car.thumb %}
+              <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
+                   loading="lazy" decoding="async" onerror="this.remove()">
+            {% endif %}
+            {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
+          </button>
+        {% else %}
+          <a class="veh-card__img" href="{% url 'console:vehicle-images' car.pk %}"
+             title="معرض صور المركبة">
+            <span class="veh-card__noimg">لا صورة عرض</span>
+            {% if car.thumb %}
+              <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
+                   loading="lazy" decoding="async" onerror="this.remove()">
+            {% endif %}
+            {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
+          </a>
+        {% endif %}
         <div class="veh-card__body">
           <h3 class="veh-card__title">
             <a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a>
@@ -499,8 +513,41 @@ somebody went looking for it.
         }).finally(function () { btn.disabled = false; });
       });
     });
+
+    // صورةُ العرض — كـ v1: الضغطُ على صورة الكارت يفتح منتقيَ ملفٍّ، وأولُ
+    // اختيارٍ يُرفع فوراً ويصير الغلاف. لا نموذجَ ولا صفحةَ وسيطة.
+    document.querySelectorAll('[data-display-image]').forEach(function (box) {
+      box.addEventListener('click', function () {
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = function () {
+          if (!input.files || !input.files[0]) return;
+          var data = new FormData();
+          data.append('image', input.files[0]);
+          box.disabled = true;
+          fetch('/console/vehicles/' + box.getAttribute('data-pk') + '/display-image/', {
+            method: 'POST',
+            body: data,
+            credentials: 'same-origin',
+            headers: { 'X-CSRFToken': csrf },
+          }).then(function (r) { return r.json(); }).then(function (p) {
+            if (p.ok) { window.location.reload(); return; }
+            alert(p.message || 'تعذّر رفع صورة العرض.');
+          }).catch(function () {
+            alert('تعذّر رفع صورة العرض.');
+          }).finally(function () { box.disabled = false; });
+        };
+        input.click();
+      });
+    });
   })();
   </script>
+  <style>
+    /* الصورةُ صارت `button`: تُصفَّر زخرفةُ الزرّ لتبقى كما كانت بصرياً. */
+    button.veh-card__img{appearance:none;border:0;padding:0;inline-size:100%;
+      background:transparent;cursor:pointer;font:inherit;color:inherit;display:block}
+  </style>
   {% endif %}
 
   <div class="table-footer">
