@@ -39,70 +39,191 @@
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
 
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr>
-          <th>الدور</th>
-          <th>المعرّف</th>
-          <th>القدرات</th>
-          <th>كم مشرفاً يحمله</th>
-          <th>الإجراءات</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-          <tr>
-            <td>
-              {{ row.label }}
-              {% if row.built_in %}
-                {% comment %} المكتوب في الشيفرة يُوسَم: من يبحث عن زرّ التعديل
-                   ولا يجده يحتاج أن يعرف لماذا، لا أن يظنّ الشاشة معطّلة.
-                {% endcomment %}
-                <span class="pill" data-tone="ok">مكتوبٌ في الشيفرة</span>
-              {% endif %}
-              {% if row.reason %}<small class="empty">{{ row.reason }}</small>{% endif %}
-            </td>
-            <td><code>{{ row.slug }}</code></td>
-            <td class="count">
-              {{ row.count|unlocalize }}
-              {% comment %} الأسماء لا العدد وحده: «١٢ قدرة» رقمٌ لا يُراجَع،
-                 و«الأفعال المالية الإدارية» هو ما يُقرأ حين يُسأل «لماذا يرى
-                 هذا الشخص المال؟». {% endcomment %}
-              <details>
-                <summary>أيُّ القدرات؟</summary>
-                <ul>
-                  {% for name in row.capabilities %}<li>{{ name }}</li>{% endfor %}
-                </ul>
-              </details>
-            </td>
-            <td class="count">
-              {{ row.held|unlocalize }}
-              {% if row.held %}
-                <a href="{% url 'console:admins' %}?role={{ row.slug }}">من هم ←</a>
-              {% endif %}
-            </td>
-            <td class="row-actions">
-              {% if row.built_in %}
-                <span class="empty">لا يُعدَّل ولا يُحذف — مكتوبٌ في الشيفرة</span>
-              {% else %}
-                <button type="button"
-                        data-opens="roleCaps"
-                        data-slug="{{ row.slug }}"
-                        data-label="{{ row.label }}"
-                        data-held="{{ row.held|unlocalize }}"
-                        data-caps="{{ row.codes }}">إدارة الصلاحيات</button>
-                {% comment %} الحذفُ يُعرض دائماً وشاشتُه هي التي ترفض وتقول
-                   من يحمله: زرٌّ يختفي يجعل الموظّف يظنّ الشاشة معطّلة،
-                   وزرٌّ يُفتح على رفضٍ مسمّىً يُعلّمه القاعدة. {% endcomment %}
-                <a class="danger" href="{% url 'console:role-delete' row.slug %}">حذف</a>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div class="table-bar" style="margin-block-start: 1.5rem;">
+    <div class="table-bar__info">
+      <h2 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--ink);">
+        بطاقات الأدوار والصلاحيات <span class="pill pill--filter">{{ rows|length|unlocalize }}</span>
+      </h2>
+    </div>
+    <div class="table-bar__actions">
+      <button type="button" class="btn-primary-sm" data-opens="roleNew">+ إضافة دور جديد</button>
+    </div>
   </div>
+
+  <div class="role-cards-grid">
+    {% for row in rows %}
+      <article class="role-card {% if row.slug == 'owner' %}role-card--owner{% elif row.built_in %}role-card--builtin{% else %}role-card--custom{% endif %}">
+        <div>
+          <div class="role-card__head">
+            <div class="role-card__identity">
+              <div class="role-card__avatar">
+                {% if row.slug == 'owner' %}
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="inline-size:20px;block-size:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ crown_icon }}"/></svg>
+                {% elif row.slug == 'admin' %}
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="inline-size:20px;block-size:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ shield_icon }}"/></svg>
+                {% elif row.slug == 'support' %}
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="inline-size:20px;block-size:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ users_icon }}"/></svg>
+                {% else %}
+                  <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" style="inline-size:20px;block-size:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ layers_icon }}"/></svg>
+                {% endif %}
+              </div>
+              <div>
+                <h3 class="role-card__title">{{ row.label }}</h3>
+                <span class="role-card__slug"><code>{{ row.slug }}</code></span>
+              </div>
+            </div>
+
+            <div>
+              {% if row.built_in %}
+                <span class="pill" data-tone="ok" style="font-weight: 700;">مدمج بالنظام</span>
+              {% else %}
+                <span class="pill" data-tone="brand" style="font-weight: 700;">دور مخصص</span>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if row.reason %}
+            <div class="role-card__reason">
+              {{ row.reason }}
+            </div>
+          {% endif %}
+
+          <div class="role-card__metrics">
+            <div class="role-card__metric-box">
+              <span class="role-card__metric-label">المشرفون (حاملو الدور)</span>
+              <div class="role-card__metric-value">
+                {% if row.held %}
+                  <a href="{% url 'console:admins' %}?role={{ row.slug }}" class="role-stat-link" title="عرض المشرفين الذين يحملون هذا الدور">
+                    {{ row.held|unlocalize }} مشرفاً ←
+                  </a>
+                {% else %}
+                  <span style="color: var(--muted); font-size: .85rem; font-weight: 500;">لا يحمله أحد</span>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="role-card__metric-box">
+              <span class="role-card__metric-label">القدرات الصلاحية</span>
+              <div class="role-card__metric-value">
+                <span class="tnum">{{ row.count|unlocalize }}</span>
+                <span style="font-size: .78rem; font-weight: 600; color: var(--muted);">قدرة</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="role-card__caps-section">
+            <div class="role-card__caps-title">
+              <span>الصلاحيات الممنوحة:</span>
+              <span class="pill pill--count">{{ row.count|unlocalize }}</span>
+            </div>
+            <div class="role-card__caps-list">
+              {% for name in row.capabilities %}
+                <span class="cap-chip">{{ name }}</span>
+              {% empty %}
+                <span style="color: var(--muted); font-size: .8rem;">لا قدرات ممنوحة لهذا الدور</span>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="role-card__footer">
+          {% if row.built_in %}
+            <span class="role-card__lock-badge">
+              <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;color:var(--muted);"><path d="{{ lock_icon }}"/></svg>
+              دور نظام محمي (غير قابل للتعديل)
+            </span>
+            {% if row.held %}
+              <a href="{% url 'console:admins' %}?role={{ row.slug }}" class="btn-sm" title="عرض المشرفين الذين يحملون هذا الدور">
+                المشرفون
+              </a>
+            {% endif %}
+          {% else %}
+            <div class="role-card__actions">
+              <button type="button"
+                      class="btn-primary-sm"
+                      data-opens="roleCaps"
+                      data-slug="{{ row.slug }}"
+                      data-label="{{ row.label }}"
+                      data-held="{{ row.held|unlocalize }}"
+                      data-caps="{{ row.codes }}"
+                      title="إدارة وتعديل صلاحيات هذا الدور">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ pencil_icon }}"/></svg>
+                إدارة الصلاحيات
+              </button>
+              <a class="btn-danger-sm" href="{% url 'console:role-delete' row.slug %}" title="حذف هذا الدور">
+                <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ trash_icon }}"/></svg>
+                حذف
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+
+  <details class="staff-notes" style="margin-block-start: 2rem;">
+    <summary>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;color:var(--brand);"><path d="{{ shield_icon }}"/></svg>
+      <span>عرض جدول تفاصيل الصلاحيات والأدوار</span>
+    </summary>
+    <div class="staff-notes__body" style="padding: 1rem 0 0;">
+      <div class="scroller">
+        <table>
+          <thead>
+            <tr>
+              <th>الدور</th>
+              <th>المعرّف</th>
+              <th>القدرات</th>
+              <th>كم مشرفاً يحمله</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <strong>{{ row.label }}</strong>
+                  {% if row.built_in %}
+                    <span class="pill" data-tone="ok">مدمج بالنظام</span>
+                  {% endif %}
+                  {% if row.reason %}<small class="empty" style="display: block;">{{ row.reason }}</small>{% endif %}
+                </td>
+                <td><code>{{ row.slug }}</code></td>
+                <td class="count">
+                  {{ row.count|unlocalize }}
+                  <details>
+                    <summary>أيُّ القدرات؟</summary>
+                    <ul>
+                      {% for name in row.capabilities %}<li>{{ name }}</li>{% endfor %}
+                    </ul>
+                  </details>
+                </td>
+                <td class="count">
+                  {{ row.held|unlocalize }}
+                  {% if row.held %}
+                    <a href="{% url 'console:admins' %}?role={{ row.slug }}">من هم ←</a>
+                  {% endif %}
+                </td>
+                <td class="row-actions">
+                  {% if row.built_in %}
+                    <span class="empty">لا يُعدَّل ولا يُحذف — مكتوبٌ في الشيفرة</span>
+                  {% else %}
+                    <button type="button"
+                            data-opens="roleCaps"
+                            data-slug="{{ row.slug }}"
+                            data-label="{{ row.label }}"
+                            data-held="{{ row.held|unlocalize }}"
+                            data-caps="{{ row.codes }}">إدارة الصلاحيات</button>
+                    <a class="danger" href="{% url 'console:role-delete' row.slug %}">حذف</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </details>
 {% endblock %}
 
 {% block scripts %}

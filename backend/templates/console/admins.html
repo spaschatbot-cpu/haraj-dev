@@ -145,6 +145,11 @@
               <a href="{% url 'console:admin-password-reset' person.pk %}" class="act act--key" title="إعادة تعيين كلمة المرور للمشرف" aria-label="إعادة تعيين كلمة المرور للمشرف">
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.password }}"/></svg>
               </a>
+              {% if is_owner_user and not person.is_you and not person.is_owner %}
+                <a href="{% url 'console:admin-delete' person.pk %}" class="act act--del" title="حذف حساب المشرف نهائياً" aria-label="حذف حساب المشرف نهائياً">
+                  <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.delete }}"/></svg>
+                </a>
+              {% endif %}
             </td>
           </tr>
         {% empty %}
@@ -178,7 +183,7 @@
     </summary>
     <div class="staff-notes__body">
       <p>
-        <strong>سياسة عدم الحذف:</strong> حساب الموظف طرفٌ أساسي في كل قيد كتبه في سجل التدقيق المالي والإداري (<code>AuditLog</code>)، وحذف الحساب يؤدي لإتلاف سجلات التدقيق أو كسر القيود المرجعية. لذلك يتم إيقاف الوصول عبر <strong>التعطيل</strong> من صفحة التعديل، مع بقاء اسمه وسجلاته التاريخية محفوظة وموثقة.
+        <strong>صلاحيات الحذف والتعطيل:</strong> حذف حسابات المشرفين متاح لمالك النظام فقط مع حراسة حسابك الحالي وحسابات الملاك. كما يمكن إيقاف وصول أي حساب عبر <strong>التعطيل</strong> من صفحة التعديل مع بقاء اسمه وسجلاته التاريخية محفوظة وموثقة في سجل التدقيق (<code>AuditLog</code>).
       </p>
       <p>
         <strong>عمود «فوق دوره»:</strong> يوضح الاستثناءات المحددة لهذا الحساب: <strong>(+)</strong> قدرة ممنوحة إضافية فوق الدور الأساسي، أو <strong>(−)</strong> قدرة مسحوبة منه، مع توثيق سبب كل استثناء في صفحة الصلاحيات.

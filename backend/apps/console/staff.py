@@ -108,7 +108,47 @@ VIEWS = (("staff", "المشرفون"), ("roles", "الأدوار والصلاح
 #: يمسح `PAGES` و`PLANNED` وبطاقاتِ اللوحة وحدها — ورسمٌ تستعمله بطاقةُ شاشةٍ
 #: أخرى كان يُقرأ «بلا مستعمل» فيُحذف، ثم تُرسم الشاشة بفراغ. ويحرسها
 #: `test_every_card_icon_is_declared` فلا تفترق عمّا تبنيه الدالّة.
-CARD_ICONS = ("shield", "check", "lock", "key-refresh", "hourglass")
+CARD_ICONS = ("shield", "check", "lock", "key-refresh", "hourglass", "layers")
+
+
+def roles_tallies() -> list[Stat]:
+    """بطاقات رأس شاشة الأدوار والصلاحيات."""
+    all_roles = role_choices()
+    total_roles = len(all_roles)
+    built_in_count = sum(1 for slug, _ in all_roles if is_built_in(slug))
+    custom_count = total_roles - built_in_count
+    total_caps = len(Capability.choices)
+
+    return [
+        Stat(
+            label="إجمالي الأدوار",
+            value=f"{total_roles:,}",
+            detail="أدوار إدارية محددة الصلاحيات.",
+            tone="brand",
+            icon="shield",
+        ),
+        Stat(
+            label="أدوار النظام المدمجة",
+            value=f"{built_in_count:,}",
+            detail="أدوار أساسية محمية في الشيفرة.",
+            tone="plain",
+            icon="lock",
+        ),
+        Stat(
+            label="أدوار مخصصة",
+            value=f"{custom_count:,}",
+            detail="أدوار إضافية أنشئت في اللوحة.",
+            tone="auction" if custom_count else "plain",
+            icon="layers",
+        ),
+        Stat(
+            label="القدرات الصلاحية",
+            value=f"{total_caps:,}",
+            detail="إجمالي الصلاحيات القابلة للتوزيع.",
+            tone="ok",
+            icon="check",
+        ),
+    ]
 
 
 def staff_tallies() -> list[Stat]:
@@ -224,8 +264,7 @@ def admins(request):
             "role": request.GET.get("role", ""),
             "state": request.GET.get("state", ""),
             "roles": role_choices(),
-            # الرسمُ من `icons.py` لا محرف: `👑` يرسمه نظامُ التشغيل فيختلف
-            # بين الأجهزة، ويسقط إلى مربّعٍ فارغ حين لا يجده الخطّ.
+            "is_owner_user": is_owner_account(request.user) or request.user.is_superuser,
             "crown_icon": path_of("crown"),
             "help_icon": path_of("help"),
             "action_icons": {
@@ -233,6 +272,7 @@ def admins(request):
                 "grants": path_of("shield"),
                 "pages": path_of("layers"),
                 "password": path_of("key-refresh"),
+                "delete": path_of("trash"),
             },
             "views": VIEWS,
             "view": "staff",
@@ -273,10 +313,14 @@ def _roles_tab(request):
             "rows": role_table(),
             "views": VIEWS,
             "view": "roles",
-            "cards": staff_tallies(),
-            # قائمةُ القدرات كما هي في التعداد: النافذةُ ترسمها مرّةً، ولا
-            # تُكرَّر في كل صفّ — سبعةُ أدوارٍ × ثمانَ عشرةَ قدرة = مئةٌ
-            # وستّةٌ وعشرون مربّعاً مخفيّاً في كل تحميل.
+            "cards": roles_tallies(),
+            "crown_icon": path_of("crown"),
+            "shield_icon": path_of("shield"),
+            "lock_icon": path_of("lock"),
+            "pencil_icon": path_of("pencil"),
+            "trash_icon": path_of("trash"),
+            "layers_icon": path_of("layers"),
+            "users_icon": path_of("users"),
             "capability_choices": Capability.choices,
         },
     )
@@ -816,6 +860,75 @@ def admin_password_reset(request, pk: int):
         return redirect("console:admins")
 
     return render(request, "console/admin_password_reset.html", {"person": person})
+
+
+@console_page("console:admin-delete")
+def admin_delete(request, pk: int):
+    """احذف حساب مشرف من اللوحة — متاح للمالك فقط مع حراسة الحساب الحالي والمالك."""
+    is_owner = is_owner_account(request.user) or request.user.is_superuser
+    if not is_owner:
+        messages.error(request, "حذف حسابات المشرفين متاح لمالك النظام فقط.")
+        return redirect("console:admins")
+
+    person = get_object_or_404(User.objects.filter(is_staff=True), pk=pk)
+
+    is_self = person.pk == request.user.pk
+    is_target_owner = is_owner_account(person)
+    blocked = is_self or is_target_owner
+
+    if request.method == "POST":
+        if is_self:
+            messages.warning(request, "لا يمكن حذف حسابك الحالي.")
+            return redirect("console:admins")
+        if is_target_owner:
+            messages.warning(request, "لا يمكن حذف مالك النظام.")
+            return redirect("console:admins")
+
+        reason = (request.POST.get("reason") or "").strip()
+        role_title = role_label(person)
+        name = person.full_name
+        phone = person.phone
+
+        # قيد التدقيق قبل الحذف لتوثيق هوية المشرف المحذوف
+        audit.record(
+            action="console.delete_admin",
+            entity_type=User._meta.label_lower,
+            entity_id=person.pk,
+            actor=request.user,
+            before={
+                "phone": phone,
+                "full_name": name,
+                "role": role_title,
+                "is_active": person.is_active,
+            },
+            note=reason or f"حذف حساب المشرف {name} بواسطة {request.user.full_name}",
+        )
+
+        from apps.accounts.models import ConsoleRole, StaffGrant
+        from apps.core.models import AuditLog
+
+        # فك أي ارتباطات حماية تمنع الحذف في القاعدة
+        AuditLog.objects.filter(actor=person).update(actor=None)
+        StaffGrant.objects.filter(granted_by=person).update(granted_by=None)
+        ConsoleRole.objects.filter(created_by=person).update(created_by=None)
+
+        person.delete()
+        messages.success(request, f"تم حذف حساب المشرف «{name}» ({phone}) بنجاح.")
+        return redirect("console:admins")
+
+    return render(
+        request,
+        "console/admin_delete.html",
+        {
+            "person": person,
+            "is_self": is_self,
+            "is_target_owner": is_target_owner,
+            "blocked": blocked,
+            "role_name": role_label(person),
+            "trash_icon": path_of("trash"),
+            "shield_icon": path_of("shield"),
+        },
+    )
 
 
 @console_page("console:role-edit")

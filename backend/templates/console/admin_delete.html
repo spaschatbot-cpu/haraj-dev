@@ -1,0 +1,107 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+حذف حساب مشرف — متاح لمالك النظام فقط مع حراسات v1 (منع حذف النفس وحسابات الملاك).
+{% endcomment %}
+{% block title %}حذف حساب مشرف{% endblock %}
+{% block heading %}حذف حساب المشرف «{{ person.full_name }}»{% endblock %}
+
+{% block content %}
+  <div class="scroller" style="max-inline-size: 42rem; margin-block-end: 1.5rem;">
+    <table>
+      <tbody>
+        <tr>
+          <th style="inline-size: 10rem;">المشرف</th>
+          <td><strong>{{ person.full_name }}</strong></td>
+        </tr>
+        <tr>
+          <th>المعرّف</th>
+          <td><span class="code-font">#{{ person.pk|unlocalize }}</span></td>
+        </tr>
+        <tr>
+          <th>رقم التواصل</th>
+          <td><span class="code-font">{{ person.phone|unlocalize }}</span></td>
+        </tr>
+        <tr>
+          <th>الدور الإداري</th>
+          <td>
+            <span class="pill" {% if is_target_owner %}data-tone="gold"{% endif %}>
+              {{ role_name }}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <th>حالة الحساب</th>
+          <td>
+            {% if person.is_active %}
+              <span class="pill" data-tone="ok">مفعّل</span>
+            {% else %}
+              <span class="pill" data-tone="bad">معطّل</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>آخر دخول</th>
+          <td>
+            {% if person.last_login %}
+              <span class="tnum">{{ person.last_login|date:"Y-m-d H:i" }}</span>
+            {% else %}
+              <span class="pill" data-tone="warn">لم يدخل قطّ</span>
+            {% endif %}
+          </td>
+        </tr>
+        <tr>
+          <th>تاريخ التسجيل</th>
+          <td><span class="tnum">{{ person.date_joined|date:"Y-m-d" }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {% if blocked %}
+    <div class="alarm" style="max-inline-size: 42rem; margin-block-end: 1.5rem;">
+      <h3 style="margin: 0 0 .5rem; font-size: 1.05rem; font-weight: 800;">هذا الحساب محمي من الحذف</h3>
+      {% if is_self %}
+        <p style="margin: 0 0 .5rem;">
+          <strong>حسابك الحالي:</strong> لا يمكنك حذف حسابك الذي تسجل الدخول به الآن، تفادياً لخروجك المباشر من اللوحة وفقدان التحكم الإداري.
+        </p>
+      {% elif is_target_owner %}
+        <p style="margin: 0 0 .5rem;">
+          <strong>مالك النظام:</strong> لا يمكن حذف حسابات مالكي المنصة. إذا كان الموظف قد غادر العمل، يمكنك تعطيل حسابه من شاشة التعديل.
+        </p>
+      {% endif %}
+      <p style="margin: .75rem 0 0;">
+        <a href="{% url 'console:admin-edit' person.pk %}" class="btn-sm">الانتقال لتعديل أو تعطيل الحساب ←</a>
+      </p>
+    </div>
+  {% else %}
+    <div class="alarm" style="max-inline-size: 42rem; margin-block-end: 1.5rem; background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger);">
+      <h3 style="margin: 0 0 .5rem; font-size: 1.05rem; font-weight: 800; color: var(--danger);">تحذير: هذا الإجراء نهائي ولا يمكن التراجع عنه</h3>
+      <p style="margin: 0; font-size: .9rem; line-height: 1.5;">
+        سيتم إزالة حساب المشرف نهائياً وإلغاء كلمة مروره وصلاحياته من النظام.
+      </p>
+    </div>
+
+    <form method="post" class="form-card" style="max-inline-size: 42rem;">
+      {% csrf_token %}
+      <p>
+        <label for="why" style="font-weight: 700;">سبب الحذف (مطلوب لسجل التدقيق الإداري)</label>
+        <input id="why" type="text" name="reason" placeholder="اكتب سبب حذف هذا الحساب..." required style="inline-size: 100%; margin-block-start: .35rem;">
+        <small style="color: var(--muted); display: block; margin-block-start: .35rem;">
+          يُوثق سبب الحذف واسم منفّذ العملية في سجل التدقيق الإداري (<code>AuditLog</code>).
+        </small>
+      </p>
+      <div style="display: flex; gap: .75rem; align-items: center; margin-block-start: 1.25rem;">
+        <button type="submit" class="btn-danger-sm" style="padding: .55rem 1.25rem; font-size: .9rem;">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ trash_icon }}"/></svg>
+          تأكيد حذف المشرف نهائياً
+        </button>
+        <a href="{% url 'console:admins' %}" class="btn-sm" style="padding: .55rem 1rem; font-size: .9rem;">إلغاء</a>
+      </div>
+    </form>
+  {% endif %}
+
+  <p style="margin-block-start: 2rem;">
+    <a href="{% url 'console:admins' %}" style="font-weight: 600;">← عودة إلى قائمة المشرفين</a>
+  </p>
+{% endblock %}
