@@ -174,17 +174,26 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             "number",
             "title",
             "location",
+            "showcase",
             "starts_at",
             "ends_at",
+            "sms_reminder_at",
             "deposit_required",
+            "admin_fee",
         )
         labels = {
             "number": "رقم المزاد",
             "title": "العنوان",
             "location": "الموقع",
+            # `showcase` لا `state`: المزادُ يولد مسودّةً وينتقل بالخدمة، وهذا
+            # يقول كيف يُعرض قبل أن يبدأ (لاحقاً/قادم/قريباً) — لافتةٌ لا حالة.
+            "showcase": "طريقة العرض قبل البدء",
             "starts_at": "يبدأ",
             "ends_at": "ينتهي",
+            "sms_reminder_at": "موعد تذكير الرسائل (اختياري)",
             "deposit_required": "التأمين المطلوب",
+            # الرسمُ يُدفع ولا يُردّ، والتأمينُ يُحجَز ويُردّ — عمودان لا واحد.
+            "admin_fee": "الرسوم الإدارية",
         }
         error_messages = {
             "number": {"unique": "رقم المزاد مستعمل في مزاد آخر."},
@@ -192,12 +201,16 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
         field_classes = {
             "starts_at": DisplayDateTimeField,
             "ends_at": DisplayDateTimeField,
+            "sms_reminder_at": DisplayDateTimeField,
         }
         widgets = {
             "starts_at": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
             "ends_at": forms.DateTimeInput(
+                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+            ),
+            "sms_reminder_at": forms.DateTimeInput(
                 attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
             ),
         }

@@ -3166,26 +3166,41 @@ form.filters {
   display: grid;
   /* أعمدةٌ أضيق (8rem): ثمانُ خاناتٍ في صفٍّ واحد على الشاشة العريضة، لا
      ستٌّ وسطرٌ ناقص. وحقلُ الرقم لا يحتاج عرضَ حقلِ الاسم. */
-  /* عرضٌ ثابتٌ متساوٍ، لا `1fr` يمطّط: الحقولُ تأخذ حجمها المريح والفراغُ
-     الزائد يقع على الطرف، فلا تتلاصق حوافُّها حين تملأ العرض. */
-  grid-template-columns: repeat(auto-fit, 10rem);
-  justify-content: start;
-  gap: .5rem .9rem;
+  /* flexٌ يلفّ لا شبكة: الحقولُ بعرضٍ ثابتٍ صغير، والزرُّ **جنبها** في الطرف
+     بعرض محتواه — لا في صفٍّ وحده. والعرضُ الثابت يمنع التمطيط على الشاشة
+     العريضة، فتبقى صغيرةً كما طلب المالك، والفراغُ الزائد على الطرف. */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  column-gap: 1.1rem;
+  row-gap: .7rem;
   align-items: center;
 }
-@media (max-width: 640px) {
-  .filters__grid { grid-template-columns: 1fr 1fr; }
-}
-.filters__grid input[type="search"] {
-  inline-size: 100%;
-  min-inline-size: 0;
-  block-size: 1.9rem;
-  padding-inline: .6rem;
-  font-size: .8rem;
+/* الخصوصيةُ عاليةٌ عمداً: قاعدةٌ عامّة `form[method="get"] input[type="search"]`
+   تفرض `min-inline-size: 12rem` و`flex: 1 1 14rem`، فالحقلُ كان يطفح خارج
+   خانته إلى 192 بكسل مهما ضاقت الشبكة. فنبطل الحدّ الأدنى والـflex هنا. */
+.filters .filters__grid input[type="search"],
+form[method="get"] .filters__grid input[type="search"] {
+  flex: 0 0 8rem;
+  inline-size: 8rem;
+  min-inline-size: 8rem;
+  max-inline-size: 8rem;
+  block-size: 1.85rem;
+  padding-inline: .55rem;
+  font-size: .78rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
 }
+/* الزرُّ جنب الحقول بعرض محتواه، لا خانةً في الصفّ. */
+.filters__search {
+  flex: 0 0 auto;
+  margin: 0;
+  block-size: 1.85rem;
+  padding-inline: 1.3rem;
+  font-size: .8rem;
+}
+.filters .filters__grid .filters__reset { flex: 0 0 auto; margin: 0; }
 .filters__actions {
   inline-size: 100%;
   display: flex;
@@ -3727,4 +3742,58 @@ form.filters {
   padding: .4rem 1rem;
   color: var(--ink-soft);
   cursor: pointer;
+}
+
+/* ---- استمارةُ المزاد المقسّمة (T870) --------------------------------- */
+.auction-form { max-inline-size: 46rem; }
+.form-section {
+  margin-block-end: 1.4rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+}
+.form-section__title {
+  margin: 0 0 .9rem;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+  padding-block-end: .5rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: .9rem 1.1rem;
+}
+.form-grid .field { display: flex; flex-direction: column; gap: .3rem; }
+.form-grid .field--wide { grid-column: 1 / -1; }
+.form-grid .field label { font-size: .84rem; font-weight: 700; color: var(--ink-soft); }
+.form-grid .field input,
+.form-grid .field select {
+  inline-size: 100%;
+  block-size: 2.3rem;
+  padding-inline: .65rem;
+  font-size: .88rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--ink);
+}
+.form-grid .field select { block-size: 2.4rem; }
+.form-grid .field--error input,
+.form-grid .field--error select { border-color: var(--danger); }
+.field__hint { font-size: .76rem; color: var(--muted); }
+.field__error { font-size: .78rem; color: var(--danger); }
+.form-actions { display: flex; align-items: center; gap: .8rem; }
+.btn-cancel {
+  padding: .5rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.btn-cancel:hover { background: var(--raised); }
+@media (max-width: 560px) {
+  .form-grid { grid-template-columns: 1fr; }
 }

@@ -554,7 +554,11 @@ def _save(request, form, *, action: str, fields: list[str], instance=None):
     return saved
 
 
-AUCTION_FIELDS = ["number", "title", "starts_at", "ends_at", "deposit_required"]
+AUCTION_FIELDS = [
+    "number", "title", "location", "showcase",
+    "starts_at", "ends_at", "sms_reminder_at",
+    "deposit_required", "admin_fee",
+]
 
 #: ما تكتبه نافذةُ التعديل — هويّةُ المزاد وحدها. T859.
 #:

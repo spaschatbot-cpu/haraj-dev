@@ -1,23 +1,81 @@
 {% extends "console/base.html" %}
 {% block title %}{% if auction %}تعديل مزاد{% else %}مزاد جديد{% endif %}{% endblock %}
 {% block heading %}
-  {% if auction %}تعديل المزاد {{ auction.number }}{% else %}مزاد جديد{% endif %}
+  {% if auction %}تعديل المزاد {{ auction.number|unlocalize }}{% else %}مزاد جديد{% endif %}
 {% endblock %}
 
 {% block content %}
+{% load l10n %}
   {% comment %}
-  The state is deliberately absent from this form. An auction moves through
-  `apps.auctions.services`, whose guards refuse — among other things —
-  scheduling one that has no cars in it.
+  استمارةٌ مقسّمةٌ إلى أقسامٍ يقرؤها الموظّف كما يفكّر: مَن ومتى وبكم. وهي
+  نفسُها للإضافة والتعديل — كلُّ حقلٍ يُرسَم إن كان في الفورم وحده، فنافذةُ
+  التعديل (`AuctionIdentityForm`، ثلاثةُ حقول) ترسم قسمَ الهويّة وتتخطّى
+  الباقي بلا فرعٍ ثانٍ في القالب.
+
+  والحالةُ ليست حقلاً عمداً: المزادُ يولد مسودّةً وينتقل عبر
+  `apps.auctions.services` وحده، وبوّابتُه ترفض — من بين أشياء — جدولةَ مزادٍ
+  بلا سيارات. وطريقةُ العرض (`showcase`) لافتةٌ لا حالة، فتظهر هنا.
   {% endcomment %}
-  <form method="post">
+
+  {% if form.non_field_errors %}
+    <div class="notice notice--error">
+      {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="auction-form">
     {% csrf_token %}
-    {% include "console/_form.html" %}
-    <button type="submit">حفظ</button>
-    {% if auction %}
-      <a href="{% url 'console:auction-detail' auction.pk %}">إلغاء</a>
-    {% else %}
-      <a href="{% url 'console:auctions' %}">إلغاء</a>
+
+    <section class="form-section">
+      <h2 class="form-section__title">هويّة المزاد</h2>
+      <div class="form-grid">
+        {% include "console/_field.html" with field=form.number %}
+        {% include "console/_field.html" with field=form.title wide=True %}
+        {% include "console/_field.html" with field=form.location wide=True %}
+      </div>
+    </section>
+
+    {% if form.starts_at or form.showcase %}
+      <section class="form-section">
+        <h2 class="form-section__title">التوقيت والعرض</h2>
+        <div class="form-grid">
+          {% include "console/_field.html" with field=form.starts_at %}
+          {% include "console/_field.html" with field=form.ends_at %}
+          {% include "console/_field.html" with field=form.showcase wide=True %}
+          {% include "console/_field.html" with field=form.sms_reminder_at wide=True %}
+        </div>
+      </section>
     {% endif %}
+
+    {% if form.deposit_required %}
+      <section class="form-section">
+        <h2 class="form-section__title">المال</h2>
+        {% comment %} التأمينُ يُحجَز ويُردّ، والرسمُ يُدفَع ولا يُردّ — عمودان
+           لا واحد، ومكتوبٌ تحت كلٍّ ما هو، فلا يُخلَطان يوم يُردّ التأمين. {% endcomment %}
+        <div class="form-grid">
+          {% include "console/_field.html" with field=form.deposit_required hint="يُحجَز على المزايد ويُردّ إن لم يفز" %}
+          {% include "console/_field.html" with field=form.admin_fee hint="يُدفَع ولا يُردّ" %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if form.reason %}
+      <section class="form-section">
+        <div class="form-grid">
+          {% include "console/_field.html" with field=form.reason wide=True %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">حفظ</button>
+      {% if auction %}
+        <a href="{% url 'console:auction-detail' auction.pk %}" class="btn-cancel">إلغاء</a>
+      {% else %}
+        <a href="{% url 'console:auctions' %}" class="btn-cancel">إلغاء</a>
+      {% endif %}
+    </div>
   </form>
 {% endblock %}
