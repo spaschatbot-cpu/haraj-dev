@@ -35,6 +35,7 @@ from . import (
     refunds,
     staff,
     vehicle_bulk,
+    vehicle_images,
     wallet,
 )
 from . import (
@@ -167,6 +168,12 @@ urlpatterns = [
         name="vehicles-import-errors",
     ),
     path("vehicles/<int:pk>/edit/", auctions.vehicle_edit, name="vehicle-edit"),
+    # معرضُ صور المركبة — يُفتح من عمود «الصور» في صفّ المزاد. T866
+    path(
+        "vehicles/<int:pk>/images/",
+        vehicle_images.gallery,
+        name="vehicle-images",
+    ),
     path("vehicles/<int:pk>/", auctions.vehicle_detail, name="vehicle-detail"),
     path("vehicles/<int:pk>/state/", auctions.vehicle_state, name="vehicle-state"),
     path(

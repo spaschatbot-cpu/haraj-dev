@@ -60,8 +60,10 @@ __all__ = [
     "reject",
     "release",
     "relist",
+    "remove_image",
     "schedule",
     "send_to_owner",
+    "set_cover",
     "settle",
     "unschedule",
     "visible_vehicles",
@@ -308,6 +310,59 @@ def add_image(vehicle: Vehicle, file, *, position: int = 0, cover: bool = False)
         image.save(update_fields=[tier.field for tier in TIERS])
 
     return image
+
+
+def set_cover(image: VehicleImage) -> VehicleImage:
+    """اجعل صورةً **قائمة** غلافَ مركبتها. T866.
+
+    `add_image(cover=True)` يرفع صورةً جديدة ويجعلها الغلاف، وهو الباب الوحيد
+    الذي كان موجوداً — فمن أراد غلافاً آخر من صورٍ مرفوعةٍ أصلاً لم يكن أمامه
+    إلا رفعُ نسخةٍ ثانيةٍ من الصورة نفسها. وهذا ما يفعله v1 حرفياً
+    (`setDisplayImage`, AuctionController.php:4637): يُدخل صفّاً جديداً بالبايتات
+    نفسها ويرفع عليه `is_primary`، فتظهر الصورة مرّتين في المعرض.
+
+    و`is_cover` ليس عموداً حرّاً: عليه `UniqueConstraint` بشرط `is_cover=True`
+    لكل مركبة (`models.py`). فإنزالُ القديم ورفعُ الجديد فعلٌ **واحد** في
+    معاملةٍ واحدة — ولو انفصلا لسقطت الكتابةُ الثانية على القيد وبقيت المركبة
+    بلا غلافٍ إطلاقاً.
+    """
+    with transaction.atomic():
+        VehicleImage.objects.filter(vehicle=image.vehicle, is_cover=True).exclude(
+            pk=image.pk
+        ).update(is_cover=False)
+        if not image.is_cover:
+            image.is_cover = True
+            image.save(update_fields=["is_cover"])
+    return image
+
+
+def remove_image(image: VehicleImage) -> Vehicle:
+    """احذف صورةً من معرض مركبتها، ورقِّ غيرها إن كانت هي الغلاف. T866.
+
+    **الترقية ليست لطفاً بالمستخدم.** بطاقةُ السيارة عند العميل تقرأ الغلاف
+    وحده (`cards._cover`), فمركبةٌ لها عشرُ صورٍ وحُذف غلافُها تصير بطاقةً
+    بلا صورة — والصورُ التسع موجودة. فالوارثُ أوّلُ الباقي بـ`position` ثم
+    `pk`: ترتيبُ المعرض نفسه، فلا يفاجأ من يحذف بغلافٍ جاء من آخر القائمة.
+
+    **والبايتات على القرص لا تُمسّ** — كما في v1 (`deleteVehicleImage`,
+    AuctionController.php:4578: حذفُ صفٍّ بلا `unlink`). حذفُ الملفّ من هنا
+    يعني أن نسخةً احتياطيةً استُرجعت أو صفّاً أُعيد إدراجه يجد فراغاً، وتنظيفُ
+    الأيتام مهمّةٌ دوريّةٌ تُقارن بالقرص — لا أثرٌ جانبيٌّ لضغطةِ زرّ.
+    """
+    vehicle = image.vehicle
+    was_cover = image.is_cover
+    with transaction.atomic():
+        image.delete()
+        if was_cover:
+            heir = (
+                VehicleImage.objects.filter(vehicle=vehicle)
+                .order_by("position", "pk")
+                .first()
+            )
+            if heir is not None:
+                heir.is_cover = True
+                heir.save(update_fields=["is_cover"])
+    return vehicle
 
 
 def cascade_auction_vehicles(auction: Auction, old_status: str, new_status: str) -> int:

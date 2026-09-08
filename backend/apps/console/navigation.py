@@ -827,6 +827,16 @@ DETAIL_PAGES: tuple[Page, ...] = (
         "",
         parent="console:vehicles",
     ),
+    # معرضُ الصور محروسٌ بـMANAGE لا VIEW: الشاشةُ نفسها ترفع وتحذف وتعيّن
+    # غلافاً، وحارسٌ يفتحها لمن يملك العرض وحده يعني ثلاثةَ أفعالٍ يقف
+    # دونها فحصٌ ثانٍ في الـview — وهو الموضع الثاني الذي يفترق (T801).
+    Page(
+        "console:vehicle-images",
+        "صور المركبة",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:vehicles",
+    ),
     # Downloads, not pages: a sidebar entry that starts a file download is a
     # link an operator clicks by accident.
     Page(
