@@ -117,6 +117,7 @@ lint-rules:
     uv run python ../ops/checks/no_task_number_twice.py
     uv run python ../ops/checks/console_money_is_shown_raw.py
     uv run python ../ops/checks/row_export_is_the_row.py
+    uv run python ../ops/checks/one_writer_per_field.py
 
 # Rewrite what ruff can rewrite. CI never runs this — CI only ever checks.
 fmt: _fix _format

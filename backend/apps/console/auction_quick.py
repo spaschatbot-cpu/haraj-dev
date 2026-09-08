@@ -62,6 +62,18 @@ RETURN_TO = {
 }
 
 
+#: ما يُقال حين تنقص المزادَ نافذتُه الزمنية — ويدلّ على مالكها لا على نفسه.
+_NEEDS_WINDOW = (
+    "هذه الحالة تحتاج موعد بداية ونهاية، والمزاد بلا موعد. "
+    "اضبطه أوّلاً من «إعادة الجدولة» ثم أعد المحاولة."
+)
+
+#: ونافذةٌ مقلوبة تُقال بالكلمات نفسها، وتُصلَّح في المكان نفسه.
+_BAD_WINDOW = (
+    "وقت النهاية يجب أن يكون بعد وقت البداية — صحّحه من «إعادة الجدولة»."
+)
+
+
 def _back(request, auction: Auction):
     where = RETURN_TO.get(request.POST.get("back", ""), "console:auctions")
     if where == "console:auction-detail":
@@ -136,59 +148,50 @@ def auction_showcase(request, pk: int):
     old_badge = engine.badge_of(auction)
     now = timezone.now()
 
-    # قواعد مطابقة v1 (T849):
+    # **ولا موعدَ يُقرأ من الطلب.** كانت هذه النافذة تقبل `starts_at` و
+    # `ends_at`، فصار للساعة كاتبان على الشاشة الواحدة — هذه و«إعادة
+    # الجدولة» — بقاعدتين مختلفتين: تلك تتحقّق من النافذة وتمسح مزايدات ما
+    # لم يُبَع إن طُلب، وهذه كانت تكتب التاريخ نفسه بلا شيء من ذلك.
+    #
+    # فالساعةُ تُقرأ هنا ولا تُكتب: ما تحتاجه الحالةُ من موعدٍ يجب أن يكون
+    # مضبوطاً **قبل** فتح هذه النافذة، ومزادٌ ينقصه موعدٌ يُرَدُّ برسالةٍ
+    # تدلّ على النافذة التي تملكه. T859
+    #
+    # ويبقى استثناءان، وكلاهما **اشتقاقٌ لا إدخال**: «نشط» بلا بدايةٍ يبدأ
+    # الآن، و«منتهٍ» ينتهي الآن. لا يكتبهما الموظّف بيده، بل يلزمان من معنى
+    # النقلة نفسها — ومزادٌ «نشط» بلا وقت بدءٍ ليس حالةً يمكن تمثيلها.
     if badge == "later":
         # لاحقاً: إخفاء المزاد عن العملاء
         pass
     elif badge == "upcoming":
-        # قادم: وقت البداية اختياري
-        starts = (request.POST.get("starts_at") or "").strip()
-        if starts:
-            try:
-                auction.starts_at = _moment(starts)
-            except ValidationError:
-                messages.error(request, "صيغة التاريخ غير مفهومة.")
-                return _back(request, auction)
+        # قادم: يُعلَن بلا عدّاد، فلا يشترط موعداً.
+        pass
     elif badge == "soon":
-        problem = _read_window(request, auction)
-        if problem:
-            messages.error(request, problem)
+        if auction.starts_at is None or auction.ends_at is None:
+            messages.error(request, _NEEDS_WINDOW)
+            return _back(request, auction)
+        if not engine.window_is_valid(auction):
+            messages.error(request, _BAD_WINDOW)
             return _back(request, auction)
         # ساعةُ المزاد تُقرأ من المحرّك وحده (`one_auction_clock`): «قريباً»
         # تشترط أن يكون وقتُ البدء لم يحن بعد.
         if engine.has_started(auction, now=now):
-            messages.error(request, 'حالة "قريباً" تتطلب وقت بداية في المستقبل.')
+            messages.error(
+                request,
+                'حالة "قريباً" تتطلب وقت بداية في المستقبل — '
+                "غيّره من «إعادة الجدولة».",
+            )
             return _back(request, auction)
     elif badge == "active":
-        starts = (request.POST.get("starts_at") or "").strip()
-        if starts:
-            try:
-                auction.starts_at = _moment(starts)
-            except ValidationError:
-                messages.error(request, "صيغة التاريخ غير مفهومة.")
-                return _back(request, auction)
-        else:
+        if auction.ends_at is None:
+            messages.error(request, _NEEDS_WINDOW)
+            return _back(request, auction)
+        if auction.starts_at is None:
             auction.starts_at = now
-        ends = (request.POST.get("ends_at") or "").strip()
-        if not ends:
-            messages.error(request, 'حالة "نشط" تتطلب وقت نهاية صالح.')
-            return _back(request, auction)
-        try:
-            auction.ends_at = _moment(ends)
-        except ValidationError:
-            messages.error(request, "صيغة التاريخ غير مفهومة.")
-            return _back(request, auction)
         if not engine.window_is_valid(auction):
-            messages.error(request, "وقت النهاية يجب أن يكون بعد وقت البداية.")
+            messages.error(request, _BAD_WINDOW)
             return _back(request, auction)
     elif badge == "ended":
-        ends = (request.POST.get("ends_at") or "").strip()
-        if ends:
-            try:
-                auction.ends_at = _moment(ends)
-            except ValidationError:
-                messages.error(request, "صيغة التاريخ غير مفهومة.")
-                return _back(request, auction)
         # القراءةُ من المحرّك (`one_auction_clock`): «منتهٍ» يُثبِّت النهاية
         # على الآن إن غابت أو كانت ما زالت في المستقبل.
         if auction.ends_at is None or not engine.has_finished(auction, now=now):

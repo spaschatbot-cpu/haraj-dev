@@ -38,7 +38,7 @@ from apps.core.permissions import Capability, can
 
 from . import icons
 from .exports import export, wants_export
-from .forms import AuctionForm, VehicleForm
+from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
 from .views import console_page
 
@@ -229,7 +229,7 @@ def auctions(request):
     # حسبةٌ ثانية هنا كانت ستُنتج ختماً لا يطابق ما يفحصه الحفظ، فيُرفض كلُّ
     # حفظٍ صحيح.
     for row in page.object_list:
-        row.row_stamp = AuctionForm(instance=row).initial.get("row_stamp", "")
+        row.row_stamp = AuctionIdentityForm(instance=row).initial.get("row_stamp", "")
     for row in page.object_list:
         row.phase_tone = tone_of_phase(row.phase)
         # البادج بمفردات v1 الخمس، محسوباً من الحالة والساعة واللافتة.
@@ -519,6 +519,13 @@ def _save(request, form, *, action: str, fields: list[str], instance=None):
 
 
 AUCTION_FIELDS = ["number", "title", "starts_at", "ends_at", "deposit_required"]
+
+#: ما تكتبه نافذةُ التعديل — هويّةُ المزاد وحدها. T859.
+#:
+#: الموعدُ تملكه «إعادة الجدولة» والتأمينُ تملكه «الرسوم»، وكانت هذه الاستمارة
+#: تكتبهما أيضاً بقواعدَ أخفّ — فمن عدّل الموعد من هنا تخطّى التحقّق من النافذة
+#: وتخطّى مسحَ مزايدات ما لم يُبَع. والقسمة الآن: لكلّ حقلٍ كاتبٌ واحد.
+AUCTION_IDENTITY_FIELDS = ["number", "title", "location"]
 VEHICLE_FIELDS = [
     "auction_id",
     "lot_number",
@@ -568,7 +575,7 @@ def auction_edit(request, pk: int):
     `messages` لأن النافذةَ لا تحمل أخطاءَ حقلٍ بجانب حقلها.
     """
     auction = get_object_or_404(Auction.objects.all(), pk=pk)
-    form = AuctionForm(request.POST or None, instance=auction)
+    form = AuctionIdentityForm(request.POST or None, instance=auction)
     from_list = request.POST.get("back") == "list"
 
     if request.method == "POST":
@@ -576,7 +583,7 @@ def auction_edit(request, pk: int):
             request,
             form,
             action="console.edit_auction",
-            fields=AUCTION_FIELDS,
+            fields=AUCTION_IDENTITY_FIELDS,
             instance=Auction.objects.get(pk=pk),
         )
         if saved is not None:

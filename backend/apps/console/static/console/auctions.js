@@ -97,8 +97,10 @@
 
     var editing = hit("[data-open-edit]");
     if (editing) {
+      /* هويّةُ المزاد وحدها — لا موعدَ ولا تأمين. لكلٍّ منهما نافذتُه
+         التي تملكه، وثلاثُ نوافذَ تكتب حقلاً واحداً هو اللغط بعينه. T859 */
       openWith(document.getElementById("editModal"), editing,
-               ["num", "title", "location", "starts", "ends", "deposit", "stamp"]);
+               ["num", "title", "location", "stamp"]);
       return;
     }
 

@@ -285,9 +285,6 @@ have to undo one in their head.
                         data-num="{{ auction.number|unlocalize }}"
                         data-title="{{ auction.title }}"
                         data-location="{{ auction.location }}"
-                        data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
-                        data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
-                        data-deposit="{{ auction.deposit_required|unlocalize }}"
                         data-stamp="{{ auction.row_stamp }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </button>
@@ -378,22 +375,22 @@ have to undo one in their head.
       </p>
 
       {% comment %}
-      حقول الموعد تظهر لـ«قريباً» و«نشط» وحدهما — «قريباً» عدّادٌ بلا موعدٍ
-      لا معنى له، و«نشط» نقلةٌ تشترط أن يكون وقت البدء قد حلّ.
+      ولا حقلَ موعدٍ هنا — **وهذا هو التغيير**. كانت النافذة تحمل حقلَي البدء
+      والنهاية، فصار للساعة كاتبان على الشاشة الواحدة: هذه و«إعادة الجدولة».
+      وليسا متساويين: تلك تتحقّق من النافذة الزمنية وتمسح مزايدات ما لم يُبَع
+      إن طُلب، وهذه كانت تكتب التاريخ نفسه بلا شيء من ذلك.
+
+      فالساعةُ لنافذةٍ واحدة، وهذه تقرؤها ولا تكتبها: «قريباً» و«نشط» تشترطان
+      موعداً صالحاً، ومزادٌ بلا موعدٍ يُرَدُّ برسالةٍ تدلّ على «إعادة الجدولة»
+      بدل أن يُفتح له بابٌ ثانٍ إلى الحقل نفسه. T859
       {% endcomment %}
-      <div data-when-timed hidden>
-        <p>
-          <label for="statusStarts">وقت البداية (بتوقيت الرياض)</label>
-          <input id="statusStarts" type="datetime-local" name="starts_at" data-starts>
-        </p>
-        <p>
-          <label for="statusEnds">وقت النهاية (بتوقيت الرياض)</label>
-          <input id="statusEnds" type="datetime-local" name="ends_at" data-ends>
-        </p>
-      </div>
+      <p class="hint" data-when-timed hidden>
+        «قريباً» و«نشط» تحتاجان موعداً مضبوطاً. الموعد يُغيَّر من نافذة
+        <strong>إعادة الجدولة</strong> — هي التي تملكه.
+      </p>
       <p class="count" data-when-untimed hidden>
         «لاحقاً» يُخفي المزاد عن العملاء، و«قادم» يُعلنه بلا عدّاد — ولا
-        يحتاجان تعديل الموعد.
+        يحتاجان موعداً.
       </p>
 
       <p>
@@ -512,17 +509,17 @@ have to undo one in their head.
         <label for="edLocation">الموقع</label>
         <input id="edLocation" type="text" name="location" data-location>
       </p>
-      <p>
-        <label for="edStarts">يبدأ (بتوقيت الرياض)</label>
-        <input id="edStarts" type="datetime-local" name="starts_at" data-starts required>
-      </p>
-      <p>
-        <label for="edEnds">ينتهي (بتوقيت الرياض)</label>
-        <input id="edEnds" type="datetime-local" name="ends_at" data-ends required>
-      </p>
-      <p>
-        <label for="edDeposit">التأمين المطلوب — ريال</label>
-        <input id="edDeposit" type="text" inputmode="decimal" name="deposit_required" data-deposit required>
+      {% comment %}
+      ولا موعدَ هنا ولا تأمين. كانا حقلين في هذه النافذة أيضاً، فصار للموعد
+      **ثلاثةُ كتّاب** على الشاشة الواحدة (هذه، و«تغيير الحالة»، و«إعادة
+      الجدولة») وللتأمين **اثنان** (هذه و«الرسوم») — وليست نسخاً متطابقة:
+      «إعادة الجدولة» تتحقّق من النافذة وتمسح مزايدات ما لم يُبَع إن طُلب،
+      وهذه كانت تكتب التاريخ نفسه بلا شيء من ذلك. فمن غيّر الموعد من النافذة
+      الخطأ حصل على أثرٍ آخر، والشاشة صامتة.
+      {% endcomment %}
+      <p class="hint">
+        الموعد يُغيَّر من <strong>إعادة الجدولة</strong>، والتأمين والرسوم من
+        <strong>الرسوم والتأمين</strong> — لكلٍّ نافذتُه وقواعدُه.
       </p>
       <p>
         <label for="edReason">سبب التعديل</label>
