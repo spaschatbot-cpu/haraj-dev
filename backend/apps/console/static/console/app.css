@@ -3801,3 +3801,33 @@ form[method="get"] .filters__grid input[type="search"] {
 @media (max-width: 560px) {
   .form-grid { grid-template-columns: 1fr; }
 }
+
+/* ==== شريطُ التمرير وخاناتُ الاختيار — ثيمُ اللوحة في النظام كلّه (T871) ==== */
+
+/* شريطُ التمرير: رفيعٌ بلون الثيم لا الأسودُ العريض الافتراضيّ. يُطبَّق على
+   كل ما يُمرَّر في اللوحة — الجداول، والنوافذ، والقوائم — مصدرٌ واحد. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+::-webkit-scrollbar { inline-size: 10px; block-size: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--brand); background-clip: padding-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+/* خاناتُ الاختيار: مربّعٌ بلون الثيم يمتلئ بالعلامة عند التحديد، لا المربّعُ
+   الرماديُّ الافتراضيّ المختلفُ بين المتصفّحات. `accent-color` سطرٌ واحدٌ
+   يلوّنها في كل متصفّحٍ حديث ويبقي سلوكَها الأصليّ (تركيزٌ، لوحةُ مفاتيح). */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  cursor: pointer;
+}

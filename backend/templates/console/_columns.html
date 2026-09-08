@@ -70,14 +70,22 @@
       method: 'POST',
       body: new FormData(form),
       credentials: 'same-origin',
-    }).then(function () {
+    }).then(function (r) {
+      if (!r.ok) { form.submit(); return; }
       modal.close();
-      // URLٌ بمُعامِلٍ فريدٍ لا `reload`: بعضُ المتصفّحات تخدم `reload` من
-      // bfcache رغم `no-store`، فتبقى الأعمدةُ كما كانت. عنوانٌ لم يُزَر من
-      // قبل يُجلَب حتماً، ويحافظ على فلاتر الجدول القائمة.
-      var u = new URL(window.location.href);
-      u.searchParams.set('_c', Date.now());
-      window.location.href = u.toString();
+      // **يُطبَّق على الجدول في مكانه، لا بإعادة تحميل**: الحفظُ في القاعدة
+      // نجح (للثبات عبر الأجهزة)، لكن الاعتمادَ على `reload` كان يفشل — بعض
+      // المتصفّحات تخدمه من bfcache رغم `no-store`، فيبدو أن شيئاً لم يقع.
+      // فنُخفي ونُظهر الأعمدةَ من حالة الخانات مباشرةً — أثرٌ فوريٌّ لا يمرّ
+      // بالشبكة ولا بالكاش.
+      var wanted = {};
+      modal.querySelectorAll('[data-col-row] input[type="checkbox"]').forEach(function (cb) {
+        wanted[cb.value] = cb.checked;
+      });
+      document.querySelectorAll('table [data-col]').forEach(function (cell) {
+        var key = cell.getAttribute('data-col');
+        if (key in wanted) { cell.hidden = !wanted[key]; }
+      });
     }).catch(function () {
       // لو فشل الطلب، دع الاستمارة ترسل نفسها كما كانت — لا نبتلع الخطأ.
       form.submit();
