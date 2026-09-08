@@ -483,6 +483,9 @@ ODOO_DB = env("ODOO_DB", default="")
 ODOO_USERNAME = env("ODOO_USERNAME", default="")
 ODOO_API_KEY = env("ODOO_API_KEY", default="")
 ODOO_WEBHOOK_SECRET = env("ODOO_WEBHOOK_SECRET", default="")
+#: أطفئ التحقّق من TLS في التطوير فقط (شهادةُ أجهزة التطوير قديمة غالباً، كـ v1).
+#: يبقى `False` في الإنتاج — التحقّقُ قائم.
+ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
 
 # ---------------------------------------------------------------------------
 # v1 — read only, and empty by default (phase 004)

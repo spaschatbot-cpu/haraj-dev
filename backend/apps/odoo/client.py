@@ -14,6 +14,7 @@ Two rules hold this module together:
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 import requests
 from django.conf import settings
@@ -39,6 +40,29 @@ class OdooUnreachable(RuntimeError):
     """
 
 
+def _bearer() -> str:
+    """ترويسةُ المصادقة كما يبنيها v1: التوكن مسبوقاً بـ«Bearer ».
+
+    التوكنُ في `settings.ODOO_API_KEY` (يضعه المشغّل في `.env`، سرٌّ لا يُودَع
+    في الكود). إن حمل «Bearer » أصلاً تُركت، وإلا أُضيفت — فيقبل الإعدادُ
+    الصيغتين كما يفعل v1.
+    """
+    token = (settings.ODOO_API_KEY or "").strip()
+    if token and not token.lower().startswith("bearer "):
+        token = f"Bearer {token}"
+    return token
+
+
+def _tls_verify():
+    """كيف يُتحقَّق من TLS: شهادةُ `tools/cacert.pem` إن وُجدت، أو إطفاءٌ صريح
+    في التطوير عبر `ODOO_INSECURE_TLS` (كـ v1 — الشهادةُ على أجهزة التطوير قديمة
+    غالباً). في الإنتاج يبقى التحقّقُ قائماً."""
+    if getattr(settings, "ODOO_INSECURE_TLS", False):
+        return False
+    ca = Path(settings.BASE_DIR) / "tools" / "cacert.pem"
+    return str(ca) if ca.is_file() else True
+
+
 def call(endpoint: str, payload: dict, *, reference: str) -> dict:
     """POST to Odoo, carrying a reference they treat as unique."""
     if not settings.ODOO_ENABLED:
@@ -51,8 +75,16 @@ def call(endpoint: str, payload: dict, *, reference: str) -> dict:
         response = requests.post(
             url,
             json={**payload, "reference": reference},
-            headers={"X-Api-Key": settings.ODOO_API_KEY},
-            timeout=TIMEOUT_SECONDS,
+            headers={
+                "Content-Type": "application/json",
+                # عقدُ أودو الحقيقيّ (كما في v1): مصادقةُ Bearer لا `X-Api-Key`.
+                # يُضاف «Bearer » إن لم يكن التوكن يحملها أصلاً.
+                "Authorization": _bearer(),
+            },
+            # مهلتان كـ v1: اتصالٌ ٥ث، قراءةٌ ١٢ث — فأودو المعلَّق لا يُجمّد طلباً
+            # للمستخدم طويلاً حتى يبدو «خطأ اتصال».
+            timeout=(5, 12),
+            verify=_tls_verify(),
         )
     except requests.RequestException as exc:
         raise OdooUnreachable(f"تعذّر الوصول إلى أودو: {exc}") from exc
