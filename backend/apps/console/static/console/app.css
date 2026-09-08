@@ -3166,16 +3166,19 @@ form.filters {
   display: grid;
   /* أعمدةٌ أضيق (8rem): ثمانُ خاناتٍ في صفٍّ واحد على الشاشة العريضة، لا
      ستٌّ وسطرٌ ناقص. وحقلُ الرقم لا يحتاج عرضَ حقلِ الاسم. */
-  grid-template-columns: repeat(auto-fit, minmax(min(8rem, 100%), 1fr));
-  gap: .4rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(9.5rem, 100%), 1fr));
+  gap: .55rem .7rem;
   align-items: center;
 }
 .filters__grid input[type="search"] {
   inline-size: 100%;
   min-inline-size: 0;
-  block-size: 2rem;
-  padding-inline: .55rem;
+  block-size: 2.15rem;
+  padding-inline: .65rem;
   font-size: .82rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
 }
 .filters__actions {
   inline-size: 100%;
