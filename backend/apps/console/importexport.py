@@ -20,14 +20,17 @@ things only a screen can get wrong:
 from __future__ import annotations
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from apps.auctions.importexport import export_vehicles, import_vehicles
-from apps.auctions.models import Vehicle
+from apps.auctions.models import Auction, Vehicle
 from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
+from apps.core.permissions import Capability, can
 
 from .views import console_page
 
@@ -124,7 +127,7 @@ def upload(request):
             "updated": len(report.updated),
             "rejected": len(report.rejections),
         }
-        touched = Vehicle.objects.filter(pk__in=report.created + report.updated)
+        touched = Vehicle.objects.filter(pk__in=report.created + report.updated + report.transferred)
         for vehicle in touched:
             audit.record(
                 action="console.import_vehicles",
@@ -142,6 +145,79 @@ def upload(request):
         "console/vehicles_import.html",
         {"report": report, "dry_run": dry_run},
     )
+
+
+@login_required
+def import_auction_vehicles(request, pk: int):
+    """رفع ملف سيارات لهذا المزاد — الخطوة ٢ في إنشاء المزاد، كـ v1.
+
+    المحرّكُ نفسُه (`import_vehicles`) لكن بـ`default_auction=هذا المزاد`: الصفوفُ
+    التي لا تحمل عمود «رقم المزاد» تدخل هذا المزاد، والتي تحمله تُطيعه. رفعٌ
+    مباشرٌ ثم ملخّصٌ — كما في v1 — والتحقّقُ والقيدُ في المحرّك لا هنا.
+
+    ليست `@console_page`: هي فعلٌ على صفحة المزاد لا صفحةٌ في الشريط، فتُحرَس
+    بصلاحية إدارة المزادات مباشرةً (نظير `vehicle_bulk`)، وترجع دائماً إلى
+    صفحة المزاد برسالةٍ في `messages`.
+    """
+    auction = get_object_or_404(Auction, pk=pk)
+    if not can(request.user, Capability.AUCTIONS_MANAGE):
+        raise PermissionDenied("إدارة سيارات المزاد غير مسموحة لهذا المستخدم")
+
+    back = redirect("console:auction-detail", pk=auction.pk)
+    if request.method != "POST":
+        return back
+
+    uploaded = request.FILES.get("sheet")
+    if uploaded is None:
+        messages.error(request, "اختر ملفاً أولاً.")
+        return back
+    if uploaded.size > MAX_UPLOAD_BYTES:
+        messages.error(
+            request,
+            f"الملف أكبر من الحدّ ({MAX_UPLOAD_BYTES // (1024 * 1024)} ميجابايت).",
+        )
+        return back
+
+    data = uploaded.read()
+    try:
+        report = import_vehicles(data, default_auction=auction)
+    except Exception as failure:
+        # ملفٌ ليس شيتاً — PDF أُعيدت تسميته، أو رفعٌ تالف. يُقال أيّ خطأ لا 500.
+        messages.error(request, f"تعذّرت قراءة الملف: {failure}")
+        return back
+
+    if report.changed:
+        # قيدٌ لكل سيارة لا قيدٌ للرفعة (كالاستيراد العامّ): التدقيق يُسأل «من
+        # آخرُ من لمس هذه السيارة»، فرقمُ الرفعة يُحمَل على كل صفٍّ لا في صفٍّ وحده.
+        reason = (request.POST.get("reason") or "").strip() or (
+            f"استيراد سيارات المزاد {auction.number}"
+        )
+        batch = {
+            "created": len(report.created),
+            "updated": len(report.updated),
+            "rejected": len(report.rejections),
+        }
+        for vehicle in Vehicle.objects.filter(pk__in=report.created + report.updated + report.transferred):
+            audit.record(
+                action="console.import_vehicles",
+                entity=vehicle,
+                actor=request.user,
+                after={
+                    **audit.snapshot(vehicle, ["lot_number", "make", "model", "year"]),
+                    "batch": batch,
+                },
+                note=reason,
+            )
+
+    notify = messages.success if report.changed else messages.warning
+    notify(request, f"استيراد سيارات المزاد {auction.number}: {report.summary()}")
+    if report.rejections:
+        messages.warning(
+            request,
+            f"{len(report.rejections)} صفّاً مرفوضاً — راجع أسماء الأعمدة "
+            "(الماركة والموديل على الأقلّ).",
+        )
+    return back
 
 
 def _run(data: bytes, *, dry_run: bool):

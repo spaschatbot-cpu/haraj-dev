@@ -244,6 +244,17 @@ def vehicle_image_path(instance, filename: str) -> str:  # noqa: ARG001
     return generated_name("vehicles", _suffix_of(filename))
 
 
+def bank_receipt_path(instance, filename: str) -> str:  # noqa: ARG001
+    """``upload_to`` for a bank-transfer top-up receipt. Same rule as the photos.
+
+    ``filename`` is discarded on purpose — the stored name is ours, so a
+    customer cannot choose the path their receipt is written to, and two people
+    uploading ``receipt.pdf`` at once are two files. Its own folder so the whole
+    year's receipts are one archivable unit.
+    """
+    return generated_name("receipts", _suffix_of(filename))
+
+
 def vehicle_thumbnail_path(instance, filename: str) -> str:  # noqa: ARG001
     """``upload_to`` for the thumbnail beside it. Same rule, its own folder."""
     return generated_name("vehicles/thumbs", _suffix_of(filename))

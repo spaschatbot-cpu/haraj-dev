@@ -3857,7 +3857,19 @@ form[method="get"] .filters__grid input[type="search"] {
 }
 
 /* ---- استمارةُ المزاد المقسّمة (T870) --------------------------------- */
-.auction-form { max-inline-size: 46rem; }
+/* تملأ عرض المحتوى كاملاً — لا بطاقةٌ ضيّقةٌ يمينَ فراغٍ واسع. وثلاثةُ أعمدةٍ
+   ثابتة تملأ كلَّ صفٍّ (لا `auto-fit` يخلّف أعمدةً فارغةً فتتكدّس الحقولُ في
+   جانب). تتراجع إلى عمودين ثم عمود على الشاشات الأضيق. */
+.auction-form { max-inline-size: none; }
+.auction-form .form-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+@media (max-width: 960px) {
+  .auction-form .form-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .auction-form .form-grid { grid-template-columns: 1fr; }
+}
 .form-section {
   margin-block-end: 1.4rem;
   padding: 1.1rem 1.2rem;

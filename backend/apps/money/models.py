@@ -41,6 +41,8 @@ from django.conf import settings
 from django.db import models
 from django.db.models import F, Q, Sum
 
+from apps.core.uploads import bank_receipt_path
+
 MONEY = {"max_digits": 14, "decimal_places": 2}
 ZERO = Decimal("0.00")
 
@@ -741,6 +743,91 @@ class RefundRequest(models.Model):
 
     def __str__(self) -> str:
         return f"refund {self.reference} {self.amount} ({self.state})"
+
+
+class BankTopupState(models.TextChoices):
+    SUBMITTED = "submitted", "قيد المراجعة"
+    POSTED = "posted", "اعتُمد وأُضيف للرصيد"
+    REJECTED = "rejected", "مرفوض"
+    CANCELLED = "cancelled", "ألغاه العميل"
+
+    @classmethod
+    def open_states(cls) -> tuple[str, ...]:
+        """الحالة التي ما زال فيها الطلب معلّقاً — قيدُ «طلبٌ واحد» يقرؤها."""
+        return (cls.SUBMITTED.value,)
+
+
+class BankTopupRequest(models.Model):
+    """طلبُ شحن تأمينٍ بتحويلٍ بنكيّ مع إيصال — الخطوة التي ينقصها v2.
+
+    الرفعُ لا يحرّك الدفتر: العميل يرفع إيصالَ التحويل فيُفتح طلبٌ «قيد المراجعة»،
+    ثم تُرحّل المالية الدفعة في أودو (خارج اللوحة — قرار المالك ٢٠٢٦-٠٩-٠٨)، وحين
+    يؤكّد أودو تُقيَّد الوديعة عبر المسار الوارد (`_handle_payment`) — لا اعتماداً
+    متفائلاً كـ v1 الذي كان يطارد ما لم يصل البنك.
+
+    `reference` الفريد هو المفتاح من الطلب إلى أودو والعودة: به يُقيَّد الائتمان
+    مرّةً واحدة، فإعادةُ إرسالٍ لا تشحن مرّتين. واللوحةُ تقرأ هذه الطلبات ولا
+    تعتمدها — الاعتمادُ فعلُ أودو.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="bank_topups",
+    )
+    amount = models.DecimalField(**MONEY)
+    reference = models.CharField(max_length=64, unique=True)
+
+    #: إيصالُ التحويل — صورةٌ أو PDF. الاسمُ المخزَّن من عندنا لا من العميل
+    #: (`bank_receipt_path`)، فلا يختار مسارَ كتابته.
+    receipt = models.FileField(upload_to=bank_receipt_path)
+
+    state = models.CharField(
+        max_length=16,
+        choices=BankTopupState.choices,
+        default=BankTopupState.SUBMITTED,
+    )
+
+    outbox_message = models.ForeignKey(
+        "odoo.OutboxMessage",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="bank_topups",
+    )
+    #: الائتمانُ الناتج حين يؤكّد أودو — يُربَط عبر `reference` (مفتاح الإيداع)،
+    #: ويبقى اختيارياً لأن القيدَ يقع في المسار الوارد لا هنا.
+    resulting_transaction = models.ForeignKey(
+        Transaction,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="bank_topups",
+    )
+    #: سببُ الرفض أو ملاحظةُ المالية — يُعرَض للعميل وفي اللوحة.
+    admin_note = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(amount__gt=ZERO), name="bank_topup_is_positive"
+            ),
+            # طلبٌ معلّقٌ واحد لكل عميل: يمنع إغراقَ المالية بطلباتٍ مكرّرة بينما
+            # الأوّل قيد المراجعة — نظيرُ حارس v1، لكنه قيدُ قاعدةٍ لا فحصُ عدّاد.
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=Q(state="submitted"),
+                name="one_open_bank_topup_per_customer",
+            ),
+        ]
+        indexes = [models.Index(fields=["user", "-created_at"])]
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"bank-topup {self.reference} {self.amount} ({self.state})"
 
 
 class PaymentSheet(models.Model):

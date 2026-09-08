@@ -29,6 +29,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
+from django.db.models import Q
+
 from apps.core.sheets import Sheet, SheetError
 
 from .models import (
@@ -554,12 +556,15 @@ class ImportReport:
     created: list[int] = field(default_factory=list)
     updated: list[int] = field(default_factory=list)
     unchanged: list[int] = field(default_factory=list)
+    #: مركباتٌ كانت في مزادٍ آخر (غير مباعة) فنُقلت إلى هذا المزاد بدل تكرارها —
+    #: سلوكُ v1 «نقل غير المباع». كلٌّ حركةٌ على صفٍّ فعليّ، فتُعدّ في `changed`.
+    transferred: list[int] = field(default_factory=list)
     rejections: list[RowRejection] = field(default_factory=list)
     ignored_headers: list[str] = field(default_factory=list)
 
     @property
     def changed(self) -> int:
-        return len(self.created) + len(self.updated)
+        return len(self.created) + len(self.updated) + len(self.transferred)
 
     @property
     def read_rows(self) -> int:
@@ -567,6 +572,7 @@ class ImportReport:
             len(self.created)
             + len(self.updated)
             + len(self.unchanged)
+            + len(self.transferred)
             + len(self.rejections)
         )
 
@@ -580,6 +586,7 @@ class ImportReport:
         return (
             f"قُرئ {self.read_rows} صفاً: "
             f"{len(self.created)} جديدة، {len(self.updated)} محدَّثة، "
+            f"{len(self.transferred)} منقولة، "
             f"{len(self.unchanged)} بلا تغيير، {len(self.rejections)} مرفوضة"
         )
 
@@ -768,10 +775,110 @@ def _apply_row(
 
     vehicle = Vehicle.objects.filter(auction=auction, lot_number=lot_number).first()
     if vehicle is None:
+        # سلوك v1 قبل الإنشاء: مركبةٌ بنفس الشاصي/اللوحة في مزادٍ آخر تُعامَل
+        # حسب حالها — مباعةٌ تُرفض، غير مباعةٍ تُنقَل — فلا تُكرَّر.
+        if _reuse_from_other_auction(auction, lot_number, attributes, reject, report):
+            return
         _create(auction, lot_number, attributes, reject, report)
         return
 
     _update(vehicle, attributes, reject, report)
+
+
+def _reuse_from_other_auction(
+    auction, lot_number, attributes: dict, reject, report: ImportReport
+) -> bool:
+    """سلوكُ v1 «إعادة استخدام المركبة عبر المزادات». يُعيد True إن عالج الصفّ.
+
+    يُطابَق بالشاصي (`vin`) أو اللوحة (`plate_number`) عبر **مزادٍ آخر**، وأحدثُ
+    تطابقٍ يفوز (كما في v1: `ORDER BY id DESC`):
+
+    * **مباعة** — لها فاتورةٌ نشِطة (غير ملغاة) — تُرفَض: سيارةٌ بيعت لا تُعاد
+      جدولتها. هذا هو الحارسُ الماليُّ الذي كان ينقص v2.
+    * **معروضةٌ في مزادٍ جارٍ** تُرفَض كذلك — نزعُها من مزادٍ حيٍّ يُفسد مزايداتٍ
+      وتأميناتٍ قائمة (تشدّدٌ مقصودٌ فوق v1، الذي كان ينقلها فيكسر المزاد الحيّ).
+    * **غير مباعةٍ ومزادُها منتهٍ** تُنقَل إلى هذا المزاد: تُسحَب مزايداتُها
+      القديمة (تُحفَظ تاريخاً لا تُحذَف)، ويُصفَّر الفوز، وتُطبَّق بيانات الملف.
+
+    بلا شاصٍ ولا لوحة لا هويّة تُطابَق، فيُترك الصفُّ للإنشاء العاديّ (False).
+    """
+    vin = str(attributes.get("vin") or "").strip()
+    plate = str(attributes.get("plate_number") or "").strip()
+    if not vin and not plate:
+        return False
+
+    ident = Q()
+    if vin:
+        ident |= Q(vin=vin)
+    if plate:
+        ident |= Q(plate_number=plate)
+    existing = (
+        Vehicle.objects.filter(ident)
+        .exclude(auction=auction)
+        .select_related("auction")
+        .order_by("-pk")
+        .first()
+    )
+    if existing is None:
+        return False
+
+    from apps.money.models import InvoiceState
+
+    if existing.invoices.exclude(state=InvoiceState.CANCELLED).exists():
+        reject(
+            f"مباعة في المزاد #{existing.auction.number} ولها فاتورة نشِطة — "
+            "لا تُعاد جدولتها"
+        )
+        return True
+
+    # القيدُ `one_vin_per_auction`: لو دخل هذا الشاصي هذا المزاد سابقاً (صفٌّ
+    # أبكرُ في الملف نفسه) لا يُنقَل فوقه، بل يُرفض بسببه لا بـIntegrityError.
+    if vin and Vehicle.objects.filter(auction=auction, vin=vin).exists():
+        reject(f"الشاصي {vin} مُدخَل في هذا المزاد بالفعل")
+        return True
+
+    if _auction_is_live(existing.auction):
+        reject(
+            f"معروضة في المزاد #{existing.auction.number} وهو جارٍ — "
+            "لا تُنقَل قبل انتهائه"
+        )
+        return True
+
+    _transfer(existing, auction, lot_number, attributes, report)
+    return True
+
+
+def _auction_is_live(auction) -> bool:
+    """هل المزادُ جارٍ الآن؟ نقلُ مركبةٍ منه يُفسد مزايداتٍ وتأميناتٍ قائمة."""
+    from apps.auctions.states import AuctionState
+
+    return auction.state == AuctionState.LIVE
+
+
+def _transfer(existing, auction, lot_number, attributes: dict, report: ImportReport) -> None:
+    """انقل مركبةً غير مباعةٍ إلى مزادٍ جديد — نظيرُ `transferVehicleToAuction` في v1.
+
+    المزايداتُ القديمة تُسحَب (`is_withdrawn`) لا تُحذَف: التاريخُ يبقى، والفتحةُ
+    تتحرّر لمزايدةٍ جديدة، ولا يصطدم شيءٌ بـPROTECT على `Bid.supersedes`. والحالةُ
+    تعود «معادة للعرض» بلا فائزٍ ولا سعرِ رسوّ.
+    """
+    from django.utils import timezone
+
+    from apps.auctions.states import VehicleState
+
+    existing.bids.filter(is_superseded=False, is_withdrawn=False).update(
+        is_withdrawn=True, withdrawn_at=timezone.now()
+    )
+
+    existing.auction = auction
+    existing.lot_number = lot_number
+    existing.state = VehicleState.RELISTED
+    existing.awarded_to = None
+    existing.awarded_price = None
+    for name, value in attributes.items():
+        setattr(existing, name, value)
+    existing.save()
+    report.transferred.append(existing.pk)
 
 
 def _create(auction, lot_number, attributes, reject, report) -> None:

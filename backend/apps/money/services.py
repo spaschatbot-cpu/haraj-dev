@@ -36,6 +36,8 @@ from .models import (
     ZERO,
     Account,
     AccountKind,
+    BankTopupRequest,
+    BankTopupState,
     Entry,
     Hold,
     HoldReason,
@@ -800,6 +802,67 @@ def _top_up_hold(hold: Hold, *, invoice: Invoice, free_account: Account) -> Hold
     return hold
 
 
+@db_transaction.atomic
+def secure_dues(*, user) -> int:
+    """Pin a free deposit to every unpaid invoice not already secured. Returns count.
+
+    قرار المالك (٢٠٢٦-٠٩-٠٨): المدين يزايد بوديعةٍ ثانية — **بشرط أن يكون دَينه
+    مضموناً أولاً**. هذه هي الخطوة التي تجعل الضمانَ حقيقةً قبل أي مزايدةٍ جديدة:
+    لكل فاتورةٍ غير مسدَّدة لا يحرسها Hold، تُقفَل وديعةٌ حرّة عليها (المال ينتقل
+    ``insurance_free → insurance_locked`` فعلاً، والقيد يسمّي الفاتورة).
+
+    مسارُ v2 يقفل عند إصدار الفاتورة أصلاً (`invoice_award`)، فهذه — في الغالب —
+    لا تفعل شيئاً؛ لكنها الحارس للحالة التي أفلتت من v1: فاتورةٌ مستورَدةٌ من أودو
+    بلا سيارةٍ ولا مزاد، لا قفلَ لها تلقائياً. تدخل هنا كأيّ دَين، فتُؤمَّن أو
+    يبقى الباقي محجوباً في البوّابة.
+
+    آمنٌ بالبناء: `lock_for_invoice` لا يقفل أكثر من المستحقّ ولا أكثر من المتاح،
+    وقيدُ `one_active_hold_per_customer_and_invoice` يمنع قفلين على فاتورةٍ واحدة.
+    يتوقّف بلا ضجيجٍ حين ينفد التأمين الحرّ — البوّابةُ بعده ترفض من لا فائضَ له.
+    """
+    unpaid = list(
+        Invoice.objects.filter(
+            customer=user, state__in=UNPAID_INVOICE_STATES
+        ).select_related("vehicle")
+    )
+    if not unpaid:
+        return 0
+
+    secured = set(
+        Hold.objects.filter(
+            owner=user, state=HoldState.ACTIVE, reason=HoldReason.DUES, invoice__in=unpaid
+        ).values_list("invoice_id", flat=True)
+    )
+    auction_ids = {inv.vehicle.auction_id for inv in unpaid if inv.vehicle_id}
+    pledged: set = set()
+    if auction_ids:
+        pledged = set(
+            Hold.objects.filter(
+                owner=user,
+                state=HoldState.ACTIVE,
+                reason=HoldReason.DUES,
+                auction_id__in=auction_ids,
+            ).values_list("auction_id", flat=True)
+        )
+
+    locked = 0
+    for inv in unpaid:
+        if inv.pk in secured:
+            continue
+        if inv.vehicle_id and inv.vehicle.auction_id in pledged:
+            continue
+        # لا شيء حرٌّ ليُقفل → توقّف؛ ما بقي غير مضمونٍ يحجبه فحصُ الأهلية.
+        if account_for(user, AccountKind.INSURANCE_FREE).balance <= ZERO:
+            break
+        try:
+            lock_for_invoice(user=user, invoice=inv)
+            locked += 1
+        except MoneyError:
+            # نفد التأمين الحرّ بين القراءة والقفل — نتوقّف، ولا نبتلع خطأً آخر.
+            break
+    return locked
+
+
 def refund_insurance(
     *, user, amount: Decimal, reference: str, occurred_at=None, memo: str = ""
 ) -> Transaction:
@@ -1313,10 +1376,32 @@ def request_refund(
             },
         )
 
+    # قرار المالك (٢٠٢٦-٠٩-٠٨): لا يُفتح طلب استرداد أصلاً وأيُّ تأمينٍ للعميل
+    # محجوزٌ (مزايدةٌ حيّة) أو مقفولٌ (سيارةٌ فاز بها ولم تُسدَّد). ليس هذا مجرّد
+    # قيدٍ على المبلغ — بل رفضُ الطلب كلِّه ما دام أيُّ التزامٍ قائماً.
+    #
+    # وهو ما يُغلق طابور العجز (HR-09) **بالبناء**: حين يؤكّد أودو استرداداً لاحقاً،
+    # يكون كلُّ تأمين العميل في `insurance_free` يقيناً، فلا يحتاج أحدٌ سحبَ محجوزٍ
+    # ولا إلغاءَ مزايدةٍ ولا فتحَ صفِّ عجز. حادثةُ v1 — سحبُ تأمينِ سيارةٍ مباعةٍ
+    # فبقيت الشركةُ بلا غطاء — تصير مستحيلةً لأن الطلبَ لم يكن ليُفتح.
+    held = account_for(user, AccountKind.INSURANCE_HELD).balance
+    locked = account_for(user, AccountKind.INSURANCE_LOCKED).balance
+    if held > ZERO or locked > ZERO:
+        raise MoneyError(
+            f"user {user.pk} has committed insurance (held={held}, locked={locked})",
+            user_message=(
+                "لا يمكن طلب استرداد التأمين وجزءٌ منه محجوزٌ لمزادٍ قائم أو مقفولٌ "
+                f"على مستحقات. لديك {held} ريال محجوزة و{locked} ريال مقفولة — "
+                "أنهِ مزايداتك وسدِّد مستحقاتك أولاً، ثم اطلب الاسترداد."
+            ),
+            detail={
+                "held_for_auctions": str(held),
+                "locked_for_dues": str(locked),
+            },
+        )
+
     free = account_for(user, AccountKind.INSURANCE_FREE)
     if amount > free.balance:
-        held = account_for(user, AccountKind.INSURANCE_HELD).balance
-        locked = account_for(user, AccountKind.INSURANCE_LOCKED).balance
         raise InsufficientFunds(
             free,
             free.balance,
@@ -1348,6 +1433,67 @@ def request_refund(
     )
     return RefundRequest.objects.create(
         user=user, amount=amount, reference=reference, outbox_message=outbox
+    )
+
+
+@db_transaction.atomic
+def start_bank_topup(*, user, amount: Decimal, receipt) -> BankTopupRequest:
+    """افتح طلبَ شحن تأمينٍ بتحويلٍ بنكيّ مع إيصال. لا يحرّك الدفتر.
+
+    الشحنُ وحدةٌ كاملة (١٠٬٠٠٠) لا مبلغٌ حرّ — كاشتراك v1. والرفعُ لا يقيّد
+    شيئاً: يُفتح طلبٌ «قيد المراجعة» ويُرسَل مسودةً إلى أودو عبر صندوق الصادر،
+    ثم تُرحّله المالية، وحين يؤكّد أودو تُقيَّد الوديعة عبر المسار الوارد. القيدُ
+    `one_open_bank_topup_per_customer` — لا هذه الدالة — هو ما يمنع طلبين.
+
+    ``receipt`` ملفٌّ مرفوع (صورة/PDF) يُخزَّن باسمٍ من عندنا لا من العميل.
+    """
+    unit = deposit_amount_for()
+    if amount != unit:
+        raise InvalidAmount(
+            f"bank topup amount {amount!r}",
+            user_message=(
+                f"شحنُ التأمين بتحويلٍ بنكيّ يكون بمبلغٍ ثابت {unit} ريال — "
+                "لا مبالغ جزئية."
+            ),
+        )
+    if receipt is None:
+        raise MoneyError(
+            "bank topup without a receipt",
+            user_message="صورةُ إيصال التحويل مطلوبة.",
+        )
+
+    open_request = BankTopupRequest.objects.filter(
+        user=user, state__in=BankTopupState.open_states()
+    ).first()
+    if open_request is not None:
+        raise MoneyError(
+            f"user {user.pk} already has bank topup {open_request.pk} open",
+            user_message=(
+                "لديك طلبُ شحنٍ بنكيّ قيد المراجعة. انتظر اعتمادَه أو ألغِه قبل "
+                "طلبٍ آخر."
+            ),
+        )
+
+    reference = f"banktopup-{user.pk}-{uuid.uuid4().hex}"
+
+    from apps.odoo.models import OutboxMessage
+
+    outbox = OutboxMessage.objects.create(
+        endpoint="banktopup.submit",
+        reference=f"banktopup:{reference}",
+        payload={
+            "reference": reference,
+            "user": user.pk,
+            "amount": str(amount),
+            "currency": settings.CURRENCY,
+        },
+    )
+    return BankTopupRequest.objects.create(
+        user=user,
+        amount=amount,
+        reference=reference,
+        receipt=receipt,
+        outbox_message=outbox,
     )
 
 

@@ -255,6 +255,12 @@ def _place(
         .get(pk=vehicle.pk)
     )
 
+    # قرار المالك: المدين يزايد بوديعةٍ ثانية — لكن دَينه يُضمَن أولاً. نقفل
+    # وديعةً حرّة على كل فاتورةٍ غير مسدَّدةٍ لا قفلَ لها **قبل** البوّابة، فيرى
+    # الفحصُ الدَّينَ مضموناً في `insurance_locked` والفائضَ وحده في `free`. بهذا
+    # يمرّ من له فائضٌ ويُرفض من لا فائضَ له — بلا «سرقة held» ولا قفلٍ كسول.
+    money.secure_dues(user=user)
+
     decision = check_eligibility(user, locked, amount=amount, now=now)
     if not decision.allowed:
         # Return rather than raise: the caller records the refusal outside this

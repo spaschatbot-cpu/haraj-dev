@@ -43,6 +43,22 @@ somebody went looking for it.
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
     تصدير إكسل
   </a>
+  {% if can_manage %}
+    {% comment %} رفعُ ملف سيارات لهذا المزاد — كـ v1: يختار الموظّفُ الملفَّ
+       فيُرفَع فوراً، وتدخل الصفوفُ هذا المزاد (default_auction). صيغةُ الملف
+       نفسُها التي يصدّرها زرُّ التصدير — تصديرٌ ثم استيرادٌ بلا تحويل. {% endcomment %}
+    <form method="post" action="{% url 'console:auction-vehicles-import' auction.pk %}"
+          enctype="multipart/form-data" style="display:inline">
+      {% csrf_token %}
+      <label class="btn-secondary" title="رفع ملف إكسل/CSV بسيارات هذا المزاد" style="cursor:pointer">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 21V10M7.5 13.5 12 9l4.5 4.5M4 4h16"/></svg>
+        رفع إكسل
+        <input type="file" name="sheet" accept=".xlsx,.csv" required
+               style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"
+               onchange="if(this.files.length){this.form.submit();}">
+      </label>
+    </form>
+  {% endif %}
 {% endblock %}
 
 {% block content %}

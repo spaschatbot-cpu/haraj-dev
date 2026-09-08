@@ -27,7 +27,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.forms.models import ALL_FIELDS
 from django.utils import timezone
 
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Auction, Showcase, Vehicle
 from apps.core.time import from_display, to_display
 
 
@@ -171,8 +171,10 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
 
     class Meta:
         model = Auction
+        # لا `number`: الرقمُ يُخصَّص تلقائياً من القاعدة عند الحفظ (`save` أدناه)
+        # لا يكتبه الموظّف — نظير الترقيم التلقائيّ في v1. فحذفُه من الحقول يمنع
+        # إدخاله يدوياً ويمنع تصادمَ رقمين اختارهما اثنان.
         fields = (
-            "number",
             "title",
             "location",
             "showcase",
@@ -183,7 +185,6 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             "admin_fee",
         )
         labels = {
-            "number": "رقم المزاد",
             "title": "العنوان",
             "location": "الموقع",
             # `showcase` لا `state`: المزادُ يولد مسودّةً وينتقل بالخدمة، وهذا
@@ -195,9 +196,6 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             "deposit_required": "التأمين المطلوب",
             # الرسمُ يُدفع ولا يُردّ، والتأمينُ يُحجَز ويُردّ — عمودان لا واحد.
             "admin_fee": "الرسوم الإدارية",
-        }
-        error_messages = {
-            "number": {"unique": "رقم المزاد مستعمل في مزاد آخر."},
         }
         field_classes = {
             "starts_at": DisplayDateTimeField,
@@ -216,14 +214,68 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # منطق تشغيل v1: يُنشأ المزاد بمجرّد الاسم واختيار المرحلة. مرحلتا
+        # «لاحقاً» و«قادم» لا تحتاجان تواريخ (مزادٌ مخفيّ أو معلَنٌ بلا عدّاد)،
+        # فلا تُلزَم هنا؛ و`clean` يملأ لهما موعداً مبدئياً يعدّله المسؤول عند
+        # الجدولة. «قريباً» وحدها تُلزم التواريخ لأن لها عدّاداً. النموذج يطلب
+        # التاريخين (NOT NULL + CHECK)، فالإلزام يُرفع في الاستمارة لا في القاعدة.
+        for name in ("starts_at", "ends_at"):
+            if name in self.fields:
+                self.fields[name].required = False
+        # المرحلة الافتراضية «لاحقاً» كـ v1 (بدل `upcoming` الافتراضيّ في النموذج).
+        if "showcase" in self.fields and not self.is_bound and not self.initial.get("showcase"):
+            self.fields["showcase"].initial = Showcase.LATER
+
     def clean(self):
         cleaned = super().clean()
         starts, ends = cleaned.get("starts_at"), cleaned.get("ends_at")
+        showcase = cleaned.get("showcase") or Showcase.LATER
+
+        if showcase == Showcase.SOON:
+            # «قريباً» = عدّادٌ للبداية، فلا معنى لها بلا موعدين.
+            if not starts:
+                self.add_error("starts_at", "مرحلة «قريباً» تحتاج وقت بداية.")
+            if not ends:
+                self.add_error("ends_at", "مرحلة «قريباً» تحتاج وقت نهاية.")
+
         if starts and ends and ends <= starts:
             # Named on the field rather than as a form-wide error: an operator
             # fixing a date wants to know which box is wrong.
             self.add_error("ends_at", "وقت الانتهاء لازم يكون بعد وقت البدء.")
+
+        # لاحقاً/قادم بلا تواريخ: موعدٌ مبدئيٌّ (غداً) يُرضي NOT NULL و CHECK.
+        # المزادُ يولد `draft` فلا يظهر للعملاء ولا يُزايَد عليه مهما كان الموعد،
+        # حتى يجدوله المسؤول صراحةً عبر الخدمة — فالموعد المبدئيّ لافتةٌ قابلة
+        # للتعديل لا جدولةٌ فعلية (نظير موعد v1 المبدئيّ للمرحلة «لاحقاً»).
+        if not self.errors and (not starts or not ends):
+            from datetime import timedelta
+
+            base = timezone.localtime(timezone.now()).replace(
+                hour=12, minute=0, second=0, microsecond=0
+            ) + timedelta(days=1)
+            if not cleaned.get("starts_at"):
+                cleaned["starts_at"] = base
+            if not cleaned.get("ends_at") or cleaned["ends_at"] <= cleaned["starts_at"]:
+                cleaned["ends_at"] = cleaned["starts_at"] + timedelta(hours=8)
+
         return cleaned
+
+    def save(self, commit=True):
+        """يُخصِّص رقمَ المزاد تلقائياً عند الإنشاء — `max(number)+1`.
+
+        يُحسَب عند كل محاولة حفظ (لا في `__init__`) ليبقى طازجاً لو أُنشئ مزادٌ
+        آخر بين فتح الصفحة والحفظ. والتصادمُ النادر (اثنان يحفظان معاً فيقعان على
+        الرقم نفسه) يمسكه `number` الفريد في القاعدة، ويعيد المُنشئُ المحاولة —
+        فالوحدةُ الحاكمة هي القيد لا هذا الحساب.
+        """
+        if self.instance.pk is None:
+            from django.db.models import Max
+
+            highest = Auction.objects.aggregate(m=Max("number"))["m"] or 0
+            self.instance.number = highest + 1
+        return super().save(commit=commit)
 
 
 class AuctionIdentityForm(ReasonMixin, forms.ModelForm):

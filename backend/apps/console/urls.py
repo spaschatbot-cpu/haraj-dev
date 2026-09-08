@@ -102,6 +102,12 @@ urlpatterns = [
         vehicle_bulk.vehicles_bulk,
         name="auction-vehicles-bulk",
     ),
+    # رفعُ ملف سيارات لهذا المزاد — الخطوة ٢، كـ v1. T885
+    path(
+        "auctions/<int:pk>/vehicles/import/",
+        importexport.import_auction_vehicles,
+        name="auction-vehicles-import",
+    ),
     path("auctions/<int:pk>/bids/", archive.auction_bids, name="auction-bids"),
     path("archive/", archive.auction_archive, name="auction-archive"),
     path("auctions/manage/", bulk.manage, name="auctions-manage"),
@@ -122,6 +128,7 @@ urlpatterns = [
     # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
     path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
     path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
+    path("wallet/bank-topups/", wallet.bank_topups, name="bank-topups"),
     path(
         "analytics/insurance/",
         analytics.insurance_report,
