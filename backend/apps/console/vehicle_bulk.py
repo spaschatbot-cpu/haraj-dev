@@ -35,6 +35,7 @@ from apps.auctions import services as auction_services
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import VehicleState
 from apps.core import audit
+from apps.money.models import Invoice, InvoiceState
 
 from .views import console_page
 
@@ -158,15 +159,39 @@ def _move_auction(request, auction: Auction, rows: list[Vehicle], reason: str) -
         )
         return
 
-    moved = Vehicle.objects.filter(pk__in=[v.pk for v in rows]).update(auction=target)
-    audit.record(
-        action="console.vehicles_bulk_move",
-        entity=auction,
-        actor=request.user,
-        after={"to_auction": target.number, "count": moved},
-        note=reason,
+    # مركبةٌ عليها فاتورةٌ حيّة لا تُنقَل نقلاً صامتاً: الفاتورةُ تؤشّر عليها
+    # وقد دفع صاحبُها، ونقلُها إلى مزادٍ آخر يترك فاتورةً في مزادٍ وسيارةً في
+    # آخر. وهو ما يقفله v1 صراحةً (`annotateVehicleInvoiceLock`)، وكان هنا
+    # `update()` خاماً يمرّرها. فالمقفولةُ تُذكر باسمها وتُدَلُّ على الاسترجاع
+    # (`vehicle_relist`) الذي يعكس الفاتورةَ والتأمين معها، والباقي يُنقَل.
+    locked_ids = set(
+        Invoice.objects.filter(vehicle__in=rows)
+        .exclude(state=InvoiceState.CANCELLED)
+        .values_list("vehicle_id", flat=True)
     )
-    messages.success(request, f"نُقلت {moved} مركبة إلى مزاد {target.number}.")
+    free = [v for v in rows if v.pk not in locked_ids]
+    locked = [v for v in rows if v.pk in locked_ids]
+
+    moved = 0
+    if free:
+        moved = Vehicle.objects.filter(pk__in=[v.pk for v in free]).update(
+            auction=target
+        )
+        audit.record(
+            action="console.vehicles_bulk_move",
+            entity=auction,
+            actor=request.user,
+            after={"to_auction": target.number, "count": moved},
+            note=reason,
+        )
+        messages.success(request, f"نُقلت {moved} مركبة إلى مزاد {target.number}.")
+    if locked:
+        names = "، ".join(str(v.lot_number or v.pk) for v in locked[:8])
+        messages.error(
+            request,
+            f"{len(locked)} مركبة لم تُنقَل — عليها فاتورةٌ حيّة ({names}). "
+            "استرجِعها أولاً: الاسترجاعُ يعكس الفاتورةَ ويحرّر التأمين، ثم تُنقَل.",
+        )
 
 
 def _delete(request, auction: Auction, rows: list[Vehicle], reason: str) -> None:
