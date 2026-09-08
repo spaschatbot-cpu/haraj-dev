@@ -232,6 +232,23 @@ have to undo one in their head.
               </a>
             {% endwith %}
             {% comment %}
+            «مراجعة العروض» تظهر حين يكون فيها ما يُراجَع. T860
+
+            وv1 يعرض الزرَّ دائماً ثم يفتح نافذةً تقول «لا سيارات في هذا
+            المزاد» — نقرةٌ ثمنُها معرفةُ أن لا شيء ينتظرك. والعددُ هنا على
+            الزرّ نفسه، فما لا عدد له لا زرّ له.
+            {% endcomment %}
+            {% if auction.summary.undecided %}
+              {% with icon=action_icons.review %}
+                <a href="{% url 'console:partner-decisions' %}?auction={{ auction.pk|unlocalize }}"
+                   class="act act--review" title="{{ icon.0 }} — {{ auction.summary.undecided }} تنتظر"
+                   aria-label="{{ icon.0 }}: {{ auction.summary.undecided }} مركبة تنتظر قراراً">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
+                  <span class="act__count">{{ auction.summary.undecided }}</span>
+                </a>
+              {% endwith %}
+            {% endif %}
+            {% comment %}
             تصديرُ **هذا** المزاد لا تصديرُ الصفحة: `export_url` هو الطلبُ
             الحاليّ بمعامل `export` — صحيحٌ في زرّ الشريط أعلى الشاشة، وخطأٌ
             على الصفّ. فكان زرُّ التصدير في كلّ صفّ يُنزّل الملفَّ نفسه:

@@ -2578,6 +2578,18 @@ td.actions { min-inline-size: 9rem; }
   border-color: rgb(168, 85, 247);
   color: rgb(147, 51, 234);
 }
+/* الخطرُ يُقرأ ساكناً لا عند المرور. T860
+   ----------------------------------------------------------------------
+   كانت الألوانُ كلُّها على `:hover` وحده، فالعمودُ سبعُ أيقوناتٍ رماديّةٍ
+   متطابقة: «التعديل» و«الحذف» لا يُفرَّق بينهما إلا بتمرير المؤشّر وقراءة
+   التلميح. وزرُّ الحذف بالذات لا يُكتشَف بالنقر.
+   فالخطرُ وحده يحمل لونَه ساكناً — لونان في العمود لا سبعة، والفرقُ يُقرأ
+   قبل النقر لا بعده. */
+.act--danger,
+.act--del {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+  color: var(--danger);
+}
 .act--danger:hover,
 .act--del:hover {
   background: var(--danger-soft);
@@ -3283,3 +3295,29 @@ td.actions { min-inline-size: 9rem; }
   opacity: .9;
 }
 
+
+
+/* «مراجعة العروض» — زرٌّ يحمل عدداً، ولذلك يُقرأ ساكناً. T860
+   ----------------------------------------------------------------------
+   بقيّةُ الأزرار أفعالٌ متاحة دائماً؛ وهذا **تنبيهٌ**: لا يظهر إلا حين تنتظر
+   مركبةٌ قراراً، وعددُها عليه. ولونٌ لا يُرى إلا عند المرور يجعل التنبيه
+   يُفوَّت — وهو الشيء الوحيد في الصفّ الذي يطلب فعلاً اليوم. */
+.act--review {
+  inline-size: auto;
+  gap: .25rem;
+  padding-inline: .35rem;
+  border-color: color-mix(in srgb, rgb(245, 158, 11) 45%, var(--line));
+  background: rgba(245, 158, 11, .1);
+  color: rgb(180, 83, 9);
+}
+.act--review:hover {
+  background: rgba(245, 158, 11, .2);
+  border-color: rgb(245, 158, 11);
+  color: rgb(146, 64, 14);
+}
+.act__count {
+  font-size: .72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

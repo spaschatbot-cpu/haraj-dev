@@ -31,7 +31,7 @@ from django.core.paginator import Paginator
 from django.db.models import Case, IntegerField, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 
-from apps.auctions.models import Vehicle
+from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.bidding.models import Bid
@@ -73,6 +73,19 @@ def decisions(request):
     if partner and partner.isdigit():
         rows = rows.filter(owner_company_id=int(partner))
 
+    # ترشيحٌ على مزادٍ واحد — البابُ الذي يفتحه زرُّ «مراجعة العروض» من صفّ
+    # المزاد. T860
+    #
+    # وv1 يبني لهذا **نافذةً ثانية** بجلبٍ خاصّ وقائمةٍ خاصّة وزرَّي موافقةٍ
+    # ورفض مكتوبين فيها من جديد. فصار للقرار الواحد مساران: نافذةُ الصفّ
+    # وشاشةُ القرارات — وأحدهما لا يعرف بالآخر. وهنا شرطٌ واحد على الاستعلام
+    # نفسه: الشاشةُ هي هي، بأزرارها وبوّابتها وسجلِّ تدقيقها، مضيَّقةً.
+    auction = request.GET.get("auction")
+    auction_row = None
+    if auction and auction.isdigit():
+        rows = rows.filter(auction_id=int(auction))
+        auction_row = Auction.objects.filter(pk=int(auction)).first()
+
     if wants_export(request):
         return export(
             rows,
@@ -94,7 +107,11 @@ def decisions(request):
     return render(
         request,
         "console/partner_decisions.html",
-        {"page": page, "partner": partner or ""},
+        {
+            "page": page,
+            "partner": partner or "",
+            "auction_filter": auction_row,
+        },
     )
 
 
