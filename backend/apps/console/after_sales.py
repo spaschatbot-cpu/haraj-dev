@@ -84,13 +84,11 @@ CARD_ICONS = {
     "settled": "layers-check",
 }
 
-#: رسمُ كلِّ فعلٍ في الصفّ. أفعالٌ ثلاثة لا كلماتٌ ثلاث: عمودٌ بثلاث كلمات
-#: يُوسّع الجدولَ الذي فيه ستّةَ عشرَ عموداً أصلاً، والرسمُ يُقرأ في لمحة —
-#: ومعه `title` و`aria-label` بالكلمة نفسها لمن لا يقرأ الرسم.
+#: رسمُ الفعل الوحيد في عمود «عرض»: سندُ الفاتورة. أُزيلت أيقونتا «فتح ملفّ
+#: المركبة» و«فتح ملفّ المشتري» بطلب المالك — لا تُفتح صفحةٌ من هذه الشاشة إلا
+#: السند. ومعه `title` و`aria-label` بالكلمة نفسها لمن لا يقرأ الرسم.
 ROW_ICONS = {
-    "open": "eye",
     "invoice": "receipt",
-    "buyer": "person-search",
 }
 
 #: حالاتُ الفاتورة كما تُعرض في المرشّح، ومعها «بلا فاتورة» — وهي حالةٌ
@@ -433,9 +431,7 @@ def after_sales(request):
             "export_url": f"{reverse('console:after-sales')}?{export_query(request)}",
             "filtered": any([text, auction, pay, marketing, settled])
             or size != DEFAULT_ROWS,
-            "icon_open": path_of(ROW_ICONS["open"]),
             "icon_invoice": path_of(ROW_ICONS["invoice"]),
-            "icon_buyer": path_of(ROW_ICONS["buyer"]),
         },
     )
 

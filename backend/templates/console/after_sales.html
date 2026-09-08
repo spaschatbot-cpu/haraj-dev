@@ -181,10 +181,9 @@
               {% endif %}
             </td>
             <td class="actions">
-              <a href="{% url 'console:vehicle-detail' row.pk %}" class="act"
-                 title="فتح ملفّ المركبة" aria-label="فتح ملفّ المركبة">
-                {% include "console/_act_icon.html" with path=icon_open %}
-              </a>
+              {% comment %} فعلٌ واحد: سندُ الفاتورة. أُزيلت أيقونتا «فتح ملفّ
+                 المركبة» و«فتح ملفّ المشتري» بطلب المالك — لا تُفتح صفحةٌ من
+                 هذه الشاشة إلا سندَ الدفع. {% endcomment %}
               {% if row.invoice_number %}
                 {% comment %} كلُّ حقول السند في `data-*` على الصفّ نفسه —
                    فالنافذةُ تُملأ بلا رحلةِ خادم. v1 يحمّل `iframe` من مسارٍ
@@ -212,12 +211,8 @@
                         data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
                   {% include "console/_act_icon.html" with path=icon_invoice %}
                 </button>
-              {% endif %}
-              {% if row.awarded_to %}
-                <a href="{% url 'console:customer-detail' row.awarded_to.pk %}" class="act act--cars"
-                   title="فتح ملفّ المشتري" aria-label="فتح ملفّ المشتري">
-                  {% include "console/_act_icon.html" with path=icon_buyer %}
-                </a>
+              {% else %}
+                <span class="empty">—</span>
               {% endif %}
             </td>
           </tr>
