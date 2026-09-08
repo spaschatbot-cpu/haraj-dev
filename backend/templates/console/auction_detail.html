@@ -212,10 +212,24 @@ somebody went looking for it.
   {% comment %}
   شريط أدوات جدول المركبات وجدول المركبات المطابق لـ v1
   {% endcomment %}
+  {% comment %} بحثٌ داخل سيارات المزاد — أسلوبُ v1 (خانةٌ واحدة: لوحة/شاصي/اسم).
+     يبقى server-side ويحفظ التبويبات القائمة (الحالة/الصور/التسويق). T880 {% endcomment %}
+  <form method="get" class="filters filters--row">
+    {% if filters.state %}<input type="hidden" name="state" value="{{ filters.state }}">{% endif %}
+    {% if filters.photos %}<input type="hidden" name="photos" value="{{ filters.photos }}">{% endif %}
+    {% if filters.marketing %}<input type="hidden" name="marketing" value="{{ filters.marketing }}">{% endif %}
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ filters.q }}"
+             placeholder="بحث برقم اللوحة أو الشاصي أو الاسم…" aria-label="بحث في السيارات">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if filters.q %}<a href="{% url 'console:auction-detail' auction.pk %}{% if filters.keep_no_q %}?{{ filters.keep_no_q }}{% endif %}" class="filters__reset">مسح البحث</a>{% endif %}
+    </div>
+  </form>
+
   <div class="table-bar">
     <div class="table-bar__info">
       <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
-        المركبات <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+        السيارات <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
       </h2>
     </div>
     <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
@@ -228,8 +242,6 @@ somebody went looking for it.
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
       </a>
-      {% comment %} مكوّنُ تخصيص الأعمدة — نفسُه على كل جدول. T869 {% endcomment %}
-      {% include "console/_columns.html" %}
     </div>
   </div>
 
@@ -242,196 +254,74 @@ somebody went looking for it.
   والنموذجُ يلفّ الجدولَ **والشريط** معاً: خاناتُ الاختيار في الصفوف وحقولُ
   الفعل في الشريط، فكلاهما يُرسَل في طلبٍ واحد بلا سطر جافاسكربت يجمعهما.
   {% endcomment %}
-  <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
-        id="bulkForm">
-    {% csrf_token %}
-  {% if can_manage %}
-    {% comment %}
-    الشريطُ مخفيٌّ حتى يُختار شيء — شريطُ أفعالٍ دائم فوق جدولٍ لا شيء مختارٌ
-    فيه يقول «اضغط» ثم يقول «لم تُختَر مركبة». وv1 يفعل ذلك بالضبط.
-
-    ولا فعلَ بلا سبب: الحقلُ إلزاميّ، والسبب يُكتب في سجلّ التدقيق. وأربعةُ
-    أفعالٍ في نموذجٍ واحد، ويفرّقها `op` على الزرّ المضغوط.
-    {% endcomment %}
-    <div class="bulkbar" data-bulkbar hidden>
-      <span class="bulkbar__count"><b data-pick-count>0</b> مركبة مختارة</span>
-
-      <span class="bulkbar__group">
-        <select name="state" aria-label="الحالة الجديدة">
-          {% for value, label in bulk_states %}
-            <option value="{{ value }}">{{ label }}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" name="op" value="state">انقل الحالة</button>
-      </span>
-
-      <span class="bulkbar__group">
-        <select name="target" aria-label="المزاد الوجهة">
-          <option value="">— انقل إلى مزاد —</option>
-          {% for row in move_targets %}
-            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
-          {% endfor %}
-        </select>
-        <button type="submit" name="op" value="move">انقل</button>
-      </span>
-
-      <span class="bulkbar__group">
-        <button type="submit" name="op" value="marketing" formnovalidate
-                onclick="this.form.marketing.value='on'">سوّق</button>
-        <button type="submit" name="op" value="marketing"
-                onclick="this.form.marketing.value='off'">أوقف التسويق</button>
-        <input type="hidden" name="marketing" value="on">
-      </span>
-
-      <button type="submit" name="op" value="delete" class="bulkbar__danger">احذف</button>
-    </div>
-  {% endif %}
-  <div class="scroller">
-    <table>
-      <thead>
-        <tr>
-          {% if can_manage %}
-            <th class="pick"><input type="checkbox" data-pick-all
-                                    title="اختر كل ما في هذه الصفحة"></th>
+  {% comment %} كروتُ السيارات — أسلوبُ عرض v1 (`manage.php`): بطاقةٌ لكل
+     سيارة تحمل صورتَها وحالتَها وأزرارَها، لا صفَّ جدولٍ يُقرأ عرضاً. حُوِّل
+     الجدولُ (بشريطه المجمَّع وفلاتر أعمدته وتخصيصها) إلى شبكة كروت بطلب المالك.
+     T880 {% endcomment %}
+  <div class="veh-grid">
+    {% for car in page %}
+      <article class="veh-card">
+        <a class="veh-card__img" href="{% url 'console:vehicle-images' car.pk %}"
+           title="معرض صور المركبة">
+          {% comment %} الخلفيّةُ «لا صورة» طبقةٌ سفلى دائمة، والصورةُ فوقها؛
+             فإن فشل تحميلُها (`onerror`) أُزيلت وظهرت الخلفية — بلا أيقونة
+             كسرٍ. كما يفعل v1 بـ`onerror`. {% endcomment %}
+          <span class="veh-card__noimg">لا صورة عرض</span>
+          {% if car.thumb %}
+            <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
+                 loading="lazy" decoding="async" onerror="this.remove()">
           {% endif %}
-          {% comment %} كلُّ رأسٍ يحمل `data-col` ويُخفى بـ`hidden` من
-             `cols_hidden` — والخليّةُ تحته تحمل المفتاح نفسه، فيغيبان معاً.
-             لا تُعاد ترتيباً هنا: الترتيبُ في `columns.layout_for` ولم يُطبَّق
-             على DOM بعد (مرحلةٌ ثانية)، والإخفاءُ وحده يغطّي جدولاً بلا فراغ. {% endcomment %}
-          <th data-col="lot">اللوت</th>
-          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}>السيارة</th>
-          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}>السنة</th>
-          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}>الشاصي</th>
-          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}>رقم المطالبة</th>
-          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}>اللوحة</th>
-          <th data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>نوع اللوحة</th>
-          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>اللون</th>
-          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}>العداد</th>
-          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>شركة التأمين</th>
-          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>الحالة الفنية</th>
-          <th data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>حالة المحرّك</th>
-          <th data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>المفاتيح</th>
-          <th data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>ناقل الحركة</th>
-          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>الوقود</th>
-          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>الصور</th>
-          <th data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>المالك</th>
-          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>التسويق</th>
-          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
-          {% if can_manage %}<th>تحكم</th>{% endif %}
-        </tr>
-        {% comment %} صفُّ فلاترٍ **تحت كل عمود** كما في v1 (`vehColFilter`): كان
-           عندنا الفلاترُ في صندوقٍ منفصلٍ فوق الجدول، والمالك أراد أسلوبَ العرض
-           القديم — مُدخَلٌ محاذٍ لعموده. يبقى server-side (يحافظ على الترقيم):
-           عند Enter أو تغيّرٍ يبني `auctions.js` الرابطَ بالفلاتر والتبويبات
-           ويذهب. الأعمدةُ بلا فلترٍ خليّتُها فارغة. T878 {% endcomment %}
-        {% with sc=filters.search_by_col %}
-        <tr class="col-filters" data-col-filters>
-          {% if can_manage %}<th class="pick"></th>{% endif %}
-          <th data-col="lot"><input type="search" class="col-filter" data-colfilter="{{ sc.lot.name }}" value="{{ sc.lot.value }}" placeholder="{{ sc.lot.label }}" aria-label="فلتر {{ sc.lot.label }}"></th>
-          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.car.name }}" value="{{ sc.car.value }}" placeholder="{{ sc.car.label }}" aria-label="فلتر {{ sc.car.label }}"></th>
-          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.year.name }}" value="{{ sc.year.value }}" placeholder="{{ sc.year.label }}" aria-label="فلتر {{ sc.year.label }}"></th>
-          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.vin.name }}" value="{{ sc.vin.value }}" placeholder="{{ sc.vin.label }}" aria-label="فلتر {{ sc.vin.label }}"></th>
-          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.claim.name }}" value="{{ sc.claim.value }}" placeholder="{{ sc.claim.label }}" aria-label="فلتر {{ sc.claim.label }}"></th>
-          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.plate.name }}" value="{{ sc.plate.value }}" placeholder="{{ sc.plate.label }}" aria-label="فلتر {{ sc.plate.label }}"></th>
-          <th data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.colour.name }}" value="{{ sc.colour.value }}" placeholder="{{ sc.colour.label }}" aria-label="فلتر {{ sc.colour.label }}"></th>
-          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}><input type="search" class="col-filter" data-colfilter="{{ sc.insurance.name }}" value="{{ sc.insurance.value }}" placeholder="{{ sc.insurance.label }}" aria-label="فلتر {{ sc.insurance.label }}"></th>
-          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}></th>
-          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}></th>
-          {% if can_manage %}<th></th>{% endif %}
-        </tr>
-        {% endwith %}
-      </thead>
-      <tbody>
-        {% for car in page %}
-          <tr>
-            {% if can_manage %}
-              <td class="pick">
-                <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
-                       data-pick aria-label="اختر لوت {{ car.lot_number|unlocalize }}">
-              </td>
-            {% endif %}
-            <td data-col="lot"><a href="{% url 'console:vehicle-detail' car.pk %}" class="row-num">{{ car.lot_number|unlocalize }}</a></td>
-            <td data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
-            <td data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}><span class="tnum">{{ car.year|unlocalize }}</span></td>
-            <td data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %} class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
-            <td data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.claim_number|default:"—" }}</td>
-            <td data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %} class="tnum">{{ car.plate_number|default:"—" }}</td>
-            <td data-col="plate_type"{% if "plate_type" in cols_hidden %} hidden{% endif %}>{{ car.get_plate_type_display }}</td>
-            <td data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>{{ car.get_colour_display }}</td>
-            <td data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %} class="tnum">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }} كم{% else %}—{% endif %}</td>
-            <td data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>{{ car.insurance_company|default:"—" }}</td>
-            <td data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>{{ car.get_condition_display }}</td>
-            <td data-col="runs"{% if "runs" in cols_hidden %} hidden{% endif %}>{{ car.runs_status|default:"—" }}</td>
-            <td data-col="keys"{% if "keys" in cols_hidden %} hidden{% endif %}>{{ car.key_status|default:"—" }}</td>
-            <td data-col="transmission"{% if "transmission" in cols_hidden %} hidden{% endif %}>{{ car.get_transmission_display }}</td>
-            <td data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>{{ car.get_fuel_type_display }}</td>
-            {% comment %}
-            العددُ **بابٌ** لا خبر — كما في v1، حيث زرُّ عمود الصور هو ما يفتح
-            المعرض. وحبّةٌ تقول «بلا صور» ولا تُفتح تترك من قرأها يبحث عن مكان
-            الرفع في شاشةٍ أخرى، وتلك هي الخطوة التي تُنسى فتُشحن سيارةٌ بلا صورة.
+          {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
+        </a>
+        <div class="veh-card__body">
+          <h3 class="veh-card__title">
+            <a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a>
+          </h3>
+          <div class="veh-card__meta">
+            <span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span>
+            {% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+          </div>
+          <div class="veh-card__chips">
+            <span class="chip">لوت {{ car.lot_number|unlocalize }}</span>
+            {% if car.plate_number %}<span class="chip">لوحة: {{ car.plate_number }}</span>{% endif %}
+            {% if car.vin %}<span class="chip">شاصي: {{ car.vin }}</span>{% endif %}
+            <span class="chip">{{ car.year|unlocalize }}</span>
+          </div>
+          {% if can_manage %}
+          <div class="veh-card__actions">
+            <a class="btn-sm" href="{% url 'console:vehicle-images' car.pk %}">الصور ({{ car.image_count|unlocalize }})</a>
+            <button type="button" class="btn-sm" data-row-edit
+                    data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">تعديل</button>
+            {% comment %} الزرُّ الثالث كـv1: «إظهار» للمخفيّة (مسودّة → معروضة)
+               و«إخفاء» للمعروضة (معروضة → مسودّة). كلاهما انتقالٌ صالحٌ في آلة
+               الحالة. وما دخل المزايدةَ أو رسا لا يُظهَر ولا يُخفى بضغطة —
+               فيغيب زرُّه، لأن الخدمة ترفض النقلَ وزرٌّ يُفتح على رفضٍ خداع.
             {% endcomment %}
-            <td data-col="images"{% if "images" in cols_hidden %} hidden{% endif %} class="tnum">
-              <a href="{% url 'console:vehicle-images' car.pk %}"
-                 title="معرض صور المركبة">
-                {% if car.image_count %}
-                  <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
-                {% else %}
-                  <span class="pill" data-tone="warn">بلا صور</span>
-                {% endif %}
-              </a>
-            </td>
-            <td data-col="owner"{% if "owner" in cols_hidden %} hidden{% endif %}>{{ car.owner_company.name|default:"—" }}</td>
-            {% comment %}
-            «للتسويق» ليست حالةً بل **وسماً**: سيارةٌ تُعرض للدعاية لا للبيع
-            في هذه الدورة، وحالتُها تبقى ما هي. فحبّةٌ بجانب الحالة لا بدلاً
-            منها — ودمجُهما في عمودٍ واحد يُخفي أيَّهما.
-            {% endcomment %}
-            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>{% if car.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% else %}—{% endif %}</td>
-            <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
-            {% if can_manage %}
-              <td class="actions">
-                <button type="button" class="act act--cars" title="تفاصيل ومواصفات" aria-label="تفاصيل ومواصفات"
-                        data-row-detail data-url="{% url 'console:vehicle-detail' car.pk %}?modal=1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
-                </button>
-                <button type="button" class="act act--edit" title="تعديل السيارة" aria-label="تعديل السيارة"
-                        data-row-edit data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
-                </button>
-                {% comment %} نقلٌ وحذفٌ — نظيرُ عمود التحكّم في v1 (T872). كلاهما
-                   يفتح نافذةً مشتركةً في أسفل الجدول فيُملأ فيها معرّفُ الصفّ:
-                   الفعلُ يمرّ بـ`vehicle_bulk` الآمن (الخدمةُ الوحيدة · سببٌ
-                   إلزاميّ · حذفٌ يرفضه PROTECT على ما له أثر). {% endcomment %}
-                <button type="button" class="act act--move" title="نقل إلى مزادٍ آخر"
-                        aria-label="نقل إلى مزادٍ آخر"
-                        data-row-move data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.move }}"/></svg>
-                </button>
-                <button type="button" class="act act--danger" title="حذف السيارة"
-                        aria-label="حذف السيارة"
-                        data-row-delete data-pk="{{ car.pk|unlocalize }}" data-lot="{{ car.lot_number|unlocalize }}">
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.delete }}"/></svg>
-                </button>
-              </td>
+            {% if car.state == "draft" %}
+              <form method="post" action="{% url 'console:vehicle-state' car.pk %}" class="veh-card__inline">
+                {% csrf_token %}
+                <input type="hidden" name="target" value="listed">
+                <input type="hidden" name="reason" value="إظهار من شاشة إدارة المزاد">
+                <input type="hidden" name="next" value="{% url 'console:auction-detail' auction.pk %}">
+                <button type="submit" class="btn-primary-sm">إظهار</button>
+              </form>
+            {% elif car.state == "listed" %}
+              <form method="post" action="{% url 'console:vehicle-state' car.pk %}" class="veh-card__inline">
+                {% csrf_token %}
+                <input type="hidden" name="target" value="draft">
+                <input type="hidden" name="reason" value="إخفاء من شاشة إدارة المزاد">
+                <input type="hidden" name="next" value="{% url 'console:auction-detail' auction.pk %}">
+                <button type="submit" class="btn-sm">إخفاء</button>
+              </form>
             {% endif %}
-          </tr>
-        {% empty %}
-          <tr><td colspan="21" class="empty">لا مركبات في هذا المزاد.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </div>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <p class="empty">لا سيارات في هذا المزاد بعد — اضغط «إضافة مركبة» بالأعلى.</p>
+    {% endfor %}
   </div>
-
-  </form>
 
   {% if can_manage %}
   {% comment %}

@@ -4177,3 +4177,131 @@ dialog.row-modal {
   text-align: center;
   border-radius: var(--radius);
 }
+
+/* ---- كروتُ سيارات المزاد — أسلوبُ عرض v1 (`manage.php`) ------------------
+   الجدولُ صار كروتاً بطلب المالك: بطاقةٌ لكل سيارة تحمل صورتَها وحالتَها
+   وأزرارَها. الصورةُ أوّلاً لأنها ما يُميّز السيارةَ في نظرة على الساحة. T880 */
+.veh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 1rem;
+  margin: 0 0 1.2rem;
+}
+.veh-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.veh-card:hover { border-color: var(--brand); box-shadow: var(--shadow-lift); }
+.veh-card__img {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 10;
+  background: var(--raised);
+  overflow: hidden;
+}
+.veh-card__img img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* الطبقةُ السفلى: تظهر حين لا صورةَ أو حين تفشل الصورةُ فتُزال من فوقها. */
+.veh-card__noimg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: .82rem;
+}
+.veh-card__badge {
+  position: absolute;
+  inset-block-end: .4rem;
+  inset-inline-start: .4rem;
+  background: rgb(0 0 0 / .72);
+  color: #fff;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .12rem .5rem;
+  border-radius: var(--radius);
+}
+.veh-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: .8rem .9rem;
+}
+.veh-card__title { margin: 0; font-size: .98rem; font-weight: 800; }
+.veh-card__title a { color: var(--ink); text-decoration: none; }
+.veh-card__title a:hover { color: var(--brand-dark); }
+.veh-card__meta { display: flex; flex-wrap: wrap; gap: .3rem; }
+.veh-card__chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.veh-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem;
+  margin-block-start: .3rem;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.veh-card__inline { display: inline; margin: 0; }
+
+/* ---- منطقةُ سحب وإفلات الصور — أسلوبُ رفع v1 ------------------------------
+   الاستمارةُ نفسُها تعمل بلا جافاسكربت (`<input type=file>`)، وهذه تزيّنها:
+   منطقةٌ تُسحَب إليها الصور أو تُضغَط، ومعايناتٌ فورية قبل الرفع. T881 */
+.dropzone {
+  position: relative;
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 4.5rem;
+  padding: 1rem;
+  border: 2px dashed var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--raised);
+  color: var(--muted);
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.dropzone:hover { border-color: var(--brand); color: var(--ink-soft); }
+.dropzone--over {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+/* المُدخَلُ الحقيقيّ مخفيٌّ بصرياً لا وظيفياً: النقرُ على المنطقة يصله لأنه
+   داخل `<label>`، فيبقى عاملاً للوحة المفاتيح وقارئ الشاشة. */
+.dropzone [data-file-input] {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.dropzone__preview {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-block-start: .7rem;
+}
+.dropzone__preview img {
+  inline-size: 4rem;
+  block-size: 4rem;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+}

@@ -26,6 +26,7 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.auctions import cards, engine
 from apps.auctions import services as auction_services
@@ -317,6 +318,17 @@ def auction_detail(request, pk: int):
     page = _page(request, rows)
     with_tones(page.object_list)
 
+    # صورةُ الغلاف لكل كارت — كأسلوب عرض v1 (`manage.php`): بطاقةُ السيارة
+    # تحمل صورتَها. استعلامٌ واحد لكل الصفحة عبر `card_queryset` لا واحدٌ لكل
+    # صفّ (النمطُ الذي جعل قائمة v1 تُحمَّل في ثوانٍ).
+    ids = [row.pk for row in page.object_list]
+    covers = {
+        row.pk: cards.thumbnail_of(row)
+        for row in cards.card_queryset(Vehicle.objects.filter(pk__in=ids))
+    }
+    for row in page.object_list:
+        row.thumb = covers.get(row.pk)
+
     allowed_operations = [op for op in view.operations if op.allowed]
     blocked_operations = [op for op in view.operations if not op.allowed]
 
@@ -540,6 +552,12 @@ def vehicle_state(request, pk: int):
         note=reason,
     )
     messages.success(request, f"المركبة صارت «{VehicleState(vehicle.state).label}».")
+    # يعود إلى حيث جاء الطلب إن كان مساراً داخلياً آمناً (شاشةُ المزاد ترسل
+    # `next`)، وإلا فصفحةُ المركبة. فزرُّ «إظهار/إخفاء» على الكارت يُبقي الموظّفَ
+    # في المزاد الذي يبنيه لا يقذفه إلى صفحة مركبةٍ مفردة.
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts=None):
+        return redirect(nxt)
     return redirect("console:vehicle-detail", pk=pk)
 
 

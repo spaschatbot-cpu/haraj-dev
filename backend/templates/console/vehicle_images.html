@@ -28,11 +28,19 @@
   الرفعُ أوّلاً: الشاشةُ تُفتح غالباً لأن الصفّ قال «بلا صور»، فالفعلُ الذي
   جاء لأجله يجب ألّا يكون تحت الصور التي لا وجود لها.
   {% endcomment %}
-  <form method="post" enctype="multipart/form-data" class="shots-upload">
+  {% comment %} منطقةُ سحبٍ وإفلاتٍ ومعاينةٌ فورية — أسلوبُ رفع v1
+     (`initGalleryUploader`): يُسحَب الملفُّ أو يُضغَط، وتظهر معايناتُه قبل
+     الرفع. تحسينٌ تدريجيّ: بلا جافاسكربت يبقى `<input type=file>` عاملاً،
+     فالفعلُ لا يتوقّف على السكربت. T881 {% endcomment %}
+  <form method="post" enctype="multipart/form-data" class="shots-upload" data-uploader>
     {% csrf_token %}
     <input type="hidden" name="op" value="upload">
-    <label for="images">أضِف صوراً — حتى {{ batch|unlocalize }} في المرّة</label>
-    <input type="file" name="images" id="images" accept="image/*" multiple required>
+    <label class="dropzone" data-dropzone>
+      <span class="dropzone__hint">📤 اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
+      <input type="file" name="images" id="images" accept="image/*" multiple required
+             data-file-input>
+    </label>
+    <div class="dropzone__preview" data-preview hidden></div>
     <button type="submit" class="btn-primary">ارفع</button>
   </form>
 
@@ -75,4 +83,49 @@
   {% else %}
     <p class="notice">لا صور لهذه المركبة — وبطاقتُها عند العميل تظهر بلا صورة.</p>
   {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% comment %} سحبٌ وإفلاتٌ ومعاينةٌ فورية — أسلوبُ رفع v1. تحسينٌ تدريجيّ:
+   الاستمارةُ تعمل بلا هذا السكربت. {% endcomment %}
+(function () {
+  var zone = document.querySelector('[data-dropzone]');
+  var input = document.querySelector('[data-file-input]');
+  var preview = document.querySelector('[data-preview]');
+  if (!zone || !input || !preview) return;
+
+  ['dragover', 'dragenter'].forEach(function (ev) {
+    zone.addEventListener(ev, function (e) {
+      e.preventDefault();
+      zone.classList.add('dropzone--over');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (ev) {
+    zone.addEventListener(ev, function () { zone.classList.remove('dropzone--over'); });
+  });
+  zone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      showPreviews();
+    }
+  });
+  input.addEventListener('change', showPreviews);
+
+  function showPreviews() {
+    preview.innerHTML = '';
+    var files = input.files;
+    if (!files || !files.length) { preview.hidden = true; return; }
+    preview.hidden = false;
+    for (var i = 0; i < files.length; i++) {
+      var img = document.createElement('img');
+      img.src = URL.createObjectURL(files[i]);
+      /* التحريرُ بعد التحميل: كائنُ العنوان يبقى في الذاكرة حتى يُلغى. */
+      img.onload = function () { URL.revokeObjectURL(this.src); };
+      preview.appendChild(img);
+    }
+  }
+})();
+</script>
 {% endblock %}

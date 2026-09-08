@@ -104,6 +104,23 @@ def apply(rows, params):
     elif marketing == MKT_OFF:
         rows = rows.filter(is_marketing=False)
 
+    # بحثٌ موحّد لشاشة الكروت (أسلوب v1: لوحة/شاصي/اسم في خانةٍ واحدة). مطابقةٌ
+    # مباشرة `icontains` كبحث v1 نفسِه — للّوحة والشاصي والرقم تكفي، والاسمُ
+    # يُطابَق كما كُتب. ورقمٌ صِرفٌ يُقارَن باللوت أيضاً.
+    q = _get(params, "q").strip()
+    if q:
+        from django.db.models import Q as _Q
+
+        match = (
+            _Q(make__icontains=q)
+            | _Q(model__icontains=q)
+            | _Q(plate_number__icontains=q)
+            | _Q(vin__icontains=q)
+        )
+        if q.isdigit():
+            match |= _Q(lot_number=int(q))
+        rows = rows.filter(match)
+
     return _apply_text(rows, params)
 
 
@@ -368,9 +385,22 @@ def state(params, auction) -> dict:
         or bool(current_photos)
         or bool(current_marketing)
     )
+    # سلسلةُ الفلاتر بلا `q` — لرابط «مسح البحث»: يمسح النصَّ ويُبقي التبويبات.
+    from urllib.parse import urlencode as _urlencode
+
+    keep_no_q = _urlencode(
+        [
+            (k, v)
+            for k, v in (params.items() if hasattr(params, "items") else [])
+            if k not in ("page", "q") and str(v).strip()
+        ]
+    )
+
     return {
         "search": search,
         "search_by_col": search_by_col,
+        "q": _get(params, "q"),
+        "keep_no_q": keep_no_q,
         "state": current_state,
         "photos": current_photos,
         "marketing": current_marketing,

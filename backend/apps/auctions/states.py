@@ -223,6 +223,10 @@ VEHICLE_MOVES: tuple[Move, ...] = (
     Move(VehicleState.DRAFT, VehicleState.WITHDRAWN, "سُحبت قبل العرض"),
     Move(VehicleState.LISTED, VehicleState.BIDDING, "بدأت المزايدة عليها"),
     Move(VehicleState.LISTED, VehicleState.WITHDRAWN, "سُحبت قبل المزايدة"),
+    # «إخفاء» من شاشة الإدارة: مركبةٌ عُرضت ثم أُريد إخفاؤها قبل أن تُزايَد —
+    # تعود مسودّةً. نظيرُ زرِّ «🚫 إخفاء» في v1 (يُرجعها إلى «قيد التجهيز»).
+    # مقصورٌ على `listed`: ما دخل المزايدةَ لا يُخفى بضغطة، وله مسارُه.
+    Move(VehicleState.LISTED, VehicleState.DRAFT, "أُخفيت من العرض قبل المزايدة"),
     # A car that was offered and nobody bid on. Without this move it has no exit
     # at all when the auction ends: `listed` leads only to `bidding` and to
     # `withdrawn`, and withdrawn means somebody pulled it — which is a different
