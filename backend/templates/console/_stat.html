@@ -10,7 +10,7 @@
     {% comment %} الرسم نفسه الذي يحمله سطرُ الشريط الذي تفتحه هذه البطاقة —
        من `apps/console/icons.py` عبر `Stat.icon_path`. `<svg>` مضمَّنٌ لا
        ملفٌّ يُطلب، ويرث `currentColor` فيتلوّن مع نبرة البطاقة. {% endcomment %}
-    {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
+    {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
     {% if stat.delta %}
       {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
          الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}

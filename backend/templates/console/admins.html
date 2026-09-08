@@ -134,16 +134,16 @@
             </td>
             <td class="actions" style="text-align: center; justify-content: center;">
               <a href="{% url 'console:admin-edit' person.pk %}" class="act act--edit" title="تعديل بيانات المشرف والدور والحالة" aria-label="تعديل بيانات المشرف والدور والحالة">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.edit }}"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.edit }}"/></svg>
               </a>
               <a href="{% url 'console:staff-grants' person.pk %}" class="act act--grants" title="الصلاحيات والاستثناءات الخاصة فوق الدور" aria-label="الصلاحيات والاستثناءات الخاصة فوق الدور">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.grants }}"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.grants }}"/></svg>
               </a>
               <a href="{% url 'console:page-control' %}?q={{ person.phone|unlocalize }}" class="act act--pages" title="التحكم في صفحات وشاشات المشرف" aria-label="التحكم في صفحات وشاشات المشرف">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.pages }}"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.pages }}"/></svg>
               </a>
               <a href="{% url 'console:admin-password-reset' person.pk %}" class="act act--key" title="إعادة تعيين كلمة المرور للمشرف" aria-label="إعادة تعيين كلمة المرور للمشرف">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="{{ action_icons.password }}"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.password }}"/></svg>
               </a>
             </td>
           </tr>
@@ -173,7 +173,7 @@
 
   <details class="staff-notes">
     <summary>
-      <svg viewBox="0 0 24 24" aria-hidden="true" class="staff-notes__icon"><path d="{{ help_icon }}"/></svg>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;max-inline-size:16px;max-block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;color:var(--brand);"><path d="{{ help_icon }}"/></svg>
       <span>سياسات إدارة حسابات المشرفين والتدقيق الإداري</span>
     </summary>
     <div class="staff-notes__body">

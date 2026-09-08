@@ -31,7 +31,7 @@ from django.urls import reverse
 from apps.accounts import services as accounts_services
 from apps.accounts.models import AccountType, Company, StaffGrant, User
 from apps.core import audit
-from apps.core.permissions import Capability, can, capabilities_of
+from apps.core.permissions import Capability, can, capabilities_of, is_owner_account, role_label
 from apps.money import services as money
 from apps.money.models import (
     Account,
@@ -657,6 +657,7 @@ def staff_grants(request, pk: int):
         return redirect("console:staff-grants", pk=pk)
 
     effective = sorted(capabilities_of(member))
+    grants_qs = StaffGrant.objects.filter(user=member).select_related("granted_by").order_by("-created_at")
     return render(
         request,
         "console/staff_grants.html",
@@ -664,7 +665,15 @@ def staff_grants(request, pk: int):
             "member": member,
             "form": form,
             "effective": effective,
-            "grants": StaffGrant.objects.filter(user=member).order_by("capability"),
+            "grants": grants_qs,
+            "granted_count": grants_qs.filter(granted=True).count(),
+            "revoked_count": grants_qs.filter(granted=False).count(),
+            "is_owner": is_owner_account(member),
+            "role_label": role_label(member),
+            "crown_icon": path_of("crown"),
+            "shield_icon": path_of("shield"),
+            "check_icon": path_of("check"),
+            "ban_icon": path_of("ban"),
         },
     )
 
