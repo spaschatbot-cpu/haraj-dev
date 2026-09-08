@@ -186,63 +186,14 @@ somebody went looking for it.
   </section>
 
   {% comment %}
-  إدارة دورة حياة المزاد والعمليات
+  **حُذفت لوحةُ «إدارة دورة حياة المزاد والعمليات»** بطلب المالك (٨ سبتمبر
+  ٢٠٢٦). كانت تحمل: منتقيَ «الانتقال إلى» وخانةَ سببٍ إلزاميّ وزرَّ «تنفيذ
+  الانتقال»، وتحتها قائمةَ الانتقالات الممنوعة بأسبابها.
+
+  وما ذهب معها: **تغييرُ حالة المزاد من هذه الشاشة**، وقراءةُ سببِ منعِ
+  الانتقالات غير المتاحة. والنقلاتُ نفسُها باقيةٌ في `console:auction-state`
+  وفي أفعال الصفّ على `console:auctions` — الشاشةُ هنا صارت للمركبات وحدها.
   {% endcomment %}
-  {% if can_manage %}
-    <div class="operations-panel">
-      <div class="operations-panel__head">
-        <div style="display: flex; align-items: center; gap: .5rem;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:18px;block-size:18px;color:var(--brand-dark);"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"/></svg>
-          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink);">إدارة دورة حياة المزاد والعمليات</h3>
-        </div>
-        {% if auction.state == "live" or badge == "active" %}
-          <button type="button" class="btn-danger-sm" data-open-end data-pk="{{ auction.pk|unlocalize }}" data-number="{{ auction.number|unlocalize }}">
-            <svg viewBox="0 0 24 24" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.end }}"/></svg>
-            إنهاء فوري للمزاد
-          </button>
-        {% endif %}
-      </div>
-
-      {% if allowed_operations %}
-        <form method="post" action="{% url 'console:auction-state' auction.pk %}" class="operations-form">
-          {% csrf_token %}
-          <div class="operations-form__fields">
-            <div class="field" style="flex: 1 1 14rem;">
-              <label for="targetState">الانتقال إلى</label>
-              <select id="targetState" name="target">
-                {% for move in allowed_operations %}
-                  <option value="{{ move.target }}">{{ move.label }} — {{ move.why }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="field" style="flex: 2 1 20rem;">
-              <label for="stateReason">سبب التغيير (إلزامي للتدقيق والتوثيق)</label>
-              <input id="stateReason" type="text" name="reason" placeholder="اكتب سبب تغيير الحالة..." required>
-            </div>
-            <button type="submit" class="btn-primary" style="margin-block-start: 0; min-block-size: 2.35rem;">تنفيذ الانتقال</button>
-          </div>
-        </form>
-      {% else %}
-        <div class="operations-idle">
-          <span>لا توجد نقلات حالة مباشرة متاحة حالياً عبر النموذج في هذه المرحلة.</span>
-        </div>
-      {% endif %}
-
-      {% if blocked_operations %}
-        <div class="operations-blocked">
-          <span class="operations-blocked__label">الانتقالات المعلقة والشروط غير المستوفاة:</span>
-          <ul class="operations-blocked__list">
-            {% for move in blocked_operations %}
-              <li>
-                <span class="pill">{{ move.label }}</span>
-                <span class="blocked-reason">غير متاحة الآن — {{ move.blocked_by }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-    </div>
-  {% endif %}
 
   {% comment %}
   فلاتر مركبات المزاد

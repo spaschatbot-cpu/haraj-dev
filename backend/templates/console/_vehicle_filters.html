@@ -7,13 +7,15 @@
 فلا يبني القالبُ رابطاً بيده. والشريطُ خارج `bulkForm` عمداً: استمارةٌ داخل
 استمارةٍ HTML غير صالحة، والمتصفّح يفكّها صامتاً.
 
-**والشكلُ نمطُ اللوحة نفسُه** (`.filters__main` كما في المستخدمين والمزادات):
-صفٌّ واحدٌ يلفّ حين يضيق، وزرُّ البحث في آخره لا في سطرٍ وحده. وكان أوّلَ ما
-شُحن شبكةً بثمانية أعمدةٍ ممتدّةٍ على العرض كلّه، فوقها ثمانيةُ عناوينَ **تكرّر
-حرفياً** ما في الخانات تحتها، وتحتها ثلاثةُ أسطرٍ من التبويبات وزرٌّ رابعٌ
-وحده — خمسةُ أسطرٍ ومساحةٌ بيضاء تدفع الجدولَ تحت الطيّة.
+**التبويباتُ أوّلاً، ثم الخانات.** التبويبةُ سؤالٌ بضغطةٍ واحدة («أرِني بلا
+صور»)، والخانةُ تضييقٌ بعده يحتاج كتابةً — فترتيبُهما ترتيبُ الاستعمال.
 
-فالعنوانُ صار للقارئ الآليّ وحده (`.sr-only`): النائبُ داخل الخانة يقول الاسمَ
+**وشبكةٌ لا `flex`.** بالـ`flex` تتقاسم الخاناتُ الثمانُ ما بقي من العرض،
+فيقع ستٌّ في سطرٍ واثنتان في الثاني وأعراضُها مختلفة؛ وبالشبكة أعمدةٌ
+متساوية تلفّ بالتساوي. وكذلك التبويباتُ الثلاث: ثلاثةُ أعمدةٍ متساوية على
+الشاشة العريضة، لا ثلاثةُ أسطرٍ متكدّسة.
+
+**والعنوانُ للقارئ الآليّ وحده** (`.sr-only`): النائبُ داخل الخانة يقول الاسمَ
 نفسَه، وعنوانٌ فوقه يقوله مرّتين ويأخذ سطراً.
 {% endcomment %}
 <form method="get" class="filters">
@@ -21,24 +23,6 @@
   {% if filters.photos %}<input type="hidden" name="photos" value="{{ filters.photos }}">{% endif %}
   {% if filters.marketing %}<input type="hidden" name="marketing" value="{{ filters.marketing }}">{% endif %}
 
-  <div class="filters__main">
-    {% for field in filters.search %}
-      <label class="sr-only" for="vf-{{ field.name }}">{{ field.label }}</label>
-      <input class="filters__q" type="search" id="vf-{{ field.name }}"
-             name="{{ field.name }}" value="{{ field.value }}"
-             placeholder="{{ field.label }}">
-    {% endfor %}
-    <button type="submit" class="btn-primary" style="margin: 0;">بحث</button>
-    {% if filters.has_active %}
-      <a href="{{ filters.clear_url }}" class="filters__reset">امسح الكل</a>
-    {% endif %}
-  </div>
-
-  {% comment %}
-  الثلاثةُ في صفٍّ واحدٍ يلفّ، لا ثلاثةَ أسطرٍ محاذاةً لليمين: هي أسئلةٌ من
-  نوعٍ واحد («أرِني أيَّها؟»)، وتفريقُها على ثلاثة أسطرٍ يجعلها تُقرأ أقساماً
-  ثلاثة بينما هي شرطٌ واحدٌ مركَّب.
-  {% endcomment %}
   <div class="filters__tabs">
     <nav class="tabs" aria-label="فلتر حالة المركبة">
       <span class="vf-label">الحالة</span>
@@ -71,4 +55,17 @@
       {% endfor %}
     </nav>
   </div>
+  <div class="filters__grid">
+    {% for field in filters.search %}
+      <label class="sr-only" for="vf-{{ field.name }}">{{ field.label }}</label>
+      <input type="search" id="vf-{{ field.name }}"
+             name="{{ field.name }}" value="{{ field.value }}"
+             placeholder="{{ field.label }}">
+    {% endfor %}
+    <button type="submit" class="btn-primary">بحث</button>
+  </div>
+
+  {% if filters.has_active %}
+    <a href="{{ filters.clear_url }}" class="filters__reset">امسح كل الفلاتر</a>
+  {% endif %}
 </form>
