@@ -865,6 +865,47 @@ td.count, td.money, th.count, th.money { font-variant-numeric: tabular-nums; }
 /* الغلاف يُعلَن بحدٍّ لا بترتيب: الترتيب يضيع عند فرزٍ مختلف. */
 .shots li[data-cover="true"] img { border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
 
+/* ---- معرضُ الصور المُدار (T866) --------------------------------------- */
+/* شريطُ العودة: المعرضُ يُفتح من صفٍّ في مزاد، لا من الشريط الجانبي، فطريقُ
+   العودة نصٌّ في الصفحة لا سهمُ المتصفّح — والسهمُ بعد `POST` يعود إلى
+   الاستمارة المرسَلة لا إلى الشاشة السابقة. */
+.crumbs {
+  margin: 0 0 1rem;
+  font-size: .92rem;
+}
+.crumbs__sep {
+  color: var(--muted);
+  margin-inline: .45rem;
+}
+/* استمارةُ الرفع فوق الصور: الشاشةُ تُفتح غالباً لأن الصفّ قال «بلا صور». */
+.shots-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  margin: 0 0 1.2rem;
+  padding: .8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--raised);
+}
+.shots-upload label { font-weight: 700; }
+.shots-upload input[type="file"] { flex: 1 1 14rem; min-inline-size: 0; }
+/* المعرضُ المُدار أوسعُ من معرض القراءة: تحته صفُّ أفعالٍ يحتاج عرضاً يُقرأ. */
+.shots--managed {
+  grid-template-columns: repeat(auto-fill, minmax(min(11rem, 100%), 1fr));
+}
+.shots__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem;
+  margin-block-start: .4rem;
+}
+/* الاستمارةُ حول الزرّ لا تُزيح شيئاً: `display: contents` يجعل الزرّ نفسه
+   عنصرَ الـflex، وبدونه يصير لكلّ زرٍّ صندوقٌ يكسر المحاذاة. */
+.shots__act { display: contents; }
+
 /* ---- لا شيء هنا -------------------------------------------------------- */
 .empty { color: var(--muted); }
 /* خانةٌ فارغة تمتدّ على الجدول كلّه ليست صفّاً — هي حالة. تُوسَّط وتُعطى
@@ -1455,6 +1496,8 @@ a.stat:focus-visible {
 .stat--money .stat__icon { background: var(--money-soft); color: var(--money); }
 .stat--auction .stat__icon { background: var(--auction-soft); color: var(--auction); }
 .stat--people .stat__icon { background: var(--people-soft); color: var(--people); }
+.stat--ok .stat__icon { background: var(--ok-soft); color: var(--ok); }
+.stat--brand .stat__icon { background: var(--brand-soft); color: var(--brand-dark); }
 .stat--warn .stat__icon { background: var(--panel); color: var(--warn); }
 .stat--alarm .stat__icon { background: var(--panel); color: var(--danger); }
 
@@ -1523,6 +1566,10 @@ a.stat:hover .stat__action { color: var(--ink); }
 .stat--auction .stat__value { color: var(--auction); }
 .stat--people { border-inline-start-color: var(--people); }
 .stat--people .stat__value { color: var(--people); }
+.stat--ok { border-inline-start-color: var(--ok); }
+.stat--ok .stat__value { color: var(--ok); }
+.stat--brand { border-inline-start-color: var(--brand); }
+.stat--brand .stat__value { color: var(--brand-dark); }
 
 /* التنبيه وحده يلوّن خلفيته، لأنه وحده يريد أن يُقرأ أولاً. */
 .stat--warn {
@@ -2209,34 +2256,43 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
   color: var(--danger);
 }
 
-/* الفلترة المتقدمة: صندوق شبكي يمتد بعرض الصفحة عند الفتح */
+/* الفلترة المتقدمة: شبكة حقول مدمجة وأنيقة */
 .advanced-panel {
   inline-size: 100%;
-  padding-block-start: .75rem;
-  margin-block-start: .35rem;
-  border-block-start: 1px solid var(--line-soft);
+  padding-block: .25rem;
 }
 .advanced-panel[hidden] {
   display: none !important;
 }
 .advanced-panel__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(16rem, 100%), 1fr));
-  gap: .8rem 1.2rem;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: .45rem .65rem;
 }
 .advanced-panel .field {
   display: flex;
   flex-direction: column;
-  gap: .35rem;
+  gap: .2rem;
 }
 form[method="get"] .advanced-panel label {
   display: block;
-  font-size: .82rem;
+  font-size: .75rem;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 700;
+  margin: 0;
 }
-.advanced-panel input {
+.advanced-panel input,
+form[method="get"] .advanced-panel input[type="search"] {
+  flex: initial;
   inline-size: 100%;
+  min-inline-size: 0;
+  block-size: 2.15rem;
+  min-block-size: 2.15rem;
+  padding: .25rem .55rem;
+  font-size: .82rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
 }
 
 /* شريط تحكم الجدول: يجمع إحصاء النتائج مع زر تخصيص الأعمدة فوق رأس الجدول */
@@ -2838,6 +2894,29 @@ td.actions { min-inline-size: 9rem; }
 
 /* ---- شاشة تفاصيل المزاد وتوزيع عناصره — T850 ---- */
 
+/* إلغاء قيود النماذج العريضة داخل شاشات المزاد */
+#bulkForm,
+form.filters {
+  max-width: none;
+  inline-size: 100%;
+}
+#bulkForm {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+}
+.operations-panel .operations-form {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  inline-size: 100%;
+}
+
 /* كارت المزاد الرئيسي والشبكة الوصفية */
 .auction-card {
   background: var(--panel);
@@ -2881,21 +2960,53 @@ td.actions { min-inline-size: 9rem; }
   margin-block-start: 1rem;
 }
 .auction-meta-item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
   background: var(--raised);
   border: 1px solid var(--line-soft);
   border-radius: var(--radius);
-  padding: .65rem .9rem;
+  padding: .75rem .95rem;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.auction-meta-item:hover {
+  border-color: var(--line);
+  background: var(--panel);
+}
+.auction-meta-icon {
+  flex: none;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  display: grid;
+  place-items: center;
+  border-radius: .45rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--brand-dark);
+}
+.auction-meta-icon svg {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.auction-meta-body {
+  min-inline-size: 0;
+  flex: 1;
 }
 .auction-meta-label {
   display: block;
   font-size: .74rem;
   font-weight: 600;
   color: var(--muted);
-  margin-block-end: .25rem;
+  margin-block-end: .15rem;
 }
 .auction-meta-value {
   display: block;
-  font-size: .92rem;
+  font-size: .94rem;
   font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
@@ -3043,6 +3154,90 @@ td.actions { min-inline-size: 9rem; }
   background: var(--line-soft);
   color: var(--ink);
   font-variant-numeric: tabular-nums;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .84rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.btn-secondary:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* تبويبات الفلاتر كأزرار حبّية مرنة */
+.filters .tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .4rem;
+  margin-block-end: 0;
+  padding-block: .35rem;
+  border-block-end: 1px dashed var(--line-soft);
+}
+.filters .tabs:last-of-type {
+  border-block-end: none;
+}
+.filters .tabs .vf-label {
+  min-inline-size: 4.2rem;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.filters .tabs .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .24rem .65rem;
+  font-size: .78rem;
+  font-weight: 600;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--ink-soft);
+  text-decoration: none;
+  margin-block-end: 0;
+  transition: all .12s ease;
+}
+.filters .tabs .tab:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+.filters .tabs .tab[aria-current="page"] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.filters .tabs .tab[aria-current="page"] .pill {
+  background: rgba(255, 255, 255, .25);
+  color: #fff;
+}
+.filters .filters__main {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding-block-start: .45rem;
+  border-block-start: 1px solid var(--line-soft);
+  margin-block-start: .2rem;
+}
+.filters .filters__main button[type="submit"] {
+  margin-inline-start: 0;
+  padding: .35rem 1.4rem;
+  font-size: .84rem;
 }
 
 
@@ -3393,6 +3588,9 @@ td.actions { min-inline-size: 9rem; }
   background: var(--panel);
   box-shadow: 0 -6px 18px rgb(0 0 0 / 12%);
 }
+.bulkbar[hidden] {
+  display: none !important;
+}
 .bulkbar__count { font-size: .82rem; font-weight: 700; color: var(--ink); }
 .bulkbar__count b { color: var(--brand-dark); font-variant-numeric: tabular-nums; }
 .bulkbar__field { display: inline-flex; align-items: center; gap: .35rem; flex: 1 1 14rem; }
@@ -3424,3 +3622,16 @@ td.actions { min-inline-size: 9rem; }
 
 /* عمودُ الاختيار: ضيّقٌ ولا يتمدّد مع الجدول. */
 .pick { inline-size: 2.2rem; text-align: center; }
+
+/* شريط فلاتر مركبات المزاد — T868.
+   ----------------------------------------------------------------------
+   تبويباتُ الحالة والصور والتسويق هي `.tabs`/`.tab` نفسُها — لا أصنافَ جديدة
+   لسلوكٍ موجود. والصنفُ الوحيد هنا تسميةُ المجموعة («الحالة:»)، بلون النصّ
+   الثانويّ على البطاقة — وهو زوجٌ مقيسٌ في الحارس، لا لونَ جديد. */
+.vf-label {
+  align-self: center;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+}

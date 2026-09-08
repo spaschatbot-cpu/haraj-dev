@@ -1,0 +1,59 @@
+{% load l10n %}
+{% comment %}
+شريط فلاتر مركبات المزاد — T868، ونظيرُ فلاتر v1 الأربعة على الخادم.
+
+استمارةُ GET واحدة تلفّ الأربعة، فالحالةُ كلُّها في الرابط: يُحفَظ ويُشارَك.
+وكلُّ تبويبةٍ رابطٌ جاهز من `vehicle_filters.state` يحمل الفلاتر الأخرى معها —
+فلا يبني القالبُ رابطاً بيده. والشريطُ خارج `bulkForm` عمداً: استمارةٌ داخل
+استمارةٍ HTML غير صالحة، والمتصفّح يفكّها صامتاً.
+{% endcomment %}
+<form method="get" class="filters">
+  {% if filters.state %}<input type="hidden" name="state" value="{{ filters.state }}">{% endif %}
+  {% if filters.photos %}<input type="hidden" name="photos" value="{{ filters.photos }}">{% endif %}
+  {% if filters.marketing %}<input type="hidden" name="marketing" value="{{ filters.marketing }}">{% endif %}
+  <div class="advanced-panel">
+    <div class="advanced-panel__grid">
+      {% for field in filters.search %}
+        <div class="field">
+          <label for="vf-{{ field.name }}">{{ field.label }}</label>
+          <input type="search" id="vf-{{ field.name }}" name="{{ field.name }}"
+                 value="{{ field.value }}" placeholder="{{ field.label }}">
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <nav class="tabs" aria-label="فلتر حالة المركبة">
+    <span class="vf-label">الحالة:</span>
+    {% for tab in filters.state_tabs %}
+      {% if tab.active %}
+        <span class="tab" aria-current="page">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></span>
+      {% else %}
+        <a class="tab" href="{{ tab.url }}">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+  <nav class="tabs" aria-label="فلتر تغطية الصور">
+    <span class="vf-label">الصور:</span>
+    {% for tab in filters.photo_tabs %}
+      {% if tab.active %}
+        <span class="tab" aria-current="page">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></span>
+      {% else %}
+        <a class="tab" href="{{ tab.url }}">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+  <nav class="tabs" aria-label="فلتر التسويق">
+    <span class="vf-label">التسويق:</span>
+    {% for tab in filters.mkt_tabs %}
+      {% if tab.active %}
+        <span class="tab" aria-current="page">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></span>
+      {% else %}
+        <a class="tab" href="{{ tab.url }}">{{ tab.label }} <span class="pill pill--filter">{{ tab.count|unlocalize }}</span></a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+  <div class="filters__main">
+    <button type="submit">بحث</button>
+    {% if filters.has_active %}<a href="{{ filters.clear_url }}" class="filters__reset">امسح الكل</a>{% endif %}
+  </div>
+</form>

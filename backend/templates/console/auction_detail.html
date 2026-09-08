@@ -26,13 +26,7 @@ somebody went looking for it.
 {% block heading %}مزاد {{ auction.number|unlocalize }} — {{ auction.title }}{% endblock %}
 
 {% block actions %}
-  <a href="{% url 'console:auctions' %}">← قائمة المزادات</a>
   {% if can_manage %}
-    {% comment %}
-    نافذةٌ لا صفحة، هنا كما في القائمة — المالك: «التعديل يكون بوباب في كل
-    صفحات إدارة المزاد». والصفحةُ باقيةٌ خلف الرابط المباشر (`GET`) لمن
-    يفتحها من سجلّ المتصفّح. T862
-    {% endcomment %}
     <button type="button" class="btn-primary"
             data-open-edit
             data-pk="{{ auction.pk|unlocalize }}"
@@ -40,9 +34,15 @@ somebody went looking for it.
             data-num="{{ auction.number|unlocalize }}"
             data-title="{{ auction.title }}"
             data-location="{{ auction.location }}"
-            data-stamp="{{ row_stamp }}">تعديل المزاد</button>
+            data-stamp="{{ row_stamp }}">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="{{ action_icons.edit }}"/></svg>
+      تعديل المزاد
+    </button>
   {% endif %}
-  <a href="{{ export_url }}" title="تصدير مركبات المزاد إلى ملف إكسل">تصدير إكسل</a>
+  <a href="{{ export_url }}" class="btn-secondary" title="تصدير مركبات المزاد إلى ملف إكسل">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
+    تصدير إكسل
+  </a>
 {% endblock %}
 
 {% block content %}
@@ -68,29 +68,64 @@ somebody went looking for it.
 
     <div class="auction-meta-grid">
       <div class="auction-meta-item">
-        <span class="auction-meta-label">تاريخ البدء</span>
-        <span class="auction-meta-value time-start">{{ auction.starts_at|date:"Y-m-d H:i" }}</span>
+        <div class="auction-meta-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM3 11h18M8 3v4M16 3v4"/></svg>
+        </div>
+        <div class="auction-meta-body">
+          <span class="auction-meta-label">تاريخ البدء</span>
+          <span class="auction-meta-value time-start">{{ auction.starts_at|date:"Y-m-d H:i" }}</span>
+        </div>
       </div>
+
       <div class="auction-meta-item">
-        <span class="auction-meta-label">تاريخ الانتهاء</span>
-        <span class="auction-meta-value time-end">{{ auction.ends_at|date:"Y-m-d H:i" }}</span>
+        <div class="auction-meta-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/></svg>
+        </div>
+        <div class="auction-meta-body">
+          <span class="auction-meta-label">تاريخ الانتهاء</span>
+          <span class="auction-meta-value time-end">{{ auction.ends_at|date:"Y-m-d H:i" }}</span>
+        </div>
       </div>
+
       <div class="auction-meta-item">
-        <span class="auction-meta-label">الساحة / الموقع</span>
-        <span class="auction-meta-value">{{ auction.location|default:"غير محدد" }}</span>
+        <div class="auction-meta-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg>
+        </div>
+        <div class="auction-meta-body">
+          <span class="auction-meta-label">الساحة / الموقع</span>
+          <span class="auction-meta-value">{{ auction.location|default:"غير محدد" }}</span>
+        </div>
       </div>
+
       <div class="auction-meta-item">
-        <span class="auction-meta-label">تأمين الدخول للمزاد</span>
-        <span class="auction-meta-value">{{ auction.deposit_required|unlocalize }} ر.س</span>
+        <div class="auction-meta-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="auction-meta-body">
+          <span class="auction-meta-label">تأمين الدخول للمزاد</span>
+          <span class="auction-meta-value">{{ auction.deposit_required|unlocalize }} ر.س</span>
+        </div>
       </div>
+
       <div class="auction-meta-item">
-        <span class="auction-meta-label">الرسوم الإدارية</span>
-        <span class="auction-meta-value">{{ auction.admin_fee|unlocalize }} ر.س</span>
+        <div class="auction-meta-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4"/></svg>
+        </div>
+        <div class="auction-meta-body">
+          <span class="auction-meta-label">الرسوم الإدارية</span>
+          <span class="auction-meta-value">{{ auction.admin_fee|unlocalize }} ر.س</span>
+        </div>
       </div>
+
       {% if auction.sms_reminder_at %}
         <div class="auction-meta-item">
-          <span class="auction-meta-label">إشعار SMS المجدول</span>
-          <span class="auction-meta-value">{{ auction.sms_reminder_at|date:"Y-m-d H:i" }}</span>
+          <div class="auction-meta-icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 1 0-12 0c0 6.5-2.6 8.5-2.6 8.5h17.2S18 15 18 8.5M13.8 20.5a2 2 0 0 1-3.6 0"/></svg>
+          </div>
+          <div class="auction-meta-body">
+            <span class="auction-meta-label">إشعار SMS المجدول</span>
+            <span class="auction-meta-value">{{ auction.sms_reminder_at|date:"Y-m-d H:i" }}</span>
+          </div>
         </div>
       {% endif %}
     </div>
@@ -110,26 +145,45 @@ somebody went looking for it.
   {% endif %}
 
   {% comment %}
-  كروت إحصاءات سيارات المزاد
+  كروت إحصاءات سيارات المزاد المدمجة
   {% endcomment %}
-  <div class="cards">
-    <div class="card">
-      <strong>{{ view.cars.total|unlocalize }}</strong>
-      <span>إجمالي سيارات المزاد</span>
+  <section class="board-stats board-stats--compact" aria-label="أرقام سيارات المزاد">
+    <div class="stat stat--auction">
+      <div class="stat__top">
+        <span class="stat__label">إجمالي سيارات المزاد</span>
+        <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.view }}"/></svg>
+      </div>
+      <strong class="stat__value tnum">{{ view.cars.total|unlocalize }}</strong>
+      <span class="stat__detail">كافة المركبات المسجلة في هذا المزاد</span>
     </div>
-    <div class="card">
-      <strong>{{ view.cars.offered|unlocalize }}</strong>
-      <span>معروضة للمزايدة الآن</span>
+
+    <div class="stat stat--brand">
+      <div class="stat__top">
+        <span class="stat__label">معروضة للمزايدة الآن</span>
+        <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 3.5 20.5 9.5M17.5 6.5l-4 4M11.5 6.5l6 6M10.4 7.6 4 14l3 3 6.4-6.4M3 21h10"/></svg>
+      </div>
+      <strong class="stat__value tnum">{{ view.cars.offered|unlocalize }}</strong>
+      <span class="stat__detail">متاحة للمزايدة من قبل المشاركين</span>
     </div>
-    <div class="card">
-      <strong>{{ view.cars.awaiting_decision|unlocalize }}</strong>
-      <span>تنتظر قرار مالكها</span>
+
+    <div class="stat stat--warn">
+      <div class="stat__top">
+        <span class="stat__label">تنتظر قرار مالكها</span>
+        <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 8v4l3 3M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18"/></svg>
+      </div>
+      <strong class="stat__value tnum">{{ view.cars.awaiting_decision|unlocalize }}</strong>
+      <span class="stat__detail">انتهت المزايدة دون السعر المستهدف</span>
     </div>
-    <div class="card">
-      <strong>{{ view.cars.sold|unlocalize }}</strong>
-      <span>رست على مشترٍ</span>
+
+    <div class="stat stat--ok">
+      <div class="stat__top">
+        <span class="stat__label">رست على مشترٍ</span>
+        <svg class="stat__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <strong class="stat__value tnum">{{ view.cars.sold|unlocalize }}</strong>
+      <span class="stat__detail">تمت الترسية بانتظار استكمال السداد</span>
     </div>
-  </div>
+  </section>
 
   {% comment %}
   إدارة دورة حياة المزاد والعمليات
@@ -137,7 +191,10 @@ somebody went looking for it.
   {% if can_manage %}
     <div class="operations-panel">
       <div class="operations-panel__head">
-        <h3>إدارة دورة حياة المزاد والعمليات</h3>
+        <div style="display: flex; align-items: center; gap: .5rem;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:18px;block-size:18px;color:var(--brand-dark);"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1M15 4v4M9 10v4M17 16v4"/></svg>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--ink);">إدارة دورة حياة المزاد والعمليات</h3>
+        </div>
         {% if auction.state == "live" or badge == "active" %}
           <button type="button" class="btn-danger-sm" data-open-end data-pk="{{ auction.pk|unlocalize }}" data-number="{{ auction.number|unlocalize }}">
             <svg viewBox="0 0 24 24" aria-hidden="true" style="inline-size:14px;block-size:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ action_icons.end }}"/></svg>
@@ -150,7 +207,7 @@ somebody went looking for it.
         <form method="post" action="{% url 'console:auction-state' auction.pk %}" class="operations-form">
           {% csrf_token %}
           <div class="operations-form__fields">
-            <div class="field">
+            <div class="field" style="flex: 1 1 14rem;">
               <label for="targetState">الانتقال إلى</label>
               <select id="targetState" name="target">
                 {% for move in allowed_operations %}
@@ -158,11 +215,11 @@ somebody went looking for it.
                 {% endfor %}
               </select>
             </div>
-            <div class="field">
+            <div class="field" style="flex: 2 1 20rem;">
               <label for="stateReason">سبب التغيير (إلزامي للتدقيق والتوثيق)</label>
               <input id="stateReason" type="text" name="reason" placeholder="اكتب سبب تغيير الحالة..." required>
             </div>
-            <button type="submit" class="btn-primary" style="margin-block-start: 0;">تنفيذ الانتقال</button>
+            <button type="submit" class="btn-primary" style="margin-block-start: 0; min-block-size: 2.35rem;">تنفيذ الانتقال</button>
           </div>
         </form>
       {% else %}
@@ -188,6 +245,11 @@ somebody went looking for it.
   {% endif %}
 
   {% comment %}
+  فلاتر مركبات المزاد
+  {% endcomment %}
+  {% include "console/_vehicle_filters.html" %}
+
+  {% comment %}
   شريط أدوات جدول المركبات وجدول المركبات المطابق لـ v1
   {% endcomment %}
   <div class="table-bar">
@@ -197,8 +259,15 @@ somebody went looking for it.
       </h2>
     </div>
     <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
-      <a href="{% url 'console:vehicle-search' %}" class="btn-sm">بحث في المركبات</a>
-      <a href="{{ export_url }}" class="btn-sm" title="تصدير سيارات المزاد إلى إكسل">تصدير إكسل</a>
+      <a href="{% url 'console:vehicle-search' %}" class="btn-sm">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.4-4.4"/></svg>
+        بحث في المركبات
+      </a>
+      <a href="{{ export_url }}{% if filters.keep %}&amp;{{ filters.keep }}{% endif %}" class="btn-sm"
+         title="تصدير ما يعرضه الجدول الآن إلى إكسل">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
+        تصدير إكسل
+      </a>
     </div>
   </div>
 
@@ -257,6 +326,7 @@ somebody went looking for it.
             <td><strong class="car-title">{{ car.make }} {{ car.model }}</strong></td>
             <td><span class="tnum">{{ car.year|unlocalize }}</span></td>
             <td class="tnum"><span class="code-font">{{ car.vin|default:"—" }}</span></td>
+            <td class="tnum">{{ car.claim_number|default:"—" }}</td>
             <td class="tnum">{{ car.plate_number|default:"—" }}</td>
             <td>{{ car.get_plate_type_display }}</td>
             <td>{{ car.get_colour_display }}</td>
@@ -267,12 +337,20 @@ somebody went looking for it.
             <td>{{ car.key_status|default:"—" }}</td>
             <td>{{ car.get_transmission_display }}</td>
             <td>{{ car.get_fuel_type_display }}</td>
+            {% comment %}
+            العددُ **بابٌ** لا خبر — كما في v1، حيث زرُّ عمود الصور هو ما يفتح
+            المعرض. وحبّةٌ تقول «بلا صور» ولا تُفتح تترك من قرأها يبحث عن مكان
+            الرفع في شاشةٍ أخرى، وتلك هي الخطوة التي تُنسى فتُشحن سيارةٌ بلا صورة.
+            {% endcomment %}
             <td class="tnum">
-              {% if car.image_count %}
-                <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
-              {% else %}
-                <span class="pill" data-tone="warn">بلا صور</span>
-              {% endif %}
+              <a href="{% url 'console:vehicle-images' car.pk %}"
+                 title="معرض صور المركبة">
+                {% if car.image_count %}
+                  <span class="pill pill--count">{{ car.image_count|unlocalize }} صور</span>
+                {% else %}
+                  <span class="pill" data-tone="warn">بلا صور</span>
+                {% endif %}
+              </a>
             </td>
             <td>{{ car.owner_company.name|default:"—" }}</td>
             {% comment %}
@@ -355,16 +433,20 @@ somebody went looking for it.
     </div>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المركبات">
+        {% comment %} والرابطُ يحمل `filters.keep`: بدونه يعود الضاغطُ على
+           «التالي» إلى الجدول كلِّه وهو يظنّ نفسه داخل نتيجته المُرشَّحة —
+           وذلك أسوأ من غياب الفلتر. والسلسلةُ تُبنى في `vehicle_filters.keep`
+           لا هنا. {% endcomment %}
         {% comment %} بادئةُ اللوحة إعدادٌ (`APP_BASE`)، ورابطٌ نسبيٌّ يُكتب
            بيده يعمل هنا ويسقط أوّلَ ما تُفتح الصفحة من مسارٍ آخر. ولوحاتُ v1
            انتقلت بين ثلاث بادئات، وانكسر كلُّ رابطٍ مكتوبٍ بيده في كل مرّة —
            صامتاً. {% endcomment %}
         {% if page.has_previous %}
-          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.previous_page_number }}" class="pagination__btn">السابق</a>
+          <a href="{% url 'console:auction-detail' auction.pk %}?{% if filters.keep %}{{ filters.keep }}&amp;{% endif %}page={{ page.previous_page_number }}" class="pagination__btn">السابق</a>
         {% endif %}
         <span class="pagination__current">{{ page.number }} / {{ page.paginator.num_pages }}</span>
         {% if page.has_next %}
-          <a href="{% url 'console:auction-detail' auction.pk %}?page={{ page.next_page_number }}" class="pagination__btn">التالي</a>
+          <a href="{% url 'console:auction-detail' auction.pk %}?{% if filters.keep %}{{ filters.keep }}&amp;{% endif %}page={{ page.next_page_number }}" class="pagination__btn">التالي</a>
         {% endif %}
       </nav>
     {% endif %}

@@ -36,7 +36,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
-from . import icons, vehicle_bulk
+from . import icons, vehicle_bulk, vehicle_filters
 from .exports import export, wants_export
 from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
@@ -296,18 +296,25 @@ def auction_detail(request, pk: int):
     """
     auction = get_object_or_404(with_vehicle_counts(Auction.objects.all()), pk=pk)
 
+    # الترشيحُ قبل فرع التصدير: الملفُّ يحمل **ما تراه الشاشة**. وتصديرٌ يتجاهل
+    # الفلتر يعطي ثلاثمئة صفٍّ والشاشةُ أمام صاحبه تقول سبعة — ولا شيء في الملفّ
+    # يقول أيَّهما الصحيح. وهو العطلُ نفسه الذي أُصلح في `0ad74b7` على مستوى
+    # المزاد (كان يُنزّل الصفحة كلَّها لا سيّارات ذلك المزاد)، عائداً على مستوى
+    # الفلتر.
+    rows = vehicle_filters.apply(engine.vehicle_rows(auction), request.GET)
+
     if wants_export(request):
         from apps.auctions.importexport import export_vehicles
 
         from .exports import workbook_response
 
         return workbook_response(
-            export_vehicles(engine.vehicle_rows(auction)),
+            export_vehicles(rows),
             name=f"auction_{auction.number}_vehicles",
         )
 
     view = engine.snapshot(auction)
-    page = _page(request, engine.vehicle_rows(auction))
+    page = _page(request, rows)
     with_tones(page.object_list)
 
     allowed_operations = [op for op in view.operations if op.allowed]
@@ -319,6 +326,7 @@ def auction_detail(request, pk: int):
         {
             "auction": auction,
             "page": page,
+            "filters": vehicle_filters.state(request.GET, auction),
             "view": view,
             "allowed_operations": allowed_operations,
             "blocked_operations": blocked_operations,
