@@ -151,7 +151,12 @@ def _store(
         # the surrounding transaction unusable and the recovery query below
         # cannot run at all.
         with transaction.atomic():
-            return InboundMessage.objects.create(**fields)
+            message = InboundMessage.objects.create(**fields)
+        # الاستقبالُ ينادي التفسير — **بعد ثبات الكتابة**. المادة ٢-١ تمنع
+        # تفسيراً متزامناً هنا (فلا يسقط الاستقبالُ لعطلٍ في الفهم)، ولا تعني
+        # أن تُترك الرسالةُ بلا قارئ: كانت تُخزَّن ولا يقرؤها شيء.
+        transaction.on_commit(lambda: _interpret_later(message))
+        return message
     except IntegrityError:
         existing = (
             InboundMessage.objects.filter(
@@ -230,3 +235,11 @@ def _over_rate_limit(request: HttpRequest) -> bool:
     request and the ceiling was decorative.
     """
     return not ratelimit.consume("odoo_webhook", client_ip(request)).allowed
+
+
+def _interpret_later(message: InboundMessage) -> None:
+    """يُستورَد عند النداء: `tasks` يستورد `processing`، وهذا الملفّ يُستورَد
+    عند الإقلاع — فاستيرادٌ في الأعلى يصنع حلقة."""
+    from .tasks import interpret
+
+    interpret(message)

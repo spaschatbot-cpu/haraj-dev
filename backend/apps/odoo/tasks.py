@@ -18,10 +18,14 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.core.locks import single_instance
-from .models import OutboxMessage, OutboxState
-from . import outbox
 
-from .models import InboundMessage, InboundState
+from . import outbox, processing
+from .models import (
+    InboundMessage,
+    InboundState,
+    OutboxMessage,
+    OutboxState,
+)
 from .processing import INTERPRETED_SOURCE, process
 
 log = logging.getLogger(__name__)
@@ -170,3 +174,46 @@ def dispatch(message: OutboxMessage) -> None:
         send_one.apply_async(args=[message.pk])
     except Exception as exc:  # noqa: BLE001 — وسيطٌ غائب لا يُسقط الإدراج
         log.warning("could not dispatch %s: %s", message.reference, exc)
+
+
+@shared_task(name="odoo.interpret_one", bind=True, max_retries=MAX_SEND_ATTEMPTS)
+def interpret_one(self, message_id: int) -> dict:
+    """فسِّر رسالةً واردةً واحدة — وأعِد المحاولةَ بتأجيلٍ إن فشلت.
+
+    **الاستقبالُ ينادي التفسير.** المادة ٢-١ تفصل بينهما: الويبهوك يخزّن ويردّ
+    ولا يفسّر، فلا يسقط الاستقبالُ لعطلٍ في الفهم. لكن الفصلَ كان قطعاً: الرسالةُ
+    تُخزَّن ثم **لا يقرؤها أحد** — لا مستدعيَ لـ`processing.process` إلا استطلاعُ
+    الفاشلات، وهو نفسُه لم يكن مجدولاً. فدفعةٌ تصل من أودو تجلس في الجدول.
+
+    فصار الاستقبالُ يحجز تفسيرَها بعد ثبات كتابتها، والفشلُ يحجز إعادتَه —
+    بتأجيلٍ أُسّيّ لا استطلاعٍ ثابت.
+
+    و`process` idempotent: مفتاحُ المعاملة مشتقٌّ من هويّة الدفعة عند أودو،
+    فرسالةٌ فُسِّرت مرّتين تُقيَّد مرّة.
+    """
+    message = InboundMessage.objects.filter(pk=message_id).first()
+    if message is None:
+        return {"skipped": f"inbound {message_id} is gone"}
+    if message.state in (InboundState.PROCESSED, InboundState.IGNORED):
+        return {"skipped": f"{message.pk} is {message.state}"}
+
+    result = processing.process(message)
+    if result.state == InboundState.FAILED:
+        countdown = min(60 * (2**self.request.retries), 3600)
+        try:
+            self.retry(countdown=countdown)
+        except self.MaxRetriesExceededError:
+            # استُنفدت المحاولات: تبقى `FAILED` بسببها مكتوباً، ولا تُمسح ولا
+            # تُترك بصمت — شاشةُ الوارد تعرضها لإنسان. وذاك ما كانت
+            # `abandon_exhausted` تفعله بالمرور على الجدول كلَّ ساعة.
+            log.error("odoo: inbound %s exhausted its attempts", message.pk)
+            return {"inbound": message.pk, "state": "exhausted"}
+    return {"inbound": message.pk, "state": result.state}
+
+
+def interpret(message: InboundMessage) -> None:
+    """احجز تفسيرَ رسالةٍ واردة فور تخزينها. يفشل بهدوءٍ بلا وسيط."""
+    try:
+        interpret_one.apply_async(args=[message.pk])
+    except Exception as exc:  # noqa: BLE001 — وسيطٌ غائب لا يُسقط الاستقبال
+        log.warning("could not schedule interpretation of %s: %s", message.pk, exc)
