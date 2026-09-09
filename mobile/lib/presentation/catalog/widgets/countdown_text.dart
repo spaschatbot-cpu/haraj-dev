@@ -33,6 +33,24 @@ String remainingLabel(AppLocalizations l10n, Duration remaining) {
   );
 }
 
+/// ما تبقّى بصيغة **`أيام:ساعات:دقائق:ثوانٍ`** — `03:04:49:16`.
+///
+/// صيغةٌ ثانية لا بديلة: الأولى (`remainingLabel`) كلامٌ يُقرأ في سطر، وهذه
+/// أرقامٌ تُلمح في حوضٍ صغير على الكرت — والقائمةُ تُقرأ بالمقارنة بين
+/// الكروت، ومقارنةُ «٣ يوم و٤ ساعة» بـ«ساعتان و١٢ دقيقة» تحتاج قراءةً،
+/// ومقارنةُ رقمين لا تحتاج.
+///
+/// **والثواني هنا وحدها**: العدّاد الرقميّ يتحرّك كلَّ ثانية فيُقرأ حيّاً،
+/// وهو ما يفرّق مزاداً يغلق اليوم عن جدولٍ مكتوب.
+String remainingDigits(Duration remaining) {
+  if (remaining <= Duration.zero) return '00:00:00:00';
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(remaining.inDays)}:'
+      '${two(remaining.inHours % Duration.hoursPerDay)}:'
+      '${two(remaining.inMinutes % Duration.minutesPerHour)}:'
+      '${two(remaining.inSeconds % Duration.secondsPerMinute)}';
+}
+
 /// عدّاد تنازلي حيّ إلى لحظة بعينها (T707).
 ///
 /// **الفرق بين لحظتين لا حسابَ مناطقَ زمنية:** `target` و`now` كلاهما UTC،
@@ -44,6 +62,7 @@ class CountdownText extends ConsumerStatefulWidget {
     required this.at,
     required this.target,
     this.style,
+    this.digital = false,
     super.key,
   });
 
@@ -58,6 +77,9 @@ class CountdownText extends ConsumerStatefulWidget {
   /// الثيم، وحوضٌ أخضرُ صغير فوق صورة الكرت لا يقرؤه — نصُّه أبيضُ بحجم عشرة
   /// مهما كان لون الثيم، لأن أرضيّته هي التي تقرّر لا الصفحة.
   final TextStyle? style;
+
+  /// أرقامٌ (`03:04:49:16`) بدل الكلام، وبلا «يبتدي/ينتهي بعد» حولها.
+  final bool digital;
 
   @override
   ConsumerState<CountdownText> createState() => _CountdownTextState();
@@ -86,6 +108,16 @@ class _CountdownTextState extends ConsumerState<CountdownText> {
     final l10n = AppLocalizations.of(context);
     final now = ref.watch(nowProvider)();
     final remaining = widget.at.toUtc().difference(now.toUtc());
+    if (widget.digital) {
+      return Text(
+        remainingDigits(remaining),
+        // **`ltr` صراحةً**: الأرقام والنقطتان في سياقٍ عربيّ تُعاد ترتيبها
+        // فيصير `16:49:04:03` — الأيام في آخر السطر.
+        textDirection: TextDirection.ltr,
+        style: widget.style ?? Theme.of(context).textTheme.bodyMedium,
+      );
+    }
+
     final label = remainingLabel(l10n, remaining);
 
     return Text(switch (widget.target) {
