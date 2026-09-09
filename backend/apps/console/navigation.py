@@ -581,6 +581,15 @@ PAGES: tuple[Page, ...] = (
         "car-list",
     ),
     Page(
+        "console:partner-rule",
+        "حكم الشريك على سيارته",
+        Capability.PARTNERS_DECIDE,
+        "partner",
+        "قبولُ الشريك أو رفضُه — وهو ما يأذن للمنصّة أن تقرّر بعده.",
+        "stamp",
+        parent="console:partner-vehicles",
+    ),
+    Page(
         "console:partner-decisions",
         "اتخاذ القرار",
         Capability.PARTNERS_DECIDE,

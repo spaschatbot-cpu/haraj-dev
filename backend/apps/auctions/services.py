@@ -28,7 +28,7 @@ from django.utils import timezone
 
 from apps.core import uploads
 
-from .models import Auction, Vehicle, VehicleImage
+from .models import Auction, PartnerDecision, Vehicle, VehicleImage
 from .states import (
     AuctionState,
     VehicleState,
@@ -174,6 +174,46 @@ def end_due(now: datetime | None = None) -> list[int]:
 # ---------------------------------------------------------------------------
 
 
+class PartnerRulingPending(Exception):
+    """قرارٌ على سيارةِ شريكٍ لم يحكم فيها بعد."""
+
+
+#: النصُّ الموحَّد — كما في v1، فلا تتناقض الشاشات في ما تقوله.
+PARTNER_LOCK_MESSAGE = (
+    "هذه السيارة للتسويق وبانتظار قرار التعاونية. "
+    "لا يمكن اتخاذ قرار عليها قبل أن يقرّر الشريك."
+)
+
+#: النقلتان اللتان هما «قرارٌ على السيارة» — وعليهما وحدهما يقع القفل.
+_DECISION_TARGETS = (VehicleState.AWARDED, VehicleState.REJECTED)
+
+
+def partner_lock_reason(vehicle: Vehicle, target: str) -> str:
+    """سببُ منع القرار على سيارة شريك، أو `""` إن كان مسموحاً.
+
+    القاعدة من v1: سيارةُ التسويق قرارُها للشريك أولاً — لا تُقبل عليها عرضٌ
+    ولا تُرفض قبل أن يحكم. والفرقان عن v1 اثنان، وكلاهما مقصود:
+
+    **بوّابةٌ واحدة عند الكاتب، لا نسخةٌ في كل شاشة.** v1 كتب القاعدة في
+    `OwnersAuctionBidsController` وحدها، فمرّت اللوحاتُ القديمة من تحتها —
+    ونادت خدمةَ القبول مباشرةً وهي لا تقرأ المركبة — فقُبل عرضٌ بـ١٦٢٬٣٥٠ على
+    مركبةِ شريكٍ وحقلُ قراره خالٍ (٢٠٢٦-٠٨-٢٢). ثم نُسخت القاعدة في صنفٍ
+    مشترك، وبقيت نسختان. وهنا موضعٌ واحد: `move_vehicle` هو الكاتبُ الوحيد
+    لعمود الحالة، فما لا يمرّ به لا يغيّر قراراً.
+
+    **وتفشل مغلقةً، لا مفتوحة.** v1 يسمح عند أي خطأ أو عمودٍ غائب — «ميزةٌ
+    للشريك يجب ألّا تحبس المالك». والثمنُ أن كلَّ عطلٍ يصير إذناً. هنا الحقول
+    موجودةٌ بالقيد لا بالاحتمال، والغياب لا يُسأل عنه أصلاً.
+    """
+    if target not in _DECISION_TARGETS:
+        return ""
+    if not vehicle.is_marketing:
+        return ""
+    if vehicle.partner_decided_at is not None:
+        return ""
+    return PARTNER_LOCK_MESSAGE
+
+
 def move_vehicle(vehicle: Vehicle, target: str, *, extra: dict | None = None) -> Vehicle:
     """Move one vehicle, or refuse.
 
@@ -192,6 +232,12 @@ def move_vehicle(vehicle: Vehicle, target: str, *, extra: dict | None = None) ->
             fields.append(name)
 
         move = check_vehicle_move(locked, target)
+
+        # قفلُ الشريك يُقرأ من **الصفّ المقفول** لا من النسخة في الذاكرة: حكمٌ
+        # وصل بين قراءةِ الشاشة والضغطِ على الزرّ يُرى هنا.
+        refusal = partner_lock_reason(locked, target)
+        if refusal:
+            raise PartnerRulingPending(refusal)
 
         locked.state = target
         locked.save(update_fields=fields)
@@ -383,3 +429,64 @@ def cascade_auction_vehicles(auction: Auction, old_status: str, new_status: str)
             list_for_sale(vehicle)
             cascaded += 1
     return cascaded
+
+
+def record_partner_ruling(
+    vehicle: Vehicle, *, decision: str, actor, bid=None, now=None
+) -> Vehicle:
+    """اختِم حكمَ شريك التسويق على سيارته — وهو ما يفكّ `partner_lock_reason`.
+
+    الشرطُ من v1 حرفياً: **لا قرارَ قبل انتهاء المزاد** (`auctionEndedForVehicle`
+    ترفض بـ409 «لا يمكن اتخاذ القرار قبل انتهاء المزاد») — فالشريك لا يحسم
+    عرضاً والمظاريف لم تُفتح بعد.
+
+    وثلاثةُ فروقٍ عن v1، كلُّها لأن حكمَ الشريك **واقعةٌ** لا خانةٌ تُكتب:
+
+    * **لا يُختَم مرّتين.** v1 يُحدِّث الأعمدة بأي نداء، فتراجعٌ صامتٌ ممكن.
+      وهنا الحكمُ الأول يبقى، والثاني يُرفض — ونقضُه فعلٌ له بابُه.
+    * **يُسمّي صاحبه** (`partner_decided_by` مفتاحٌ لا نصّ): v1 يكتب اسم
+      المستخدم نصّاً، فحسابٌ يُعاد تسميته يترك قراراً بلا صاحب.
+    * **لا يُحرّك حالةَ السيارة.** الحكمُ إذنٌ للمنصّة أن تقرّر، لا قرارُها.
+    """
+    if decision not in PartnerDecision.values:
+        raise ValueError(f"unknown partner decision {decision!r}")
+    if not vehicle.is_marketing:
+        raise ValueError(f"vehicle {vehicle.pk} is not a marketing vehicle")
+
+    now = now or timezone.now()
+    if vehicle.auction.ends_at > now:
+        raise PartnerRulingPending(
+            "لا يمكن اتخاذ القرار قبل انتهاء المزاد — المظاريف لم تُفتح بعد."
+        )
+
+    with transaction.atomic():
+        locked = Vehicle.objects.select_for_update().select_related("auction").get(
+            pk=vehicle.pk
+        )
+        if locked.partner_decided_at is not None:
+            raise PartnerRulingPending(
+                f"حكم الشريك مسجَّلٌ سلفاً ({locked.get_partner_decision_display()})."
+            )
+        locked.partner_decision = decision
+        locked.partner_decided_at = now
+        locked.partner_decided_by = actor
+        locked.partner_decision_bid = bid
+        locked.save(
+            update_fields=[
+                "partner_decision",
+                "partner_decided_at",
+                "partner_decided_by",
+                "partner_decision_bid",
+                "updated_at",
+            ]
+        )
+
+    for name in (
+        "partner_decision",
+        "partner_decided_at",
+        "partner_decided_by",
+        "partner_decision_bid",
+    ):
+        setattr(vehicle, name, getattr(locked, name))
+    log.info("vehicle %s: partner ruled %s", vehicle.pk, decision)
+    return vehicle

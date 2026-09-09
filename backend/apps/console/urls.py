@@ -163,6 +163,12 @@ urlpatterns = [
     path("partner/state/active/", partner_console.partner_active, name="partner-active"),
     path("partner/state/ended/", partner_console.partner_ended, name="partner-ended"),
     path("partner/vehicles/", partner_console.partner_vehicles, name="partner-vehicles"),
+    # حكمُ شريك التسويق على سيارته — يفكّ قفل القرار (نظير `stampDecision` في v1).
+    path(
+        "partner/vehicles/<int:pk>/rule/",
+        partner_console.partner_rule,
+        name="partner-rule",
+    ),
     path(
         "partner/settlement/unpaid/",
         partner_console.partner_unpaid,

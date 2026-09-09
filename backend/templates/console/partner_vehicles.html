@@ -47,6 +47,7 @@
         <th>سعر الترسية</th>
         <th>النتيجة</th>
         <th>الفائز</th>
+        <th>حكم الشريك</th>
       </tr>
     </thead>
     <tbody>
@@ -71,9 +72,27 @@
               <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
             {% else %}—{% endif %}
           </td>
+          {% comment %} حكمُ الشريك — هو ما يفكّ قفل القرار على سيارة التسويق.
+             يظهر الزرّان لسيارةِ تسويقٍ لم يُحكَم فيها ومزادُها انتهى؛ وما
+             سوى ذلك يُقرأ ولا يُضغط. والخدمةُ تُعيد فحصَ الشرطين، فالزرُّ
+             راحةٌ لا حارس. {% endcomment %}
+          <td>
+            {% if not row.is_marketing %}
+              <span class="muted">—</span>
+            {% elif row.partner_decided_at %}
+              <span class="pill" data-tone="plain">{{ row.get_partner_decision_display }}</span>
+            {% else %}
+              <form method="post" action="{% url 'console:partner-rule' row.pk %}" style="display:inline">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" name="decision" value="accepted" class="btn-sm">قبِل</button>
+                <button type="submit" name="decision" value="rejected" class="btn-sm">رفض</button>
+              </form>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="10" class="empty">لا سيارات مطابقة.</td></tr>
+        <tr><td colspan="11" class="empty">لا سيارات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
