@@ -65,7 +65,7 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
           gradient: LinearGradient(
             begin: Alignment.topRight,
             end: Alignment.bottomLeft,
-            colors: <Color>[palette.headerTop, palette.headerBottom],
+            colors: <Color>[palette.heroTop, palette.heroBottom],
           ),
         ),
         // الخيط الذهبيّ في أسفل الهيدر — نظيرُ الذي في أعلى الشريط السفليّ،

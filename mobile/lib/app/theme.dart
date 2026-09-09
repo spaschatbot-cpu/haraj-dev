@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 class HarajPalette extends ThemeExtension<HarajPalette> {
   const HarajPalette({
     required this.gold,
+    required this.goldDeep,
     required this.goldMuted,
     required this.goldOnDark,
     required this.brown,
@@ -24,14 +25,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     required this.heroTop,
     required this.heroBottom,
     required this.heroGlow,
-    required this.navSurface,
-    required this.navSurfaceLow,
     required this.navInactive,
     required this.timerBadge,
     required this.pillTop,
     required this.pillBottom,
-    required this.headerTop,
-    required this.headerBottom,
   });
 
   /// الذهبيّ: لونُ الأيقونة المختارة، والحدُّ حول ما هو تفاعليّ.
@@ -40,6 +37,17 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// ونسبتُه على البيضاء ٢٫٥:١ — دون حدّ الأيقونات (٣:١). فاختير ذهبيٌّ
   /// غائرٌ يبلغ ٤٫١:١ على الأبيض ويبقى ذهبيّاً لا بنّيّاً.
   final Color gold;
+
+  /// ذهبيٌّ **غائرٌ** — طرفا تدرّج العنوان الذهبيّ في لوحة الترحيب.
+  ///
+  /// ثالثُ ذهبيّ، ولكلٍّ أرضيّتُه: `gold` للأيقونات على الأبيض، و`goldOnDark`
+  /// على البنّيّ العميق، وهذا **أغمقُ من الاثنين** ليكون طرفَ التدرّج الذي
+  /// منه يلمع الوسط. تدرّجٌ من `gold` إلى ذهبيٍّ أفتح كان أجملَ وأسقطَ
+  /// النسبة تحت ٣:١ في نصف الحروف.
+  ///
+  /// وفي الوضع الداكن ينقلب المعنى: الطرفُ الغائر يصير **أفتحَ** من `gold`
+  /// لأن الأرضيّة سوداء، والغائرُ عليها يختفي.
+  final Color goldDeep;
 
   /// ذهبيٌّ خافت: أثرُ اللمسة، وحدُّ حقل البحث.
   final Color goldMuted;
@@ -68,21 +76,22 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
 
   final Color cardSurface;
 
-  /// طرفا تدرّج الهيدر العلويّ في الرئيسية — من البنّيّ العميق إلى الأسود.
+  /// طرفا **التدرّج الداكن الواحد** في التطبيق — من البنّيّ العميق إلى
+  /// الأسود، قطريّاً من أعلى اليمين إلى أسفل اليسار.
+  ///
+  /// **زوجٌ واحدٌ يقرؤه ثلاثة**: لوحةُ الرئيسية (`HomeHero`)، وهيدرُ بقيّة
+  /// الشاشات (`HarajAppBar`)، والشريطُ السفليّ. كانت لكلٍّ منها قيمتاه —
+  /// `heroTop/heroBottom` و`headerTop/headerBottom` و`navSurface/navSurfaceLow`
+  /// — بستّة ألوانٍ قريبةٍ لا متطابقة، فبدا الفوتر أعتم من الهيدر على نفس
+  /// الشاشة. ووُحّدت مرّتين بنسخ القيم، وافترقت مرّتين لأن النسخ يفترق.
+  /// فحُذفت الأربعة وبقي الزوج: **لا مكان يُعدَّل فيه أحدهما دون الآخر**.
+  /// بقرار المالك في ٩ سبتمبر ٢٠٢٦.
   final Color heroTop;
   final Color heroBottom;
 
   /// وهجٌ ذهبيّ في وسط الهيدر: هو ما يمنع الأرضيّةَ الداكنة من أن تكون
   /// مستطيلاً أسود. شعاعيٌّ لا خطّيّ — الضوء يأتي من نقطة لا من حافّة.
   final Color heroGlow;
-
-  /// أعلى تدرّج أرضيّة الشريط السفليّ وأسفلُه — **داكنٌ صُلب لا زجاج**.
-  ///
-  /// الزجاج الأبيض الذي كان هنا يعتمد على ما يمرّ خلفه، وأرضيّةُ الصفحة
-  /// كريميّةٌ فاتحة فلا يمرّ خلفه شيء يُرى — فيبقى لوحاً باهتاً بلا سبب.
-  /// والداكن يقفل الصفحة من أسفلها كما يقفلها الهيدر من أعلاها.
-  final Color navSurface;
-  final Color navSurfaceLow;
 
   /// لونُ أيقونةِ ما ليس مختاراً ونصِّه: كريميٌّ دافئ على الأرضيّة الداكنة.
   ///
@@ -100,22 +109,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   final Color pillTop;
   final Color pillBottom;
 
-  /// طرفا تدرّج هيدر بقيّة الشاشات — **بنّيُّ الشريط السفليّ نفسه**.
-  ///
-  /// كانت خضرةً (`#0F5C4A`) من هويّةٍ سابقة، فصارت كل شاشةٍ غير الرئيسية
-  /// مؤطّرةً بخضرةٍ من أعلى وبنّيٍّ داكن من أسفل — لونان لا يجمعهما شيء على
-  /// ورقةٍ كريميّة واحدة. والرئيسية وحدها كانت متّسقة لأن لوحتها الداكنة
-  /// حلّت محلّ الهيدر. فأُخذ الهيدر إلى عائلة اللوحة والشريط: يقفل التطبيق
-  /// بين بنّيَّين وخيطَين ذهبيَّين.
-  ///
-  /// التدرّجُ قطريّ لا رأسيّ: رأسيٌّ على شريطٍ ارتفاعه ٥٦ لا يكاد يُرى،
-  /// وقطريٌّ يمرّ على عرض الشاشة كلّه فيُلحَظ بلا أن يصرخ.
-  final Color headerTop;
-  final Color headerBottom;
-
   @override
   HarajPalette copyWith({
     Color? gold,
+    Color? goldDeep,
     Color? goldMuted,
     Color? goldOnDark,
     Color? brown,
@@ -125,16 +122,13 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     Color? heroTop,
     Color? heroBottom,
     Color? heroGlow,
-    Color? navSurface,
-    Color? navSurfaceLow,
     Color? navInactive,
     Color? timerBadge,
     Color? pillTop,
     Color? pillBottom,
-    Color? headerTop,
-    Color? headerBottom,
   }) => HarajPalette(
     gold: gold ?? this.gold,
+    goldDeep: goldDeep ?? this.goldDeep,
     goldMuted: goldMuted ?? this.goldMuted,
     goldOnDark: goldOnDark ?? this.goldOnDark,
     brown: brown ?? this.brown,
@@ -144,14 +138,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     heroTop: heroTop ?? this.heroTop,
     heroBottom: heroBottom ?? this.heroBottom,
     heroGlow: heroGlow ?? this.heroGlow,
-    navSurface: navSurface ?? this.navSurface,
-    navSurfaceLow: navSurfaceLow ?? this.navSurfaceLow,
     navInactive: navInactive ?? this.navInactive,
     timerBadge: timerBadge ?? this.timerBadge,
     pillTop: pillTop ?? this.pillTop,
     pillBottom: pillBottom ?? this.pillBottom,
-    headerTop: headerTop ?? this.headerTop,
-    headerBottom: headerBottom ?? this.headerBottom,
   );
 
   @override
@@ -159,6 +149,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     if (other == null) return this;
     return HarajPalette(
       gold: Color.lerp(gold, other.gold, t)!,
+      goldDeep: Color.lerp(goldDeep, other.goldDeep, t)!,
       goldMuted: Color.lerp(goldMuted, other.goldMuted, t)!,
       goldOnDark: Color.lerp(goldOnDark, other.goldOnDark, t)!,
       brown: Color.lerp(brown, other.brown, t)!,
@@ -168,14 +159,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
       heroTop: Color.lerp(heroTop, other.heroTop, t)!,
       heroBottom: Color.lerp(heroBottom, other.heroBottom, t)!,
       heroGlow: Color.lerp(heroGlow, other.heroGlow, t)!,
-      navSurface: Color.lerp(navSurface, other.navSurface, t)!,
-      navSurfaceLow: Color.lerp(navSurfaceLow, other.navSurfaceLow, t)!,
       navInactive: Color.lerp(navInactive, other.navInactive, t)!,
       timerBadge: Color.lerp(timerBadge, other.timerBadge, t)!,
       pillTop: Color.lerp(pillTop, other.pillTop, t)!,
       pillBottom: Color.lerp(pillBottom, other.pillBottom, t)!,
-      headerTop: Color.lerp(headerTop, other.headerTop, t)!,
-      headerBottom: Color.lerp(headerBottom, other.headerBottom, t)!,
     );
   }
 
@@ -188,6 +175,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
 
   static const HarajPalette _light = HarajPalette(
     gold: Color(0xFFB8860B),
+    goldDeep: Color(0xFF8A6508),
     goldMuted: Color(0x24B8860B),
     goldOnDark: Color(0xFFE9C46A),
     brown: Color(0xFF2E2118),
@@ -197,14 +185,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     heroTop: Color(0xFF241A0C),
     heroBottom: Color(0xFF0B0805),
     heroGlow: Color(0xFFCE9B34),
-    navSurface: Color(0xFF33240F),
-    navSurfaceLow: Color(0xFF120C05),
     navInactive: Color(0xFFE4D9C6),
     timerBadge: Color(0xFF1F5F46),
     pillTop: Color(0xFF4A3624),
     pillBottom: Color(0xFF2A1D12),
-    headerTop: Color(0xFF33240F),
-    headerBottom: Color(0xFF1A1209),
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -214,6 +198,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// قليلاً ليبقى له حدٌّ يُرى.
   static const HarajPalette _dark = HarajPalette(
     gold: Color(0xFFE9C46A),
+    goldDeep: Color(0xFFC9A24A),
     goldMuted: Color(0x2EE9C46A),
     goldOnDark: Color(0xFFF0D28A),
     brown: Color(0xFFEDE0D0),
@@ -223,14 +208,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     heroTop: Color(0xFF1A1209),
     heroBottom: Color(0xFF070504),
     heroGlow: Color(0xFFB8860B),
-    navSurface: Color(0xFF3A2A14),
-    navSurfaceLow: Color(0xFF1A1209),
     navInactive: Color(0xFFCBBBA3),
     timerBadge: Color(0xFF1B5540),
     pillTop: Color(0xFF5A4430),
     pillBottom: Color(0xFF33231A),
-    headerTop: Color(0xFF3A2A14),
-    headerBottom: Color(0xFF120C05),
   );
 }
 
