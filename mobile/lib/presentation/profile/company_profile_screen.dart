@@ -5,6 +5,7 @@ import '../../domain/common/failure.dart';
 import '../../domain/profile/entities/customer_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import 'company_profile_controller.dart';
 
 /// ملف الشركة والعنوان الوطني (ZATCA).
@@ -21,7 +22,7 @@ class CompanyProfileScreen extends ConsumerWidget {
     final company = ref.watch(companyProfileControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.companyTitle)),
+      appBar: HarajAppBar(title: l10n.companyTitle),
       body: switch (company) {
         AsyncData(:final value) => _CompanyForm(company: value),
         AsyncError(:final error) => Center(

@@ -13,13 +13,12 @@ import '../../l10n/generated/app_localizations.dart';
 /// إضافةٍ في إحداهما، فيفتح تبويبُ «المفضلة» شاشةَ «محفظتي» — عطلٌ لا يكشفه
 /// إلا مستخدم.
 enum HomeSection {
-  /// المعرض: ما يعرضه القسم فعلاً — صالةٌ فيها سيّارات معروضة.
+  /// السيّارة: ما تحت القسم حرفياً — شبكةُ سيّارات معروضة.
   ///
-  /// **كانت مطرقةً، وهي أسوأ خيارين:** رمزُها في Material مائلٌ بزاوية،
-  /// فيبدو في اثنين وعشرين بكسلاً شكلاً غيرَ متّزنٍ بين أربع أيقوناتٍ قائمة —
-  /// و«بيتٌ» عامّ لا يميّز شيئاً في تطبيقٍ كلُّه مزادات. والمعرضُ متماثلٌ
-  /// رأسياً، وله نظيرٌ مفرَّغ، ويقول ما تحته.
-  home(Icons.storefront_outlined, Icons.storefront_rounded),
+  /// **ثالثُ اختيارٍ بعد اثنين رديئين:** المطرقة مائلةٌ بزاوية فتنشزّ بين
+  /// أيقوناتٍ قائمة، والمعرضُ صندوقٌ صغيرٌ لا يُقرأ في اثنين وعشرين بكسلاً.
+  /// والسيّارة عريضةٌ أفقياً فتملأ عرضها، وصورتُها الظليّة معروفةٌ بلا تأمّل.
+  home(Icons.directions_car_outlined, Icons.directions_car_rounded),
 
   /// وصلٌ طويل: «مشاركاتي» فواتيرُ ومشترياتٌ ومزايدات، والوصل يجمعها.
   activity(Icons.receipt_long_outlined, Icons.receipt_long_rounded),
@@ -175,7 +174,7 @@ class _GoldNavigationBar extends StatelessWidget {
   }
 }
 
-class _NavigationItem extends StatelessWidget {
+class _NavigationItem extends StatefulWidget {
   const _NavigationItem({
     required this.section,
     required this.selected,
@@ -186,96 +185,146 @@ class _NavigationItem extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  @override
+  State<_NavigationItem> createState() => _NavigationItemState();
+}
+
+class _NavigationItemState extends State<_NavigationItem> {
+  /// هل المؤشّر فوق العنصر — على الويب وسطح المكتب وحدهما.
+  ///
+  /// **لا أثر له على الجوّال**: لا مؤشّر هناك، فلا يدخل `MouseRegion` في
+  /// شيء ولا يُبنى شيءٌ لأجله. وتركُه يعمل في المنصّتين أهونُ من شرطٍ على
+  /// المنصّة يُنسى تحديثُه.
+  bool _hovered = false;
+
   /// زمنٌ قصير: الحركة هنا تؤكّد ما فعله المستخدم، ولا تجعله ينتظرها.
   static const Duration _duration = Duration(milliseconds: 220);
+
+  HomeSection get section => widget.section;
+  bool get selected => widget.selected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
     final label = section.label(l10n);
-    final iconColour = selected ? palette.gold : palette.navInactive;
+    // الهافر يُقرَّب اللون نحو الذهبيّ ولا يقفز إليه: قفزةٌ كاملة تجعل
+    // العنصر المُحوَّم عليه يبدو مختاراً، فيضيع الفرق بين «هنا أنت»
+    // و«هنا مؤشّرك».
+    final iconColour = selected
+        ? palette.gold
+        : _hovered
+        ? Color.lerp(palette.navInactive, palette.gold, 0.55)!
+        : palette.navInactive;
 
     return Semantics(
       // القارئ الصوتيّ يقول «مختار» ولا يترك الفرق للّون: اللون لا يُقرأ.
       selected: selected,
       button: true,
       label: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        // اللمسة تُرى على الأرضيّة الداكنة: تموّجٌ رماديّ عليها لا يكاد يظهر.
-        splashColor: palette.goldMuted,
-        highlightColor: palette.goldMuted,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              // الحوض تحت الأيقونة المختارة وحدها. عرضُه يتمدّد لا يظهر
-              // فجأةً: ظهورٌ مفاجئ يبدو وميضاً، وتمدّدٌ يبدو انتقالاً.
-              AnimatedContainer(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                height: 34,
-                width: selected ? 60 : 40,
-                decoration: BoxDecoration(
-                  // تدرّجٌ ذهبيّ للمختار: حوضٌ بلونٍ واحد يبدو مستطيلاً
-                  // ملوّناً، وبتدرّجٍ يبدو ضوءاً تحت الأيقونة.
-                  gradient: selected
-                      ? LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            palette.gold.withValues(alpha: 0.26),
-                            palette.gold.withValues(alpha: 0.10),
-                          ],
-                        )
-                      : null,
-                  borderRadius: BorderRadius.circular(17),
-                  border: selected
-                      ? Border.all(color: palette.gold.withValues(alpha: 0.34))
-                      : null,
-                ),
-                child: Center(
-                  child: Icon(
-                    selected ? section.selectedIcon : section.icon,
-                    // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
-                    size: selected ? 24 : 22,
-                    color: iconColour,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(18),
+          // اللمسة والهافر ذهبيّان: تموّجٌ رماديّ على أرضيّةٍ زجاجيّة فاتحة
+          // لا يكاد يظهر.
+          splashColor: palette.goldMuted,
+          highlightColor: palette.goldMuted,
+          hoverColor: palette.gold.withValues(alpha: 0.07),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 7),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                // الأيقونة عاريةً، وهالةٌ ذهبيّة خلفها حين تُختار: ضوءٌ لا حدّ،
+                // فيبقى الشكل واحداً في الحالتين ويتغيّر إضاءةً لا هيئة.
+                AnimatedScale(
+                  duration: _duration,
+                  curve: Curves.easeOutCubic,
+                  // رفعةٌ محسوسةٌ لا مرئيّة: ٤٪ تكفي ليشعر المؤشّر بأن العنصر
+                  // حيّ، وأكثرُ منها يزيح جاره في صفٍّ ضيّق.
+                  scale: _hovered && !selected ? 1.04 : 1,
+                  child: AnimatedContainer(
+                    duration: _duration,
+                    curve: Curves.easeOutCubic,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: selected
+                          ? <BoxShadow>[
+                              BoxShadow(
+                                color: palette.gold.withValues(alpha: 0.30),
+                                blurRadius: 14,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : const <BoxShadow>[],
+                    ),
+                    child: Icon(
+                      selected ? section.selectedIcon : section.icon,
+                      // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
+                      size: selected ? 25 : 22,
+                      color: iconColour,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              // `AnimatedDefaultTextStyle` لا `Text` بلونٍ متبدّل: اللون
-              // والوزن يتحرّكان مع الحوض، فلا يسبق أحدهما الآخر.
-              AnimatedDefaultTextStyle(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                style: TextStyle(
-                  // بنّيٌّ في الحالتين — لونان لنصٍّ واحدٍ يجعلان الشريط
-                  // مبقّعاً. والفرقُ في الشدّة لا في اللون.
-                  color: selected
-                      ? palette.brown
-                      : palette.brown.withValues(alpha: 0.62),
-                  fontSize: 11,
-                  // **عريضٌ في الحالتين.** الخطّ لا يحمل إلا ٤٠٠ و٥٠٠ و٧٠٠،
-                  // فوزنٌ بينهما لا وجود له ويُقرَّب صامتاً. والتمييز محمولٌ
-                  // على ثلاث إشاراتٍ أخرى: الحوض، والأيقونة الممتلئة،
-                  // والذهبيّ — تكفي بلا أن يخفت النصّ.
-                  fontWeight: FontWeight.w700,
-                  fontFamily: HarajTheme.fontFamily,
-                  height: 1.2,
+                const SizedBox(height: 6),
+                // `AnimatedDefaultTextStyle` لا `Text` بلونٍ متبدّل: اللون
+                // والوزن يتحرّكان مع الحوض، فلا يسبق أحدهما الآخر.
+                AnimatedDefaultTextStyle(
+                  duration: _duration,
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    // بنّيٌّ في الحالتين — لونان لنصٍّ واحدٍ يجعلان الشريط
+                    // مبقّعاً. والفرقُ في الشدّة لا في اللون.
+                    color: selected
+                        ? palette.brown
+                        : palette.brown.withValues(alpha: 0.62),
+                    fontSize: 11,
+                    // **عريضٌ في الحالتين.** الخطّ لا يحمل إلا ٤٠٠ و٥٠٠ و٧٠٠،
+                    // فوزنٌ بينهما لا وجود له ويُقرَّب صامتاً. والتمييز محمولٌ
+                    // على ثلاث إشاراتٍ أخرى: الحوض، والأيقونة الممتلئة،
+                    // والذهبيّ — تكفي بلا أن يخفت النصّ.
+                    fontWeight: FontWeight.w700,
+                    fontFamily: HarajTheme.fontFamily,
+                    height: 1.2,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    // القصّ لا الالتفاف: سطرٌ ثانٍ يطيل الشريط ويزيح المحتوى.
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  // القصّ لا الالتفاف: سطرٌ ثانٍ يطيل الشريط ويزيح المحتوى.
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
+                const SizedBox(height: 5),
+                // **نقطةٌ تحت الاسم** لا خطٌّ فوق الأيقونة ولا حوضٌ حولها.
+                //
+                // الخطّ فوق الأيقونة يرث شكل التبويبات العلويّة فتقرأه العين
+                // «تبويبٌ نزل من فوق»، والحوضُ يحبس الأيقونة في كبسولةٍ فتبدو
+                // زرّاً داخل زرّ. والنقطةُ علامةٌ لا شكل: تقول «هذا هو» بأقلّ
+                // حبرٍ ممكن، ولا تنازع الأيقونةَ ولا النصَّ على مساحتهما.
+                AnimatedContainer(
+                  duration: _duration,
+                  curve: Curves.easeOutCubic,
+                  width: selected ? 5 : 0,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: palette.gold,
+                    shape: BoxShape.circle,
+                    boxShadow: selected
+                        ? <BoxShadow>[
+                            BoxShadow(
+                              color: palette.gold.withValues(alpha: 0.55),
+                              blurRadius: 6,
+                            ),
+                          ]
+                        : const <BoxShadow>[],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -299,7 +348,7 @@ class _BarInset extends StatelessWidget {
   /// ارتفاع الشريط بهامشه: ١٢ هامشٌ سفليّ + حدّان + ٨ فوق + ٣٤ حوض + ٦ فراغ
   /// + ١٣ نصّ + ٨ تحت ≈ ٨٤. و`SafeArea` تضيف حاشية الجهاز فوقها، وتُقرأ من
   /// `MediaQuery` لا تُخمَّن.
-  static const double _barHeight = 84;
+  static const double _barHeight = 80;
 
   @override
   Widget build(BuildContext context) {

@@ -9,6 +9,7 @@ import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/saudi_time.dart';
 import '../common/stale_data_banner.dart';
@@ -30,7 +31,7 @@ class MyBidsScreen extends ConsumerWidget {
     final live = ref.watch(liveBidsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.myBidsTitle)),
+      appBar: HarajAppBar(title: l10n.myBidsTitle),
       body: Column(
         children: [
           LiveStatusBanner(

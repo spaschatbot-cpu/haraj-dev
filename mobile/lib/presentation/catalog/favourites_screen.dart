@@ -8,6 +8,7 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/stale_data_banner.dart';
 import 'favourites_controller.dart';
 import 'widgets/vehicle_results.dart';
@@ -29,7 +30,7 @@ class FavouritesScreen extends ConsumerWidget {
     final state = ref.watch(favouritesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.favouritesTitle)),
+      appBar: HarajAppBar(title: l10n.favouritesTitle),
       body: switch (state) {
         AsyncData(value: final snapshot) => RefreshIndicator(
           onRefresh: () async => ref.refresh(favouritesProvider.future),

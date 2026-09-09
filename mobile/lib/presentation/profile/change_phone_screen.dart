@@ -10,6 +10,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../auth/session_controller.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 
 /// تغيير رقم الجوال بتأكيد الرقمين.
 ///
@@ -113,7 +114,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     final sent = _sent;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.changePhoneTitle)),
+      appBar: HarajAppBar(title: l10n.changePhoneTitle),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

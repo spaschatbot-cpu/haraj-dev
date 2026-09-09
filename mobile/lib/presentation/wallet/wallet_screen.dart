@@ -8,6 +8,7 @@ import '../../domain/common/snapshot.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/saudi_time.dart';
 import '../common/stale_data_banner.dart';
@@ -30,7 +31,7 @@ class WalletScreen extends ConsumerWidget {
     final state = ref.watch(walletBalanceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.walletTitle)),
+      appBar: HarajAppBar(title: l10n.walletTitle),
       body: switch (state) {
         AsyncData(value: final snapshot) => RefreshIndicator(
           onRefresh: () async => ref.refresh(walletBalanceProvider.future),

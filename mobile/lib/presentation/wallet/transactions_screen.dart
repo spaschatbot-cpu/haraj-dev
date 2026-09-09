@@ -11,6 +11,7 @@ import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/saudi_time.dart';
 import '../common/stale_data_banner.dart';
@@ -70,7 +71,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final state = ref.watch(transactionsControllerProvider(widget.bucket));
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.transactionsTitle)),
+      appBar: HarajAppBar(title: l10n.transactionsTitle),
       body: switch (state) {
         AsyncData(value: final data) => Column(
           children: [

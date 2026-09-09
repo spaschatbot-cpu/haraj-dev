@@ -7,6 +7,7 @@ import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/snapshot_view.dart';
 import 'favourites_controller.dart';
@@ -33,10 +34,13 @@ class VehicleScreen extends ConsumerWidget {
     final vehicle = state.value?.value;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          vehicle?.title ?? AppLocalizations.of(context).vehiclesTitle,
-        ),
+      appBar: HarajAppBar(
+        title: vehicle?.title ?? AppLocalizations.of(context).vehiclesTitle,
+        // رقمُ اللوت تحت الاسم: هو ما ينادي به الدلّالُ المركبةَ في القاعة،
+        // فيراه العميل قبل أن ينزل إلى التفاصيل.
+        subtitle: vehicle == null
+            ? null
+            : AppLocalizations.of(context).vehicleLot(vehicle.lotNumber),
         actions: <Widget>[
           // القلب لا يظهر قبل وصول الكرت: زرٌّ يعرض حالةً لا يعرفها بعد
           // يقول «غير محفوظة» عن محفوظة، والضغط عليه حينها يحذفها.

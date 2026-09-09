@@ -20,6 +20,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     required this.navSurface,
     required this.navSurfaceLow,
     required this.navInactive,
+    required this.headerTop,
+    required this.headerBottom,
+    required this.goldOnDark,
   });
 
   /// الذهبيّ: لونُ الأيقونة المختارة.
@@ -48,6 +51,19 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// ويعتم من أخرى، ولونٌ واحدٌ مسطّح يبقى مسطّحاً مهما خفّت شفافيّته.
   final Color navSurfaceLow;
 
+  /// طرفا تدرّج الهيدر — خضرةُ العلامة، من الغامق إلى الأغمق.
+  ///
+  /// التدرّجُ قطريّ لا رأسيّ: رأسيٌّ على شريطٍ ارتفاعه ٥٦ لا يكاد يُرى،
+  /// وقطريٌّ يمرّ على عرض الشاشة كلّه فيُلحَظ بلا أن يصرخ.
+  final Color headerTop;
+  final Color headerBottom;
+
+  /// الذهبيّ **على الداكن**: أفتحُ من ذهبيّ الأبيض.
+  ///
+  /// لونان لا واحد: `#B8860B` يكفي على الأبيض ونسبتُه على الخضرة العميقة
+  /// ٢٫١:١ — لا يُقرأ. ولونٌ واحدٌ «وسط» يكون رديئاً في الموضعين معاً.
+  final Color goldOnDark;
+
   /// لونُ أيقونةِ ما ليس مختاراً: بنّيٌّ دافئ لا ذهبيٌّ باهت.
   ///
   /// **الذهبيّ الباهت يُقرأ «معطَّل»** لا «غير مختار»، والفرق بينهما هو كل
@@ -62,6 +78,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     Color? navSurface,
     Color? navSurfaceLow,
     Color? navInactive,
+    Color? headerTop,
+    Color? headerBottom,
+    Color? goldOnDark,
   }) => HarajPalette(
     gold: gold ?? this.gold,
     goldMuted: goldMuted ?? this.goldMuted,
@@ -69,6 +88,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     navSurface: navSurface ?? this.navSurface,
     navSurfaceLow: navSurfaceLow ?? this.navSurfaceLow,
     navInactive: navInactive ?? this.navInactive,
+    headerTop: headerTop ?? this.headerTop,
+    headerBottom: headerBottom ?? this.headerBottom,
+    goldOnDark: goldOnDark ?? this.goldOnDark,
   );
 
   @override
@@ -81,6 +103,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
       navSurface: Color.lerp(navSurface, other.navSurface, t)!,
       navSurfaceLow: Color.lerp(navSurfaceLow, other.navSurfaceLow, t)!,
       navInactive: Color.lerp(navInactive, other.navInactive, t)!,
+      headerTop: Color.lerp(headerTop, other.headerTop, t)!,
+      headerBottom: Color.lerp(headerBottom, other.headerBottom, t)!,
+      goldOnDark: Color.lerp(goldOnDark, other.goldOnDark, t)!,
     );
   }
 
@@ -101,6 +126,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     navSurface: Color(0xA6FFFFFF),
     navSurfaceLow: Color(0x8CFFFFFF),
     navInactive: Color(0xFF8D7A63),
+    headerTop: Color(0xFF0F5C4A),
+    headerBottom: Color(0xFF083A2E),
+    goldOnDark: Color(0xFFE3BC57),
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -113,6 +141,9 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     navSurface: Color(0xA6141009),
     navSurfaceLow: Color(0x8C0E0B06),
     navInactive: Color(0xFFA89478),
+    headerTop: Color(0xFF0A3B30),
+    headerBottom: Color(0xFF04211A),
+    goldOnDark: Color(0xFFEFCB72),
   );
 }
 

@@ -9,6 +9,7 @@ import '../../domain/profile/entities/customer_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../auth/session_controller.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/stale_data_banner.dart';
 import 'profile_controller.dart';
 import 'widgets/locked_field_row.dart';
@@ -23,8 +24,8 @@ class ProfileScreen extends ConsumerWidget {
     final profile = ref.watch(profileControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.profileTitle),
+      appBar: HarajAppBar(
+        title: l10n.profileTitle,
         actions: [
           IconButton(
             onPressed: () =>
