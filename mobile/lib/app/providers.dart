@@ -7,6 +7,7 @@
 library;
 
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/environment.dart';
@@ -18,6 +19,7 @@ import '../data/auth/auth_repository_impl.dart';
 import '../data/auth/session_refresher.dart';
 import '../data/bidding/bidding_repository_impl.dart';
 import '../data/bidding/sse_channel.dart';
+import '../data/catalog/catalog_mapper.dart' show VehicleSpecificationLabels;
 import '../data/catalog/catalog_repository_impl.dart';
 import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
@@ -151,17 +153,46 @@ final walletRepositoryProvider = Provider<WalletRepository>(
   ),
 );
 
+/// لغة التطبيق. عربيةٌ افتراضاً كما في `HarajApp`، ومزوَّدٌ لا ثابتٌ كي
+/// تُبدَّل في اختبارٍ أو من إعدادٍ لاحق بلا تعديل من يقرأها.
+final localeProvider = Provider<Locale>((ref) => const Locale('ar'));
+
+/// أسماء حقول المواصفات، من ملفّ الترجمة.
+///
+/// **تُبنى هنا لا في المُحوِّل**: النصّ المعروض شأنُ الواجهة (المعيار H3 — لا
+/// نصّ مكتوب داخل شاشة، ولا داخل طبقة بيانات من باب أولى). والمُحوِّل يستقبلها
+/// فيبقى خالياً من العربية، وتبقى الكلمة الواحدة في ملفّ واحد.
+///
+/// ولا `BuildContext` هنا: المزوّد يُقرأ قبل أن تُبنى شجرةُ الواجهة، فتُلتمس
+/// الترجمة باللغة مباشرةً — وهي نفسها التي تمرّرها `HarajApp` إلى `MaterialApp`.
+final vehicleSpecificationLabelsProvider = Provider<VehicleSpecificationLabels>(
+  (ref) {
+    final l10n = lookupAppLocalizations(ref.watch(localeProvider));
+    return VehicleSpecificationLabels(
+      make: l10n.vehicleSpecMake,
+      model: l10n.vehicleSpecModel,
+      year: l10n.vehicleSpecYear,
+      colour: l10n.vehicleSpecColour,
+      condition: l10n.vehicleSpecCondition,
+      odometer: l10n.vehicleSpecOdometer,
+      location: l10n.vehicleSpecLocation,
+    );
+  },
+);
+
 final catalogRepositoryProvider = Provider<CatalogRepository>(
   (ref) => CatalogRepositoryImpl(
     auctions: ref.watch(apiClientProvider).auctions,
     vehicles: ref.watch(apiClientProvider).vehicles,
     cache: ref.watch(responseCacheProvider),
+    specificationLabels: ref.watch(vehicleSpecificationLabelsProvider),
   ),
 );
 
 final activityRepositoryProvider = Provider<ActivityRepository>(
   (ref) => ActivityRepositoryImpl(
-    auctions: ref.watch(apiClientProvider).auctions,
+    participations: ref.watch(apiClientProvider).participations,
+    purchases: ref.watch(apiClientProvider).purchases,
     invoices: ref.watch(apiClientProvider).invoices,
     cache: ref.watch(responseCacheProvider),
   ),
@@ -229,6 +260,7 @@ final _liveChannelProvider = Provider<SseChannel>(
 final biddingRepositoryProvider = Provider<BiddingRepository>(
   (ref) => BiddingRepositoryImpl(
     api: ref.watch(apiClientProvider).bids,
+    vehicles: ref.watch(apiClientProvider).vehicles,
     cache: ref.watch(responseCacheProvider),
     live: ref.watch(_liveChannelProvider),
   ),

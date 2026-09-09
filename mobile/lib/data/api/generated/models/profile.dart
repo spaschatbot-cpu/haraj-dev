@@ -8,6 +8,12 @@ import 'locked_field.dart';
 
 part 'profile.g.dart';
 
+/// The caller's own account, as a screen shows it.
+///
+/// Read-only fields are marked as such rather than merely ignored on write:.
+/// a client generated from this schema then cannot offer a form field that.
+/// silently does nothing, which is how v1's "edit profile" screen let people.
+/// type a new phone number into a box that never saved it.
 @JsonSerializable()
 class Profile {
   const Profile({
@@ -36,7 +42,7 @@ class Profile {
   final String displayName;
   @JsonKey(name: 'full_name')
   final String fullName;
-  final String? email;
+  final dynamic email;
   @JsonKey(name: 'account_type')
   final String accountType;
   @JsonKey(name: 'national_id')
@@ -49,8 +55,6 @@ class Profile {
   final bool hasCompanyProfile;
   @JsonKey(name: 'company_profile_complete')
   final bool companyProfileComplete;
-
-  /// الحقول التي تُعرض ولا تُعدَّل، وسبب كلٍّ منها بالعربية
   @JsonKey(name: 'locked_fields')
   final List<LockedField> lockedFields;
 

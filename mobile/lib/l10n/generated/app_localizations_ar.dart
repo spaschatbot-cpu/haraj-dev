@@ -678,4 +678,54 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get liveNoStandingBid => 'لا مزايدة قائمة لك على هذه المركبة.';
+
+  @override
+  String get vehicleSpecMake => 'الماركة';
+
+  @override
+  String get vehicleSpecModel => 'الطراز';
+
+  @override
+  String get vehicleSpecYear => 'سنة الصنع';
+
+  @override
+  String get vehicleSpecColour => 'اللون';
+
+  @override
+  String get vehicleSpecCondition => 'الحالة';
+
+  @override
+  String get vehicleSpecOdometer => 'الممشى (كم)';
+
+  @override
+  String get vehicleSpecLocation => 'الموقع';
+
+  @override
+  String get vehicleAdminFee => 'الرسوم الإدارية';
+
+  @override
+  String get vehicleAdminFeeWithVat => 'الرسوم + الضريبة';
+
+  @override
+  String get bidStateStanding => 'قائمة';
+
+  @override
+  String get bidStateSuperseded => 'تجاوزتها مزايدةٌ أحدث لك';
+
+  @override
+  String get bidStateWithdrawn => 'مسحوبة';
+
+  @override
+  String get bidStateUnknown => '—';
+
+  @override
+  String get auctionVehiclesNotCounted => 'لم تُعدّ';
+
+  @override
+  String walletHoldSince(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'محجوز منذ $dateString';
+  }
 }

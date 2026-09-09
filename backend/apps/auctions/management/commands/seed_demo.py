@@ -240,7 +240,7 @@ class Command(BaseCommand):
         عندنا»؛ تُقرأ «العدّاد معطَّل». وهو الفرق نفسه الذي بُنيت هذه الشاشة
         لأجله في عمود الرصيد.
         """
-        from apps.accounts.models import AccountType, Company
+        from apps.accounts.models import AccountType, Company, NationalAddress
 
         made = 0
         for phone, name, rep, city in (
@@ -259,9 +259,15 @@ class Command(BaseCommand):
                 defaults={
                     "name": name,
                     "representative_name": rep,
-                    "city": city,
                     "commercial_register": f"1010{made}00000",
                 },
+            )
+            # المدينة على `NationalAddress` لا على الشركة: منذ T850 صارت
+            # `Company.city` خاصّةَ قراءةٍ تُسقط أيَّ إسناد، وكانت هذه البذرة
+            # تُسنِد إليها فتموت قبل أن تزرع مزاداً واحداً. والعنوان مرتبطٌ
+            # بالمستخدم لا بالشركة، فالفردُ والشركةُ يُقرأان من مكانٍ واحد.
+            NationalAddress.objects.get_or_create(
+                user=person, defaults={"city": city}
             )
             made += 1
         self.stdout.write(f"شركات: {made} حساباً جديداً")

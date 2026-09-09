@@ -6,6 +6,8 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'authenticated_user.g.dart';
 
+/// The caller's own account. Never anybody else's — the view reads it off.
+/// the token, never off a request field.
 @JsonSerializable()
 class AuthenticatedUser {
   const AuthenticatedUser({
@@ -25,8 +27,6 @@ class AuthenticatedUser {
   final String displayName;
   @JsonKey(name: 'account_type')
   final String accountType;
-
-  /// أول دخول لهذا الرقم
   @JsonKey(name: 'is_new')
   final bool isNew;
 

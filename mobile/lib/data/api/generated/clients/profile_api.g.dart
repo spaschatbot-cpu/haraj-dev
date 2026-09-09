@@ -47,45 +47,26 @@ class _ProfileApi implements ProfileApi {
   }
 
   @override
-  Future<Profile> profileUpdate({required PatchedProfileUpdate body}) async {
+  Future<Profile> profileUpdate({String? fullName, dynamic email}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    final _data = FormData();
+    if (fullName != null) {
+      _data.fields.add(MapEntry('full_name', fullName));
+    }
+    _data.fields.add(MapEntry('email', email));
     final _options = _setStreamType<Profile>(
-      Options(method: 'PATCH', headers: _headers, extra: _extra)
+      Options(
+            method: 'PATCH',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
             '/api/v1/profile/',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
-    final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late Profile _value;
-    try {
-      _value = Profile.fromJson(_result.data!);
-    } on Object catch (e, s) {
-      errorLogger?.logError(e, s, _options, response: _result);
-      rethrow;
-    }
-    return _value;
-  }
-
-  @override
-  Future<Profile> profileSetNationalId({required NationalId body}) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{};
-    final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
-    final _options = _setStreamType<Profile>(
-      Options(method: 'PUT', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/v1/profile/national-id/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -131,15 +112,55 @@ class _ProfileApi implements ProfileApi {
 
   @override
   Future<CompanyProfileRead> profileCompanySave({
-    required CompanyProfile body,
+    String? name,
+    String? representativeName,
+    String? commercialRegister,
+    String? vatNumber,
+    String? buildingNumber,
+    String? street,
+    String? district,
+    String? city,
+    String? postalCode,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    final _data = FormData();
+    if (name != null) {
+      _data.fields.add(MapEntry('name', name));
+    }
+    if (representativeName != null) {
+      _data.fields.add(MapEntry('representative_name', representativeName));
+    }
+    if (commercialRegister != null) {
+      _data.fields.add(MapEntry('commercial_register', commercialRegister));
+    }
+    if (vatNumber != null) {
+      _data.fields.add(MapEntry('vat_number', vatNumber));
+    }
+    if (buildingNumber != null) {
+      _data.fields.add(MapEntry('building_number', buildingNumber));
+    }
+    if (street != null) {
+      _data.fields.add(MapEntry('street', street));
+    }
+    if (district != null) {
+      _data.fields.add(MapEntry('district', district));
+    }
+    if (city != null) {
+      _data.fields.add(MapEntry('city', city));
+    }
+    if (postalCode != null) {
+      _data.fields.add(MapEntry('postal_code', postalCode));
+    }
     final _options = _setStreamType<CompanyProfileRead>(
-      Options(method: 'PUT', headers: _headers, extra: _extra)
+      Options(
+            method: 'PUT',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
             '/api/v1/profile/company/',
@@ -152,6 +173,39 @@ class _ProfileApi implements ProfileApi {
     late CompanyProfileRead _value;
     try {
       _value = CompanyProfileRead.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<Profile> profileSetNationalId({required String nationalId}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.fields.add(MapEntry('national_id', nationalId));
+    final _options = _setStreamType<Profile>(
+      Options(
+            method: 'PUT',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/profile/national-id/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late Profile _value;
+    try {
+      _value = Profile.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

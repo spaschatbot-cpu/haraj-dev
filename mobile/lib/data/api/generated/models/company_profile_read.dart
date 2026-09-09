@@ -6,6 +6,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'company_profile_read.g.dart';
 
+/// The same fields plus whether they add up to something invoiceable.
 @JsonSerializable()
 class CompanyProfileRead {
   const CompanyProfileRead({
@@ -38,8 +39,6 @@ class CompanyProfileRead {
   final String? city;
   @JsonKey(name: 'postal_code')
   final String? postalCode;
-
-  /// هل تكفي هذه البيانات لإصدار فاتورة ضريبية
   @JsonKey(name: 'is_complete')
   final bool isComplete;
 

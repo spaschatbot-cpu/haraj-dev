@@ -51,7 +51,6 @@ class _Vehicle extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final price = vehicle.reservePrice;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
@@ -74,17 +73,22 @@ class _Vehicle extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 4,
                 children: <Widget>[
+                  // نفس مال الكرت حرفياً: الرسوم ومعها الضريبة. سعرٌ واحد
+                  // للمركبة في كل شاشة، وإلا اختلفت الأرقام أمام العميل كما
+                  // اختلفت في v1 (المادة ٤-٥).
+                  Text(l10n.vehicleAdminFee, style: theme.textTheme.bodyMedium),
+                  MoneyText(
+                    vehicle.card.adminFee,
+                    style: theme.textTheme.titleLarge,
+                  ),
                   Text(
-                    l10n.vehicleReservePrice,
+                    l10n.vehicleAdminFeeWithVat,
                     style: theme.textTheme.bodyMedium,
                   ),
-                  if (price == null)
-                    Text(
-                      l10n.vehicleReservePriceUnset,
-                      style: theme.textTheme.bodyLarge,
-                    )
-                  else
-                    MoneyText(price, style: theme.textTheme.titleLarge),
+                  MoneyText(
+                    vehicle.card.adminFeeWithVat,
+                    style: theme.textTheme.bodyLarge,
+                  ),
                 ],
               ),
               const SizedBox(height: 8),

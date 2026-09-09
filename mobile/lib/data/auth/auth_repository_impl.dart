@@ -2,11 +2,7 @@ import '../../domain/auth/entities/auth_session.dart';
 import '../../domain/auth/repositories/auth_repository.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/auth_api.dart';
-import '../api/generated/models/confirm_phone_change.dart';
-import '../api/generated/models/send_code.dart';
 import '../api/generated/models/send_code_purpose_enum.dart';
-import '../api/generated/models/start_phone_change.dart';
-import '../api/generated/models/verify_code.dart';
 import '../local/cache/response_cache.dart';
 import '../local/secure/secure_token_store.dart';
 
@@ -30,9 +26,7 @@ final class AuthRepositoryImpl implements AuthRepository {
     CodePurpose purpose = CodePurpose.login,
   }) async {
     final sent = await callApi(
-      () => _api.v1AuthCodeCreate(
-        body: SendCode(phone: phone, purpose: _purposeOf(purpose)),
-      ),
+      () => _api.v1AuthCodeCreate(phone: phone, purpose: _purposeOf(purpose)),
     );
     return CodeDelivery(
       expiresAt: sent.expiresAt.toUtc(),
@@ -47,9 +41,8 @@ final class AuthRepositoryImpl implements AuthRepository {
     String fullName = '',
   }) async {
     final pair = await callApi(
-      () => _api.v1AuthVerifyCreate(
-        body: VerifyCode(phone: phone, code: code, fullName: fullName),
-      ),
+      () =>
+          _api.v1AuthVerifyCreate(phone: phone, code: code, fullName: fullName),
     );
     await _tokens.save(access: pair.access, refresh: pair.refresh);
     return AuthSession(
@@ -72,9 +65,7 @@ final class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<PhoneChangeCodes> startPhoneChange({required String newPhone}) async {
     final sent = await callApi(
-      () => _api.v1AuthPhoneChangeCreate(
-        body: StartPhoneChange(newPhone: newPhone),
-      ),
+      () => _api.v1AuthPhoneChangeCreate(newPhone: newPhone),
     );
     return PhoneChangeCodes(
       sentToCurrent: sent.sentToCurrent,
@@ -94,11 +85,9 @@ final class AuthRepositoryImpl implements AuthRepository {
   }) async {
     await callApi(
       () => _api.v1AuthPhoneChangeConfirmCreate(
-        body: ConfirmPhoneChange(
-          newPhone: newPhone,
-          currentCode: currentCode,
-          newCode: newCode,
-        ),
+        newPhone: newPhone,
+        currentCode: currentCode,
+        newCode: newCode,
       ),
     );
 

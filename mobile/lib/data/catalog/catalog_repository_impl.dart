@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import '../../domain/catalog/entities/auction_phase.dart';
 import '../../domain/catalog/entities/auction_summary.dart';
 import '../../domain/catalog/entities/vehicle_detail.dart';
 import '../../domain/catalog/entities/vehicle_feed.dart';
@@ -10,11 +11,12 @@ import '../../domain/common/snapshot.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/auctions_api.dart';
 import '../api/generated/clients/vehicles_api.dart';
-import '../api/generated/models/auction_status.dart';
-import '../api/generated/models/paginated_auction_list.dart' as api;
-import '../api/generated/models/paginated_vehicle_card_list.dart' as api;
-import '../api/generated/models/vehicle.dart' as api;
-import '../api/generated/models/vehicle_feed_page.dart' as api;
+import '../api/generated/models/auction_page.dart' as api;
+import '../api/generated/models/phase.dart' as api;
+import '../api/generated/models/state.dart' as api;
+import '../api/generated/models/vehicle_card.dart' as api;
+import '../api/generated/models/vehicle_images.dart' as api;
+import '../api/generated/models/vehicle_page.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'catalog_mapper.dart';
 
@@ -29,10 +31,12 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     required AuctionsApi auctions,
     required VehiclesApi vehicles,
     required ResponseCache cache,
+    required VehicleSpecificationLabels specificationLabels,
     DateTime Function()? clock,
   }) : _auctions = auctions,
        _vehicles = vehicles,
        _cache = cache,
+       _labels = specificationLabels,
        _clock = clock ?? DateTime.now;
 
   /// حجم الصفحة يُرسَل صراحةً كي لا يكون سلوك التطبيق رهناً بافتراضٍ في
@@ -45,7 +49,16 @@ final class CatalogRepositoryImpl implements CatalogRepository {
   final AuctionsApi _auctions;
   final VehiclesApi _vehicles;
   final ResponseCache _cache;
+  final VehicleSpecificationLabels _labels;
   final DateTime Function() _clock;
+
+  /// الترقيم على السلك `limit`/`offset` لا `page`.
+  ///
+  /// الصفحة مفهوم الشاشة، والإزاحة مفهوم العقد؛ والترجمة بينهما تقع هنا مرّةً
+  /// بدل أن تتكرّر في كل نداء. وكانت الطبقة تُرسل `page`/`page_size` — معاملين
+  /// لا يعرفهما الخادم، فيتجاهلهما ويردّ الصفحة الأولى دائماً: تمريرٌ لا ينتهي
+  /// ويعيد نفسه، وهو عطلٌ يبدو «بطئاً» لا خطأً.
+  static int _offsetOf(int page) => (page - 1) * pageSize;
 
   @override
   Future<Snapshot<HomeAuctions>> loadHomeAuctions() async {
@@ -53,17 +66,9 @@ final class CatalogRepositoryImpl implements CatalogRepository {
       // الاستعلامان متوازيان: الرئيسية شاشة الإقلاع، وتسلسلُ نداءين يضاعف
       // زمن أول ما يراه العميل بلا سبب.
       final (running, upcoming) = await callApi(() async {
-        final responses = await Future.wait(<Future<api.PaginatedAuctionList>>[
-          _auctions.auctionsList(
-            status: AuctionStatus.running,
-            page: 1,
-            pageSize: pageSize,
-          ),
-          _auctions.auctionsList(
-            status: AuctionStatus.scheduled,
-            page: 1,
-            pageSize: pageSize,
-          ),
+        final responses = await Future.wait(<Future<api.AuctionPage>>[
+          _auctions.auctionsList(state: api.State.live, limit: pageSize),
+          _auctions.auctionsList(state: api.State.scheduled, limit: pageSize),
         ]);
         return (responses[0], responses[1]);
       });
@@ -91,16 +96,19 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     String auctionId,
     VehicleQuery query,
   ) async {
+    final id = int.tryParse(auctionId);
+    if (id == null) throw ArgumentError.value(auctionId, 'auctionId');
+
     try {
       final page = await callApi(
-        () => _vehicles.auctionVehiclesList(
-          auctionId: auctionId,
+        () => _auctions.auctionsVehiclesList(
+          id: id,
           search: _blankToNull(query.search),
           make: _blankToNull(query.make),
           yearFrom: query.yearFrom,
           yearTo: query.yearTo,
-          page: query.page,
-          pageSize: pageSize,
+          limit: pageSize,
+          offset: _offsetOf(query.page),
         ),
       );
 
@@ -112,7 +120,7 @@ final class CatalogRepositoryImpl implements CatalogRepository {
           fetchedAtUtc: fetchedAt,
         );
       }
-      return Snapshot.fresh(page.toDomain(), at: fetchedAt);
+      return Snapshot.fresh(page.toPage(), at: fetchedAt);
     } on TransportFailure {
       // بحثٌ بلا خادم لا جواب له: الردّ على «ابحث عن كامري» بقائمةٍ محفوظة لم
       // تُبحث كذبٌ أوضح من رسالة الخطأ. فالمحفوظ يُقرأ للصفحة الأولى بلا
@@ -136,13 +144,13 @@ final class CatalogRepositoryImpl implements CatalogRepository {
       // الصفحة نفسها، وإلا قال التبويب رقماً لا يصف ما يُفتح فيه.
       final feed = await callApi(
         () => _vehicles.vehiclesList(
-          phase: apiPhaseOf(phase),
+          phase: _apiPhaseOf(phase),
           search: _blankToNull(query.search),
           make: _blankToNull(query.make),
           yearFrom: query.yearFrom,
           yearTo: query.yearTo,
-          page: query.page,
-          pageSize: pageSize,
+          limit: pageSize,
+          offset: _offsetOf(query.page),
         ),
       );
 
@@ -167,17 +175,28 @@ final class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<Snapshot<VehicleDetail>> loadVehicle(String vehicleId) async {
+    final id = int.tryParse(vehicleId);
+    if (id == null) throw ArgumentError.value(vehicleId, 'vehicleId');
+
     try {
-      final vehicle = await callApi(
-        () => _vehicles.vehiclesRetrieve(vehicleId: vehicleId),
-      );
+      // الكرت وصورُه معاً: نداءان متوازيان لا متتاليان — الصفحة لا تُرسم قبل
+      // وصول الاثنين على أي حال، فتسلسلُهما يضيف زمناً بلا مقابل.
+      final (card, images) = await callApi(() async {
+        final vehicle = _vehicles.vehiclesRetrieve(id: id);
+        final gallery = _vehicles.vehiclesImagesList(id: id);
+        return (await vehicle, await gallery);
+      });
+
       final fetchedAt = _clock().toUtc();
       await _cache.write(
         CacheKeys.vehicle(vehicleId),
-        jsonEncode(vehicle.toJson()),
+        jsonEncode(<String, Object?>{
+          _cardKey: card.toJson(),
+          _imagesKey: images.toJson(),
+        }),
         fetchedAtUtc: fetchedAt,
       );
-      return Snapshot.fresh(vehicle.toDomain(), at: fetchedAt);
+      return Snapshot.fresh(_detail(card, images), at: fetchedAt);
     } on TransportFailure {
       final cached = await _readVehicleCache(vehicleId);
       if (cached != null) return cached;
@@ -185,27 +204,30 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     }
   }
 
+  static const String _cardKey = 'card';
+  static const String _imagesKey = 'images';
+
+  VehicleDetail _detail(api.VehicleCard card, api.VehicleImages images) =>
+      VehicleDetail(
+        card: card.toDomain(),
+        imageUrls: images.toDomain(),
+        specifications: card.specifications(_labels),
+      );
+
   HomeAuctions _homeAuctions(
-    api.PaginatedAuctionList running,
-    api.PaginatedAuctionList upcoming,
-  ) => HomeAuctions(
-    running: running.results
-        .map((auction) => auction.toDomain())
-        .toList(growable: false),
-    upcoming: upcoming.results
-        .map((auction) => auction.toDomain())
-        .toList(growable: false),
-  );
+    api.AuctionPage running,
+    api.AuctionPage upcoming,
+  ) => HomeAuctions(running: running.toDomain(), upcoming: upcoming.toDomain());
 
   Future<Snapshot<HomeAuctions>?> _readHomeAuctionsCache() async {
     final document = await _cache.read(CacheKeys.homeAuctions);
     if (document == null) return null;
     try {
       final body = document.decode();
-      final running = api.PaginatedAuctionList.fromJson(
+      final running = api.AuctionPage.fromJson(
         body[_runningKey]! as Map<String, Object?>,
       );
-      final upcoming = api.PaginatedAuctionList.fromJson(
+      final upcoming = api.AuctionPage.fromJson(
         body[_upcomingKey]! as Map<String, Object?>,
       );
       return Snapshot.cached(
@@ -222,8 +244,8 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     final document = await _cache.read(CacheKeys.auctionVehicles(auctionId));
     if (document == null) return null;
     try {
-      final page = api.PaginatedVehicleCardList.fromJson(document.decode());
-      return Snapshot.cached(page.toDomain(), storedAt: document.fetchedAtUtc);
+      final page = api.VehiclePage.fromJson(document.decode());
+      return Snapshot.cached(page.toPage(), storedAt: document.fetchedAtUtc);
     } on Object {
       return null;
     }
@@ -233,7 +255,7 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     final document = await _cache.read(CacheKeys.vehicleFeed(phaseSlug));
     if (document == null) return null;
     try {
-      final feed = api.VehicleFeedPage.fromJson(document.decode());
+      final feed = api.VehiclePage.fromJson(document.decode());
       // العدّادات المحفوظة تُعرض كما حُفظت، بعلامة «آخر تحديث» فوقها: رقمٌ
       // قديمٌ معلَّمٌ بلحظته أصدق من تبويبٍ بلا رقم أو من شبكة بيضاء.
       return Snapshot.cached(feed.toDomain(), storedAt: document.fetchedAtUtc);
@@ -246,9 +268,15 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     final document = await _cache.read(CacheKeys.vehicle(vehicleId));
     if (document == null) return null;
     try {
-      final vehicle = api.Vehicle.fromJson(document.decode());
+      final body = document.decode();
+      final card = api.VehicleCard.fromJson(
+        body[_cardKey]! as Map<String, Object?>,
+      );
+      final images = api.VehicleImages.fromJson(
+        body[_imagesKey]! as Map<String, Object?>,
+      );
       return Snapshot.cached(
-        vehicle.toDomain(),
+        _detail(card, images),
         storedAt: document.fetchedAtUtc,
       );
     } on Object {
@@ -256,6 +284,17 @@ final class CatalogRepositoryImpl implements CatalogRepository {
     }
   }
 }
+
+/// الطور الذي يُسأل عنه الخادم.
+///
+/// `unknown` لا يُرسَل: لا معنى لسؤال «وريني ما لا أفهمه»، وإرسال نصٍّ فارغ
+/// يجعل الخادم يرشّح على قيمة لا وجود لها فيردّ فراغاً بلا سبب مكتوب.
+api.Phase? _apiPhaseOf(AuctionPhase? phase) => switch (phase) {
+  AuctionPhase.upcoming => api.Phase.soon,
+  AuctionPhase.active => api.Phase.active,
+  AuctionPhase.ended => api.Phase.ended,
+  AuctionPhase.unknown || null => null,
+};
 
 /// حقلُ بحثٍ فارغ ليس ترشيحاً بقيمةٍ فارغة: إرساله `search=` يجعل الخادم يرشّح
 /// على نصّ فارغ، وهو سؤالٌ آخر غير «بلا بحث».

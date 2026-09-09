@@ -14,6 +14,11 @@ ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+# معاينةُ تطبيق Flutter في متصفّح: صفحته على منفذٍ آخر، فهي أصلٌ آخر ويحجب
+# المتصفّحُ كلَّ نداءٍ بلا ترويسة. الوسيطُ في `config/dev_cors.py` ولا يُستورَد
+# من `prod` ولا `test` — والسببُ ومداه مشروحان هناك.
+MIDDLEWARE = ["config.dev_cors.DevCorsMiddleware", *MIDDLEWARE]  # noqa: F405
+
 # Every connection is fresh, so a schema change is picked up without a restart.
 DATABASES["default"]["CONN_MAX_AGE"] = 0  # noqa: F405
 

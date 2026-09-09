@@ -174,5 +174,43 @@
   "liveConnected": "Live",
   "liveLost": "Connection lost — the amounts below are stale",
   "liveStandingBid": "Your standing bid",
-  "liveNoStandingBid": "You have no standing bid on this vehicle."
+  "liveNoStandingBid": "You have no standing bid on this vehicle.",
+  "vehicleSpecMake": "Make",
+  "@vehicleSpecMake": {},
+  "vehicleSpecModel": "Model",
+  "@vehicleSpecModel": {},
+  "vehicleSpecYear": "Year",
+  "@vehicleSpecYear": {},
+  "vehicleSpecColour": "Colour",
+  "@vehicleSpecColour": {},
+  "vehicleSpecCondition": "Condition",
+  "@vehicleSpecCondition": {},
+  "vehicleSpecOdometer": "Odometer (km)",
+  "@vehicleSpecOdometer": {},
+  "vehicleSpecLocation": "Location",
+  "@vehicleSpecLocation": {},
+  "vehicleAdminFee": "Admin fee",
+  "@vehicleAdminFee": {},
+  "vehicleAdminFeeWithVat": "Admin fee + VAT",
+  "@vehicleAdminFeeWithVat": {},
+  "bidStateStanding": "Standing",
+  "@bidStateStanding": {},
+  "bidStateSuperseded": "Superseded by your later bid",
+  "@bidStateSuperseded": {},
+  "bidStateWithdrawn": "Withdrawn",
+  "@bidStateWithdrawn": {},
+  "bidStateUnknown": "—",
+  "@bidStateUnknown": {},
+  "auctionVehiclesNotCounted": "Not counted",
+  "@auctionVehiclesNotCounted": {},
+  "walletHoldSince": "Held since {date}",
+  "@walletHoldSince": {
+    "description": "When the hold was placed",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      }
+    }
+  }
 }

@@ -78,7 +78,10 @@ abstract final class ApiFailureMapper {
       statusCode: response?.statusCode,
       // `error.detail` وحده، لا جسم الردّ كله: الجسم يحمل الظرف الذي فُكَّ
       // هنا بالفعل، وتمريره يغري كل قارئ لاحق بفكّه مرة ثانية بيده.
-      detail: envelope.error.detail,
+      // `detail` كائنٌ حرّ في العقد (`additionalProperties`)، فيصل
+      // `Map<String, dynamic>`. يُعاد تشكيله إلى النوع الذي يقرأه النطاق بدل
+      // تمرير `dynamic` تسافر معه إلى كل قارئ.
+      detail: _detailOf(envelope.error.detail),
     );
   }
 
@@ -100,3 +103,12 @@ abstract final class ApiFailureMapper {
       ? TransportProblem.offline
       : TransportProblem.timeout;
 }
+
+/// `detail` كائنٌ حرّ في العقد (`additionalProperties`)، فيصل `dynamic`.
+///
+/// يُعاد تشكيله هنا مرّةً إلى النوع الذي يقرأه النطاق، بدل تمرير `dynamic`
+/// تسافر معه إلى كل قارئ فيفحصها كلٌّ على طريقته. وما ليس خريطةً يصير `null`:
+/// «لا تفصيل» أصدق من خريطةٍ مصنوعة حول قيمةٍ لم تكن خريطة.
+Map<String, Object?>? _detailOf(Object? detail) => detail is Map
+    ? detail.map((key, value) => MapEntry(key.toString(), value))
+    : null;

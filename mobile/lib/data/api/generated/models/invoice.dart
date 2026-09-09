@@ -4,8 +4,7 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'insurance_lock.dart';
-import 'invoice_status.dart';
+import 'invoice_state_enum.dart';
 
 part 'invoice.g.dart';
 
@@ -14,37 +13,36 @@ class Invoice {
   const Invoice({
     required this.id,
     required this.number,
-    required this.totalAmount,
-    required this.paidAmount,
-    required this.dueAmount,
-    required this.currency,
-    required this.status,
-    required this.statusLabel,
+    required this.amount,
+    required this.amountPaid,
+    required this.outstanding,
+    required this.stateLabel,
     required this.issuedAt,
-    this.insuranceLock,
+    required this.paymentMethods,
+    this.state,
+    this.dueAt,
   });
 
   factory Invoice.fromJson(Map<String, Object?> json) =>
       _$InvoiceFromJson(json);
 
-  final String id;
+  final int id;
   final String number;
-  @JsonKey(name: 'total_amount')
-  final String totalAmount;
-  @JsonKey(name: 'paid_amount')
-  final String paidAmount;
-
-  /// يأتي محسوباً من الخادم — التطبيق لا يطرح
-  @JsonKey(name: 'due_amount')
-  final String dueAmount;
-  final String currency;
-  final InvoiceStatus status;
-  @JsonKey(name: 'status_label')
-  final String statusLabel;
+  final String amount;
+  @JsonKey(name: 'amount_paid')
+  final String amountPaid;
+  final String outstanding;
+  final InvoiceStateEnum? state;
+  @JsonKey(name: 'state_label')
+  final String stateLabel;
   @JsonKey(name: 'issued_at')
   final DateTime issuedAt;
-  @JsonKey(name: 'insurance_lock')
-  final InsuranceLock? insuranceLock;
+  @JsonKey(name: 'due_at')
+  final DateTime? dueAt;
+
+  /// The only two ways a purchase is ever paid for. Card is not one.
+  @JsonKey(name: 'payment_methods')
+  final List<Map<String, dynamic>> paymentMethods;
 
   Map<String, Object?> toJson() => _$InvoiceToJson(this);
 }

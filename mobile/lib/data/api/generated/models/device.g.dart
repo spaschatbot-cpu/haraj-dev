@@ -7,19 +7,15 @@ part of 'device.dart';
 // **************************************************************************
 
 Device _$DeviceFromJson(Map<String, dynamic> json) => Device(
-  id: json['id'] as String,
-  platform: DevicePlatform.fromJson(json['platform'] as String),
-  registeredAt: DateTime.parse(json['registered_at'] as String),
+  id: (json['id'] as num).toInt(),
+  platform: json['platform'] as String,
+  createdAt: DateTime.parse(json['created_at'] as String),
+  tokenTail: json['token_tail'] as String,
 );
 
 Map<String, dynamic> _$DeviceToJson(Device instance) => <String, dynamic>{
   'id': instance.id,
-  'platform': _$DevicePlatformEnumMap[instance.platform]!,
-  'registered_at': instance.registeredAt.toIso8601String(),
-};
-
-const _$DevicePlatformEnumMap = {
-  DevicePlatform.android: 'android',
-  DevicePlatform.ios: 'ios',
-  DevicePlatform.$unknown: r'$unknown',
+  'platform': instance.platform,
+  'created_at': instance.createdAt.toIso8601String(),
+  'token_tail': instance.tokenTail,
 };

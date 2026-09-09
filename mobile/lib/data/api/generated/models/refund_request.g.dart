@@ -8,28 +8,31 @@ part of 'refund_request.dart';
 
 RefundRequest _$RefundRequestFromJson(Map<String, dynamic> json) =>
     RefundRequest(
+      id: (json['id'] as num).toInt(),
       reference: json['reference'] as String,
       amount: json['amount'] as String,
-      currency: json['currency'] as String,
-      status: RefundRequestStatus.fromJson(json['status'] as String),
-      statusLabel: json['status_label'] as String,
-      requestedAt: DateTime.parse(json['requested_at'] as String),
+      stateLabel: json['state_label'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      state: json['state'] == null
+          ? null
+          : RefundRequestStateEnum.fromJson(json['state'] as String),
     );
 
 Map<String, dynamic> _$RefundRequestToJson(RefundRequest instance) =>
     <String, dynamic>{
+      'id': instance.id,
       'reference': instance.reference,
       'amount': instance.amount,
-      'currency': instance.currency,
-      'status': _$RefundRequestStatusEnumMap[instance.status]!,
-      'status_label': instance.statusLabel,
-      'requested_at': instance.requestedAt.toIso8601String(),
+      'state': _$RefundRequestStateEnumEnumMap[instance.state],
+      'state_label': instance.stateLabel,
+      'created_at': instance.createdAt.toIso8601String(),
     };
 
-const _$RefundRequestStatusEnumMap = {
-  RefundRequestStatus.requested: 'requested',
-  RefundRequestStatus.sent: 'sent',
-  RefundRequestStatus.confirmed: 'confirmed',
-  RefundRequestStatus.rejected: 'rejected',
-  RefundRequestStatus.$unknown: r'$unknown',
+const _$RefundRequestStateEnumEnumMap = {
+  RefundRequestStateEnum.requested: 'requested',
+  RefundRequestStateEnum.sent: 'sent',
+  RefundRequestStateEnum.confirmed: 'confirmed',
+  RefundRequestStateEnum.rejected: 'rejected',
+  RefundRequestStateEnum.cancelled: 'cancelled',
+  RefundRequestStateEnum.$unknown: r'$unknown',
 };

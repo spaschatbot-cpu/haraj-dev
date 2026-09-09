@@ -109,9 +109,7 @@ class _BidTile extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(l10n.bidWithdrawConfirmTitle),
-        content: Text(
-          l10n.bidWithdrawConfirmBody(bid.vehicleTitle ?? bid.vehicleId),
-        ),
+        content: Text(l10n.bidWithdrawConfirmBody(bid.vehicleTitle)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -147,12 +145,14 @@ class _BidTile extends ConsumerWidget {
     final placedAt = SaudiTime.forDisplay(bid.placedAtUtc);
 
     return ListTile(
-      title: Text(bid.vehicleTitle ?? bid.vehicleId),
+      title: Text(bid.vehicleTitle),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // وصف الحالة عربي من الخادم — لا خريطة حالات هنا.
-          Text(bid.stateLabel, style: theme.textTheme.bodySmall),
+          // **النصّ من ملفّ الترجمة لا من الخادم.** العقد يرسل علمين
+          // (`is_withdrawn` و`is_superseded`) ولا يرسل جملةً لهما — والوصف
+          // نصُّ واجهةٍ يعيش حيث تعيش نصوص الواجهة (المعيار H3).
+          Text(_stateLabel(l10n, bid.state), style: theme.textTheme.bodySmall),
           Text(
             l10n.bidPlacedAt(placedAt, placedAt),
             style: theme.textTheme.bodySmall,
@@ -160,7 +160,10 @@ class _BidTile extends ConsumerWidget {
           MoneyText(bid.money, style: theme.textTheme.titleMedium),
         ],
       ),
-      trailing: bid.offersWithdraw
+      // **السحب يُعرض للقائمة وحدها.** مزايدةٌ مسحوبةٌ لا تُسحب مرّتين،
+      // ومتجاوَزةٌ لم تعد قائمةً بيده. والخادم يبقى هو الفاصل إن ضُغط الزرّ
+      // على حالٍ تغيّر بين الرسم والضغط.
+      trailing: bid.state == BidState.standing
           ? TextButton(
               onPressed: () => _withdraw(context, ref),
               child: Text(l10n.bidWithdrawAction),
@@ -170,3 +173,15 @@ class _BidTile extends ConsumerWidget {
     );
   }
 }
+
+/// وصفُ حال المزايدة بالعربية.
+///
+/// خريطةٌ في طبقة العرض لا في الخادم: العقد يرسل علمين برمجيّين، وترجمتُهما
+/// إلى جملةٍ يقرأها إنسان شأنُ الواجهة — ولذلك هي في ملفّ الترجمة، وهذه
+/// الدالة تختار المفتاح لا الجملة.
+String _stateLabel(AppLocalizations l10n, BidState state) => switch (state) {
+  BidState.standing => l10n.bidStateStanding,
+  BidState.superseded => l10n.bidStateSuperseded,
+  BidState.withdrawn => l10n.bidStateWithdrawn,
+  BidState.unknown => l10n.bidStateUnknown,
+};

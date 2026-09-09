@@ -6,8 +6,6 @@ import '../../domain/profile/entities/customer_profile.dart';
 import '../../domain/profile/repositories/profile_repository.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/profile_api.dart';
-import '../api/generated/models/national_id.dart';
-import '../api/generated/models/patched_profile_update.dart';
 import '../api/generated/models/profile.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'profile_mapper.dart';
@@ -46,9 +44,7 @@ final class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<CustomerProfile> update({String? fullName, String? email}) async {
     final profile = await callApi(
-      () => _api.profileUpdate(
-        body: PatchedProfileUpdate(fullName: fullName, email: email),
-      ),
+      () => _api.profileUpdate(fullName: fullName, email: email),
     );
     await _remember(profile);
     return profile.toDomain();
@@ -57,7 +53,7 @@ final class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<CustomerProfile> setNationalId(String nationalId) async {
     final profile = await callApi(
-      () => _api.profileSetNationalId(body: NationalId(nationalId: nationalId)),
+      () => _api.profileSetNationalId(nationalId: nationalId),
     );
     await _remember(profile);
     return profile.toDomain();
@@ -79,7 +75,19 @@ final class ProfileRepositoryImpl implements ProfileRepository {
   @override
   Future<CompanyProfile> saveCompany(CompanyProfile company) async {
     final saved = await callApi(
-      () => _api.profileCompanySave(body: company.toRequest()),
+      // الحقول واحداً واحداً لا كائنَ طلبٍ: العقد يستقبلها أجزاءَ نموذج،
+      // و`isComplete` ليس منها — الخادم يقرّره ولا يقبله (`readOnly`).
+      () => _api.profileCompanySave(
+        name: company.name,
+        representativeName: company.representativeName,
+        commercialRegister: company.commercialRegister,
+        vatNumber: company.vatNumber,
+        buildingNumber: company.buildingNumber,
+        street: company.street,
+        district: company.district,
+        city: company.city,
+        postalCode: company.postalCode,
+      ),
     );
     return saved.toDomain();
   }

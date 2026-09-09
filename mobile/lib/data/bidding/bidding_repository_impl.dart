@@ -9,9 +9,8 @@ import '../../domain/common/failure_codes.dart';
 import '../../domain/common/snapshot.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/bids_api.dart';
-import '../api/generated/models/bid_submission.dart';
-import '../api/generated/models/live_state.dart' as api;
-import '../api/generated/models/paginated_bid_list.dart' as api;
+import '../api/generated/clients/vehicles_api.dart';
+import '../api/generated/models/bid_page.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'bid_mapper.dart';
 import 'sse_channel.dart';
@@ -26,6 +25,7 @@ import 'sse_channel.dart';
 final class BiddingRepositoryImpl implements BiddingRepository {
   BiddingRepositoryImpl({
     required BidsApi api,
+    required VehiclesApi vehicles,
     required ResponseCache cache,
     required SseChannel live,
     DateTime Function()? clock,
@@ -33,6 +33,7 @@ final class BiddingRepositoryImpl implements BiddingRepository {
     Duration reconnectDelay = const Duration(seconds: 3),
     Duration silenceTimeout = const Duration(seconds: 10),
   }) : _api = api,
+       _vehicles = vehicles,
        _cache = cache,
        _live = live,
        _clock = clock ?? DateTime.now,
@@ -41,6 +42,11 @@ final class BiddingRepositoryImpl implements BiddingRepository {
        _silenceTimeout = silenceTimeout;
 
   final BidsApi _api;
+
+  /// وضعُ المزايدة على مسار **المركبة** (`/vehicles/{id}/bids/`) لا على مسار
+  /// المزايدات: المزايدة تُوضع على شيء، والمسار يقول على أيّ شيء. وسحبُها
+  /// وقراءتُها على مسار المزايدات لأنها حينئذٍ هي الشيء.
+  final VehiclesApi _vehicles;
   final ResponseCache _cache;
   final SseChannel _live;
   final DateTime Function() _clock;
@@ -64,12 +70,13 @@ final class BiddingRepositoryImpl implements BiddingRepository {
   }) async {
     try {
       final bid = await callApi(
-        () => _api.bidsPlace(
-          vehicleId: vehicleId,
-          // المبلغ يمرّ نصّاً من حقل الإدخال إلى الجسم بلا تحويل (المادة ٣-٢)،
-          // و`confirm_lower` يُرسَل دائماً بقيمته لا يُحذف أحياناً: جسمٌ يتغيّر
-          // شكله حسب الفرع الذي بناه جسمٌ لا يُقرأ معناه من مكان واحد.
-          body: BidSubmission(amount: amount, confirmLower: confirmLower),
+        // المبلغ يمرّ نصّاً من حقل الإدخال إلى الطلب بلا تحويل (المادة ٣-٢)،
+        // و`confirm_lower` يُرسَل دائماً بقيمته لا يُحذف أحياناً: طلبٌ يتغيّر
+        // شكله حسب الفرع الذي بناه طلبٌ لا يُقرأ معناه من مكان واحد.
+        () => _vehicles.bidsPlace(
+          id: _idOf(vehicleId, 'vehicleId'),
+          amount: amount,
+          confirmLower: confirmLower,
         ),
       );
       return BidAccepted(bid.toDomain());
@@ -109,14 +116,16 @@ final class BiddingRepositoryImpl implements BiddingRepository {
 
   @override
   Future<PlacedBid> withdrawBid(String bidId) async {
-    final bid = await callApi(() => _api.bidsWithdraw(bidId: bidId));
+    final bid = await callApi(
+      () => _api.bidsWithdraw(id: _idOf(bidId, 'bidId')),
+    );
     return bid.toDomain();
   }
 
   @override
   Future<Snapshot<List<PlacedBid>>> myBids() async {
     try {
-      final page = await callApi(() => _api.bidsMineList());
+      final page = await callApi(() => _api.bidsMine());
       final fetchedAt = _clock().toUtc();
       await _cache.write(
         CacheKeys.myBids,
@@ -138,7 +147,7 @@ final class BiddingRepositoryImpl implements BiddingRepository {
     final document = await _cache.read(CacheKeys.myBids);
     if (document == null) return null;
     try {
-      final page = api.PaginatedBidList.fromJson(document.decode());
+      final page = api.BidPage.fromJson(document.decode());
       return Snapshot.cached(_toDomain(page), storedAt: document.fetchedAtUtc);
     } on Object {
       // كاش من نسخة مخطط أقدم لم يعد يُفكّ: غياب كاش، لا عطب.
@@ -146,8 +155,14 @@ final class BiddingRepositoryImpl implements BiddingRepository {
     }
   }
 
-  static List<PlacedBid> _toDomain(api.PaginatedBidList page) =>
-      page.results.map((bid) => bid.toDomain()).toList(growable: false);
+  static List<PlacedBid> _toDomain(api.BidPage page) => page.toDomain();
+
+  /// المعرّف نصٌّ في النطاق ورقمٌ على السلك.
+  ///
+  /// يُرفض غيرُ الرقم هنا لا في الخادم: معرّفٌ مشوّه خطأُ استدعاء عندنا،
+  /// وإرسالُه ينتج 404 يبدو «المركبة غير موجودة» وهي موجودة.
+  static int _idOf(String value, String name) =>
+      int.tryParse(value) ?? (throw ArgumentError.value(value, name));
 
   @override
   Stream<LiveBidsUpdate> watchLive() async* {
@@ -214,7 +229,12 @@ final class BiddingRepositoryImpl implements BiddingRepository {
     try {
       final decoded = jsonDecode(data.join('\n'));
       if (decoded is! Map<String, Object?>) return null;
-      return api.LiveState.fromJson(decoded).toDomainBids();
+      final rows = decoded['bids'];
+      if (rows is! List) return null;
+      return rows
+          .map(liveBidFrom)
+          .whereType<LiveStandingBid>()
+          .toList(growable: false);
     } on Object {
       // إطارٌ لا يُقرأ لا يمحو آخر ما نعرف: آخر قيمة صالحة تبقى، وحالةُ
       // الاتصال هي التي تقول للعميل كم يصدّقها.

@@ -709,5 +709,43 @@
   "liveStandingBid": "مزايدتك القائمة",
   "@liveStandingBid": {},
   "liveNoStandingBid": "لا مزايدة قائمة لك على هذه المركبة.",
-  "@liveNoStandingBid": {}
+  "@liveNoStandingBid": {},
+  "vehicleSpecMake": "الماركة",
+  "@vehicleSpecMake": {},
+  "vehicleSpecModel": "الطراز",
+  "@vehicleSpecModel": {},
+  "vehicleSpecYear": "سنة الصنع",
+  "@vehicleSpecYear": {},
+  "vehicleSpecColour": "اللون",
+  "@vehicleSpecColour": {},
+  "vehicleSpecCondition": "الحالة",
+  "@vehicleSpecCondition": {},
+  "vehicleSpecOdometer": "الممشى (كم)",
+  "@vehicleSpecOdometer": {},
+  "vehicleSpecLocation": "الموقع",
+  "@vehicleSpecLocation": {},
+  "vehicleAdminFee": "الرسوم الإدارية",
+  "@vehicleAdminFee": {},
+  "vehicleAdminFeeWithVat": "الرسوم + الضريبة",
+  "@vehicleAdminFeeWithVat": {},
+  "bidStateStanding": "قائمة",
+  "@bidStateStanding": {},
+  "bidStateSuperseded": "تجاوزتها مزايدةٌ أحدث لك",
+  "@bidStateSuperseded": {},
+  "bidStateWithdrawn": "مسحوبة",
+  "@bidStateWithdrawn": {},
+  "bidStateUnknown": "—",
+  "@bidStateUnknown": {},
+  "auctionVehiclesNotCounted": "لم تُعدّ",
+  "@auctionVehiclesNotCounted": {},
+  "walletHoldSince": "محجوز منذ {date}",
+  "@walletHoldSince": {
+    "description": "لحظة وضع الحجز",
+    "placeholders": {
+      "date": {
+        "type": "DateTime",
+        "format": "yMd"
+      }
+    }
+  }
 }

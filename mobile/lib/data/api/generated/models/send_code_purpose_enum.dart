@@ -4,8 +4,9 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-/// login دخول أو تسجيل · change_phone تغيير رقم الجوال · recover استعادة الحساب.
-///
+/// * `login` - دخول أو تسجيل.
+/// * `change_phone` - تغيير رقم الجوال.
+/// * `recover` - استعادة الحساب.
 @JsonEnum()
 enum SendCodePurposeEnum {
   @JsonValue('login')

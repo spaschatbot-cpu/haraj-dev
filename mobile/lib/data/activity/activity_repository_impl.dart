@@ -7,11 +7,12 @@ import '../../domain/activity/repositories/activity_repository.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../api/api_call.dart';
-import '../api/generated/clients/auctions_api.dart';
 import '../api/generated/clients/invoices_api.dart';
+import '../api/generated/clients/participations_api.dart';
+import '../api/generated/clients/purchases_api.dart';
 import '../api/generated/models/paginated_invoice_list.dart' as api;
-import '../api/generated/models/paginated_participation_list.dart' as api;
 import '../api/generated/models/paginated_purchase_list.dart' as api;
+import '../api/generated/models/participation_page.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'activity_mapper.dart';
 
@@ -25,16 +26,19 @@ import 'activity_mapper.dart';
 /// من التطبيق يجعل لنا رأياً في شيء ليس لنا.
 final class ActivityRepositoryImpl implements ActivityRepository {
   ActivityRepositoryImpl({
-    required AuctionsApi auctions,
+    required ParticipationsApi participations,
+    required PurchasesApi purchases,
     required InvoicesApi invoices,
     required ResponseCache cache,
     DateTime Function()? clock,
-  }) : _auctions = auctions,
+  }) : _participations = participations,
+       _purchases = purchases,
        _invoices = invoices,
        _cache = cache,
        _clock = clock ?? DateTime.now;
 
-  final AuctionsApi _auctions;
+  final ParticipationsApi _participations;
+  final PurchasesApi _purchases;
   final InvoicesApi _invoices;
   final ResponseCache _cache;
   final DateTime Function() _clock;
@@ -42,31 +46,28 @@ final class ActivityRepositoryImpl implements ActivityRepository {
   @override
   Future<Snapshot<List<Participation>>> loadParticipations() => _load(
     cacheKey: CacheKeys.participations,
-    fetch: () => _auctions.participationsList(),
+    fetch: () => _participations.participationsMine(),
     encode: (page) => page.toJson(),
-    decode: api.PaginatedParticipationList.fromJson,
-    toDomain: (page) =>
-        page.results.map((item) => item.toDomain()).toList(growable: false),
+    decode: api.ParticipationPage.fromJson,
+    toDomain: (page) => page.toDomain(),
   );
 
   @override
   Future<Snapshot<List<Purchase>>> loadPurchases() => _load(
     cacheKey: CacheKeys.purchases,
-    fetch: () => _invoices.purchasesList(),
+    fetch: () => _purchases.v1PurchasesList(),
     encode: (page) => page.toJson(),
     decode: api.PaginatedPurchaseList.fromJson,
-    toDomain: (page) =>
-        page.results.map((item) => item.toDomain()).toList(growable: false),
+    toDomain: (page) => page.toDomain(),
   );
 
   @override
   Future<Snapshot<List<Invoice>>> loadInvoices() => _load(
     cacheKey: CacheKeys.invoices,
-    fetch: () => _invoices.invoicesList(),
+    fetch: () => _invoices.v1InvoicesList(),
     encode: (page) => page.toJson(),
     decode: api.PaginatedInvoiceList.fromJson,
-    toDomain: (page) =>
-        page.results.map((item) => item.toDomain()).toList(growable: false),
+    toDomain: (page) => page.toDomain(),
   );
 
   /// مسار القراءة الواحد للقوائم الثلاث.

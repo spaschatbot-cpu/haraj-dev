@@ -20,72 +20,33 @@ class _VehiclesApi implements VehiclesApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<PaginatedVehicleCardList> auctionVehiclesList({
-    required String auctionId,
-    String? search,
+  Future<VehiclePage> vehiclesList({
+    int? limit = 20,
+    int? offset = 0,
+    int? auction,
     String? make,
+    Phase? phase,
+    String? search,
+    State2? state,
     int? yearFrom,
     int? yearTo,
-    int? page,
-    int? pageSize,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'search': search,
+      r'limit': limit,
+      r'offset': offset,
+      r'auction': auction,
       r'make': make,
-      r'year_from': yearFrom,
-      r'year_to': yearTo,
-      r'page': page,
-      r'page_size': pageSize,
-    };
-    queryParameters.removeWhere((k, v) => v == null);
-    final _headers = <String, dynamic>{};
-    const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PaginatedVehicleCardList>(
-      Options(method: 'GET', headers: _headers, extra: _extra)
-          .compose(
-            _dio.options,
-            '/api/v1/auctions/${auctionId}/vehicles/',
-            queryParameters: queryParameters,
-            data: _data,
-          )
-          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
-    );
-    final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late PaginatedVehicleCardList _value;
-    try {
-      _value = PaginatedVehicleCardList.fromJson(_result.data!);
-    } on Object catch (e, s) {
-      errorLogger?.logError(e, s, _options, response: _result);
-      rethrow;
-    }
-    return _value;
-  }
-
-  @override
-  Future<VehicleFeedPage> vehiclesList({
-    AuctionPhase? phase,
-    String? search,
-    String? make,
-    int? yearFrom,
-    int? yearTo,
-    int? page,
-    int? pageSize,
-  }) async {
-    final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{
       r'phase': phase,
       r'search': search,
-      r'make': make,
+      r'state': state,
       r'year_from': yearFrom,
       r'year_to': yearTo,
-      r'page': page,
-      r'page_size': pageSize,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<VehicleFeedPage>(
+    final _options = _setStreamType<VehiclePage>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -96,9 +57,9 @@ class _VehiclesApi implements VehiclesApi {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late VehicleFeedPage _value;
+    late VehiclePage _value;
     try {
-      _value = VehicleFeedPage.fromJson(_result.data!);
+      _value = VehiclePage.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -107,25 +68,93 @@ class _VehiclesApi implements VehiclesApi {
   }
 
   @override
-  Future<Vehicle> vehiclesRetrieve({required String vehicleId}) async {
+  Future<VehicleCard> vehiclesRetrieve({required int id}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Vehicle>(
+    final _options = _setStreamType<VehicleCard>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/vehicles/${vehicleId}/',
+            '/api/v1/vehicles/${id}/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late Vehicle _value;
+    late VehicleCard _value;
     try {
-      _value = Vehicle.fromJson(_result.data!);
+      _value = VehicleCard.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<Bid> bidsPlace({
+    required int id,
+    required String amount,
+    bool? confirmLower = false,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.fields.add(MapEntry('amount', amount));
+    if (confirmLower != null) {
+      _data.fields.add(MapEntry('confirm_lower', confirmLower.toString()));
+    }
+    final _options = _setStreamType<Bid>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/vehicles/${id}/bids/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late Bid _value;
+    try {
+      _value = Bid.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<VehicleImages> vehiclesImagesList({required int id}) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<VehicleImages>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/vehicles/${id}/images/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late VehicleImages _value;
+    try {
+      _value = VehicleImages.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

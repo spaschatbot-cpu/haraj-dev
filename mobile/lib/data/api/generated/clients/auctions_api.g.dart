@@ -20,21 +20,21 @@ class _AuctionsApi implements AuctionsApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<PaginatedAuctionList> auctionsList({
-    AuctionStatus? status,
-    int? page,
-    int? pageSize,
+  Future<AuctionPage> auctionsList({
+    State? state,
+    int? limit = 20,
+    int? offset = 0,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'status': status,
-      r'page': page,
-      r'page_size': pageSize,
+      r'state': state,
+      r'limit': limit,
+      r'offset': offset,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PaginatedAuctionList>(
+    final _options = _setStreamType<AuctionPage>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -45,9 +45,9 @@ class _AuctionsApi implements AuctionsApi {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late PaginatedAuctionList _value;
+    late AuctionPage _value;
     try {
-      _value = PaginatedAuctionList.fromJson(_result.data!);
+      _value = AuctionPage.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -56,25 +56,25 @@ class _AuctionsApi implements AuctionsApi {
   }
 
   @override
-  Future<Auction> auctionsRetrieve({required String auctionId}) async {
+  Future<AuctionCard> auctionsRetrieve({required int id}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Auction>(
+    final _options = _setStreamType<AuctionCard>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/auctions/${auctionId}/',
+            '/api/v1/auctions/${id}/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late Auction _value;
+    late AuctionCard _value;
     try {
-      _value = Auction.fromJson(_result.data!);
+      _value = AuctionCard.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -83,32 +83,47 @@ class _AuctionsApi implements AuctionsApi {
   }
 
   @override
-  Future<PaginatedParticipationList> participationsList({
-    int? page,
-    int? pageSize,
+  Future<VehiclePage> auctionsVehiclesList({
+    required int id,
+    int? limit = 20,
+    int? offset = 0,
+    int? auction,
+    String? make,
+    Phase? phase,
+    String? search,
+    State2? state,
+    int? yearFrom,
+    int? yearTo,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'page': page,
-      r'page_size': pageSize,
+      r'limit': limit,
+      r'offset': offset,
+      r'auction': auction,
+      r'make': make,
+      r'phase': phase,
+      r'search': search,
+      r'state': state,
+      r'year_from': yearFrom,
+      r'year_to': yearTo,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PaginatedParticipationList>(
+    final _options = _setStreamType<VehiclePage>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/participations/',
+            '/api/v1/auctions/${id}/vehicles/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late PaginatedParticipationList _value;
+    late VehiclePage _value;
     try {
-      _value = PaginatedParticipationList.fromJson(_result.data!);
+      _value = VehiclePage.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

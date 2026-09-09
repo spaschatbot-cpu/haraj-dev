@@ -118,7 +118,33 @@ class VehicleCardSerializer(serializers.Serializer):
 
     #: The tab, decided by the server. Blank for an auction outside the three
     #: (draft, cancelled) — a state only staff ever see, and one no tab claims.
-    phase = serializers.ChoiceField(choices=Phase.choices, allow_blank=True)
+    #:
+    #: **يُوصَف نصّاً لا تعداداً، والقيم في الوصف.** وهذا تنازلٌ مقصود عن دقّةٍ
+    #: في التوثيق مقابل عقدٍ يُترجَم:
+    #:
+    #: `allow_blank` يجعل drf-spectacular يُخرج `oneOf: [PhaseEnum, BlankEnum]` —
+    #: تعدادين أحدهما قيمتُه الوحيدة `''`. ومولّد عميل Dart يصنع لذلك صنفاً
+    #: بمُنشئٍ فارغ `const Foo({});`، ومجموعةُ معاملاتٍ فارغة خطأٌ نحويّ في Dart،
+    #: فيسقط التوليد كلُّه ولا يُبنى عميلٌ للتطبيق أصلاً. جُرِّب: `build_runner`
+    #: يقف عند `vehicle_card_phase_sealed.dart` بـ«Expected an identifier».
+    #:
+    #: والبديلُ الذي جرّبتُه أوّلاً — `ENUM_ADD_EXPLICIT_BLANK_NULL_CHOICE=False` —
+    #: **يُسقط `''` من المخطط بلا أن يُسقطه من الاستجابة**، فيصير العقد يصف قيماً
+    #: أقلَّ ممّا يرسله الخادم. و`''` يصل فعلاً: `phase_of` تُرجعه لمزادٍ مسودّةٍ
+    #: أو ملغيّ، والموظّف يرى تلك المركبة على `/vehicles/{id}/`. عقدٌ يكذب أخطرُ
+    #: من عقدٍ أقلَّ تفصيلاً.
+    #:
+    #: فـ`string` تشمل الأربع بصدق، والقيمُ مكتوبةٌ للقارئ. ويوم يُحسن المولّدُ
+    #: `oneOf` بين تعدادين يُرجَع هذا السطر إلى `ChoiceField` عارياً.
+    phase = serializers.CharField(
+        help_text=(
+            "التبويب الذي يقرّره الخادم: "
+            + "، ".join(f"`{v}`" for v in Phase.values)
+            + "، أو `\"\"` (فراغ) لمزادٍ خارج الثلاثة — مسودّةٍ أو ملغيّ، لا "
+            "يراه إلا موظّف. الفراغ يُقرأ «غير معروف» ولا يُطوى في `ended` "
+            "(المادة ٢-٣)."
+        )
+    )
 
     #: The countdown's two ends, UTC on the wire. On the card and not behind a
     #: second request: a grid of twenty cars would otherwise open twenty-one

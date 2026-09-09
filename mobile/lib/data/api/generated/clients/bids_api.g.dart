@@ -20,20 +20,16 @@ class _BidsApi implements BidsApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<Bid> bidsPlace({
-    required String vehicleId,
-    required BidSubmission body,
-  }) async {
+  Future<Bid> bidsWithdraw({required int id}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    const Map<String, dynamic>? _data = null;
     final _options = _setStreamType<Bid>(
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/vehicles/${vehicleId}/bids/',
+            '/api/v1/bids/${id}/withdraw/',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -51,16 +47,21 @@ class _BidsApi implements BidsApi {
   }
 
   @override
-  Future<PaginatedBidList> bidsMineList({int? page, int? pageSize}) async {
+  Future<BidPage> bidsMine({
+    bool? includeHistory = false,
+    int? limit = 20,
+    int? offset = 0,
+  }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'page': page,
-      r'page_size': pageSize,
+      r'include_history': includeHistory,
+      r'limit': limit,
+      r'offset': offset,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PaginatedBidList>(
+    final _options = _setStreamType<BidPage>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
@@ -71,9 +72,9 @@ class _BidsApi implements BidsApi {
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late PaginatedBidList _value;
+    late BidPage _value;
     try {
-      _value = PaginatedBidList.fromJson(_result.data!);
+      _value = BidPage.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;
@@ -82,25 +83,31 @@ class _BidsApi implements BidsApi {
   }
 
   @override
-  Future<Bid> bidsWithdraw({required String bidId}) async {
+  Future<BidQuote> bidsQuote({required String amount}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<Bid>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+    final _data = FormData();
+    _data.fields.add(MapEntry('amount', amount));
+    final _options = _setStreamType<BidQuote>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
-            '/api/v1/bids/${bidId}/withdraw/',
+            '/api/v1/bids/quote/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late Bid _value;
+    late BidQuote _value;
     try {
-      _value = Bid.fromJson(_result.data!);
+      _value = BidQuote.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

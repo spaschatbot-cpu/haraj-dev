@@ -6,6 +6,10 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'start_phone_change_response.g.dart';
 
+/// That both messages went, and when they stop working.
+///
+/// Two booleans rather than one, because the screen has to tell the customer to.
+/// go and look at two phones — one of which may be in a drawer.
 @JsonSerializable()
 class StartPhoneChangeResponse {
   const StartPhoneChangeResponse({
@@ -24,6 +28,8 @@ class StartPhoneChangeResponse {
   final bool sentToNew;
   @JsonKey(name: 'expires_at')
   final DateTime expiresAt;
+
+  /// ثوانٍ حتى يُسمح بطلب رمز جديد
   @JsonKey(name: 'resend_after')
   final int resendAfter;
 

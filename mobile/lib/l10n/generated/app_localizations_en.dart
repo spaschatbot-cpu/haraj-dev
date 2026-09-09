@@ -675,4 +675,54 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get liveNoStandingBid => 'You have no standing bid on this vehicle.';
+
+  @override
+  String get vehicleSpecMake => 'Make';
+
+  @override
+  String get vehicleSpecModel => 'Model';
+
+  @override
+  String get vehicleSpecYear => 'Year';
+
+  @override
+  String get vehicleSpecColour => 'Colour';
+
+  @override
+  String get vehicleSpecCondition => 'Condition';
+
+  @override
+  String get vehicleSpecOdometer => 'Odometer (km)';
+
+  @override
+  String get vehicleSpecLocation => 'Location';
+
+  @override
+  String get vehicleAdminFee => 'Admin fee';
+
+  @override
+  String get vehicleAdminFeeWithVat => 'Admin fee + VAT';
+
+  @override
+  String get bidStateStanding => 'Standing';
+
+  @override
+  String get bidStateSuperseded => 'Superseded by your later bid';
+
+  @override
+  String get bidStateWithdrawn => 'Withdrawn';
+
+  @override
+  String get bidStateUnknown => '—';
+
+  @override
+  String get auctionVehiclesNotCounted => 'Not counted';
+
+  @override
+  String walletHoldSince(DateTime date) {
+    final intl.DateFormat dateDateFormat = intl.DateFormat.yMd(localeName);
+    final String dateString = dateDateFormat.format(date);
+
+    return 'Held since $dateString';
+  }
 }

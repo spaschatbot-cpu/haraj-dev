@@ -20,11 +20,11 @@ class _InvoicesApi implements InvoicesApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<PaginatedInvoiceList> invoicesList({int? page, int? pageSize}) async {
+  Future<PaginatedInvoiceList> v1InvoicesList({int? limit, int? offset}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{
-      r'page': page,
-      r'page_size': pageSize,
+      r'limit': limit,
+      r'offset': offset,
     };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
@@ -51,32 +51,64 @@ class _InvoicesApi implements InvoicesApi {
   }
 
   @override
-  Future<PaginatedPurchaseList> purchasesList({
-    int? page,
-    int? pageSize,
-  }) async {
+  Future<Invoice> v1InvoicesRetrieve({required int id}) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{
-      r'page': page,
-      r'page_size': pageSize,
-    };
-    queryParameters.removeWhere((k, v) => v == null);
+    final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;
-    final _options = _setStreamType<PaginatedPurchaseList>(
+    final _options = _setStreamType<Invoice>(
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/purchases/',
+            '/api/v1/invoices/${id}/',
             queryParameters: queryParameters,
             data: _data,
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
     final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late PaginatedPurchaseList _value;
+    late Invoice _value;
     try {
-      _value = PaginatedPurchaseList.fromJson(_result.data!);
+      _value = Invoice.fromJson(_result.data!);
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<Invoice> v1InvoicesPayCreate({
+    required int id,
+    MethodEnum? method,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    if (method != null) {
+      _data.fields.add(MapEntry('method', method.toString()));
+    }
+    final _options = _setStreamType<Invoice>(
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
+          .compose(
+            _dio.options,
+            '/api/v1/invoices/${id}/pay/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<Map<String, Object?>>(_options);
+    late Invoice _value;
+    try {
+      _value = Invoice.fromJson(_result.data!);
     } on Object catch (e, s) {
       errorLogger?.logError(e, s, _options, response: _result);
       rethrow;

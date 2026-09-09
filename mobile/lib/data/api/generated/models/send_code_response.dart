@@ -6,6 +6,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 part 'send_code_response.g.dart';
 
+/// What the caller learns: that it went, and when it stops working.
 @JsonSerializable()
 class SendCodeResponse {
   const SendCodeResponse({
@@ -18,8 +19,6 @@ class SendCodeResponse {
       _$SendCodeResponseFromJson(json);
 
   final bool sent;
-
-  /// ISO-8601 بتوقيت UTC — التحويل للعرض عند حافة العرض وحدها
   @JsonKey(name: 'expires_at')
   final DateTime expiresAt;
 

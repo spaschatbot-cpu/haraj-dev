@@ -20,14 +20,52 @@ class _DevicesApi implements DevicesApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<Device> devicesRegister({required DeviceRegistration body}) async {
+  Future<List<Device>> devicesList() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<List<Device>>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/api/v1/devices/',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch<List<dynamic>>(_options);
+    late List<Device> _value;
+    try {
+      _value = _result.data!
+          .map((dynamic i) => Device.fromJson(i as Map<String, dynamic>))
+          .toList();
+    } on Object catch (e, s) {
+      errorLogger?.logError(e, s, _options, response: _result);
+      rethrow;
+    }
+    return _value;
+  }
+
+  @override
+  Future<Device> devicesRegister({
+    required String token,
+    required PlatformEnum platform,
+  }) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = FormData();
+    _data.fields.add(MapEntry('token', token));
+    _data.fields.add(MapEntry('platform', platform.toString()));
     final _options = _setStreamType<Device>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
             '/api/v1/devices/',
@@ -48,14 +86,19 @@ class _DevicesApi implements DevicesApi {
   }
 
   @override
-  Future<void> devicesUnregister({required DeviceUnregistration body}) async {
+  Future<void> devicesUnregister({required String token}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
-    final _data = <String, dynamic>{};
-    _data.addAll(body.toJson());
+    final _data = FormData();
+    _data.fields.add(MapEntry('token', token));
     final _options = _setStreamType<void>(
-      Options(method: 'POST', headers: _headers, extra: _extra)
+      Options(
+            method: 'POST',
+            headers: _headers,
+            extra: _extra,
+            contentType: 'multipart/form-data',
+          )
           .compose(
             _dio.options,
             '/api/v1/devices/unregister/',
