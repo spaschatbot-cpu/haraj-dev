@@ -128,7 +128,18 @@ def window_is_valid(auction: Auction) -> bool:
 
 #: المراحل التي تُقبل فيها المزايدة. واحدةٌ فقط، وذلك مقصود: `OVERDUE_END`
 #: ليست منها، فالساعة تسبق العمود ولا يُقبل مالٌ بعد النهاية المعلنة.
-BIDDABLE_PHASES = frozenset({Phase.OPEN})
+#: المراحلُ التي تُقبل فيها مزايدة — **نافذةً لا عموداً**.
+#
+# `OVERDUE_START` معها عمداً: هي «حان وقتُه وعمودُه لم يتحرّك بعد»، والنافذةُ
+# مفتوحةٌ فعلاً. وحصرُها في `OPEN` وحدها كان يعني أن فتحَ المزاد يتوقّف على
+# **كتابةٍ في عمود** — أي على شيءٍ يعمل في الخلفية كلَّ دقيقة ليقلبه. وذلك
+# كرونٌ يحمل قرارَ فتحِ المزاد: يتوقّف فلا يفتح المزادُ في موعده المعلن،
+# ولا يظهر العطلُ إلا شكوى.
+#
+# فالقرارُ مشتقٌّ من الساعة: المزادُ مفتوحٌ لأن نافذته مفتوحة. والعمودُ يبقى
+# سجلَّ دورةِ حياةٍ يُحدَّث حين يُحدَّث، ولا يَحجُب مزايداً موعدُه حلّ.
+# و`OVERDUE_START` تبقى في `LATE_PHASES` فيراها المشغّل — إشارةٌ لا بوّابة.
+BIDDABLE_PHASES = frozenset({Phase.OPEN, Phase.OVERDUE_START})
 
 
 def phase(auction: Auction, *, now: datetime | None = None) -> Phase:
@@ -142,7 +153,14 @@ def phase(auction: Auction, *, now: datetime | None = None) -> Phase:
     state = auction.state
 
     if state == AuctionState.SCHEDULED:
-        return Phase.OVERDUE_START if has_started(auction, now=now) else Phase.SCHEDULED
+        if not has_started(auction, now=now):
+            return Phase.SCHEDULED
+        # نافذتُه كلُّها مضت وهو ما زال `scheduled`: منتهٍ متأخّرٌ لا مفتوحٌ
+        # متأخّر. وبدون هذا الفرع كان يُقرأ `OVERDUE_START` — ومع فتحِ المزايدة
+        # على المتأخّرِ بدؤه (أدناه) كان سيقبل مزايدةً بعد إغلاق نافذته.
+        if has_finished(auction, now=now):
+            return Phase.OVERDUE_END
+        return Phase.OVERDUE_START
 
     if state == AuctionState.LIVE:
         if not has_started(auction, now=now):

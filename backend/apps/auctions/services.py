@@ -103,7 +103,17 @@ def move_auction(
 
 
 def schedule(auction: Auction, *, now: datetime | None = None) -> Auction:
-    return move_auction(auction, AuctionState.SCHEDULED, now=now)
+    """اجدُل المزاد — **واحجز تسويتَه للحظة انتهائه** في الوقت نفسه.
+
+    الحجزُ هنا لا في كرونٍ يستطلع: مهمّةٌ واحدةٌ لكل مزادٍ بموعدٍ هو `ends_at`
+    نفسه. ولا يُسقط الجدولةَ إن تعذّر (وسيطٌ غائبٌ في التطوير) — والمحرّكُ يقرأ
+    الساعة، فلا مزايدةَ تمرّ بعد الإغلاق ولو تأخّرت التسوية.
+    """
+    moved = move_auction(auction, AuctionState.SCHEDULED, now=now)
+    from apps.bidding.tasks import book_settlement
+
+    book_settlement(moved)
+    return moved
 
 
 def unschedule(auction: Auction, *, now: datetime | None = None) -> Auction:

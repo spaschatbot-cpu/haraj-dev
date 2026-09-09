@@ -122,3 +122,56 @@ def close_settled_auctions(now=None) -> dict:
         if closed:
             log.info("bidding.close_settled_auctions: %s", result)
         return result
+
+
+@shared_task(name="bidding.settle_one_auction")
+def settle_one_auction(auction_id: int) -> dict:
+    """سوِّ مزاداً بعينه — المهمّةُ المحجوزةُ للحظة انتهائه.
+
+    تُحجَز عند جدولة المزاد بموعدٍ هو `ends_at` نفسه (`apply_async(eta=…)`)، فلا
+    استطلاعَ كلَّ دقيقة يسأل «هل خلص شيء؟». مهمّةٌ واحدةٌ لكل مزادٍ تعمل في
+    ثانيتها.
+
+    **وتُنهيه أوّلاً إن لزم**: الحجزُ قد يصل والعمودُ ما زال `live` لأن لا شيء
+    قلبه — والتسويةُ تقرأ الحالة. فتُنادى النقلةُ الشرعيّة نفسها
+    (`services.end`)، وحارسُها `_auction_end_time_reached` يرفض إن لم يحن الوقت
+    فعلاً — فمهمّةٌ وصلت مبكّرةً لا تُنهي مزاداً حيّاً.
+
+    وآمنةٌ عند التكرار: `settle_auction` idempotent، ومركبةٌ حُسمت لا تُحسم
+    ثانيةً. فإعادةُ محاولةٍ أو حجزان لمزادٍ واحد لا يكلّفان إلا عملاً ضائعاً.
+    """
+    from apps.auctions import services as auction_services
+
+    auction = Auction.objects.filter(pk=auction_id).first()
+    if auction is None:
+        return {"skipped": f"auction {auction_id} is gone"}
+
+    now = timezone.now()
+    if auction.state == AuctionState.LIVE and engine.has_finished(auction, now=now):
+        auction_services.end(auction, now=now)
+        auction.refresh_from_db()
+
+    if auction.state != AuctionState.ENDED:
+        return {"skipped": f"auction {auction.number} is {auction.state}"}
+
+    report = settlement.settle_auction(auction, now=now)
+    log.info("settled auction %s on schedule", auction.number)
+    return {"auction": auction.number, "vehicles": len(report.vehicles)}
+
+
+def book_settlement(auction) -> str | None:
+    """احجز تسويةَ هذا المزاد عند `ends_at`. يُنادى عند كل جدولةٍ أو إعادتها.
+
+    يفشل بهدوءٍ إن لم يكن هناك وسيط: التطويرُ يعمل بلا Redis غالباً، ولا يجوز
+    أن تسقط جدولةُ مزادٍ لأن الحجز تعذّر — والمحرّكُ يقرأ الساعة على كل حال،
+    فلا مزايدةَ تمرّ بعد الإغلاق ولو لم تقع التسويةُ في ثانيتها.
+    """
+    try:
+        result = settle_one_auction.apply_async(
+            args=[auction.pk], eta=auction.ends_at
+        )
+    except Exception as exc:  # noqa: BLE001 — وسيطٌ غائب ليس عطلاً في الجدولة
+        log.warning("could not book settlement for %s: %s", auction.pk, exc)
+        return None
+    log.info("booked settlement for auction %s at %s", auction.number, auction.ends_at)
+    return result.id
