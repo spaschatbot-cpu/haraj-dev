@@ -62,13 +62,15 @@ from decimal import Decimal
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.utils.dateparse import parse_date
 
 from apps.auctions import engine
 from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
+from apps.money.models import InvoiceSource
 
+from .dashboard import Stat
 from .exports import export, wants_export
 from .tones import with_tones
 from .views import console_page
@@ -162,6 +164,40 @@ def catalogue_totals() -> dict:
     }
 
 
+def _catalog_cards(totals: dict) -> list[Stat]:
+    """البطاقاتُ الأربع بشكل كروتٍ منظّمة — نظيرُ رأس كتالوج v1، بأرقامه."""
+    return [
+        Stat(
+            label="إجمالي المركبات",
+            value=f"{totals['vehicles']:,}",
+            detail="كلُّ ما في القاعدة، على اختلاف حالاته.",
+            tone="auction",
+            icon="car",
+        ),
+        Stat(
+            label="مزادات جارية",
+            value=f"{totals['live_auctions']:,}",
+            detail="مفتوحةٌ للمزايدة الآن.",
+            tone="plain",
+            icon="gavel",
+        ),
+        Stat(
+            label="سيارات بصور",
+            value=f"{totals['with_images']:,}",
+            detail="لها صورةٌ واحدة على الأقل في المعرض.",
+            tone="plain",
+            icon="eye",
+        ),
+        Stat(
+            label="سيارات مفوترة",
+            value=f"{totals['invoiced']:,}",
+            detail="صُدرت لها فاتورةٌ واحدة على الأقل.",
+            tone="money",
+            icon="receipt",
+        ),
+    ]
+
+
 @console_page("console:vehicle-catalog")
 def vehicle_catalog(request):
     """كتالوج السيارات: ما عندنا، وبأي حال."""
@@ -218,15 +254,45 @@ def vehicle_catalog(request):
             ],
         )
 
+    # الفاتورةُ الكاملةُ للصفّ — تُعاد نافذةَ «سند دفع» كما في «ما بعد البيع».
+    # تُستعمَل مساعِداتُها نفسُها (استيرادٌ داخل الدالة تفادياً للدور: `after_sales`
+    # يستورد `SOLD` من هنا). عمودُ الفاتورة وسندُه v1 نفسُهما.
+    from .after_sales import (
+        latest_invoice_field,
+        odoo_move_url,
+        residual_of,
+        state_label,
+    )
+
+    rows = rows.annotate(
+        invoice_pk=latest_invoice_field("pk"),
+        invoice_number=latest_invoice_field("number"),
+        invoice_state=latest_invoice_field("state"),
+        invoice_odoo=latest_invoice_field("odoo_state_raw"),
+        invoice_amount=latest_invoice_field("amount"),
+        invoice_paid=latest_invoice_field("amount_paid"),
+        invoice_issued=latest_invoice_field("issued_at"),
+        invoice_source=latest_invoice_field("source"),
+        invoice_odoo_id=latest_invoice_field("odoo_invoice_id"),
+    )
+
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
+    # اللصائقُ والمشتقّاتُ تُحسب هنا لا في القالب (قالبٌ يفكّ تعداداً مكانٌ
+    # ثانٍ للقاعدة). نظيرُ ما يفعله «ما بعد البيع» بالضبط.
+    source_labels = dict(InvoiceSource.choices)
+    for row in page.object_list:
+        row.invoice_label = state_label(row.invoice_state) if row.invoice_state else ""
+        row.invoice_residual = residual_of(row) if row.invoice_number else None
+        row.invoice_source_label = source_labels.get(row.invoice_source, "—")
+        row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
 
     return render(
         request,
         "console/vehicle_catalog.html",
         {
             "page": page,
-            "totals": catalogue_totals(),
+            "cards": _catalog_cards(catalogue_totals()),
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "listed_from": request.GET.get("listed_from", ""),
@@ -237,6 +303,40 @@ def vehicle_catalog(request):
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
         },
+    )
+
+
+def vehicle_bids(request, pk: int):
+    """مزايداتُ سيارةٍ واحدة نافذةً منبثقة — نظيرُ «🏆 المزايدات» في كتالوج v1.
+
+    قراءةٌ محضة: من زايد، وبكم، ومتى، وأين صارت مزايدتُه (حيّة/مُستبدَلة/
+    مسحوبة). مرتّبةٌ بالأعلى مبلغاً كما يعرضها v1. تُجلَب بـfetch وتُحقَن في
+    `<dialog>` — بيانات القاعدة نفسها، لا رقمٌ من الدماغ.
+    """
+    from apps.accounts.services import display_name
+
+    vehicle = get_object_or_404(
+        Vehicle.objects.select_related("auction"), pk=pk
+    )
+    bids = list(
+        vehicle.bids.select_related("bidder").order_by("-amount", "-placed_at")
+    )
+    rows = [
+        {
+            "rank": index + 1,
+            "name": display_name(bid.bidder),
+            "phone": bid.bidder.phone,
+            "amount": bid.amount,
+            "placed_at": bid.placed_at,
+            "withdrawn": bid.is_withdrawn,
+            "superseded": bid.is_superseded,
+        }
+        for index, bid in enumerate(bids)
+    ]
+    return render(
+        request,
+        "console/_vehicle_bids_modal.html",
+        {"vehicle": vehicle, "bids": rows},
     )
 
 

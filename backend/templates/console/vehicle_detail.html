@@ -17,6 +17,17 @@
 {% block heading %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
+  {% comment %} في النافذة المنبثقة: ترويسةٌ باسم السيارة وزرُّ إغلاق — بلا
+     ترويسةٍ يظهر المحتوى معلّقاً بلا عنوان («الكلام مش معدول»). في الصفحة
+     المباشرة العنوانُ في `{% block heading %}` فلا يُكرَّر. {% endcomment %}
+  {% if is_modal %}
+    <div class="cmodal__head">
+      <h3 class="cmodal__title">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}
+        <small>— لوت {{ vehicle.lot_number|unlocalize }} · مزاد #{{ vehicle.auction.number|unlocalize }}</small></h3>
+      <button type="button" class="modal__close" data-close aria-label="إغلاق">✕</button>
+    </div>
+  {% endif %}
+  <div class="{% if is_modal %}cmodal__body{% endif %}">
   {% if shots %}
     <ul class="shots">
       {% for shot in shots %}
@@ -60,8 +71,5 @@
     <div><dt>الفائز</dt><dd>{{ vehicle.awarded_to.full_name|default:"—" }}</dd></div>
     <div><dt>سعر الرسو</dt><dd class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</dd></div>
   </dl>
-
-  <p class="vehicle-facts__foot">
-    <a href="{% url 'console:vehicle-edit' vehicle.pk %}" class="btn-sm">تعديل البيانات</a>
-  </p>
+  </div>
 {% endblock %}

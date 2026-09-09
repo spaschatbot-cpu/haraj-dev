@@ -1,0 +1,62 @@
+{% comment %}
+نافذةُ «سند دفع» — تُملأ من `data-inv-*` على زرِّ الفاتورة بواسطة
+`after_sales.js`، وتُطبَع بنسخةٍ في التدفّق العاديّ (لا النافذةَ نفسها).
+مستخرَجةٌ لتُشارَك بين «ما بعد البيع» و«كتالوج السيارات». T885.
+{% endcomment %}
+<dialog id="invoiceCard" class="modal voucher">
+  <div class="voucher__actions noprint">
+    <button type="button" class="btn-sm" data-inv-print>طباعة</button>
+    <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
+  </div>
+
+  <div class="voucher__doc">
+    <header class="voucher__head">
+      <h2>سند دفع</h2>
+      <p class="voucher__num"><span data-inv-number></span></p>
+    </header>
+
+    <section class="voucher__grid">
+      <div class="voucher__block">
+        <h3>الأطراف</h3>
+        <dl class="record">
+          <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
+          <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+        </dl>
+      </div>
+
+      <div class="voucher__block">
+        <h3>المركبة</h3>
+        <dl class="record">
+          <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
+          <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
+          <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
+          <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
+          <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
+          <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="voucher__money">
+      <h3>المبلغ</h3>
+      <dl class="record">
+        <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
+        <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
+        <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+        <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
+        <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
+        <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+        <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
+      </dl>
+    </section>
+
+    <p class="empty">
+      هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
+      أودو. والفاتورةُ الضريبيّة (ZATCA) تصدر من إدارة الحسابات عبر أودو.
+    </p>
+  </div>
+
+  <div class="modal__buttons noprint">
+    <button type="button" data-close>إغلاق</button>
+  </div>
+</dialog>

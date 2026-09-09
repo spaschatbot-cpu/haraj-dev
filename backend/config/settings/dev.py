@@ -44,4 +44,7 @@ MEDIA_BASE_URL = env("MEDIA_BASE_URL", default="http://127.0.0.1:8000")  # noqa:
 #     ODOO_API_KEY=<توكن التيست — سرٌّ لا يُودَع في الكود>
 #     ODOO_INSECURE_TLS=True        # على أجهزة التطوير إن رفضت الشهادة
 # فيوجَّه النقلُ إلى التيست بلا تعديل كود. غيابُ المتغيّر يُبقي رابطَ العرض.
-ODOO_BASE_URL = env("ODOO_BASE_URL", default="https://haraj1.odoo.com")  # noqa: F405
+# `.env` قد يحمل `ODOO_BASE_URL=` فارغاً، و`env(..., default=…)` يُرجع الفارغَ
+# لا الافتراض حين يكون المتغيّرُ **مُعرَّفاً فارغاً** — فيختفي زرُّ الفاتورة
+# الضريبيّة في العرض. فالفارغُ يسقط إلى رابط العرض بـ`or`.
+ODOO_BASE_URL = env("ODOO_BASE_URL", default="") or "https://haraj1.odoo.com"  # noqa: F405

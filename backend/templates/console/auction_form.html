@@ -53,6 +53,30 @@
 
   <form method="post" class="auction-form" data-auction-form>
     {% csrf_token %}
+    {% if vehicle_ids %}<input type="hidden" name="vehicle_ids" value="{{ vehicle_ids }}">{% endif %}
+
+    {% if selected_vehicles %}
+      {% comment %} السياراتُ المحددةُ من الكتالوج — تُعرَض قبل الحفظ كما في
+         مرشد v1، فيرى الموظّفُ ما سيُستوعَب. بعد الحفظ تُنقَل إلى المزاد
+         الوليد (`_absorb_selected`). {% endcomment %}
+      <section class="form-section picked">
+        <h2 class="form-section__title">السيارات المحددة لهذا المزاد
+          <span class="pill pill--filter">{{ selected_vehicles|length|unlocalize }}</span></h2>
+        <p class="field__hint">بعد حفظ المزاد تُنقَل هذه السيارات إليه تلقائياً بصورها وبياناتها الحالية. المقفولةُ بفاتورةٍ حيّة تبقى مكانها.</p>
+        <ul class="picked__list">
+          {% for car in selected_vehicles %}
+            <li class="picked__item">
+              <strong>{{ car.make }} {{ car.model }}</strong>
+              <span class="chip">لوت {{ car.lot_number|unlocalize }}</span>
+              {% if car.plate_number %}<span class="chip">لوحة: {{ car.plate_number }}</span>{% endif %}
+              {% if car.vin %}<span class="chip">شاصي: {{ car.vin }}</span>{% endif %}
+              <span class="pill" data-tone="plain">{{ car.get_state_display }}</span>
+              <span class="picked__from muted">من مزاد #{{ car.auction.number|unlocalize }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
 
     <section class="form-section">
       <h2 class="form-section__title">هويّة المزاد</h2>

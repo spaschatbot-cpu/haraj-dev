@@ -504,7 +504,7 @@ def vehicle_detail(request, pk: int):
         else Auction.objects.none()
     )
 
-    _is_modal, base_template = _modal(request)
+    is_modal, base_template = _modal(request)
     return render(
         request,
         "console/vehicle_detail.html",
@@ -514,6 +514,7 @@ def vehicle_detail(request, pk: int):
             "shots": shots,
             "destinations": destinations,
             "base_template": base_template,
+            "is_modal": is_modal,
         },
     )
 
@@ -618,6 +619,51 @@ VEHICLE_FIELDS = [
 
 
 @console_page("console:auction-new")
+def _absorb_selected(request, auction: Auction) -> int:
+    """انقل السياراتِ المختارةَ من الكتالوج إلى مزادٍ وليد، وأعِد كم نُقل.
+
+    المعرّفاتُ تصل في `vehicle_ids` (حقلٌ خفيّ حمله النموذجُ من `?vehicle_ids`
+    في رابط «إنشاء مزاد من المحدد»). ما عليه فاتورةٌ حيّة لا يُنقَل صامتاً —
+    نظيرُ قفل `vehicle_bulk`: الفاتورةُ تؤشّر على السيارة وقد دُفع عليها.
+    """
+    raw = request.POST.get("vehicle_ids", "")
+    ids = [int(part) for part in raw.split(",") if part.strip().isdigit()]
+    if not ids:
+        return 0
+
+    from apps.money.models import Invoice, InvoiceState
+
+    rows = list(Vehicle.objects.filter(pk__in=ids))
+    locked = set(
+        Invoice.objects.filter(vehicle__in=rows)
+        .exclude(state=InvoiceState.CANCELLED)
+        .values_list("vehicle_id", flat=True)
+    )
+    free = [v.pk for v in rows if v.pk not in locked]
+    if not free:
+        if locked:
+            messages.error(
+                request,
+                f"{len(locked)} مركبة عليها فاتورةٌ حيّة لم تُنقَل — استرجِعها أولاً.",
+            )
+        return 0
+
+    moved = Vehicle.objects.filter(pk__in=free).update(auction=auction)
+    audit.record(
+        action="console.auction_absorb_selected",
+        entity=auction,
+        actor=request.user,
+        after={"auction": auction.number, "count": moved},
+        note="إنشاء مزاد من سياراتٍ مختارة في الكتالوج",
+    )
+    if locked:
+        messages.error(
+            request,
+            f"{len(locked)} مركبة عليها فاتورةٌ حيّة لم تُنقَل — استرجِعها أولاً.",
+        )
+    return moved
+
+
 def auction_new(request):
     """A new auction, born `draft`.
 
@@ -648,11 +694,18 @@ def auction_new(request):
                     form.instance.pk = None  # فشل الإدراج → أعِد الحساب والمحاولة
                     continue
         if auction is not None:
-            # الخطوة ٢ كـ v1: بعد إعدادات المزاد ننتقل إلى صفحته لإضافة السيارات
-            # والصور. المزادُ وُلد `draft` فلا يظهر للعملاء حتى يُجدوَل بسياراته.
+            # «إنشاء مزاد من المحدد» في الكتالوج: يصل بمعرّفات سياراتٍ مختارة،
+            # فتُنقَل إلى المزاد الوليد. المزادُ فارغٌ فلا يصطدم لوتٌ مكرّر،
+            # والمقفولةُ بفاتورةٍ حيّة تُذكر ولا تُنقَل — كنقل vehicle_bulk.
+            absorbed = _absorb_selected(request, auction)
+            step2 = (
+                f"استوعب {absorbed} مركبة. راجعها وأضِف غيرَها والصور."
+                if absorbed
+                else "الخطوة ٢: أضِف السيارات والصور."
+            )
             messages.success(
                 request,
-                f"أُنشئ المزاد {auction.number} (مسودّة). الخطوة ٢: أضِف السيارات والصور.",
+                f"أُنشئ المزاد {auction.number} (مسودّة). {step2}",
             )
             return redirect("console:auction-detail", pk=auction.pk)
 
@@ -663,10 +716,27 @@ def auction_new(request):
 
     next_number = (Auction.objects.aggregate(m=Max("number"))["m"] or 0) + 1
 
+    # «إنشاء مزاد من المحدد»: تُعرَض السياراتُ المختارةُ في النموذج — لوحةً
+    # وشاصياً وحالة — كما في مرشد v1، فيرى الموظّفُ ما سيُستوعَب قبل الحفظ.
+    raw_ids = request.GET.get("vehicle_ids", "")
+    ids = [int(part) for part in raw_ids.split(",") if part.strip().isdigit()]
+    selected_vehicles = (
+        list(Vehicle.objects.filter(pk__in=ids).select_related("auction"))
+        if ids
+        else []
+    )
+
     return render(
         request,
         "console/auction_form.html",
-        {"form": form, "auction": None, "next_number": next_number},
+        {
+            "form": form,
+            "auction": None,
+            "next_number": next_number,
+            # يُعاد حقلاً خفياً في النموذج كي يصل مع الـPOST فتُستوعَب بعد الحفظ.
+            "vehicle_ids": raw_ids,
+            "selected_vehicles": selected_vehicles,
+        },
     )
 
 

@@ -149,6 +149,7 @@ urlpatterns = [
     path("users/bids-report/", analytics.user_bids, name="user-bids"),
     # إدارة المزادات — بقيّةُ قسم v1 (T830د).
     path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
+    path("vehicles/<int:pk>/bids/", catalog.vehicle_bids, name="vehicle-bids"),
     path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
     path("after-sales/", after_sales.after_sales, name="after-sales"),
     path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),

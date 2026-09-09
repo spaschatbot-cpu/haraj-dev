@@ -1,99 +1,300 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
-كتالوج السيارات — البطاقات الأربع وفلاتر v1 الستّة.
+كتالوج السيارات — عرضُ v1 مُعادُ التنظيم، وعملياتُه نفسُها:
+بطاقاتٌ أربع · صفُّ فلاترٍ واحد · شريطُ أدواتٍ (إضافة/تحديث/تحديد الكل/إنشاء
+مزادٍ من المحدد) · وجدولٌ بأعمدة v1، ولكل صفٍّ: تحديدٌ، صورٌ في نافذة، فاتورةٌ
+سندَ دفعٍ في نافذة، وعرضٌ ومزايداتٌ أيقونتين تفتحان نوافذَ — كلُّها من القاعدة.
 
-وعمودان من v1 غائبان عمداً: **اللون** و**شركة التأمين** لا حقلَ لهما في
-`Vehicle`، وعمودٌ فارغٌ في كل صفّ أسوأ من عمودٍ غائب. و«شركة التأمين» تحتاج
-حسماً قبل نقلها أصلاً: قيمتها في الإنتاج تشمل `مشتريات خارجيه` — وهي مصدرُ
-المركبة لا مؤمِّنُها، فالعمود هناك يحمل معنيين.
-
-و«رقم الموقف» هنا عددٌ صحيح دائماً: في v1 يحمل `384` و`AUC-1017-743` معاً،
-فلا يُفرَز ولا يجده بحثٌ برقم.
+**اللونُ وشركةُ التأمين** صارا حقلين في `Vehicle`، فعادا عمودَين. وقيمةُ
+«التأمين» في v1 تخلط المؤمِّنَ بمصدر المركبة — القرارُ (فصلُهما) للمالك.
+**رقم الموقف** عددٌ صحيح، و**العداد** رقمٌ أو `—` واحدة.
 {% endcomment %}
 {% block title %}كتالوج السيارات{% endblock %}
 {% block heading %}كتالوج السيارات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>إجمالي المركبات</th><td class="count">{{ totals.vehicles|unlocalize }}</td></tr>
-      <tr><th>مزادات جارية</th><td class="count">{{ totals.live_auctions|unlocalize }}</td></tr>
-      <tr><th>سيارات بصور</th><td class="count">{{ totals.with_images|unlocalize }}</td></tr>
-      <tr><th>سيارات مفوترة</th><td class="count">{{ totals.invoiced|unlocalize }}</td></tr>
-    </tbody>
-  </table>
-</div>
+  <p class="lede">كلُّ مركبةٍ عندنا بمواصفاتها وصورها ومزادها وفاتورتها — بفلاتر الحالة والتواريخ الأربعة.</p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="شاصي أو لوحة أو اسم السيارة أو لوت">
-    <select name="state">
-      <option value="">كل حالات المزاد</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <input type="date" name="listed_from" value="{{ listed_from }}" title="من تاريخ إدراج السيارة">
-    <input type="date" name="listed_to" value="{{ listed_to }}" title="إلى تاريخ إدراج السيارة">
-    <input type="date" name="auction_from" value="{{ auction_from }}" title="من تاريخ المزاد">
-    <input type="date" name="auction_to" value="{{ auction_to }}" title="إلى تاريخ المزاد">
-    <button type="submit">تطبيق الفلاتر</button>
+  <section class="board-stats board-stats--compact" aria-label="أرقام الكتالوج">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </section>
+
+  {% comment %} «إضافة سيارة يدويًا» أعلى الشاشة تحت البطاقات — موضعُها في v1. {% endcomment %}
+  <div class="cat-add-row">
+    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">➕ إضافة سيارة يدويًا</button>
+  </div>
+
+  {% comment %} صفُّ الفلاتر — لصائقُ v1 الكاملة فوق كل حقل: يُعرَف أيُّ تاريخٍ
+     يُطلب قبل ملئه، لا placeholder يختفي عند الكتابة. {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="catQ">بحث داخل النتائج</label>
+      <input id="catQ" type="search" name="q" value="{{ q }}"
+             placeholder="ابحث برقم الشاسية، اللوحة، أو الاسم…">
+    </div>
+    <div class="cat-filters__field">
+      <label for="catState">حالة المزاد</label>
+      <select id="catState" name="state">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}"{% if value == state %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="cat-filters__field">
+      <label for="catLF">من تاريخ إدراج السيارة</label>
+      <input id="catLF" type="date" name="listed_from" value="{{ listed_from }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="catLT">إلى تاريخ إدراج السيارة</label>
+      <input id="catLT" type="date" name="listed_to" value="{{ listed_to }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="catAF">من تاريخ المزاد</label>
+      <input id="catAF" type="date" name="auction_from" value="{{ auction_from }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="catAT">إلى تاريخ المزاد</label>
+      <input id="catAT" type="date" name="auction_to" value="{{ auction_to }}">
+    </div>
+    <div class="cat-filters__actions">
+      <button type="submit" class="btn-primary">تطبيق الفلاتر</button>
+      <a href="{% url 'console:vehicle-catalog' %}" class="btn-ghost">مسح الفلاتر</a>
+    </div>
   </form>
+
+  {% comment %} شريطُ الأدوات — نظيرُ v1: نصُّ التجميع، وأزرارُ الإضافة والتحديث
+     والتحديد وإنشاء مزادٍ من المحدد. {% endcomment %}
+  <div class="cat-toolbar">
+    <p class="cat-toolbar__meta">تُعرَض السيارات مرتّبةً بالأحدث، ولكلّ صفٍّ موعدُ بداية مزاده ونهايتُه. حدِّد سياراتٍ لإنشاء مزادٍ منها.</p>
+    <div class="cat-toolbar__actions">
+      <button type="button" class="btn-ghost" data-select-create>إنشاء مزاد من المحدد</button>
+      <button type="button" class="btn-ghost" data-select-all>تحديد / إلغاء الكل</button>
+      <button type="button" class="btn-ghost" onclick="location.reload()">تحديث البيانات</button>
+    </div>
+  </div>
 
   <div class="scroller">
     <table>
     <thead>
       <tr>
+        <th><input type="checkbox" data-select-all-box aria-label="تحديد الكل"></th>
         <th>#</th>
-        <th>اللوت</th>
+        <th>رقم الموقف</th>
         <th>المزاد</th>
         <th>السيارة</th>
+        <th>اللون</th>
         <th>العداد</th>
         <th>الحالة الفنية</th>
+        <th>شركة التأمين</th>
         <th>الشاصي</th>
         <th>اللوحة</th>
         <th>الصور</th>
         <th>حالة المزاد</th>
         <th>موعد المزاد</th>
-        <th>حالة المركبة</th>
+        <th>الفاتورة</th>
+        <th>الإجراءات</th>
       </tr>
     </thead>
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.pk|unlocalize }}</td>
+          <td><input type="checkbox" class="row-select" value="{{ row.pk|unlocalize }}" aria-label="تحديد"></td>
+          <td class="muted">{{ row.pk|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.auction.number|unlocalize }}</td>
           <td>
-            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+            <strong>{{ row.make }} {{ row.model }}</strong>
             <small>{{ row.year|unlocalize }}</small>
           </td>
-          {% comment %} «—» واحدةٌ لا اثنتان: في v1 «...» و«—» في صفّين
-             متجاورين، ولا أحد يعرف أيّهما «لم يُقَس». {% endcomment %}
+          <td>{{ row.get_colour_display }}</td>
           <td class="count">{{ row.odometer_km|default:"—"|unlocalize }}</td>
           <td>{{ row.get_condition_display }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td class="count">{{ row.image_count|unlocalize }}</td>
-          <td>{{ row.auction.get_state_display }}</td>
-          <td>{{ row.auction.starts_at }} ← {{ row.auction.ends_at }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          <td>{{ row.insurance_company|default:"—" }}</td>
+          <td class="mono">{{ row.vin|default:"—" }}</td>
+          <td class="mono">{{ row.plate_number|default:"—" }}</td>
+          <td>
+            {% if row.image_count %}
+              <button type="button" class="link-btn" data-images-modal
+                      data-url="{% url 'console:vehicle-images' row.pk %}?modal=1"
+                      title="عرض كل صور السيارة">📷 {{ row.image_count|unlocalize }}</button>
+            {% else %}
+              <span class="muted">0</span>
+            {% endif %}
+          </td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.auction.get_state_display }}</span></td>
+          <td class="sched">
+            <span>{{ row.auction.starts_at|date:"Y-m-d H:i" }}</span>
+            <span class="muted">← {{ row.auction.ends_at|date:"Y-m-d H:i" }}</span>
+          </td>
+          <td>
+            {% if row.invoice_number %}
+              {% comment %} فاتحُ سند الدفع — كلُّ حقوله في `data-*` على الزرّ،
+                 فالنافذةُ تُملأ بلا رحلةِ خادم (نظيرُ ما بعد البيع). {% endcomment %}
+              <button type="button" class="act act--review" data-opens="invoiceCard"
+                      title="سند الدفع" aria-label="سند الدفع"
+                      data-vehicle="{{ row.make }} {{ row.model }}"
+                      data-lot="{{ row.lot_number|unlocalize }}"
+                      data-auction="{{ row.auction.number|unlocalize }}"
+                      data-plate="{{ row.plate_number|default:'—' }}"
+                      data-chassis="{{ row.vin|default:'—' }}"
+                      data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
+                      data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
+                      data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
+                      data-number="{{ row.invoice_number }}"
+                      data-state="{{ row.invoice_label }}"
+                      data-source="{{ row.invoice_source_label }}"
+                      data-odoo="{{ row.invoice_odoo|default:'—' }}"
+                      data-odoo-url="{{ row.odoo_invoice_url }}"
+                      data-amount="{{ row.invoice_amount|unlocalize }}"
+                      data-paid="{{ row.invoice_paid|unlocalize }}"
+                      data-residual="{{ row.invoice_residual|unlocalize }}"
+                      data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
+                      data-sheet="—">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V2M9 8h6M9 12h6M9 16h4"/></svg>
+                <span class="act__lbl">{{ row.invoice_number }}</span>
+              </button>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td class="actions actions--nowrap">
+            <button type="button" class="act act--cars" data-content-url="{% url 'console:vehicle-detail' row.pk %}?modal=1"
+                    title="عرض تفاصيل السيارة" aria-label="عرض">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12m10 2.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2"/></svg>
+            </button>
+            <button type="button" class="act act--bids" data-content-url="{% url 'console:vehicle-bids' row.pk %}"
+                    title="مزايدات السيارة" aria-label="المزايدات">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6-6 6 6M3 12l6 6M12 3v9M9 21h6M8 12l-5 5 3 3 5-5"/></svg>
+            </button>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="12" class="empty">لا مركبات مطابقة.</td></tr>
+        <tr><td colspan="16" class="empty">لا مركبات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-  <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  <div class="table-footer">
+    <div class="table-footer__count">
+      {{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات الكتالوج">
+        {% if page.has_previous %}<a href="?{% if q %}q={{ q }}&{% endif %}page={{ page.previous_page_number }}">السابق</a>{% endif %}
+        <span>{{ page.number|unlocalize }} / {{ page.paginator.num_pages|unlocalize }}</span>
+        {% if page.has_next %}<a href="?{% if q %}q={{ q }}&{% endif %}page={{ page.next_page_number }}">التالي</a>{% endif %}
+      </nav>
+    {% endif %}
+  </div>
 
-  <p class="empty">
-    عمودا <strong>اللون</strong> و<strong>شركة التأمين</strong> في v1 لا حقلَ
-    لهما هنا بعد. ولا يُرسَمان فارغين: عمودٌ لا يحمل شيئاً في كل صفّ يُقرأ
-    «لم يُحمَّل». و«شركة التأمين» تحتاج قراراً قبل نقلها — قيمتها في الإنتاج
-    تشمل «مشتريات خارجيه»، وهي مصدرُ المركبة لا مؤمِّنُها.
-  </p>
+  {% comment %} نافذةُ صور المركبة — تُجلَب من `vehicle-images?modal=1`. {% endcomment %}
+  <dialog class="modal images-modal" data-images-dialog>
+    <div data-images-body></div>
+  </dialog>
+
+  {% comment %} نافذةٌ عامّة للمحتوى المجلوب: تفاصيلُ السيارة، مزايداتُها،
+     ونموذجُ الإضافة اليدوية — كلُّها تُحقَن هنا. {% endcomment %}
+  <dialog class="modal cmodal" data-content-dialog>
+    <div data-content-body></div>
+  </dialog>
+
+  {% include "console/_invoice_voucher.html" %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'console/after_sales.js' %}?v=3"></script>
+<script>
+(function () {
+  var csrf = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';
+
+  // ── نافذةُ الصور (نفسُ منطق شاشة الإدارة) ────────────────────────────────
+  var imgDialog = document.querySelector('[data-images-dialog]');
+  var imgBody = imgDialog ? imgDialog.querySelector('[data-images-body]') : null;
+  if (imgDialog && imgDialog.showModal && imgBody) {
+    var imgChanged = false;
+    function wireDropzone() {
+      var zone = imgBody.querySelector('[data-dropzone]');
+      var input = imgBody.querySelector('[data-file-input]');
+      var preview = imgBody.querySelector('[data-preview]');
+      if (!zone || !input || !preview) return;
+      ['dragover', 'dragenter'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('dropzone--over'); }); });
+      ['dragleave', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function () { zone.classList.remove('dropzone--over'); }); });
+      zone.addEventListener('drop', function (e) { e.preventDefault(); if (e.dataTransfer && e.dataTransfer.files.length) { input.files = e.dataTransfer.files; previews(); } });
+      input.addEventListener('change', previews);
+      function previews() {
+        preview.innerHTML = ''; var files = input.files;
+        if (!files || !files.length) { preview.hidden = true; return; }
+        preview.hidden = false;
+        for (var i = 0; i < files.length; i++) { var img = document.createElement('img'); img.src = URL.createObjectURL(files[i]); img.onload = function () { URL.revokeObjectURL(this.src); }; preview.appendChild(img); }
+      }
+    }
+    function wireImgForms() {
+      wireDropzone();
+      imgBody.querySelectorAll('form[data-gallery-form]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          fetch(form.getAttribute('action') || location.href, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { return r.text(); }).then(function (html) { imgChanged = true; imgBody.innerHTML = html; wireImgForms(); });
+        });
+      });
+      var closer = imgBody.querySelector('[data-images-close]');
+      if (closer) closer.addEventListener('click', function () { imgDialog.close(); });
+    }
+    imgDialog.addEventListener('close', function () { if (imgChanged) window.location.reload(); });
+    document.querySelectorAll('[data-images-modal]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        imgChanged = false;
+        fetch(btn.getAttribute('data-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+          .then(function (r) { return r.text(); }).then(function (html) { imgBody.innerHTML = html; imgDialog.showModal(); wireImgForms(); });
+      });
+    });
+  }
+
+  // ── نافذةُ المحتوى العامّة: تفاصيل · مزايدات · إضافة ──────────────────────
+  var cDialog = document.querySelector('[data-content-dialog]');
+  var cBody = cDialog ? cDialog.querySelector('[data-content-body]') : null;
+  if (cDialog && cDialog.showModal && cBody) {
+    function wireContent() {
+      // نموذجٌ داخل النافذة (الإضافة): 204 يعني نجاحاً فتُغلَق ويُعاد التحميل،
+      // وإلا يُحقَن ثانيةً بأخطائه.
+      var form = cBody.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          fetch(form.getAttribute('action') || location.href, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+            .then(function (r) { if (r.status === 204) { cDialog.close(); window.location.reload(); return null; } return r.text(); })
+            .then(function (html) { if (html !== null) { cBody.innerHTML = html; wireContent(); } });
+        });
+      }
+      cBody.querySelectorAll('[data-content-close], a.btn-cancel, [data-close]').forEach(function (el) {
+        el.addEventListener('click', function (e) { e.preventDefault(); cDialog.close(); });
+      });
+    }
+    document.querySelectorAll('[data-content-url]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        fetch(btn.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+          .then(function (r) { return r.text(); }).then(function (html) { cBody.innerHTML = html; cDialog.showModal(); wireContent(); });
+      });
+    });
+  }
+
+  // ── التحديد وإنشاء مزادٍ من المحدد ────────────────────────────────────────
+  function boxes() { return [].slice.call(document.querySelectorAll('.row-select')); }
+  var allBtn = document.querySelector('[data-select-all]');
+  var allBox = document.querySelector('[data-select-all-box]');
+  function toggleAll(on) { boxes().forEach(function (b) { b.checked = on; }); if (allBox) allBox.checked = on; }
+  if (allBtn) allBtn.addEventListener('click', function () { var every = boxes().length && boxes().every(function (b) { return b.checked; }); toggleAll(!every); });
+  if (allBox) allBox.addEventListener('change', function () { toggleAll(allBox.checked); });
+  var createBtn = document.querySelector('[data-select-create]');
+  if (createBtn) createBtn.addEventListener('click', function () {
+    var ids = boxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
+    if (!ids.length) { alert('حدِّد سيارةً واحدة على الأقل أولاً.'); return; }
+    window.location.href = '{% url "console:auction-new" %}?vehicle_ids=' + encodeURIComponent(ids.join(','));
+  });
+})();
+</script>
 {% endblock %}

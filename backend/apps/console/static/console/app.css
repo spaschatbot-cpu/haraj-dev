@@ -4536,6 +4536,105 @@ dialog.row-modal {
 .qe-toast--err { background: var(--bad, #dc2626); color: #fff; }
 @media (max-width: 600px) { .qe-list { grid-template-columns: 1fr; } }
 
+/* ---- كتالوج السيارات: أدواتٌ صغيرة مشتركة. T884 ------------------------- */
+/* حقلُ تاريخٍ بلصيقةٍ فوقه في صفّ الفلاتر — ليُعرف أيُّ تاريخٍ يُطلب. */
+.filters__date { display: inline-flex; flex-direction: column; gap: .15rem; font-size: .68rem; font-weight: 800; color: var(--muted); }
+.filters__date input { font: inherit; font-size: .82rem; font-weight: 700; padding: .4rem .55rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); }
+.filters__date input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
+/* زرٌّ يبدو رابطاً — لفتح نافذةٍ من داخل خلية جدول (الصور). */
+.link-btn { appearance: none; border: 0; background: none; padding: 0; color: var(--brand-dark); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.link-btn:hover { text-decoration: underline; }
+/* خليّةُ موعد المزاد: بدايةٌ ونهايةٌ سطرين. */
+.sched { display: flex; flex-direction: column; gap: .1rem; font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono, ui-monospace, monospace); font-size: .82rem; }
+
+/* صفُّ فلاتر الكتالوج — شبكةٌ من حقولٍ معنونة (لصيقةٌ فوق كل حقل كـ v1)،
+   وصفُّ الأزرار يمتدّ العرضَ كلَّه أسفلها. */
+/* `form.cat-filters` لا `.cat-filters` وحده: قاعدةُ `form[method="get"]`
+   العامّة تضع flex بتخصيصٍ أعلى من الصنف، فيلزم مطابقتُها بالعنصر لتُغلَب. */
+form.cat-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  align-items: start;
+  gap: .8rem;
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.cat-filters__field { display: flex; flex-direction: column; gap: .3rem; min-inline-size: 0; }
+/* تخصيصٌ أعلى من `form[method="get"] label { display:none }` (تُخفي لصائقَ
+   فلاتر v2 اعتماداً على placeholder): هنا اللصيقةُ فوق الحقل مطلوبةٌ صراحةً. */
+form.cat-filters .cat-filters__field label { display: block; font-size: .74rem; font-weight: 800; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-filters__field input, .cat-filters__field select {
+  inline-size: 100%;
+  padding: .5rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: .88rem;
+  box-sizing: border-box;
+}
+.cat-filters__field input:focus, .cat-filters__field select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
+/* تخصيصٌ أعلى من `form[method="get"] input[type="search"]` (٠،١،٢): تلك تضع
+   `flex:1 1 14rem`، وفي حقلٍ عموديّ يصير الأساسُ ارتفاعاً (224px). نُبطلها. */
+form.cat-filters .cat-filters__field input,
+form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0; }
+.cat-filters__actions { grid-column: 1 / -1; display: flex; gap: .5rem; align-items: center; }
+
+/* صفُّ «إضافة سيارة يدويًا» أعلى الشاشة — موضعُ v1، تحت البطاقات. */
+.cat-add-row { margin: 0 0 1rem; }
+
+/* أنميشنُ الأيقونات الأساسية في الصفوف (عرض · مزايدات · فاتورة · صور):
+   نبضةٌ لطيفةٌ عند المرور، وارتدادٌ عند الضغط، ودخولٌ متدرّج أول تحميل.
+   يُحترَم `prefers-reduced-motion`: من أطفأ الحركةَ لا يراها. */
+.act svg, .link-btn { transition: transform .18s cubic-bezier(.34, 1.56, .64, 1); }
+.act:hover svg { transform: scale(1.18) rotate(-3deg); }
+.act:active svg { transform: scale(.92); }
+.link-btn:hover { transform: scale(1.06); }
+.actions .act { animation: actIn .32s ease both; }
+.actions .act:nth-child(2) { animation-delay: .05s; }
+.actions .act:nth-child(3) { animation-delay: .1s; }
+@keyframes actIn { from { opacity: 0; transform: translateY(4px) scale(.9); } to { opacity: 1; transform: none; } }
+/* أيقوناتُ بطاقات الأرقام: تطفو قليلاً حين يمرّ المؤشّر على البطاقة. */
+.stat__icon { transition: transform .2s ease; }
+.stat:hover .stat__icon, a.stat:hover .stat__icon { transform: translateY(-2px) scale(1.08); }
+@media (prefers-reduced-motion: reduce) {
+  .act svg, .link-btn, .actions .act, .stat__icon { animation: none !important; transition: none !important; transform: none !important; }
+}
+
+/* لوحةُ «السيارات المحددة لهذا المزاد» في نموذج الإنشاء — مرشدُ v1. */
+.form-section.picked { background: var(--raised); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 1rem 1.1rem; }
+.picked__list { list-style: none; margin: .6rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.picked__item { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .5rem .6rem; background: var(--panel); border: 1px solid var(--line-soft); border-radius: var(--radius); }
+.picked__from { margin-inline-start: auto; font-size: .74rem; }
+
+/* شريطُ أدوات الكتالوج: النصُّ يميناً والأزرارُ يساراً، يلتفّ على الضيّق. */
+.cat-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem; margin: 0 0 1rem; }
+.cat-toolbar__meta { margin: 0; color: var(--muted); font-size: .82rem; flex: 1 1 16rem; }
+.cat-toolbar__actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.row-select { inline-size: 1.05rem; block-size: 1.05rem; accent-color: var(--brand-solid); cursor: pointer; }
+/* زرُّ الفاتورة برقمها بجانب الأيقونة. */
+.act--review { inline-size: auto; padding-inline: .5rem; gap: .35rem; }
+.act__lbl { font-size: .78rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.act--bids:hover { color: var(--warn, #b45309); border-color: var(--warn, #b45309); }
+.actions--nowrap { white-space: nowrap; }
+
+/* النافذةُ العامّة (تفاصيل · مزايدات · إضافة) — أعرضُ قليلاً، رأسٌ ثابت. */
+.cmodal { inline-size: min(46rem, 94vw); padding: 0; }
+.cmodal__head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: 1rem 1.3rem; border-block-end: 1px solid var(--line); position: sticky; inset-block-start: 0; background: var(--panel); z-index: 1; }
+.cmodal__title { margin: 0; font-size: 1rem; font-weight: 800; }
+.cmodal__title small { font-weight: 600; color: var(--muted); font-size: .82rem; }
+.cmodal__body { padding: 1.1rem 1.3rem 1.3rem; }
+.bids-table { inline-size: 100%; border-collapse: collapse; }
+.bids-table th, .bids-table td { padding: .5rem .6rem; text-align: start; border-block-end: 1px solid var(--line-soft); }
+.bids-table th { font-size: .74rem; font-weight: 800; color: var(--muted); }
+.bids-table__muted { opacity: .55; }
+
 /* ---- منطقةُ سحب وإفلات الصور — أسلوبُ رفع v1 ------------------------------
    الاستمارةُ نفسُها تعمل بلا جافاسكربت (`<input type=file>`)، وهذه تزيّنها:
    منطقةٌ تُسحَب إليها الصور أو تُضغَط، ومعايناتٌ فورية قبل الرفع. T881 */
