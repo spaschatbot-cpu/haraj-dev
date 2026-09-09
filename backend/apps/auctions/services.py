@@ -490,3 +490,68 @@ def record_partner_ruling(
         setattr(vehicle, name, getattr(locked, name))
     log.info("vehicle %s: partner ruled %s", vehicle.pk, decision)
     return vehicle
+
+
+def queue_auction_reminder(auction: Auction, *, actor=None, now=None) -> dict:
+    """أدرِج تذكيرَ «المزاد يقترب» في طابور الإشعارات. لا يُرسل ولا يُنفق.
+
+    الحقلُ `sms_reminder_at` موجودٌ في v1 منذ سنة وتملؤه الاستمارة — **ولا سطرَ
+    واحدٌ يقرؤه**: لا كرون ولا خدمةَ رسائل. فالميزةُ موعودةٌ ولم تُبنَ، لا في
+    القديم ولا هنا.
+
+    وتُبنى هنا **إدراجاً في الطابور لا إرسالاً**: صفُّ `Notification` بحالة
+    `QUEUED` لا يكلّف هللة، والتسليمُ شأنُ من يملك البوّابة ومفتاحَها. والمادة
+    ٥-٢ تمنع مهمّةً مجدولةً تُنفق بلا موافقةٍ صريحة — وإدراجٌ يراه إنسانٌ ويضغطه
+    ليس إنفاقاً بلا عين.
+
+    **الجمهور: من وضع سيارةً من هذا المزاد في مفضّلته.** وهو اختيارٌ لا تفصيل:
+    التذكيرُ قبل الانطلاق، فلا مزايدَ بعد ولا حجزَ تأمينٍ يُستدلّ به؛ والمفضّلةُ
+    أقربُ ما يقوله العميلُ بنفسه عن نيّته. وإرسالُه إلى أربعةٍ وأربعين ألفاً
+    إعلانٌ لا تذكير، وثمنُه يُقاس بالآلاف.
+
+    ولا يُدرَج مرّتين: `reminder_sent_at` يُختَم في المعاملة نفسها.
+    """
+    from apps.notifications.models import Channel, Notification
+
+    from .favourites import Favourite
+
+    now = now or timezone.now()
+    if auction.sms_reminder_at is None:
+        raise ValueError(f"auction {auction.pk} has no reminder time")
+
+    with transaction.atomic():
+        locked = Auction.objects.select_for_update().get(pk=auction.pk)
+        if locked.reminder_sent_at is not None:
+            raise ValueError(
+                f"reminder for auction {locked.number} was queued at {locked.reminder_sent_at}"
+            )
+
+        audience = list(
+            Favourite.objects.filter(vehicle__auction=locked)
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        body = (
+            f"مزاد {locked.number} — {locked.title} يبدأ "
+            f"{timezone.localtime(locked.starts_at):%Y-%m-%d %H:%M}. "
+            "سيارةٌ في مفضّلتك تُعرض فيه."
+        )
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    user_id=uid,
+                    channel=Channel.SMS,
+                    template="auction_reminder",
+                    body=body,
+                    data={"auction": locked.number, "auction_id": locked.pk},
+                )
+                for uid in audience
+            ],
+            batch_size=1000,
+        )
+        locked.reminder_sent_at = now
+        locked.save(update_fields=["reminder_sent_at", "updated_at"])
+
+    auction.reminder_sent_at = locked.reminder_sent_at
+    log.info("auction %s: queued %s reminders", auction.pk, len(audience))
+    return {"auction": auction.pk, "queued": len(audience)}

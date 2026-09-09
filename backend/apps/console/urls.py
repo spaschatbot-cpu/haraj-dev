@@ -35,6 +35,7 @@ from . import (
     payments,
     people,
     refunds,
+    reminders,
     staff,
     vehicle_bulk,
     vehicle_images,
@@ -123,6 +124,13 @@ urlpatterns = [
     # قرارات المزايدات — قسمُ v1 نفسه (T830أ). قراءةٌ محضة: الترسية في
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
     # مزايدات المزاد الجاري، وكلُّ المزايدات بمركباتها. T890
+    # تذكيراتُ انطلاق المزاد — إدراجٌ في الطابور لا إرسال. T891
+    path("reminders/", reminders.reminders, name="reminders"),
+    path(
+        "reminders/<int:pk>/send/",
+        reminders.reminder_send,
+        name="reminder-send",
+    ),
     path("bids/live/", bids.live_bids, name="live-bids"),
     path("bids/vehicles/", bids.vehicle_bids, name="vehicle-bids"),
     path(

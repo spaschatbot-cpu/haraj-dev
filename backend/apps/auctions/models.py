@@ -89,6 +89,13 @@ class Auction(models.Model):
         max_length=16, choices=AuctionState.choices, default=AuctionState.DRAFT
     )
 
+    #: متى أُدرج تذكيرُ هذا المزاد في الطابور — وهو ما يمنع إدراجَه مرّتين.
+    #
+    # `sms_reminder_at` يقول **متى**، ولا شيء في v1 ولا هنا كان يقول **هل
+    # أُرسل**. فبلا هذا العمود يصير كلُّ ضغطٍ على «أرسل» دفعةً ثانية إلى الناس
+    # أنفسهم — والرسالةُ الثانية تكلّف كالأولى ولا تُسترد.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     #: What a bidder must have deposited to take part.
     deposit_required = models.DecimalField(
         max_digits=14, decimal_places=2, default=Decimal("10000.00")

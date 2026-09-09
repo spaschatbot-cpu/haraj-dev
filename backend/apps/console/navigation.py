@@ -326,6 +326,21 @@ PAGES: tuple[Page, ...] = (
     ),
     # ---- قرارات المزايدات — بترتيب v1 وأسمائه ------------------------------
     Page(
+        "console:reminders",
+        "تذكيرات المزادات",
+        Capability.AUCTIONS_MANAGE,
+        "support",
+        "أيُّ مزادٍ حان تذكيرُه وكم شخصاً سيصله — والإدراجُ بضغطةِ إنسان.",
+        "bell",
+    ),
+    Page(
+        "console:reminder-send",
+        "إدراج تذكير",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:reminders",
+    ),
+    Page(
         "console:live-bids",
         "مزايدات المزاد الجاري",
         Capability.AUCTIONS_VIEW,
