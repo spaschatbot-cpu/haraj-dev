@@ -100,7 +100,13 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   final Color pillTop;
   final Color pillBottom;
 
-  /// طرفا تدرّج هيدر بقيّة الشاشات — خضرةُ العلامة، من الغامق إلى الأغمق.
+  /// طرفا تدرّج هيدر بقيّة الشاشات — **بنّيُّ الشريط السفليّ نفسه**.
+  ///
+  /// كانت خضرةً (`#0F5C4A`) من هويّةٍ سابقة، فصارت كل شاشةٍ غير الرئيسية
+  /// مؤطّرةً بخضرةٍ من أعلى وبنّيٍّ داكن من أسفل — لونان لا يجمعهما شيء على
+  /// ورقةٍ كريميّة واحدة. والرئيسية وحدها كانت متّسقة لأن لوحتها الداكنة
+  /// حلّت محلّ الهيدر. فأُخذ الهيدر إلى عائلة اللوحة والشريط: يقفل التطبيق
+  /// بين بنّيَّين وخيطَين ذهبيَّين.
   ///
   /// التدرّجُ قطريّ لا رأسيّ: رأسيٌّ على شريطٍ ارتفاعه ٥٦ لا يكاد يُرى،
   /// وقطريٌّ يمرّ على عرض الشاشة كلّه فيُلحَظ بلا أن يصرخ.
@@ -197,8 +203,8 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     timerBadge: Color(0xFF1F5F46),
     pillTop: Color(0xFF4A3624),
     pillBottom: Color(0xFF2A1D12),
-    headerTop: Color(0xFF0F5C4A),
-    headerBottom: Color(0xFF083A2E),
+    headerTop: Color(0xFF33240F),
+    headerBottom: Color(0xFF1A1209),
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -223,8 +229,8 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     timerBadge: Color(0xFF1B5540),
     pillTop: Color(0xFF5A4430),
     pillBottom: Color(0xFF33231A),
-    headerTop: Color(0xFF0A3B30),
-    headerBottom: Color(0xFF04211A),
+    headerTop: Color(0xFF3A2A14),
+    headerBottom: Color(0xFF120C05),
   );
 }
 
@@ -248,7 +254,7 @@ abstract final class HarajTheme {
     final base = ThemeData(
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF0F5C4A),
+        seedColor: const Color(0xFFB8860B),
         brightness: brightness,
       ),
       useMaterial3: true,
