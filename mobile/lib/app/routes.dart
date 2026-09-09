@@ -99,6 +99,16 @@ abstract final class Routes {
   // **لا مسارَ لصفحة مركبة** — حُذفت الصفحةُ بطلب المالك في ٩ سبتمبر ٢٠٢٦،
   // وحلّ محلَّها صندوقُ المزايدة الذي يفتحه الكرت. وسقط معها
   // `vehicleLocation` و`goToVehicle`.
+
+  /// عنوان شاشة المزايدة على مركبة — نصّاً، لمن يحتاج العنوان لا الانتقال.
+  static String bidLocation(String vehicleId) => '/vehicles/$vehicleId/bid';
+
+  /// ينتقل إلى شاشة المزايدة. يفتحه زرُّ «دخول المزاد» في صندوق المزايدة.
+  static void goToBid(BuildContext context, String vehicleId) =>
+      GoRouter.of(context).goNamed(
+        bid,
+        pathParameters: <String, String>{'vehicleId': vehicleId},
+      );
 }
 
 /// يترجم وجهة إشعار إلى عنوان يفهمه `go_router`.
@@ -113,7 +123,12 @@ abstract final class PushLocations {
 
     return switch (destination.target) {
       PushTarget.auction when auctionId != null => '/auctions/$auctionId',
-      PushTarget.vehicle when vehicleId != null => '/vehicles/$vehicleId',
+      // **إلى المزايدة لا إلى صفحة المركبة**: الصفحةُ حُذفت في ٩ سبتمبر
+      // ٢٠٢٦، وعنوانُها القديم يهبط بالمستخدم على «مسار غير موجود» — وهو
+      // أسوأ ما يفعله إشعار. وشاشةُ المزايدة أقربُ ما بقي إلى مركبةٍ بعينها.
+      PushTarget.vehicle when vehicleId != null => Routes.bidLocation(
+        vehicleId,
+      ),
       PushTarget.bids => Routes.bidsPath,
       PushTarget.wallet => Routes.walletPath,
       // رقم الفاتورة يصل في الحمولة ولا يدخل العنوان: لا توجد شاشة فاتورةٍ

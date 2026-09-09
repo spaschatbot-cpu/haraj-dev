@@ -829,4 +829,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleShareCopied => 'نُسخ رابط المركبة';
+
+  @override
+  String get signInDismiss => 'إغلاق';
 }

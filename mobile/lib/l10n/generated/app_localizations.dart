@@ -1417,6 +1417,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'نُسخ رابط المركبة'**
   String get vehicleShareCopied;
+
+  /// No description provided for @signInDismiss.
+  ///
+  /// In ar, this message translates to:
+  /// **'إغلاق'**
+  String get signInDismiss;
 }
 
 class _AppLocalizationsDelegate

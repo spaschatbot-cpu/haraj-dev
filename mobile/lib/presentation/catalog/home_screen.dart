@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
@@ -14,7 +13,6 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/snapshot_view.dart';
-import 'widgets/home_hero.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
 
@@ -49,12 +47,12 @@ class HomeScreen extends ConsumerStatefulWidget {
 /// ارتفاعُ حقل البحث داخل الشريحة الثابتة.
 const double _searchHeight = 48;
 
-/// ارتفاعُ الشريحة الثابتة كلِّها: حشوةُ البحث (١٠+٥) وحقلُه (٤٨)، ثم مفتاحُ
-/// الأطوار بحشوته (٤+٤٢+٩).
+/// ارتفاعُ الشريحة الثابتة كلِّها: حشوةُ البحث (١٠+٦) وحقلُه (٤٨)، ثم مفتاحُ
+/// الأطوار بحشوته (٠+٤٢+٩) — والستّةُ نزلت من تسعةٍ ثم صعدت من اثنين.
 ///
-/// والأرقامُ الأربعة تغيّرت في ٩ سبتمبر ٢٠٢٦: المفتاحُ ارتفع أربعةَ بكسلات
-/// نحو حقل البحث، ونزل تسعةً عن أول كرت — كان ملتصقاً به.
-const double _pinnedExtent = 10 + _searchHeight + 5 + 4 + 42 + 9;
+/// والأرقامُ تغيّرت مرّتين في ٩ سبتمبر ٢٠٢٦: المفتاحُ اقترب من حقل البحث
+/// حتى صار بينهما بكسلان، ونزل تسعةً عن أول كرت — كان ملتصقاً به.
+const double _pinnedExtent = 10 + _searchHeight + 6 + 0 + 42 + 9;
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
@@ -183,13 +181,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         body: Column(
           children: <Widget>[
-            HomeHero(
-              // لا شاشةَ إشعاراتٍ في التطبيق بعد، وأقربُ ما يجيب عن «ما الذي
-              // حدث لي؟» هو مشاركاتي. الجرس يذهب إليها ولا يبقى زرّاً لا
-              // يفعل شيئاً — زرٌّ لا يستجيب يُقرأ عطلاً.
-              onOpenNotifications: () => context.go(Routes.myActivityPath),
-              onOpenAccount: () => context.go(Routes.profilePath),
-            ),
             // **الورقة مسطّحةٌ لا مدوّرة**: البانر هو من يدوّر حافّته
             // السفلى الآن، وتدويرُ الاثنين معاً يترك بينهما هلالاً من أرضيّة
             // الـ`Scaffold` يُقرأ شقّاً.
@@ -268,7 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       Padding(
         // **بعرض الحقل كلِّه**: كان بجانبه زرُّ «الفرز والتصفية» فيقتطع منه
         // نحو مئةٍ وعشرين بكسلاً، ومُحي بطلب المالك في ٩ سبتمبر ٢٠٢٦.
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 5),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
         // **ارتفاعٌ مضبوط**: الشريحةُ الثابتة تُبنى بارتفاعٍ يُفرَض عليها،
         // فلو نما الحقلُ بحجم خطّ الجهاز لفاض عن الشريحة.
         child: SizedBox(
@@ -518,7 +509,7 @@ class _PhaseTabs extends StatelessWidget {
         // على شاشةٍ عريضة كان القسم الواحد يبلغ ٤٥٠ بكسلاً لكلمةٍ ورقم.
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 9),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 9),
           child: SizedBox(
             height: _height,
             child: DecoratedBox(

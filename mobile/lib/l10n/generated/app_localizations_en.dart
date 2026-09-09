@@ -826,4 +826,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleShareCopied => 'Vehicle link copied';
+
+  @override
+  String get signInDismiss => 'Close';
 }

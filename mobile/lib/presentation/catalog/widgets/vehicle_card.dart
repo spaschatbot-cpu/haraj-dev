@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/auction_phase.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
@@ -65,7 +66,7 @@ class VehicleCard extends StatelessWidget {
               onTap: () => showVehicleBidSheet(
                 context,
                 vehicle: vehicle,
-                onEnterAuction: null,
+                onEnterAuction: () => Routes.goToBid(context, vehicle.id),
               ),
               child: ConstrainedBox(
                 // **حدٌّ أدنى لا مقاسٌ مفروض** — والقسمة ٤٧:٥٣، مقاسُ كرت
@@ -118,7 +119,8 @@ class VehicleCard extends StatelessWidget {
                             onBid: () => showVehicleBidSheet(
                               context,
                               vehicle: vehicle,
-                              onEnterAuction: null,
+                              onEnterAuction: () =>
+                                  Routes.goToBid(context, vehicle.id),
                             ),
                           ),
                         ),

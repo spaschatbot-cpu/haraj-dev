@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
+import '../../domain/bidding/entities/placed_bid.dart';
+import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/common/failure.dart';
+import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../bidding/bidding_controllers.dart';
+import '../catalog/widgets/vehicle_card.dart';
+import '../common/failure_view.dart';
 import '../common/haraj_app_bar.dart';
-import 'activity_providers.dart';
-import 'widgets/activity_list_view.dart';
-import 'widgets/invoice_card.dart';
-import 'widgets/participation_card.dart';
-import 'widgets/purchase_card.dart';
 
-/// تبويبات شاشة «حسابي». الاسم النصّي هو ما يصل في رابط الإشعار.
+/// تبويبات شاشة «مشاركاتي». الاسم النصّي هو ما يصل في رابط الإشعار.
+///
+/// **بقي التعداد وسقط التبويبان.** «مشترياتي» و«فواتيري» رُفعا من الشاشة بطلب
+/// المالك في ٩ سبتمبر ٢٠٢٦، والتعدادُ باقٍ لأن `?tab=` في العنوان يقرؤه
+/// الإشعارُ والرابطُ المشارَك (معيار H6): رابطُ فاتورةٍ أُرسل قبل اليوم يجب
+/// أن يفتح شيئاً، لا أن يهبط على «مسار غير موجود».
 enum MyActivityTab {
   participations('participations'),
   purchases('purchases'),
@@ -27,87 +35,115 @@ enum MyActivityTab {
   );
 }
 
-/// مشاركاتي ومشترياتي وفواتيري — **شاشة واحدة بثلاثة تبويبات**.
+/// مشاركاتي — **المركبات التي زايدتُ عليها، بكرت التصفّح نفسه**.
 ///
-/// **لماذا واحدة لا ثلاث:** الثلاث إجابة على سؤال واحد يسأله العميل: «إيش
-/// اللي لي وإيش اللي عليّ؟» والحلقة بينها ضيّقة — المشاركة تعرض تأميناً
-/// مقفولاً، وسببُ القفل فاتورةٌ في التبويب الثالث. شاشات منفصلة تجعل العميل
-/// يقرأ نصف الجواب ثم يبحث عن نصفه الآخر في قائمة أخرى، وهو بالضبط ما جعل
-/// «ليه ما أقدر أسحب رصيدي؟» أكثر أسئلة v1.
+/// كانت ثلاثة تبويبات (مشاركاتي · مشترياتي · فواتيري) وكرتَ مشاركةٍ خاصّاً بها
+/// يعرض المزادَ والتأمين. ورُفع الاثنان بطلب المالك في ٩ سبتمبر ٢٠٢٦: السؤال
+/// الذي يفتح به العميلُ هذا القسم هو «أي سيّارةٍ زايدتُ عليها؟»، وجوابُه
+/// السيّارةُ نفسُها — لا سطرٌ عن المزاد الذي تقف فيه.
 ///
-/// ومع ذلك لكل تبويب **عنوانه** (`?tab=`): معيار H6 يشترط أن يفتح الإشعار
-/// الشاشة الصحيحة مباشرةً، وإشعار فاتورة يجب أن يفتح الفواتير لا أن ينزل على
-/// تبويب أول يبحث المستخدم بعده بيده.
-class MyActivityScreen extends StatelessWidget {
+/// **ونفس `VehicleCard` لا كرتٌ ثانٍ** (المادة ٤-٥): مركبةٌ زايدتُ عليها ليست
+/// نوعاً آخر من المركبات، وكرتٌ خاصٌّ بها يعني حقلاً يُضاف في أحدهما ويُنسى في
+/// الآخر — وهو بعينه ما كان في v1.
+///
+/// **والمصدرُ `myBidsProvider` لا `myParticipationsProvider`:** المشاركةُ في
+/// عقد الخادم صفٌّ عن **مزاد** (تأمينٌ وعددُ مزايدات)، والمزايدةُ صفٌّ عن
+/// **مركبة**. والسؤال هنا عن المركبات.
+class MyActivityScreen extends ConsumerWidget {
   const MyActivityScreen({
     this.initialTab = MyActivityTab.participations,
     super.key,
   });
 
+  /// يصل من `?tab=` ولا يُقرأ بعد أن سقطت التبويبات — باقٍ لأن حذفه يكسر
+  /// جدولَ المسارات والروابطَ المرسَلة.
   final MyActivityTab initialTab;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final bids = ref.watch(myBidsProvider);
+
+    return Scaffold(
+      appBar: HarajAppBar(title: l10n.myActivityTitle),
+      body: switch (bids) {
+        AsyncData(value: final Snapshot<List<PlacedBid>> snapshot) =>
+          RefreshIndicator(
+            onRefresh: () async => ref.refresh(myBidsProvider.future),
+            child: _BidVehicles(bids: snapshot.value),
+          ),
+        AsyncError(:final error, :final stackTrace) => Center(
+          child: FailureView(
+            failure: error is Failure
+                ? error
+                : UnexpectedFailure(error, stackTrace: stackTrace),
+            onRetry: () => ref.invalidate(myBidsProvider),
+          ),
+        ),
+        _ => const Center(child: CircularProgressIndicator()),
+      },
+    );
+  }
+}
+
+class _BidVehicles extends StatelessWidget {
+  const _BidVehicles({required this.bids});
+
+  final List<PlacedBid> bids;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
-    return DefaultTabController(
-      length: MyActivityTab.values.length,
-      initialIndex: initialTab.index,
-      child: Scaffold(
-        appBar: HarajAppBar(
-          title: l10n.myActivityTitle,
-          bottom: TabBar(
-            tabs: <Widget>[
-              Tab(text: l10n.tabParticipations),
-              Tab(text: l10n.tabPurchases),
-              Tab(text: l10n.tabInvoices),
-            ],
-          ),
-        ),
-        body: const TabBarView(
-          children: <Widget>[
-            _ParticipationsTab(),
-            _PurchasesTab(),
-            _InvoicesTab(),
-          ],
-        ),
-      ),
+    // **مركبةٌ واحدة لكل مركبة، لا كرتٌ لكل مزايدة**: من زايد ثلاثَ مرّاتٍ على
+    // سيّارةٍ زايد على سيّارةٍ واحدة، وثلاثةُ كروتٍ متطابقة تُقرأ ثلاثَ
+    // سيّارات. والأحدثُ أوّلاً كما وصلت من الخادم.
+    final vehicleIds = <String>[];
+    for (final bid in bids) {
+      if (!vehicleIds.contains(bid.vehicleId)) vehicleIds.add(bid.vehicleId);
+    }
+
+    if (vehicleIds.isEmpty) {
+      return ListView(
+        // **قائمةٌ لا `Center`**: الحالةُ الفارغة يجب أن تُسحب لتحديث القائمة،
+        // ومن فتح القسم قبل أول مزايدة سيعود إليه بعدها.
+        padding: const EdgeInsets.all(24),
+        children: <Widget>[
+          Text(l10n.emptyParticipations, textAlign: TextAlign.center),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 6, bottom: 24),
+      itemCount: vehicleIds.length,
+      itemBuilder: (context, index) => _BidVehicleCard(id: vehicleIds[index]),
     );
   }
 }
 
-class _ParticipationsTab extends ConsumerWidget {
-  const _ParticipationsTab();
+/// كرتُ مركبةٍ في «مشاركاتي» — يُقرأ بمعرّفها.
+///
+/// **المزايدةُ لا تحمل المركبة كاملةً**: `PlacedBid` فيه المعرّفُ والاسمُ ورقمُ
+/// اللوت والمبلغ، ولا صورةَ فيه ولا سنةَ صنعٍ ولا ممشى — والكرتُ يحتاجها. فتُقرأ
+/// المركبةُ بمعرّفها من `vehicleProvider`، وهو مُخزَّنٌ فلا يُعاد الطلبُ لكل بناء.
+class _BidVehicleCard extends ConsumerWidget {
+  const _BidVehicleCard({required this.id});
+
+  final String id;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => ActivityListView(
-    state: ref.watch(myParticipationsProvider),
-    emptyMessage: AppLocalizations.of(context).emptyParticipations,
-    onRetry: () => ref.invalidate(myParticipationsProvider),
-    itemBuilder: (context, item) => ParticipationCard(participation: item),
-  );
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final vehicle = ref.watch(vehicleProvider(id));
 
-class _PurchasesTab extends ConsumerWidget {
-  const _PurchasesTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => ActivityListView(
-    state: ref.watch(myPurchasesProvider),
-    emptyMessage: AppLocalizations.of(context).emptyPurchases,
-    onRetry: () => ref.invalidate(myPurchasesProvider),
-    itemBuilder: (context, item) => PurchaseCard(purchase: item),
-  );
-}
-
-class _InvoicesTab extends ConsumerWidget {
-  const _InvoicesTab();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => ActivityListView(
-    state: ref.watch(myInvoicesProvider),
-    emptyMessage: AppLocalizations.of(context).emptyInvoices,
-    onRetry: () => ref.invalidate(myInvoicesProvider),
-    itemBuilder: (context, item) => InvoiceCard(invoice: item),
-  );
+    return switch (vehicle) {
+      AsyncData(value: final Snapshot<VehicleDetail> snapshot) => VehicleCard(
+        vehicle: snapshot.value.card,
+      ),
+      // **مركبةٌ سقط طلبُها لا تُسقط القائمة**: تختفي من القسم ولا تترك مكانها
+      // خطأً أحمر بين كرتين — وإعادةُ المحاولة في سحبة القائمة كلِّها.
+      AsyncError() => const SizedBox.shrink(),
+      _ => const SizedBox(height: 154),
+    };
+  }
 }
