@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/auction_phase.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
@@ -63,11 +62,7 @@ class VehicleCard extends StatelessWidget {
             child: InkWell(
               // **الكرتُ كلُّه يفتح صندوقَ المزايدة** بطلب المالك في ٩ سبتمبر
               // ٢٠٢٦؛ كان يفتح صفحةَ المركبة، وحُذفت الصفحةُ يومَها.
-              onTap: () => showVehicleBidSheet(
-                context,
-                vehicle: vehicle,
-                onEnterAuction: () => Routes.goToBid(context, vehicle.id),
-              ),
+              onTap: () => showVehicleBidSheet(context, vehicle: vehicle),
               child: ConstrainedBox(
                 // **حدٌّ أدنى لا مقاسٌ مفروض** — والقسمة ٤٧:٥٣، مقاسُ كرت
                 // v1 مقروءاً من `img.car-photo` في أدوات المتصفّح:
@@ -116,12 +111,8 @@ class VehicleCard extends StatelessWidget {
                             // لأنه هو ما يقول للعميل **ماذا يحدث** عند
                             // الضغط؛ ومساحةٌ قابلةٌ للضغط بلا زرٍّ عليها لا
                             // يجرّبها إلا من خمّن.
-                            onBid: () => showVehicleBidSheet(
-                              context,
-                              vehicle: vehicle,
-                              onEnterAuction: () =>
-                                  Routes.goToBid(context, vehicle.id),
-                            ),
+                            onBid: () =>
+                                showVehicleBidSheet(context, vehicle: vehicle),
                           ),
                         ),
                       ),

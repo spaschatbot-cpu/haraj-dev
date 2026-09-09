@@ -832,4 +832,128 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get signInDismiss => 'إغلاق';
+
+  @override
+  String get bidPlacedTitle => 'تم تسجيل مزايدتك بنجاح';
+
+  @override
+  String get walletTotal => 'إجمالي الرصيد';
+
+  @override
+  String get walletAvailable => 'المتاح';
+
+  @override
+  String get walletHeldForAuctions => 'محجوز للمزادات';
+
+  @override
+  String get walletLockedForDues => 'مقفل للمستحقات';
+
+  @override
+  String walletEntryCount(int count) {
+    return '$count قيداً';
+  }
+
+  @override
+  String get walletStatementAction => 'كشف الحساب';
+
+  @override
+  String get walletRefundRequests => 'مجموع طلبات الاسترداد';
+
+  @override
+  String get walletRefundedAmount => 'المبلغ المسترد';
+
+  @override
+  String get walletTransfers => 'حوالاتي';
+
+  @override
+  String get walletOpenTransfers => 'اضغط للعرض';
+
+  @override
+  String get walletInsuranceStatus => 'حالة التأمين';
+
+  @override
+  String get walletInsuranceInactive => 'غير مفعّل — يجب شحن التأمين أولاً';
+
+  @override
+  String get walletInsuranceActive => 'مفعّل — يمكنك المشاركة في المزادات';
+
+  @override
+  String get walletSubscriptionStatus => 'حالة الاشتراك';
+
+  @override
+  String get walletSubscriptionInactive => 'غير نشط';
+
+  @override
+  String get walletSubscriptionActive => 'نشط';
+
+  @override
+  String get walletSubscriptionNote =>
+      'للمشاركة في المزادات، يجب الاشتراك بمبلغ التأمين كاملاً (ثابت — لا يقبل مبالغ جزئية).';
+
+  @override
+  String get walletSubscribeAction => 'اشتراك التأمين';
+
+  @override
+  String get walletSubscriptionsLog => 'سجل الاشتراكات';
+
+  @override
+  String get walletNoSubscriptions => 'لم تقم بأي اشتراك بعد.';
+
+  @override
+  String get walletInsuranceLog => 'سجل عمليات التأمين';
+
+  @override
+  String get walletNoOperations => 'لا توجد عمليات بعد';
+
+  @override
+  String get walletCompleteDataTitle => 'أكمل بياناتك أولاً';
+
+  @override
+  String get walletCompleteDataNote =>
+      'لإتمام الاشتراك أو الدفع لازم تكمّل البيانات الناقصة وتحفظها.';
+
+  @override
+  String get walletAccountType => 'نوع الحساب';
+
+  @override
+  String get walletFullName => 'الاسم الكامل';
+
+  @override
+  String get walletPhone => 'رقم الجوال';
+
+  @override
+  String get walletNationalId => 'رقم الهوية';
+
+  @override
+  String get walletSaveAndContinue => 'حفظ البيانات والمتابعة';
+
+  @override
+  String get walletChoosePayment => 'اختر طريقة الدفع';
+
+  @override
+  String get walletTopUpTitle => 'شحن المحفظة';
+
+  @override
+  String get walletBankTransfer => 'تحويل بنكي';
+
+  @override
+  String get walletBankTransferNote => 'حوّل للحساب البنكي وارفع الإيصال';
+
+  @override
+  String get walletCardMada => 'بطاقة بنكية / مدى';
+
+  @override
+  String get walletCardMadaNote => 'ادفع ببطاقتك أو مدى — دفع فوري';
+
+  @override
+  String get walletApplePay => 'Apple Pay';
+
+  @override
+  String get walletApplePayNote => 'دفع سريع وآمن عبر Apple Pay';
+
+  @override
+  String get walletMethodUnavailable => 'غير متاح في هذا الإصدار';
+
+  @override
+  String get walletMethodSoon => 'قريباً — هذه الطريقة لم تُفعَّل بعد';
 }
