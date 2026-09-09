@@ -50,7 +50,7 @@ class _VehicleSearchFieldState extends State<VehicleSearchField> {
       controller: _controller,
       textInputAction: TextInputAction.search,
       onSubmitted: widget.onSubmitted,
-      style: theme.textTheme.bodyMedium?.copyWith(color: palette.brown),
+      style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink),
       decoration: InputDecoration(
         hintText: l10n.searchHint,
         hintStyle: theme.textTheme.bodyMedium?.copyWith(
@@ -291,7 +291,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
             Text(
               l10n.homeSortAndFilter,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: palette.brown,
+                color: palette.ink,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -429,7 +429,7 @@ class _PhaseChip extends StatelessWidget {
             style: TextStyle(
               // أبيضُ على الذهبيّ الغائر، وبنّيٌّ على الأبيض: لونٌ واحد
               // للحالتين يسقط في إحداهما دون حدّ التباين.
-              color: selected ? Colors.white : palette.brown,
+              color: selected ? Colors.white : palette.ink,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               fontFamily: HarajTheme.fontFamily,

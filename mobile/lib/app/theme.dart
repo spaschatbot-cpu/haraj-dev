@@ -18,7 +18,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     required this.goldDeep,
     required this.goldMuted,
     required this.goldOnDark,
-    required this.brown,
+    required this.ink,
     required this.inkMuted,
     required this.pageBackground,
     required this.cardSurface,
@@ -59,13 +59,17 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// وهو لونُ اسم العلامة في الهيدر، ولونُ القسم المختار في الشريط السفليّ.
   final Color goldOnDark;
 
-  /// البنّيّ الغامق: لونُ العناوين على الكروت البيضاء.
-  final Color brown;
-
-  /// بنّيٌّ باهت: سطرُ المواصفات على الكرت، وتسميةُ المبلغ فوقه.
+  /// الكحليُّ الغامق: لونُ العناوين على الكروت البيضاء.
   ///
-  /// **لا رماديّ**: رماديٌّ محايد بين بنّيّاتٍ دافئة يُقرأ «ميّتاً»، والفرق
-  /// بين الأساسيّ والثانويّ يُحمل على الشدّة لا على تبديل العائلة.
+  /// **كان بنّيّاً** (`#2E2118`) حتى ٩ سبتمبر ٢٠٢٦، فبُدِّلت عائلةُ البنّيّ
+  /// كلُّها بالكحليّ بقرار المالك. والاسمُ `ink` لا `brown`: حقلٌ اسمُه لونٌ
+  /// بعينه يصير كذبةً في أول تبديل، و«الحبر» يقول وظيفتَه لا صبغتَه.
+  final Color ink;
+
+  /// كحليٌّ باهت: سطرُ المواصفات على الكرت، وتسميةُ المبلغ فوقه.
+  ///
+  /// **لا رماديّ محايد**: الفرق بين الأساسيّ والثانويّ يُحمل على الشدّة لا على
+  /// تبديل العائلة — ورماديٌّ بين كحليّاتٍ يُقرأ «معطَّلاً».
   final Color inkMuted;
 
   /// أرضيّة الصفحة — كريميٌّ لا أبيض.
@@ -89,11 +93,15 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   final Color heroTop;
   final Color heroBottom;
 
-  /// وهجٌ ذهبيّ في وسط الهيدر: هو ما يمنع الأرضيّةَ الداكنة من أن تكون
+  /// وهجٌ أزرقُ لامعٌ في وسط الهيدر: هو ما يمنع الأرضيّةَ الداكنة من أن تكون
   /// مستطيلاً أسود. شعاعيٌّ لا خطّيّ — الضوء يأتي من نقطة لا من حافّة.
+  ///
+  /// **أزرقُ فاتحٌ على كحليٍّ غامق**: كان ذهبيّاً حين كانت العائلة بنّيّة،
+  /// وبُدِّل مع اللون المميِّز كلِّه في ٩ سبتمبر ٢٠٢٦ — ذهبٌ واحدٌ بقي وسط
+  /// أزرقَ كان يُقرأ بقيّةً من ثيمٍ قديم.
   final Color heroGlow;
 
-  /// لونُ أيقونةِ ما ليس مختاراً ونصِّه: كريميٌّ دافئ على الأرضيّة الداكنة.
+  /// لونُ أيقونةِ ما ليس مختاراً ونصِّه: أزرقٌ فاتح على الأرضيّة الداكنة.
   ///
   /// **لا ذهبيٌّ باهت**: الذهبيُّ الباهت يُقرأ «معطَّل» لا «غير مختار»،
   /// والفرق بينهما هو كل معنى الشريط.
@@ -105,7 +113,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// العلامة هو ما يجعله يُلحَظ فوق صورةٍ ملوّنة.
   final Color timerBadge;
 
-  /// طرفا تدرّج الزرّ البنّيّ — «تفاصيل المزاد» و«الفرز والتصفية».
+  /// طرفا تدرّج الزرّ الكحليّ — «تفاصيل المزاد» وما شابهه.
   final Color pillTop;
   final Color pillBottom;
 
@@ -115,7 +123,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     Color? goldDeep,
     Color? goldMuted,
     Color? goldOnDark,
-    Color? brown,
+    Color? ink,
     Color? inkMuted,
     Color? pageBackground,
     Color? cardSurface,
@@ -131,7 +139,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     goldDeep: goldDeep ?? this.goldDeep,
     goldMuted: goldMuted ?? this.goldMuted,
     goldOnDark: goldOnDark ?? this.goldOnDark,
-    brown: brown ?? this.brown,
+    ink: ink ?? this.ink,
     inkMuted: inkMuted ?? this.inkMuted,
     pageBackground: pageBackground ?? this.pageBackground,
     cardSurface: cardSurface ?? this.cardSurface,
@@ -152,7 +160,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
       goldDeep: Color.lerp(goldDeep, other.goldDeep, t)!,
       goldMuted: Color.lerp(goldMuted, other.goldMuted, t)!,
       goldOnDark: Color.lerp(goldOnDark, other.goldOnDark, t)!,
-      brown: Color.lerp(brown, other.brown, t)!,
+      ink: Color.lerp(ink, other.ink, t)!,
       inkMuted: Color.lerp(inkMuted, other.inkMuted, t)!,
       pageBackground: Color.lerp(pageBackground, other.pageBackground, t)!,
       cardSurface: Color.lerp(cardSurface, other.cardSurface, t)!,
@@ -174,21 +182,21 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
       Theme.of(context).extension<HarajPalette>() ?? _light;
 
   static const HarajPalette _light = HarajPalette(
-    gold: Color(0xFFB8860B),
-    goldDeep: Color(0xFF8A6508),
-    goldMuted: Color(0x24B8860B),
-    goldOnDark: Color(0xFFE9C46A),
-    brown: Color(0xFF2E2118),
-    inkMuted: Color(0xFF8A7663),
-    pageBackground: Color(0xFFF4F0E6),
+    gold: Color(0xFF1C6FD6),
+    goldDeep: Color(0xFF124F9E),
+    goldMuted: Color(0x241C6FD6),
+    goldOnDark: Color(0xFF8FC4F7),
+    ink: Color(0xFF12263C),
+    inkMuted: Color(0xFF5F7488),
+    pageBackground: Color(0xFFF3F5F8),
     cardSurface: Color(0xFFFFFFFF),
-    heroTop: Color(0xFF241A0C),
-    heroBottom: Color(0xFF0B0805),
-    heroGlow: Color(0xFFCE9B34),
-    navInactive: Color(0xFFE4D9C6),
+    heroTop: Color(0xFF0E2136),
+    heroBottom: Color(0xFF050D17),
+    heroGlow: Color(0xFF2E86E0),
+    navInactive: Color(0xFFC9D8E8),
     timerBadge: Color(0xFF1F5F46),
-    pillTop: Color(0xFF4A3624),
-    pillBottom: Color(0xFF2A1D12),
+    pillTop: Color(0xFF1D3A5C),
+    pillBottom: Color(0xFF102336),
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -197,21 +205,21 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   /// كان داكناً أصلاً، وتغميقُه أكثر يُذيبه في أرضيّةٍ صارت داكنة، فرُفع
   /// قليلاً ليبقى له حدٌّ يُرى.
   static const HarajPalette _dark = HarajPalette(
-    gold: Color(0xFFE9C46A),
-    goldDeep: Color(0xFFC9A24A),
-    goldMuted: Color(0x2EE9C46A),
-    goldOnDark: Color(0xFFF0D28A),
-    brown: Color(0xFFEDE0D0),
-    inkMuted: Color(0xFFA89478),
-    pageBackground: Color(0xFF15110B),
-    cardSurface: Color(0xFF221B12),
-    heroTop: Color(0xFF1A1209),
-    heroBottom: Color(0xFF070504),
-    heroGlow: Color(0xFFB8860B),
-    navInactive: Color(0xFFCBBBA3),
+    gold: Color(0xFF6FB0F5),
+    goldDeep: Color(0xFF3E8BD8),
+    goldMuted: Color(0x2E6FB0F5),
+    goldOnDark: Color(0xFFA9D0F9),
+    ink: Color(0xFFDDE8F3),
+    inkMuted: Color(0xFF8FA5BC),
+    pageBackground: Color(0xFF0A121B),
+    cardSurface: Color(0xFF13202D),
+    heroTop: Color(0xFF0B1826),
+    heroBottom: Color(0xFF040A11),
+    heroGlow: Color(0xFF2E86E0),
+    navInactive: Color(0xFFB7CADD),
     timerBadge: Color(0xFF1B5540),
-    pillTop: Color(0xFF5A4430),
-    pillBottom: Color(0xFF33231A),
+    pillTop: Color(0xFF27466B),
+    pillBottom: Color(0xFF15293D),
   );
 }
 
@@ -235,7 +243,7 @@ abstract final class HarajTheme {
     final base = ThemeData(
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFFB8860B),
+        seedColor: const Color(0xFF1C6FD6),
         brightness: brightness,
       ),
       useMaterial3: true,

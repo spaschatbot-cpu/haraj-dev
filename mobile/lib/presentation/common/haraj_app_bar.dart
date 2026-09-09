@@ -83,7 +83,7 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                   IconButton(
                     onPressed: () => GoRouter.of(context).pop(),
                     icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                    color: palette.brown,
+                    color: palette.ink,
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).backButtonTooltip,
@@ -118,7 +118,7 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: palette.brown,
+                          color: palette.ink,
                           fontWeight: FontWeight.w700,
                           // تباعدٌ خفيف: العربية بوزن ٧٠٠ تتراصّ، وحرفٌ يلمس
                           // حرفاً يُقرأ ككلمةٍ واحدة.
