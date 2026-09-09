@@ -4377,10 +4377,14 @@ dialog.row-modal {
 .qe__hint { margin: 0; color: var(--muted); font-size: .85rem; }
 .qe__tools { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
 .qe__search { position: relative; flex: 1 1 18rem; display: flex; align-items: center; }
-.qe__search-ic { position: absolute; inset-inline-start: .7rem; font-size: .85rem; opacity: .6; pointer-events: none; }
+/* الأيقونة في بداية السطر المنطقيّة (يمينُ RTL)، والحشوُ المنطقيّ يُبعد النصّ
+   عنها — بحشوٍ فيزيائيّ كانت تركب الكلامَ في العربية. */
+.qe__search-ic { position: absolute; inset-inline-start: .75rem; font-size: .85rem; opacity: .6; pointer-events: none; }
 .qe__search input {
   inline-size: 100%;
-  padding: .55rem .8rem .55rem 2.1rem;
+  padding-block: .55rem;
+  padding-inline-start: 2.2rem;
+  padding-inline-end: .8rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--panel);
@@ -4389,6 +4393,38 @@ dialog.row-modal {
   font-size: .9rem;
 }
 .qe__search input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
+
+/* صفُّ الفلاتر: قائمةٌ منسدلة لكل حقلٍ عدا المسافة ورقم الموقف. تُبنى خياراتُها
+   من التعدادات (لوحة/وقود/حالة) ومن القيم الحاضرة فعلاً (محرك/مفتاح). */
+.qe__filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+.qe__filter { display: inline-flex; flex-direction: column; gap: .15rem; }
+.qe__filter > span { font-size: .68rem; font-weight: 800; color: var(--muted); padding-inline-start: .2rem; }
+.qe__filter select {
+  padding: .4rem 1.8rem .4rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-inline-size: 8rem;
+}
+.qe__filter select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 2px var(--ring); }
+.qe__filter select.is-on { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.qe__filters-reset {
+  align-self: flex-end;
+  padding: .4rem .7rem;
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--muted);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.qe__filters-reset:hover { color: var(--ink); border-color: var(--line); }
 .qe__count {
   padding: .4rem .7rem;
   background: var(--raised);
@@ -4432,10 +4468,12 @@ dialog.row-modal {
 .qe-card__act { display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; }
 .qe-card__status { min-inline-size: 1.4rem; text-align: center; font-size: 1rem; }
 .qe-card__save {
-  appearance: none; border: 1px solid var(--line); background: var(--raised);
-  inline-size: 2rem; block-size: 2rem; border-radius: var(--radius); cursor: pointer; font-size: .95rem;
+  appearance: none; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line); background: var(--raised); color: var(--ink-soft);
+  inline-size: 2.1rem; block-size: 2.1rem; border-radius: var(--radius); cursor: pointer; padding: 0;
 }
-.qe-card__save:hover { border-color: var(--brand); }
+.qe-card__save svg { inline-size: 1.05rem; block-size: 1.05rem; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.qe-card__save:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
 .qe-card__save:disabled { opacity: .5; cursor: wait; }
 .qe-field { margin-block-end: .8rem; min-inline-size: 0; }
 .qe-field:last-child { margin-block-end: 0; }
@@ -4479,6 +4517,9 @@ dialog.row-modal {
 }
 .qe-photo:hover { border-color: var(--brand); border-style: solid; color: var(--brand-dark); }
 .qe-photo.has { border-style: solid; border-color: var(--ok, #16a34a); color: var(--ok, #16a34a); }
+/* بعد الحفظ: الزرُّ يبقى أخضرَ يقول «محفوظة» — أثرٌ دائمٌ فلا يُظنّ أنّ الرفع
+   ضاع حين تُمسح المعاينة. */
+.qe-photo.saved { border-style: solid; border-color: var(--ok, #16a34a); background: var(--ok-soft, rgb(22 163 74 / .08)); color: var(--ok, #16a34a); }
 .qe-photo__prev { inline-size: 1.4rem; block-size: 1.4rem; border-radius: 4px; background-size: cover; background-position: center; border: 1px solid var(--line); }
 .qe-spin {
   display: inline-block; inline-size: .85rem; block-size: .85rem;

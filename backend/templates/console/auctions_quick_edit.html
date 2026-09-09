@@ -35,6 +35,9 @@
       <span class="qe__count" id="qeCount">—</span>
       <button type="button" class="btn-primary" id="qeSaveAll">💾 حفظ كل الظاهر</button>
     </div>
+    {% comment %} فلاترٌ لكل حقلٍ عدا المسافة ورقم الموقف — تُبنى قوائمُها في JS
+       من التعدادات ومن القيم الحاضرة، وتُدمَج مع البحث النصّي. {% endcomment %}
+    <div class="qe__filters" id="qeFilters"></div>
   </div>
 
   {% if count %}
@@ -127,14 +130,16 @@
         '<div class="qe-card__title">' + esc(r.name || ('سيارة #' + vid)) +
           '<span class="qe-card__sub">' + sub + '</span></div>' +
         '<div class="qe-card__act"><span class="qe-card__status" title="حالة الحفظ"></span>' +
-          '<button type="button" class="qe-card__save" data-save title="حفظ الآن">💾</button></div>' +
+          '<button type="button" class="qe-card__save" data-save title="حفظ الآن" aria-label="حفظ الآن">' +
+            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1M8 4v5h7V4M8 14h8v6H8z"/></svg>' +
+          '</button></div>' +
       '</header>' +
       '<div class="qe-field"><span class="qe-label">رقم الموقف</span>' +
         '<input type="number" min="1" data-field="lot_number" value="' + esc(r.lot) + '"></div>' +
       '<div class="qe-field"><span class="qe-label">عداد المسافة (كم)</span>' +
         '<input type="number" min="0" data-field="odometer_km" value="' + esc(r.odo) + '" placeholder="لم يُقَس">' +
         '<label class="qe-photo" title="صوّر العدّاد"><input type="file" accept="image/*" capture="environment" data-field="meter_image" hidden>' +
-          '📷 صورة العدّاد<span class="qe-photo__prev" hidden></span></label></div>' +
+          '<span class="qe-photo__lbl">📷 صورة العدّاد</span><span class="qe-photo__prev" hidden></span></label></div>' +
       '<div class="qe-field"><span class="qe-label">نوع اللوحة</span>' + enumChips('plate_type', vid, CH.plate_type || [], r.pt) + '</div>' +
       '<div class="qe-field"><span class="qe-label">الوقود</span>' + enumChips('fuel_type', vid, CH.fuel_type || [], r.ft) + '</div>' +
       '<div class="qe-field"><span class="qe-label">حالة المركبة</span>' + enumChips('condition', vid, CH.condition || [], r.cond) + '</div>' +
@@ -160,14 +165,95 @@
   function norm(s) {
     return String(s || '').toLowerCase().replace(/[\s\-_.\/]/g, '').replace(/[ً-ْ]/g, '');
   }
-  function applyFilter() {
+
+  // ── فلاترُ الحقول ────────────────────────────────────────────────────────
+  // لكل حقلٍ (عدا المسافة ورقم الموقف) قائمةٌ منسدلة تُدمَج مع البحث النصّي.
+  // التعداداتُ (لوحة/وقود/حالة) لصائقُها من الخادم؛ والحرّة (محرك/مفتاح)
+  // خياراتُها القيمُ الحاضرةُ فعلاً في هذا المزاد — فلا خيارٌ يفتح على صفر.
+  var FILTERS = [
+    { rk: 'pt', label: 'نوع اللوحة', kind: 'enum', opts: CH.plate_type || [] },
+    { rk: 'ft', label: 'الوقود', kind: 'enum', opts: CH.fuel_type || [] },
+    { rk: 'cond', label: 'حالة المركبة', kind: 'enum', opts: CH.condition || [] },
+    { rk: 'runs', label: 'حالة المحرك', kind: 'free' },
+    { rk: 'key', label: 'المفتاح', kind: 'free' },
+  ];
+  var active = {};  // rk -> selected value
+  var filtersHost = document.getElementById('qeFilters');
+  function distinct(rk) {
+    var seen = {}, out = [];
+    DATA.forEach(function (r) {
+      var v = String(r[rk] == null ? '' : r[rk]).trim();
+      if (v && !seen[v]) { seen[v] = 1; out.push(v); }
+    });
+    return out.sort();
+  }
+  function labelOf(f, val) {
+    if (f.kind === 'enum') {
+      for (var i = 0; i < f.opts.length; i++) if (f.opts[i][0] === val) return f.opts[i][1];
+    }
+    return val;
+  }
+  function buildFilters() {
+    if (!filtersHost) return;
+    FILTERS.forEach(function (f) {
+      var options = f.kind === 'enum'
+        ? f.opts.map(function (o) { return o[0]; })
+        : distinct(f.rk);
+      if (!options.length) return;  // لا فلترَ لحقلٍ بلا قيم
+      var wrap = document.createElement('label');
+      wrap.className = 'qe__filter';
+      var sel = document.createElement('select');
+      sel.dataset.rk = f.rk;
+      var all = '<option value="">كل ' + f.label + '</option>';
+      var opts = options.map(function (v) {
+        return '<option value="' + esc(v) + '">' + esc(labelOf(f, v)) + '</option>';
+      }).join('');
+      sel.innerHTML = all + opts;
+      sel.addEventListener('change', function () {
+        active[f.rk] = sel.value;
+        sel.classList.toggle('is-on', sel.value !== '');
+        applyFilter();
+      });
+      wrap.innerHTML = '<span>' + esc(f.label) + '</span>';
+      wrap.appendChild(sel);
+      filtersHost.appendChild(wrap);
+    });
+    if (filtersHost.children.length) {
+      var reset = document.createElement('button');
+      reset.type = 'button';
+      reset.className = 'qe__filters-reset';
+      reset.textContent = 'مسح الفلاتر';
+      reset.addEventListener('click', function () {
+        active = {};
+        filtersHost.querySelectorAll('select').forEach(function (s) { s.value = ''; s.classList.remove('is-on'); });
+        if (searchEl) searchEl.value = '';
+        applyFilter();
+      });
+      filtersHost.appendChild(reset);
+    }
+  }
+
+  // سيارةٌ تُطابق: نصُّ البحث + كلُّ فلترٍ مفعَّل (تطابقٌ تامّ على قيمة الحقل).
+  function matches(r) {
     var q = norm(searchEl ? searchEl.value : '');
-    current = q === '' ? DATA : DATA.filter(function (r) { return norm(r.s).includes(q); });
+    if (q && !norm(r.s).includes(q)) return false;
+    for (var rk in active) {
+      if (active[rk] && String(r[rk] == null ? '' : r[rk]).trim() !== active[rk]) return false;
+    }
+    return true;
+  }
+
+  function applyFilter() {
+    current = DATA.filter(matches);
+    var q = norm(searchEl ? searchEl.value : '');
     var keep = new Set(current.map(function (r) { return r.id; }));
     list.querySelectorAll('.qe-card').forEach(function (c) {
       c.classList.toggle('qe-card--off', !keep.has(+c.dataset.vid));
     });
-    renderBatch(current, Math.max(BATCH, q === '' ? 0 : 200));
+    // مع بحثٍ أو فلترٍ مفعَّل تُجلَب مطابقاتٌ أبعدُ من الدفعة الأولى — لئلّا
+    // تغيب سيارةٌ مطابقةٌ لمجرّد أنها لم تُمرَّر إليها بعد.
+    var narrowed = q !== '' || Object.keys(active).some(function (k) { return active[k]; });
+    renderBatch(current, Math.max(BATCH, narrowed ? 200 : 0));
     updateCount();
     syncMore();
   }
@@ -230,13 +316,20 @@
       .then(function (res) {
         var d = res.d;
         if (d && d.ok) {
-          if (status) status.textContent = (file && d.image_id) ? '✅📷' : '✅';
+          var gotImage = file && d.image_id;
+          if (status) status.textContent = gotImage ? '✅📷' : '✅';
           card.classList.add('qe-card--saved');
           if (file && fileInput) { fileInput.value = ''; }
           var prev = card.querySelector('.qe-photo__prev');
-          if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
-          var pb = card.querySelector('.qe-photo'); if (pb) pb.classList.remove('has');
-          if (!silent) toast(file ? '✅ حُفظ ورُفعت صورة العدّاد' : '✅ حُفظ', 'ok');
+          var pb = card.querySelector('.qe-photo');
+          if (gotImage && pb) {
+            // أثرٌ دائمٌ يقول إنّ الصورةَ دخلت المعرض، فلا تُظنّ ضائعة.
+            pb.classList.remove('has'); pb.classList.add('saved');
+            var lbl = pb.querySelector('.qe-photo__lbl'); if (lbl) lbl.textContent = '✅ صورة العدّاد محفوظة';
+            if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
+          } else if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
+          if (d.image_error) toast('⚠ حُفظت البيانات، لكن الصورة رُفضت: ' + d.image_error, 'err');
+          else if (!silent) toast(gotImage ? '✅ حُفظ ورُفعت صورة العدّاد' : '✅ حُفظ', 'ok');
           setTimeout(function () { card.classList.remove('qe-card--saved'); }, 1400);
           return true;
         }
@@ -332,6 +425,7 @@
     });
   });
 
+  buildFilters();
   renderBatch(DATA, BATCH);
   applyFilter();
 })();
