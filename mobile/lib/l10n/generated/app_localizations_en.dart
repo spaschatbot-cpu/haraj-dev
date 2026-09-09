@@ -352,7 +352,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get searchHint => 'Search for a car or a lot number…';
+  String get searchHint => 'Search for a car';
 
   @override
   String get filterMake => 'Make';
@@ -805,4 +805,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get favouriteFailed => 'Could not update favourites';
+
+  @override
+  String get vehicleSpecCity => 'City';
+
+  @override
+  String get vehicleBidDetails => 'Bidding details';
+
+  @override
+  String get vehicleEnterAuction => 'Enter the auction';
+
+  @override
+  String get vehicleSpecsAction => 'Vehicle specifications';
+
+  @override
+  String get vehiclePrice => 'Price';
+
+  @override
+  String get vehiclePriceWithVat => 'Price + VAT';
+
+  @override
+  String get vehicleShareCopied => 'Vehicle link copied';
+
+  @override
+  String get signInDismiss => 'Close';
 }

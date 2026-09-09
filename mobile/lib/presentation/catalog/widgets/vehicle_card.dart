@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/router.dart';
 import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/auction_phase.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../favourites_controller.dart';
 import 'countdown_text.dart';
 import 'remote_image.dart';
+import 'vehicle_bid_sheet.dart';
 
 /// كرت المركبة — **مكوّن واحد، ولا رسم لكرت خارجه** (T708).
 ///
@@ -32,58 +32,10 @@ import 'remote_image.dart';
 /// ليستنتجه. هذا بعينه ما فعله v1: عدّادٌ تنازلي على ساعة العميل كتب «انتهى»
 /// على مزادٍ ما زال مفتوحاً لكل من ساعته متقدّمة دقيقتين، فأغلق باب المزايدة
 /// أمامه وهو مفتوح.
-class VehicleCard extends ConsumerStatefulWidget {
-  const VehicleCard({required this.vehicle, this.onTap, super.key});
+class VehicleCard extends StatelessWidget {
+  const VehicleCard({required this.vehicle, super.key});
 
   final VehicleSummary vehicle;
-  final VoidCallback? onTap;
-
-  @override
-  ConsumerState<VehicleCard> createState() => _VehicleCardState();
-}
-
-class _VehicleCardState extends ConsumerState<VehicleCard> {
-  /// حالُ القلب بعد ضغطةٍ **نجحت**، حتى تصل قائمةٌ جديدة من الخادم.
-  ///
-  /// `null` يعني «لم يُضغط هنا» فيُقرأ من المركبة. ولماذا أصلاً: القائمة التي
-  /// تحمل هذا الكرت مبنيّةٌ في الشاشة المضيفة ولا تُعاد قراءتها لضغطة قلب —
-  /// وإعادةُ قراءة الصفحة كاملةً عند كل ضغطة تُقفز القائمةَ تحت إصبع من ضغط.
-  /// ولا يُكتب إلا **بعد** ردّ الخادم: قلبٌ يمتلئ قبل الردّ ثم يفشل الطلب
-  /// يترك العميل يظنّ أنه حفظ ما لم يُحفظ.
-  bool? _saved;
-
-  /// طلبٌ جارٍ — يمنع ضغطتين متتاليتين تُلغي ثانيتُهما أولاهما.
-  bool _busy = false;
-
-  VehicleSummary get vehicle => widget.vehicle;
-
-  bool get _isFavourite => _saved ?? vehicle.isFavourite;
-
-  Future<void> _toggle() async {
-    if (_busy) return;
-    setState(() => _busy = true);
-    final was = _isFavourite;
-    try {
-      await ref.read(toggleFavouriteProvider)(
-        vehicleId: vehicle.id,
-        isFavourite: was,
-      );
-      if (!mounted) return;
-      setState(() {
-        _saved = !was;
-        _busy = false;
-      });
-    } on Object {
-      // الفشل يُقال ولا يُبتلع: القلب يبقى على حاله، ويظهر سطرٌ يشرح لماذا لم
-      // يتغيّر. بلا هذا يضغط العميل ولا يحدث شيء فيظنّ الزرّ معطّلاً.
-      if (!mounted) return;
-      setState(() => _busy = false);
-      final messenger = ScaffoldMessenger.maybeOf(context);
-      messenger?.showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).favouriteFailed)),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,11 +61,22 @@ class _VehicleCardState extends ConsumerState<VehicleCard> {
             elevation: 1.5,
             shadowColor: palette.brown.withValues(alpha: 0.18),
             child: InkWell(
-              onTap: widget.onTap,
+              // **الكرتُ كلُّه يفتح صندوقَ المزايدة** بطلب المالك في ٩ سبتمبر
+              // ٢٠٢٦؛ كان يفتح صفحةَ المركبة، وحُذفت الصفحةُ يومَها.
+              onTap: () => showVehicleBidSheet(
+                context,
+                vehicle: vehicle,
+                onEnterAuction: () => Routes.goToBid(context, vehicle.id),
+              ),
               child: ConstrainedBox(
-                // **١٤٠ حدّاً أدنى لا مقاساً مفروضاً** — والقسمة ٤٧:٥٣.
-                // مقاسُ كرت v1 مقروءاً من `img.car-photo` في أدوات المتصفّح:
+                // **حدٌّ أدنى لا مقاسٌ مفروض** — والقسمة ٤٧:٥٣، مقاسُ كرت
+                // v1 مقروءاً من `img.car-photo` في أدوات المتصفّح:
                 // `135.5×140` على شاشة ٣١٧، و١٣٥٫٥ من ٢٨٩ = ٤٧٪.
+                //
+                // كانت ٤٢:٥٨ ساعةً واحدة حين كان النصُّ يُقصّ. وردَّها
+                // أمران معاً بطلب المالك في ٩ سبتمبر ٢٠٢٦: الصورةُ أوسع،
+                // والرقمُ المرجعيّ غادر سطرَ الاسم إلى الصورة — فما خسره
+                // العمودُ من عرضٍ ردَّه اتّساعُ سطرِ الاسم.
                 //
                 // وكان `height: 140` مفروضاً، **ففاض العمود ٤٨ بكسلاً**
                 // وسقط زرُّ المزايدة من الشاشة: ارتفاعُ النصّ العربيّ لا
@@ -139,20 +102,26 @@ class _VehicleCardState extends ConsumerState<VehicleCard> {
                           vehicle: vehicle,
                           palette: palette,
                           l10n: l10n,
-                          isFavourite: _isFavourite,
-                          busy: _busy,
-                          onToggleFavourite: _toggle,
                         ),
                       ),
                       Expanded(
                         flex: 53,
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(9, 7, 10, 7),
+                          padding: const EdgeInsets.fromLTRB(7, 6, 8, 6),
                           child: _Details(
                             vehicle: vehicle,
                             palette: palette,
                             l10n: l10n,
-                            onBid: widget.onTap,
+                            // الزرُّ والكرتُ يفتحان الشيءَ نفسه. والزرُّ باقٍ
+                            // لأنه هو ما يقول للعميل **ماذا يحدث** عند
+                            // الضغط؛ ومساحةٌ قابلةٌ للضغط بلا زرٍّ عليها لا
+                            // يجرّبها إلا من خمّن.
+                            onBid: () => showVehicleBidSheet(
+                              context,
+                              vehicle: vehicle,
+                              onEnterAuction: () =>
+                                  Routes.goToBid(context, vehicle.id),
+                            ),
                           ),
                         ),
                       ),
@@ -170,11 +139,15 @@ class _VehicleCardState extends ConsumerState<VehicleCard> {
 
 const double _radius = 18;
 
-/// ارتفاع الكرت — مقاسُ v1 كما قرأته أدوات المتصفّح.
-const double _height = 140;
+/// ارتفاع الكرت — حدٌّ أدنى لا مقاسٌ مفروض.
+///
+/// كان ١٤٠، مقاسَ كرت v1 كما قرأته أدوات المتصفّح (`135.5×140`). ونزل إلى
+/// ١٢٦ بطلب المالك في ٩ سبتمبر ٢٠٢٦ بعد أن جُمع الموقعُ مع الحالة في سطر،
+/// ثم إلى ١٤٤ ليسع فاصلَي الاسم والعدّاد وحشوةَ سطر الموقع.
+const double _height = 144;
 
-/// نصفُ البيانات: الاسم ومرجعُه، ثم ثلاثُ خاناتٍ، ثم الحالةُ والموقع، ثم
-/// العدّاد، ثم زرّ المزايدة.
+/// نصفُ البيانات: الاسم ومرجعُه، ثم ثلاثُ خاناتٍ، ثم الحالةُ والموقع في
+/// سطر، ثم العدّاد، ثم زرّ المزايدة — ترتيبُ v1.
 class _Details extends StatelessWidget {
   const _Details({
     required this.vehicle,
@@ -193,87 +166,115 @@ class _Details extends StatelessWidget {
     final odometer = vehicle.odometerKm;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      // **توسيطٌ لا تراصٌّ على الجهة** بطلب المالك في ٩ سبتمبر ٢٠٢٦: الاسمُ
+      // وحده في سطره، والخاناتُ الثلاث كتلةٌ أضيقُ من العمود، وسطرُ الحالة
+      // والموقع كذلك — وثلاثتُها متراصّةً يميناً تترك على اليسار فراغاً
+      // مثلَّثاً يُقرأ خللاً في المحاذاة لا فراغاً مقصوداً.
+      crossAxisAlignment: CrossAxisAlignment.center,
       // **`spaceBetween` لا فراغاتٌ مكتوبة**: الارتفاع يأتي من الحدّ الأدنى
-      // (١٤٠) أو من المحتوى أيّهما أكبر، فتوزيعُ الفضلة عليه يملأه تماماً.
+      // (١٢٦) أو من المحتوى أيّهما أكبر، فتوزيعُ الفضلة عليه يملأه تماماً.
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: <Widget>[
-        // ١ — الاسم، وعلى طرفه الرقمُ المرجعيّ في حوضٍ داكن.
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: Text(
-                vehicle.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: palette.brown,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            _ReferenceChip(reference: vehicle.reference, palette: palette),
-          ],
+        // ١ — الاسم **وحده بعرض العمود**: الرقمُ المرجعيّ كان على طرفه
+        // فيأخذ منه نحو أربعين بكسلاً، وانتقل إلى الصورة.
+        Text(
+          vehicle.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            // ١٢٫٥ لا ١٤ بطلب المالك في ٩ سبتمبر ٢٠٢٦: الاسمُ أطولُ نصٍّ في
+            // العمود وأكبرُه، فكان يبتلع سطره ويترك الباقيَ يبدو حاشيةً له.
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: palette.brown,
+            height: 1.2,
+          ),
         ),
-        // ٢ — ثلاثُ خاناتٍ، **الأيقونةُ فوق القيمة** كما في v1.
+        // فاصلٌ **مكتوب** تحت الاسم: `spaceBetween` يوزّع الفضلة بالسويّة
+        // على ستّ فجوات، ولا فضلةَ تُذكر حين يملأ المحتوى الحدَّ الأدنى —
+        // فيلتصق الاسمُ بالخانات تحته.
+        const SizedBox(height: 5),
+        // ٢ — ثلاثُ خاناتٍ مؤطَّرة، **الأيقونةُ فوق القيمة** — هيئةُ v1
+        // حرفياً بطلب المالك في ٩ سبتمبر ٢٠٢٦، ولقطةُ v1 الحيّة مرجعُها.
         //
-        // فوقها لا بجانبها: بجانبها يصير عرضُ الخانة أيقونةً وكلمةً، وثلاثُ
-        // خاناتٍ كذلك لا تسع نصفَ كرتٍ عرضُه ١٥٠ — فتُقصّ الكلمات إلى
-        // حرفين. وفوقها يصير عرضُ الخانة عرضَ كلمتها وحدها.
-        Row(
-          children: <Widget>[
-            Flexible(
-              child: _Fact(
+        // **كلُّ خانةٍ بعرض نصّها، لا ثلثاً بالسويّة.** كنّ ثلاثَ `Flexible`
+        // في `Row`، و`Row` يقسم الفضلة على عوامل الـ`flex` بالتساوي: ٤٤
+        // بكسلاً لكلٍّ من ١٣٢. و«45,000 كم» تحتاج ٥٣ — فتُقصّ، ولا يردّها
+        // تصغيرُ الخطّ ولا الحشوة (جُرّبا: ١٠٫٥ أعطت «45,٠ كم» و٩٫٥ أعطت
+        // «45,0 كم»). و«2022» تحتاج ٣١ فيضيع تسعةَ عشرَ من نصيبها.
+        //
+        // و`FittedBox` حارسُ الشاشة الضيّقة: مجموعُ الثلاث الطبيعيّ ١٢٢ في
+        // عمودٍ عرضُه ١٣٨، فإن ضاق العمودُ أكثر تصغر الكتلةُ كلُّها بنسبةٍ
+        // واحدة — وهو أهونُ من قصّ إحداهنّ.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              _Fact(
                 icon: Icons.calendar_today_rounded,
                 value: '${vehicle.year}',
                 palette: palette,
               ),
-            ),
-            const SizedBox(width: 4),
-            Flexible(
-              child: _Fact(
+              const SizedBox(width: 4),
+              _Fact(
                 icon: Icons.palette_outlined,
                 value: vehicle.colourLabel,
                 palette: palette,
               ),
-            ),
-            // الممشى قد يغيب، والغياب لا يُعرض صفراً: «٠ كم» ادّعاءٌ لم
-            // يقله أحد — فتبقى خانتان.
-            if (odometer != null) ...<Widget>[
-              const SizedBox(width: 4),
-              Flexible(
-                child: _Fact(
+              // الممشى قد يغيب، والغياب لا يُعرض صفراً: «٠ كم» ادّعاءٌ لم
+              // يقله أحد — فتبقى خانتان.
+              if (odometer != null) ...<Widget>[
+                const SizedBox(width: 4),
+                _Fact(
                   icon: Icons.speed_rounded,
                   value: l10n.vehicleOdometerShort(odometer),
                   palette: palette,
                 ),
+              ],
+            ],
+          ),
+        ),
+        // ٣ — الحالةُ والموقعُ **في سطرٍ واحد** كما في v1.
+        //
+        // كان الموقعُ في سطرٍ وحده لأن «الرياض / طريق الحائر» لم يكن يُقرأ
+        // في نصف سطر. وما جعله يُقرأ الآن أمران: القسمةُ ٤٢:٥٨ زادت العمود
+        // خمسةَ عشرَ بكسلاً، والحالةُ تأخذ عرضَ كلمتها وحدها
+        // (`mainAxisSize.min`) فما بقي كلُّه للموقع.
+        // **حشوةٌ رأسيّة مكتوبة** بطلب المالك في ٩ سبتمبر ٢٠٢٦: السطرُ كان
+        // ملتصقاً بالخانات فوقه وبحوض العدّاد تحته، لأن `spaceBetween` يوزّع
+        // الفضلة بالسويّة على ستّ فجوات — ولا فضلةَ تُذكر حين يملأ المحتوى
+        // الحدَّ الأدنى.
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              _IconText(
+                icon: Icons.report_problem_outlined,
+                text: vehicle.conditionLabel,
+                palette: palette,
+              ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: _IconText(
+                  icon: Icons.place_outlined,
+                  text: vehicle.location,
+                  palette: palette,
+                  flexible: true,
+                ),
               ),
             ],
-          ],
-        ),
-        // ٣ — الحالة.
-        _IconText(
-          icon: Icons.report_problem_outlined,
-          text: vehicle.conditionLabel,
-          palette: palette,
-        ),
-        // ٤ — الموقع **في سطره وحده**.
-        //
-        // كان معها في سطرٍ واحد كما في v1، فبقي له نصفُ السطر — و«الرياض /
-        // طريق الحائر» لا يُقرأ في نصف سطرٍ عرضُه ١٦٧: يظهر «الرياض / طريق
-        // ال…». وسطرٌ كامل يسعه، وهذا ثمنُه ستةَ عشرَ بكسلاً في الارتفاع.
-        _IconText(
-          icon: Icons.place_outlined,
-          text: vehicle.location,
-          palette: palette,
-          flexible: true,
+          ),
         ),
         // ٤ — العدّاد.
         _Countdown(vehicle: vehicle, palette: palette, l10n: l10n),
+        // فاصلٌ **مكتوب** بين العدّاد والزرّ بطلب المالك في ٩ سبتمبر ٢٠٢٦:
+        // `spaceBetween` يوزّع الفضلة على خمس فجواتٍ بالسويّة، فحين تقلّ
+        // الفضلة يلتصق الحوضان الذهبيّان فيُقرآن كتلةً واحدة.
+        const SizedBox(height: 5),
         // ٥ — زرّ المزايدة.
         _BidButton(
           label: l10n.vehicleBidAction,
@@ -285,7 +286,7 @@ class _Details extends StatelessWidget {
   }
 }
 
-/// حوضُ الرقم المرجعيّ — داكنٌ صغير بجانب الاسم.
+/// حوضُ الرقم المرجعيّ — داكنٌ صغير في زاوية الصورة اليسرى.
 class _ReferenceChip extends StatelessWidget {
   const _ReferenceChip({required this.reference, required this.palette});
 
@@ -295,11 +296,13 @@ class _ReferenceChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: palette.heroTop,
-      borderRadius: BorderRadius.circular(6),
+      // شبه معتمٍ لا معتم: صار على الصورة لا على الورقة الكريميّة، ونفسُ
+      // شفافيّة شارة الموقف تُبقي الاثنتين حوضاً واحداً لا حوضين.
+      color: palette.heroTop.withValues(alpha: 0.88),
+      borderRadius: BorderRadius.circular(7),
     ),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       child: Text(
         reference,
         // **`ltr`**: `#13466` رقمٌ بعلامةٍ قبله، وترتيبُه في سياقٍ عربيّ
@@ -308,9 +311,9 @@ class _ReferenceChip extends StatelessWidget {
         maxLines: 1,
         style: TextStyle(
           fontFamily: HarajTheme.fontFamily,
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: FontWeight.w700,
-          color: palette.navInactive,
+          color: palette.goldOnDark,
           height: 1.3,
         ),
       ),
@@ -318,7 +321,10 @@ class _ReferenceChip extends StatelessWidget {
   );
 }
 
-/// خانةُ مواصفةٍ واحدة: **الأيقونة فوق القيمة**، بحدٍّ رفيع — هيئةُ v1.
+/// خانةُ مواصفةٍ واحدة: **الأيقونة فوق القيمة**، بحدٍّ ذهبيٍّ رفيع — هيئةُ v1.
+///
+/// فوقها لا بجانبها: بجانبها يصير عرضُ الخانة أيقونةً وكلمةً، وثلاثُ خاناتٍ
+/// كذلك لا تسع عمودَ بياناتٍ عرضُه ١٦٨.
 class _Fact extends StatelessWidget {
   const _Fact({required this.icon, required this.value, required this.palette});
 
@@ -328,7 +334,7 @@ class _Fact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(7),
       border: Border.all(color: palette.gold.withValues(alpha: 0.45)),
@@ -336,15 +342,19 @@ class _Fact extends StatelessWidget {
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(icon, size: 12, color: palette.gold),
-        const SizedBox(height: 2),
+        Icon(icon, size: 11, color: palette.gold),
+        const SizedBox(height: 1),
         Text(
           value,
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          // **`clip` لا `ellipsis`**: النقاطُ الثلاث تأكل من العرض ما يكفي
+          // لرقمين، فتصير «45,0…» حيث كانت «45,000» تسع. وهي ما جعل v1
+          // تعرض «..» وحدها.
+          overflow: TextOverflow.clip,
+          softWrap: false,
           style: TextStyle(
             fontFamily: HarajTheme.fontFamily,
-            fontSize: 11,
+            fontSize: 10.5,
             fontWeight: FontWeight.w700,
             color: palette.brown,
             height: 1.2,
@@ -355,7 +365,7 @@ class _Fact extends StatelessWidget {
   );
 }
 
-/// أيقونةٌ ونصٌّ خافتان — تُستعمل مرّتين في سطرٍ واحد: الحالة، ثم الموقع.
+/// أيقونةٌ ونصٌّ خافتان — تُستعملان مرّتين في سطرٍ واحد: الحالة، ثم الموقع.
 class _IconText extends StatelessWidget {
   const _IconText({
     required this.icon,
@@ -382,7 +392,7 @@ class _IconText extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
         fontFamily: HarajTheme.fontFamily,
-        fontSize: 11.5,
+        fontSize: 9.5,
         fontWeight: FontWeight.w600,
         // أغمقُ من `inkMuted`: الخافتُ يصلح لسطرٍ طويل يُلمح، لا لكلمتين
         // تحملان الحالةَ والموقع.
@@ -394,8 +404,8 @@ class _IconText extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Icon(icon, size: 13, color: palette.gold),
-        const SizedBox(width: 4),
+        Icon(icon, size: 11, color: palette.gold),
+        const SizedBox(width: 2),
         if (flexible) Flexible(child: label) else label,
       ],
     );
@@ -432,7 +442,7 @@ class _Countdown extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(7),
         color: ended
@@ -462,9 +472,11 @@ class _Countdown extends StatelessWidget {
 
 /// زرّ «مزايدة» — ذهبيٌّ ممتدٌّ بعرض نصف البيانات.
 ///
-/// **يفتح صفحة المركبة** لا صندوقَ مزايدةٍ في الكرت: المزايدة تحتاج الرصيد
-/// والحدَّ الأدنى وشروطَ الأهلية، وكلُّها في الصفحة. وزرٌّ في قائمةٍ يفتح
-/// حواراً يزايد مباشرةً هو أقصرُ طريقٍ إلى مزايدةٍ بالخطأ.
+/// **يفتح نافذةَ المزايدة** (`showVehicleBidSheet`) بطلب المالك في ٩ سبتمبر
+/// ٢٠٢٦ على مثال v1؛ كان يفتح صفحة المركبة. والشرطُ الذي كُتب يومها باقٍ:
+/// **لا مزايدةَ تقع من النافذة** — زرٌّ في قائمةٍ يزايد مباشرةً أقصرُ طريقٍ
+/// إلى مزايدةٍ بالخطأ، والرصيدُ والحدُّ الأدنى وشروطُ الأهلية في الصفحة.
+/// فزرُّ النافذة الوحيد ينقل إليها.
 class _BidButton extends StatelessWidget {
   const _BidButton({
     required this.label,
@@ -494,7 +506,7 @@ class _BidButton extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           width: double.infinity,
-          height: 30,
+          height: 28,
           child: Center(
             child: Text(
               label,
@@ -515,53 +527,55 @@ class _BidButton extends StatelessWidget {
   );
 }
 
-/// نصفُ الصورة — ممتدٌّ إلى حوافّ الكرت، وعليه شارةُ اللوت والقلب.
+/// نصفُ الصورة — ممتدٌّ إلى حوافّ الكرت، وعليه شارتان: الموقفُ والرقم.
+///
+/// **ولا قلبَ عليه** — مُحي بطلب المالك في ٩ سبتمبر ٢٠٢٦، نقضاً لقرارٍ في
+/// نفس اليوم أبقاه لأن المفضّلة ميزةٌ في هذا الإصدار وحده. والميزةُ باقيةٌ:
+/// قسمُ المفضّلة في الشريط السفليّ يعمل، و`toggleFavouriteProvider` باقٍ
+/// بلا مستعملٍ في الكرت وحده.
 class _Photo extends StatelessWidget {
   const _Photo({
     required this.vehicle,
     required this.palette,
     required this.l10n,
-    required this.isFavourite,
-    required this.busy,
-    required this.onToggleFavourite,
   });
 
   final VehicleSummary vehicle;
   final HarajPalette palette;
   final AppLocalizations l10n;
-  final bool isFavourite;
-  final bool busy;
-  final VoidCallback onToggleFavourite;
 
   @override
   Widget build(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: <Widget>[
-      // مصغَّرة لا صورة كاملة (قاعدة التصميم 6)، ومفكوكة بضعف عرضها المعروض
-      // لا بعرضها الأصلي — يكفي أعلى كثافة نشحن إليها.
+      // **`cover` لا `contain`** — والسيّارةُ كاملةٌ رغم ذلك.
+      //
+      // صورةُ المالك نسبتُها ٢٫٥:١ وهذا الصندوق نحو ١:١، فـ`cover` كان يقصّ
+      // مقدّمَها ومؤخّرَها و`contain` يترك شريطين داكنين يبتلعان ثلث الصندوق.
+      // ولا يحلُّه أيُّ `BoxFit`: نسبتان مختلفتان لا تجتمعان في صندوقٍ واحد.
+      //
+      // فحُلَّ في الملفّ: المصغَّرةُ تُولَّد مربّعةً، الصورةُ كاملةً في وسطها
+      // وخلفيّتُها هي نفسُها مكبَّرةً ومموَّهة. و`cover` على ملفٍّ بنسبة
+      // الصندوق لا يقصّ شيئاً.
       RemoteImage(url: vehicle.thumbnailUrl, decodeWidth: 400),
-      // `PositionedDirectional` لا `Positioned`: `end` هي يسارُ الشاشة في
-      // العربية ويمينُها في الإنجليزية، فتبقى الشارةُ في زاوية الصورة
-      // البعيدة عن البيانات في الاتجاهين.
+      // **شارةُ الموقف يميناً، والرقمُ المرجعيّ يساراً** — على الصورة
+      // كلاهما، بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+      //
+      // و`PositionedDirectional` لا `Positioned`: `start` هي يمينُ الشاشة
+      // في العربية ويسارُها في الإنجليزية، فتبقى كلُّ شارةٍ في جهتها من
+      // الصورة مهما انقلب الاتجاه.
       PositionedDirectional(
         top: 6,
-        end: 6,
+        start: 6,
         child: _LotBadge(
           label: l10n.vehicleLotPosition(vehicle.lotNumber),
           palette: palette,
         ),
       ),
-      // القلب في الزاوية الملاصقة للبيانات — **ولا وجود له في v1**: المفضلة
-      // ميزةٌ في هذا الإصدار وحده، وحذفُها لتطابق الشكل يحذف ميزةً تعمل.
       PositionedDirectional(
-        bottom: 6,
-        start: 6,
-        child: _FavouriteButton(
-          isFavourite: isFavourite,
-          busy: busy,
-          onTap: onToggleFavourite,
-          palette: palette,
-        ),
+        top: 6,
+        end: 6,
+        child: _ReferenceChip(reference: vehicle.reference, palette: palette),
       ),
     ],
   );
@@ -597,63 +611,4 @@ class _LotBadge extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _FavouriteButton extends StatelessWidget {
-  const _FavouriteButton({
-    required this.isFavourite,
-    required this.busy,
-    required this.onTap,
-    required this.palette,
-  });
-
-  final bool isFavourite;
-  final bool busy;
-  final VoidCallback onTap;
-  final HarajPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    // القارئ الصوتيّ يقول الفعل لا الحال: «أضف إلى المفضلة» يقول ما سيحدث عند
-    // الضغط، و«مفضلة» تترك السامع لا يدري أهي زرٌّ أم خبر.
-    final label = isFavourite ? l10n.favouriteRemove : l10n.favouriteAdd;
-
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: Colors.white.withValues(alpha: 0.94),
-        shape: const CircleBorder(),
-        child: InkWell(
-          onTap: busy ? null : onTap,
-          customBorder: const CircleBorder(),
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: busy
-                // نفس القياس بالضبط: مؤشّرٌ أصغر من الأيقونة يجعل الزرّ ينكمش
-                // تحت الإصبع عند كل ضغطة.
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: palette.gold,
-                      ),
-                    ),
-                  )
-                : Icon(
-                    isFavourite
-                        ? Icons.favorite_rounded
-                        : Icons.favorite_border_rounded,
-                    size: 18,
-                    color: isFavourite ? palette.gold : palette.brown,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
 }

@@ -58,6 +58,10 @@ from .models import (
 
 log = logging.getLogger(__name__)
 
+#: خطوةُ التقريب للمال — هللةٌ واحدة. تُكتب مرّةً بدل تكرار
+#: `Decimal(1).scaleb(-MONEY["decimal_places"])` في كل موضعٍ يقرّب.
+_CENT = Decimal(1).scaleb(-MONEY["decimal_places"])
+
 
 class MoneyError(DomainError):
     """A refused money operation. Always safe to show to a customer.
@@ -1742,6 +1746,20 @@ def tax_of(invoice: Invoice) -> TaxBreakdown:
     up to its total is one no auditor accepts.
     """
     amount = invoice.amount
+
+    # فاتورةٌ أصدرناها بمكوّناتٍ مختومة: تُقرأ ولا تُحسب.
+    #
+    # هذا هو الفرع الصحيح لكل ما نُصدره اليوم — و`amount` فيه **الإجماليُّ
+    # شاملَ الضريبة**، فإعادةُ حسابها عليه تضربها مرّتين. والقيمُ المختومة
+    # تجيب أيضاً ما لا يستطيع الحساب أن يجيبه: كم كان الرسمُ **يوم صدرت**.
+    if invoice.tax_amount or invoice.net_amount or invoice.admin_fee:
+        return TaxBreakdown(
+            base=invoice.net_amount + invoice.admin_fee,
+            tax=invoice.tax_amount,
+            total=amount,
+            amount_was_inclusive=True,
+        )
+
     if invoice.source == InvoiceSource.ODOO_SYNC:
         base = _to_money(amount / (Decimal(1) + vat_rate()))
         return TaxBreakdown(
@@ -1785,6 +1803,7 @@ def issue_invoice(
     due_at=None,
     number: str = "",
     issued_at=None,
+    admin_fee: Decimal | None = None,
 ) -> Invoice:
     """Create one open invoice. The only place an invoice is born (T509).
 
@@ -1824,19 +1843,40 @@ def issue_invoice(
             if issued_before:
                 number = f"{number}-{issued_before + 1}"
 
+    # ── بنودُ الفاتورة كما في v1: المركبة، ثم الرسم الإداريّ، ثم ضريبتهما ──
+    #
+    # v1 يُصدرها ببندين ويجمعهما شاملَين الضريبة، ومثالُه المكتوب في
+    # `AuctionVat` من مزادٍ حقيقيّ: ٩٨٬٦٥٠ + ١٤٬٧٩٧٫٥٠ ضريبة + ٨٠٠ رسم +
+    # ١٢٠ ضريبة الرسم = ١١٤٬٣٦٧٫٥٠. والمثلُ هنا، بفارقين:
+    #
+    # ١) الضريبةُ تُضرب في **موضعٍ واحد** (`tax_added_to`) لا في أربعة مواضع
+    #    كما في v1 — حيث ثُبِّتت ١٥٪ حرفياً عند تسجيل المزايدة بينما تُقرأ
+    #    `auctions.vat_type` عند الفوترة، فرقمان صحيحان ظاهرياً ومتناقضان.
+    # ٢) المكوّناتُ **تُختَم** في الصفّ، فلا يُعاد حسابُها عند القراءة: تغييرُ
+    #    رسم المزاد غداً لا يُعيد كتابة فاتورةٍ صدرت اليوم.
+    net = Decimal(amount).quantize(_CENT)
+    fee = Decimal(admin_fee if admin_fee is not None else ZERO).quantize(_CENT)
+    if fee < ZERO:
+        raise InvalidAmount(f"negative admin fee {fee!r}", user_message="لا رسمَ بالسالب.")
+    taxed = tax_added_to(net + fee)
+
     invoice = Invoice.objects.create(
         customer=customer,
         number=number,
-        amount=Decimal(amount).quantize(Decimal(1).scaleb(-MONEY["decimal_places"])),
+        # **الإجماليُّ المستحقّ** — وهو ما يقارنه `outstanding` بالمسدَّد.
+        amount=taxed.total,
+        net_amount=net,
+        admin_fee=fee,
+        tax_amount=taxed.tax,
         vehicle=vehicle,
         state=InvoiceState.OPEN,
-        # Ours, so the amount is the awarded price — before tax (HR-05).
         source=InvoiceSource.LOCAL,
         issued_at=issued_at,
         due_at=due_at,
     )
     log.info(
-        "issued invoice %s for %s (customer %s)", invoice.number, amount, customer.pk
+        "issued invoice %s: net %s + fee %s + tax %s = %s (customer %s)",
+        invoice.number, net, fee, taxed.tax, taxed.total, customer.pk,
     )
     return invoice
 

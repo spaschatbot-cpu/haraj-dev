@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
@@ -14,7 +13,6 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/snapshot_view.dart';
-import 'widgets/home_hero.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
 
@@ -45,6 +43,16 @@ class HomeScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
+
+/// ارتفاعُ حقل البحث داخل الشريحة الثابتة.
+const double _searchHeight = 48;
+
+/// ارتفاعُ الشريحة الثابتة كلِّها: حشوةُ البحث (١٠+٦) وحقلُه (٤٨)، ثم مفتاحُ
+/// الأطوار بحشوته (٠+٤٢+٩) — والستّةُ نزلت من تسعةٍ ثم صعدت من اثنين.
+///
+/// والأرقامُ تغيّرت مرّتين في ٩ سبتمبر ٢٠٢٦: المفتاحُ اقترب من حقل البحث
+/// حتى صار بينهما بكسلان، ونزل تسعةً عن أول كرت — كان ملتصقاً به.
+const double _pinnedExtent = 10 + _searchHeight + 6 + 0 + 42 + 9;
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
@@ -173,13 +181,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         body: Column(
           children: <Widget>[
-            HomeHero(
-              // لا شاشةَ إشعاراتٍ في التطبيق بعد، وأقربُ ما يجيب عن «ما الذي
-              // حدث لي؟» هو مشاركاتي. الجرس يذهب إليها ولا يبقى زرّاً لا
-              // يفعل شيئاً — زرٌّ لا يستجيب يُقرأ عطلاً.
-              onOpenNotifications: () => context.go(Routes.myActivityPath),
-              onOpenAccount: () => context.go(Routes.profilePath),
-            ),
             // **الورقة مسطّحةٌ لا مدوّرة**: البانر هو من يدوّر حافّته
             // السفلى الآن، وتدويرُ الاثنين معاً يترك بينهما هلالاً من أرضيّة
             // الـ`Scaffold` يُقرأ شقّاً.
@@ -189,28 +190,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // البحث فوق الحالة لا داخلها: عميلٌ بحث فأخطأ الخادم يجب
-                    // أن يبقى قادراً على تعديل كلمته، لا أن يواجه شاشة خطأ
-                    // بلا مخرج. ولا مفتاح عليه: من بحث عن «كامري» ثم بدّل
-                    // الطور يجب أن يجد كلمته مكتوبة كما تركها.
-                    const _WelcomePanel(),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
-                      child: VehicleSearchField(
-                        search: _query.search,
-                        onSubmitted: _search,
-                      ),
-                    ),
-                    _PhaseTabs(
-                      current: widget.phase,
-                      counts: _counts,
-                      onSelect: (phase) => Routes.goToPhase(context, phase),
-                    ),
+                    // **الترويسةُ تنزلق مع القائمة** — لوحةُ الترحيب
+                    // وحقلُ البحث ومفتاحُ الأطوار داخل `CustomScrollView`
+                    // لا فوقه، بطلب المالك في ٩ سبتمبر ٢٠٢٦ على مثال v1.
+                    //
+                    // **إلا حين لا تكون هناك قائمة**: أثناء أول تحميلٍ أو
+                    // بعد فشله لا `VehicleResults` يحمل الترويسة، وحقلُ
+                    // البحث يجب أن يبقى — عميلٌ بحث فأخطأ الخادم يجب أن
+                    // يبقى قادراً على تعديل كلمته، لا أن يواجه شاشة خطأ بلا
+                    // مخرج. والحالتان متنافيتان فلا تظهر مرّتين.
+                    if (!_first.hasValue) ...<Widget>[
+                      const _WelcomePanel(),
+                      _pinnedHeader(),
+                    ],
                     Expanded(
                       child: SnapshotView<VehicleFeed>(
                         state: _first,
                         onRetry: _reload,
                         builder: (context, snapshot) => VehicleResults(
+                          header: const _WelcomePanel(),
+                          pinnedHeader: _pinnedHeader(),
+                          pinnedHeaderExtent: _pinnedExtent,
                           vehicles: _vehicles,
                           totalCount: _totalCount,
                           hasMore: _hasMore,
@@ -221,23 +221,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             setState(() => _moreFailure = null);
                             _loadMore();
                           },
-                          onOpenVehicle: (vehicle) =>
-                              Routes.goToVehicle(context, vehicle.id),
                           emptyMessage: _emptyMessage(l10n),
                           showCount: false,
-                          // **لا زرّ فرزٍ في سطر العدّ** — رُفع بطلب المالك
-                          // في ٩ سبتمبر ٢٠٢٦.
+                          // **لا زرّ فرزٍ ولا ورقة تصفية** — مُحي
+                          // بطلب المالك في ٩ سبتمبر ٢٠٢٦، مرّتين: من سطر
+                          // العدّ أوّلاً، ثم من جانب حقل البحث.
                           //
-                          // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة: الورقة
-                          // كانت **المقبض الوحيد** للطور والماركة والسنة بعد
-                          // أن حلّت محلّ شريط التبويبات، فسقط الثلاثة معها.
-                          // البحثُ باقٍ، و`?phase=` في العنوان باقٍ يفتحه
-                          // الرابطُ والإشعار (H6) — لكن لا سبيل إليه من داخل
-                          // الشاشة. و`VehicleFiltersButton` و`_apply`
-                          // و`Routes.goToPhase` باقيةٌ تعمل. وسقط معه حقلُ
-                          // `_counts` — كان يتغذّى ليعرضه الزرُّ وحده — ولم
-                          // يُترك ميتاً؛ والعدّادات تصل مع كل صفحة في
-                          // `snapshot.value.counts` فردُّه ثلاثةُ أسطر.
+                          // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة:
+                          // الماركةُ والسنتان (`VehicleQuery.make`
+                          // و`yearFrom` و`yearTo`) تعمل ويرسلها `_apply`
+                          // إلى الخادم، **ولا مقبضَ لها في الرئيسية**.
+                          // و`VehicleFiltersButton` باقيةٌ تعمل في شاشة
+                          // مركبات المزاد. والطورُ له مفتاحُه في الترويسة.
                         ),
                       ),
                     ),
@@ -250,6 +245,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
     );
   }
+
+  /// حقلُ البحث ومفتاحُ الأطوار — **ثابتان فوق القائمة** بطلب المالك في ٩
+  /// سبتمبر ٢٠٢٦، ولوحةُ الترحيب وحدها تنزلق.
+  ///
+  /// **دالّةٌ لا مكوّنٌ مستقلّ**: الاثنان يقرآن `_query` و`_counts`
+  /// و`widget.phase` ويكتبان عبر `_search`، ونقلُهما إلى مكوّنٍ خارج الشاشة
+  /// يعني تمريرَ أربعة معاملات لتُعاد كما هي.
+  Widget _pinnedHeader() => Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: <Widget>[
+      Padding(
+        // **بعرض الحقل كلِّه**: كان بجانبه زرُّ «الفرز والتصفية» فيقتطع منه
+        // نحو مئةٍ وعشرين بكسلاً، ومُحي بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+        // **ارتفاعٌ مضبوط**: الشريحةُ الثابتة تُبنى بارتفاعٍ يُفرَض عليها،
+        // فلو نما الحقلُ بحجم خطّ الجهاز لفاض عن الشريحة.
+        child: SizedBox(
+          height: _searchHeight,
+          child: VehicleSearchField(
+            search: _query.search,
+            onSubmitted: _search,
+          ),
+        ),
+      ),
+      _PhaseTabs(
+        current: widget.phase,
+        counts: _counts,
+        onSelect: (phase) => Routes.goToPhase(context, phase),
+      ),
+    ],
+  );
 
   /// الطور الفارغ يقول **لماذا** هو فارغ.
   ///
@@ -482,7 +509,7 @@ class _PhaseTabs extends StatelessWidget {
         // على شاشةٍ عريضة كان القسم الواحد يبلغ ٤٥٠ بكسلاً لكلمةٍ ورقم.
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 9),
           child: SizedBox(
             height: _height,
             child: DecoratedBox(

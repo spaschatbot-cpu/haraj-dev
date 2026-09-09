@@ -364,7 +364,7 @@
       }
     }
   },
-  "searchHint": "ابحث عن سيارة أو رقم اللوت…",
+  "searchHint": "ابحث عن سيارة",
   "@searchHint": {},
   "filterMake": "الماركة",
   "@filterMake": {},
@@ -815,5 +815,21 @@
   "favouriteFailed": "تعذّر تحديث المفضلة",
   "@favouriteFailed": {
     "description": "يظهر حين يفشل طلب القلب فيعود القلب إلى حاله."
-  }
+  },
+  "vehicleSpecCity": "المدينة",
+  "@vehicleSpecCity": {},
+  "vehicleBidDetails": "تفاصيل المزايدة",
+  "@vehicleBidDetails": {},
+  "vehicleEnterAuction": "دخول المزاد",
+  "@vehicleEnterAuction": {},
+  "vehicleSpecsAction": "مواصفات المركبة",
+  "@vehicleSpecsAction": {},
+  "vehiclePrice": "السعر",
+  "@vehiclePrice": {},
+  "vehiclePriceWithVat": "السعر + الضريبة",
+  "@vehiclePriceWithVat": {},
+  "vehicleShareCopied": "نُسخ رابط المركبة",
+  "@vehicleShareCopied": {},
+  "signInDismiss": "إغلاق",
+  "@signInDismiss": {}
 }

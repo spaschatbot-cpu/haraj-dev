@@ -1,0 +1,67 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تذكيراتُ انطلاق المزاد. الحقلُ موجودٌ في v1 منذ سنة ولا شيء يقرؤه — فهذه
+الشاشة هي الميزةُ التي وعد بها. والإدراجُ في الطابور لا إرسال: صفٌّ `QUEUED`
+لا يكلّف هللة، والتسليمُ شأنُ من يملك البوّابة.
+{% endcomment %}
+{% block title %}تذكيرات المزادات{% endblock %}
+{% block heading %}تذكيرات المزادات{% endblock %}
+
+{% block content %}
+  <p class="notice">
+    التذكيرُ يُدرَج في طابور الإشعارات ولا يُرسَل من هنا — الإرسالُ يكلّف مالاً
+    لا يُسترد، فلا يقع بلا عينٍ تراه. والجمهور: <strong>من وضع سيارةً من هذا
+    المزاد في مفضّلته</strong>.
+  </p>
+
+  {% if due %}
+    <div class="notice warning">
+      <p><strong>{{ due|length|unlocalize }} مزاداً حان تذكيرُه ولم يُدرَج بعد.</strong></p>
+    </div>
+  {% endif %}
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المزاد</th><th>يبدأ</th><th>موعد التذكير</th>
+          <th>الجمهور</th><th>الحالة</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in rows %}
+          <tr>
+            <td><a href="{% url 'console:auction-detail' a.pk %}">{{ a.number|unlocalize }} — {{ a.title }}</a></td>
+            <td>{{ a.starts_at|date:"Y-m-d H:i" }}</td>
+            <td>{{ a.sms_reminder_at|date:"Y-m-d H:i" }}</td>
+            <td class="count">{{ a.audience|unlocalize }}</td>
+            <td>
+              {% if a.reminder_sent_at %}
+                <span class="pill" data-tone="good">أُدرج {{ a.reminder_sent_at|date:"Y-m-d H:i" }}</span>
+              {% elif a.starts_at <= now %}
+                <span class="pill" data-tone="plain">فات الأوان — المزاد بدأ</span>
+              {% elif a.sms_reminder_at <= now %}
+                <span class="pill" data-tone="warn">حان ولم يُدرَج</span>
+              {% else %}
+                <span class="pill" data-tone="info">لم يحن بعد</span>
+              {% endif %}
+            </td>
+            <td>
+              {% comment %} الزرُّ لِما حان ولم يُدرَج ومزادُه لم يبدأ — وما سواه
+                 يُقرأ ولا يُضغط. والخدمةُ تُعيد فحصَ الشروط، فالزرُّ راحةٌ لا حارس. {% endcomment %}
+              {% if not a.reminder_sent_at and a.sms_reminder_at <= now and a.starts_at > now %}
+                <form method="post" action="{% url 'console:reminder-send' a.pk %}" style="display:inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-sm">أدرِج {{ a.audience|unlocalize }} تذكيراً</button>
+                </form>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="empty">لا مزاد له موعدُ تذكير.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

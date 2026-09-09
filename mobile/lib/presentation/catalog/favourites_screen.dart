@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../app/router.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
@@ -74,8 +72,6 @@ class _Favourites extends StatelessWidget {
             onLoadMore: _noPaging,
             onRetryMore: _noPaging,
             emptyMessage: l10n.favouritesEmpty,
-            onOpenVehicle: (vehicle) =>
-                context.go(Routes.vehicleLocation(vehicle.id)),
           ),
         ),
       ],

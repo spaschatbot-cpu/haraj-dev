@@ -42,6 +42,7 @@ from decimal import Decimal
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.contrib import messages
 from django.shortcuts import render
 
 from apps.accounts.models import Company
@@ -394,3 +395,54 @@ def partner_payments(request):
             "total": rows.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
         },
     )
+
+
+@console_page("console:partner-rule")
+def partner_rule(request, pk: int):
+    """اختِم حكمَ شريك التسويق على سيارته — البابُ الذي يفكّ قفل القرار.
+
+    الخدمةُ (`auctions.services.record_partner_ruling`) تحمل الشروط كلَّها:
+    سيارةُ تسويقٍ، ومزادٌ انتهى، وحكمٌ لم يُختَم قبلاً. وهذه الشاشةُ بابٌ إليها
+    لا نسخةٌ منها — فما يُرفض هنا يُرفض من أي طريقٍ آخر.
+
+    وليست فعلَ المنصّة على السيارة: الحكمُ **إذنٌ** للمنصّة أن تقرّر، والقرارُ
+    بعده في شاشة العروض. ولذلك لا تنقل حالةً ولا تُرسي.
+    """
+    from django.shortcuts import get_object_or_404, redirect
+
+    from apps.auctions import services as auction_services
+    from apps.auctions.models import PartnerDecision
+    from apps.core import audit
+
+    vehicle = get_object_or_404(
+        Vehicle.objects.select_related("auction"), pk=pk
+    )
+    back = redirect(request.POST.get("next") or "console:partner-vehicles")
+
+    if request.method != "POST":
+        return back
+
+    decision = (request.POST.get("decision") or "").strip()
+    if decision not in PartnerDecision.values:
+        messages.error(request, "حكمٌ غير معروف.")
+        return back
+
+    try:
+        auction_services.record_partner_ruling(
+            vehicle, decision=decision, actor=request.user
+        )
+    except (auction_services.PartnerRulingPending, ValueError) as refusal:
+        messages.error(request, str(refusal))
+        return back
+
+    audit.record(
+        action="console.partner_ruling",
+        entity=vehicle,
+        actor=request.user,
+        after={"partner_decision": decision},
+        note=(request.POST.get("reason") or "").strip(),
+    )
+    messages.success(
+        request, f"سُجّل حكم الشريك: {vehicle.get_partner_decision_display()}."
+    )
+    return back

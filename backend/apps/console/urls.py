@@ -19,6 +19,7 @@ from . import (
     auction_quick,
     auctions,
     audit,
+    bids,
     billing,
     bulk,
     catalog,
@@ -34,6 +35,7 @@ from . import (
     payments,
     people,
     refunds,
+    reminders,
     staff,
     vehicle_bulk,
     vehicle_images,
@@ -121,6 +123,21 @@ urlpatterns = [
     ),
     # قرارات المزايدات — قسمُ v1 نفسه (T830أ). قراءةٌ محضة: الترسية في
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
+    # مزايدات المزاد الجاري، وكلُّ المزايدات بمركباتها. T890
+    # تذكيراتُ انطلاق المزاد — إدراجٌ في الطابور لا إرسال. T891
+    path("reminders/", reminders.reminders, name="reminders"),
+    path(
+        "reminders/<int:pk>/send/",
+        reminders.reminder_send,
+        name="reminder-send",
+    ),
+    path("bids/live/", bids.live_bids, name="live-bids"),
+    path("bids/vehicles/", bids.vehicle_bids, name="vehicle-bids"),
+    path(
+        "bids/vehicles/<int:pk>/list/",
+        bids.vehicle_bid_list,
+        name="vehicle-bid-list",
+    ),
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
@@ -149,7 +166,6 @@ urlpatterns = [
     path("users/bids-report/", analytics.user_bids, name="user-bids"),
     # إدارة المزادات — بقيّةُ قسم v1 (T830د).
     path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
-    path("vehicles/<int:pk>/bids/", catalog.vehicle_bids, name="vehicle-bids"),
     path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
     path("after-sales/", after_sales.after_sales, name="after-sales"),
     path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),
@@ -164,6 +180,12 @@ urlpatterns = [
     path("partner/state/active/", partner_console.partner_active, name="partner-active"),
     path("partner/state/ended/", partner_console.partner_ended, name="partner-ended"),
     path("partner/vehicles/", partner_console.partner_vehicles, name="partner-vehicles"),
+    # حكمُ شريك التسويق على سيارته — يفكّ قفل القرار (نظير `stampDecision` في v1).
+    path(
+        "partner/vehicles/<int:pk>/rule/",
+        partner_console.partner_rule,
+        name="partner-rule",
+    ),
     path(
         "partner/settlement/unpaid/",
         partner_console.partner_unpaid,

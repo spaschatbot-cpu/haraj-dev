@@ -306,40 +306,6 @@ def vehicle_catalog(request):
     )
 
 
-def vehicle_bids(request, pk: int):
-    """مزايداتُ سيارةٍ واحدة نافذةً منبثقة — نظيرُ «🏆 المزايدات» في كتالوج v1.
-
-    قراءةٌ محضة: من زايد، وبكم، ومتى، وأين صارت مزايدتُه (حيّة/مُستبدَلة/
-    مسحوبة). مرتّبةٌ بالأعلى مبلغاً كما يعرضها v1. تُجلَب بـfetch وتُحقَن في
-    `<dialog>` — بيانات القاعدة نفسها، لا رقمٌ من الدماغ.
-    """
-    from apps.accounts.services import display_name
-
-    vehicle = get_object_or_404(
-        Vehicle.objects.select_related("auction"), pk=pk
-    )
-    bids = list(
-        vehicle.bids.select_related("bidder").order_by("-amount", "-placed_at")
-    )
-    rows = [
-        {
-            "rank": index + 1,
-            "name": display_name(bid.bidder),
-            "phone": bid.bidder.phone,
-            "amount": bid.amount,
-            "placed_at": bid.placed_at,
-            "withdrawn": bid.is_withdrawn,
-            "superseded": bid.is_superseded,
-        }
-        for index, bid in enumerate(bids)
-    ]
-    return render(
-        request,
-        "console/_vehicle_bids_modal.html",
-        {"vehicle": vehicle, "bids": rows},
-    )
-
-
 def found(*, plate: str = "", vin: str = "", name: str = "", lot: str = ""):
     """بحثٌ **لكل عمودٍ على حدة**، كما في v1: صفُّ خاناتٍ تحت الرؤوس.
 

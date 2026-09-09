@@ -89,6 +89,13 @@ class Auction(models.Model):
         max_length=16, choices=AuctionState.choices, default=AuctionState.DRAFT
     )
 
+    #: متى أُدرج تذكيرُ هذا المزاد في الطابور — وهو ما يمنع إدراجَه مرّتين.
+    #
+    # `sms_reminder_at` يقول **متى**، ولا شيء في v1 ولا هنا كان يقول **هل
+    # أُرسل**. فبلا هذا العمود يصير كلُّ ضغطٍ على «أرسل» دفعةً ثانية إلى الناس
+    # أنفسهم — والرسالةُ الثانية تكلّف كالأولى ولا تُسترد.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     #: What a bidder must have deposited to take part.
     deposit_required = models.DecimalField(
         max_digits=14, decimal_places=2, default=Decimal("10000.00")
@@ -209,6 +216,13 @@ class PlateType(models.TextChoices):
     NONE = "none", "بدون لوحة"
 
 
+class PartnerDecision(models.TextChoices):
+    """حُكمُ شريك التسويق على سيارته. الفراغُ يعني «لم يحكم بعد»."""
+
+    ACCEPTED = "accepted", "قبل الشريك العرض"
+    REJECTED = "rejected", "رفض الشريك العروض"
+
+
 class Vehicle(models.Model):
     auction = models.ForeignKey(
         Auction, on_delete=models.PROTECT, related_name="vehicles"
@@ -316,6 +330,36 @@ class Vehicle(models.Model):
         max_digits=14, decimal_places=2, null=True, blank=True
     )
     awarded_at = models.DateTimeField(null=True, blank=True)
+
+    #: حُكمُ شريك التسويق على سيارته — قرارٌ **غيرُ** قرارِ المنصّة.
+    #
+    # التعاونيةُ تودع السيارة عندنا وهي صاحبةُ القرار في قبول العرض عليها،
+    # والمنصّةُ تُفوتر وتُشعر بعد ذلك. فهذان فاعلان اثنان وقراران اثنان، ولا
+    # يُستدلّ على أحدهما بحالة المركبة: `awarded` تقول ما فعلته المنصّة، وهذه
+    # تقول ما حكم به الشريك — وبينهما القفلُ في `partner_lock_reason`.
+    #
+    # v1 بنى القاعدة نفسها بعد حادثةٍ مكتوبةٍ في `PartnerVehicleLock`
+    # (٢٠٢٦-٠٨-٢٢): قُبل عرضٌ بـ١٦٢٬٣٥٠ على مركبةِ شريكٍ وحقلُ قراره خالٍ، لأن
+    # اللوحات القديمة تنادي خدمةَ القبول مباشرةً وهي لا تقرأ المركبة أصلاً.
+    partner_decision = models.CharField(
+        max_length=16, choices=PartnerDecision.choices, blank=True, default=""
+    )
+    partner_decided_at = models.DateTimeField(null=True, blank=True)
+    partner_decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="partner_rulings",
+    )
+    #: العرضُ الذي وافق عليه الشريك — قد يخالف الفائزَ النهائيّ لو نُقلت الترسية.
+    partner_decision_bid = models.ForeignKey(
+        "bidding.Bid",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="partner_rulings",
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

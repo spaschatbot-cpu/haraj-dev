@@ -23,7 +23,6 @@ abstract final class Routes {
   static const String changePhone = 'changePhone';
   static const String auction = 'auction';
   static const String auctionVehicles = 'auction-vehicles';
-  static const String vehicle = 'vehicle';
   static const String bids = 'bids';
 
   /// المفضلة — مركبات حفظها العميل ليعود إليها.
@@ -64,7 +63,6 @@ abstract final class Routes {
   static const String verifyCodePath = '/sign-in/code';
   static const String profilePath = '/profile';
   static const String auctionPath = '/auctions/:auctionId';
-  static const String vehiclePath = '/vehicles/:vehicleId';
   static const String bidsPath = '/bids';
   static const String bidPath = '/vehicles/:vehicleId/bid';
   static const String walletPath = '/wallet';
@@ -98,15 +96,17 @@ abstract final class Routes {
         pathParameters: <String, String>{'auctionId': auctionId},
       );
 
-  /// عنوان صفحة مركبة — نصّاً، لمن يحتاج العنوان لا الانتقال.
-  ///
-  /// المركبة تحت الرئيسية في شجرة المسارات، فعنوانها يحمل بادئتها. بناؤه هنا
-  /// لا في الشاشات: بادئةٌ مكتوبة بيد في شاشةٍ تفترق عن الجدول عند أول نقل.
-  static String vehicleLocation(String vehicleId) => '/vehicles/$vehicleId';
+  // **لا مسارَ لصفحة مركبة** — حُذفت الصفحةُ بطلب المالك في ٩ سبتمبر ٢٠٢٦،
+  // وحلّ محلَّها صندوقُ المزايدة الذي يفتحه الكرت. وسقط معها
+  // `vehicleLocation` و`goToVehicle`.
 
-  static void goToVehicle(BuildContext context, String vehicleId) =>
+  /// عنوان شاشة المزايدة على مركبة — نصّاً، لمن يحتاج العنوان لا الانتقال.
+  static String bidLocation(String vehicleId) => '/vehicles/$vehicleId/bid';
+
+  /// ينتقل إلى شاشة المزايدة. يفتحه زرُّ «دخول المزاد» في صندوق المزايدة.
+  static void goToBid(BuildContext context, String vehicleId) =>
       GoRouter.of(context).goNamed(
-        vehicle,
+        bid,
         pathParameters: <String, String>{'vehicleId': vehicleId},
       );
 }
@@ -123,7 +123,12 @@ abstract final class PushLocations {
 
     return switch (destination.target) {
       PushTarget.auction when auctionId != null => '/auctions/$auctionId',
-      PushTarget.vehicle when vehicleId != null => '/vehicles/$vehicleId',
+      // **إلى المزايدة لا إلى صفحة المركبة**: الصفحةُ حُذفت في ٩ سبتمبر
+      // ٢٠٢٦، وعنوانُها القديم يهبط بالمستخدم على «مسار غير موجود» — وهو
+      // أسوأ ما يفعله إشعار. وشاشةُ المزايدة أقربُ ما بقي إلى مركبةٍ بعينها.
+      PushTarget.vehicle when vehicleId != null => Routes.bidLocation(
+        vehicleId,
+      ),
       PushTarget.bids => Routes.bidsPath,
       PushTarget.wallet => Routes.walletPath,
       // رقم الفاتورة يصل في الحمولة ولا يدخل العنوان: لا توجد شاشة فاتورةٍ

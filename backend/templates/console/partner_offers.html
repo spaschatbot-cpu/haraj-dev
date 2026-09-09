@@ -49,6 +49,12 @@ that number reached the invoice conversation.
           <td>
             <form method="post" action="{% url 'console:partner-award' vehicle.pk %}">
               {% csrf_token %}
+              {% comment %} السببُ يصل `replace_winner` **التي تشترطه**: نقلُ
+                 ترسيةٍ يُلغي فاتورةً ويحرّر أقفالاً، ومن يسأل بعد شهرٍ «لماذا
+                 تغيّر الفائز؟» لا يجيبه صفٌّ بسببٍ فارغ. وكان القالبُ لا يرسله
+                 أصلاً، فكلُّ نقلٍ من هذه الشاشة يُسجَّل أعمى. {% endcomment %}
+              <input type="text" name="reason" maxlength="200"
+                     placeholder="سبب الترسية أو نقلها…" aria-label="السبب">
               <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
 <button type="submit">رسِّ على هذا</button>
             </form>
@@ -64,6 +70,8 @@ that number reached the invoice conversation.
   <h2>رفض المالك</h2>
   <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}">
     {% csrf_token %}
+    <input type="text" name="reason" maxlength="200"
+           placeholder="سبب الرفض…" aria-label="السبب">
     {% comment %} "Nobody offered enough" and "the owner pulled it" are different facts
        with opposite next steps, and v1 lost the distinction. {% endcomment %}
 <button type="submit">المالك رفض كل العروض</button>

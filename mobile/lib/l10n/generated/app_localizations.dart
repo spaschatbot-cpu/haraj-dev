@@ -641,7 +641,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In ar, this message translates to:
-  /// **'ابحث عن سيارة أو رقم اللوت…'**
+  /// **'ابحث عن سيارة'**
   String get searchHint;
 
   /// No description provided for @filterMake.
@@ -1375,6 +1375,54 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تعذّر تحديث المفضلة'**
   String get favouriteFailed;
+
+  /// No description provided for @vehicleSpecCity.
+  ///
+  /// In ar, this message translates to:
+  /// **'المدينة'**
+  String get vehicleSpecCity;
+
+  /// No description provided for @vehicleBidDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل المزايدة'**
+  String get vehicleBidDetails;
+
+  /// No description provided for @vehicleEnterAuction.
+  ///
+  /// In ar, this message translates to:
+  /// **'دخول المزاد'**
+  String get vehicleEnterAuction;
+
+  /// No description provided for @vehicleSpecsAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'مواصفات المركبة'**
+  String get vehicleSpecsAction;
+
+  /// No description provided for @vehiclePrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get vehiclePrice;
+
+  /// No description provided for @vehiclePriceWithVat.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر + الضريبة'**
+  String get vehiclePriceWithVat;
+
+  /// No description provided for @vehicleShareCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'نُسخ رابط المركبة'**
+  String get vehicleShareCopied;
+
+  /// No description provided for @signInDismiss.
+  ///
+  /// In ar, this message translates to:
+  /// **'إغلاق'**
+  String get signInDismiss;
 }
 
 class _AppLocalizationsDelegate

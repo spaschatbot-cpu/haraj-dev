@@ -1,0 +1,108 @@
+{% load l10n %}
+{% comment %}
+جدولُ المزايدات المشترَك — تقرؤه الشاشتان (الجاري، وكلُّ السيارات). كُتب مرّةً:
+جدولان بأربعة عشر عموداً يفترقان بعد شهرٍ في عمودٍ واحد، ولا أحد يلاحظ.
+{% endcomment %}
+<div class="scroller">
+  <table>
+    <thead>
+      <tr>
+        <th>المزاد</th><th>اللوت</th><th>المركبة</th><th>السنة</th>
+        <th>اللوحة</th><th>الشاصي</th><th>اللون</th><th>الحالة الفنية</th>
+        <th>سعر الوقوف</th><th>المزايد</th><th>الجوال</th>
+        <th>المبلغ</th><th>حالة المزايدة</th><th>الوقت</th><th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for bid in page %}
+        <tr>
+          <td><a href="{% url 'console:auction-detail' bid.vehicle.auction.pk %}">{{ bid.vehicle.auction.number|unlocalize }}</a></td>
+          <td class="count">{{ bid.vehicle.lot_number|unlocalize }}</td>
+          {% comment %} التفاصيلُ نافذةٌ لا صفحة: من يقرأ صفّاً في مئة ألف
+             لا يُخرَج من مكانه ليقرأ حقلاً. {% endcomment %}
+          <td>
+            <button type="button" class="linkish" data-detail-open
+                    data-url="{% url 'console:vehicle-detail' bid.vehicle.pk %}?modal=1"
+                    title="تفاصيل المركبة">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</button>
+          </td>
+          <td>{{ bid.vehicle.year|unlocalize }}</td>
+          <td>{{ bid.vehicle.plate_number|default:"—" }}</td>
+          <td>{{ bid.vehicle.vin|default:"—" }}</td>
+          <td>{{ bid.vehicle.get_colour_display|default:"—" }}</td>
+          <td>{{ bid.vehicle.get_condition_display|default:"—" }}</td>
+          <td class="money">{{ bid.vehicle.reserve_price|default:"—"|unlocalize }}</td>
+          <td>{{ bid.bidder.full_name }}</td>
+          <td>{{ bid.bidder.phone|unlocalize }}</td>
+          <td class="money">{{ bid.amount|unlocalize }}</td>
+          <td>
+            {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
+            {% elif bid.is_superseded %}<span class="pill" data-tone="warn">مستبدَلة بأعلى</span>
+            {% else %}<span class="pill" data-tone="good">قائمة</span>{% endif %}
+          </td>
+          <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+          {% comment %} «المزايدات» — السؤالُ الذي يلي كلَّ صفّ: ومن غيره زايد
+             عليها؟ يُجاب في نافذةٍ فلا يفقد الموظّفُ مكانَه في مئة ألف صفّ. {% endcomment %}
+          <td>
+            <button type="button" class="btn-sm" data-bids-open
+                    data-url="{% url 'console:vehicle-bid-list' bid.vehicle.pk %}"
+                    title="كل المزايدات على هذه المركبة">المزايدات</button>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="15" class="empty">{{ empty_text|default:"لا مزايدات مطابقة." }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="table-footer">
+  <div class="table-footer__count">
+    {{ page.paginator.count|unlocalize }} مزايدة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+  </div>
+  {% if page.paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="صفحات المزايدات">
+      {% if page.has_previous %}<a class="pagination__btn" href="?{{ keep }}page={{ page.previous_page_number }}">السابق</a>{% endif %}
+      <span class="pagination__current">{{ page.number|unlocalize }} / {{ page.paginator.num_pages|unlocalize }}</span>
+      {% if page.has_next %}<a class="pagination__btn" href="?{{ keep }}page={{ page.next_page_number }}">التالي</a>{% endif %}
+    </nav>
+  {% endif %}
+</div>
+
+{% comment %} نافذةُ مزايدات المركبة — `<dialog>` لا `<div>`: المتصفّح يحبس
+   التركيز ويُغلق بـEscape ويعتم الخلف. والضغطُ خارجها يغلقها كبقيّة نوافذ اللوحة.
+{% endcomment %}
+<dialog class="modal row-ajax-modal" data-bids-modal>
+  <div data-bids-body></div>
+</dialog>
+
+<script>
+(function () {
+  var modal = document.querySelector('[data-bids-modal]');
+  if (!modal || !modal.showModal) return;
+  var body = modal.querySelector('[data-bids-body]');
+
+  // **تفويضٌ على المستند** لا ربطٌ لكل زرّ: زرُّ «تفاصيل المركبة» يُحقَن داخل
+  // النافذة بعد أن يكون هذا السكربت قد عمل، فربطٌ مباشرٌ لا يبلغه أبداً.
+  function openInto(url) {
+    body.innerHTML = '<p class="empty">…يُحمَّل</p>';
+    if (!modal.open) modal.showModal();
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'fetch' },
+    }).then(function (r) { return r.text(); }).then(function (html) {
+      body.innerHTML = html;
+    }).catch(function () {
+      body.innerHTML = '<p class="empty">تعذّر الجلب.</p>';
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var opener = e.target.closest('[data-bids-open], [data-detail-open]');
+    if (opener) { openInto(opener.getAttribute('data-url')); return; }
+    if (e.target.closest('[data-bids-close], [data-close]')) { modal.close(); }
+  });
+
+  // الضغطُ على الخلفية (خارج البطاقة) يغلق — كبقيّة نوافذ اللوحة.
+  modal.addEventListener('click', function (e) { if (e.target === modal) modal.close(); });
+})();
+</script>

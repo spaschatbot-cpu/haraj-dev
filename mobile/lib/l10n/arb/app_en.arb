@@ -90,7 +90,7 @@
   "vehiclesTitle": "Auction vehicles",
   "vehiclesEmpty": "No matching vehicles.",
   "vehiclesResultsCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
-  "searchHint": "Search for a car or a lot number…",
+  "searchHint": "Search for a car",
   "filterMake": "Make",
   "filterYearFrom": "Year from",
   "filterYearTo": "Year to",
@@ -267,5 +267,21 @@
     }
   },
   "favouriteFailed": "Could not update favourites",
-  "@favouriteFailed": {}
+  "@favouriteFailed": {},
+  "vehicleSpecCity": "City",
+  "@vehicleSpecCity": {},
+  "vehicleBidDetails": "Bidding details",
+  "@vehicleBidDetails": {},
+  "vehicleEnterAuction": "Enter the auction",
+  "@vehicleEnterAuction": {},
+  "vehicleSpecsAction": "Vehicle specifications",
+  "@vehicleSpecsAction": {},
+  "vehiclePrice": "Price",
+  "@vehiclePrice": {},
+  "vehiclePriceWithVat": "Price + VAT",
+  "@vehiclePriceWithVat": {},
+  "vehicleShareCopied": "Vehicle link copied",
+  "@vehicleShareCopied": {},
+  "signInDismiss": "Close",
+  "@signInDismiss": {}
 }

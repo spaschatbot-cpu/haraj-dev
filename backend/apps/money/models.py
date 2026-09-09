@@ -440,8 +440,26 @@ class Invoice(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="invoices"
     )
     number = models.CharField(max_length=64, unique=True)
+
+    #: **ما يدين به العميل — كاملاً**: المركبة + الرسم الإداري + ضريبتهما.
+    #:
+    #: `outstanding` و`derive_invoice_state` يقارنان `amount_paid` بهذا العمود،
+    #: فهو تعريفُ «المسدَّد» بالضرورة. وكان يُملأ بسعر الترسية وحده (قبل
+    #: الضريبة)، فكان العميل يُطالَب بسعر المطرقة فقط: **لا ضريبةَ تُجبى ولا
+    #: رسمَ إداريّ**، بينما v1 يُصدر فاتورةً بالإجمالي (`(سعر + رسم) × ١٫١٥`).
     amount = models.DecimalField(**MONEY)
     amount_paid = models.DecimalField(**MONEY, default=ZERO)
+
+    #: مكوّنات `amount` **مختومةً لحظةَ الإصدار** — لا تُحسب عند القراءة.
+    #:
+    #: v1 يقرأ `auctions.fees` و`auctions.vat_type` كلَّ مرة يعرض فيها فاتورة،
+    #: فتغييرُ رسم المزاد اليوم يُعيد كتابة فواتيرَ صدرت الشهر الماضي بأثرٍ
+    #: رجعيّ. وهنا تُثبَّت القيم في الصفّ: ما صدر لا يتغيّر، والفاتورة تبقى
+    #: قابلةً لإعادة البناء بجمعٍ بسيط (`net + fee + tax == amount`) يحرسه قيدٌ
+    #: في القاعدة لا عُرفٌ في الكود.
+    net_amount = models.DecimalField(**MONEY, default=ZERO)
+    admin_fee = models.DecimalField(**MONEY, default=ZERO)
+    tax_amount = models.DecimalField(**MONEY, default=ZERO)
 
     state = models.CharField(
         max_length=16, choices=InvoiceState.choices, default=InvoiceState.DRAFT
@@ -478,6 +496,20 @@ class Invoice(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=Q(amount__gte=ZERO), name="invoice_amount_not_negative"
+            ),
+            # المكوّناتُ تُجمع إلى الإجمالي — أو تكون كلُّها صفراً.
+            #
+            # الشقُّ الثاني للفواتير المرآة من أودو: هي تحمل إجمالياً بلا تفصيل،
+            # فلا يُفرض عليها تفصيلٌ لا نملكه. أما ما نُصدره نحن فمجموعُ بنوده
+            # **هو** ما يدين به العميل، وقيدٌ في القاعدة أصدقُ من تعليقٍ يقول ذلك:
+            # سطرٌ ينسى الضريبة أو يضاعف الرسم يُرفض عند الكتابة لا في تقريرٍ
+            # يُقرأ بعد شهر.
+            models.CheckConstraint(
+                condition=(
+                    Q(net_amount=ZERO, admin_fee=ZERO, tax_amount=ZERO)
+                    | Q(amount=F("net_amount") + F("admin_fee") + F("tax_amount"))
+                ),
+                name="invoice_parts_add_up_to_its_total",
             ),
             models.CheckConstraint(
                 condition=Q(amount_paid__gte=ZERO), name="invoice_paid_not_negative"
