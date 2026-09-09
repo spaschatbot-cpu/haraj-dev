@@ -188,7 +188,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     goldOnDark: Color(0xFF8FC4F7),
     ink: Color(0xFF12263C),
     inkMuted: Color(0xFF5F7488),
-    pageBackground: Color(0xFFF7FAFD),
+    pageBackground: Color(0xFFF3F5F8),
     cardSurface: Color(0xFFFFFFFF),
     heroTop: Color(0xFF0E2136),
     heroBottom: Color(0xFF050D17),
