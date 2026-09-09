@@ -377,6 +377,9 @@ def auction_detail(request, pk: int):
                 "images": icons.path_of("eye"),
                 "move": icons.path_of("layers"),
                 "delete": icons.path_of("trash"),
+                # إخفاء/إظهار — رؤيةُ السيارة عن العملاء. نظيرُ v1.
+                "hide": icons.path_of("eye-off"),
+                "show": icons.path_of("eye"),
             },
         },
     )

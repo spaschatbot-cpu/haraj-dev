@@ -1,0 +1,63 @@
+{% load l10n %}
+{% comment %}
+محتوى معرض صور المركبة — يُشارَك بين الصفحة الكاملة والنافذة المنبثقة.
+كلُّ نموذجٍ موسومٌ `data-gallery-form`: في النافذة يُعترَض بـJS فيردّ المعرضَ
+محدَّثاً (يبقى مفتوحاً)، وفي الصفحة الكاملة يُرسَل عاديّاً فيُعاد التحميل.
+{% endcomment %}
+
+{% if messages %}
+  <ul class="gallery-msgs">
+    {% for m in messages %}<li class="notice notice--{{ m.tags|default:'info' }}">{{ m }}</li>{% endfor %}
+  </ul>
+{% endif %}
+
+{% comment %} الرفعُ أوّلاً: النافذةُ تُفتح غالباً لأن السيارةَ «بلا صور»،
+   فالفعلُ الذي جاء لأجله يجب ألّا يكون تحت صورٍ لا وجود لها. سحبٌ وإفلاتٌ
+   ومعاينةٌ فورية — أسلوبُ رفع v1؛ تحسينٌ تدريجيّ يعمل بلا جافاسكربت. {% endcomment %}
+<form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
+      enctype="multipart/form-data" class="shots-upload" data-uploader data-gallery-form>
+  {% csrf_token %}
+  <input type="hidden" name="op" value="upload">
+  <label class="dropzone" data-dropzone>
+    <span class="dropzone__hint">📤 اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
+    <input type="file" name="images" accept="image/*" multiple required data-file-input>
+  </label>
+  <div class="dropzone__preview" data-preview hidden></div>
+  <button type="submit" class="btn-primary">ارفع</button>
+</form>
+
+{% if shots %}
+  <ul class="shots shots--managed">
+    {% for shot in shots %}
+      <li data-cover="{{ shot.is_cover|yesno:"true,false" }}">
+        <a href="{{ shot.image.url }}" target="_blank" rel="noopener"
+           title="افتح الأصل بحجمه الكامل">
+          <img src="{{ shot.preview.url|default:shot.image.url }}" alt=""
+               loading="lazy" decoding="async">
+        </a>
+        <div class="shots__foot">
+          {% if shot.is_cover %}
+            <span class="pill" data-tone="info">صورة العرض</span>
+          {% else %}
+            <form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
+                  class="shots__act" data-gallery-form>
+              {% csrf_token %}
+              <input type="hidden" name="op" value="cover">
+              <input type="hidden" name="image" value="{{ shot.pk|unlocalize }}">
+              <button type="submit" class="btn-sm">اجعلها العرض</button>
+            </form>
+          {% endif %}
+          <form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
+                class="shots__act" data-gallery-form>
+            {% csrf_token %}
+            <input type="hidden" name="op" value="delete">
+            <input type="hidden" name="image" value="{{ shot.pk|unlocalize }}">
+            <button type="submit" class="btn-danger-sm" title="حذفُ هذه الصورة">احذف</button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p class="notice">لا صور لهذه المركبة — وبطاقتُها عند العميل تظهر بلا صورة.</p>
+{% endif %}

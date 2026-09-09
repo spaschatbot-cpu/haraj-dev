@@ -1,0 +1,14 @@
+{% load l10n %}
+{% comment %}
+غلافُ نافذة صور المركبة — يُجلَب بـfetch ويُحقَن في `<dialog>` شاشةِ المزاد.
+المحتوى نفسُه (`_vehicle_images_body`) هو ما تعرضه الصفحةُ الكاملة، فالوجهان
+من مصدرٍ واحد. لا سكربت هنا: الحقنُ بـinnerHTML لا يُشغّل `<script>`، فتوصيلُ
+السحب/الإفلات والنماذج يقع في سكربت الشاشة الأمّ بعد الحقن.
+{% endcomment %}
+<div class="images-modal__head">
+  <h3 class="images-modal__title">صور {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</h3>
+  <button type="button" class="modal__close" data-images-close aria-label="إغلاق">✕</button>
+</div>
+<div class="images-modal__scroll">
+  {% include "console/_vehicle_images_body.html" %}
+</div>

@@ -285,6 +285,13 @@ class Vehicle(models.Model):
     #: للتسويق — `is_marketing`. سيارةٌ تُعرض للدعاية لا للبيع في هذه الدورة.
     is_marketing = models.BooleanField(default=False)
 
+    #: إخفاءٌ عن العملاء لا سحبٌ من المزاد — نظيرُ `status='coming'` في v1
+    #: (`setVehicleVisibility`): السيارةُ تبقى في المزاد وحالتُها كما هي، لكنها
+    #: تُطوى عن قوائم العموم. مستقلٌّ عن آلة الحالة عمداً: يُخفى ما هو تحت
+    #: المزايدة دون لمس مزايداته، ويُظهَر بضغطةٍ ثانية. البوّابةُ الوحيدة التي
+    #: تقرؤه هي `visibility.is_public`/`public_q`.
+    is_hidden = models.BooleanField(default=False)
+
     #: The one number that says what this car stands on. In v1 four screens each
     #: computed their own version of it; here every screen reads this field.
     reserve_price = models.DecimalField(

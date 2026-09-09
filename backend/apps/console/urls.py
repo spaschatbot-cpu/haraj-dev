@@ -199,6 +199,12 @@ urlpatterns = [
         vehicle_bulk.marketing_toggle,
         name="vehicle-marketing",
     ),
+    # قلبُ رؤية مركبةٍ عن العملاء — إخفاء/إظهار من كارتها. نظيرُ v1.
+    path(
+        "vehicles/<int:pk>/visibility/",
+        vehicle_bulk.visibility_toggle,
+        name="vehicle-visibility",
+    ),
     path(
         "vehicles/<int:pk>/relist/", auction_moves.vehicle_relist, name="vehicle-relist"
     ),

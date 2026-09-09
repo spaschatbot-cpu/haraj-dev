@@ -54,26 +54,45 @@ def _gallery_of(vehicle: Vehicle):
 
 @console_page("console:vehicle-images")
 def gallery(request, pk: int):
-    """معرضُ صور مركبةٍ واحدة، وأفعالُه الثلاثة."""
+    """معرضُ صور مركبةٍ واحدة، وأفعالُه الثلاثة — صفحةً أو نافذةً منبثقة.
+
+    النافذةُ (`?modal=1` أو ترويسةُ fetch) تُفتح من كارت شاشة المزاد فتعرض
+    المحتوى وحده. وأفعالُها ترجع المعرضَ محدَّثاً (200) لا تحويلاً، فتبقى
+    مفتوحةً وتُظهر الأثر فوراً — بينما الصفحةُ الكاملة تُحوَّل بنمط PRG.
+    """
     vehicle = get_object_or_404(
         Vehicle.objects.select_related("auction", "owner_company"), pk=pk
     )
-    back = redirect("console:vehicle-images", pk=vehicle.pk)
+    is_modal = (
+        request.GET.get("modal") == "1"
+        or request.headers.get("X-Requested-With") == "fetch"
+    )
 
     if request.method == "POST":
         operation = request.POST.get("op", "")
         if operation == "upload":
-            return _upload(request, vehicle, back)
-        if operation == "delete":
-            return _delete(request, vehicle, back)
-        if operation == "cover":
-            return _cover(request, vehicle, back)
-        messages.error(request, "فعلٌ غير معروف.")
-        return back
+            _upload(request, vehicle)
+        elif operation == "delete":
+            _delete(request, vehicle)
+        elif operation == "cover":
+            _cover(request, vehicle)
+        else:
+            messages.error(request, "فعلٌ غير معروف.")
+        if is_modal:
+            return _render_gallery(request, vehicle, modal=True)
+        return redirect("console:vehicle-images", pk=vehicle.pk)
 
+    return _render_gallery(request, vehicle, modal=is_modal)
+
+
+def _render_gallery(request, vehicle: Vehicle, *, modal: bool):
+    """المعرضُ بوجهيه: جزئيةُ النافذة، أو الصفحةُ الكاملة."""
+    template = (
+        "console/_vehicle_images_modal.html" if modal else "console/vehicle_images.html"
+    )
     return render(
         request,
-        "console/vehicle_images.html",
+        template,
         {
             "vehicle": vehicle,
             "auction": vehicle.auction,
@@ -83,16 +102,16 @@ def gallery(request, pk: int):
     )
 
 
-def _upload(request, vehicle: Vehicle, back):
+def _upload(request, vehicle: Vehicle):
     files = request.FILES.getlist("images")
     if not files:
         messages.error(request, "لم يُختَر ملفّ.")
-        return back
+        return
     if len(files) > BATCH:
         messages.error(
             request, f"{len(files)} ملفّاً في رفعةٍ واحدة — الحدّ {BATCH}."
         )
-        return back
+        return
 
     # الموضعُ يتابع آخر ما في المعرض، ولا يبدأ من الصفر: صفران بالموضع نفسه
     # يجعلان الترتيب يعتمد على `pk` وحده، فتنتقل صورةٌ من مكانها بلا سبب.
@@ -127,13 +146,12 @@ def _upload(request, vehicle: Vehicle, back):
         messages.success(request, f"رُفعت {stored} صورة.")
     for line in refused:
         messages.error(request, f"رُفض — {line}")
-    return back
 
 
-def _delete(request, vehicle: Vehicle, back):
+def _delete(request, vehicle: Vehicle):
     image = _picked(request, vehicle)
     if image is None:
-        return back
+        return
 
     was_cover = image.is_cover
     auction_services.remove_image(image)
@@ -154,13 +172,12 @@ def _delete(request, vehicle: Vehicle, back):
         )
     else:
         messages.success(request, "حُذفت الصورة.")
-    return back
 
 
-def _cover(request, vehicle: Vehicle, back):
+def _cover(request, vehicle: Vehicle):
     image = _picked(request, vehicle)
     if image is None:
-        return back
+        return
 
     auction_services.set_cover(image)
     audit.record(
@@ -171,7 +188,6 @@ def _cover(request, vehicle: Vehicle, back):
         note="تعيينُ غلاف",
     )
     messages.success(request, "صارت هذه صورةَ العرض.")
-    return back
 
 
 def _picked(request, vehicle: Vehicle) -> VehicleImage | None:

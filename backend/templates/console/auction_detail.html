@@ -276,7 +276,7 @@ somebody went looking for it.
      T880 {% endcomment %}
   <div class="veh-grid">
     {% for car in page %}
-      <article class="veh-card">
+      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}">
         {% comment %} صورةُ الكارت نفسُها زرُّ **صورة العرض** — كـ v1
            (`data-action="display-image"` في `manage.php`): الضغطُ يفتح منتقيَ
            ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض. والفارغةُ تقول
@@ -329,31 +329,26 @@ somebody went looking for it.
           </div>
           {% if can_manage %}
           <div class="veh-card__actions">
-            <a class="btn-sm" href="{% url 'console:vehicle-images' car.pk %}">الصور ({{ car.image_count|unlocalize }})</a>
+            {% comment %} «الصور» تفتح المعرضَ نافذةً منبثقة لا صفحةً كاملة —
+               رفعُ الصور وعرضُ الفرعيّة في مكان واحد دون مغادرة المزاد.
+               يُجلَب `?modal=1` بـfetch ويُحقَن في `<dialog>`. {% endcomment %}
+            <button type="button" class="btn-sm" data-images-modal
+                    data-url="{% url 'console:vehicle-images' car.pk %}?modal=1">الصور ({{ car.image_count|unlocalize }})</button>
             <button type="button" class="btn-sm" data-row-edit
                     data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">تعديل</button>
-            {% comment %} الزرُّ الثالث كـv1: «إظهار» للمخفيّة (مسودّة → معروضة)
-               و«إخفاء» للمعروضة (معروضة → مسودّة). كلاهما انتقالٌ صالحٌ في آلة
-               الحالة. وما دخل المزايدةَ أو رسا لا يُظهَر ولا يُخفى بضغطة —
-               فيغيب زرُّه، لأن الخدمة ترفض النقلَ وزرٌّ يُفتح على رفضٍ خداع.
-            {% endcomment %}
-            {% if car.state == "draft" %}
-              <form method="post" action="{% url 'console:vehicle-state' car.pk %}" class="veh-card__inline">
-                {% csrf_token %}
-                <input type="hidden" name="target" value="listed">
-                <input type="hidden" name="reason" value="إظهار من شاشة إدارة المزاد">
-                <input type="hidden" name="next" value="{% url 'console:auction-detail' auction.pk %}">
-                <button type="submit" class="btn-primary-sm">إظهار</button>
-              </form>
-            {% elif car.state == "listed" %}
-              <form method="post" action="{% url 'console:vehicle-state' car.pk %}" class="veh-card__inline">
-                {% csrf_token %}
-                <input type="hidden" name="target" value="draft">
-                <input type="hidden" name="reason" value="إخفاء من شاشة إدارة المزاد">
-                <input type="hidden" name="next" value="{% url 'console:auction-detail' auction.pk %}">
-                <button type="submit" class="btn-sm">إخفاء</button>
-              </form>
-            {% endif %}
+            {% comment %} إخفاء/إظهار أيقونةً — رؤيةُ السيارة عن العملاء، نظيرُ
+               v1 (`hide`/`show`). علمٌ مستقلٌّ عن الحالة (`is_hidden`)، فالزرُّ
+               حاضرٌ دائماً لا مربوطٌ بطورٍ من أطوار المزايدة: العينُ المشطوبة
+               «إخفاء» للمعروضة، والعينُ «إظهار» للمخفيّة. يُقلَب بـAJAX. {% endcomment %}
+            <button type="button"
+                    class="act {% if car.is_hidden %}act--show{% else %}act--hide{% endif %}"
+                    data-visibility-toggle data-pk="{{ car.pk|unlocalize }}"
+                    data-hidden="{{ car.is_hidden|yesno:'1,0' }}"
+                    title="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}"
+                    aria-label="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}">
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
+                d="{% if car.is_hidden %}{{ action_icons.show }}{% else %}{{ action_icons.hide }}{% endif %}"/></svg>
+            </button>
           </div>
           {% endif %}
         </div>
@@ -446,6 +441,14 @@ somebody went looking for it.
   {% endcomment %}
   <dialog class="modal row-ajax-modal" data-ajax-modal>
     <div data-ajax-body></div>
+  </dialog>
+
+  {% comment %} نافذةُ صور المركبة: رفعٌ وعرضُ الصور الفرعيّة في مكان واحد.
+     تُجلَب محتواها بـfetch من `vehicle-images?modal=1`، وأفعالُها (رفع/حذف/
+     غلاف) تردّ المعرضَ محدَّثاً فيبقى مفتوحاً بلا reload. وحين يُغلَق بعد
+     تغييرٍ يُعاد تحميلُ الشاشة لتتحدّث أغلفةُ الكروت وعدّاداتُها. {% endcomment %}
+  <dialog class="modal images-modal" data-images-dialog>
+    <div data-images-body></div>
   </dialog>
 
   <script>
@@ -541,6 +544,108 @@ somebody went looking for it.
         input.click();
       });
     });
+
+    // زرُّ إخفاء/إظهار: يقلب `is_hidden` فوراً بـAJAX — كـ v1، لا reload.
+    // يبدّل الأيقونة (عين ↔ عين مشطوبة) ووسمَ البطاقة (تعتيمُ المخفيّة).
+    var ICON_HIDE = "{{ action_icons.hide|escapejs }}";
+    var ICON_SHOW = "{{ action_icons.show|escapejs }}";
+    document.querySelectorAll('[data-visibility-toggle]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var next = btn.getAttribute('data-hidden') !== '1';  // نُخفي إن لم تكن مخفيّة
+        btn.disabled = true;
+        fetch('/console/vehicles/' + btn.getAttribute('data-pk') + '/visibility/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrf },
+          body: 'is_hidden=' + (next ? '1' : '0'),
+          credentials: 'same-origin',
+        }).then(function (r) { return r.json(); }).then(function (p) {
+          if (!p.ok) { alert(p.message || 'تعذّر تغيير الرؤية.'); return; }
+          btn.setAttribute('data-hidden', next ? '1' : '0');
+          btn.classList.toggle('act--show', next);
+          btn.classList.toggle('act--hide', !next);
+          var label = next ? 'إظهار للعملاء' : 'إخفاء عن العملاء';
+          btn.title = label; btn.setAttribute('aria-label', label);
+          var path = btn.querySelector('svg path');
+          if (path) path.setAttribute('d', next ? ICON_SHOW : ICON_HIDE);
+          var card = btn.closest('.veh-card');
+          if (card) card.classList.toggle('veh-card--hidden', next);
+        }).catch(function () { alert('تعذّر تغيير الرؤية.'); })
+          .finally(function () { btn.disabled = false; });
+      });
+    });
+
+    // نافذةُ صور المركبة: تُجلَب بـfetch وتُفتح `<dialog>`. أفعالُ الرفع/الحذف/
+    // الغلاف داخلها تردّ المعرضَ محدَّثاً فيُحقَن ثانيةً بلا مغادرة. وعلى
+    // الإغلاق بعد تغييرٍ تُعاد الشاشةُ لتتحدّث الكروت.
+    var imgDialog = document.querySelector('[data-images-dialog]');
+    var imgBody = imgDialog ? imgDialog.querySelector('[data-images-body]') : null;
+    var imgChanged = false;
+    if (imgDialog && imgDialog.showModal && imgBody) {
+      function wireDropzone() {
+        var zone = imgBody.querySelector('[data-dropzone]');
+        var input = imgBody.querySelector('[data-file-input]');
+        var preview = imgBody.querySelector('[data-preview]');
+        if (!zone || !input || !preview) return;
+        ['dragover', 'dragenter'].forEach(function (ev) {
+          zone.addEventListener(ev, function (e) { e.preventDefault(); zone.classList.add('dropzone--over'); });
+        });
+        ['dragleave', 'drop'].forEach(function (ev) {
+          zone.addEventListener(ev, function () { zone.classList.remove('dropzone--over'); });
+        });
+        zone.addEventListener('drop', function (e) {
+          e.preventDefault();
+          if (e.dataTransfer && e.dataTransfer.files.length) { input.files = e.dataTransfer.files; showPreviews(); }
+        });
+        input.addEventListener('change', showPreviews);
+        function showPreviews() {
+          preview.innerHTML = '';
+          var files = input.files;
+          if (!files || !files.length) { preview.hidden = true; return; }
+          preview.hidden = false;
+          for (var i = 0; i < files.length; i++) {
+            var img = document.createElement('img');
+            img.src = URL.createObjectURL(files[i]);
+            img.onload = function () { URL.revokeObjectURL(this.src); };
+            preview.appendChild(img);
+          }
+        }
+      }
+      function wireImagesForms() {
+        wireDropzone();
+        imgBody.querySelectorAll('form[data-gallery-form]').forEach(function (form) {
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            fetch(form.getAttribute('action') || location.href, {
+              method: 'POST',
+              body: new FormData(form),
+              credentials: 'same-origin',
+              headers: { 'X-Requested-With': 'fetch' },
+            }).then(function (r) { return r.text(); }).then(function (html) {
+              imgChanged = true;
+              imgBody.innerHTML = html;
+              wireImagesForms();
+            });
+          });
+        });
+        var closer = imgBody.querySelector('[data-images-close]');
+        if (closer) closer.addEventListener('click', function () { imgDialog.close(); });
+      }
+      imgDialog.addEventListener('close', function () {
+        if (imgChanged) { window.location.reload(); }
+      });
+      document.querySelectorAll('[data-images-modal]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          imgChanged = false;
+          fetch(btn.getAttribute('data-url'), {
+            credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' },
+          }).then(function (r) { return r.text(); }).then(function (html) {
+            imgBody.innerHTML = html;
+            imgDialog.showModal();
+            wireImagesForms();
+          });
+        });
+      });
+    }
   })();
   </script>
   <style>

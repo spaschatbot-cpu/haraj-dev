@@ -1,16 +1,10 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-معرضُ صور مركبةٍ واحدة — نظيرُ نافذة v1، صفحةً لا نافذة.
-
-**ولماذا صفحةٌ لا `<dialog>`** بخلاف ما فُعل في T856؟ لأنّ النافذة تُملأ من
-الصفّ، والصفُّ هنا لا يحمل الصور — يحمل عددها. فنافذةٌ تعني جلبَ الصور
-بجافاسكربت بعد الفتح، وذلك أربعةُ أشياء (طلبٌ، وحالةُ تحميل، وحالةُ فشل،
-وإعادةُ بناءٍ بعد كل حذف) مقابل شيءٍ واحدٍ تعطيه الصفحة. وv1 دفع هذا الثمن
-بالضبط: `renderGallery` و`js-open-vehicle-images` ومنطقُ الحذف، ٩٠ سطراً.
-
-ورابطُ العودة إلى المزاد لا إلى قائمة المركبات: من يفتح المعرض جاء من صفّ
-المزاد، ويعود إليه ليفتح صورَ السيارة التالية.
+معرضُ صور مركبةٍ واحدة — صفحةً كاملة (رابطٌ مباشر أو سجلّ متصفّح). والوجهُ
+الآخر نافذةٌ منبثقة تُفتح من كارت شاشة المزاد (`_vehicle_images_modal`)،
+وكلاهما يعرض المحتوى نفسه (`_vehicle_images_body`) — فالرفعُ وعرضُ الصور
+الفرعيّة مكتوبان مرّةً ويُعرَضان بالوجهين. T881/T882.
 {% endcomment %}
 
 {% block title %}صور المركبة {{ vehicle.lot_number|unlocalize }}{% endblock %}
@@ -24,71 +18,14 @@
     <a href="{% url 'console:vehicle-detail' vehicle.pk %}">تفاصيل المركبة</a>
   </p>
 
-  {% comment %}
-  الرفعُ أوّلاً: الشاشةُ تُفتح غالباً لأن الصفّ قال «بلا صور»، فالفعلُ الذي
-  جاء لأجله يجب ألّا يكون تحت الصور التي لا وجود لها.
-  {% endcomment %}
-  {% comment %} منطقةُ سحبٍ وإفلاتٍ ومعاينةٌ فورية — أسلوبُ رفع v1
-     (`initGalleryUploader`): يُسحَب الملفُّ أو يُضغَط، وتظهر معايناتُه قبل
-     الرفع. تحسينٌ تدريجيّ: بلا جافاسكربت يبقى `<input type=file>` عاملاً،
-     فالفعلُ لا يتوقّف على السكربت. T881 {% endcomment %}
-  <form method="post" enctype="multipart/form-data" class="shots-upload" data-uploader>
-    {% csrf_token %}
-    <input type="hidden" name="op" value="upload">
-    <label class="dropzone" data-dropzone>
-      <span class="dropzone__hint">📤 اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
-      <input type="file" name="images" id="images" accept="image/*" multiple required
-             data-file-input>
-    </label>
-    <div class="dropzone__preview" data-preview hidden></div>
-    <button type="submit" class="btn-primary">ارفع</button>
-  </form>
-
-  {% if shots %}
-    <ul class="shots shots--managed">
-      {% for shot in shots %}
-        <li data-cover="{{ shot.is_cover|yesno:"true,false" }}">
-          {% comment %}
-          الرابطُ إلى الأصل هو «التكبير» — و`lightbox` v1 (٤٠ سطر جافاسكربت
-          وطبقةٌ مرسومة) يفعل ما يفعله فتحُ الصورة في تبويبٍ جديد، ويزيد
-          عليه أنه لا يُطبَع ولا يُحفَظ بزرّ الفأرة الأيمن.
-          {% endcomment %}
-          <a href="{{ shot.image.url }}" target="_blank" rel="noopener"
-             title="افتح الأصل بحجمه الكامل">
-            <img src="{{ shot.preview.url|default:shot.image.url }}" alt=""
-                 loading="lazy" decoding="async">
-          </a>
-          <div class="shots__foot">
-            {% if shot.is_cover %}
-              <span class="pill" data-tone="info">صورة العرض</span>
-            {% else %}
-              <form method="post" class="shots__act">
-                {% csrf_token %}
-                <input type="hidden" name="op" value="cover">
-                <input type="hidden" name="image" value="{{ shot.pk|unlocalize }}">
-                <button type="submit" class="btn-sm">اجعلها العرض</button>
-              </form>
-            {% endif %}
-            <form method="post" class="shots__act">
-              {% csrf_token %}
-              <input type="hidden" name="op" value="delete">
-              <input type="hidden" name="image" value="{{ shot.pk|unlocalize }}">
-              <button type="submit" class="btn-danger-sm"
-                      title="حذفُ هذه الصورة">احذف</button>
-            </form>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="notice">لا صور لهذه المركبة — وبطاقتُها عند العميل تظهر بلا صورة.</p>
-  {% endif %}
+  {% include "console/_vehicle_images_body.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
 {% comment %} سحبٌ وإفلاتٌ ومعاينةٌ فورية — أسلوبُ رفع v1. تحسينٌ تدريجيّ:
-   الاستمارةُ تعمل بلا هذا السكربت. {% endcomment %}
+   الاستمارةُ تعمل بلا هذا السكربت. (النافذةُ المنبثقة توصِّل المثلَ من سكربت
+   شاشة المزاد بعد الحقن.) {% endcomment %}
 (function () {
   var zone = document.querySelector('[data-dropzone]');
   var input = document.querySelector('[data-file-input]');
@@ -121,7 +58,6 @@
     for (var i = 0; i < files.length; i++) {
       var img = document.createElement('img');
       img.src = URL.createObjectURL(files[i]);
-      /* التحريرُ بعد التحميل: كائنُ العنوان يبقى في الذاكرة حتى يُلغى. */
       img.onload = function () { URL.revokeObjectURL(this.src); };
       preview.appendChild(img);
     }

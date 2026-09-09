@@ -267,3 +267,40 @@ def marketing_toggle(request, pk: int):
             after={"is_marketing": on},
         )
     return JsonResponse({"ok": True, "is_marketing": on})
+
+
+def visibility_toggle(request, pk: int):
+    """اقلب رؤيةَ مركبةٍ عن العملاء من زرِّ كارتها — نظيرُ v1 (`hide`/`show`).
+
+    v1 (`setVehicleVisibility`): «إخفاء» يضع `status='coming'` فتُطوى السيارةُ
+    عن قوائم العموم دون سحبها من المزاد، و«إظهار» يعيدها. المثلُ هنا: علمُ
+    `is_hidden` تقرؤه بوّابةُ الرؤية الوحيدة (`visibility.is_public`)، يُقلَب
+    بضغطةٍ تردّ JSON بلا مغادرةٍ ولا reload.
+
+    مستقلٌّ عن آلة الحالات عمداً كـ`is_marketing`: تحديثُ حقلٍ لا نقلة — فتُخفى
+    سيارةٌ تحت المزايدة دون لمس مزايداتها. ويُسجَّل في التدقيق باسم من قلبه.
+    """
+    from django.http import JsonResponse
+
+    from apps.core.permissions import Capability, can
+
+    if not request.user.is_authenticated or not can(
+        request.user, Capability.AUCTIONS_MANAGE
+    ):
+        return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)
+
+    vehicle = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    hidden = request.POST.get("is_hidden") == "1"
+    if vehicle.is_hidden != hidden:
+        vehicle.is_hidden = hidden
+        vehicle.save(update_fields=["is_hidden"])
+        audit.record(
+            action="console.vehicle_visibility_toggle",
+            entity=vehicle,
+            actor=request.user,
+            after={"is_hidden": hidden},
+            note="إخفاءٌ عن العملاء" if hidden else "إظهارٌ للعملاء",
+        )
+    return JsonResponse({"ok": True, "is_hidden": hidden})

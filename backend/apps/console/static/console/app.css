@@ -4307,6 +4307,60 @@ dialog.row-modal {
 }
 .veh-card__inline { display: inline; margin: 0; }
 
+/* السيارةُ المخفيّةُ عن العملاء: تُعتَّم قليلاً وتُوسَم بشريطٍ مائل، فيُعرَف
+   في نظرةٍ أيُّها مطويٌّ عن القوائم — دون إخفائه عن الموظّف الذي يديره. */
+.veh-card--hidden { opacity: .62; }
+.veh-card--hidden .veh-card__img::after {
+  content: "مخفيّة";
+  position: absolute;
+  inset-block-start: .4rem;
+  inset-inline-end: .4rem;
+  background: rgb(0 0 0 / .72);
+  color: #fff;
+  font-size: .66rem;
+  font-weight: 700;
+  padding: .12rem .5rem;
+  border-radius: var(--radius);
+}
+/* أيقونتا الرؤية على الكارت: «إخفاء» محايدة، و«إظهار» تلفت النظر (مخفيّةٌ
+   تنتظر إعادةَ عرض) بلونِ التنبيه. تركبان نمطَ `.act` العام. */
+.act--hide:hover { color: var(--ink); border-color: var(--line); }
+.act--show { color: var(--warn, #b45309); border-color: var(--warn, #b45309); }
+.act--show:hover { background: var(--warn-soft, #fef3c7); }
+
+/* ---- نافذةُ صور المركبة — رفعٌ وعرضٌ في مكان واحد ------------------------
+   أعرضُ من نوافذ النماذج: المعرضُ شبكةُ صورٍ تحتاج فُسحة. رأسٌ ثابتٌ فيه
+   الاسمُ وزرُّ الإغلاق، وجسمٌ يُمرَّر تحته. T882 */
+.images-modal { inline-size: min(52rem, 94vw); padding: 0; }
+.images-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: 1rem 1.3rem;
+  border-block-end: 1px solid var(--line);
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--panel);
+  z-index: 1;
+}
+.images-modal__title { margin: 0; font-size: 1.02rem; font-weight: 800; }
+.images-modal__scroll { padding: 1.1rem 1.3rem 1.3rem; }
+.modal__close {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--ink-soft);
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+}
+.modal__close:hover { border-color: var(--brand); color: var(--ink); }
+.gallery-msgs { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .4rem; }
+
 /* ---- منطقةُ سحب وإفلات الصور — أسلوبُ رفع v1 ------------------------------
    الاستمارةُ نفسُها تعمل بلا جافاسكربت (`<input type=file>`)، وهذه تزيّنها:
    منطقةٌ تُسحَب إليها الصور أو تُضغَط، ومعايناتٌ فورية قبل الرفع. T881 */

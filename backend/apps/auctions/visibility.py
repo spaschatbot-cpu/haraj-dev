@@ -139,7 +139,8 @@ class ListingState(models.TextChoices):
 def is_public(vehicle: Vehicle) -> bool:
     """The single predicate. Everything else in this module defers to it."""
     return (
-        vehicle.auction.state in PUBLIC_AUCTION_STATES
+        not vehicle.is_hidden
+        and vehicle.auction.state in PUBLIC_AUCTION_STATES
         and vehicle.state in PUBLIC_VEHICLE_STATES
     )
 
@@ -151,8 +152,10 @@ def public_q() -> Q:
     to each other in review; the equality test is what actually holds them
     together.
     """
-    return Q(auction__state__in=list(PUBLIC_AUCTION_STATES)) & Q(
-        state__in=list(PUBLIC_VEHICLE_STATES)
+    return (
+        Q(is_hidden=False)
+        & Q(auction__state__in=list(PUBLIC_AUCTION_STATES))
+        & Q(state__in=list(PUBLIC_VEHICLE_STATES))
     )
 
 
