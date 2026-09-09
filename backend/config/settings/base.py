@@ -304,7 +304,8 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # الوسمُ اسمُ المورد لا `v1` — والسبب ومداه في `config/schema_hooks.py`.
+    "DEFAULT_SCHEMA_CLASS": "config.schema_hooks.ResourceTaggedAutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "PAGE_SIZE": 20,
     # One envelope for every error the API can return, so the Flutter app has a
@@ -327,6 +328,14 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Haraj One API",
     "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    #: غلافُ الخطأ الموحَّد يُوصَف في المخطط. كان قائماً في الكود وغائباً عن
+    #: العقد، فكان كلُّ عميلٍ يُولَّد منه يجهل شكلَ الرفض. السبب في
+    #: `config/schema_hooks.py`.
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "config.schema_hooks.describe_the_error_envelope",
+        "config.schema_hooks.state_enum_defaults_in_prose",
+    ],
 }
 
 # --------------------------------------------------------------------------

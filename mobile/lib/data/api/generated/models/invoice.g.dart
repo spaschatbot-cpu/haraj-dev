@@ -7,37 +7,42 @@ part of 'invoice.dart';
 // **************************************************************************
 
 Invoice _$InvoiceFromJson(Map<String, dynamic> json) => Invoice(
-  id: json['id'] as String,
+  id: (json['id'] as num).toInt(),
   number: json['number'] as String,
-  totalAmount: json['total_amount'] as String,
-  paidAmount: json['paid_amount'] as String,
-  dueAmount: json['due_amount'] as String,
-  currency: json['currency'] as String,
-  status: InvoiceStatus.fromJson(json['status'] as String),
-  statusLabel: json['status_label'] as String,
+  amount: json['amount'] as String,
+  amountPaid: json['amount_paid'] as String,
+  outstanding: json['outstanding'] as String,
+  stateLabel: json['state_label'] as String,
   issuedAt: DateTime.parse(json['issued_at'] as String),
-  insuranceLock: json['insurance_lock'] == null
+  paymentMethods: (json['payment_methods'] as List<dynamic>)
+      .map((e) => e as Map<String, dynamic>)
+      .toList(),
+  state: json['state'] == null
       ? null
-      : InsuranceLock.fromJson(json['insurance_lock'] as Map<String, dynamic>),
+      : InvoiceStateEnum.fromJson(json['state'] as String),
+  dueAt: json['due_at'] == null
+      ? null
+      : DateTime.parse(json['due_at'] as String),
 );
 
 Map<String, dynamic> _$InvoiceToJson(Invoice instance) => <String, dynamic>{
   'id': instance.id,
   'number': instance.number,
-  'total_amount': instance.totalAmount,
-  'paid_amount': instance.paidAmount,
-  'due_amount': instance.dueAmount,
-  'currency': instance.currency,
-  'status': _$InvoiceStatusEnumMap[instance.status]!,
-  'status_label': instance.statusLabel,
+  'amount': instance.amount,
+  'amount_paid': instance.amountPaid,
+  'outstanding': instance.outstanding,
+  'state': _$InvoiceStateEnumEnumMap[instance.state],
+  'state_label': instance.stateLabel,
   'issued_at': instance.issuedAt.toIso8601String(),
-  'insurance_lock': instance.insuranceLock,
+  'due_at': instance.dueAt?.toIso8601String(),
+  'payment_methods': instance.paymentMethods,
 };
 
-const _$InvoiceStatusEnumMap = {
-  InvoiceStatus.open: 'open',
-  InvoiceStatus.partiallyPaid: 'partially_paid',
-  InvoiceStatus.paid: 'paid',
-  InvoiceStatus.cancelled: 'cancelled',
-  InvoiceStatus.$unknown: r'$unknown',
+const _$InvoiceStateEnumEnumMap = {
+  InvoiceStateEnum.draft: 'draft',
+  InvoiceStateEnum.open: 'open',
+  InvoiceStateEnum.partial: 'partial',
+  InvoiceStateEnum.paid: 'paid',
+  InvoiceStateEnum.cancelled: 'cancelled',
+  InvoiceStateEnum.$unknown: r'$unknown',
 };

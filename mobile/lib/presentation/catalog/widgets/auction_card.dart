@@ -61,8 +61,12 @@ class AuctionCard extends StatelessWidget {
                 target: countdownTarget,
               ),
               const SizedBox(height: 8),
+              // «لم تُعدّ» لا «٠ مركبة»: الخادم يترك العدد فارغاً حين لا
+              // يكون قد عدّه، وطبعُ صفرٍ مكانه يقول عن مزادٍ ممتلئ إنه فارغ.
               Text(
-                l10n.auctionVehiclesCount(auction.vehiclesCount),
+                auction.vehiclesCount == null
+                    ? l10n.auctionVehiclesNotCounted
+                    : l10n.auctionVehiclesCount(auction.vehiclesCount!),
                 style: theme.textTheme.bodySmall,
               ),
             ],

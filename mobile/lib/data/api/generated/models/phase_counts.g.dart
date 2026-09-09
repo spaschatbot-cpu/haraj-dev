@@ -7,14 +7,14 @@ part of 'phase_counts.dart';
 // **************************************************************************
 
 PhaseCounts _$PhaseCountsFromJson(Map<String, dynamic> json) => PhaseCounts(
-  upcoming: (json['upcoming'] as num).toInt(),
+  soon: (json['soon'] as num).toInt(),
   active: (json['active'] as num).toInt(),
   ended: (json['ended'] as num).toInt(),
 );
 
 Map<String, dynamic> _$PhaseCountsToJson(PhaseCounts instance) =>
     <String, dynamic>{
-      'upcoming': instance.upcoming,
+      'soon': instance.soon,
       'active': instance.active,
       'ended': instance.ended,
     };

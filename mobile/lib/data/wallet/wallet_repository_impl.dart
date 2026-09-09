@@ -9,7 +9,6 @@ import '../../domain/wallet/repositories/wallet_repository.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/wallet_api.dart';
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
-import '../api/generated/models/top_up_intent_request.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'wallet_mapper.dart';
@@ -27,6 +26,9 @@ final class WalletRepositoryImpl implements WalletRepository {
        _cache = cache,
        _clock = clock ?? DateTime.now;
 
+  /// حجم الصفحة يُرسَل صراحةً كي لا يكون التمرير رهناً بافتراضٍ في الخادم.
+  static const int _pageSize = 20;
+
   final WalletApi _api;
   final ResponseCache _cache;
   final DateTime Function() _clock;
@@ -34,7 +36,7 @@ final class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<Snapshot<WalletBalance>> loadBalance() async {
     try {
-      final wallet = await callApi(_api.walletRetrieve);
+      final wallet = await callApi(_api.v1WalletRetrieve);
       final fetchedAt = _clock().toUtc();
       await _cache.write(
         CacheKeys.wallet,
@@ -61,8 +63,15 @@ final class WalletRepositoryImpl implements WalletRepository {
   }) async {
     final key = CacheKeys.walletTransactions(bucket: bucket?.name);
     try {
+      // **لا ترشيح بالدلو على السلك.** العقد لا يقبل `bucket` على هذه
+      // النقطة، فالترشيح لو جرى هنا لجرى على صفحةٍ واحدة وصلت — فيقول
+      // العدّاد رقماً والقائمة تعرض غيره. تُطلب الحركات كلّها، وكل سطرٍ
+      // يحمل `bucket_label` فيقرأ العميل دلوَه على السطر نفسه.
       final response = await callApi(
-        () => _api.walletTransactionsList(page: page, bucket: bucket?.toWire()),
+        () => _api.v1WalletTransactionsList(
+          limit: _pageSize,
+          offset: (page - 1) * _pageSize,
+        ),
       );
       final fetchedAt = _clock().toUtc();
       if (page == 1) {
@@ -86,9 +95,7 @@ final class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<TopUp> startTopUp() async {
     // بلا `preset`: الخادم يحدّد المبلغ، وطلبٌ يسمّي مبلغه يُرفض عند الحافة.
-    final intent = await callApi(
-      () => _api.walletTopUpIntentCreate(body: const api.TopUpIntentRequest()),
-    );
+    final intent = await callApi(() => _api.v1WalletTopupsCreate());
     return intent.toDomain();
   }
 
@@ -97,7 +104,7 @@ final class WalletRepositoryImpl implements WalletRepository {
     // لا كتابة في الكاش ولا قراءة منه: حالة دفعة محفوظة تُقرأ بعد ساعة على
     // أنها الآن. صمت الخادم هنا يبقى صمتاً، ويُعرض بوصفه انتظاراً لا نجاحاً.
     final intent = await callApi(
-      () => _api.walletTopUpIntentRetrieve(reference: reference),
+      () => _api.v1WalletTopupsRetrieve(reference: reference),
     );
     return intent.toDomain();
   }

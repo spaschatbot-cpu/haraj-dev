@@ -7,42 +7,28 @@ part of 'ledger_entry.dart';
 // **************************************************************************
 
 LedgerEntry _$LedgerEntryFromJson(Map<String, dynamic> json) => LedgerEntry(
-  id: json['id'] as String,
+  id: (json['id'] as num).toInt(),
+  transaction: json['transaction'] as String,
+  kind: json['kind'] as String,
   description: json['description'] as String,
+  bucket: json['bucket'] as String,
   bucketLabel: json['bucket_label'] as String,
   amount: json['amount'] as String,
-  currency: json['currency'] as String,
-  direction: LedgerEntryDirection.fromJson(json['direction'] as String),
+  direction: json['direction'] as String,
   occurredAt: DateTime.parse(json['occurred_at'] as String),
-  bucket: json['bucket'] == null
-      ? null
-      : WalletBucketKind.fromJson(json['bucket'] as String),
-  reference: json['reference'] as String?,
+  memo: json['memo'] as String,
 );
 
 Map<String, dynamic> _$LedgerEntryToJson(LedgerEntry instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'transaction': instance.transaction,
+      'kind': instance.kind,
       'description': instance.description,
-      'bucket': _$WalletBucketKindEnumMap[instance.bucket],
+      'bucket': instance.bucket,
       'bucket_label': instance.bucketLabel,
       'amount': instance.amount,
-      'currency': instance.currency,
-      'direction': _$LedgerEntryDirectionEnumMap[instance.direction]!,
+      'direction': instance.direction,
       'occurred_at': instance.occurredAt.toIso8601String(),
-      'reference': instance.reference,
+      'memo': instance.memo,
     };
-
-const _$WalletBucketKindEnumMap = {
-  WalletBucketKind.wallet: 'wallet',
-  WalletBucketKind.insuranceFree: 'insurance_free',
-  WalletBucketKind.insuranceHeld: 'insurance_held',
-  WalletBucketKind.insuranceLocked: 'insurance_locked',
-  WalletBucketKind.$unknown: r'$unknown',
-};
-
-const _$LedgerEntryDirectionEnumMap = {
-  LedgerEntryDirection.valueIn: 'in',
-  LedgerEntryDirection.out: 'out',
-  LedgerEntryDirection.$unknown: r'$unknown',
-};

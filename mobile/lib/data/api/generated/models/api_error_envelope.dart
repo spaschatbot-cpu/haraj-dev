@@ -4,10 +4,11 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'api_error_body.dart';
+import 'error.dart';
 
 part 'api_error_envelope.g.dart';
 
+/// غلافُ كل خطأ تردّ به هذه الواجهة — بلا استثناء. يُبنى في `apps.core.exceptions.envelope` وحدها، فلا عرضٌ يخترع شكلاً ثانياً.
 @JsonSerializable()
 class ApiErrorEnvelope {
   const ApiErrorEnvelope({required this.error});
@@ -15,7 +16,7 @@ class ApiErrorEnvelope {
   factory ApiErrorEnvelope.fromJson(Map<String, Object?> json) =>
       _$ApiErrorEnvelopeFromJson(json);
 
-  final ApiErrorBody error;
+  final Error error;
 
   Map<String, Object?> toJson() => _$ApiErrorEnvelopeToJson(this);
 }

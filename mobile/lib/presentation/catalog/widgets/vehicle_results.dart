@@ -123,6 +123,12 @@ class VehicleResults extends StatelessWidget {
             ),
           },
           SliverToBoxAdapter(child: _tail()),
+          // مكانُ الشريط السفليّ الزجاجيّ، من `MediaQuery` لا رقماً مكتوباً:
+          // القشرة هي التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر
+          // صفٍّ تحت الزجاج فيُقرأ نصفه.
+          SliverToBoxAdapter(
+            child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+          ),
         ],
       ),
     );

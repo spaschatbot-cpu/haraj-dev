@@ -10,6 +10,7 @@ import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/snapshot_view.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
@@ -154,8 +155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       length: AuctionPhase.tabs.length,
       initialIndex: AuctionPhase.tabs.indexOf(widget.phase),
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.homeTitle),
+        appBar: HarajAppBar(
+          title: l10n.homeTitle,
           bottom: _PhaseTabs(counts: _counts),
         ),
         body: Column(

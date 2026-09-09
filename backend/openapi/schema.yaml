@@ -43,7 +43,7 @@ paths:
           * `settled` - مُسوّى
           * `cancelled` - ملغى
       tags:
-      - v1
+      - auctions
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -55,6 +55,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuctionPage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auctions/{id}/:
     get:
       operationId: auctions_retrieve
@@ -74,7 +80,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - auctions
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -86,6 +92,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuctionCard'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auctions/{id}/vehicles/:
     get:
       operationId: auctions_vehicles_list
@@ -180,7 +192,7 @@ paths:
           maximum: 2200
           minimum: 1900
       tags:
-      - v1
+      - auctions
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -192,13 +204,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/VehiclePage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auth/code/:
     post:
       operationId: v1_auth_code_create
       description: '`POST /api/v1/auth/code/` — send a one-time code to a mobile number.'
       summary: إرسال رمز تحقق
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -220,6 +238,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/SendCodeResponse'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auth/phone/change/:
     post:
       operationId: v1_auth_phone_change_create
@@ -232,7 +256,7 @@ paths:
         else's account, which is the shape of the takeover it exists to close.
       summary: بدء تغيير رقم الجوال
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -255,6 +279,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/StartPhoneChangeResponse'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auth/phone/change/confirm/:
     post:
       operationId: v1_auth_phone_change_confirm_create
@@ -267,7 +297,7 @@ paths:
         `services.confirm_phone_change` says why.
       summary: تأكيد تغيير الجوال بالرمزين
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -290,6 +320,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthenticatedUser'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auth/refresh/:
     post:
       operationId: v1_auth_refresh_create
@@ -297,7 +333,7 @@ paths:
         pair.'
       summary: تجديد رمز الوصول
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -319,6 +355,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenPair'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auth/verify/:
     post:
       operationId: v1_auth_verify_create
@@ -326,7 +368,7 @@ paths:
         pair.'
       summary: التحقق من الرمز وإصدار الرموز
       tags:
-      - v1
+      - auth
       requestBody:
         content:
           application/json:
@@ -348,6 +390,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/TokenPair'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/bids/{id}/withdraw/:
     post:
       operationId: bids_withdraw
@@ -366,7 +414,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - bids
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -377,6 +425,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Bid'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/bids/mine/:
     get:
       operationId: bids_mine
@@ -402,7 +456,7 @@ paths:
           minimum: 0
           default: 0
       tags:
-      - v1
+      - bids
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -413,6 +467,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/BidPage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/bids/quote/:
     post:
       operationId: bids_quote
@@ -436,7 +496,7 @@ paths:
         الشاشة التي فيها صندوق المزايدة، ولا تُعرَض لزائرٍ غير داخل.
       summary: السعر مع الضريبة
       tags:
-      - v1
+      - bids
       requestBody:
         content:
           application/json:
@@ -459,6 +519,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/BidQuote'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/devices/:
     get:
       operationId: devices_list
@@ -466,7 +532,7 @@ paths:
         mine.'
       summary: أجهزتي
       tags:
-      - v1
+      - devices
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -479,13 +545,19 @@ paths:
                 items:
                   $ref: '#/components/schemas/Device'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     post:
       operationId: devices_register
       description: '`POST`/`GET /api/v1/devices/` — register this handset, or list
         mine.'
       summary: تسجيل جهاز للإشعارات
       tags:
-      - v1
+      - devices
       requestBody:
         content:
           application/json:
@@ -508,6 +580,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Device'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/devices/unregister/:
     post:
       operationId: devices_unregister
@@ -525,7 +603,7 @@ paths:
         proxy cache on the way.
       summary: إلغاء تسجيل جهاز
       tags:
-      - v1
+      - devices
       requestBody:
         content:
           application/json:
@@ -544,6 +622,12 @@ paths:
       responses:
         '204':
           description: No response body
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/favourites/:
     get:
       operationId: favourites_list
@@ -574,7 +658,7 @@ paths:
           minimum: 0
           default: 0
       tags:
-      - v1
+      - favourites
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -585,6 +669,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/VehiclePage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/favourites/{id}/:
     put:
       operationId: favourites_mark
@@ -608,13 +698,19 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - favourites
       security:
       - bearerAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     delete:
       operationId: favourites_unmark
       description: |-
@@ -637,13 +733,19 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - favourites
       security:
       - bearerAuth: []
       - cookieAuth: []
       responses:
         '204':
           description: No response body
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/invoices/:
     get:
       operationId: v1_invoices_list
@@ -661,7 +763,7 @@ paths:
         schema:
           type: integer
       tags:
-      - v1
+      - invoices
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -672,6 +774,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedInvoiceList'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/invoices/{id}/:
     get:
       operationId: v1_invoices_retrieve
@@ -682,7 +790,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - invoices
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -693,6 +801,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Invoice'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/invoices/{id}/pay/:
     post:
       operationId: v1_invoices_pay_create
@@ -708,7 +822,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - invoices
       requestBody:
         content:
           application/json:
@@ -730,6 +844,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Invoice'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/live/:
     get:
       operationId: live_updates
@@ -773,7 +893,7 @@ paths:
         هو. وجودُه إعلانٌ للمفاوَضة بأن هذا النوع مقبول، لا طبقةُ تحويل.
       summary: التحديث الحي
       tags:
-      - v1
+      - live
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -784,6 +904,12 @@ paths:
               schema:
                 type: string
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/participations/:
     get:
       operationId: participations_mine
@@ -827,7 +953,7 @@ paths:
           minimum: 0
           default: 0
       tags:
-      - v1
+      - participations
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -838,6 +964,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/ParticipationPage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/payments/callback/:
     post:
       operationId: v1_payments_callback_create
@@ -848,19 +980,25 @@ paths:
         never dropped: a message we cannot use is kept with the reason written on it
         (Article 2-2).
       tags:
-      - v1
+      - payments
       security:
       - {}
       responses:
         '200':
           description: No response body
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/profile/:
     get:
       operationId: profile_retrieve
       description: '`GET`/`PATCH /api/v1/profile/` — the caller''s own account.'
       summary: ملفي الشخصي
       tags:
-      - v1
+      - profile
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -871,12 +1009,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     patch:
       operationId: profile_update
       description: '`GET`/`PATCH /api/v1/profile/` — the caller''s own account.'
       summary: تعديل الملف الشخصي
       tags:
-      - v1
+      - profile
       requestBody:
         content:
           application/json:
@@ -898,6 +1042,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/profile/company/:
     get:
       operationId: profile_company_retrieve
@@ -905,7 +1055,7 @@ paths:
         address.'
       summary: ملف الشركة
       tags:
-      - v1
+      - profile
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -916,13 +1066,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompanyProfileRead'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     put:
       operationId: profile_company_save
       description: '`GET`/`PUT /api/v1/profile/company/` — the company and its ZATCA
         address.'
       summary: حفظ ملف الشركة
       tags:
-      - v1
+      - profile
       requestBody:
         content:
           application/json:
@@ -944,6 +1100,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/CompanyProfileRead'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/profile/national-id/:
     put:
       operationId: profile_set_national_id
@@ -957,7 +1119,7 @@ paths:
         somebody else's.
       summary: تثبيت رقم الهوية
       tags:
-      - v1
+      - profile
       requestBody:
         content:
           application/json:
@@ -980,6 +1142,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/purchases/:
     get:
       operationId: v1_purchases_list
@@ -998,7 +1166,7 @@ paths:
         schema:
           type: integer
       tags:
-      - v1
+      - purchases
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1009,6 +1177,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedPurchaseList'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/vehicles/:
     get:
       operationId: vehicles_list
@@ -1098,7 +1272,7 @@ paths:
           maximum: 2200
           minimum: 1900
       tags:
-      - v1
+      - vehicles
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1110,6 +1284,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/VehiclePage'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/vehicles/{id}/:
     get:
       operationId: vehicles_retrieve
@@ -1131,7 +1311,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - vehicles
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1143,6 +1323,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/VehicleCard'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/vehicles/{id}/bids/:
     post:
       operationId: bids_place
@@ -1166,7 +1352,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - vehicles
       requestBody:
         content:
           application/json:
@@ -1189,6 +1375,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Bid'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/vehicles/{id}/images/:
     get:
       operationId: vehicles_images_list
@@ -1216,7 +1408,7 @@ paths:
           type: integer
         required: true
       tags:
-      - v1
+      - vehicles
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1228,12 +1420,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/VehicleImages'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/:
     get:
       operationId: v1_wallet_retrieve
       description: The customer's money, split by the pot it is actually sitting in.
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1244,11 +1442,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/Wallet'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/refund-requests/:
     get:
       operationId: v1_wallet_refund_requests_list
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1261,10 +1465,16 @@ paths:
                 items:
                   $ref: '#/components/schemas/RefundRequest'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     post:
       operationId: v1_wallet_refund_requests_create
       tags:
-      - v1
+      - wallet
       requestBody:
         content:
           application/json:
@@ -1287,12 +1497,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/RefundRequest'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/topups/:
     get:
       operationId: v1_wallet_topups_list
       description: Start a card top-up, or list the ones this customer started.
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1305,11 +1521,17 @@ paths:
                 items:
                   $ref: '#/components/schemas/PaymentIntent'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
     post:
       operationId: v1_wallet_topups_create
       description: Start a card top-up, or list the ones this customer started.
       tags:
-      - v1
+      - wallet
       requestBody:
         content:
           application/json:
@@ -1331,6 +1553,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentIntent'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/topups/{reference}/:
     get:
       operationId: v1_wallet_topups_retrieve
@@ -1348,7 +1576,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1359,6 +1587,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentIntent'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/topups/{reference}/checkout/:
     get:
       operationId: v1_wallet_topups_checkout_retrieve
@@ -1381,7 +1615,7 @@ paths:
           type: string
         required: true
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1392,6 +1626,12 @@ paths:
           description: No response body
         '503':
           description: No response body
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/transactions/:
     get:
       operationId: v1_wallet_transactions_list
@@ -1410,7 +1650,7 @@ paths:
         schema:
           type: integer
       tags:
-      - v1
+      - wallet
       security:
       - bearerAuth: []
       - cookieAuth: []
@@ -1421,6 +1661,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaginatedLedgerEntryList'
           description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
 components:
   schemas:
     AuctionCard:
@@ -1571,9 +1817,6 @@ components:
           pattern: ^\d{1,12}(\.\d{1,2})?$
       required:
       - amount
-    BlankEnum:
-      enum:
-      - ''
     Bucket:
       type: object
       description: One named pot, with the count of entries that add up to it.
@@ -1849,7 +2092,7 @@ components:
         method:
           allOf:
           - $ref: '#/components/schemas/MethodEnum'
-          default: balance
+          description: 'الافتراضيّ حين لا يُرسَل الحقل: `balance`.'
     InvoiceStateEnum:
       enum:
       - draft
@@ -2190,16 +2433,6 @@ components:
       - active
       - ended
       - soon
-    PhaseEnum:
-      enum:
-      - soon
-      - active
-      - ended
-      type: string
-      description: |-
-        * `soon` - قريباً
-        * `active` - نشط
-        * `ended` - منتهي
     PlaceBid:
       type: object
       description: One bid on one car.
@@ -2408,7 +2641,7 @@ components:
         purpose:
           allOf:
           - $ref: '#/components/schemas/SendCodePurposeEnum'
-          default: login
+          description: 'الافتراضيّ حين لا يُرسَل الحقل: `login`.'
       required:
       - phone
     SendCodePurposeEnum:
@@ -2517,9 +2750,10 @@ components:
         auction_state:
           type: string
         phase:
-          oneOf:
-          - $ref: '#/components/schemas/PhaseEnum'
-          - $ref: '#/components/schemas/BlankEnum'
+          type: string
+          description: 'التبويب الذي يقرّره الخادم: `soon`، `active`، `ended`، أو
+            `""` (فراغ) لمزادٍ خارج الثلاثة — مسودّةٍ أو ملغيّ، لا يراه إلا موظّف.
+            الفراغ يُقرأ «غير معروف» ولا يُطوى في `ended` (المادة ٢-٣).'
         auction_starts_at:
           type: string
           format: date-time
@@ -2551,6 +2785,8 @@ components:
           type: string
         location:
           type: string
+        is_favourite:
+          type: boolean
         admin_fee:
           type: string
         admin_fee_with_vat:
@@ -2574,6 +2810,7 @@ components:
       - condition
       - condition_label
       - id
+      - is_favourite
       - location
       - lot_number
       - make
@@ -2705,6 +2942,33 @@ components:
       - holds
       - locked_for_dues
       - total
+    ApiErrorEnvelope:
+      type: object
+      description: غلافُ كل خطأ تردّ به هذه الواجهة — بلا استثناء. يُبنى في `apps.core.exceptions.envelope`
+        وحدها، فلا عرضٌ يخترع شكلاً ثانياً.
+      required:
+      - error
+      properties:
+        error:
+          type: object
+          required:
+          - code
+          - message
+          - detail
+          properties:
+            code:
+              type: string
+              description: رمزٌ ثابت يفرّق سببَ الرفض عن سببٍ آخر. **هو ما يُفرَّع
+                عليه في العميل**، لا الرسالة ولا رمز HTTP.
+            message:
+              type: string
+              description: 'جملةٌ عربية جاهزة للعرض كما هي. لا يُترجمها العميل ولا
+                يستبدلها: نصٌّ واحد للسبب الواحد (المادة ٤-٥).'
+            detail:
+              type: object
+              additionalProperties: true
+              description: حقولٌ تخصّ هذا الرفض بعينه — مبلغٌ قائم، حقلٌ ناقص. كائنٌ
+                فارغ حين لا تفصيل، لا `null`.
   securitySchemes:
     bearerAuth:
       type: http

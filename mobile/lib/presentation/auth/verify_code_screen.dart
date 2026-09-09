@@ -9,6 +9,7 @@ import '../../domain/common/failure_codes.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/saudi_time.dart';
 import 'pending_sign_in.dart';
 import 'session_controller.dart';
@@ -139,7 +140,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     final expiresAt = SaudiTime.forDisplay(pending.delivery.expiresAt);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.verifyTitle)),
+      appBar: HarajAppBar(title: l10n.verifyTitle),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

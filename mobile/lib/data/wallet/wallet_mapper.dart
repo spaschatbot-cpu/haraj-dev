@@ -2,15 +2,13 @@ import '../../domain/common/money.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
+import '../api/generated/models/bucket.dart' as api;
+import '../api/generated/models/hold.dart' as api;
 import '../api/generated/models/ledger_entry.dart' as api;
-import '../api/generated/models/ledger_entry_direction.dart' as api;
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
-import '../api/generated/models/top_up_intent.dart' as api;
-import '../api/generated/models/top_up_intent_status.dart' as api;
+import '../api/generated/models/payment_intent.dart' as api;
+import '../api/generated/models/payment_intent_state_enum.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
-import '../api/generated/models/wallet_bucket.dart' as api;
-import '../api/generated/models/wallet_bucket_kind.dart' as api;
-import '../api/generated/models/wallet_hold.dart' as api;
 
 /// تحويل نماذج المخطط المولَّدة إلى كيانات النطاق.
 ///
@@ -19,53 +17,40 @@ import '../api/generated/models/wallet_hold.dart' as api;
 /// لا `double.parse` ولا تنسيق (المادة ٣-٢).
 extension WalletMapper on api.Wallet {
   WalletBalance toDomain() => WalletBalance(
-    buckets: buckets.map((bucket) => bucket.toDomain()).toList(growable: false),
+    buckets: buckets
+        .map((bucket) => bucket.toDomain(currency))
+        .toList(growable: false),
+    holds: holds.map((hold) => hold.toDomain(currency)).toList(growable: false),
+    // المجاميع الأربعة من الخادم لا من جمع الدلاء هنا: القيدُ الذي يثبتها
+    // عنده، وجمعُها في التطبيق يصنع رقماً ثانياً لا سند له (المادة ١-٦).
+    total: Money(amount: total, currency: currency),
+    available: Money(amount: available, currency: currency),
+    heldForAuctions: Money(amount: heldForAuctions, currency: currency),
+    lockedForDues: Money(amount: lockedForDues, currency: currency),
     asOf: asOf.toUtc(),
   );
 }
 
-extension WalletBucketMapper on api.WalletBucket {
-  WalletBucket toDomain() => WalletBucket(
-    kind: kind.toDomain(),
+extension WalletBucketMapper on api.Bucket {
+  /// العملة تأتي من المحفظة لا من الدلو: الخادم يعلنها مرّةً للمحفظة كلّها،
+  /// وتكرارُها على كل دلو يوحي بأن دلواً قد يخالف.
+  WalletBucket toDomain(String currency) => WalletBucket(
+    kind: WalletBucketKind.fromSlug(kind),
     label: label,
     money: Money(amount: amount, currency: currency),
-    holds: (holds ?? const <api.WalletHold>[])
-        .map((hold) => hold.toDomain())
-        .toList(growable: false),
+    entryCount: entryCount,
+    statement: statement,
   );
 }
 
-extension WalletHoldMapper on api.WalletHold {
-  WalletHold toDomain() => WalletHold(
-    reference: reference,
-    reason: reason,
+extension WalletHoldMapper on api.Hold {
+  WalletHold toDomain(String currency) => WalletHold(
+    id: '$id',
+    // نصُّ الخادم لا نصُّنا: `reason` رمزٌ برمجيّ و`reason_label` هو ما يُقرأ.
+    reason: reasonLabel,
     money: Money(amount: amount, currency: currency),
+    createdAt: createdAt.toUtc(),
   );
-}
-
-extension WalletBucketKindMapper on api.WalletBucketKind {
-  /// قيمة جديدة من الخادم تصير `unknown` ولا تُسقط الاستجابة (المادة ٢-٣).
-  WalletBucketKind toDomain() => switch (this) {
-    api.WalletBucketKind.wallet => WalletBucketKind.wallet,
-    api.WalletBucketKind.insuranceFree => WalletBucketKind.insuranceFree,
-    api.WalletBucketKind.insuranceHeld => WalletBucketKind.insuranceHeld,
-    api.WalletBucketKind.insuranceLocked => WalletBucketKind.insuranceLocked,
-    api.WalletBucketKind.$unknown => WalletBucketKind.unknown,
-  };
-}
-
-extension WalletBucketKindWire on WalletBucketKind {
-  /// الاتجاه المعاكس: من كيان النطاق إلى قيمة يفهمها الخادم عند الترشيح.
-  ///
-  /// `unknown` ترجع `null` عمداً — دلو لا نعرف اسمه على السلك لا يمكن أن
-  /// نسأل عنه، وإرسال كلمة مخترعة يجعل الخادم يرفض بسبب صنعناه نحن.
-  api.WalletBucketKind? toWire() => switch (this) {
-    WalletBucketKind.wallet => api.WalletBucketKind.wallet,
-    WalletBucketKind.insuranceFree => api.WalletBucketKind.insuranceFree,
-    WalletBucketKind.insuranceHeld => api.WalletBucketKind.insuranceHeld,
-    WalletBucketKind.insuranceLocked => api.WalletBucketKind.insuranceLocked,
-    WalletBucketKind.unknown => null,
-  };
 }
 
 extension LedgerPageMapper on api.PaginatedLedgerEntryList {
@@ -81,43 +66,56 @@ extension LedgerPageMapper on api.PaginatedLedgerEntryList {
 
 extension LedgerMovementMapper on api.LedgerEntry {
   LedgerMovement toDomain() => LedgerMovement(
-    id: id,
+    id: '$id',
     description: description,
     bucketLabel: bucketLabel,
-    bucket: bucket?.toDomain(),
-    money: Money(amount: amount, currency: currency),
-    direction: direction.toDomain(),
+    bucket: WalletBucketKind.fromSlug(bucket),
+    money: Money(amount: amount, currency: walletCurrency),
+    direction: _directionOf(direction),
     occurredAt: occurredAt.toUtc(),
-    reference: reference,
+    // معرّف القيد المحاسبيّ — به يُطابَق سطرٌ على الشاشة بسطرٍ في الدفتر حين
+    // يسأل عميلٌ عن حركة. كان `reference` في المخطط الوهميّ ولا وجود له؛
+    // و`transaction` هو ما يقوله العقد.
+    reference: transaction,
   );
 }
 
-extension LedgerDirectionMapper on api.LedgerEntryDirection {
-  LedgerDirection toDomain() => switch (this) {
-    api.LedgerEntryDirection.valueIn => LedgerDirection.incoming,
-    api.LedgerEntryDirection.out => LedgerDirection.outgoing,
-    api.LedgerEntryDirection.$unknown => LedgerDirection.unknown,
-  };
-}
+/// اتجاه القيد **نصٌّ في العقد** لا تعداد.
+///
+/// وقيمةٌ لم نرها تصير `unknown` ولا تُسقط الحركة: المادتان ٢-٣ و٣-٥ — سطرٌ
+/// باتجاهٍ مجهول يُعرض بمبلغه بلا سهم، ولا يختفي من كشف الحساب.
+LedgerDirection _directionOf(String direction) => switch (direction) {
+  'in' => LedgerDirection.incoming,
+  'out' => LedgerDirection.outgoing,
+  _ => LedgerDirection.unknown,
+};
 
-extension TopUpMapper on api.TopUpIntent {
+extension TopUpMapper on api.PaymentIntent {
   TopUp toDomain() => TopUp(
     reference: reference,
-    money: Money(amount: amount, currency: currency),
-    checkoutUrl: redirectUrl,
-    status: status.toDomain(),
-    statusLabel: statusLabel,
+    money: Money(amount: amount, currency: currency ?? walletCurrency),
+    checkoutUrl: checkoutUrl,
+    status: _statusOf(state),
+    statusLabel: stateLabel,
   );
 }
 
-extension TopUpStatusMapper on api.TopUpIntentStatus {
-  /// حالة جديدة من الخادم تصير `unknown`، ويبقى `status_label` هو ما يُعرض —
-  /// فالمستخدم يقرأ كلام الخادم حتى لو لم يعرف هذا الإصدار الحالةَ برمجياً.
-  TopUpStatus toDomain() => switch (this) {
-    api.TopUpIntentStatus.pending => TopUpStatus.pending,
-    api.TopUpIntentStatus.succeeded => TopUpStatus.succeeded,
-    api.TopUpIntentStatus.cancelled => TopUpStatus.cancelled,
-    api.TopUpIntentStatus.failed => TopUpStatus.failed,
-    api.TopUpIntentStatus.$unknown => TopUpStatus.unknown,
-  };
-}
+/// حالة جديدة من الخادم تصير `unknown`، ويبقى `state_label` هو ما يُعرض —
+/// فالمستخدم يقرأ كلام الخادم حتى لو لم يعرف هذا الإصدار الحالةَ برمجياً.
+///
+/// و`expired` و`disputed` في العقد بلا مقابلٍ في النطاق: كلتاهما **ليست
+/// معلّقة ولا ناجحة**، والشاشة تفرّق بين الثلاث. طيُّهما على `failed` يقول
+/// «فشل الدفع» لنزاعٍ قائم لم يُفصل فيه — فبقيتا `unknown` ونصُّهما من الخادم.
+TopUpStatus _statusOf(api.PaymentIntentStateEnum? state) => switch (state) {
+  api.PaymentIntentStateEnum.pending => TopUpStatus.pending,
+  api.PaymentIntentStateEnum.succeeded => TopUpStatus.succeeded,
+  api.PaymentIntentStateEnum.cancelled => TopUpStatus.cancelled,
+  api.PaymentIntentStateEnum.failed => TopUpStatus.failed,
+  _ => TopUpStatus.unknown,
+};
+
+/// عملة النظام حين لا يذكرها الحقل.
+///
+/// الخادم يعلنها على المحفظة، ويتركها على القيد وعلى نيّة الدفع — النظام
+/// بعملةٍ واحدة. تُكتب مرّةً هنا لا في كل موضع.
+const String walletCurrency = 'SAR';

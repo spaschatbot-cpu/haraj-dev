@@ -1147,6 +1147,162 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لا مزايدة قائمة لك على هذه المركبة.'**
   String get liveNoStandingBid;
+
+  /// No description provided for @vehicleSpecMake.
+  ///
+  /// In ar, this message translates to:
+  /// **'الماركة'**
+  String get vehicleSpecMake;
+
+  /// No description provided for @vehicleSpecModel.
+  ///
+  /// In ar, this message translates to:
+  /// **'الطراز'**
+  String get vehicleSpecModel;
+
+  /// No description provided for @vehicleSpecYear.
+  ///
+  /// In ar, this message translates to:
+  /// **'سنة الصنع'**
+  String get vehicleSpecYear;
+
+  /// No description provided for @vehicleSpecColour.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللون'**
+  String get vehicleSpecColour;
+
+  /// No description provided for @vehicleSpecCondition.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالة'**
+  String get vehicleSpecCondition;
+
+  /// No description provided for @vehicleSpecOdometer.
+  ///
+  /// In ar, this message translates to:
+  /// **'الممشى (كم)'**
+  String get vehicleSpecOdometer;
+
+  /// No description provided for @vehicleSpecLocation.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموقع'**
+  String get vehicleSpecLocation;
+
+  /// No description provided for @vehicleAdminFee.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسوم الإدارية'**
+  String get vehicleAdminFee;
+
+  /// No description provided for @vehicleAdminFeeWithVat.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسوم + الضريبة'**
+  String get vehicleAdminFeeWithVat;
+
+  /// No description provided for @bidStateStanding.
+  ///
+  /// In ar, this message translates to:
+  /// **'قائمة'**
+  String get bidStateStanding;
+
+  /// No description provided for @bidStateSuperseded.
+  ///
+  /// In ar, this message translates to:
+  /// **'تجاوزتها مزايدةٌ أحدث لك'**
+  String get bidStateSuperseded;
+
+  /// No description provided for @bidStateWithdrawn.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسحوبة'**
+  String get bidStateWithdrawn;
+
+  /// No description provided for @bidStateUnknown.
+  ///
+  /// In ar, this message translates to:
+  /// **'—'**
+  String get bidStateUnknown;
+
+  /// No description provided for @auctionVehiclesNotCounted.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تُعدّ'**
+  String get auctionVehiclesNotCounted;
+
+  /// لحظة وضع الحجز
+  ///
+  /// In ar, this message translates to:
+  /// **'محجوز منذ {date}'**
+  String walletHoldSince(DateTime date);
+
+  /// No description provided for @navHome.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرئيسية'**
+  String get navHome;
+
+  /// No description provided for @navActivity.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركاتي'**
+  String get navActivity;
+
+  /// No description provided for @navFavourites.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفضلة'**
+  String get navFavourites;
+
+  /// No description provided for @navWallet.
+  ///
+  /// In ar, this message translates to:
+  /// **'محفظتي'**
+  String get navWallet;
+
+  /// No description provided for @navAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get navAccount;
+
+  /// No description provided for @favouritesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفضلة'**
+  String get favouritesTitle;
+
+  /// No description provided for @favouritesEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مركبات في مفضلتك بعد. افتح مركبة واضغط القلب لتحفظها هنا.'**
+  String get favouritesEmpty;
+
+  /// No description provided for @favouriteAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف إلى المفضلة'**
+  String get favouriteAdd;
+
+  /// No description provided for @favouriteRemove.
+  ///
+  /// In ar, this message translates to:
+  /// **'أزل من المفضلة'**
+  String get favouriteRemove;
+
+  /// No description provided for @favouriteAdded.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُضيفت إلى المفضلة'**
+  String get favouriteAdded;
+
+  /// No description provided for @favouriteRemoved.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُزيلت من المفضلة'**
+  String get favouriteRemoved;
 }
 
 class _AppLocalizationsDelegate

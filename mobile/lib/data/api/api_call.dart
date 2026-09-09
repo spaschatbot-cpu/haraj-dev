@@ -18,6 +18,15 @@ Future<T> callApi<T>(Future<T> Function() request) async {
   } on Object catch (error, stackTrace) {
     // لا فرع صامت: ما لا نعرفه يُصنَّف `UnexpectedFailure` ويظهر، ولا يُبتلع
     // (المادة ٢-٢ بروحها).
+    //
+    // ويُكتب في سجلّ التطوير قبل أن يُغلَّف: الشاشة تعرض «حدث خطأ غير متوقع»
+    // — وهي الرسالة الصحيحة للعميل وعديمةُ النفع للمطوّر. بلا هذا السطر
+    // يُطارَد العطلُ بالتخمين، وقد طورد.
+    assert(() {
+      // ignore: avoid_print
+      print('UnexpectedFailure: $error\n$stackTrace');
+      return true;
+    }());
     throw UnexpectedFailure(error, stackTrace: stackTrace);
   }
 }

@@ -38,7 +38,6 @@ class VehicleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final price = vehicle.reservePrice;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -80,23 +79,25 @@ class VehicleCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 4,
                     children: <Widget>[
+                      // **الرسوم لا السعر.** المزاد مغلق: لا سعرَ افتتاحيّ
+                      // يُنشر ولا عددَ مزايدات — والخادم لا يرسلهما أصلاً.
+                      // كان الكرت يعرضهما لأنه بُني على مخططٍ وهميّ، فكان
+                      // يعد بما لا يصل.
                       Text(
-                        l10n.vehicleReservePrice,
+                        l10n.vehicleAdminFee,
                         style: theme.textTheme.bodySmall,
                       ),
-                      if (price == null)
-                        // ليس «٠» ولا فراغاً: مركبةٌ لم يحدّد مالكها سعر
-                        // وقوفها شيءٌ آخر غير مركبةٍ سعرها صفر، وطباعة رقمٍ
-                        // للأولى رقمٌ لم يختره أحد.
-                        Text(
-                          l10n.vehicleReservePriceUnset,
-                          style: theme.textTheme.bodyMedium,
-                        )
-                      else
-                        MoneyText(price, style: theme.textTheme.titleMedium),
+                      MoneyText(
+                        vehicle.adminFee,
+                        style: theme.textTheme.titleMedium,
+                      ),
                       Text(
-                        l10n.vehicleBidsCount(vehicle.bidsCount),
+                        l10n.vehicleAdminFeeWithVat,
                         style: theme.textTheme.bodySmall,
+                      ),
+                      MoneyText(
+                        vehicle.adminFeeWithVat,
+                        style: theme.textTheme.bodyMedium,
                       ),
                     ],
                   ),

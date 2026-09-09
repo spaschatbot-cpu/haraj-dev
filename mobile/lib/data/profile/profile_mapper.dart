@@ -1,5 +1,4 @@
 import '../../domain/profile/entities/customer_profile.dart';
-import '../api/generated/models/company_profile.dart' as api;
 import '../api/generated/models/company_profile_read.dart' as api;
 import '../api/generated/models/locked_field.dart' as api;
 import '../api/generated/models/profile.dart' as api;
@@ -14,7 +13,10 @@ extension ProfileMapper on api.Profile {
     fullName: fullName,
     phone: phone,
     // حقل نصّي غائب يصل `null` من العقد؛ الشاشة تعرض فراغاً لا كلمة «null».
-    email: email ?? '',
+    // `email` مُعلَنٌ `dynamic` في العقد لأنه يقبل `null` صراحةً عند المسح
+    // (`PATCH` بـ`null` يمحو، وحذفُ المفتاح لا يمحو). فيُقرأ نصّاً إن كان
+    // نصّاً، وغيرُ ذلك غياب — ولا يُطبع `null` في خانةٍ يقرأها عميل.
+    email: _text(email),
     accountType: accountType,
     nationalId: nationalId,
     nationalIdVerified: nationalIdVerified,
@@ -45,17 +47,9 @@ extension CompanyProfileReadMapper on api.CompanyProfileRead {
   );
 }
 
-extension CompanyProfileRequestMapper on CompanyProfile {
-  /// `isComplete` لا يُرسَل: الخادم يقرّره ولا يقبله (`readOnly` في العقد).
-  api.CompanyProfile toRequest() => api.CompanyProfile(
-    name: name,
-    representativeName: representativeName,
-    commercialRegister: commercialRegister,
-    vatNumber: vatNumber,
-    buildingNumber: buildingNumber,
-    street: street,
-    district: district,
-    city: city,
-    postalCode: postalCode,
-  );
-}
+/// نصٌّ من حقلٍ يصل `dynamic`.
+///
+/// `email` مُعلَنٌ كذلك في العقد لأنه يقبل `null` صراحةً عند المسح (`PATCH`
+/// بـ`null` يمحو، وحذفُ المفتاح لا يمحو). ودالةٌ لا فحصٌ في المكان: ترقيةُ
+/// النوع في Dart لا تسري على نتيجة getter، فيبقى `dynamic` مهما فُحص.
+String _text(Object? value) => value is String ? value : '';

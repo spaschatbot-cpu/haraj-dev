@@ -2,105 +2,126 @@ import '../../domain/activity/entities/invoice.dart';
 import '../../domain/activity/entities/participation.dart';
 import '../../domain/activity/entities/purchase.dart';
 import '../../domain/common/money.dart';
-import '../api/generated/models/insurance_lock.dart' as api;
-import '../api/generated/models/insurance_state.dart' as api;
 import '../api/generated/models/invoice.dart' as api;
-import '../api/generated/models/invoice_status.dart' as api;
+import '../api/generated/models/invoice_state_enum.dart' as api;
+import '../api/generated/models/paginated_invoice_list.dart' as api;
+import '../api/generated/models/paginated_purchase_list.dart' as api;
 import '../api/generated/models/participation.dart' as api;
+import '../api/generated/models/participation_page.dart' as api;
 import '../api/generated/models/purchase.dart' as api;
-import '../api/generated/models/purchase_state.dart' as api;
+import '../wallet/wallet_mapper.dart' show walletCurrency;
 
 /// تحويل نماذج المخطط المولَّدة إلى كيانات النطاق.
 ///
-/// طبقة التحويل مقصودة: لولاها لسافر نموذج مولَّد إلى الشاشات، فصار كل تغيير
-/// في المخطط تغييراً في كل شاشة. وهنا يُحفظ المبلغ **نصّاً** كما وصل — لا
-/// `double.parse` ولا تنسيق ولا طرح (المادة ٣-٢ والمادة ١-٦).
+/// المبلغ يُحفظ **نصّاً** كما وصل — لا `double.parse` ولا تنسيق (المادة ٣-٢).
 extension ParticipationMapper on api.Participation {
   Participation toDomain() {
-    final amount = insuranceAmount;
-    final code = currency;
+    final amount = insurance.amount;
     return Participation(
-      auctionId: auctionId,
-      auctionTitle: auctionTitle,
-      auctionStatusLabel: auctionStatusLabel,
-      endsAt: endsAt.toUtc(),
+      auctionId: '${auction.id}',
+      auctionTitle: auction.title,
+      // نصُّ الخادم لا نصُّنا: `state` رمزٌ و`state_label` هو ما يُقرأ.
+      auctionStatusLabel: auction.stateLabel,
+      endsAt: auction.endsAt.toUtc(),
       bidsCount: bidsCount,
-      insuranceState: insuranceState.toDomain(),
-      insuranceStateLabel: insuranceStateLabel,
-      // مبلغ بلا عملة (أو عملة بلا مبلغ) ليس مبلغاً يُعرض. الغياب هنا يعني
-      // «لا تأمين مرتبط»، وهي حالة تعرضها الشاشة بنصّ الخادم لا برقم ناقص.
-      insuranceMoney: (amount == null || code == null)
+      insuranceState: _insuranceStateOf(insurance.state),
+      insuranceStateLabel: insurance.stateLabel,
+      // غياب المبلغ غياب: «لا تأمين» ليس «تأمينٌ صفر».
+      insuranceMoney: amount == null
           ? null
-          : Money(amount: amount, currency: code),
+          : Money(
+              amount: amount,
+              currency: insurance.currency ?? walletCurrency,
+            ),
     );
   }
 }
 
-extension InsuranceStateMapper on api.InsuranceState {
-  /// قيمة جديدة من الخادم تصير `unknown` ولا تُسقط الاستجابة (المادة ٢-٣).
-  InsuranceState toDomain() => switch (this) {
-    api.InsuranceState.none => InsuranceState.none,
-    api.InsuranceState.held => InsuranceState.held,
-    api.InsuranceState.locked => InsuranceState.locked,
-    api.InsuranceState.released => InsuranceState.released,
-    api.InsuranceState.$unknown => InsuranceState.unknown,
-  };
+extension ParticipationPageMapper on api.ParticipationPage {
+  List<Participation> toDomain() =>
+      results.map((row) => row.toDomain()).toList(growable: false);
 }
+
+/// حال التأمين **نصٌّ في العقد** لا تعداد؛ وقيمةٌ لم نرها تصير `unknown`
+/// ويبقى `state_label` هو ما يُعرض (المادتان ٢-٣ و٣-٥).
+InsuranceState _insuranceStateOf(String state) => switch (state) {
+  'none' => InsuranceState.none,
+  'held' => InsuranceState.held,
+  'locked' => InsuranceState.locked,
+  'released' => InsuranceState.released,
+  _ => InsuranceState.unknown,
+};
 
 extension PurchaseMapper on api.Purchase {
   Purchase toDomain() => Purchase(
-    id: id,
-    vehicleId: vehicleId,
-    lotNumber: lotNumber,
-    title: title,
-    auctionTitle: auctionTitle,
-    awardedPrice: Money(amount: awardedAmount, currency: currency),
+    id: '$id',
+    // المشترى **هو** المركبة في هذا العقد: صفٌّ واحد بمعرّفٍ واحد.
+    vehicleId: '$id',
+    lotNumber: '$lotNumber',
+    title: '$make $model $year',
+    auctionTitle: '${auction['title'] ?? ''}',
+    awardedPrice: Money(amount: awardedPrice, currency: walletCurrency),
     awardedAt: awardedAt.toUtc(),
-    state: state.toDomain(),
-    stateLabel: stateLabel,
-    invoice: invoice?.toDomain(),
+    state: _purchaseStateOf(state),
+    // لا `state_label` على المشترى في العقد — النصّ من ملفّ الترجمة في طبقة
+    // العرض، حيث تعيش نصوص الواجهة (المعيار H3).
+    stateLabel: '',
+    // الفاتورة على المشترى **ملخَّصٌ** لا فاتورةٌ كاملة: العقد يرسل خريطةً
+    // فيها معرّفها ورقمها. والفاتورة الكاملة على `/invoices/{id}/`، فلا
+    // تُبنى نصفُ فاتورةٍ هنا يظنّها من يقرأها كاملة.
+    invoice: null,
   );
+
+  /// معرّف فاتورة هذا المشترى، إن صدرت — للانتقال إليها.
+  String? get invoiceId {
+    final id = invoice?['id'];
+    return id == null ? null : '$id';
+  }
 }
 
-extension PurchaseStateMapper on api.PurchaseState {
-  PurchaseState toDomain() => switch (this) {
-    api.PurchaseState.awarded => PurchaseState.awarded,
-    api.PurchaseState.invoiced => PurchaseState.invoiced,
-    api.PurchaseState.paid => PurchaseState.paid,
-    api.PurchaseState.handedOver => PurchaseState.handedOver,
-    api.PurchaseState.cancelled => PurchaseState.cancelled,
-    api.PurchaseState.$unknown => PurchaseState.unknown,
-  };
+extension PurchasePageMapper on api.PaginatedPurchaseList {
+  List<Purchase> toDomain() =>
+      results.map((row) => row.toDomain()).toList(growable: false);
 }
+
+PurchaseState _purchaseStateOf(String state) => switch (state) {
+  'awarded' => PurchaseState.awarded,
+  'invoiced' => PurchaseState.invoiced,
+  'paid' => PurchaseState.paid,
+  'released' || 'handed_over' => PurchaseState.handedOver,
+  'cancelled' => PurchaseState.cancelled,
+  _ => PurchaseState.unknown,
+};
 
 extension InvoiceMapper on api.Invoice {
   Invoice toDomain() => Invoice(
-    id: id,
+    id: '$id',
     number: number,
-    total: Money(amount: totalAmount, currency: currency),
-    paid: Money(amount: paidAmount, currency: currency),
-    // `due_amount` يأتي من الخادم ولا يُشتق هنا من الاثنين قبله.
-    due: Money(amount: dueAmount, currency: currency),
-    state: status.toDomain(),
-    stateLabel: statusLabel,
+    total: Money(amount: amount, currency: walletCurrency),
+    paid: Money(amount: amountPaid, currency: walletCurrency),
+    due: Money(amount: outstanding, currency: walletCurrency),
+    state: _invoiceStateOf(state),
+    stateLabel: stateLabel,
     issuedAt: issuedAt.toUtc(),
-    insuranceLock: insuranceLock?.toDomain(),
+    // **لا قفل تأمين على الفاتورة في العقد.** القفل حالةٌ في المحفظة
+    // (`locked_for_dues` ودلو `insurance_locked`) لا حقلٌ على الفاتورة —
+    // والمحفظة هي التي تقوله بقيده. كان هنا لأن المخطط الوهميّ وعد به.
+    insuranceLock: null,
   );
 }
 
-extension InvoiceStateMapper on api.InvoiceStatus {
-  InvoiceState toDomain() => switch (this) {
-    api.InvoiceStatus.open => InvoiceState.open,
-    api.InvoiceStatus.partiallyPaid => InvoiceState.partiallyPaid,
-    api.InvoiceStatus.paid => InvoiceState.paid,
-    api.InvoiceStatus.cancelled => InvoiceState.cancelled,
-    api.InvoiceStatus.$unknown => InvoiceState.unknown,
-  };
+extension InvoicePageMapper on api.PaginatedInvoiceList {
+  List<Invoice> toDomain() =>
+      results.map((row) => row.toDomain()).toList(growable: false);
 }
 
-extension InsuranceLockMapper on api.InsuranceLock {
-  InsuranceLock toDomain() => InsuranceLock(
-    money: Money(amount: amount, currency: currency),
-    note: note,
-  );
-}
+/// `draft` في العقد ولا مقابل له في النطاق: مسودّةُ فاتورةٍ لا تصل عميلاً.
+/// وصولُها يوماً يعني `unknown` — تُعرض بنصّ الخادم ولا تُطوى على `open`،
+/// فـ«مطلوبٌ سدادها» حكمٌ لم يقله أحد.
+InvoiceState _invoiceStateOf(api.InvoiceStateEnum? state) => switch (state) {
+  api.InvoiceStateEnum.open => InvoiceState.open,
+  api.InvoiceStateEnum.partial => InvoiceState.partiallyPaid,
+  api.InvoiceStateEnum.paid => InvoiceState.paid,
+  api.InvoiceStateEnum.cancelled => InvoiceState.cancelled,
+  _ => InvoiceState.unknown,
+};

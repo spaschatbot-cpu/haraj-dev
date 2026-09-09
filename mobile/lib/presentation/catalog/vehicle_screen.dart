@@ -3,9 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/catalog/entities/vehicle_summary.dart';
+import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../common/failure_message.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/snapshot_view.dart';
+import 'favourites_controller.dart';
 import 'widgets/vehicle_gallery.dart';
 
 /// صفحة المركبة: الصور والمواصفات والسعر (T709).
@@ -26,12 +31,22 @@ class VehicleScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(vehicleProvider(vehicleId));
 
+    final vehicle = state.value?.value;
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          state.value?.value.title ??
-              AppLocalizations.of(context).vehiclesTitle,
-        ),
+      appBar: HarajAppBar(
+        title: vehicle?.title ?? AppLocalizations.of(context).vehiclesTitle,
+        // رقمُ اللوت تحت الاسم: هو ما ينادي به الدلّالُ المركبةَ في القاعة،
+        // فيراه العميل قبل أن ينزل إلى التفاصيل.
+        subtitle: vehicle == null
+            ? null
+            : AppLocalizations.of(context).vehicleLot(vehicle.lotNumber),
+        actions: <Widget>[
+          // القلب لا يظهر قبل وصول الكرت: زرٌّ يعرض حالةً لا يعرفها بعد
+          // يقول «غير محفوظة» عن محفوظة، والضغط عليه حينها يحذفها.
+          if (vehicle != null)
+            _FavouriteButton(vehicleId: vehicleId, card: vehicle.card),
+        ],
       ),
       body: SnapshotView(
         state: state,
@@ -51,7 +66,6 @@ class _Vehicle extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final price = vehicle.reservePrice;
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
@@ -74,17 +88,22 @@ class _Vehicle extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 4,
                 children: <Widget>[
+                  // نفس مال الكرت حرفياً: الرسوم ومعها الضريبة. سعرٌ واحد
+                  // للمركبة في كل شاشة، وإلا اختلفت الأرقام أمام العميل كما
+                  // اختلفت في v1 (المادة ٤-٥).
+                  Text(l10n.vehicleAdminFee, style: theme.textTheme.bodyMedium),
+                  MoneyText(
+                    vehicle.card.adminFee,
+                    style: theme.textTheme.titleLarge,
+                  ),
                   Text(
-                    l10n.vehicleReservePrice,
+                    l10n.vehicleAdminFeeWithVat,
                     style: theme.textTheme.bodyMedium,
                   ),
-                  if (price == null)
-                    Text(
-                      l10n.vehicleReservePriceUnset,
-                      style: theme.textTheme.bodyLarge,
-                    )
-                  else
-                    MoneyText(price, style: theme.textTheme.titleLarge),
+                  MoneyText(
+                    vehicle.card.adminFeeWithVat,
+                    style: theme.textTheme.bodyLarge,
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -129,5 +148,62 @@ class _Vehicle extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// زرّ المفضلة — حالتُه من الخادم، وفعلُه عليه.
+///
+/// **مقفولٌ أثناء الطلب** (`_busy`): ضغطتان سريعتان تُرسلان إضافةً وحذفاً معاً،
+/// فيبقى الحال على عكس ما تُظهره الشاشة حتى تُعاد القراءة.
+class _FavouriteButton extends ConsumerStatefulWidget {
+  const _FavouriteButton({required this.vehicleId, required this.card});
+
+  final String vehicleId;
+  final VehicleSummary card;
+
+  @override
+  ConsumerState<_FavouriteButton> createState() => _FavouriteButtonState();
+}
+
+class _FavouriteButtonState extends ConsumerState<_FavouriteButton> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isFavourite = widget.card.isFavourite;
+
+    return IconButton(
+      onPressed: _busy ? null : () => _toggle(isFavourite),
+      icon: Icon(isFavourite ? Icons.favorite : Icons.favorite_border),
+      tooltip: isFavourite ? l10n.favouriteRemove : l10n.favouriteAdd,
+    );
+  }
+
+  Future<void> _toggle(bool isFavourite) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(toggleFavouriteProvider)(
+        vehicleId: widget.vehicleId,
+        isFavourite: isFavourite,
+      );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isFavourite ? l10n.favouriteRemoved : l10n.favouriteAdded,
+          ),
+        ),
+      );
+    } on Failure catch (failure) {
+      // رسالة الخادم كما جاءت — لا نصٌّ عندنا مكانها (المادة ٤-٥).
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failureMessage(context, failure))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 }

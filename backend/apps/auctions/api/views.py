@@ -203,7 +203,13 @@ class VehicleDetailView(APIView):
         vehicle: Vehicle = get_object_or_404(queryset, pk=pk)
 
         return Response(
-            VehicleCardSerializer(vehicle_card(vehicle)).data, status=status.HTTP_200_OK
+            VehicleCardSerializer(
+                vehicle_card(
+                    vehicle,
+                    is_favourite=bool(favourites.favourite_ids(request.user, [vehicle])),
+                )
+            ).data,
+            status=status.HTTP_200_OK,
         )
 
 
@@ -295,7 +301,14 @@ class FavouriteListView(APIView):
 
         return Response(
             VehiclePageSerializer(
-                {"total": total, "counts": counts, "results": vehicle_cards(page)}
+                {
+                    "total": total,
+                    "counts": counts,
+                    # كلُّها مفضّلة بحكم المسار — وتُسأل مع ذلك ولا تُملأ
+                    # بـ`True` ثابتة: قيمةٌ مكتوبة بيد تكذب يوم يتغيّر معنى
+                    # هذه الشاشة، والسؤال استعلامٌ واحد للصفحة.
+                    "results": vehicle_cards(page, favourite_of=request.user),
+                }
             ).data,
             status=status.HTTP_200_OK,
         )

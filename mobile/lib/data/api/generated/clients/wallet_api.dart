@@ -2,16 +2,14 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, unused_import, invalid_annotation_target, unnecessary_import
 
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/paginated_ledger_entry_list.dart';
+import '../models/payment_intent.dart';
 import '../models/refund_request.dart';
-import '../models/refund_request_input.dart';
-import '../models/top_up_intent.dart';
-import '../models/top_up_intent_request.dart';
 import '../models/wallet.dart';
-import '../models/wallet_bucket_kind.dart';
 
 part 'wallet_api.g.dart';
 
@@ -19,41 +17,65 @@ part 'wallet_api.g.dart';
 abstract class WalletApi {
   factory WalletApi(Dio dio, {String? baseUrl}) = _WalletApi;
 
-  /// المحفظة — الدلاء مفصَّلة بأسبابها.
-  ///
-  /// لا مجموع واحد. كل دلو ببيانه وسببه (أي مزاد، أي فاتورة) — قاعدة G5 في الفيز 007 وقاعدة العرض 2 في الفيز 008.
+  /// The customer's money, split by the pot it is actually sitting in.
   @GET('/api/v1/wallet/')
-  Future<Wallet> walletRetrieve();
+  Future<Wallet> v1WalletRetrieve();
 
-  /// كشف الحركات من القيود مباشرةً.
-  ///
-  /// الترشيح على دلو واحد هو النصف الثاني من المادة ١-٦: كل رقم في المحفظة يُفتح على القيود التي تفسّره. الترشيح يقع على الخادم لا في الشاشة — نظيره في الخلفية `bucket` في `StatementQuerySerializer`.
-  ///
-  /// [bucket] - دلو واحد بعينه — القيمة كما أرسلها الخادم في `WalletBucket.kind`.
-  @GET('/api/v1/wallet/transactions/')
-  Future<PaginatedLedgerEntryList> walletTransactionsList({
-    @Query('page') int? page,
-    @Query('page_size') int? pageSize,
-    @Query('bucket') WalletBucketKind? bucket,
+  @GET('/api/v1/wallet/refund-requests/')
+  Future<List<RefundRequest>> v1WalletRefundRequestsList();
+
+  @MultiPart()
+  @POST('/api/v1/wallet/refund-requests/')
+  Future<RefundRequest> v1WalletRefundRequestsCreate({
+    @Part(name: 'amount') required String amount,
   });
 
-  /// نيّة شحن — المبلغ من الخادم لا من الطلب
+  /// Start a card top-up, or list the ones this customer started.
+  @GET('/api/v1/wallet/topups/')
+  Future<List<PaymentIntent>> v1WalletTopupsList();
+
+  /// Start a card top-up, or list the ones this customer started.
+  @MultiPart()
   @POST('/api/v1/wallet/topups/')
-  Future<TopUpIntent> walletTopUpIntentCreate({
-    @Body() required TopUpIntentRequest body,
+  Future<PaymentIntent> v1WalletTopupsCreate({
+    @Part(name: 'auction') int? auction,
   });
 
-  /// حالة نيّة الشحن كما يعرفها الخادم.
+  /// Where the customer lands on return from the gateway.
   ///
-  /// العودة من البوابة تُسنَد من هنا، لا من معاملات رابط العودة. المرجع ليس ادّعاءً: هو اسم صفّ كتبه الخادم قبل أن يصل العميل إلى البوابة أصلاً، والرصيد يتحرّك بتأكيد البوابة للخادم وحده. نظيره في الخلفية `GET /api/v1/wallet/topups/{reference}/`.
+  /// It reads one stored row and answers with it. Not a single query parameter is.
+  /// consulted — a return URL is under the payer's thumb, and in v1 that was.
+  /// enough to make the app believe a payment had succeeded. Money moves in.
+  /// :class:`PaymentCallbackView` and nowhere else.
   @GET('/api/v1/wallet/topups/{reference}/')
-  Future<TopUpIntent> walletTopUpIntentRetrieve({
+  Future<PaymentIntent> v1WalletTopupsRetrieve({
     @Path('reference') required String reference,
   });
 
-  /// طلب استرداد من المتاح فقط
-  @POST('/api/v1/wallet/refund-requests/')
-  Future<RefundRequest> walletRefundRequestCreate({
-    @Body() required RefundRequestInput body,
+  /// Hand the customer over to the gateway. One hop, decided on the server.
+  ///
+  /// A redirect and not a JSON body carrying a url: the client's whole job is to.
+  /// send the customer here, and a `302` is what a browser and a webview both.
+  /// already know how to follow. It also means the gateway's address never.
+  /// reaches either client, which is the point of `apps.money.gateway` — see the.
+  /// module docstring for why a "gateway url" field would have been the wrong.
+  /// shape.
+  ///
+  /// Nothing is charged here and no money moves. This is a signpost; the ledger.
+  /// is touched by :class:`PaymentCallbackView` and by nothing else.
+  @GET('/api/v1/wallet/topups/{reference}/checkout/')
+  Future<void> v1WalletTopupsCheckoutRetrieve({
+    @Path('reference') required String reference,
+  });
+
+  /// Every ledger line belonging to the caller, newest first, paginated.
+  ///
+  /// [limit] - عدد النتائج التي يجب إرجاعها في كل صفحة.
+  ///
+  /// [offset] - الفهرس الأولي الذي يجب البدء منه لإرجاع النتائج.
+  @GET('/api/v1/wallet/transactions/')
+  Future<PaginatedLedgerEntryList> v1WalletTransactionsList({
+    @Query('limit') int? limit,
+    @Query('offset') int? offset,
   });
 }

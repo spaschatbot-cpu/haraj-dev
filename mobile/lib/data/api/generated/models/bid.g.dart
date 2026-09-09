@@ -7,33 +7,25 @@ part of 'bid.dart';
 // **************************************************************************
 
 Bid _$BidFromJson(Map<String, dynamic> json) => Bid(
-  id: json['id'] as String,
-  vehicleId: json['vehicle_id'] as String,
+  id: (json['id'] as num).toInt(),
+  vehicleId: (json['vehicle_id'] as num).toInt(),
+  auctionId: (json['auction_id'] as num).toInt(),
+  lotNumber: (json['lot_number'] as num).toInt(),
+  vehicleTitle: json['vehicle_title'] as String,
   amount: json['amount'] as String,
-  currency: json['currency'] as String,
-  status: BidStatus.fromJson(json['status'] as String),
-  statusLabel: json['status_label'] as String,
   placedAt: DateTime.parse(json['placed_at'] as String),
-  vehicleTitle: json['vehicle_title'] as String?,
+  isWithdrawn: json['is_withdrawn'] as bool,
+  isSuperseded: json['is_superseded'] as bool,
 );
 
 Map<String, dynamic> _$BidToJson(Bid instance) => <String, dynamic>{
   'id': instance.id,
   'vehicle_id': instance.vehicleId,
+  'auction_id': instance.auctionId,
+  'lot_number': instance.lotNumber,
   'vehicle_title': instance.vehicleTitle,
   'amount': instance.amount,
-  'currency': instance.currency,
-  'status': _$BidStatusEnumMap[instance.status]!,
-  'status_label': instance.statusLabel,
   'placed_at': instance.placedAt.toIso8601String(),
-};
-
-const _$BidStatusEnumMap = {
-  BidStatus.placed: 'placed',
-  BidStatus.outbid: 'outbid',
-  BidStatus.leading: 'leading',
-  BidStatus.withdrawn: 'withdrawn',
-  BidStatus.won: 'won',
-  BidStatus.lost: 'lost',
-  BidStatus.$unknown: r'$unknown',
+  'is_withdrawn': instance.isWithdrawn,
+  'is_superseded': instance.isSuperseded,
 };

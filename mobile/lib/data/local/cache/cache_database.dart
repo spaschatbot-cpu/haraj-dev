@@ -30,7 +30,24 @@ class CacheDatabase extends _$CacheDatabase {
   CacheDatabase(super.executor);
 
   /// قاعدة الجهاز الحقيقية.
-  CacheDatabase.onDevice() : super(driftDatabase(name: 'haraj_cache'));
+  ///
+  /// **`web` ليست منصّة شحن** — المنصّتان أندرويد وiOS (المعيار H1). وهي
+  /// مضبوطة هنا لأن `driftDatabase` يرمي عند الترجمة للويب بلا هذا المعامل،
+  /// فتسقط الشاشة الأولى قبل أن تُرسم — وتشغيلُ التطبيق في متصفّح هو أرخص
+  /// طريقة لمعاينة الشاشات على جهازٍ بلا محاكٍ أندرويد.
+  ///
+  /// الملفّان في `web/` ويُنزَّلان مع إصدار drift، ولا أثر لهما على حزمتَي
+  /// المتجرين: `driftDatabase` يتجاهل `web` تماماً خارج الويب.
+  CacheDatabase.onDevice()
+    : super(
+        driftDatabase(
+          name: 'haraj_cache',
+          web: DriftWebOptions(
+            sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+            driftWorker: Uri.parse('drift_worker.js'),
+          ),
+        ),
+      );
 
   @override
   int get schemaVersion => 1;

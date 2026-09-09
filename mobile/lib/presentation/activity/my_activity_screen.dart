@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../common/haraj_app_bar.dart';
 import 'activity_providers.dart';
 import 'widgets/activity_list_view.dart';
 import 'widgets/invoice_card.dart';
@@ -53,8 +54,8 @@ class MyActivityScreen extends StatelessWidget {
       length: MyActivityTab.values.length,
       initialIndex: initialTab.index,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(l10n.myActivityTitle),
+        appBar: HarajAppBar(
+          title: l10n.myActivityTitle,
           bottom: TabBar(
             tabs: <Widget>[
               Tab(text: l10n.tabParticipations),

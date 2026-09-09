@@ -8,36 +8,16 @@ part of 'participation.dart';
 
 Participation _$ParticipationFromJson(Map<String, dynamic> json) =>
     Participation(
-      auctionId: json['auction_id'] as String,
-      auctionTitle: json['auction_title'] as String,
-      auctionStatusLabel: json['auction_status_label'] as String,
-      endsAt: DateTime.parse(json['ends_at'] as String),
+      auction: AuctionCard.fromJson(json['auction'] as Map<String, dynamic>),
       bidsCount: (json['bids_count'] as num).toInt(),
-      insuranceState: InsuranceState.fromJson(
-        json['insurance_state'] as String,
+      insurance: ParticipationInsurance.fromJson(
+        json['insurance'] as Map<String, dynamic>,
       ),
-      insuranceStateLabel: json['insurance_state_label'] as String,
-      insuranceAmount: json['insurance_amount'] as String?,
-      currency: json['currency'] as String?,
     );
 
 Map<String, dynamic> _$ParticipationToJson(Participation instance) =>
     <String, dynamic>{
-      'auction_id': instance.auctionId,
-      'auction_title': instance.auctionTitle,
-      'auction_status_label': instance.auctionStatusLabel,
-      'ends_at': instance.endsAt.toIso8601String(),
+      'auction': instance.auction,
       'bids_count': instance.bidsCount,
-      'insurance_state': _$InsuranceStateEnumMap[instance.insuranceState]!,
-      'insurance_state_label': instance.insuranceStateLabel,
-      'insurance_amount': instance.insuranceAmount,
-      'currency': instance.currency,
+      'insurance': instance.insurance,
     };
-
-const _$InsuranceStateEnumMap = {
-  InsuranceState.none: 'none',
-  InsuranceState.held: 'held',
-  InsuranceState.locked: 'locked',
-  InsuranceState.released: 'released',
-  InsuranceState.$unknown: r'$unknown',
-};

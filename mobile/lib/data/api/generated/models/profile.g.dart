@@ -22,7 +22,7 @@ Profile _$ProfileFromJson(Map<String, dynamic> json) => Profile(
   lockedFields: (json['locked_fields'] as List<dynamic>)
       .map((e) => LockedField.fromJson(e as Map<String, dynamic>))
       .toList(),
-  email: json['email'] as String?,
+  email: json['email'],
 );
 
 Map<String, dynamic> _$ProfileToJson(Profile instance) => <String, dynamic>{

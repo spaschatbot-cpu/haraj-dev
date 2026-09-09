@@ -8,6 +8,7 @@ import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import 'pending_sign_in.dart';
 import 'session_controller.dart';
 
@@ -79,7 +80,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         ref.watch(sessionControllerProvider) == SessionState.expired;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.signInTitle)),
+      appBar: HarajAppBar(title: l10n.signInTitle),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(

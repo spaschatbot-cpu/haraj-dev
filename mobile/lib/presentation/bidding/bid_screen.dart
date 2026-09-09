@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/bidding/entities/live_bids_update.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import 'bidding_controllers.dart';
 import 'live_status_banner.dart';
@@ -25,7 +26,7 @@ class BidScreen extends ConsumerWidget {
     final live = ref.watch(liveBidsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.bidPanelTitle)),
+      appBar: HarajAppBar(title: l10n.bidPanelTitle),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

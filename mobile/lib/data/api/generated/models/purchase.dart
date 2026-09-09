@@ -4,51 +4,40 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'invoice.dart';
-import 'purchase_state.dart';
-
 part 'purchase.g.dart';
 
+/// A vehicle this customer won, with the invoice that followed it.
 @JsonSerializable()
 class Purchase {
   const Purchase({
     required this.id,
-    required this.vehicleId,
     required this.lotNumber,
-    required this.title,
-    required this.auctionTitle,
-    required this.awardedAmount,
-    required this.currency,
-    required this.awardedAt,
+    required this.make,
+    required this.model,
+    required this.year,
     required this.state,
-    required this.stateLabel,
-    this.invoice,
+    required this.awardedPrice,
+    required this.awardedAt,
+    required this.auction,
+    required this.invoice,
   });
 
   factory Purchase.fromJson(Map<String, Object?> json) =>
       _$PurchaseFromJson(json);
 
-  final String id;
-  @JsonKey(name: 'vehicle_id')
-  final String vehicleId;
+  final int id;
   @JsonKey(name: 'lot_number')
-  final String lotNumber;
-  final String title;
-  @JsonKey(name: 'auction_title')
-  final String auctionTitle;
-
-  /// سعر الرسوّ كما رحّله الخادم — نصّ عشري يُعرض كما وصل
-  @JsonKey(name: 'awarded_amount')
-  final String awardedAmount;
-  final String currency;
+  final int lotNumber;
+  final String make;
+  final String model;
+  final int year;
+  final String state;
+  @JsonKey(name: 'awarded_price')
+  final String awardedPrice;
   @JsonKey(name: 'awarded_at')
   final DateTime awardedAt;
-  final PurchaseState state;
-
-  /// حالة المركبة بالعربية من الخادم
-  @JsonKey(name: 'state_label')
-  final String stateLabel;
-  final Invoice? invoice;
+  final Map<String, dynamic> auction;
+  final Map<String, dynamic>? invoice;
 
   Map<String, Object?> toJson() => _$PurchaseToJson(this);
 }

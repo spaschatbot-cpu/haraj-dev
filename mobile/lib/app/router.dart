@@ -12,11 +12,13 @@ import '../presentation/auth/verify_code_screen.dart';
 import '../presentation/bidding/bid_screen.dart';
 import '../presentation/bidding/my_bids_screen.dart';
 import '../presentation/catalog/auction_vehicles_screen.dart';
+import '../presentation/catalog/favourites_screen.dart';
 import '../presentation/catalog/home_screen.dart';
 import '../presentation/catalog/vehicle_screen.dart';
 import '../presentation/profile/change_phone_screen.dart';
 import '../presentation/profile/company_profile_screen.dart';
 import '../presentation/profile/profile_screen.dart';
+import '../presentation/shell/home_shell.dart';
 import '../presentation/wallet/top_up_screen.dart';
 import '../presentation/wallet/transactions_screen.dart';
 import '../presentation/wallet/wallet_screen.dart';
@@ -42,35 +44,158 @@ export 'routes.dart' show Routes;
 /// نسخة ثانية من تعريف المسارات — نسخة الاختبار كانت ستفترق عن نسخة الإنتاج،
 /// فيمرّ اختبار على شجرة لا تُشحن.
 List<RouteBase> appRoutes() => <RouteBase>[
-  GoRoute(
-    path: Routes.homePath,
-    name: Routes.home,
-    // التبويب يُقرأ من العنوان في كل بناء، لا يُحفظ في حالة الشاشة: عنوانٌ
-    // واحد يعطي شاشةً واحدة، سواء وصل من ضغطة تبويب أو من رابط مشارَك أو من
-    // إشعار أو من إعادة فتح التطبيق.
-    builder: (context, state) => HomeScreen(
-      phase: AuctionPhase.fromSlug(
-        state.uri.queryParameters[Routes.phaseQueryParameter],
+  // الأقسام الخمسة تحت قشرةٍ واحدة تحمل الشريط السفليّ.
+  //
+  // **`StatefulShellRoute` لا `ShellRoute`:** لكل فرعٍ مكدّسه الخاص، فمن فتح
+  // مركبةً من المفضلة ثم ذهب إلى المحفظة وعاد وجدها كما تركها. مع `ShellRoute`
+  // كان المكدّس واحداً، فيعود إلى رأس القسم في كل تنقّل.
+  //
+  // وترتيب الفروع هو ترتيب `HomeSection.values` — الشريط يختار بالفهرس.
+  StatefulShellRoute.indexedStack(
+    builder: (context, state, navigationShell) =>
+        HomeShell(navigationShell: navigationShell),
+    branches: <StatefulShellBranch>[
+      // ١ — الرئيسية، وتحتها المزاد والمركبة والمزايدة.
+      //
+      // المركبة **داخل** القسم لا فوق القشرة: الشريط يبقى ظاهراً، فمن فتح
+      // مركبةً يستطيع الذهاب إلى محفظته ليشحن ثم يعود إليها. رفعُها فوق
+      // القشرة كان يحبسه في الشاشة حتى يرجع.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.homePath,
+            name: Routes.home,
+            // التبويب يُقرأ من العنوان في كل بناء، لا يُحفظ في حالة الشاشة:
+            // عنوانٌ واحد يعطي شاشةً واحدة، سواء وصل من ضغطة تبويب أو من رابط
+            // مشارَك أو من إشعار أو من إعادة فتح التطبيق.
+            builder: (context, state) => HomeScreen(
+              phase: AuctionPhase.fromSlug(
+                state.uri.queryParameters[Routes.phaseQueryParameter],
+              ),
+            ),
+            routes: <RouteBase>[
+              GoRoute(
+                // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه
+                // `PushLocations` لوجهة مزاد: مدخل واحد للشاشة لا مدخلان.
+                path: 'auctions/:auctionId',
+                name: Routes.auctionVehicles,
+                builder: (context, state) => AuctionVehiclesScreen(
+                  auctionId: state.pathParameters['auctionId']!,
+                ),
+              ),
+              GoRoute(
+                path: 'vehicles/:vehicleId',
+                name: Routes.vehicle,
+                builder: (context, state) => VehicleScreen(
+                  vehicleId: state.pathParameters['vehicleId']!,
+                ),
+                routes: <RouteBase>[
+                  GoRoute(
+                    // المزايدة تحت المركبة لا بجوارها: لا توجد مزايدة بلا
+                    // مركبة، والمسار يقول ذلك بدل أن يعتمد على مُعامل يمكن
+                    // أن يغيب.
+                    path: 'bid',
+                    name: Routes.bid,
+                    builder: (context, state) => BidScreen(
+                      vehicleId: state.pathParameters['vehicleId']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
-    ),
-    routes: <RouteBase>[
-      GoRoute(
-        // العنوان هو `Routes.auctionPath` بعينه، وهو ما يبنيه
-        // `PushLocations` لوجهة مزاد: مدخل واحد للشاشة لا مدخلان.
-        path: 'auctions/:auctionId',
-        name: Routes.auctionVehicles,
-        builder: (context, state) => AuctionVehiclesScreen(
-          auctionId: state.pathParameters['auctionId']!,
-        ),
+
+      // ٢ — مشاركاتي: مشاركاتي ومشترياتي وفواتيري، ومزايداتي تحتها.
+      //
+      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
+      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
+      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.myActivityPath,
+            name: Routes.myActivity,
+            builder: (context, state) => MyActivityScreen(
+              initialTab: MyActivityTab.fromSlug(
+                state.uri.queryParameters[Routes.tabQueryParameter],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: Routes.bidsPath,
+            name: Routes.myBids,
+            builder: (context, state) => const MyBidsScreen(),
+          ),
+        ],
       ),
-      GoRoute(
-        path: 'vehicles/:vehicleId',
-        name: Routes.vehicle,
-        builder: (context, state) =>
-            VehicleScreen(vehicleId: state.pathParameters['vehicleId']!),
+
+      // ٣ — المفضلة.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.favouritesPath,
+            name: Routes.favourites,
+            builder: (context, state) => const FavouritesScreen(),
+          ),
+        ],
+      ),
+
+      // ٤ — محفظتي، وتحتها الشحن والكشف.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.walletPath,
+            name: Routes.wallet,
+            builder: (context, state) => const WalletScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'topup',
+                name: Routes.walletTopUp,
+                builder: (context, state) => const TopUpScreen(),
+              ),
+              GoRoute(
+                path: 'transactions',
+                name: Routes.walletStatement,
+                builder: (context, state) => TransactionsScreen(
+                  bucket: _bucketOf(
+                    state.uri.queryParameters[Routes.bucketParameter],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      // ٥ — حسابي، وتحته ملفّ الشركة وتغيير الجوال.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.profilePath,
+            name: Routes.profile,
+            builder: (context, state) => const ProfileScreen(),
+            routes: <RouteBase>[
+              GoRoute(
+                path: 'company',
+                name: Routes.companyProfile,
+                builder: (context, state) => const CompanyProfileScreen(),
+              ),
+              GoRoute(
+                path: 'phone',
+                name: Routes.changePhone,
+                builder: (context, state) => const ChangePhoneScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   ),
+
+  // الدخول **خارج القشرة**: شريطٌ سفليّ على شاشة تسجيل الدخول يعرض أربعة
+  // أقسام لا يفتحها من ليس داخلاً، فيضغطها فيُعاد إلى حيث هو.
   GoRoute(
     path: Routes.signInPath,
     name: Routes.signIn,
@@ -82,65 +207,6 @@ List<RouteBase> appRoutes() => <RouteBase>[
         builder: (context, state) => const VerifyCodeScreen(),
       ),
     ],
-  ),
-  GoRoute(
-    path: Routes.profilePath,
-    name: Routes.profile,
-    builder: (context, state) => const ProfileScreen(),
-    routes: <RouteBase>[
-      GoRoute(
-        path: 'company',
-        name: Routes.companyProfile,
-        builder: (context, state) => const CompanyProfileScreen(),
-      ),
-      GoRoute(
-        path: 'phone',
-        name: Routes.changePhone,
-        builder: (context, state) => const ChangePhoneScreen(),
-      ),
-    ],
-  ),
-  GoRoute(
-    path: Routes.bidsPath,
-    name: Routes.myBids,
-    builder: (context, state) => const MyBidsScreen(),
-  ),
-  GoRoute(
-    // المزايدة تحت المركبة لا بجوارها: لا توجد مزايدة بلا مركبة، والمسار
-    // يقول ذلك بدل أن يعتمد على مُعامل يمكن أن يغيب.
-    path: Routes.bidPath,
-    name: Routes.bid,
-    builder: (context, state) =>
-        BidScreen(vehicleId: state.pathParameters['vehicleId']!),
-  ),
-  GoRoute(
-    path: Routes.walletPath,
-    name: Routes.wallet,
-    builder: (context, state) => const WalletScreen(),
-  ),
-  GoRoute(
-    path: Routes.walletTopUpPath,
-    name: Routes.walletTopUp,
-    builder: (context, state) => const TopUpScreen(),
-  ),
-  GoRoute(
-    path: Routes.walletTransactionsPath,
-    name: Routes.walletStatement,
-    builder: (context, state) => TransactionsScreen(
-      bucket: _bucketOf(state.uri.queryParameters[Routes.bucketParameter]),
-    ),
-  ),
-  // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
-  // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
-  // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
-  GoRoute(
-    path: Routes.myActivityPath,
-    name: Routes.myActivity,
-    builder: (context, state) => MyActivityScreen(
-      initialTab: MyActivityTab.fromSlug(
-        state.uri.queryParameters[Routes.tabQueryParameter],
-      ),
-    ),
   ),
 ];
 
@@ -158,6 +224,7 @@ const Set<String> authenticatedRoutes = <String>{
   Routes.bidsPath,
   Routes.bidPath,
   Routes.myActivityPath,
+  Routes.favouritesPath,
 };
 
 /// هل هذا النمط — لا العنوان — تحت الحراسة؟

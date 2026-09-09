@@ -4,61 +4,88 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
-import 'auction_phase.dart';
-
 part 'vehicle_card.g.dart';
 
+/// The vehicle card — the same fields in the list and on the detail page.
+///
+/// T609's acceptance criterion is that those two are identical, and.
+/// `test_vehicle_api.py` asserts it by comparing the key sets rather than by.
+/// reading this class, so the guarantee does not depend on this file being.
+/// kept honest by hand.
 @JsonSerializable()
 class VehicleCard {
   const VehicleCard({
     required this.id,
-    required this.lotNumber,
-    required this.title,
-    required this.thumbnailUrl,
-    required this.reservePrice,
-    required this.currentBidAmount,
-    required this.currency,
-    required this.bidsCount,
     required this.auctionId,
+    required this.auctionNumber,
+    required this.auctionTitle,
+    required this.auctionState,
     required this.phase,
+    required this.auctionStartsAt,
     required this.auctionEndsAt,
+    required this.lotNumber,
+    required this.reference,
+    required this.title,
+    required this.make,
+    required this.model,
+    required this.year,
+    required this.colour,
+    required this.colourLabel,
+    required this.odometerKm,
+    required this.condition,
+    required this.conditionLabel,
+    required this.location,
+    required this.isFavourite,
+    required this.adminFee,
+    required this.adminFeeWithVat,
+    required this.state,
+    required this.thumbnailUrl,
   });
 
   factory VehicleCard.fromJson(Map<String, Object?> json) =>
       _$VehicleCardFromJson(json);
 
-  final String id;
-  @JsonKey(name: 'lot_number')
-  final String lotNumber;
-  final String title;
-
-  /// مصغَّرة فقط في القوائم — الحجم الكامل عند الفتح
-  @JsonKey(name: 'thumbnail_url')
-  final String? thumbnailUrl;
-
-  /// سعر وقوف المركبة — الحقل **الوحيد** لسعرها (المادة ٨-٣ في دليل النظام، ونظيره `reserve_price` في مخطط الخادم المثبَّت). الفراغ يعني أن المالك لم يحدّد سعراً، وهو غير الصفر.
-  ///
-  @JsonKey(name: 'reserve_price')
-  final String? reservePrice;
-
-  /// نصّ عشري — يُعرض كما وصل
-  @JsonKey(name: 'current_bid_amount')
-  final String currentBidAmount;
-  final String currency;
-  @JsonKey(name: 'bids_count')
-  final int bidsCount;
-
-  /// مزاد هذه المركبة — الكرت يفتح مركبته، والتبويب يجمع عبر المزادات
+  final int id;
   @JsonKey(name: 'auction_id')
-  final String auctionId;
-  final AuctionPhase phase;
+  final int auctionId;
+  @JsonKey(name: 'auction_number')
+  final int auctionNumber;
+  @JsonKey(name: 'auction_title')
+  final String auctionTitle;
+  @JsonKey(name: 'auction_state')
+  final String auctionState;
 
-  /// لحظة انتهاء **مزاد** هذه المركبة، ISO-8601 بتوقيت UTC.
-  ///
-  /// تُرسَل مع كل مركبة عمداً: العدّاد التنازلي على الكرت فرقٌ بين هذه اللحظة و«الآن»، وبلا حملها على الكرت يحتاج كل كرت طلباً ثانياً عن مزاده. أما **هل انتهى؟** فجوابه `phase` لا هذا الحقل: ساعة الجهاز ليست الحقيقة، وv1 قارن بها فأظهر «انتهى» لمزاد ما زال مفتوحاً.
-  ///
+  /// التبويب الذي يقرّره الخادم: `soon`، `active`، `ended`، أو `""` (فراغ) لمزادٍ خارج الثلاثة — مسودّةٍ أو ملغيّ، لا يراه إلا موظّف. الفراغ يُقرأ «غير معروف» ولا يُطوى في `ended` (المادة ٢-٣).
+  final String phase;
+  @JsonKey(name: 'auction_starts_at')
+  final DateTime auctionStartsAt;
   @JsonKey(name: 'auction_ends_at')
   final DateTime auctionEndsAt;
+  @JsonKey(name: 'lot_number')
+  final int lotNumber;
+  final String reference;
+  final String title;
+  final String make;
+  final String model;
+  final int year;
+  final String colour;
+  @JsonKey(name: 'colour_label')
+  final String colourLabel;
+  @JsonKey(name: 'odometer_km')
+  final int? odometerKm;
+  final String condition;
+  @JsonKey(name: 'condition_label')
+  final String conditionLabel;
+  final String location;
+  @JsonKey(name: 'is_favourite')
+  final bool isFavourite;
+  @JsonKey(name: 'admin_fee')
+  final String adminFee;
+  @JsonKey(name: 'admin_fee_with_vat')
+  final String adminFeeWithVat;
+  final String state;
+  @JsonKey(name: 'thumbnail_url')
+  final String? thumbnailUrl;
 
   Map<String, Object?> toJson() => _$VehicleCardToJson(this);
 }

@@ -2,9 +2,7 @@ import '../../domain/notifications/repositories/device_registry.dart';
 import '../../domain/notifications/repositories/push_service.dart';
 import '../api/api_call.dart';
 import '../api/generated/clients/devices_api.dart';
-import '../api/generated/models/device_registration.dart';
-import '../api/generated/models/device_registration_platform.dart';
-import '../api/generated/models/device_unregistration.dart';
+import '../api/generated/models/platform_enum.dart';
 
 /// تسجيل الجهاز عند خادمنا، فوق العميل المولَّد من المخطط (T716).
 ///
@@ -25,19 +23,17 @@ final class DeviceRegistryImpl implements DeviceRegistry {
     required String token,
     required DevicePlatform platform,
   }) => callApi(
-    () => _api.devicesRegister(
-      body: DeviceRegistration(token: token, platform: _wire(platform)),
-    ),
+    () => _api.devicesRegister(token: token, platform: _wire(platform)),
   );
 
   @override
-  Future<void> unregister({required String token}) => callApi(
-    () => _api.devicesUnregister(body: DeviceUnregistration(token: token)),
-  );
+  Future<void> unregister({required String token}) =>
+      callApi(() => _api.devicesUnregister(token: token));
 
-  static DeviceRegistrationPlatform _wire(DevicePlatform platform) =>
-      switch (platform) {
-        DevicePlatform.android => DeviceRegistrationPlatform.android,
-        DevicePlatform.ios => DeviceRegistrationPlatform.ios,
-      };
+  /// `web` في العقد ولا مقابل له هنا: هذا تطبيقٌ أصليّ، ولا يسجّل جهازاً
+  /// يدّعي أنه متصفّح. القيمة موجودة للويب الذي يستهلك العقد نفسه.
+  static PlatformEnum _wire(DevicePlatform platform) => switch (platform) {
+    DevicePlatform.android => PlatformEnum.android,
+    DevicePlatform.ios => PlatformEnum.ios,
+  };
 }

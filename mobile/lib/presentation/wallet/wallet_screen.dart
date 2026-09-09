@@ -8,6 +8,7 @@ import '../../domain/common/snapshot.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_view.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import '../common/saudi_time.dart';
 import '../common/stale_data_banner.dart';
@@ -30,7 +31,7 @@ class WalletScreen extends ConsumerWidget {
     final state = ref.watch(walletBalanceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.walletTitle)),
+      appBar: HarajAppBar(title: l10n.walletTitle),
       body: switch (state) {
         AsyncData(value: final snapshot) => RefreshIndicator(
           onRefresh: () async => ref.refresh(walletBalanceProvider.future),
@@ -80,6 +81,21 @@ class _Balance extends StatelessWidget {
           // لا `total` هنا ولا في أي مكان: الفيز 008 يمنع جمع الدلاء، وأي
           // مجموع يحتاجه العرض يأتي حقلاً من الخادم بقيده الذي يثبته.
           for (final bucket in balance.buckets) _BucketCard(bucket: bucket),
+        // **الحجوزات على المحفظة لا على دلو.** حجزٌ واحد قد يمسّ أكثر من
+        // دلو، وتوزيعُه عليها كان يخترع نسبةً لم يقلها الدفتر. وكلُّ حجزٍ
+        // بسببه: «الحجز مسمّى دائماً» — ورقمٌ محجوز بلا سبب هو ما جعل عملاء
+        // v1 يظنّون فلوسهم متاحة.
+        if (balance.holds.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              l10n.walletHoldsTitle,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          for (final hold in balance.holds) _HoldRow(hold: hold),
+        ],
         const _TopUpEntry(),
       ],
     );
@@ -94,7 +110,6 @@ class _BucketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return Card(
@@ -107,13 +122,6 @@ class _BucketCard extends StatelessWidget {
             Text(bucket.label, style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             MoneyText(bucket.money, style: theme.textTheme.headlineSmall),
-            if (bucket.holds.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(l10n.walletHoldsTitle, style: theme.textTheme.labelLarge),
-              // كل حجز بسببه ومرجعه: «الحجز مسمّى دائماً». رقم محجوز بلا سبب
-              // هو ما جعل عملاء v1 يظنّون فلوسهم متاحة.
-              for (final hold in bucket.holds) _HoldRow(hold: hold),
-            ],
             const SizedBox(height: 8),
             Align(
               alignment: AlignmentDirectional.centerStart,
@@ -147,8 +155,11 @@ class _HoldRow extends StatelessWidget {
               children: [
                 // السبب عربيٌّ من الخادم ويُعرض حرفياً.
                 Text(hold.reason, style: theme.textTheme.bodyMedium),
+                // **لا مرجع في العقد.** الحجز يحمل معرّفه ولحظته، لا رقم
+                // المزاد أو الفاتورة رقماً مفرداً. واللحظة أنفع للعميل من
+                // معرّفٍ داخليّ: «محجوز منذ متى» سؤالٌ يُسأل.
                 Text(
-                  l10n.movementReference(hold.reference),
+                  l10n.walletHoldSince(SaudiTime.forDisplay(hold.createdAt)),
                   style: theme.textTheme.bodySmall,
                 ),
               ],

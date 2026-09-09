@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
+import '../common/haraj_app_bar.dart';
 import '../common/money_text.dart';
 import 'top_up_controller.dart';
 
@@ -56,7 +57,7 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
     final intent = state.intent;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.topUpTitle)),
+      appBar: HarajAppBar(title: l10n.topUpTitle),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

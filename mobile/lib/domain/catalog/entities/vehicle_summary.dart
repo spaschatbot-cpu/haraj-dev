@@ -1,5 +1,6 @@
 import '../../common/money.dart';
 import 'auction_phase.dart';
+import 'vehicle_state.dart';
 
 /// المركبة كما تظهر في **كرت** — وهذه هي كل حقول الكرت.
 ///
@@ -13,10 +14,13 @@ final class VehicleSummary {
     required this.lotNumber,
     required this.title,
     required this.thumbnailUrl,
-    required this.reservePrice,
-    required this.bidsCount,
+    required this.reference,
+    required this.adminFee,
+    required this.adminFeeWithVat,
     required this.auctionId,
     required this.phase,
+    required this.state,
+    required this.isFavourite,
     required this.auctionEndsAt,
   });
 
@@ -27,14 +31,21 @@ final class VehicleSummary {
   /// مصغَّرة فقط — الحجم الكامل في صفحة المركبة (قاعدة التصميم 6 في الفيز 008).
   final String? thumbnailUrl;
 
-  /// سعر وقوف المركبة، **الحقل الوحيد لسعرها** (دليل النظام §8-3).
-  ///
-  /// `null` يعني أن المالك لم يحدّد سعراً، وهو غير الصفر: يُعرض بنصّ يقول ذلك،
-  /// لا برقم لم يختره أحد.
-  final Money? reservePrice;
+  /// الرقم المرجعيّ على الكرت — `#10565` كما في v1.
+  final String reference;
 
-  /// عدد المزايدات لا مبلغها: المزاد مغلق، ومبلغ أعلى مزايدة ليس معلومة عامة.
-  final int bidsCount;
+  /// الرسوم الإدارية، ومعها الرسوم + الضريبة (١٥٪) — وهما **كل ما يُعرض من
+  /// مال على الكرت**.
+  ///
+  /// **ولا سعرَ وقوفٍ هنا ولا عددَ مزايدات**، وكانا موجودين. المزاد **مغلق**
+  /// (قرارٌ في `ce013b9`): لا سعر افتتاحيّ يُنشر ولا أعلى مزايدة، فالخادم لا
+  /// يرسل `reserve_price` ولا `bids_count` أصلاً. كان الكرت يعرضهما لأنه بُني
+  /// على مخططٍ وهميّ أُضيف إليه `reserve_price` بيد — فكان يعد بما لا يصل، ثم
+  /// يسقط على `null` عند أول استجابةٍ حقيقية.
+  ///
+  /// نصّاً كما وصل، لا `double`: المادة ٣-٢.
+  final Money adminFee;
+  final Money adminFeeWithVat;
 
   /// مزاد هذه المركبة.
   ///
@@ -44,6 +55,17 @@ final class VehicleSummary {
 
   /// طور مزادها **كما قاله الخادم** — لا كما يُستنتج من `auctionEndsAt`.
   final AuctionPhase phase;
+
+  /// حالة المركبة نفسها — بها يُفعَّل زرّ المزايدة أو يُعطَّل.
+  final VehicleState state;
+
+  /// هل حفظ **هذا العميل** المركبة في مفضّلته.
+  ///
+  /// الحقل الوحيد على الكرت الذي يخصّ القارئ لا المركبة: نفس السيارة مفضّلةٌ
+  /// لواحد وليست لآخر. يأتي من الخادم محسوباً للصفحة كلها، فلا تسأل الشاشة
+  /// عنه صفّاً صفّاً — ولا تخمّنه من قائمةٍ حمّلتها، فقائمةٌ من صفحةٍ واحدة
+  /// تقول «غير مفضّلة» عن مركبةٍ في الصفحة الثانية.
+  final bool isFavourite;
 
   /// لحظة انتهاء مزادها، بتوقيت UTC.
   ///
