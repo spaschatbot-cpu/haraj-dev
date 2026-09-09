@@ -22,6 +22,10 @@ final class VehicleSummary {
     required this.state,
     required this.isFavourite,
     required this.auctionEndsAt,
+    required this.year,
+    required this.odometerKm,
+    required this.colourLabel,
+    required this.conditionLabel,
   });
 
   final String id;
@@ -73,4 +77,22 @@ final class VehicleSummary {
   /// يعني طلباً لكل مركبة. والتحويل للعرض يبقى في `SaudiTime` وحدها
   /// (المادة ٣-١)، والعدّ نفسه فرقٌ بين لحظتين UTC لا حسابُ تقويم.
   final DateTime auctionEndsAt;
+
+  /// سنة الصنع، والممشى، واللونُ والحالة **بتسميتيهما المعروضتين**.
+  ///
+  /// أربعتُها على الكرت لا في صفحة المركبة وحدها: الصفّ الذي تحت الاسم هو ما
+  /// يفرّق سيّارةً عن أختها في قائمةٍ من تسعٍ متشابهة، وبدونه يُفتح الكرت
+  /// ليُغلق فوراً. وكلُّها في `VehicleCard` من الخادم أصلاً — كانت تصل ولا
+  /// تُقرأ.
+  ///
+  /// **والتسمية من الخادم لا من التطبيق**: `colour_label` و`condition_label`
+  /// نصّان جاهزان، وترجمةُ `silver` إلى «فضي» في التطبيق قاموسٌ ثانٍ يفترق عن
+  /// الأول عند أول لونٍ يُضاف (المادة ٤-٥).
+  final int year;
+
+  /// `null` يعني **لم يُقَس**، لا صفراً: «٠ كم» ادّعاءٌ لم يقله أحد.
+  final int? odometerKm;
+
+  final String colourLabel;
+  final String conditionLabel;
 }

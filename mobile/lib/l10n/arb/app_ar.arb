@@ -364,7 +364,7 @@
       }
     }
   },
-  "searchHint": "ماركة أو طراز أو رقم لوت",
+  "searchHint": "ابحث عن سيارة أو رقم اللوت…",
   "@searchHint": {},
   "filterMake": "الماركة",
   "@filterMake": {},
@@ -754,7 +754,7 @@
   "@navActivity": {},
   "navFavourites": "المفضلة",
   "@navFavourites": {},
-  "navWallet": "محفظتي",
+  "navWallet": "المحفظة",
   "@navWallet": {},
   "navAccount": "حسابي",
   "@navAccount": {},
@@ -769,5 +769,38 @@
   "favouriteAdded": "أُضيفت إلى المفضلة",
   "@favouriteAdded": {},
   "favouriteRemoved": "أُزيلت من المفضلة",
-  "@favouriteRemoved": {}
+  "@favouriteRemoved": {},
+  "homeBrand": "مزاد حراج واحد",
+  "@homeBrand": {
+    "description": "اسم العلامة في الهيدر — نصٌّ لا صورة: شعارٌ صورةً يحتاج نسختين للكثافتين ولا يُقرأ صوتياً."
+  },
+  "homeTagline": "سيارتك القادمة … تبدأ من هنا",
+  "@homeTagline": {},
+  "homeSubtagline": "تابع المزادات — وادخل أفضل العروض على أفضل السيارات",
+  "@homeSubtagline": {},
+  "homeNotifications": "الإشعارات",
+  "@homeNotifications": {},
+  "homeAccountAction": "حسابي",
+  "@homeAccountAction": {},
+  "homeSortAndFilter": "الفرز والتصفية",
+  "@homeSortAndFilter": {
+    "description": "زرّ يفتح ورقة الطور والماركة والسنة."
+  },
+  "filterPhase": "طور المزاد",
+  "@filterPhase": {},
+  "vehicleDetailsAction": "تفاصيل المزاد",
+  "@vehicleDetailsAction": {},
+  "vehicleOdometerShort": "{km} كم",
+  "@vehicleOdometerShort": {
+    "placeholders": {
+      "km": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "favouriteFailed": "تعذّر تحديث المفضلة",
+  "@favouriteFailed": {
+    "description": "يظهر حين يفشل طلب القلب فيعود القلب إلى حاله."
+  }
 }

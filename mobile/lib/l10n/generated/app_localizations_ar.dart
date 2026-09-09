@@ -355,7 +355,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get searchHint => 'ماركة أو طراز أو رقم لوت';
+  String get searchHint => 'ابحث عن سيارة أو رقم اللوت…';
 
   @override
   String get filterMake => 'الماركة';
@@ -739,7 +739,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get navFavourites => 'المفضلة';
 
   @override
-  String get navWallet => 'محفظتي';
+  String get navWallet => 'المحفظة';
 
   @override
   String get navAccount => 'حسابي';
@@ -762,4 +762,42 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get favouriteRemoved => 'أُزيلت من المفضلة';
+
+  @override
+  String get homeBrand => 'مزاد حراج واحد';
+
+  @override
+  String get homeTagline => 'سيارتك القادمة … تبدأ من هنا';
+
+  @override
+  String get homeSubtagline =>
+      'تابع المزادات — وادخل أفضل العروض على أفضل السيارات';
+
+  @override
+  String get homeNotifications => 'الإشعارات';
+
+  @override
+  String get homeAccountAction => 'حسابي';
+
+  @override
+  String get homeSortAndFilter => 'الفرز والتصفية';
+
+  @override
+  String get filterPhase => 'طور المزاد';
+
+  @override
+  String get vehicleDetailsAction => 'تفاصيل المزاد';
+
+  @override
+  String vehicleOdometerShort(int km) {
+    final intl.NumberFormat kmNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kmString = kmNumberFormat.format(km);
+
+    return '$kmString كم';
+  }
+
+  @override
+  String get favouriteFailed => 'تعذّر تحديث المفضلة';
 }
