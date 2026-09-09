@@ -155,8 +155,15 @@ def settle_one_auction(auction_id: int) -> dict:
         return {"skipped": f"auction {auction.number} is {auction.state}"}
 
     report = settlement.settle_auction(auction, now=now)
+    # الحدثُ ينادي التالي: إن لم يبقَ ما يُحسم أُغلق المزادُ الآن، وإلا انتظر
+    # قرارَ آخرِ مركبة — وهو حدثٌ ينادي هذه الدالة نفسها من شاشة العروض.
+    closed = settlement.try_close(auction, now=now)
     log.info("settled auction %s on schedule", auction.number)
-    return {"auction": auction.number, "vehicles": len(report.vehicles)}
+    return {
+        "auction": auction.number,
+        "vehicles": len(report.vehicles),
+        "closed": closed,
+    }
 
 
 def book_settlement(auction) -> str | None:

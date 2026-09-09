@@ -18,6 +18,8 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.core.locks import single_instance
+from .models import OutboxMessage, OutboxState
+from . import outbox
 
 from .models import InboundMessage, InboundState
 from .processing import INTERPRETED_SOURCE, process
@@ -123,3 +125,48 @@ def abandon_exhausted() -> dict:
 
         log.info("odoo.abandon_exhausted: flagged %s messages", count)
         return {"flagged": count}
+
+
+#: كم مرّةً تُعاد محاولةُ رسالةٍ قبل أن تُترك لإنسان. أُسّيّةٌ من دقيقة.
+MAX_SEND_ATTEMPTS = 6
+
+
+@shared_task(name="odoo.send_one", bind=True, max_retries=MAX_SEND_ATTEMPTS)
+def send_one(self, message_id: int) -> dict:
+    """أرسِل رسالةً واحدة إلى أودو — وأعِد المحاولةَ بتأجيلٍ إن تعذّر.
+
+    **الإدراجُ ينادي الإرسال، والفشلُ ينادي إعادته.** لا استطلاعَ يمرّ على
+    الطابور كلَّ دقيقة يسأل «هل فشل شيء؟»: الرسالةُ تعرف متى فشلت، فهي التي
+    تحجز محاولتَها التالية.
+
+    والتأجيلُ أُسّيّ (دقيقة، دقيقتان، أربع…) لا ثابت: أودو المتوقّفة لا تُشفى
+    بمئة محاولةٍ في الدقيقة، والضغطُ عليها وهي تترنّح يطيل توقّفها.
+
+    و`send` نفسُها تفرّق بين «لم يصل» و«رفضوا»: المرفوضةُ (`ABANDONED`) لا
+    تُعاد — إعادةُ إرسالِ ما رُفض تُعطي الجوابَ نفسه وتستهلك محاولة.
+    """
+    message = OutboxMessage.objects.filter(pk=message_id).first()
+    if message is None:
+        return {"skipped": f"message {message_id} is gone"}
+    if message.state in (OutboxState.CONFIRMED, OutboxState.ABANDONED):
+        return {"skipped": f"{message.reference} is {message.state}"}
+
+    result = outbox.send(message)
+    if result.state == OutboxState.FAILED:
+        # لم نبلغهم — والقاعدةُ أن عدمَ الوصول ليس دليلاً على أن شيئاً لم يقع
+        # عندهم (المادة ٢-٤)، فالمرجعُ الفريد يجعل المحاولةَ الثانية آمنة.
+        countdown = min(60 * (2**self.request.retries), 3600)
+        try:
+            self.retry(countdown=countdown)
+        except self.MaxRetriesExceededError:
+            log.error("odoo: %s exhausted its attempts", message.reference)
+            return {"reference": message.reference, "state": "exhausted"}
+    return {"reference": message.reference, "state": result.state}
+
+
+def dispatch(message: OutboxMessage) -> None:
+    """احجز إرسالَ رسالةٍ فور إدراجها. يفشل بهدوءٍ بلا وسيط."""
+    try:
+        send_one.apply_async(args=[message.pk])
+    except Exception as exc:  # noqa: BLE001 — وسيطٌ غائب لا يُسقط الإدراج
+        log.warning("could not dispatch %s: %s", message.reference, exc)

@@ -200,6 +200,10 @@ def award(request, pk: int):
         after=audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"]),
         note=reason,
     )
+    # قرارٌ على مركبةٍ قد يكون آخرَ ما كان ينتظره المزاد — فيُسأل عن الإغلاق
+    # هنا، لا في استطلاعٍ يمرّ على كل مزادٍ منتهٍ كلَّ دقيقة. والدالةُ تصمت إن
+    # بقي غيرُها.
+    settlement.try_close(vehicle.auction)
     messages.success(request, f"رست على {bid.bidder.full_name} بمبلغ {bid.amount}.")
     return redirect("console:partner-offers", pk=pk)
 
@@ -236,6 +240,10 @@ def reject(request, pk: int):
         after=audit.snapshot(vehicle, ["state"]),
         note=reason,
     )
+    # قرارٌ على مركبةٍ قد يكون آخرَ ما كان ينتظره المزاد — فيُسأل عن الإغلاق
+    # هنا، لا في استطلاعٍ يمرّ على كل مزادٍ منتهٍ كلَّ دقيقة. والدالةُ تصمت إن
+    # بقي غيرُها.
+    settlement.try_close(vehicle.auction)
     messages.success(request, "سُجّل رفض المالك.")
     return redirect("console:partner-offers", pk=pk)
 

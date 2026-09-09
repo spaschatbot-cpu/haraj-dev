@@ -45,9 +45,11 @@ def enqueue(
     racing to record the same decision is ordinary; two rows would mean two
     calls to Odoo.
     """
+    # الإدراجُ ينادي الإرسال: لا شيء بعده ينتظر استطلاعاً. والحجزُ بعد نجاح
+    # الكتابة لا داخلها — مهمّةٌ تبدأ قبل أن تُثبَّت المعاملةُ تقرأ صفّاً لا وجود له.
     try:
         with db_transaction.atomic():
-            return OutboxMessage.objects.create(
+            message = OutboxMessage.objects.create(
                 endpoint=endpoint,
                 payload=payload,
                 reference=reference,
@@ -59,6 +61,16 @@ def enqueue(
             raise
         log.info("outbox: %s already queued as %s", reference, existing.pk)
         return existing
+
+    # **بعد ثبات المعاملة لا داخلها**: مهمّةٌ تبدأ قبل الـcommit تقرأ صفّاً لا
+    # وجود له بعد. و`on_commit` يضمن أن الحجز لا يقع إن رجعت المعاملة.
+    def _go() -> None:
+        from .tasks import dispatch
+
+        dispatch(message)
+
+    db_transaction.on_commit(_go)
+    return message
 
 
 def payment_reference(invoice: Invoice, payment: Transaction) -> str:
