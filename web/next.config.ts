@@ -72,10 +72,19 @@ const nextConfig: NextConfig = {
         : []),
       ...(process.env.NODE_ENV === "production"
         ? []
-        : ([
-            { protocol: "http", hostname: "127.0.0.1", port: "8000", pathname: "/media/**" },
-            { protocol: "http", hostname: "localhost", port: "8000", pathname: "/media/**" },
-          ] as const)),
+        : [
+            // ‏المنفذ من `BACKEND_URL` لا مثبَّتاً: كان `8000` وهو منفذُ إعدادٍ
+            // في `launch.json` يبدأ بـ`uv` غير المثبَّت، والخادمُ العامل على
+            // `8001`. فكانت كلُّ صورةٍ تسقط الصفحة بـ«hostname is not
+            // configured» — وهو نفسُ الخطأ الذي ضرب `MEDIA_BASE_URL` من قبل.
+            // ثابتٌ واحدٌ يتغيّر في مكانٍ واحد.
+            ...["127.0.0.1", "localhost"].map((hostname) => ({
+              protocol: "http" as const,
+              hostname,
+              port: new URL(process.env.BACKEND_URL ?? "http://127.0.0.1:8001").port,
+              pathname: "/media/**",
+            })),
+          ]),
     ],
   },
 };
