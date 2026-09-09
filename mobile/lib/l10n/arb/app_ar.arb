@@ -376,6 +376,15 @@
   "@filterApply": {},
   "filterClear": "إزالة الترشيح",
   "@filterClear": {},
+  "vehicleLotPosition": "الموقف {lotNumber}",
+  "@vehicleLotPosition": {
+    "description": "شارةُ موقع اللوت على صورة الكرت — كما في v1",
+    "placeholders": { "lotNumber": { "type": "String" } }
+  },
+  "vehicleBidAction": "مزايدة",
+  "@vehicleBidAction": {
+    "description": "زرّ الكرت. يفتح صفحة المركبة — وفيها صندوق المزايدة."
+  },
   "vehicleLot": "لوت {lotNumber}",
   "@vehicleLot": {
     "placeholders": {
@@ -774,10 +783,14 @@
   "@homeBrand": {
     "description": "اسم العلامة في الهيدر — نصٌّ لا صورة: شعارٌ صورةً يحتاج نسختين للكثافتين ولا يُقرأ صوتياً."
   },
-  "homeTagline": "سيارتك القادمة … تبدأ من هنا",
-  "@homeTagline": {},
-  "homeSubtagline": "تابع المزادات — وادخل أفضل العروض على أفضل السيارات",
-  "@homeSubtagline": {},
+  "homeTagline": "بوابة مزادات حراج الحصرية",
+  "@homeTagline": {
+    "description": "عنوانُ لوحة الترحيب فوق حقل البحث في الرئيسية. نصُّ المالك حرفياً — لا يُختصر ولا يُعاد صوغه."
+  },
+  "homeSubtagline": "اكتشف فرصتك لامتلاك أفضل المركبات بأفضل الأسعار",
+  "@homeSubtagline": {
+    "description": "سطرُ اللوحة الثاني تحت العنوان. نصُّ المالك حرفياً."
+  },
   "homeNotifications": "الإشعارات",
   "@homeNotifications": {},
   "homeAccountAction": "حسابي",

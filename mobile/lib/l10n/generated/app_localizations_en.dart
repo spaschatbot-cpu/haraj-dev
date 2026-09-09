@@ -370,6 +370,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filterClear => 'Clear filters';
 
   @override
+  String vehicleLotPosition(String lotNumber) {
+    return 'Lot $lotNumber';
+  }
+
+  @override
+  String get vehicleBidAction => 'Bid';
+
+  @override
   String vehicleLot(String lotNumber) {
     return 'Lot $lotNumber';
   }
@@ -764,11 +772,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeBrand => 'Haraj Auction';
 
   @override
-  String get homeTagline => 'Your next car … starts here';
+  String get homeTagline => 'Haraj\'s exclusive auctions gateway';
 
   @override
   String get homeSubtagline =>
-      'Follow the auctions — and get the best offers on the best cars';
+      'Discover your chance to own the best vehicles at the best prices';
 
   @override
   String get homeNotifications => 'Notifications';
