@@ -41,7 +41,13 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.auctions.models import Auction, Vehicle
-from apps.auctions.services import award, reject, send_to_owner
+from apps.auctions.services import (
+    PartnerRulingPending,
+    award,
+    partner_lock_reason,
+    reject,
+    send_to_owner,
+)
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
 from apps.money import services as money
@@ -131,6 +137,21 @@ def decide_vehicle(vehicle: Vehicle, *, now: datetime | None = None) -> VehicleO
         .order_by("-amount", "placed_at")
         .first()
     )
+
+    # سيارةُ شريكٍ لم يحكم فيها: **لا تُحسم آلياً**، لا رفضاً ولا ترسية.
+    #
+    # القرار عليها للتعاونية (`partner_lock_reason`)، فالتسويةُ تضعها في
+    # انتظاره بدل أن تقرّر نيابةً عنه — وهي كذلك تتفادى أن ترتطم بالقفل نفسه
+    # فتُسقط تسويةَ المزاد كلّه على سيارةٍ واحدة.
+    if vehicle.is_marketing and vehicle.partner_decided_at is None:
+        send_to_owner(vehicle)
+        return VehicleOutcome(
+            vehicle_id=vehicle.pk,
+            outcome="awaiting_decision",
+            winner_id=getattr(highest, "bidder_id", None),
+            price=getattr(highest, "amount", None),
+            reason="سيارةُ تسويقٍ — القرار لشريك التسويق",
+        )
 
     if highest is None:
         reject(vehicle)
@@ -307,6 +328,9 @@ def invoice_award(vehicle: Vehicle, *, due_at: datetime | None = None):
             amount=vehicle.awarded_price,
             vehicle=vehicle,
             due_at=due_at,
+            # الرسمُ الإداريّ بندٌ في الفاتورة كما في v1 — يُقرأ من المزاد
+            # **الآن** ويُختَم في الصفّ، فتعديلُه لاحقاً لا يمسّ ما صدر.
+            admin_fee=vehicle.auction.admin_fee,
         )
         # The auction's own deposit becomes the pledge, in place. Not
         # `lock_for_invoice`: that draws on `insurance_free`, and after
@@ -441,6 +465,13 @@ def replace_winner(
     with transaction.atomic():
         locked = Vehicle.objects.select_for_update().get(pk=vehicle.pk)
         previous_id = locked.awarded_to_id
+
+        # `replace_winner` يكتب `state` مباشرةً (لا يمرّ بـ`move_vehicle`)، فقفلُ
+        # الشريك لا يبلغه من هناك — ويُسأل هنا صراحةً. نقلُ الترسية قرارٌ على
+        # السيارة كأيّ قرارٍ آخر.
+        refusal = partner_lock_reason(locked, VehicleState.AWARDED)
+        if refusal:
+            raise PartnerRulingPending(refusal)
 
         _undo_award(locked, reason=reason)
 
