@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
+import '../../domain/wallet/entities/refund_request.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../domain/wallet/repositories/wallet_repository.dart';
@@ -12,7 +13,6 @@ import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'wallet_mapper.dart';
-
 /// المحفظة: الخادم أولاً، والكاش شبكة أمان عند **صمت** الخادم وحده.
 ///
 /// هذا المستودع هو الشريحة المرجعية للبذرة: من هنا تُنسخ بقية المستودعات بعد
@@ -90,6 +90,20 @@ final class WalletRepositoryImpl implements WalletRepository {
       if (cached != null) return cached;
       rethrow;
     }
+  }
+
+  @override
+  Future<Snapshot<List<RefundRequest>>> loadRefundRequests() async {
+    // **بلا كاش**: القائمةُ قصيرةٌ وتُقرأ مع الشاشة، وحالةُ طلبٍ محفوظةٌ
+    // («قيد المراجعة» وقد صار «مدفوعاً») أسوأ من انتظار الشبكة.
+    final wallet = await callApi(_api.v1WalletRetrieve);
+    final rows = await callApi(_api.v1WalletRefundRequestsList);
+    return Snapshot.fresh(
+      rows
+          .map((row) => row.toDomain(currency: wallet.currency))
+          .toList(growable: false),
+      at: _clock().toUtc(),
+    );
   }
 
   @override

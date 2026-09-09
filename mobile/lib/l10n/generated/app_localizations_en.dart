@@ -829,4 +829,129 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInDismiss => 'Close';
+
+  @override
+  String get bidPlacedTitle => 'Your bid has been recorded';
+
+  @override
+  String get walletTotal => 'Total balance';
+
+  @override
+  String get walletAvailable => 'Available';
+
+  @override
+  String get walletHeldForAuctions => 'Held for auctions';
+
+  @override
+  String get walletLockedForDues => 'Locked for dues';
+
+  @override
+  String walletEntryCount(int count) {
+    return '$count entries';
+  }
+
+  @override
+  String get walletStatementAction => 'Statement';
+
+  @override
+  String get walletRefundRequests => 'Refund requests';
+
+  @override
+  String get walletRefundedAmount => 'Refunded';
+
+  @override
+  String get walletTransfers => 'My transfers';
+
+  @override
+  String get walletOpenTransfers => 'Tap to view';
+
+  @override
+  String get walletInsuranceStatus => 'Deposit status';
+
+  @override
+  String get walletInsuranceInactive => 'Inactive — top up the deposit first';
+
+  @override
+  String get walletInsuranceActive => 'Active — you can join auctions';
+
+  @override
+  String get walletSubscriptionStatus => 'Subscription';
+
+  @override
+  String get walletSubscriptionInactive => 'Inactive';
+
+  @override
+  String get walletSubscriptionActive => 'Active';
+
+  @override
+  String get walletSubscriptionNote =>
+      'To join auctions you must subscribe with the full deposit (fixed — partial amounts are not accepted).';
+
+  @override
+  String get walletSubscribeAction => 'Subscribe the deposit';
+
+  @override
+  String get walletSubscriptionsLog => 'Subscriptions log';
+
+  @override
+  String get walletNoSubscriptions => 'You have not subscribed yet.';
+
+  @override
+  String get walletInsuranceLog => 'Deposit activity';
+
+  @override
+  String get walletNoOperations => 'No activity yet';
+
+  @override
+  String get walletCompleteDataTitle => 'Complete your details first';
+
+  @override
+  String get walletCompleteDataNote =>
+      'To subscribe or pay you must complete and save the missing details.';
+
+  @override
+  String get walletAccountType => 'Account type';
+
+  @override
+  String get walletFullName => 'Full name';
+
+  @override
+  String get walletPhone => 'Phone';
+
+  @override
+  String get walletNationalId => 'National ID';
+
+  @override
+  String get walletSaveAndContinue => 'Save and continue';
+
+  @override
+  String get walletChoosePayment => 'Choose a payment method';
+
+  @override
+  String get walletTopUpTitle => 'Top up the wallet';
+
+  @override
+  String get walletBankTransfer => 'Bank transfer';
+
+  @override
+  String get walletBankTransferNote =>
+      'Transfer to the bank account and upload the receipt';
+
+  @override
+  String get walletCardMada => 'Card / mada';
+
+  @override
+  String get walletCardMadaNote => 'Pay by card or mada — instant';
+
+  @override
+  String get walletApplePay => 'Apple Pay';
+
+  @override
+  String get walletApplePayNote => 'Fast and secure with Apple Pay';
+
+  @override
+  String get walletMethodUnavailable => 'Not available in this release';
+
+  @override
+  String get walletMethodSoon => 'Coming soon — this method is not enabled yet';
 }

@@ -1,5 +1,6 @@
 import '../../domain/common/money.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
+import '../../domain/wallet/entities/refund_request.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../api/generated/models/bucket.dart' as api;
@@ -8,8 +9,8 @@ import '../api/generated/models/ledger_entry.dart' as api;
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
 import '../api/generated/models/payment_intent.dart' as api;
 import '../api/generated/models/payment_intent_state_enum.dart' as api;
+import '../api/generated/models/refund_request.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
-
 /// تحويل نماذج المخطط المولَّدة إلى كيانات النطاق.
 ///
 /// طبقة التحويل مقصودة: لولاها لسافر نموذج مولَّد إلى الشاشات، فصار كل تغيير
@@ -119,3 +120,17 @@ TopUpStatus _statusOf(api.PaymentIntentStateEnum? state) => switch (state) {
 /// الخادم يعلنها على المحفظة، ويتركها على القيد وعلى نيّة الدفع — النظام
 /// بعملةٍ واحدة. تُكتب مرّةً هنا لا في كل موضع.
 const String walletCurrency = 'SAR';
+
+/// صفُّ استردادٍ من العقد إلى النطاق.
+///
+/// **العملةُ تأتي مع المحفظة لا مع الصفّ**: العقد يرسل المبلغ نصّاً بلا عملة،
+/// واختيارُ عملةٍ هنا اختراعُ معلومةٍ في شاشة مال. فتُمرَّر عملةُ الدلاء نفسها.
+extension RefundRequestMapper on api.RefundRequest {
+  RefundRequest toDomain({required String currency}) => RefundRequest(
+    id: id.toString(),
+    reference: reference,
+    money: Money(amount: amount, currency: currency),
+    stateLabel: stateLabel,
+    createdAt: createdAt,
+  );
+}

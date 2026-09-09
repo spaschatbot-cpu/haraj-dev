@@ -1423,6 +1423,246 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إغلاق'**
   String get signInDismiss;
+
+  /// No description provided for @bidPlacedTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم تسجيل مزايدتك بنجاح'**
+  String get bidPlacedTitle;
+
+  /// No description provided for @walletTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الرصيد'**
+  String get walletTotal;
+
+  /// No description provided for @walletAvailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتاح'**
+  String get walletAvailable;
+
+  /// No description provided for @walletHeldForAuctions.
+  ///
+  /// In ar, this message translates to:
+  /// **'محجوز للمزادات'**
+  String get walletHeldForAuctions;
+
+  /// No description provided for @walletLockedForDues.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقفل للمستحقات'**
+  String get walletLockedForDues;
+
+  /// No description provided for @walletEntryCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} قيداً'**
+  String walletEntryCount(int count);
+
+  /// No description provided for @walletStatementAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف الحساب'**
+  String get walletStatementAction;
+
+  /// No description provided for @walletRefundRequests.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموع طلبات الاسترداد'**
+  String get walletRefundRequests;
+
+  /// No description provided for @walletRefundedAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المسترد'**
+  String get walletRefundedAmount;
+
+  /// No description provided for @walletTransfers.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوالاتي'**
+  String get walletTransfers;
+
+  /// No description provided for @walletOpenTransfers.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط للعرض'**
+  String get walletOpenTransfers;
+
+  /// No description provided for @walletInsuranceStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة التأمين'**
+  String get walletInsuranceStatus;
+
+  /// No description provided for @walletInsuranceInactive.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مفعّل — يجب شحن التأمين أولاً'**
+  String get walletInsuranceInactive;
+
+  /// No description provided for @walletInsuranceActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفعّل — يمكنك المشاركة في المزادات'**
+  String get walletInsuranceActive;
+
+  /// No description provided for @walletSubscriptionStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة الاشتراك'**
+  String get walletSubscriptionStatus;
+
+  /// No description provided for @walletSubscriptionInactive.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير نشط'**
+  String get walletSubscriptionInactive;
+
+  /// No description provided for @walletSubscriptionActive.
+  ///
+  /// In ar, this message translates to:
+  /// **'نشط'**
+  String get walletSubscriptionActive;
+
+  /// No description provided for @walletSubscriptionNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'للمشاركة في المزادات، يجب الاشتراك بمبلغ التأمين كاملاً (ثابت — لا يقبل مبالغ جزئية).'**
+  String get walletSubscriptionNote;
+
+  /// No description provided for @walletSubscribeAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشتراك التأمين'**
+  String get walletSubscribeAction;
+
+  /// No description provided for @walletSubscriptionsLog.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل الاشتراكات'**
+  String get walletSubscriptionsLog;
+
+  /// No description provided for @walletNoSubscriptions.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تقم بأي اشتراك بعد.'**
+  String get walletNoSubscriptions;
+
+  /// No description provided for @walletInsuranceLog.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل عمليات التأمين'**
+  String get walletInsuranceLog;
+
+  /// No description provided for @walletNoOperations.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد عمليات بعد'**
+  String get walletNoOperations;
+
+  /// No description provided for @walletCompleteDataTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكمل بياناتك أولاً'**
+  String get walletCompleteDataTitle;
+
+  /// No description provided for @walletCompleteDataNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'لإتمام الاشتراك أو الدفع لازم تكمّل البيانات الناقصة وتحفظها.'**
+  String get walletCompleteDataNote;
+
+  /// No description provided for @walletAccountType.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الحساب'**
+  String get walletAccountType;
+
+  /// No description provided for @walletFullName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الكامل'**
+  String get walletFullName;
+
+  /// No description provided for @walletPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الجوال'**
+  String get walletPhone;
+
+  /// No description provided for @walletNationalId.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الهوية'**
+  String get walletNationalId;
+
+  /// No description provided for @walletSaveAndContinue.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ البيانات والمتابعة'**
+  String get walletSaveAndContinue;
+
+  /// No description provided for @walletChoosePayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر طريقة الدفع'**
+  String get walletChoosePayment;
+
+  /// No description provided for @walletTopUpTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'شحن المحفظة'**
+  String get walletTopUpTitle;
+
+  /// No description provided for @walletBankTransfer.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل بنكي'**
+  String get walletBankTransfer;
+
+  /// No description provided for @walletBankTransferNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّل للحساب البنكي وارفع الإيصال'**
+  String get walletBankTransferNote;
+
+  /// No description provided for @walletCardMada.
+  ///
+  /// In ar, this message translates to:
+  /// **'بطاقة بنكية / مدى'**
+  String get walletCardMada;
+
+  /// No description provided for @walletCardMadaNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'ادفع ببطاقتك أو مدى — دفع فوري'**
+  String get walletCardMadaNote;
+
+  /// No description provided for @walletApplePay.
+  ///
+  /// In ar, this message translates to:
+  /// **'Apple Pay'**
+  String get walletApplePay;
+
+  /// No description provided for @walletApplePayNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفع سريع وآمن عبر Apple Pay'**
+  String get walletApplePayNote;
+
+  /// No description provided for @walletMethodUnavailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير متاح في هذا الإصدار'**
+  String get walletMethodUnavailable;
+
+  /// No description provided for @walletMethodSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'قريباً — هذه الطريقة لم تُفعَّل بعد'**
+  String get walletMethodSoon;
 }
 
 class _AppLocalizationsDelegate

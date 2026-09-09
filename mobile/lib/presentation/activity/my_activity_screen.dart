@@ -61,11 +61,12 @@ class MyActivityScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final bids = ref.watch(myBidsProvider);
 
     return Scaffold(
-      appBar: HarajAppBar(title: l10n.myActivityTitle),
+      // **لا `appBar` هنا**: شريطُ العنوان يعيش **داخل القائمة** فينزلق
+      // معها، بطلب المالك في ٩ سبتمبر ٢٠٢٦. الثابتُ فوقه هيدرُ العلامة في
+      // القشرة، وشريطان ثابتان فوق قائمةٍ يأكلان من الشاشة القصيرة كرتاً.
       body: switch (bids) {
         AsyncData(value: final Snapshot<List<PlacedBid>> snapshot) =>
           RefreshIndicator(
@@ -103,21 +104,36 @@ class _BidVehicles extends StatelessWidget {
       if (!vehicleIds.contains(bid.vehicleId)) vehicleIds.add(bid.vehicleId);
     }
 
+    // **`navActivity` لا `myActivityTitle`**: الثاني نصُّه «حسابي» من يوم
+    // كانت الشاشةُ ثلاثةَ تبويبات تحت ذلك الاسم، فكان الشريطُ يقول «حسابي»
+    // فوق قائمة مركبات. والاسمُ الصحيح هو اسمُ القسم في الشريط السفليّ نفسه.
+    final header = HarajAppBar(title: l10n.navActivity);
+
     if (vehicleIds.isEmpty) {
       return ListView(
         // **قائمةٌ لا `Center`**: الحالةُ الفارغة يجب أن تُسحب لتحديث القائمة،
         // ومن فتح القسم قبل أول مزايدة سيعود إليه بعدها.
-        padding: const EdgeInsets.all(24),
         children: <Widget>[
-          Text(l10n.emptyParticipations, textAlign: TextAlign.center),
+          header,
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(l10n.emptyParticipations, textAlign: TextAlign.center),
+          ),
         ],
       );
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 6, bottom: 24),
-      itemCount: vehicleIds.length,
-      itemBuilder: (context, index) => _BidVehicleCard(id: vehicleIds[index]),
+      // حاشيةُ الشريط السفليّ تُضاف: `ListView` بحشوةٍ مكتوبة لا يقرأ
+      // `MediaQuery`، فيقع آخرُ كرتٍ تحت الشريط.
+      padding: EdgeInsets.only(
+        bottom: 24 + MediaQuery.paddingOf(context).bottom,
+      ),
+      // **العنوانُ عنصرٌ في القائمة**: هو ما يجعله ينزلق. وفهرسُ المركبة
+      // يُزاح واحداً لأجله.
+      itemCount: vehicleIds.length + 1,
+      itemBuilder: (context, index) =>
+          index == 0 ? header : _BidVehicleCard(id: vehicleIds[index - 1]),
     );
   }
 }
