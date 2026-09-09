@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// هيدر الشاشة — **واحدٌ لكل شاشات التطبيق**.
 ///
@@ -12,6 +13,15 @@ import '../../app/theme.dart';
 /// وشكلُه هنا **لا في `ThemeData`**: الخيط الذهبيّ السفليّ والتدرّج لا
 /// يُعبَّر عنهما في `AppBarTheme` بلا `flexibleSpace`، فيبقى نصفُ الشكل في
 /// الثيم ونصفُه في كل شاشة — وذلك أسوأ من الاثنين.
+///
+/// **والعلامةُ في سطره الأول، لا اسمُ الشاشة** — بطلب المالك في ٩ سبتمبر
+/// ٢٠٢٦: «الهيدر ثابتٌ في كل الصفحات». كانت الرئيسيةُ تحمل `HomeHero` بالعلامة
+/// وبقيّةُ الشاشات تحمل هذا باسمها وحده، فيقرأ من ينتقل بينهما هيدرين لا
+/// هيدراً واحداً.
+///
+/// **واسمُ الشاشة لم يسقط** — نزل سطراً: «محفظتي» تحت «مزاد حراج واحد». حذفُه
+/// كان سيترك من فتح «شحن المحفظة» بلا ما يقول له أين هو، وزرُّ الرجوع وحده
+/// لا يقولها.
 class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
   const HarajAppBar({
     required this.title,
@@ -34,21 +44,23 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
   /// شريط تبويباتٍ أو ما يشبهه، يسكن أسفل الهيدر.
   final PreferredSizeWidget? bottom;
 
-  /// ارتفاع الهيدر: القياسيّ، ويزيد بالسطر الثاني وبما تحته.
+  /// ارتفاع الهيدر: القياسيّ، ومعه سطرُ اسمِ الشاشة وما تحته.
+  ///
+  /// **والسطرُ الثاني مدفوعُ الثمن دائماً** بعد أن صار اسمُ الشاشة فيه: هيدرٌ
+  /// يتغيّر ارتفاعُه بين شاشةٍ وأخرى يُقفز المحتوى تحته عند كل انتقال.
   static const double _base = kToolbarHeight;
   static const double _subtitleHeight = 18;
 
   @override
   Size get preferredSize => Size.fromHeight(
-    _base +
-        (subtitle == null ? 0 : _subtitleHeight) +
-        (bottom?.preferredSize.height ?? 0),
+    _base + _subtitleHeight + (bottom?.preferredSize.height ?? 0),
   );
 
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return AppBar(
       // اللون في `flexibleSpace` لا هنا: الشفافيّة تترك التدرّج يُرى.
@@ -92,7 +104,7 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Text(
-            title,
+            l10n.homeBrand,
             style: theme.textTheme.titleLarge?.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -101,18 +113,19 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
               letterSpacing: 0.2,
             ),
           ),
-          if (subtitle case final String line)
-            Text(
-              line,
-              style: theme.textTheme.bodySmall?.copyWith(
-                // ذهبيٌّ فاتح على الخضرة العميقة: نسبته تكفي نصّاً صغيراً،
-                // ويربط السطر بالخيط الذهبيّ تحته.
-                color: palette.goldOnDark,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Text(
+            // اسمُ الشاشة، ومعه سطرُها الثاني إن كان لها واحد: «محفظتي» أو
+            // «سيارات المزاد · مزاد الرياض».
+            subtitle == null ? title : '$title · $subtitle',
+            style: theme.textTheme.bodySmall?.copyWith(
+              // ذهبيٌّ فاتح على الأرضيّة الداكنة: نسبته تكفي نصّاً صغيراً،
+              // ويربط السطر بالخيط الذهبيّ تحته.
+              color: palette.goldOnDark,
+              fontWeight: FontWeight.w500,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ],
       ),
       actions: actions,

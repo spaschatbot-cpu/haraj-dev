@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
-import '../../app/router.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
@@ -175,8 +174,6 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
                   setState(() => _moreFailure = null);
                   _loadMore();
                 },
-                onOpenVehicle: (vehicle) =>
-                    Routes.goToVehicle(context, vehicle.id),
                 emptyMessage: l10n.vehiclesEmpty,
                 prefetchThreshold: _prefetchThreshold,
                 // بلا طور: المزاد معروفٌ وطورُه معه — الشرح عند `phase` في

@@ -14,7 +14,6 @@ import '../presentation/bidding/my_bids_screen.dart';
 import '../presentation/catalog/auction_vehicles_screen.dart';
 import '../presentation/catalog/favourites_screen.dart';
 import '../presentation/catalog/home_screen.dart';
-import '../presentation/catalog/vehicle_screen.dart';
 import '../presentation/profile/change_phone_screen.dart';
 import '../presentation/profile/company_profile_screen.dart';
 import '../presentation/profile/profile_screen.dart';
@@ -84,30 +83,62 @@ List<RouteBase> appRoutes() => <RouteBase>[
                 ),
               ),
               GoRoute(
-                path: 'vehicles/:vehicleId',
-                name: Routes.vehicle,
-                builder: (context, state) => VehicleScreen(
-                  vehicleId: state.pathParameters['vehicleId']!,
-                ),
-                routes: <RouteBase>[
-                  GoRoute(
-                    // المزايدة تحت المركبة لا بجوارها: لا توجد مزايدة بلا
-                    // مركبة، والمسار يقول ذلك بدل أن يعتمد على مُعامل يمكن
-                    // أن يغيب.
-                    path: 'bid',
-                    name: Routes.bid,
-                    builder: (context, state) => BidScreen(
-                      vehicleId: state.pathParameters['vehicleId']!,
-                    ),
-                  ),
-                ],
+                // **لا صفحةَ مركبة فوقها** — حُذفت بطلب المالك في ٩ سبتمبر
+                // ٢٠٢٦، وحلّ محلَّها صندوقُ المزايدة الذي يفتحه الكرت.
+                // والمسارُ بقي كما كان (`vehicles/:id/bid`): الإشعارُ
+                // والرابطُ المشارَك يفتحانه به (معيار H6)، وتغييرُه يكسر ما
+                // أُرسل قبل اليوم. فصار فرعاً مباشراً بنفس العنوان.
+                path: 'vehicles/:vehicleId/bid',
+                name: Routes.bid,
+                builder: (context, state) =>
+                    BidScreen(vehicleId: state.pathParameters['vehicleId']!),
               ),
             ],
           ),
         ],
       ),
 
-      // ٢ — محفظتي، وتحتها الشحن والكشف.
+      // ٢ — مشاركاتي: مشاركاتي ومشترياتي وفواتيري، ومزايداتي تحتها.
+      //
+      // وموضعُها الثاني: بُدِّلت بالمحفظة بطلب المالك في ٩ سبتمبر ٢٠٢٦،
+      // وترتيبُ الفروع هنا يتبع ترتيبَ `HomeSection` دائماً — الشريطُ
+      // يختار بالفهرس، فبديلٌ في أحدهما بلا الآخر يفتح المحفظة عند ضغط
+      // «مشاركاتي».
+      //
+      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
+      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
+      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.myActivityPath,
+            name: Routes.myActivity,
+            builder: (context, state) => MyActivityScreen(
+              initialTab: MyActivityTab.fromSlug(
+                state.uri.queryParameters[Routes.tabQueryParameter],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: Routes.bidsPath,
+            name: Routes.myBids,
+            builder: (context, state) => const MyBidsScreen(),
+          ),
+        ],
+      ),
+
+      // ٣ — المفضلة.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.favouritesPath,
+            name: Routes.favourites,
+            builder: (context, state) => const FavouritesScreen(),
+          ),
+        ],
+      ),
+
+      // ٤ — محفظتي، وتحتها الشحن والكشف.
       StatefulShellBranch(
         routes: <RouteBase>[
           GoRoute(
@@ -130,41 +161,6 @@ List<RouteBase> appRoutes() => <RouteBase>[
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-
-      // ٣ — المفضلة.
-      StatefulShellBranch(
-        routes: <RouteBase>[
-          GoRoute(
-            path: Routes.favouritesPath,
-            name: Routes.favourites,
-            builder: (context, state) => const FavouritesScreen(),
-          ),
-        ],
-      ),
-
-      // ٤ — مشاركاتي: مشاركاتي ومشترياتي وفواتيري، ومزايداتي تحتها.
-      //
-      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
-      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
-      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
-      StatefulShellBranch(
-        routes: <RouteBase>[
-          GoRoute(
-            path: Routes.myActivityPath,
-            name: Routes.myActivity,
-            builder: (context, state) => MyActivityScreen(
-              initialTab: MyActivityTab.fromSlug(
-                state.uri.queryParameters[Routes.tabQueryParameter],
-              ),
-            ),
-          ),
-          GoRoute(
-            path: Routes.bidsPath,
-            name: Routes.myBids,
-            builder: (context, state) => const MyBidsScreen(),
           ),
         ],
       ),
