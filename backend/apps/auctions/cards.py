@@ -170,7 +170,10 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
 }
 
 #: What a card contains. Derived, so it cannot drift from what is built.
-VEHICLE_CARD_FIELDS: tuple[str, ...] = tuple(_BUILDERS)
+#:
+#: ``is_favourite`` مضافٌ صراحةً لأنه لا يُبنى من `_BUILDERS`: مصدره القارئ لا
+#: المركبة، فلا لامبدا تأخذه من الصفّ.
+VEHICLE_CARD_FIELDS: tuple[str, ...] = (*_BUILDERS, "is_favourite")
 
 
 #: The auction's own card, defined the same way and in the same file. Two
@@ -215,14 +218,46 @@ def auction_card(auction) -> dict:
     return {key: build(auction) for key, build in _AUCTION_BUILDERS.items()}
 
 
-def vehicle_card(vehicle: Vehicle) -> dict:
-    """One card. Every screen and every endpoint renders through this."""
-    return {key: build(vehicle) for key, build in _BUILDERS.items()}
+def vehicle_card(vehicle: Vehicle, *, is_favourite: bool = False) -> dict:
+    """One card. Every screen and every endpoint renders through this.
+
+    ``is_favourite`` يُمرَّر ولا يُحسب هنا: هو الحقل الوحيد في الكرت الذي
+    **يخصّ القارئ لا المركبة** — نفس السيارة مفضّلةٌ لواحد وليست لآخر. وحسابه
+    داخل هذه الدالة يعني استعلاماً لكل كرت، فيبقى قرارُ من يبني الصفحة.
+
+    والافتراضيّ ``False`` لا ``None``: «لم يحفظها» و«لم نسأل» يظهران للعميل
+    قلباً فارغاً في الحالتين، والزائرُ بلا جلسة لا مفضّلة له أصلاً.
+    """
+    card = {key: build(vehicle) for key, build in _BUILDERS.items()}
+    card["is_favourite"] = is_favourite
+    return card
 
 
-def vehicle_cards(vehicles) -> list[dict]:
-    """Many cards — the same function, applied. Not a second code path."""
-    return [vehicle_card(vehicle) for vehicle in vehicles]
+def vehicle_cards(vehicles, *, favourite_of=None) -> list[dict]:
+    """Many cards — the same function, applied. Not a second code path.
+
+    ``favourite_of`` هو العميل الذي يُسأل عن مفضّلاته، إن سُئل. ويُحسب
+    **للصفحة كلها بطلب واحد** لا لكل صفّ: `favourites.favourite_ids` كُتبت
+    لهذا بنصّها («Used to answer ``is_favourite`` on a list of cards»)، والبديل
+    استعلامٌ لكل كرت — وهو كيف تصير قائمةٌ من استعلامٍ واحد إلى واحدٍ وعشرين
+    بلا أن ينتبه أحد حتى تبطؤ في الإنتاج.
+
+    و``None`` تعني «لا تسأل»: زائرٌ بلا جلسة لا مفضّلة له، والسؤال ليس خطأً —
+    صفحات التصفّح عامّة ويرسمها نفس المسلسِل للاثنين.
+    """
+    vehicles = list(vehicles)
+    marked = _favourite_ids(favourite_of, vehicles)
+    return [
+        vehicle_card(vehicle, is_favourite=vehicle.pk in marked)
+        for vehicle in vehicles
+    ]
+
+
+def _favourite_ids(user, vehicles) -> set:
+    """يُستورَد هنا لا في رأس الملف: `favourites` تستورد `cards` بدورها."""
+    from apps.auctions.favourites import favourite_ids
+
+    return favourite_ids(user, vehicles)
 
 
 def card_queryset(queryset=None):

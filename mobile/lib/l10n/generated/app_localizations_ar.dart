@@ -728,4 +728,38 @@ class AppLocalizationsAr extends AppLocalizations {
 
     return 'محجوز منذ $dateString';
   }
+
+  @override
+  String get navHome => 'الرئيسية';
+
+  @override
+  String get navActivity => 'مشاركاتي';
+
+  @override
+  String get navFavourites => 'المفضلة';
+
+  @override
+  String get navWallet => 'محفظتي';
+
+  @override
+  String get navAccount => 'حسابي';
+
+  @override
+  String get favouritesTitle => 'المفضلة';
+
+  @override
+  String get favouritesEmpty =>
+      'لا مركبات في مفضلتك بعد. افتح مركبة واضغط القلب لتحفظها هنا.';
+
+  @override
+  String get favouriteAdd => 'أضف إلى المفضلة';
+
+  @override
+  String get favouriteRemove => 'أزل من المفضلة';
+
+  @override
+  String get favouriteAdded => 'أُضيفت إلى المفضلة';
+
+  @override
+  String get favouriteRemoved => 'أُزيلت من المفضلة';
 }

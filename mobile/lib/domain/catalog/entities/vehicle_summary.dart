@@ -20,6 +20,7 @@ final class VehicleSummary {
     required this.auctionId,
     required this.phase,
     required this.state,
+    required this.isFavourite,
     required this.auctionEndsAt,
   });
 
@@ -57,6 +58,14 @@ final class VehicleSummary {
 
   /// حالة المركبة نفسها — بها يُفعَّل زرّ المزايدة أو يُعطَّل.
   final VehicleState state;
+
+  /// هل حفظ **هذا العميل** المركبة في مفضّلته.
+  ///
+  /// الحقل الوحيد على الكرت الذي يخصّ القارئ لا المركبة: نفس السيارة مفضّلةٌ
+  /// لواحد وليست لآخر. يأتي من الخادم محسوباً للصفحة كلها، فلا تسأل الشاشة
+  /// عنه صفّاً صفّاً — ولا تخمّنه من قائمةٍ حمّلتها، فقائمةٌ من صفحةٍ واحدة
+  /// تقول «غير مفضّلة» عن مركبةٍ في الصفحة الثانية.
+  final bool isFavourite;
 
   /// لحظة انتهاء مزادها، بتوقيت UTC.
   ///

@@ -747,5 +747,27 @@
         "format": "yMd"
       }
     }
-  }
+  },
+  "navHome": "الرئيسية",
+  "@navHome": {},
+  "navActivity": "مشاركاتي",
+  "@navActivity": {},
+  "navFavourites": "المفضلة",
+  "@navFavourites": {},
+  "navWallet": "محفظتي",
+  "@navWallet": {},
+  "navAccount": "حسابي",
+  "@navAccount": {},
+  "favouritesTitle": "المفضلة",
+  "@favouritesTitle": {},
+  "favouritesEmpty": "لا مركبات في مفضلتك بعد. افتح مركبة واضغط القلب لتحفظها هنا.",
+  "@favouritesEmpty": {},
+  "favouriteAdd": "أضف إلى المفضلة",
+  "@favouriteAdd": {},
+  "favouriteRemove": "أزل من المفضلة",
+  "@favouriteRemove": {},
+  "favouriteAdded": "أُضيفت إلى المفضلة",
+  "@favouriteAdded": {},
+  "favouriteRemoved": "أُزيلت من المفضلة",
+  "@favouriteRemoved": {}
 }

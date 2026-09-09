@@ -35,6 +35,7 @@ class VehicleCard {
     required this.condition,
     required this.conditionLabel,
     required this.location,
+    required this.isFavourite,
     required this.adminFee,
     required this.adminFeeWithVat,
     required this.state,
@@ -76,6 +77,8 @@ class VehicleCard {
   @JsonKey(name: 'condition_label')
   final String conditionLabel;
   final String location;
+  @JsonKey(name: 'is_favourite')
+  final bool isFavourite;
   @JsonKey(name: 'admin_fee')
   final String adminFee;
   @JsonKey(name: 'admin_fee_with_vat')

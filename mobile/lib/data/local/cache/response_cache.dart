@@ -62,6 +62,12 @@ abstract final class CacheKeys {
   /// مركبةً ثم فقد الاتصال يراها كما رآها.
   static String vehicle(String vehicleId) => 'catalog.vehicle.$vehicleId';
 
+  /// المفضلة — الصفحة الأولى وحدها.
+  ///
+  /// بلا رقم صفحة في المفتاح: ما بعد الأولى لا يُحفظ أصلاً، ومفتاحٌ يحمل رقماً
+  /// يوحي بأن هناك صفحاتٍ محفوظةً غيرها.
+  static const String favourites = 'catalog.favourites';
+
   /// مشاركاتي — المزادات التي دخلها العميل وحالة تأمينه في كلٍّ منها.
   static const String participations = 'activity.participations';
 

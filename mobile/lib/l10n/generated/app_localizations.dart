@@ -1237,6 +1237,72 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'محجوز منذ {date}'**
   String walletHoldSince(DateTime date);
+
+  /// No description provided for @navHome.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرئيسية'**
+  String get navHome;
+
+  /// No description provided for @navActivity.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركاتي'**
+  String get navActivity;
+
+  /// No description provided for @navFavourites.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفضلة'**
+  String get navFavourites;
+
+  /// No description provided for @navWallet.
+  ///
+  /// In ar, this message translates to:
+  /// **'محفظتي'**
+  String get navWallet;
+
+  /// No description provided for @navAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get navAccount;
+
+  /// No description provided for @favouritesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفضلة'**
+  String get favouritesTitle;
+
+  /// No description provided for @favouritesEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مركبات في مفضلتك بعد. افتح مركبة واضغط القلب لتحفظها هنا.'**
+  String get favouritesEmpty;
+
+  /// No description provided for @favouriteAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف إلى المفضلة'**
+  String get favouriteAdd;
+
+  /// No description provided for @favouriteRemove.
+  ///
+  /// In ar, this message translates to:
+  /// **'أزل من المفضلة'**
+  String get favouriteRemove;
+
+  /// No description provided for @favouriteAdded.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُضيفت إلى المفضلة'**
+  String get favouriteAdded;
+
+  /// No description provided for @favouriteRemoved.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُزيلت من المفضلة'**
+  String get favouriteRemoved;
 }
 
 class _AppLocalizationsDelegate

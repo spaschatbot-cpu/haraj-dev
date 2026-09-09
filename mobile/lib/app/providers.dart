@@ -21,6 +21,7 @@ import '../data/bidding/bidding_repository_impl.dart';
 import '../data/bidding/sse_channel.dart';
 import '../data/catalog/catalog_mapper.dart' show VehicleSpecificationLabels;
 import '../data/catalog/catalog_repository_impl.dart';
+import '../data/catalog/favourites_repository_impl.dart';
 import '../data/local/cache/cache_database.dart';
 import '../data/local/cache/drift_response_cache.dart';
 import '../data/local/cache/response_cache.dart';
@@ -47,6 +48,7 @@ import '../domain/bidding/usecases/withdraw_bid.dart';
 import '../domain/catalog/entities/auction_summary.dart';
 import '../domain/catalog/entities/vehicle_detail.dart';
 import '../domain/catalog/repositories/catalog_repository.dart';
+import '../domain/catalog/repositories/favourites_repository.dart';
 import '../domain/catalog/usecases/load_auction_vehicles.dart';
 import '../domain/catalog/usecases/load_home_auctions.dart';
 import '../domain/catalog/usecases/load_vehicle.dart';
@@ -186,6 +188,13 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
     vehicles: ref.watch(apiClientProvider).vehicles,
     cache: ref.watch(responseCacheProvider),
     specificationLabels: ref.watch(vehicleSpecificationLabelsProvider),
+  ),
+);
+
+final favouritesRepositoryProvider = Provider<FavouritesRepository>(
+  (ref) => FavouritesRepositoryImpl(
+    api: ref.watch(apiClientProvider).favourites,
+    cache: ref.watch(responseCacheProvider),
   ),
 );
 

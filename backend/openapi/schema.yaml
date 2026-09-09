@@ -2785,6 +2785,8 @@ components:
           type: string
         location:
           type: string
+        is_favourite:
+          type: boolean
         admin_fee:
           type: string
         admin_fee_with_vat:
@@ -2808,6 +2810,7 @@ components:
       - condition
       - condition_label
       - id
+      - is_favourite
       - location
       - lot_number
       - make

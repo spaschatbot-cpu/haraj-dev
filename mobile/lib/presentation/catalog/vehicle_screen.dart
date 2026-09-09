@@ -3,9 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/catalog/entities/vehicle_summary.dart';
+import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../common/failure_message.dart';
 import '../common/money_text.dart';
 import '../common/snapshot_view.dart';
+import 'favourites_controller.dart';
 import 'widgets/vehicle_gallery.dart';
 
 /// صفحة المركبة: الصور والمواصفات والسعر (T709).
@@ -26,12 +30,19 @@ class VehicleScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(vehicleProvider(vehicleId));
 
+    final vehicle = state.value?.value;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          state.value?.value.title ??
-              AppLocalizations.of(context).vehiclesTitle,
+          vehicle?.title ?? AppLocalizations.of(context).vehiclesTitle,
         ),
+        actions: <Widget>[
+          // القلب لا يظهر قبل وصول الكرت: زرٌّ يعرض حالةً لا يعرفها بعد
+          // يقول «غير محفوظة» عن محفوظة، والضغط عليه حينها يحذفها.
+          if (vehicle != null)
+            _FavouriteButton(vehicleId: vehicleId, card: vehicle.card),
+        ],
       ),
       body: SnapshotView(
         state: state,
@@ -133,5 +144,62 @@ class _Vehicle extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+/// زرّ المفضلة — حالتُه من الخادم، وفعلُه عليه.
+///
+/// **مقفولٌ أثناء الطلب** (`_busy`): ضغطتان سريعتان تُرسلان إضافةً وحذفاً معاً،
+/// فيبقى الحال على عكس ما تُظهره الشاشة حتى تُعاد القراءة.
+class _FavouriteButton extends ConsumerStatefulWidget {
+  const _FavouriteButton({required this.vehicleId, required this.card});
+
+  final String vehicleId;
+  final VehicleSummary card;
+
+  @override
+  ConsumerState<_FavouriteButton> createState() => _FavouriteButtonState();
+}
+
+class _FavouriteButtonState extends ConsumerState<_FavouriteButton> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isFavourite = widget.card.isFavourite;
+
+    return IconButton(
+      onPressed: _busy ? null : () => _toggle(isFavourite),
+      icon: Icon(isFavourite ? Icons.favorite : Icons.favorite_border),
+      tooltip: isFavourite ? l10n.favouriteRemove : l10n.favouriteAdd,
+    );
+  }
+
+  Future<void> _toggle(bool isFavourite) async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(toggleFavouriteProvider)(
+        vehicleId: widget.vehicleId,
+        isFavourite: isFavourite,
+      );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isFavourite ? l10n.favouriteRemoved : l10n.favouriteAdded,
+          ),
+        ),
+      );
+    } on Failure catch (failure) {
+      // رسالة الخادم كما جاءت — لا نصٌّ عندنا مكانها (المادة ٤-٥).
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failureMessage(context, failure))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 }

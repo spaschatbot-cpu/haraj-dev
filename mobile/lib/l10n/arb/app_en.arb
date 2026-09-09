@@ -212,5 +212,27 @@
         "format": "yMd"
       }
     }
-  }
+  },
+  "navHome": "Home",
+  "@navHome": {},
+  "navActivity": "Activity",
+  "@navActivity": {},
+  "navFavourites": "Favourites",
+  "@navFavourites": {},
+  "navWallet": "Wallet",
+  "@navWallet": {},
+  "navAccount": "Account",
+  "@navAccount": {},
+  "favouritesTitle": "Favourites",
+  "@favouritesTitle": {},
+  "favouritesEmpty": "No saved vehicles yet. Open a vehicle and tap the heart to keep it here.",
+  "@favouritesEmpty": {},
+  "favouriteAdd": "Add to favourites",
+  "@favouriteAdd": {},
+  "favouriteRemove": "Remove from favourites",
+  "@favouriteRemove": {},
+  "favouriteAdded": "Added to favourites",
+  "@favouriteAdded": {},
+  "favouriteRemoved": "Removed from favourites",
+  "@favouriteRemoved": {}
 }

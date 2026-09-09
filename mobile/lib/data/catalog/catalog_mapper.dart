@@ -51,6 +51,7 @@ extension VehicleCardMapper on api.VehicleCard {
     auctionId: '$auctionId',
     phase: AuctionPhase.fromSlug(phase),
     state: VehicleState.fromSlug(state),
+    isFavourite: isFavourite,
     auctionEndsAt: auctionEndsAt.toUtc(),
   );
 

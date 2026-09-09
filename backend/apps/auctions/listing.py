@@ -161,7 +161,11 @@ def vehicle_page(
         offset : offset + limit
     ]
 
-    return {"total": total, "counts": counts, "results": vehicle_cards(page)}
+    return {
+        "total": total,
+        "counts": counts,
+        "results": vehicle_cards(page, favourite_of=user),
+    }
 
 
 __all__ = [

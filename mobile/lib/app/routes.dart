@@ -26,6 +26,9 @@ abstract final class Routes {
   static const String vehicle = 'vehicle';
   static const String bids = 'bids';
 
+  /// المفضلة — مركبات حفظها العميل ليعود إليها.
+  static const String favourites = 'favourites';
+
   /// مزايداتي.
   static const String myBids = 'my-bids';
 
@@ -68,6 +71,7 @@ abstract final class Routes {
   static const String walletTopUpPath = '/wallet/topup';
   static const String walletTransactionsPath = '/wallet/transactions';
   static const String myActivityPath = '/my-activity';
+  static const String favouritesPath = '/favourites';
 
   /// عنوان تبويبٍ في «حسابي» — يبنيه الإشعار وتقرؤه الشاشة.
   ///
@@ -93,6 +97,12 @@ abstract final class Routes {
         auctionVehicles,
         pathParameters: <String, String>{'auctionId': auctionId},
       );
+
+  /// عنوان صفحة مركبة — نصّاً، لمن يحتاج العنوان لا الانتقال.
+  ///
+  /// المركبة تحت الرئيسية في شجرة المسارات، فعنوانها يحمل بادئتها. بناؤه هنا
+  /// لا في الشاشات: بادئةٌ مكتوبة بيد في شاشةٍ تفترق عن الجدول عند أول نقل.
+  static String vehicleLocation(String vehicleId) => '/vehicles/$vehicleId';
 
   static void goToVehicle(BuildContext context, String vehicleId) =>
       GoRouter.of(context).goNamed(

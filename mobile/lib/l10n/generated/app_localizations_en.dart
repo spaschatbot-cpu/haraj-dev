@@ -725,4 +725,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
     return 'Held since $dateString';
   }
+
+  @override
+  String get navHome => 'Home';
+
+  @override
+  String get navActivity => 'Activity';
+
+  @override
+  String get navFavourites => 'Favourites';
+
+  @override
+  String get navWallet => 'Wallet';
+
+  @override
+  String get navAccount => 'Account';
+
+  @override
+  String get favouritesTitle => 'Favourites';
+
+  @override
+  String get favouritesEmpty =>
+      'No saved vehicles yet. Open a vehicle and tap the heart to keep it here.';
+
+  @override
+  String get favouriteAdd => 'Add to favourites';
+
+  @override
+  String get favouriteRemove => 'Remove from favourites';
+
+  @override
+  String get favouriteAdded => 'Added to favourites';
+
+  @override
+  String get favouriteRemoved => 'Removed from favourites';
 }
