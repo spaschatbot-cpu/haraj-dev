@@ -105,7 +105,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 borderRadius: BorderRadius.circular(20),
                 clipBehavior: Clip.antiAlias,
                 elevation: 3,
-                shadowColor: palette.brown.withValues(alpha: 0.22),
+                shadowColor: palette.ink.withValues(alpha: 0.22),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -153,7 +153,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             Text(
                               l10n.sessionExpiredNotice,
                               style: theme.textTheme.bodyMedium?.copyWith(
-                                color: palette.brown,
+                                color: palette.ink,
                               ),
                             ),
                             const SizedBox(height: 14),

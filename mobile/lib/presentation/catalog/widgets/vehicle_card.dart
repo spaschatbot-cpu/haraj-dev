@@ -58,7 +58,7 @@ class VehicleCard extends StatelessWidget {
             // ثانٍ عليها يترك بين القوسين هلالاً أبيض.
             clipBehavior: Clip.antiAlias,
             elevation: 1.5,
-            shadowColor: palette.brown.withValues(alpha: 0.18),
+            shadowColor: palette.ink.withValues(alpha: 0.18),
             child: InkWell(
               // **الكرتُ كلُّه يفتح صندوقَ المزايدة** بطلب المالك في ٩ سبتمبر
               // ٢٠٢٦؛ كان يفتح صفحةَ المركبة، وحُذفت الصفحةُ يومَها.
@@ -179,7 +179,7 @@ class _Details extends StatelessWidget {
             // العمود وأكبرُه، فكان يبتلع سطره ويترك الباقيَ يبدو حاشيةً له.
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: palette.brown,
+            color: palette.ink,
             height: 1.2,
           ),
         ),
@@ -347,7 +347,7 @@ class _Fact extends StatelessWidget {
             fontFamily: HarajTheme.fontFamily,
             fontSize: 10.5,
             fontWeight: FontWeight.w700,
-            color: palette.brown,
+            color: palette.ink,
             height: 1.2,
           ),
         ),
@@ -387,7 +387,7 @@ class _IconText extends StatelessWidget {
         fontWeight: FontWeight.w600,
         // أغمقُ من `inkMuted`: الخافتُ يصلح لسطرٍ طويل يُلمح، لا لكلمتين
         // تحملان الحالةَ والموقع.
-        color: palette.brown.withValues(alpha: 0.75),
+        color: palette.ink.withValues(alpha: 0.75),
         height: 1.3,
       ),
     );
@@ -505,9 +505,11 @@ class _BidButton extends StatelessWidget {
                 fontFamily: HarajTheme.fontFamily,
                 fontSize: 13.5,
                 fontWeight: FontWeight.w700,
-                // **شبه أسود على الذهبيّ لا أبيض**: الأبيض على `#B8860B`
-                // نسبتُه ٣٫٣:١ وهي دون الحدّ، وهذا نحو ٧:١.
-                color: palette.heroBottom,
+                // **أبيضُ على الأزرق**: كان شبهَ أسودٍ على الذهبيّ لأن
+                // الأبيض عليه نسبتُه ٣٫٣:١ ودون الحدّ. والأزرقُ
+                // (`#1C6FD6 → #124F9E`) عكسُه: الأبيضُ عليه ٥٫٢:١ فما فوق،
+                // والداكنُ عليه يختفي.
+                color: Colors.white,
                 height: 1.2,
               ),
             ),

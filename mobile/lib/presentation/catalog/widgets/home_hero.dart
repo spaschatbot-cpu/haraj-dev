@@ -390,13 +390,16 @@ class _Brand extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: palette.goldOnDark,
+            // **أبيضُ لا أزرقٌ فاتح** بطلب المالك في ٩ سبتمبر ٢٠٢٦: اسمُ
+            // العلامة على أرضيّةٍ كحليّة، والأزرقُ الفاتح عليها من عائلتها
+            // فيذوب فيها — والأبيضُ وحده يقف فوقها.
+            color: Colors.white,
             fontWeight: FontWeight.w700,
             // تباعدٌ موجبٌ خفيف: تباعدُ الحروف يعطي الاسمَ وقارَ العلامة بدل
             // أن يُقرأ عنوانَ شاشة.
             letterSpacing: 0.5,
-            // ظلٌّ ذهبيّ: الاسم يقع على الوهج نفسه، وبلا فصلٍ عنه يذوب حرفُه
-            // في ضوئه.
+            // ظلٌّ من لون الوهج: الاسم يقع على الوهج نفسه، وبلا فصلٍ عنه
+            // يذوب حرفُه في ضوئه.
             shadows: <Shadow>[
               Shadow(
                 color: palette.heroGlow.withValues(alpha: 0.60),
