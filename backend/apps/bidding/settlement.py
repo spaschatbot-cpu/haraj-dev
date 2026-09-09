@@ -428,8 +428,8 @@ def replace_winner(
     bidder, and every consequence of the first award has to come undone in the
     same breath.
 
-    **One transaction, four effects.** In v1 the operator did this by hand in
-    four screens, and the failure was always the same shape: one of the four was
+    **One transaction, three effects.** In v1 the operator did this by hand in
+    four screens, and the failure was always the same shape: one of them was
     forgotten. Usually the first winner's invoice — so a customer who never got
     a car carried a debt that blocked their refunds, and the deposit stayed
     locked against it.
@@ -439,7 +439,15 @@ def replace_winner(
        report nobody can reconcile.
     2. Their insurance lock is released — the debt it answered no longer exists.
     3. The award moves to the new winner at their own bid's price.
-    4. A fresh invoice is issued to them and their deposit locked against it.
+
+    **والفاتورةُ الجديدة ليست منها** — وهذا مقصود. `invoice_award` هو البابُ
+    الوحيد لإصدار فاتورة، وله شروطُه (حالةٌ `awarded`، وفائزٌ وسعرٌ مسمّيان،
+    ورهنُ وديعةٍ للمزاد لا لكل فاتورة). وإصدارُها من هنا ضمناً يعني أن نقلَ
+    ترسيةٍ يُنشئ ديناً على عميلٍ لم يُسأل — فعلٌ ماليٌّ يقع في ظلّ فعلٍ آخر.
+    فالترسيةُ تُنقل هنا، وتُفوتَر بخطوةٍ يقرّرها إنسان.
+
+    وكان هذا السطرُ يَعِد بالفاتورة والكودُ لا يصدرها: توثيقٌ يكذب على قارئه
+    أسوأُ من غيابه، لأنه يجعله يبني على ما ليس هناك.
 
     The reason is required, not optional. An award that moved with no recorded
     reason is the row support cannot explain to either customer.

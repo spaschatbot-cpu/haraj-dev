@@ -534,6 +534,25 @@ def vehicle_state(request, pk: int):
     target = request.POST.get("target", "")
     reason = (request.POST.get("reason") or "").strip()
 
+    # قرارُ المالك على مركبةٍ ليس نقلةَ حالةٍ عاديّة.
+    #
+    # هذه الشاشة محروسةٌ بـ`AUCTIONS_MANAGE`، وبين نقلاتها المسموحة
+    # `awaiting_decision → awarded | rejected` — وهما **قرارُ الشريك** الذي
+    # تحرسه `PARTNERS_DECIDE` في شاشة العروض. فمن يملك إدارةَ المزادات وحدها
+    # كان يبلغ من هنا ما لا يبلغه من هناك: بابان لفعلٍ واحد، وأضعفُهما هو
+    # الحارسُ الفعليّ.
+    if (
+        vehicle.state == VehicleState.AWAITING_DECISION
+        and target in (VehicleState.AWARDED, VehicleState.REJECTED)
+        and not can(request.user, Capability.PARTNERS_DECIDE)
+    ):
+        messages.error(
+            request,
+            "قرارُ قبولِ العرض أو رفضه يحتاج صلاحية «قرارات الشريك» — "
+            "يُتَّخذ من شاشة العروض.",
+        )
+        return redirect("console:vehicle-detail", pk=vehicle.pk)
+
 
     before = audit.snapshot(vehicle, ["state", "auction_id", "lot_number"])
 
