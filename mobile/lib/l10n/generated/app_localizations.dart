@@ -674,6 +674,18 @@ abstract class AppLocalizations {
   /// **'إزالة الترشيح'**
   String get filterClear;
 
+  /// شارةُ موقع اللوت على صورة الكرت — كما في v1
+  ///
+  /// In ar, this message translates to:
+  /// **'الموقف {lotNumber}'**
+  String vehicleLotPosition(String lotNumber);
+
+  /// زرّ الكرت. يفتح صفحة المركبة — وفيها صندوق المزايدة.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدة'**
+  String get vehicleBidAction;
+
   /// No description provided for @vehicleLot.
   ///
   /// In ar, this message translates to:
@@ -1310,16 +1322,16 @@ abstract class AppLocalizations {
   /// **'مزاد حراج واحد'**
   String get homeBrand;
 
-  /// No description provided for @homeTagline.
+  /// عنوانُ لوحة الترحيب فوق حقل البحث في الرئيسية. نصُّ المالك حرفياً — لا يُختصر ولا يُعاد صوغه.
   ///
   /// In ar, this message translates to:
-  /// **'سيارتك القادمة … تبدأ من هنا'**
+  /// **'بوابة مزادات حراج الحصرية'**
   String get homeTagline;
 
-  /// No description provided for @homeSubtagline.
+  /// سطرُ اللوحة الثاني تحت العنوان. نصُّ المالك حرفياً.
   ///
   /// In ar, this message translates to:
-  /// **'تابع المزادات — وادخل أفضل العروض على أفضل السيارات'**
+  /// **'اكتشف فرصتك لامتلاك أفضل المركبات بأفضل الأسعار'**
   String get homeSubtagline;
 
   /// No description provided for @homeNotifications.

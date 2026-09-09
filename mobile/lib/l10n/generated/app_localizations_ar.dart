@@ -373,6 +373,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get filterClear => 'إزالة الترشيح';
 
   @override
+  String vehicleLotPosition(String lotNumber) {
+    return 'الموقف $lotNumber';
+  }
+
+  @override
+  String get vehicleBidAction => 'مزايدة';
+
+  @override
   String vehicleLot(String lotNumber) {
     return 'لوت $lotNumber';
   }
@@ -767,11 +775,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeBrand => 'مزاد حراج واحد';
 
   @override
-  String get homeTagline => 'سيارتك القادمة … تبدأ من هنا';
+  String get homeTagline => 'بوابة مزادات حراج الحصرية';
 
   @override
   String get homeSubtagline =>
-      'تابع المزادات — وادخل أفضل العروض على أفضل السيارات';
+      'اكتشف فرصتك لامتلاك أفضل المركبات بأفضل الأسعار';
 
   @override
   String get homeNotifications => 'الإشعارات';

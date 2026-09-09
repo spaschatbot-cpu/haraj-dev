@@ -26,6 +26,7 @@ final class VehicleSummary {
     required this.odometerKm,
     required this.colourLabel,
     required this.conditionLabel,
+    required this.location,
   });
 
   final String id;
@@ -95,4 +96,15 @@ final class VehicleSummary {
 
   final String colourLabel;
   final String conditionLabel;
+
+  /// موقع المركبة كما يعرضه الخادم — «الرياض / طريق الحائر».
+  ///
+  /// **خامسُ حقلٍ كان يصل ولا يُقرأ**: `location` في `VehicleCard` المولَّد من
+  /// المخطط منذ البداية، ولم يكن في هذا الكيان. وهو على الكرت لا في صفحة
+  /// المركبة وحدها لأن الاستلام حضوريّ: من يزايد على سيّارةٍ في مدينةٍ أخرى
+  /// يعرف ذلك قبل أن يزايد لا بعده.
+  ///
+  /// نصٌّ واحد لا مدينةٌ وفرعٌ منفصلان: الخادم يرسله مركّباً، وقسمتُه هنا
+  /// على `/` تفترض شكلاً لم يَعِد به أحد.
+  final String location;
 }

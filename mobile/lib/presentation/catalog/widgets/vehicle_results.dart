@@ -32,6 +32,7 @@ class VehicleResults extends StatelessWidget {
     required this.emptyMessage,
     required this.onOpenVehicle,
     this.trailing,
+    this.showCount = true,
     this.prefetchThreshold = 3,
     super.key,
   });
@@ -62,6 +63,16 @@ class VehicleResults extends StatelessWidget {
   /// مفروزةٌ برقم اللوت أصلاً.
   final Widget? trailing;
 
+  /// هل يُعرض سطر «كذا نتيجة» فوق القائمة.
+  ///
+  /// **مفتاحٌ لا حذفٌ من المكوّن**: المفضلة وقائمةُ مزادٍ بعينه ما زالتا
+  /// تعرضانه، ورُفع من الرئيسية وحدها بطلب المالك في ٩ سبتمبر ٢٠٢٦ — فوقه
+  /// مفتاحُ الأطوار وعدّاداتُه الثلاثة، والرقمُ الرابع تحتها يكرّر أحدها.
+  ///
+  /// وحين يسقط السطرُ ولا `trailing` معه **يسقط شريطُه كلُّه**، لا يبقى
+  /// فارغاً: حشوةٌ بثمانية بكسلات فوق أول كرتٍ بلا شيء فيها.
+  final bool showCount;
+
   /// كم مركبة قبل نهاية القائمة نطلب الصفحة التالية.
   final int prefetchThreshold;
 
@@ -82,31 +93,32 @@ class VehicleResults extends StatelessWidget {
 
     return CustomScrollView(
       slivers: <Widget>[
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: Text(
-                    // العدد الكلي من الخادم، لا طول ما وصل: قائمةٌ من مئتي
-                    // مركبة عُرض منها عشرون تقول «مئتان»، لا «عشرون».
-                    l10n.vehiclesResultsCount(totalCount),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: palette.inkMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (trailing case final Widget widget) widget,
-              ],
+        if (showCount || trailing != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
+              child: Row(
+                children: <Widget>[
+                  if (showCount)
+                    Expanded(
+                      child: Text(
+                        // العدد الكلي من الخادم، لا طول ما وصل: قائمةٌ من مئتي
+                        // مركبة عُرض منها عشرون تقول «مئتان»، لا «عشرون».
+                        l10n.vehiclesResultsCount(totalCount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: palette.inkMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                  else
+                    const Spacer(),
+                  if (trailing case final Widget widget) widget,
+                ],
+              ),
             ),
           ),
-        ),
-        SliverList.builder(
-          itemCount: vehicles.length,
-          itemBuilder: _buildCard,
-        ),
+        SliverList.builder(itemCount: vehicles.length, itemBuilder: _buildCard),
         SliverToBoxAdapter(child: _tail()),
         // مكانُ الشريط السفليّ، من `MediaQuery` لا رقماً مكتوباً: القشرة هي
         // التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر صفٍّ تحته

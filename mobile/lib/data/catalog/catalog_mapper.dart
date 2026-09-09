@@ -57,6 +57,7 @@ extension VehicleCardMapper on api.VehicleCard {
     odometerKm: odometerKm,
     colourLabel: colourLabel,
     conditionLabel: conditionLabel,
+    location: location,
   );
 
   /// المواصفات من حقول الكرت نفسها.

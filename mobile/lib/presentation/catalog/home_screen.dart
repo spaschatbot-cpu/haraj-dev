@@ -57,13 +57,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _loadingMore = false;
   Failure? _moreFailure;
 
-  /// آخر عدّادات وصلت. تبقى معروضة أثناء تحميل الطور التالي بدل أن تختفي
-  /// الأرقام ثم تعود — وميضٌ يجعل الخانات ترقص عند كل ضغطة.
-  PhaseCounts? _counts;
-
   /// كل طلبٍ جديد يبطل ما قبله: ردٌّ بطيء لطورٍ غادره العميل كان سيصل بعد ردّ
   /// الطور الذي يقف فيه فيدهسه، فيرى مركبات طورٍ آخر تحت عنوان طوره.
   int _generation = 0;
+
+  /// آخر عدّادات وصلت — رقمُ كل تبويب. تبقى معروضة أثناء تحميل الطور التالي
+  /// بدل أن تختفي الأرقام ثم تعود: وميضٌ يجعل الخانات الثلاث ترقص عند كل
+  /// ضغطة.
+  PhaseCounts? _counts;
 
   @override
   void initState() {
@@ -192,12 +193,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     // أن يبقى قادراً على تعديل كلمته، لا أن يواجه شاشة خطأ
                     // بلا مخرج. ولا مفتاح عليه: من بحث عن «كامري» ثم بدّل
                     // الطور يجب أن يجد كلمته مكتوبة كما تركها.
+                    const _WelcomePanel(),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                      padding: const EdgeInsets.fromLTRB(20, 10, 20, 8),
                       child: VehicleSearchField(
                         search: _query.search,
                         onSubmitted: _search,
                       ),
+                    ),
+                    _PhaseTabs(
+                      current: widget.phase,
+                      counts: _counts,
+                      onSelect: (phase) => Routes.goToPhase(context, phase),
                     ),
                     Expanded(
                       child: SnapshotView<VehicleFeed>(
@@ -217,14 +224,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           onOpenVehicle: (vehicle) =>
                               Routes.goToVehicle(context, vehicle.id),
                           emptyMessage: _emptyMessage(l10n),
-                          trailing: VehicleFiltersButton(
-                            query: _query,
-                            phase: widget.phase,
-                            counts: _counts,
-                            onApply: _apply,
-                            onPhase: (phase) =>
-                                Routes.goToPhase(context, phase),
-                          ),
+                          showCount: false,
+                          // **لا زرّ فرزٍ في سطر العدّ** — رُفع بطلب المالك
+                          // في ٩ سبتمبر ٢٠٢٦.
+                          //
+                          // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة: الورقة
+                          // كانت **المقبض الوحيد** للطور والماركة والسنة بعد
+                          // أن حلّت محلّ شريط التبويبات، فسقط الثلاثة معها.
+                          // البحثُ باقٍ، و`?phase=` في العنوان باقٍ يفتحه
+                          // الرابطُ والإشعار (H6) — لكن لا سبيل إليه من داخل
+                          // الشاشة. و`VehicleFiltersButton` و`_apply`
+                          // و`Routes.goToPhase` باقيةٌ تعمل. وسقط معه حقلُ
+                          // `_counts` — كان يتغذّى ليعرضه الزرُّ وحده — ولم
+                          // يُترك ميتاً؛ والعدّادات تصل مع كل صفحة في
+                          // `snapshot.value.counts` فردُّه ثلاثةُ أسطر.
                         ),
                       ),
                     ),
@@ -250,5 +263,406 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       AuctionPhase.active || AuctionPhase.unknown => l10n.homeEmptyActive,
       AuctionPhase.ended => l10n.homeEmptyEnded,
     };
+  }
+}
+
+/// لوحةُ الترحيب فوق حقل البحث — سطران بنصّ المالك حرفياً.
+///
+/// **موضعُها تحت اللوحة الداكنة لا داخلها**: الهيدر ارتفاعه ٥٨ ولا يتّسع
+/// لسطرين (جُرِّب، وأفاض `Spacer` اللوحةَ ٤٦ بكسلاً)، وأرضيّتُه داكنة فسطرٌ
+/// طويلٌ عليه يُقرأ بجهد. والورقةُ الكريميّة تحته فارغةٌ ومقروءة.
+///
+/// **ثابتةٌ لا تنزلق مع القائمة**: هي وحقلُ البحث كتلةٌ واحدة تفتتح الصفحة،
+/// وتمريرُ إحداهما دون الأخرى يترك الحقلَ معلّقاً بلا سياق.
+///
+/// **بعرضٍ محدود (٤٤٠) لا بعرض الشاشة**: على شاشةٍ عريضة كان الخيطان يمتدّان
+/// من حافةٍ لحافة فيصيران خطَّ فصلٍ يقطع الصفحة، ويقف العنوانُ في وسط فراغٍ
+/// لا يخصّه. والكتلةُ المحدودة تُقرأ لوحةً معنونة.
+class _WelcomePanel extends StatelessWidget {
+  const _WelcomePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+          child: Column(
+            children: <Widget>[
+              const _Ornament(),
+              const SizedBox(height: 9),
+              // **العنوان ذهبيٌّ متدرّج** بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+              //
+              // و`ShaderMask` لا لونٌ واحد: الذهبُ المسطّح على ورقةٍ كريميّة
+              // يُقرأ خردليّاً باهتاً — ما يجعله ذهباً هو تحوّلُه من غائرٍ
+              // إلى لامعٍ إلى غائر، كما ينعكس الضوءُ على معدن.
+              //
+              // **والأطرافُ الثلاثة كلُّها غائرة** (`#8A6508` و`#B8860B`):
+              // الذهبيُّ الفاتح (`#E3BC57`) نسبتُه على الكريميّ ٢٫٥:١ ولا
+              // يبلغ حدَّ العناوين، فيُقرأ العنوانُ باهتاً على شاشةٍ في
+              // الشمس. وهذان يبلغان ٤٫١:١ فما فوق ويبقيان ذهباً.
+              ShaderMask(
+                blendMode: BlendMode.srcIn,
+                shaderCallback: (bounds) => LinearGradient(
+                  begin: Alignment.centerRight,
+                  end: Alignment.centerLeft,
+                  colors: <Color>[
+                    palette.goldDeep,
+                    palette.gold,
+                    palette.goldDeep,
+                  ],
+                  stops: const <double>[0, 0.5, 1],
+                ).createShader(bounds),
+                child: Text(
+                  l10n.homeTagline,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    // اللون يُبتلع بـ`srcIn`، لكنه ليس زائداً: هو ما يظهر لو
+                    // سقط الشيدر (بعض المتصفّحات في وضع التباين العالي).
+                    color: palette.goldDeep,
+                    height: 1.35,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+              // **السطر الثاني لا يظهر على الجوّال** بطلب المالك في ٩
+              // سبتمبر ٢٠٢٦: ارتفاع الشاشة هناك هو المورد النادر، وهذا
+              // السطرُ ترحيبٌ يُقرأ مرّةً ويأكل من كل تمريرةٍ بعدها. وعلى
+              // الشاشة العريضة الارتفاعُ فائضٌ فيبقى.
+              //
+              // **٦٠٠ حدّاً**: هو حدُّ اللوح المتعارف عليه، وأعرضُ جوّالٍ
+              // قائمٍ دونه بفارقٍ مريح — فلا يقع جوّالٌ كبير في جهة اللوح.
+              // و`sizeOf` لا `of`: هذه تُعيد بناءَ اللوحة عند تغيّر أي حقلٍ
+              // في `MediaQuery` — حتى ظهورِ لوحة المفاتيح تحت حقل البحث.
+              if (MediaQuery.sizeOf(context).width >= 600) ...<Widget>[
+                const SizedBox(height: 6),
+                Text(
+                  l10n.homeSubtagline,
+                  textAlign: TextAlign.center,
+                  // سطران حدّاً أقصى: وثالثٌ يزيح حقلَ البحث لا يُقصّ.
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    // خافتٌ لا رماديّ: الفرق بينه وبين العنوان شدّةٌ في نفس
+                    // العائلة الدافئة، ورماديٌّ محايد بينهما يُقرأ
+                    // «معطَّلاً».
+                    color: palette.inkMuted,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// زخرفةٌ ذهبيّة فوق العنوان: خيطان قصيران بينهما معيّن.
+///
+/// **بعرضٍ ثابت لا `Expanded`**: خيطٌ يمتدّ بعرض الشاشة يُقرأ فاصلاً بين
+/// قسمين، وهذه ليست فاصلاً — هي تاجُ العنوان. وعرضُها ثابتٌ لأنها لا تحمل
+/// نصّاً يطول بالترجمة.
+class _Ornament extends StatelessWidget {
+  const _Ornament();
+
+  @override
+  Widget build(BuildContext context) {
+    final gold = HarajPalette.of(context).gold;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _OrnamentRule(gold: gold, fadeAtStart: true),
+        const SizedBox(width: 8),
+        // معيّنٌ لا نقطة: النقطةُ تُقرأ علامةَ ترقيمٍ سقطت، والمعيّنُ شكلٌ
+        // مقصود. وهو مربّعٌ مُدارٌ ٤٥° لا مسارٌ مرسوم — ستّةُ بكسلات لا
+        // تستحقّ `CustomPainter`.
+        Transform.rotate(
+          angle: 0.785398,
+          child: Container(width: 5, height: 5, color: gold),
+        ),
+        const SizedBox(width: 8),
+        _OrnamentRule(gold: gold, fadeAtStart: false),
+      ],
+    );
+  }
+}
+
+class _OrnamentRule extends StatelessWidget {
+  const _OrnamentRule({required this.gold, required this.fadeAtStart});
+
+  final Color gold;
+
+  /// أيُّ طرفٍ يتلاشى — الخارجيُّ دائماً، فالخيطان يخرجان من المعيّن ولا
+  /// يدخلان إليه.
+  final bool fadeAtStart;
+
+  @override
+  Widget build(BuildContext context) {
+    final colours = <Color>[
+      gold.withValues(alpha: 0),
+      gold.withValues(alpha: 0.8),
+    ];
+
+    return Container(
+      width: 34,
+      height: 1,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: fadeAtStart ? colours : colours.reversed.toList(),
+        ),
+      ),
+    );
+  }
+}
+
+/// تبويبات الطور الثلاثة تحت حقل البحث — **مفتاحٌ مقسوم، لا ثلاثةُ صناديق**.
+///
+/// جُرِّبت ثلاثُ هيئاتٍ قبلها وردَّها المالك: خاناتٌ بأرضيّةٍ بنّيّة، ثم
+/// خاناتٌ بإطارٍ ذهبيٍّ محيط، ثم خاناتٌ بشريطٍ ذهبيٍّ جانبيّ. وعلّتُها واحدة:
+/// **ثلاثةُ صناديق منفصلة فوق قائمةِ كروتٍ كلُّها صناديق** — فلا تُقرأ مفتاحاً
+/// يختار واحداً من ثلاثة، بل ثلاثةَ أزرارٍ لا رابط بينها. والحاوية الواحدة
+/// هي الرابط: الأقسامُ داخلها فلا تُقرأ إلا معاً.
+///
+/// **الترتيب من `AuctionPhase.tabs` لا مكتوباً هنا**: التعداد يعرف ترتيبه،
+/// وقائمةٌ ثانية تفترق عنه عند أول تعديل فيُفتح التبويبُ الخطأ (المادة ٤-٥).
+///
+/// **والاختيار يمرّ بالعنوان** (`?phase=`) لا بحالةٍ في الشاشة: الرابطُ
+/// يُشارَك، ويصمد عبر إعادة الفتح، ويفتحه الإشعار على طوره (H6).
+///
+/// **والعدّاد على كلٍّ منها** — يصل مع الصفحة في نفس الطلب. وهو ما يجعل
+/// التبويب الفارغ مفهوماً: من يفتح «نشط» فيجده خالياً يرى «قريباً ٢» بجانبه
+/// فيعرف إلى أين يذهب، بدل أن يظنّ التطبيق معطّلاً.
+class _PhaseTabs extends StatelessWidget {
+  const _PhaseTabs({
+    required this.current,
+    required this.counts,
+    required this.onSelect,
+  });
+
+  final AuctionPhase current;
+
+  /// `null` قبل وصول أول صفحة. الرقم يُستبدل بشَرطةٍ ولا يُخفى: قسمٌ بلا رقمٍ
+  /// ثم يظهر له رقمٌ يزحف بنصّه، والثلاثةُ تتزحزح معه.
+  final PhaseCounts? counts;
+
+  final void Function(AuctionPhase phase) onSelect;
+
+  /// حشوةُ الحاوية حول اللوح — هي ما يجعل اللوح **داخلها** لا مساوياً لها.
+  static const double _track = 4;
+
+  static const double _height = 42;
+  static const double _radius = 13;
+  static const Duration _duration = Duration(milliseconds: 240);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
+    final tabs = AuctionPhase.tabs;
+
+    // `unknown` ليس قسماً، ورقمُه `-1` كان سيضع اللوح خارج الحاوية.
+    final index = tabs.contains(current) ? tabs.indexOf(current) : 0;
+
+    return Center(
+      child: ConstrainedBox(
+        // **بعرضٍ محدود لا بعرض الشاشة** — نفس حدّ لوحة الترحيب فوقها.
+        // على شاشةٍ عريضة كان القسم الواحد يبلغ ٤٥٠ بكسلاً لكلمةٍ ورقم.
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+          child: SizedBox(
+            height: _height,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(_radius),
+                // **أرضيّةٌ غائرة**: أغمقُ قليلاً من ورقة الصفحة لا أفتح.
+                // الحاوية حوضٌ يجلس فيه اللوح، وحوضٌ أفتحُ من ورقته يطفو
+                // فوقها فيصير صندوقاً رابعاً.
+                color: Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.09),
+                  palette.pageBackground,
+                ),
+                border: Border.all(color: palette.gold.withValues(alpha: 0.18)),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // عرضُ القسم يُقسَم هنا لا يُخمَّن: اللوح يقف على قسمٍ
+                  // بعينه، ورقمٌ مكتوبٌ سلفاً يزيغ عنه على كل عرضٍ آخر.
+                  final segment =
+                      (constraints.maxWidth - _track * 2) / tabs.length;
+
+                  return Stack(
+                    children: <Widget>[
+                      // اللوح الذهبيّ — **ينزلق** ولا يظهر ويختفي.
+                      //
+                      // الانزلاق هو ما يجعل الثلاثة مفتاحاً واحداً: العين
+                      // تتبع اللوح من قسمٍ إلى قسم فتفهم أنه واحدٌ ينتقل.
+                      // وظهورٌ واختفاءٌ في مكانين يُقرأ ضوءَين ينطفئ أحدهما.
+                      AnimatedPositionedDirectional(
+                        duration: _duration,
+                        curve: Curves.easeOutCubic,
+                        start: _track + segment * index,
+                        top: _track,
+                        bottom: _track,
+                        width: segment,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(_radius - 4),
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[palette.gold, palette.goldDeep],
+                            ),
+                            boxShadow: <BoxShadow>[
+                              BoxShadow(
+                                color: palette.goldDeep.withValues(alpha: 0.35),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      // **`Positioned.fill` لا صفٌّ عارٍ**: `Stack` محاذاتُه
+                      // `topStart` و`fit` رخو، فابنٌ غيرُ موضَّع يأخذ ارتفاع
+                      // محتواه ويلتصق بالأعلى. فوقف النصُّ في أعلى الحاوية
+                      // واللوحُ ممتدٌّ بارتفاعها كلِّها تحته — يُقرأ كلاماً
+                      // فوق مربّعٍ لا كلاماً في وسطه. والملءُ يعطي كل قسمٍ
+                      // ارتفاع الحاوية فيتوسّط نصُّه فيه.
+                      Positioned.fill(
+                        child: Row(
+                          children: <Widget>[
+                            for (final phase in tabs)
+                              Expanded(
+                                child: _Segment(
+                                  label: switch (phase) {
+                                    AuctionPhase.upcoming =>
+                                      l10n.homeTabUpcoming,
+                                    AuctionPhase.active => l10n.homeTabActive,
+                                    AuctionPhase.ended ||
+                                    AuctionPhase.unknown => l10n.homeTabEnded,
+                                  },
+                                  count: counts?.of(phase),
+                                  selected: phase == current,
+                                  onTap: () => onSelect(phase),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// قسمٌ واحد من المفتاح: اسمٌ ورقمُه، **بلا أرضيّةٍ ولا حدّ**.
+///
+/// اللوحُ الذهبيّ يمرّ تحته من `_PhaseTabs`، وهذا لا يرسم إلا نصَّه — فلو
+/// رسم لنفسه أرضيّةً حجب اللوحَ الذي ينزلق تحته.
+class _Segment extends StatelessWidget {
+  const _Segment({
+    required this.label,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final int? count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  static const Duration _duration = Duration(milliseconds: 240);
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+
+    // **نصٌّ شبه أسود على الذهبيّ الممتلئ لا أبيض**: الأبيض على `#B8860B`
+    // نسبتُه ٣٫٣:١ وهي دون حدِّ النصّ الصغير، وهذا يبلغ نحو ٧:١. وهو
+    // `heroBottom` — لونُ أسفل اللوحة الداكنة — لا لونٌ جديد.
+    final colour = selected ? palette.heroBottom : palette.inkMuted;
+
+    return Semantics(
+      selected: selected,
+      button: true,
+      // القارئ الصوتيّ يقول «مختار» ولا يترك الفرق للّون ولا للوزن.
+      label: label,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(9),
+          splashColor: palette.goldMuted,
+          highlightColor: palette.goldMuted,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Flexible(
+                child: AnimatedDefaultTextStyle(
+                  duration: _duration,
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 12,
+                    // الوزنُ يتغيّر مع اللون: عينٌ لا تفرّق الذهبيَّ عن
+                    // الكريميّ تفرّق العريضَ عن المتوسّط.
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                    color: colour,
+                    height: 1.2,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    // القصّ لا الالتفاف: «منتهي» في قسمٍ بتسعين بكسلاً على
+                    // شاشةٍ ضيّقة، وسطرٌ ثانٍ يطيل الحاوية كلَّها.
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 5),
+              // **الرقم بنفس اللون مخفَّفاً، لا في حوضٍ ملوّن**: حوضٌ داخل
+              // اللوح الذهبيّ شكلٌ داخل شكلٍ داخل حاوية، وثلاثةُ حدودٍ
+              // متداخلة في أربعين بكسلاً هي بعينها الفوضى التي رُفض من
+              // أجلها الشكلُ السابق. والتخفيفُ يكفي ليُقرأ عدّاداً لا جزءاً
+              // من الاسم.
+              AnimatedDefaultTextStyle(
+                duration: _duration,
+                curve: Curves.easeOutCubic,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: colour.withValues(alpha: selected ? 0.7 : 0.85),
+                  height: 1.2,
+                ),
+                child: Text(count?.toString() ?? '—'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
