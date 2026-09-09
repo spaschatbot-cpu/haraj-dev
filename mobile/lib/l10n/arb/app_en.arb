@@ -281,5 +281,7 @@
   "vehiclePriceWithVat": "Price + VAT",
   "@vehiclePriceWithVat": {},
   "vehicleShareCopied": "Vehicle link copied",
-  "@vehicleShareCopied": {}
+  "@vehicleShareCopied": {},
+  "signInDismiss": "Close",
+  "@signInDismiss": {}
 }

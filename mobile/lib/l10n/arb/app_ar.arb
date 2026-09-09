@@ -829,5 +829,7 @@
   "vehiclePriceWithVat": "السعر + الضريبة",
   "@vehiclePriceWithVat": {},
   "vehicleShareCopied": "نُسخ رابط المركبة",
-  "@vehicleShareCopied": {}
+  "@vehicleShareCopied": {},
+  "signInDismiss": "إغلاق",
+  "@signInDismiss": {}
 }
