@@ -10,7 +10,7 @@
         <th>المزاد</th><th>اللوت</th><th>المركبة</th><th>السنة</th>
         <th>اللوحة</th><th>الشاصي</th><th>اللون</th><th>الحالة الفنية</th>
         <th>سعر الوقوف</th><th>المزايد</th><th>الجوال</th>
-        <th>المبلغ</th><th>حالة المزايدة</th><th>الوقت</th>
+        <th>المبلغ</th><th>حالة المزايدة</th><th>الوقت</th><th></th>
       </tr>
     </thead>
     <tbody>
@@ -18,7 +18,13 @@
         <tr>
           <td><a href="{% url 'console:auction-detail' bid.vehicle.auction.pk %}">{{ bid.vehicle.auction.number|unlocalize }}</a></td>
           <td class="count">{{ bid.vehicle.lot_number|unlocalize }}</td>
-          <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+          {% comment %} التفاصيلُ نافذةٌ لا صفحة: من يقرأ صفّاً في مئة ألف
+             لا يُخرَج من مكانه ليقرأ حقلاً. {% endcomment %}
+          <td>
+            <button type="button" class="linkish" data-detail-open
+                    data-url="{% url 'console:vehicle-detail' bid.vehicle.pk %}?modal=1"
+                    title="تفاصيل المركبة">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</button>
+          </td>
           <td>{{ bid.vehicle.year|unlocalize }}</td>
           <td>{{ bid.vehicle.plate_number|default:"—" }}</td>
           <td>{{ bid.vehicle.vin|default:"—" }}</td>
@@ -34,9 +40,16 @@
             {% else %}<span class="pill" data-tone="good">قائمة</span>{% endif %}
           </td>
           <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+          {% comment %} «المزايدات» — السؤالُ الذي يلي كلَّ صفّ: ومن غيره زايد
+             عليها؟ يُجاب في نافذةٍ فلا يفقد الموظّفُ مكانَه في مئة ألف صفّ. {% endcomment %}
+          <td>
+            <button type="button" class="btn-sm" data-bids-open
+                    data-url="{% url 'console:vehicle-bid-list' bid.vehicle.pk %}"
+                    title="كل المزايدات على هذه المركبة">المزايدات</button>
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="14" class="empty">{{ empty_text|default:"لا مزايدات مطابقة." }}</td></tr>
+        <tr><td colspan="15" class="empty">{{ empty_text|default:"لا مزايدات مطابقة." }}</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -54,3 +67,42 @@
     </nav>
   {% endif %}
 </div>
+
+{% comment %} نافذةُ مزايدات المركبة — `<dialog>` لا `<div>`: المتصفّح يحبس
+   التركيز ويُغلق بـEscape ويعتم الخلف. والضغطُ خارجها يغلقها كبقيّة نوافذ اللوحة.
+{% endcomment %}
+<dialog class="modal row-ajax-modal" data-bids-modal>
+  <div data-bids-body></div>
+</dialog>
+
+<script>
+(function () {
+  var modal = document.querySelector('[data-bids-modal]');
+  if (!modal || !modal.showModal) return;
+  var body = modal.querySelector('[data-bids-body]');
+
+  // **تفويضٌ على المستند** لا ربطٌ لكل زرّ: زرُّ «تفاصيل المركبة» يُحقَن داخل
+  // النافذة بعد أن يكون هذا السكربت قد عمل، فربطٌ مباشرٌ لا يبلغه أبداً.
+  function openInto(url) {
+    body.innerHTML = '<p class="empty">…يُحمَّل</p>';
+    if (!modal.open) modal.showModal();
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'fetch' },
+    }).then(function (r) { return r.text(); }).then(function (html) {
+      body.innerHTML = html;
+    }).catch(function () {
+      body.innerHTML = '<p class="empty">تعذّر الجلب.</p>';
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var opener = e.target.closest('[data-bids-open], [data-detail-open]');
+    if (opener) { openInto(opener.getAttribute('data-url')); return; }
+    if (e.target.closest('[data-bids-close], [data-close]')) { modal.close(); }
+  });
+
+  // الضغطُ على الخلفية (خارج البطاقة) يغلق — كبقيّة نوافذ اللوحة.
+  modal.addEventListener('click', function (e) { if (e.target === modal) modal.close(); });
+})();
+</script>

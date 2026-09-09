@@ -342,6 +342,13 @@ PAGES: tuple[Page, ...] = (
         "list-check",
     ),
     Page(
+        "console:vehicle-bid-list",
+        "مزايدات المركبة",
+        Capability.AUCTIONS_VIEW,
+        "",
+        parent="console:vehicle-bids",
+    ),
+    Page(
         "console:accepted-bids",
         "المزايدات المقبولة",
         Capability.AUCTIONS_VIEW,

@@ -90,12 +90,24 @@ def live_bids(request):
     «الجاري» من `engine.phase` لا من عمود الحالة وحده: عاملُ Celery قد يتأخّر،
     ولا يحتمل الموظّف أن يفتح الشاشة فيراها فارغةً ومزادٌ يعمل منذ دقيقتين.
     """
-    live = [
-        a
-        for a in Auction.objects.filter(
+    # نبضةُ دورة الحياة قبل القراءة — كما تفعل قائمةُ المزادات. عاملُ Celery
+    # يتوقّف، ولا يحتمل الموظّفُ أن يفتح «الجاري» فيراها فارغةً ومزادٌ حان
+    # وقتُه قبل دقيقتين. وهي تنادي `services` نفسها فالكاتبُ يبقى واحداً.
+    engine.tick()
+
+    candidates = list(
+        Auction.objects.filter(
             state__in=(AuctionState.LIVE, AuctionState.SCHEDULED)
         ).order_by("-starts_at")
-        if engine.phase(a) in engine.BIDDABLE_PHASES
+    )
+    live = [a for a in candidates if engine.phase(a) in engine.BIDDABLE_PHASES]
+
+    # ما تخلّف عنه العامل يُقال صراحةً: صفحةٌ فارغةٌ بلا سببٍ تُقرأ «لا مزايدات»،
+    # وهي في الحقيقة «مزادٌ كان يجب أن يبدأ ولم يبدأ».
+    late = [
+        (a, engine.phase(a))
+        for a in candidates
+        if engine.phase(a) in (engine.Phase.OVERDUE_START, engine.Phase.OVERDUE_END)
     ]
 
     search = request.GET.get("q", "")
@@ -107,7 +119,7 @@ def live_bids(request):
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     return render(request, "console/live_bids.html", {
-        "page": page, "q": search, "live": live,
+        "page": page, "q": search, "live": live, "late": late,
         # روابطُ التصفّح تحمل البحث معها: «التالي» بدونه يعود بالجدول كلّه
         # والقارئُ يظنّ نفسه داخل نتيجته.
         "keep": f"q={search}&" if search else "",
@@ -145,3 +157,36 @@ def vehicle_bids(request):
         )[:200],
         "vehicles": rows.values("vehicle_id").distinct().count(),
     })
+
+
+@console_page("console:vehicle-bid-list")
+def vehicle_bid_list(request, pk: int):
+    """مزايداتُ مركبةٍ واحدة — قِطعةٌ تُحقَن في نافذة، لا صفحةٌ كاملة.
+
+    الصفُّ في جدول المزايدات يقول مزايدةً واحدة، والسؤالُ الذي يليه دائماً:
+    «ومن غيره زايد عليها؟». وفتحُ صفحةٍ للجواب يفقد الموظّفُ مكانَه في جدولٍ
+    من مئة ألف صفّ — فالجوابُ يأتي إليه.
+
+    وتُعرض **كلُّها** لا الحيّة وحدها: «كم مرّةً رفع هذا الرقم؟» سؤالٌ عن
+    التاريخ، وإخفاءُ المستبدَلة يجعل الجدولَ يكذب بالحذف.
+    """
+    from django.shortcuts import get_object_or_404
+
+    vehicle = get_object_or_404(
+        Vehicle.objects.select_related("auction", "owner_company"), pk=pk
+    )
+    rows = (
+        Bid.objects.filter(vehicle=vehicle)
+        .select_related("bidder")
+        .order_by("-amount", "placed_at")
+    )
+    return render(
+        request,
+        "console/_vehicle_bid_list.html",
+        {
+            "vehicle": vehicle,
+            "rows": rows,
+            "live": rows.filter(is_superseded=False, is_withdrawn=False).count(),
+            "top": rows.aggregate(top=Max("amount"))["top"],
+        },
+    )

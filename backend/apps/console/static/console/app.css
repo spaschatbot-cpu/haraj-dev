@@ -4587,3 +4587,13 @@ dialog.row-modal {
   border: 1px solid var(--line);
 }
 
+
+/* زرٌّ يبدو نصّاً — حين يكون الفعلُ فتحَ نافذةٍ لا الذهابَ إلى صفحة.
+   يُصفّر زخرفةَ الأزرار العامّة (خلفيةٌ ملوّنة وحشوةٌ ووزنُ خطّ) كلَّها: خليّةٌ
+   في جدولٍ تحمل اسمَ سيارة، لا زرّاً أزرقَ يصرخ في كل صفّ. */
+.linkish {
+  appearance: none; border: 0; padding: 0; margin: 0; background: none;
+  color: inherit; font: inherit; font-weight: inherit; cursor: pointer;
+  text-align: start; border-radius: 0;
+}
+.linkish:hover { text-decoration: underline; background: none; }

@@ -1,0 +1,49 @@
+{% load l10n %}
+{% comment %}
+قِطعةُ نافذة: مزايداتُ مركبةٍ واحدة. تُجلَب بـfetch وتُحقَن — بلا ترويسةٍ ولا
+شريطٍ جانبيّ، فهي جزءُ صفحةٍ لا صفحة.
+{% endcomment %}
+<header class="row-modal__head">
+  <h2 class="row-modal__title">
+    مزايدات {{ vehicle.make }} {{ vehicle.model }} — لوت {{ vehicle.lot_number|unlocalize }}
+  </h2>
+  <p class="row-modal__note">
+    مزاد {{ vehicle.auction.number|unlocalize }} · {{ vehicle.plate_number|default:"بلا لوحة" }}
+    {% if vehicle.vin %} · {{ vehicle.vin }}{% endif %}
+    · <strong>{{ rows|length|unlocalize }}</strong> مزايدة ({{ live|unlocalize }} قائمة)
+    {% if top %} · أعلى مبلغ <strong class="money">{{ top|unlocalize }}</strong>{% endif %}
+    {% if vehicle.reserve_price %} · سعر الوقوف {{ vehicle.reserve_price|unlocalize }}{% endif %}
+  </p>
+</header>
+
+<div class="scroller">
+  <table>
+    <thead>
+      <tr><th>#</th><th>المزايد</th><th>الجوال</th><th>المبلغ</th><th>الحالة</th><th>الوقت</th></tr>
+    </thead>
+    <tbody>
+      {% for bid in rows %}
+        <tr>
+          <td class="count">{{ forloop.counter|unlocalize }}</td>
+          <td>{{ bid.bidder.full_name|default:"—" }}</td>
+          <td>{{ bid.bidder.phone|unlocalize }}</td>
+          <td class="money">{{ bid.amount|unlocalize }}</td>
+          <td>
+            {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
+            {% elif bid.is_superseded %}<span class="pill" data-tone="warn">مستبدَلة</span>
+            {% else %}<span class="pill" data-tone="good">قائمة</span>{% endif %}
+          </td>
+          <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty">لا مزايدات على هذه المركبة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="row-modal__foot">
+  <button type="button" class="btn-sm" data-detail-open
+          data-url="{% url 'console:vehicle-detail' vehicle.pk %}?modal=1">تفاصيل المركبة</button>
+  <button type="button" data-bids-close>إغلاق</button>
+</div>

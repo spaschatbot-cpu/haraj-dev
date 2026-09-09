@@ -9,6 +9,20 @@
 {% block actions %}<a href="?{% if q %}q={{ q }}&amp;{% endif %}export=1" class="btn-secondary">تصدير إكسل</a>{% endblock %}
 
 {% block content %}
+  {% if late %}
+    <div class="notice notice--error">
+      <p><strong>مزادٌ تخلّف عنه العامل</strong> — حان وقتُه ولم تتحرّك حالتُه:</p>
+      <ul>
+        {% for a, phase in late %}
+          <li>
+            <a href="{% url 'console:auction-detail' a.pk %}">مزاد {{ a.number|unlocalize }} — {{ a.title }}</a>
+            · {% if phase.value == "overdue_start" %}كان يجب أن يبدأ {{ a.starts_at|date:"Y-m-d H:i" }}{% else %}كان يجب أن ينتهي {{ a.ends_at|date:"Y-m-d H:i" }}{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
   {% if not live %}
     <p class="notice warning">لا مزاد مفتوحٌ للمزايدة الآن — الشاشة تمتلئ حين يبدأ مزاد.</p>
   {% else %}
