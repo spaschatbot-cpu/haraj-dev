@@ -152,7 +152,8 @@ class Command(BaseCommand):
 
         auctions = self._auctions(path)
         people = self._people(path)
-        self._vehicles(path, auctions, people)
+        vehicles = self._vehicles(path, auctions, people)
+        self._bids(path, vehicles, people)
         self._report()
 
     # -- المزادات ---------------------------------------------------------
@@ -247,10 +248,14 @@ class Command(BaseCommand):
 
     # -- المركبات ---------------------------------------------------------
 
-    def _vehicles(self, path: Path, auctions: dict, people: dict) -> None:
+    def _vehicles(self, path: Path, auctions: dict, people: dict) -> dict:
         batch: list[Vehicle] = []
         skipped = 0
         lots: set[tuple[int, int]] = set()
+        # معرّفُ v1 ← (مزادُنا، اللوت). `bulk_create(ignore_conflicts=True)`
+        # لا يُرجع المفاتيح، والمزايداتُ تحتاج المركبةَ التي تشير إليها —
+        # فيُبنى الجسرُ بما نعرفه قبل الكتابة ويُحلّ إلى صفوفٍ بعدها.
+        bridge: dict[str, tuple[int, int]] = {}
 
         for row in read_table(path, "auction_vehicles", limit=self.limit):
             auction = auctions.get(str(row.get("auction_id")))
@@ -271,6 +276,10 @@ class Command(BaseCommand):
                 skipped += 1
                 continue
             lots.add(key)
+            # ‏بـ**رقم** المزاد لا بمفتاحه: في وضع القراءة لا مفتاحَ للمزاد
+            # بعد (`pk is None`)، فتصير مفاتيحُ الجسر كلُّها `(None, lot)`
+            # ولا يُطابَق شيء — وهو ما رفض ١١٩٬٩٨٥ مزايدةً بلا سبب حقيقيّ.
+            bridge[str(row["id"])] = (auction.number, lot)
 
             name = (row.get("vehicle_name") or "").strip()
             make = (
@@ -308,6 +317,130 @@ class Command(BaseCommand):
             Vehicle.objects.bulk_create(batch, batch_size=1000, ignore_conflicts=True)
 
         self.stdout.write(f"المركبات: {len(batch)} محمَّلاً · {skipped} مرفوضاً")
+
+        # ‏الجسرُ يُحلّ من **القاعدة** حتى في وضع القراءة: المركبات مستوردةٌ
+        # سلفاً في الغالب، فتشخيصُ المزايدات يصير حقيقياً بدل أن يرفضها كلَّها
+        # لأن لا مفاتيحَ في يده.
+        rows = Vehicle.objects.filter(
+            auction__number__in={n for n, _ in bridge.values()}
+        ).values_list("pk", "auction__number", "lot_number")
+        # ‏المفتاحُ وحده لا الكائن: ثلاثةَ عشرَ ألفَ مركبةٍ محمَّلةً في الذاكرة
+
+        # لتُقرأ منها `pk` هدرٌ، و`Bid(vehicle_id=…)` يكفيه الرقم.
+        by_key = {(number, lot): pk for pk, number, lot in rows}
+        return {v1: by_key[key] for v1, key in bridge.items() if key in by_key}
+
+    # -- المزايدات --------------------------------------------------------
+
+    def _bids(self, path: Path, vehicles: dict, people: dict) -> None:
+        """‏مزايدات v1 ⟶ :class:`Bid`.
+
+        ‏فرقٌ في القاعدة لا في الحقول: v1 يسمح للمزايد الواحد بعدّة مزايداتٍ
+        قائمةٍ على السيارة نفسها (ثلاثٌ للمستخدم ١٣٢ على مزاد ٣٣ في النسخة)،
+        و`one_live_bid_per_bidder_per_vehicle` هنا يمنع الثانية. وهذا مقصود:
+        «كم يدفع هذا الشخص على هذه السيارة؟» سؤالٌ له جوابٌ واحد، وv1 يجيبه
+        بثلاثة ويترك القارئ يرجّح.
+
+        ‏فتُستورد كلُّها — التاريخُ يبقى — و**الأحدثُ وحدها تبقى حيّة**،
+        وما قبلها يُعلَّم `is_superseded` كما لو رفع المزايد عرضه. وما ليس
+        `status='active'` في v1 يدخل مستبدَلاً كذلك: قرارٌ وقع عليه هناك، ولا
+        يجوز أن يُحتسب حيّاً هنا.
+        """
+        from apps.bidding.models import Bid
+
+        batch: list[Bid] = []
+        skipped = 0
+        # (سيارة، مزايد) ← أحدثُ صفٍّ رأيناه، فالأقدمُ يُستبدَل به.
+        newest: dict[tuple[int, int], Bid] = {}
+
+        for row in read_table(path, "bids", limit=self.limit):
+            vehicle_pk = vehicles.get(str(row.get("vehicle_id")))
+            if vehicle_pk is None:
+                # ‏مزايداتُ v1 القديمة سبقت عمود `vehicle_id`، فهي على المزاد
+                # كلّه — ولا مركبةَ لها تُعلَّق عليها.
+                self._reject(
+                    "مزايدة: مركبةٌ غير موجودة", row["id"], str(row.get("vehicle_id"))
+                )
+                skipped += 1
+                continue
+
+            bidder = people.get(str(row.get("user_id")))
+            if bidder is None:
+                self._reject("مزايدة: مزايدٌ غير موجود", row["id"], str(row.get("user_id")))
+                skipped += 1
+                continue
+
+            amount = money(row.get("amount"))
+            if amount is None or amount <= 0:
+                self._reject("مزايدة: مبلغٌ غير صالح", row["id"], str(row.get("amount")))
+                skipped += 1
+                continue
+
+            placed = moment(row.get("created_at"))
+            live_in_v1 = str(row.get("status") or "active").lower().strip() == "active"
+
+            bid = Bid(
+                vehicle_id=vehicle_pk,
+                bidder=bidder,
+                amount=amount,
+                is_superseded=not live_in_v1,
+                is_withdrawn=False,
+            )
+            bid._placed = placed  # يُكتب بعد الإنشاء: `auto_now_add` يتجاهله
+            batch.append(bid)
+
+            if live_in_v1:
+                key = (vehicle_pk, bidder.pk)
+                previous = newest.get(key)
+                if previous is None:
+                    newest[key] = bid
+                elif placed and previous._placed and placed >= previous._placed:
+                    previous.is_superseded = True
+                    newest[key] = bid
+                else:
+                    bid.is_superseded = True
+
+        if not self.dry:
+            Bid.objects.bulk_create(batch, batch_size=1000, ignore_conflicts=True)
+
+            # ‏`placed_at` عليه `auto_now_add`، فكلُّ صفٍّ يُكتب بلحظة الاستيراد
+            # ووقتُه الحقيقيّ يضيع — وهو عمودُ الترتيب في كل شاشة مزايدات،
+            # فالجدولُ كلُّه يصير بترتيبٍ عشوائيّ من لحظةٍ واحدة.
+            #
+            # و`bulk_create(ignore_conflicts=True)` لا يُرجع المفاتيح، فلا سبيل
+            # إلى الصفوف بها. فتُطابَق بما يميّزها فعلاً: (مركبة، مزايد، مبلغ)
+            # — وتكرارُ الثلاثة يعني نقرةً مزدوجة، ولحظتاها متجاورتان فأيُّهما
+            # وقع على أيّ صفٍّ لا يغيّر ترتيباً.
+            when: dict[tuple, list] = {}
+            for b in batch:
+                if b._placed is not None:
+                    when.setdefault(
+                        (b.vehicle_id, b.bidder_id, b.amount), []
+                    ).append(b._placed)
+
+            pending: list[Bid] = []
+            touched = 0
+            for saved in Bid.objects.filter(
+                vehicle_id__in={b.vehicle_id for b in batch}
+            ).iterator(chunk_size=2000):
+                stack = when.get((saved.vehicle_id, saved.bidder_id, saved.amount))
+                if not stack:
+                    continue
+                saved.placed_at = stack.pop()
+                pending.append(saved)
+                if len(pending) >= 2000:
+                    Bid.objects.bulk_update(pending, ["placed_at"])
+                    touched += len(pending)
+                    pending = []
+            if pending:
+                Bid.objects.bulk_update(pending, ["placed_at"])
+                touched += len(pending)
+            self.stdout.write(f"مواعيدُ المزايدات: {touched} صفّاً بوقته الحقيقيّ")
+
+        live = sum(1 for b in batch if not b.is_superseded)
+        self.stdout.write(
+            f"المزايدات: {len(batch)} محمَّلةً ({live} حيّة) · {skipped} مرفوضة"
+        )
 
     # -- التقرير ----------------------------------------------------------
 
