@@ -76,7 +76,6 @@ class _Favourites extends StatelessWidget {
             emptyMessage: l10n.favouritesEmpty,
             onOpenVehicle: (vehicle) =>
                 context.go(Routes.vehicleLocation(vehicle.id)),
-            layout: VehicleResultsLayout.grid,
           ),
         ),
       ],

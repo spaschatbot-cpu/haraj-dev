@@ -90,7 +90,7 @@
   "vehiclesTitle": "Auction vehicles",
   "vehiclesEmpty": "No matching vehicles.",
   "vehiclesResultsCount": "{count, plural, =0{No results} =1{1 result} other{{count} results}}",
-  "searchHint": "Make, model or lot number",
+  "searchHint": "Search for a car or a lot number…",
   "filterMake": "Make",
   "filterYearFrom": "Year from",
   "filterYearTo": "Year to",
@@ -234,5 +234,32 @@
   "favouriteAdded": "Added to favourites",
   "@favouriteAdded": {},
   "favouriteRemoved": "Removed from favourites",
-  "@favouriteRemoved": {}
+  "@favouriteRemoved": {},
+  "homeBrand": "Haraj Auction",
+  "@homeBrand": {},
+  "homeTagline": "Your next car … starts here",
+  "@homeTagline": {},
+  "homeSubtagline": "Follow the auctions — and get the best offers on the best cars",
+  "@homeSubtagline": {},
+  "homeNotifications": "Notifications",
+  "@homeNotifications": {},
+  "homeAccountAction": "My account",
+  "@homeAccountAction": {},
+  "homeSortAndFilter": "Sort and filter",
+  "@homeSortAndFilter": {},
+  "filterPhase": "Auction phase",
+  "@filterPhase": {},
+  "vehicleDetailsAction": "Auction details",
+  "@vehicleDetailsAction": {},
+  "vehicleOdometerShort": "{km} km",
+  "@vehicleOdometerShort": {
+    "placeholders": {
+      "km": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "favouriteFailed": "Could not update favourites",
+  "@favouriteFailed": {}
 }

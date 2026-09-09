@@ -352,7 +352,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get searchHint => 'Make, model or lot number';
+  String get searchHint => 'Search for a car or a lot number…';
 
   @override
   String get filterMake => 'Make';
@@ -759,4 +759,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get favouriteRemoved => 'Removed from favourites';
+
+  @override
+  String get homeBrand => 'Haraj Auction';
+
+  @override
+  String get homeTagline => 'Your next car … starts here';
+
+  @override
+  String get homeSubtagline =>
+      'Follow the auctions — and get the best offers on the best cars';
+
+  @override
+  String get homeNotifications => 'Notifications';
+
+  @override
+  String get homeAccountAction => 'My account';
+
+  @override
+  String get homeSortAndFilter => 'Sort and filter';
+
+  @override
+  String get filterPhase => 'Auction phase';
+
+  @override
+  String get vehicleDetailsAction => 'Auction details';
+
+  @override
+  String vehicleOdometerShort(int km) {
+    final intl.NumberFormat kmNumberFormat = intl.NumberFormat.decimalPattern(
+      localeName,
+    );
+    final String kmString = kmNumberFormat.format(km);
+
+    return '$kmString km';
+  }
+
+  @override
+  String get favouriteFailed => 'Could not update favourites';
 }

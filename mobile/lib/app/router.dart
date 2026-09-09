@@ -107,42 +107,7 @@ List<RouteBase> appRoutes() => <RouteBase>[
         ],
       ),
 
-      // ٢ — مشاركاتي: مشاركاتي ومشترياتي وفواتيري، ومزايداتي تحتها.
-      //
-      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
-      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
-      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
-      StatefulShellBranch(
-        routes: <RouteBase>[
-          GoRoute(
-            path: Routes.myActivityPath,
-            name: Routes.myActivity,
-            builder: (context, state) => MyActivityScreen(
-              initialTab: MyActivityTab.fromSlug(
-                state.uri.queryParameters[Routes.tabQueryParameter],
-              ),
-            ),
-          ),
-          GoRoute(
-            path: Routes.bidsPath,
-            name: Routes.myBids,
-            builder: (context, state) => const MyBidsScreen(),
-          ),
-        ],
-      ),
-
-      // ٣ — المفضلة.
-      StatefulShellBranch(
-        routes: <RouteBase>[
-          GoRoute(
-            path: Routes.favouritesPath,
-            name: Routes.favourites,
-            builder: (context, state) => const FavouritesScreen(),
-          ),
-        ],
-      ),
-
-      // ٤ — محفظتي، وتحتها الشحن والكشف.
+      // ٢ — محفظتي، وتحتها الشحن والكشف.
       StatefulShellBranch(
         routes: <RouteBase>[
           GoRoute(
@@ -165,6 +130,41 @@ List<RouteBase> appRoutes() => <RouteBase>[
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+
+      // ٣ — المفضلة.
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.favouritesPath,
+            name: Routes.favourites,
+            builder: (context, state) => const FavouritesScreen(),
+          ),
+        ],
+      ),
+
+      // ٤ — مشاركاتي: مشاركاتي ومشترياتي وفواتيري، ومزايداتي تحتها.
+      //
+      // تبويب واحد في العنوان، لا ثلاثة مسارات: الشاشة واحدة بحق (الثلاث
+      // قوائم إجابة واحدة)، والتبويب حالةُ عرض داخلها. لكنه في العنوان لأن
+      // الإشعار يجب أن يفتح التبويب الصحيح مباشرةً (H6).
+      StatefulShellBranch(
+        routes: <RouteBase>[
+          GoRoute(
+            path: Routes.myActivityPath,
+            name: Routes.myActivity,
+            builder: (context, state) => MyActivityScreen(
+              initialTab: MyActivityTab.fromSlug(
+                state.uri.queryParameters[Routes.tabQueryParameter],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: Routes.bidsPath,
+            name: Routes.myBids,
+            builder: (context, state) => const MyBidsScreen(),
           ),
         ],
       ),

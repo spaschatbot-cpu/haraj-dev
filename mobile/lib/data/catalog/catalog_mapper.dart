@@ -53,6 +53,10 @@ extension VehicleCardMapper on api.VehicleCard {
     state: VehicleState.fromSlug(state),
     isFavourite: isFavourite,
     auctionEndsAt: auctionEndsAt.toUtc(),
+    year: year,
+    odometerKm: odometerKm,
+    colourLabel: colourLabel,
+    conditionLabel: conditionLabel,
   );
 
   /// المواصفات من حقول الكرت نفسها.

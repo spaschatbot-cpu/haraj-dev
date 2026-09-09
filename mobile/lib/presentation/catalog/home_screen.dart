@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
+import '../../app/theme.dart';
 import '../../domain/catalog/entities/auction_phase.dart';
 import '../../domain/catalog/entities/vehicle_feed.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
@@ -10,28 +13,33 @@ import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../common/haraj_app_bar.dart';
 import '../common/snapshot_view.dart';
+import 'widgets/home_hero.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
 
-/// الرئيسية: **شبكة مركبات مسطّحة عبر المزادات، فوقها تبويبٌ بطور المزاد.**
+/// الرئيسية: **قائمة مركبات مسطّحة عبر المزادات، تحت لوحة فتحٍ داكنة.**
 ///
 /// المزاد واحد في الأسبوع وحالته تتغيّر، فالسؤال الذي يفتح به العميل التطبيق
 /// ليس «أي المزادات موجود؟» بل «إيش المعروض دلوقتي؟». ولذلك حلّت المركبات محلّ
-/// قائمة المزادات، وصار التبويب عملياً هو «أي مزادٍ أنظر إليه الآن».
+/// قائمة المزادات، وصار الطور عملياً هو «أي مزادٍ أنظر إليه الآن».
 ///
 /// **القسمة والعدّ من الخادم.** الطور يأتي في `phase` لكل مركبة، والعدّادات
 /// الثلاثة تأتي مع الصفحة في **طلبٍ واحد**. لا الشاشة تصنّف مزاداً بنفسها، ولا
-/// تعدّ التبويبات من طول القائمة: في v1 كانت الأرقام الثلاثة تُطلب في ستّة
+/// تعدّ الأطوار من طول القائمة: في v1 كانت الأرقام الثلاثة تُطلب في ستّة
 /// طلبات، فيصير كل رقم من لحظة، ويقع التبويب على «٣» ثم يُفتح فيه صفر.
 ///
-/// **التبويب في العنوان** (`?phase=active`) لا في حالة الشاشة وحدها: الرابط
-/// يُشارَك، ويصمد عبر إعادة الفتح، ويفتحه الإشعار على تبويبه (H6).
+/// **الطور في العنوان** (`?phase=active`) لا في حالة الشاشة وحدها: الرابط
+/// يُشارَك، ويصمد عبر إعادة الفتح، ويفتحه الإشعار على طوره (H6). ومقبضُه
+/// انتقل من شريط تبويباتٍ أسفل الهيدر إلى ورقة «الفرز والتصفية» — نفس
+/// المسار، بلا صفٍّ ثالث يأكل من الشاشة.
+///
+/// **ولا `AppBar` هنا.** بقيّة الشاشات تحمل `HarajAppBar` الأخضر؛ وهذه وحدها
+/// تحمل `HomeHero` — والسبب مكتوب عنده.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({this.phase = AuctionPhase.defaultTab, super.key});
 
-  /// التبويب المعروض — يقرؤه جدول المسارات من `?phase=` ويمرّره.
+  /// الطور المعروض — يقرؤه جدول المسارات من `?phase=` ويمرّره.
   final AuctionPhase phase;
 
   @override
@@ -49,12 +57,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _loadingMore = false;
   Failure? _moreFailure;
 
-  /// آخر عدّادات وصلت. تبقى معروضة أثناء تحميل التبويب التالي بدل أن تختفي
-  /// الأرقام ثم تعود — وميضٌ يجعل التبويبات ترقص عند كل ضغطة.
+  /// آخر عدّادات وصلت. تبقى معروضة أثناء تحميل الطور التالي بدل أن تختفي
+  /// الأرقام ثم تعود — وميضٌ يجعل الخانات ترقص عند كل ضغطة.
   PhaseCounts? _counts;
 
-  /// كل طلبٍ جديد يبطل ما قبله: ردٌّ بطيء لتبويبٍ غادره العميل كان سيصل بعد
-  /// ردّ التبويب الذي يقف فيه فيدهسه، فيرى مركبات تبويبٍ آخر تحت عنوان تبويبه.
+  /// كل طلبٍ جديد يبطل ما قبله: ردٌّ بطيء لطورٍ غادره العميل كان سيصل بعد ردّ
+  /// الطور الذي يقف فيه فيدهسه، فيرى مركبات طورٍ آخر تحت عنوان طوره.
   int _generation = 0;
 
   @override
@@ -66,9 +74,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void didUpdateWidget(HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // التبويب تغيّر من العنوان (ضغطة تبويب، أو رجوع، أو رابط). المعايير تبقى:
-    // من بحث عن «كامري» ثم بدّل التبويب يسأل عن كامري في التبويب الجديد، لا
-    // يبدأ من الصفر.
+    // الطور تغيّر من العنوان (اختيارٌ في الورقة، أو رجوع، أو رابط). المعايير
+    // تبقى: من بحث عن «كامري» ثم بدّل الطور يسأل عن كامري في الطور الجديد،
+    // لا يبدأ من الصفر.
     if (oldWidget.phase != widget.phase) _reload();
   }
 
@@ -143,49 +151,84 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _reload();
   }
 
+  void _search(String text) => _apply(
+    VehicleQuery(
+      search: text.trim(),
+      make: _query.make,
+      yearFrom: _query.yearFrom,
+      yearTo: _query.yearTo,
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
 
-    return DefaultTabController(
-      // المفتاح بالطور: التبويب المختار يأتي من العنوان، والمتحكّم يُعاد بناؤه
-      // معه. بلا المفتاح يبقى المتحكّم على `initialIndex` الأول، فيصل رابطٌ
-      // إلى `?phase=ended` ويُضاء «نشط».
-      key: ValueKey<AuctionPhase>(widget.phase),
-      length: AuctionPhase.tabs.length,
-      initialIndex: AuctionPhase.tabs.indexOf(widget.phase),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // ساعةُ النظام وبطّاريّتُه فوق لوحةٍ داكنة: تُركا للثيم الفاتح كانا
+      // سيُرسمان أسودَين على أسود.
+      value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        appBar: HarajAppBar(
-          title: l10n.homeTitle,
-          bottom: _PhaseTabs(counts: _counts),
-        ),
         body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // النموذج فوق الحالة لا داخلها: عميلٌ رشّح فأخطأ الخادم يجب أن يبقى
-            // قادراً على إزالة الترشيح، لا أن يواجه شاشة خطأ بلا مخرج. ولا
-            // مفتاح عليه: من بحث عن «كامري» ثم بدّل التبويب يجب أن يجد كلمته
-            // مكتوبة كما تركها.
-            VehicleFilters(query: _query, onApply: _apply),
+            HomeHero(
+              // لا شاشةَ إشعاراتٍ في التطبيق بعد، وأقربُ ما يجيب عن «ما الذي
+              // حدث لي؟» هو مشاركاتي. الجرس يذهب إليها ولا يبقى زرّاً لا
+              // يفعل شيئاً — زرٌّ لا يستجيب يُقرأ عطلاً.
+              onOpenNotifications: () => context.go(Routes.myActivityPath),
+              onOpenAccount: () => context.go(Routes.profilePath),
+            ),
+            // **الورقة مسطّحةٌ لا مدوّرة**: البانر هو من يدوّر حافّته
+            // السفلى الآن، وتدويرُ الاثنين معاً يترك بينهما هلالاً من أرضيّة
+            // الـ`Scaffold` يُقرأ شقّاً.
             Expanded(
-              child: SnapshotView<VehicleFeed>(
-                state: _first,
-                onRetry: _reload,
-                builder: (context, snapshot) => VehicleResults(
-                  layout: VehicleResultsLayout.grid,
-                  vehicles: _vehicles,
-                  totalCount: _totalCount,
-                  hasMore: _hasMore,
-                  loadingMore: _loadingMore,
-                  moreFailure: _moreFailure,
-                  onLoadMore: _loadMore,
-                  onRetryMore: () {
-                    setState(() => _moreFailure = null);
-                    _loadMore();
-                  },
-                  onOpenVehicle: (vehicle) =>
-                      Routes.goToVehicle(context, vehicle.id),
-                  emptyMessage: _emptyMessage(l10n),
+              child: ColoredBox(
+                color: palette.pageBackground,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // البحث فوق الحالة لا داخلها: عميلٌ بحث فأخطأ الخادم يجب
+                    // أن يبقى قادراً على تعديل كلمته، لا أن يواجه شاشة خطأ
+                    // بلا مخرج. ولا مفتاح عليه: من بحث عن «كامري» ثم بدّل
+                    // الطور يجب أن يجد كلمته مكتوبة كما تركها.
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
+                      child: VehicleSearchField(
+                        search: _query.search,
+                        onSubmitted: _search,
+                      ),
+                    ),
+                    Expanded(
+                      child: SnapshotView<VehicleFeed>(
+                        state: _first,
+                        onRetry: _reload,
+                        builder: (context, snapshot) => VehicleResults(
+                          vehicles: _vehicles,
+                          totalCount: _totalCount,
+                          hasMore: _hasMore,
+                          loadingMore: _loadingMore,
+                          moreFailure: _moreFailure,
+                          onLoadMore: _loadMore,
+                          onRetryMore: () {
+                            setState(() => _moreFailure = null);
+                            _loadMore();
+                          },
+                          onOpenVehicle: (vehicle) =>
+                              Routes.goToVehicle(context, vehicle.id),
+                          emptyMessage: _emptyMessage(l10n),
+                          trailing: VehicleFiltersButton(
+                            query: _query,
+                            phase: widget.phase,
+                            counts: _counts,
+                            onApply: _apply,
+                            onPhase: (phase) =>
+                                Routes.goToPhase(context, phase),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -195,9 +238,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// التبويب الفارغ يقول **لماذا** هو فارغ.
+  /// الطور الفارغ يقول **لماذا** هو فارغ.
   ///
-  /// وفراغُ بحثٍ غير فراغِ تبويب: من بحث عن «لكزس» في تبويب نشط ولم يجد يجب أن
+  /// وفراغُ بحثٍ غير فراغِ طور: من بحث عن «لكزس» في طورٍ نشط ولم يجد يجب أن
   /// يقرأ «لا مركبات مطابقة» لا «لا مزاد نشط الآن» — الثانية تقول له إن المزاد
   /// مقفل وهو مفتوح، فيغلق التطبيق.
   String _emptyMessage(AppLocalizations l10n) {
@@ -208,50 +251,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       AuctionPhase.ended => l10n.homeEmptyEnded,
     };
   }
-}
-
-/// شريط التبويبات الثلاثة بعدّاداتها.
-///
-/// `PreferredSizeWidget` لأنه يسكن أسفل `AppBar`؛ ولا `TabBarView` تحته: كل
-/// تبويب عنوانٌ مستقلّ، والانتقال إليه تنقّلٌ في الموجّه لا تمريرٌ أفقي في
-/// شاشة. لو كان تمريراً لضاع العنوان، ولعاد الرابط المشارَك إلى التبويب الأول.
-class _PhaseTabs extends StatelessWidget implements PreferredSizeWidget {
-  const _PhaseTabs({required this.counts});
-
-  /// `null` قبل وصول أول ردّ: التبويب يظهر باسمه بلا رقم.
-  ///
-  /// **لا صفر مكانه.** «منتهي (٠)» جوابٌ لم يقله أحد، ومن قرأه لن يضغط التبويب
-  /// أصلاً. الاسم وحده يقول «لا أعرف بعد»، وهو الصدق المتاح.
-  final PhaseCounts? counts;
-
-  @override
-  Size get preferredSize => const Size.fromHeight(kTextTabBarHeight);
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final tally = counts;
-
-    return TabBar(
-      // الضغطة تنقّلٌ في الموجّه لا تبديلُ حالة هنا: العنوان هو مصدر التبويب،
-      // والشاشة تُعاد بناؤها منه. لو بدّلت الحالة هنا لصار للتبويب مصدران —
-      // العنوان وهذا المتحكّم — يفترقان عند أول رجوعٍ بزرّ النظام.
-      onTap: (index) => Routes.goToPhase(context, AuctionPhase.tabs[index]),
-      tabs: <Widget>[
-        for (final phase in AuctionPhase.tabs)
-          Tab(
-            text: tally == null
-                ? _label(l10n, phase)
-                : l10n.homeTabWithCount(_label(l10n, phase), tally.of(phase)),
-          ),
-      ],
-    );
-  }
-
-  String _label(AppLocalizations l10n, AuctionPhase phase) => switch (phase) {
-    AuctionPhase.upcoming => l10n.homeTabUpcoming,
-    AuctionPhase.active => l10n.homeTabActive,
-    AuctionPhase.ended => l10n.homeTabEnded,
-    AuctionPhase.unknown => l10n.homeTabActive,
-  };
 }

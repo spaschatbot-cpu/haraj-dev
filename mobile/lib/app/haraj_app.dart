@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
-import '../presentation/common/environment_banner.dart';
-import 'providers.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -30,8 +28,6 @@ class HarajApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final config = ref.watch(appConfigProvider);
-
     return MaterialApp.router(
       scaffoldMessengerKey: messengerKey,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
@@ -42,10 +38,16 @@ class HarajApp extends ConsumerWidget {
       darkTheme: HarajTheme.dark(),
       routerConfig: ref.watch(routerProvider),
       debugShowCheckedModeBanner: false,
-      builder: (context, child) => EnvironmentBanner(
-        environment: config.environment,
-        child: child ?? const SizedBox.shrink(),
-      ),
+      // **لافتةُ البيئة مُطفأة بقرار المالك (٩ سبتمبر ٢٠٢٦).**
+      //
+      // كانت هنا `EnvironmentBanner` تلفّ الشجرة كلها، وهي الحدّ الأدنى الذي
+      // تطلبه المادة ٥-٦: كل بيئةٍ تعرف نفسها، حتى لا يظنّ مختبِرٌ أنه على
+      // التجريب وهو على الإنتاج. ورُفعت لأنها تقطع زاوية الهيدر في المعاينة.
+      //
+      // **والثمن مذكور:** بناءُ التجريب صار لا يُميَّز عن بناء الإنتاج بالنظر.
+      // والمكوّن باقٍ في `presentation/common/environment_banner.dart` بلا
+      // مستعمل — إعادتُه سطرٌ واحد يُردّ هنا، لا كتابةٌ من جديد. و`T718` ما
+      // زال مفتوحاً على تعريف البيئة في مخرجات المتجرين.
     );
   }
 }

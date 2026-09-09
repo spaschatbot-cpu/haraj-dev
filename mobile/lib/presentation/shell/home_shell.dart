@@ -1,5 +1,3 @@
-import 'dart:ui' show ImageFilter;
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -10,20 +8,14 @@ import '../../l10n/generated/app_localizations.dart';
 ///
 /// تعدادٌ لا قائمةُ عناصرٍ مكتوبة في `build`: الترتيب هنا هو ترتيب الفروع في
 /// `StatefulShellRoute`، والاثنان يُقرأان بالفهرس. قائمتان تفترقان عند أول
-/// إضافةٍ في إحداهما، فيفتح تبويبُ «المفضلة» شاشةَ «محفظتي» — عطلٌ لا يكشفه
-/// إلا مستخدم.
+/// إضافةٍ في إحداهما، فيفتح قسمُ «المفضلة» شاشةَ «المحفظة» — عطلٌ لا يكشفه
+/// إلا مستخدم. **فأي تبديلٍ في ترتيب هذا التعداد يُبدَّل معه ترتيب الفروع في
+/// `appRoutes()` في نفس التعديل**، وقد بُدّل معاً هنا.
 enum HomeSection {
-  /// السيّارة: ما تحت القسم حرفياً — شبكةُ سيّارات معروضة.
-  ///
-  /// **ثالثُ اختيارٍ بعد اثنين رديئين:** المطرقة مائلةٌ بزاوية فتنشزّ بين
-  /// أيقوناتٍ قائمة، والمعرضُ صندوقٌ صغيرٌ لا يُقرأ في اثنين وعشرين بكسلاً.
-  /// والسيّارة عريضةٌ أفقياً فتملأ عرضها، وصورتُها الظليّة معروفةٌ بلا تأمّل.
-  home(Icons.directions_car_outlined, Icons.directions_car_rounded),
-
-  /// وصلٌ طويل: «مشاركاتي» فواتيرُ ومشترياتٌ ومزايدات، والوصل يجمعها.
-  activity(Icons.receipt_long_outlined, Icons.receipt_long_rounded),
-
-  favourites(Icons.favorite_border_rounded, Icons.favorite_rounded),
+  /// بيتٌ لا سيّارة: القسم اسمُه «الرئيسية» لا «السيّارات»، والبيتُ هو ما
+  /// تقرؤه كل عينٍ «ابدأ من هنا» بلا تأمّل — والسيّارةُ تنازعُ صورَ الكروت
+  /// التي تحتها على المعنى نفسه.
+  home(Icons.home_outlined, Icons.home_rounded),
 
   /// محفظةٌ لا بطاقة: المال هنا رصيدٌ ودلاء، لا وسيلةَ دفعٍ واحدة.
   wallet(
@@ -31,14 +23,21 @@ enum HomeSection {
     Icons.account_balance_wallet_rounded,
   ),
 
-  /// دائرةٌ حول الشخص: تُقرأ «حساب» لا «شخصٌ ما» — الفرق يهمّ في شريطٍ
-  /// أيقوناتُه بحجم اثنين وعشرين بكسلاً.
-  account(Icons.account_circle_outlined, Icons.account_circle_rounded);
+  /// نجمةٌ لا قلب: القلبُ على كرت المركبة يعني «احفظها»، ونجمةُ الشريط تعني
+  /// «المحفوظات». رمزٌ واحدٌ للفعل وللمكان يجعل من يضغط الشريط يظنّ أنه حفظ
+  /// شيئاً.
+  favourites(Icons.star_border_rounded, Icons.star_rounded),
+
+  /// فقاعةُ حديث: «مشاركاتي» ما دار بيني وبين المزاد — مزايداتٌ وفواتيرُ
+  /// ومشتريات، وكلُّها أثرُ تبادلٍ لا وثيقةٌ ساكنة.
+  activity(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+
+  account(Icons.person_outline_rounded, Icons.person_rounded);
 
   const HomeSection(this.icon, this.selectedIcon);
 
   /// أيقونتان لا واحدة: الفرق بين المختار وغيره **لا يُحمَّل على اللون وحده**.
-  /// عينٌ لا تفرّق الذهبيَّ عن الأبيض الخافت تفرّق الممتلئ عن المفرَّغ.
+  /// عينٌ لا تفرّق الذهبيَّ عن الكريميّ الخافت تفرّق الممتلئ عن المفرَّغ.
   final IconData icon;
   final IconData selectedIcon;
 
@@ -46,9 +45,9 @@ enum HomeSection {
   /// الترجمة لا يعرف الترتيب.
   String label(AppLocalizations l10n) => switch (this) {
     HomeSection.home => l10n.navHome,
-    HomeSection.activity => l10n.navActivity,
-    HomeSection.favourites => l10n.navFavourites,
     HomeSection.wallet => l10n.navWallet,
+    HomeSection.favourites => l10n.navFavourites,
+    HomeSection.activity => l10n.navActivity,
     HomeSection.account => l10n.navAccount,
   };
 }
@@ -59,8 +58,8 @@ enum HomeSection {
 /// المفضلة ثم ذهب إلى المحفظة وعاد، يجد المركبة كما تركها لا رأس القسم. وهذا
 /// هو الفرق بين شريطٍ يتنقّل بين خمس شاشات وشريطٍ يتنقّل بين خمسة **أقسام**.
 ///
-/// والشاشات تحتفظ بـ`Scaffold` و`AppBar` الخاصّين بها؛ القشرة تضيف الشريط
-/// وحده. جمعُ العنوان هنا كان يعني عنواناً واحداً لكل شاشةٍ داخل القسم.
+/// والشاشات تحتفظ بـ`Scaffold` الخاصّ بها وبرأسها؛ القشرة تضيف الشريط وحده.
+/// جمعُ العنوان هنا كان يعني عنواناً واحداً لكل شاشةٍ داخل القسم.
 class HomeShell extends StatelessWidget {
   const HomeShell({required this.navigationShell, super.key});
 
@@ -68,106 +67,119 @@ class HomeShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    // **`extendBody`:** بدونه لا شيء يمرّ خلف الزجاج فلا يبدو زجاجاً — يبدو
-    // لوحاً فاتحاً. والثمن أن آخر صفٍّ يقع تحته، فيُدفع في `_BarInset`:
-    // ارتفاعُ الشريط يُضاف إلى `MediaQuery.padding` فتترك القوائم مكانه.
-    extendBody: true,
-    body: _BarInset(child: navigationShell),
+    // **لا `extendBody`.** كان الشريط زجاجاً أبيض يحتاج ما يمرّ خلفه ليُرى،
+    // فكان المحتوى يُمدّ تحته وتُحسب حشوةٌ في `MediaQuery` تردّ ما ابتلعه.
+    // وصار الشريط داكناً صُلباً: لا شيء يُرى خلفه، ومدُّ المحتوى تحته يقصّ
+    // آخر صفٍّ مقابل لا شيء. فسقط المدُّ وسقطت معه الحشوة وحسابُها.
+    body: navigationShell,
     bottomNavigationBar: _GoldNavigationBar(shell: navigationShell),
   );
 }
 
-/// الشريط السفليّ — زجاجٌ أبيض، والأيقونةُ المختارة ذهبيّة والنصّ بنّيّ.
+/// الشريط السفليّ — بنّيٌّ داكن، والمختارُ ذهبيٌّ تحته خطّ.
 ///
-/// **مبنيٌّ لا `NavigationBar`:** المطلوب حوضٌ ذهبيّ خلف الأيقونة المختارة
-/// وخيطٌ ذهبيّ فوق الشريط وطمسٌ خلفه وحركةٌ عند التبديل، وأربعتها تحتاج نقضَ
-/// ثيم `NavigationBar` في أربعة مواضع — فيصير التخصيص أطول من البناء وأهشَّ.
+/// **مبنيٌّ لا `NavigationBar`:** المطلوب تدرّجٌ داكن وزاويتان علويّتان
+/// مدوّرتان وخطٌّ ذهبيّ تحت الاسم المختار وحركةٌ عند التبديل، وأربعتها تحتاج
+/// نقضَ ثيم `NavigationBar` في أربعة مواضع — فيصير التخصيص أطول من البناء
+/// وأهشَّ.
 class _GoldNavigationBar extends StatelessWidget {
   const _GoldNavigationBar({required this.shell});
 
   final StatefulNavigationShell shell;
 
-  /// نصفُ قطر الزوايا — والشريط **عائم** لا ممتدٌّ من حافةٍ لحافة.
+  /// الزاويتان العلويّتان وحدهما.
   ///
-  /// **لماذا عائم:** لوحٌ يمسّ الحوافّ الثلاث يبدو جزءاً من إطار النظام لا
-  /// جزءاً من التطبيق، ولا يُرى منه زجاجٌ أصلاً — الزجاج يحتاج حافّةً تُرى
-  /// وظلّاً يفصله عمّا خلفه. والعائمُ يُظهر المحتوى من جانبيه وتحته، فيصير
-  /// الطمسُ مرئيّاً بدل أن يكون تأثيراً لا أثرَ له.
-  static const double radius = 26;
+  /// **ممتدٌّ من حافةٍ لحافة لا عائم.** كان عائماً بهامشٍ من الجوانب، وذلك
+  /// يصلح للزجاج — يُظهر المحتوى من تحته فيبدو الطمس. والداكنُ الصُّلب العائم
+  /// يترك شريطاً كريميّاً تحته يُقرأ فراغاً منسيّاً، والممتدُّ يقفل الصفحة من
+  /// أسفلها كما يقفلها الهيدر من أعلاها.
+  static const double _radius = 26;
 
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(radius),
-            boxShadow: <BoxShadow>[
-              // ظلٌّ واسعٌ خافت: يرفع الشريط عن الصفحة بلا حدٍّ أسودَ يقطعه.
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.14),
-                blurRadius: 24,
-                spreadRadius: -4,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          // ‏`ClipRRect` قبل `BackdropFilter`: بلا قصٍّ يمتدّ الطمس إلى الشاشة
-          // كلها — الفلتر يعمل على ما خلفه لا على ما بداخله، وحدُّه هو حدُّ
-          // المقصوص. وبنفس نصف القطر، وإلا طُمست زوايا خارج الشريط.
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(radius),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-              child: _bar(context, palette),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _bar(BuildContext context, HarajPalette palette) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(radius),
-        // تدرّجٌ لا لونٌ واحد: الزجاج الحقيقيّ يلتقط ضوءاً من أعلاه، ولونٌ
-        // مسطّح يبدو ورقاً شفّافاً لا زجاجاً.
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[palette.navSurface, palette.navSurfaceLow],
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(_radius),
         ),
-        // حدٌّ ذهبيٌّ رفيع: هو ما يجعل الحافّة تُرى على خلفيّةٍ فاتحة —
-        // بدونه يذوب الشريط في الصفحة ويختفي معه كل أثر للزجاج.
-        border: Border.all(
-          color: palette.gold.withValues(alpha: 0.28),
-          width: 1,
-        ),
+        boxShadow: <BoxShadow>[
+          // ظلٌّ صاعدٌ خافت: يرفع الشريط عن الورقة الكريميّة بلا خطٍّ يقطعها.
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: Row(
-          children: <Widget>[
-            for (final section in HomeSection.values)
-              Expanded(
-                child: _NavigationItem(
-                  section: section,
-                  selected: shell.currentIndex == section.index,
-                  onTap: () => shell.goBranch(
-                    section.index,
-                    // ضغطُ القسم المفتوح يعود إلى رأسه — سلوكٌ يتوقّعه
-                    // من اعتاد التطبيقات: «رجّعني لأول الصفحة» بضغطةٍ
-                    // على ما هو مفتوح أصلاً.
-                    initialLocation: shell.currentIndex == section.index,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(_radius)),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            // تدرّجٌ لا لونٌ واحد: الحافّة العليا تلتقط ضوءاً، ولونٌ مسطّح
+            // يبدو شريطاً مقصوصاً من ورقٍ أسود.
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[palette.navSurface, palette.navSurfaceLow],
+            ),
+          ),
+          child: Stack(
+            children: <Widget>[
+              // خيطٌ ذهبيّ على الحافّة العليا — نظيرُ الذي أسفل الهيدر، فيُقفل
+              // التطبيق بين خطّين من لونٍ واحد.
+              //
+              // **`Positioned` لا `Align`:** ابنٌ غيرُ موضَّع في `Stack` هو ما
+              // يُقاس به الشريط، و`Align` بلا `heightFactor` يتمدّد إلى آخر
+              // القيود الواردة — وقيدُ `bottomNavigationBar` رخوٌ حتى ارتفاع
+              // الشاشة. فبلع الشريطُ الشاشة كلها وطلع محتواه في أعلاها.
+              Positioned(
+                top: 0,
+                // `left`/`right` لا `start`/`end`: الخيط متماثل، والاتجاه لا
+                // يعني له شيئاً.
+                left: 0,
+                right: 0,
+                child: Container(
+                  height: 1.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: <Color>[
+                        palette.goldOnDark.withValues(alpha: 0),
+                        palette.goldOnDark.withValues(alpha: 0.65),
+                        palette.goldOnDark.withValues(alpha: 0),
+                      ],
+                    ),
                   ),
                 ),
               ),
-          ],
+              SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+                  child: Row(
+                    children: <Widget>[
+                      for (final section in HomeSection.values)
+                        Expanded(
+                          child: _NavigationItem(
+                            section: section,
+                            selected: shell.currentIndex == section.index,
+                            onTap: () => shell.goBranch(
+                              section.index,
+                              // ضغطُ القسم المفتوح يعود إلى رأسه — سلوكٌ
+                              // يتوقّعه من اعتاد التطبيقات: «رجّعني لأول
+                              // الصفحة» بضغطةٍ على ما هو مفتوح أصلاً.
+                              initialLocation:
+                                  shell.currentIndex == section.index,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -208,13 +220,12 @@ class _NavigationItemState extends State<_NavigationItem> {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
     final label = section.label(l10n);
-    // الهافر يُقرَّب اللون نحو الذهبيّ ولا يقفز إليه: قفزةٌ كاملة تجعل
-    // العنصر المُحوَّم عليه يبدو مختاراً، فيضيع الفرق بين «هنا أنت»
-    // و«هنا مؤشّرك».
-    final iconColour = selected
-        ? palette.gold
+    // الهافر يُقرّب اللون نحو الذهبيّ ولا يقفز إليه: قفزةٌ كاملة تجعل العنصر
+    // المُحوَّم عليه يبدو مختاراً، فيضيع الفرق بين «هنا أنت» و«هنا مؤشّرك».
+    final colour = selected
+        ? palette.goldOnDark
         : _hovered
-        ? Color.lerp(palette.navInactive, palette.gold, 0.55)!
+        ? Color.lerp(palette.navInactive, palette.goldOnDark, 0.55)!
         : palette.navInactive;
 
     return Semantics(
@@ -227,64 +238,52 @@ class _NavigationItemState extends State<_NavigationItem> {
         onExit: (_) => setState(() => _hovered = false),
         child: InkWell(
           onTap: widget.onTap,
-          borderRadius: BorderRadius.circular(18),
-          // اللمسة والهافر ذهبيّان: تموّجٌ رماديّ على أرضيّةٍ زجاجيّة فاتحة
-          // لا يكاد يظهر.
+          borderRadius: BorderRadius.circular(16),
+          // اللمسة والهافر ذهبيّان: تموّجٌ رماديّ على أرضيّةٍ بنّيّةٍ داكنة لا
+          // يكاد يظهر.
           splashColor: palette.goldMuted,
           highlightColor: palette.goldMuted,
-          hoverColor: palette.gold.withValues(alpha: 0.07),
+          hoverColor: palette.goldOnDark.withValues(alpha: 0.08),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 7),
+            padding: const EdgeInsets.symmetric(vertical: 5),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                // الأيقونة عاريةً، وهالةٌ ذهبيّة خلفها حين تُختار: ضوءٌ لا حدّ،
-                // فيبقى الشكل واحداً في الحالتين ويتغيّر إضاءةً لا هيئة.
                 AnimatedScale(
                   duration: _duration,
                   curve: Curves.easeOutCubic,
                   // رفعةٌ محسوسةٌ لا مرئيّة: ٤٪ تكفي ليشعر المؤشّر بأن العنصر
                   // حيّ، وأكثرُ منها يزيح جاره في صفٍّ ضيّق.
                   scale: _hovered && !selected ? 1.04 : 1,
-                  child: AnimatedContainer(
-                    duration: _duration,
-                    curve: Curves.easeOutCubic,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: selected
-                          ? <BoxShadow>[
-                              BoxShadow(
-                                color: palette.gold.withValues(alpha: 0.30),
-                                blurRadius: 14,
-                                spreadRadius: 1,
-                              ),
-                            ]
-                          : const <BoxShadow>[],
-                    ),
-                    child: Icon(
-                      selected ? section.selectedIcon : section.icon,
-                      // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
-                      size: selected ? 25 : 22,
-                      color: iconColour,
-                    ),
+                  child: Icon(
+                    selected ? section.selectedIcon : section.icon,
+                    // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
+                    size: selected ? 25 : 22,
+                    color: colour,
+                    // هالةٌ ذهبيّة خلف المختار: ضوءٌ لا حدّ، فيبقى الشكل
+                    // واحداً في الحالتين ويتغيّر إضاءةً لا هيئة.
+                    shadows: selected
+                        ? <Shadow>[
+                            Shadow(
+                              color: palette.goldOnDark.withValues(alpha: 0.55),
+                              blurRadius: 14,
+                            ),
+                          ]
+                        : const <Shadow>[],
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
                 // `AnimatedDefaultTextStyle` لا `Text` بلونٍ متبدّل: اللون
-                // والوزن يتحرّكان مع الحوض، فلا يسبق أحدهما الآخر.
+                // والوزن يتحرّكان مع الخطّ، فلا يسبق أحدهما الآخر.
                 AnimatedDefaultTextStyle(
                   duration: _duration,
                   curve: Curves.easeOutCubic,
                   style: TextStyle(
-                    // بنّيٌّ في الحالتين — لونان لنصٍّ واحدٍ يجعلان الشريط
-                    // مبقّعاً. والفرقُ في الشدّة لا في اللون.
-                    color: selected
-                        ? palette.brown
-                        : palette.brown.withValues(alpha: 0.62),
+                    color: colour,
                     fontSize: 11,
                     // **عريضٌ في الحالتين.** الخطّ لا يحمل إلا ٤٠٠ و٥٠٠ و٧٠٠،
                     // فوزنٌ بينهما لا وجود له ويُقرَّب صامتاً. والتمييز محمولٌ
-                    // على ثلاث إشاراتٍ أخرى: الحوض، والأيقونة الممتلئة،
+                    // على ثلاث إشاراتٍ أخرى: الخطّ، والأيقونة الممتلئة،
                     // والذهبيّ — تكفي بلا أن يخفت النصّ.
                     fontWeight: FontWeight.w700,
                     fontFamily: HarajTheme.fontFamily,
@@ -299,24 +298,23 @@ class _NavigationItemState extends State<_NavigationItem> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                // **نقطةٌ تحت الاسم** لا خطٌّ فوق الأيقونة ولا حوضٌ حولها.
+                // **خطٌّ تحت الاسم** لا حوضٌ حول الأيقونة.
                 //
-                // الخطّ فوق الأيقونة يرث شكل التبويبات العلويّة فتقرأه العين
-                // «تبويبٌ نزل من فوق»، والحوضُ يحبس الأيقونة في كبسولةٍ فتبدو
-                // زرّاً داخل زرّ. والنقطةُ علامةٌ لا شكل: تقول «هذا هو» بأقلّ
-                // حبرٍ ممكن، ولا تنازع الأيقونةَ ولا النصَّ على مساحتهما.
+                // الحوضُ يحبس الأيقونة في كبسولةٍ فتبدو زرّاً داخل زرّ، والخطُّ
+                // علامةٌ لا شكل: يقول «هذا هو» بأقلّ حبرٍ ممكن، ولا ينازع
+                // الأيقونةَ ولا النصَّ على مساحتهما.
                 AnimatedContainer(
                   duration: _duration,
                   curve: Curves.easeOutCubic,
-                  width: selected ? 5 : 0,
-                  height: 5,
+                  width: selected ? 22 : 0,
+                  height: 3,
                   decoration: BoxDecoration(
-                    color: palette.gold,
-                    shape: BoxShape.circle,
+                    color: palette.goldOnDark,
+                    borderRadius: BorderRadius.circular(2),
                     boxShadow: selected
                         ? <BoxShadow>[
                             BoxShadow(
-                              color: palette.gold.withValues(alpha: 0.55),
+                              color: palette.goldOnDark.withValues(alpha: 0.55),
                               blurRadius: 6,
                             ),
                           ]
@@ -328,38 +326,6 @@ class _NavigationItemState extends State<_NavigationItem> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// يترك للشريط مكانه في أسفل كل قائمة.
-///
-/// **لماذا هنا لا في كل شاشة:** الشريط يعلو المحتوى (`extendBody`)، فأيُّ
-/// قائمةٍ تنتهي عند حافّة الشاشة ينتهي آخر صفّها تحت الزجاج. وإصلاحُه بحشوةٍ
-/// مكتوبة في كل شاشةٍ يعني شاشةً تُنسى — وهي التي سيراها المستخدم مقصوصة.
-///
-/// والقياس من `_barHeight` لا رقمٌ مكرَّر: ارتفاعٌ مكتوب مرّتين يفترق عند أول
-/// تعديلٍ في الشريط، فتظهر فجوةٌ أو يبقى القصّ.
-class _BarInset extends StatelessWidget {
-  const _BarInset({required this.child});
-
-  final Widget child;
-
-  /// ارتفاع الشريط بهامشه: ١٢ هامشٌ سفليّ + حدّان + ٨ فوق + ٣٤ حوض + ٦ فراغ
-  /// + ١٣ نصّ + ٨ تحت ≈ ٨٤. و`SafeArea` تضيف حاشية الجهاز فوقها، وتُقرأ من
-  /// `MediaQuery` لا تُخمَّن.
-  static const double _barHeight = 80;
-
-  @override
-  Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    return MediaQuery(
-      data: media.copyWith(
-        padding: media.padding.copyWith(
-          bottom: media.padding.bottom + _barHeight,
-        ),
-      ),
-      child: child,
     );
   }
 }

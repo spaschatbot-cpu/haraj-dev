@@ -641,7 +641,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchHint.
   ///
   /// In ar, this message translates to:
-  /// **'ماركة أو طراز أو رقم لوت'**
+  /// **'ابحث عن سيارة أو رقم اللوت…'**
   String get searchHint;
 
   /// No description provided for @filterMake.
@@ -1259,7 +1259,7 @@ abstract class AppLocalizations {
   /// No description provided for @navWallet.
   ///
   /// In ar, this message translates to:
-  /// **'محفظتي'**
+  /// **'المحفظة'**
   String get navWallet;
 
   /// No description provided for @navAccount.
@@ -1303,6 +1303,66 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أُزيلت من المفضلة'**
   String get favouriteRemoved;
+
+  /// اسم العلامة في الهيدر — نصٌّ لا صورة: شعارٌ صورةً يحتاج نسختين للكثافتين ولا يُقرأ صوتياً.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزاد حراج واحد'**
+  String get homeBrand;
+
+  /// No description provided for @homeTagline.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيارتك القادمة … تبدأ من هنا'**
+  String get homeTagline;
+
+  /// No description provided for @homeSubtagline.
+  ///
+  /// In ar, this message translates to:
+  /// **'تابع المزادات — وادخل أفضل العروض على أفضل السيارات'**
+  String get homeSubtagline;
+
+  /// No description provided for @homeNotifications.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإشعارات'**
+  String get homeNotifications;
+
+  /// No description provided for @homeAccountAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'حسابي'**
+  String get homeAccountAction;
+
+  /// زرّ يفتح ورقة الطور والماركة والسنة.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفرز والتصفية'**
+  String get homeSortAndFilter;
+
+  /// No description provided for @filterPhase.
+  ///
+  /// In ar, this message translates to:
+  /// **'طور المزاد'**
+  String get filterPhase;
+
+  /// No description provided for @vehicleDetailsAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل المزاد'**
+  String get vehicleDetailsAction;
+
+  /// No description provided for @vehicleOdometerShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'{km} كم'**
+  String vehicleOdometerShort(int km);
+
+  /// يظهر حين يفشل طلب القلب فيعود القلب إلى حاله.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر تحديث المفضلة'**
+  String get favouriteFailed;
 }
 
 class _AppLocalizationsDelegate
