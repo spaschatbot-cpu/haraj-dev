@@ -40,12 +40,24 @@ String remainingLabel(AppLocalizations l10n, Duration remaining) {
 /// التاريخ المعروض بجواره هو الذي يُحوَّل إلى التوقيت السعودي، في `SaudiTime`
 /// وحدها (المادة ٣-١).
 class CountdownText extends ConsumerStatefulWidget {
-  const CountdownText({required this.at, required this.target, super.key});
+  const CountdownText({
+    required this.at,
+    required this.target,
+    this.style,
+    super.key,
+  });
 
   /// اللحظة المقصودة، بتوقيت UTC.
   final DateTime at;
 
   final CountdownTarget target;
+
+  /// نمطُ النصّ، أو `bodyMedium` من الثيم إن غاب.
+  ///
+  /// يُمرَّر لأن للعدّاد موضعين لا موضعاً: سطرٌ في صفحة المركبة يقرأ نمطه من
+  /// الثيم، وحوضٌ أخضرُ صغير فوق صورة الكرت لا يقرؤه — نصُّه أبيضُ بحجم عشرة
+  /// مهما كان لون الثيم، لأن أرضيّته هي التي تقرّر لا الصفحة.
+  final TextStyle? style;
 
   @override
   ConsumerState<CountdownText> createState() => _CountdownTextState();
@@ -79,6 +91,6 @@ class _CountdownTextState extends ConsumerState<CountdownText> {
     return Text(switch (widget.target) {
       CountdownTarget.start => l10n.countdownToStart(label),
       CountdownTarget.end => l10n.countdownToEnd(label),
-    }, style: Theme.of(context).textTheme.bodyMedium);
+    }, style: widget.style ?? Theme.of(context).textTheme.bodyMedium);
   }
 }

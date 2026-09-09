@@ -141,9 +141,22 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          // النموذج فوق الحالة لا داخلها: عميلٌ رشّح فأخطأ الخادم يجب أن يبقى
+          // البحث فوق الحالة لا داخلها: عميلٌ رشّح فأخطأ الخادم يجب أن يبقى
           // قادراً على إزالة الترشيح، لا أن يواجه شاشة خطأ بلا مخرج.
-          VehicleFilters(query: _query, onApply: _apply),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+            child: VehicleSearchField(
+              search: _query.search,
+              onSubmitted: (text) => _apply(
+                VehicleQuery(
+                  search: text.trim(),
+                  make: _query.make,
+                  yearFrom: _query.yearFrom,
+                  yearTo: _query.yearTo,
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: SnapshotView<VehiclePage>(
               state: _first,
@@ -166,6 +179,15 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
                     Routes.goToVehicle(context, vehicle.id),
                 emptyMessage: l10n.vehiclesEmpty,
                 prefetchThreshold: _prefetchThreshold,
+                // بلا طور: المزاد معروفٌ وطورُه معه — الشرح عند `phase` في
+                // `VehicleFiltersButton`.
+                trailing: VehicleFiltersButton(
+                  query: _query,
+                  phase: null,
+                  counts: null,
+                  onApply: _apply,
+                  onPhase: null,
+                ),
               ),
             ),
           ),

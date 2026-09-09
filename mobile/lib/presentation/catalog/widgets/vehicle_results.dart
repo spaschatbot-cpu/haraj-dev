@@ -1,27 +1,25 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../domain/common/failure.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../common/failure_view.dart';
 import 'vehicle_card.dart';
 
-/// كيف تُصفّ الكروت: عموداً واحداً في قائمة مزادٍ بعينه، أو شبكةً في الرئيسية.
-///
-/// التخطيط وحده هو الفرق. كل ما عداه — عدّ النتائج، وطلب الصفحة التالية قبل
-/// النهاية، وفشل الصفحة التالية بلا محو ما وصل، والحالة الفارغة — واحدٌ في
-/// الاثنتين، ولذلك يعيش في ملف واحد: نسختان منه تفترقان عند أول إصلاح يُنسى
-/// في إحداهما (المادة ٤-٥).
-enum VehicleResultsLayout { list, grid }
-
 /// نتائج المركبات المرقَّمة — **مصفوفة الكروت وحدها**، لا جلبها.
 ///
 /// من أين تأتي الصفحات قرارُ الشاشة المضيفة (مركبات مزادٍ بعينه، أو الشبكة
 /// المسطّحة عبر المزادات بتبويب الطور). وما يُعرض ويُطلب بعده واحد.
 ///
-/// **كسولٌ في الحالتين:** `SliverList.builder` و`SliverGrid.builder` يبنيان
-/// العنصر عند ظهوره، فمئتا مركبة لا تعني مئتي كرت ولا مئتي تنزيل — وهو نصف
-/// معيار H2، ويقيسه `test/presentation/auction_vehicles_performance_test.dart`.
+/// **عمودٌ واحد في كل مكان، ولا شبكة.** كان هنا `VehicleResultsLayout` بوضعين،
+/// والرئيسيّةُ والمفضلةُ تطلبان الشبكة. وكرتُ المركبة صار **صفّاً** — صورةٌ في
+/// جهة وبياناتٌ في الأخرى — وصفٌّ داخل خليّة شبكةٍ عرضُها مئتا بكسل يصير كرتاً
+/// ثالثاً بهيئةٍ ثالثة. فحُذف الوضعان: هيئةٌ واحدة للكرت تعني مصفوفةً واحدة له
+/// (المادة ٤-٥).
+///
+/// **كسولٌ:** `SliverList.builder` يبني العنصر عند ظهوره، فمئتا مركبة لا تعني
+/// مئتي كرت ولا مئتي تنزيل — وهو نصف معيار H2.
 class VehicleResults extends StatelessWidget {
   const VehicleResults({
     required this.vehicles,
@@ -33,7 +31,7 @@ class VehicleResults extends StatelessWidget {
     required this.onRetryMore,
     required this.emptyMessage,
     required this.onOpenVehicle,
-    this.layout = VehicleResultsLayout.list,
+    this.trailing,
     this.prefetchThreshold = 3,
     super.key,
   });
@@ -56,34 +54,22 @@ class VehicleResults extends StatelessWidget {
 
   final void Function(VehicleSummary vehicle) onOpenVehicle;
 
-  final VehicleResultsLayout layout;
+  /// ما يقف في الطرف الآخر من سطر العدّ — زرّ الفرز في الرئيسية.
+  ///
+  /// **في هذا السطر لا فوقه:** سطرُ العدّ وزرُّ الفرز جوابان عن سؤالٍ واحد
+  /// («كم، وكيف رتّبتها؟»)، وسطرٌ ثالث لأحدهما يأكل من ارتفاع الشاشة كرتاً
+  /// كاملاً. و`null` في بقيّة الشاشات: المفضلة لا تُفرَز، وقائمةُ مزادٍ بعينه
+  /// مفروزةٌ برقم اللوت أصلاً.
+  final Widget? trailing;
 
   /// كم مركبة قبل نهاية القائمة نطلب الصفحة التالية.
   final int prefetchThreshold;
 
-  /// العرض المستهدَف لعمود في الشبكة، وارتفاع الخليّة.
-  ///
-  /// **لماذا عددُ الأعمدة يُقرَّب ولا يُقصّ:** خليّة الشبكة ارتفاعها ثابت،
-  /// وارتفاع الكرت ليس دالّةً مطّردة في عرضه — كلما ضاق العمود انكسر نصّ السعر
-  /// إلى أسطر أكثر فطال الكرت، وكلما اتّسع كبرت الصورة (4:3) فطال أيضاً. القياس
-  /// على الكرت نفسه: عمود 100 يحتاج 631، و134 يحتاج 457، و195 يحتاج 390،
-  /// و320 يحتاج 440. فالسلامة ليست في اختيار ارتفاعٍ كبير، بل في **حصر عرض
-  /// العمود** في نطاقٍ ضيّق حول أدنى نقطة في المنحنى.
-  ///
-  /// التقريب يُبقي العمود بين 160 و250 عند كل عرض شاشةٍ نشحن إليه، وأعلى ما
-  /// يطلبه الكرت في ذلك النطاق 416 — والسقف أدناه فوقه بقليل. فراغٌ صغير أسفل
-  /// الكرت أهون من تجاوزٍ يقصّ السعر.
-  static const double _gridTargetColumnWidth = 200;
-  static const double _gridMainAxisExtent = 420;
-
-  static int _columnsFor(double width) {
-    final columns = (width / _gridTargetColumnWidth).round();
-    return columns < 1 ? 1 : columns;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final palette = HarajPalette.of(context);
 
     if (vehicles.isEmpty) {
       return Center(
@@ -94,43 +80,41 @@ class VehicleResults extends StatelessWidget {
       );
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) => CustomScrollView(
-        slivers: <Widget>[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                // العدد الكلي من الخادم، لا طول ما وصل: قائمةٌ من مئتي مركبة
-                // عُرض منها عشرون تقول «مئتان»، لا «عشرون».
-                l10n.vehiclesResultsCount(totalCount),
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
+    return CustomScrollView(
+      slivers: <Widget>[
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    // العدد الكلي من الخادم، لا طول ما وصل: قائمةٌ من مئتي
+                    // مركبة عُرض منها عشرون تقول «مئتان»، لا «عشرون».
+                    l10n.vehiclesResultsCount(totalCount),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: palette.inkMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (trailing case final Widget widget) widget,
+              ],
             ),
           ),
-          switch (layout) {
-            VehicleResultsLayout.list => SliverList.builder(
-              itemCount: vehicles.length,
-              itemBuilder: _buildCard,
-            ),
-            VehicleResultsLayout.grid => SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _columnsFor(constraints.maxWidth),
-                mainAxisExtent: _gridMainAxisExtent,
-              ),
-              itemCount: vehicles.length,
-              itemBuilder: _buildCard,
-            ),
-          },
-          SliverToBoxAdapter(child: _tail()),
-          // مكانُ الشريط السفليّ الزجاجيّ، من `MediaQuery` لا رقماً مكتوباً:
-          // القشرة هي التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر
-          // صفٍّ تحت الزجاج فيُقرأ نصفه.
-          SliverToBoxAdapter(
-            child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
-          ),
-        ],
-      ),
+        ),
+        SliverList.builder(
+          itemCount: vehicles.length,
+          itemBuilder: _buildCard,
+        ),
+        SliverToBoxAdapter(child: _tail()),
+        // مكانُ الشريط السفليّ، من `MediaQuery` لا رقماً مكتوباً: القشرة هي
+        // التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر صفٍّ تحته
+        // فيُقرأ نصفه.
+        SliverToBoxAdapter(
+          child: SizedBox(height: MediaQuery.paddingOf(context).bottom),
+        ),
+      ],
     );
   }
 
