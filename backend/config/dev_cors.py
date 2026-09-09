@@ -22,7 +22,14 @@ from django.utils.deprecation import MiddlewareMixin
 _ALLOWED_ORIGINS = frozenset(
     f"http://{host}:{port}"
     for host in ("localhost", "127.0.0.1")
-    for port in ("3000", "5000", "5050", "8080", "8090")
+    for port in (
+        "3000",
+        "5000",
+        "5050",
+        "8080",
+        # نطاقٌ من المنافذ لا واحدٌ يُضاف كلما أُعيد التشغيل: قائمةٌ تُعدَّل
+        # مع كل منفذٍ جديد تعني نداءً محجوباً بلا رسالةٍ مفهومة، وقد حدث.
+        *(str(port) for port in range(8090, 8100)))
 )
 
 
