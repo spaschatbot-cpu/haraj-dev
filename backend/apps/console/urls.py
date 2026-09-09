@@ -19,6 +19,7 @@ from . import (
     auction_quick,
     auctions,
     audit,
+    bids,
     billing,
     bulk,
     catalog,
@@ -121,6 +122,9 @@ urlpatterns = [
     ),
     # قرارات المزايدات — قسمُ v1 نفسه (T830أ). قراءةٌ محضة: الترسية في
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
+    # مزايدات المزاد الجاري، وكلُّ المزايدات بمركباتها. T890
+    path("bids/live/", bids.live_bids, name="live-bids"),
+    path("bids/vehicles/", bids.vehicle_bids, name="vehicle-bids"),
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).

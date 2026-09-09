@@ -1,0 +1,33 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+كلُّ المزايدات على مركبات المزادات — نظيرُ `bids_management` في v1، بفلتر مزادٍ
+وبحثٍ مطبَّع، وبيانات المركبة كاملةً في الصفّ لا برقمها ولوحتها فقط.
+{% endcomment %}
+{% block title %}مزايدات السيارات{% endblock %}
+{% block heading %}مزايدات السيارات{% endblock %}
+{% block actions %}<a href="?{{ keep }}export=1" class="btn-secondary">تصدير إكسل</a>{% endblock %}
+
+{% block content %}
+  <div class="board-stats">
+    <div class="stat"><span class="stat__label">مزايدات</span><strong class="stat__value">{{ page.paginator.count|unlocalize }}</strong></div>
+    <div class="stat"><span class="stat__label">سيارات مُزايَد عليها</span><strong class="stat__value">{{ vehicles|unlocalize }}</strong></div>
+    {% if auction %}<div class="stat"><span class="stat__label">المزاد</span><strong class="stat__value">{{ auction.number|unlocalize }}</strong></div>{% endif %}
+  </div>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <select name="auction" aria-label="فلتر المزاد">
+        <option value="">كل المزادات</option>
+        {% for a in auctions %}
+          <option value="{{ a.number|unlocalize }}" {% if a.number|stringformat:"s" == number %}selected{% endif %}>{{ a.number|unlocalize }} — {{ a.title }}</option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ q }}" placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q or number %}<a href="{% url 'console:vehicle-bids' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
+  </form>
+
+  {% include "console/_bids_table.html" with empty_text="لا مزايدات مطابقة." keep=keep %}
+{% endblock %}

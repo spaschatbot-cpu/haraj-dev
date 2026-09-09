@@ -326,6 +326,22 @@ PAGES: tuple[Page, ...] = (
     ),
     # ---- قرارات المزايدات — بترتيب v1 وأسمائه ------------------------------
     Page(
+        "console:live-bids",
+        "مزايدات المزاد الجاري",
+        Capability.AUCTIONS_VIEW,
+        "decisions",
+        "ما يُزايَد عليه الآن — أعلى مبلغ وعدد المزايدين، والمزادُ مفتوح.",
+        "gauge",
+    ),
+    Page(
+        "console:vehicle-bids",
+        "مزايدات السيارات",
+        Capability.AUCTIONS_VIEW,
+        "decisions",
+        "كل مزايدةٍ ومركبتُها كاملةً — بفلتر مزادٍ وبحثٍ بلوحةٍ أو شاصٍ أو اسم.",
+        "list-check",
+    ),
+    Page(
         "console:accepted-bids",
         "المزايدات المقبولة",
         Capability.AUCTIONS_VIEW,

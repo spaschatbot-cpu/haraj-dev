@@ -1,0 +1,36 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+مزايدات المزاد الجاري — نظيرُ `activeBids` في v1، لكن «الجاري» من محرّك المراحل
+لا من `end_time <= CONVERT_TZ(NOW(),…)` مكتوبةً بيدٍ في كل استعلام.
+{% endcomment %}
+{% block title %}مزايدات المزاد الجاري{% endblock %}
+{% block heading %}مزايدات المزاد الجاري{% endblock %}
+{% block actions %}<a href="?{% if q %}q={{ q }}&amp;{% endif %}export=1" class="btn-secondary">تصدير إكسل</a>{% endblock %}
+
+{% block content %}
+  {% if not live %}
+    <p class="notice warning">لا مزاد مفتوحٌ للمزايدة الآن — الشاشة تمتلئ حين يبدأ مزاد.</p>
+  {% else %}
+    <div class="board-stats">
+      <div class="stat"><span class="stat__label">مزادات مفتوحة</span><strong class="stat__value">{{ live|length|unlocalize }}</strong></div>
+      <div class="stat"><span class="stat__label">مزايدات</span><strong class="stat__value">{{ page.paginator.count|unlocalize }}</strong></div>
+      <div class="stat"><span class="stat__label">مزايدون</span><strong class="stat__value">{{ bidders|unlocalize }}</strong></div>
+      <div class="stat"><span class="stat__label">أعلى مبلغ</span><strong class="stat__value money">{{ highest|default:"—"|unlocalize }}</strong></div>
+    </div>
+    <p class="muted">
+      المزادات المفتوحة:
+      {% for a in live %}<a href="{% url 'console:auction-detail' a.pk %}">{{ a.number|unlocalize }} — {{ a.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}
+    </p>
+  {% endif %}
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}" placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q %}<a href="{% url 'console:live-bids' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
+  </form>
+
+  {% include "console/_bids_table.html" with empty_text="لا مزايدات على المزاد الجاري بعد." keep=keep %}
+{% endblock %}
