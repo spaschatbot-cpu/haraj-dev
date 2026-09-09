@@ -113,6 +113,12 @@ urlpatterns = [
     path("auctions/manage/", bulk.manage, name="auctions-manage"),
     path("auctions/bulk/", bulk.bulk, name="auctions-bulk"),
     path("auctions/quick-edit/", bulk.quick_edit, name="auctions-quick-edit"),
+    # حفظُ سيارةٍ واحدة من كارت التعديل السريع — نظيرُ `quick-update` في v1.
+    path(
+        "vehicles/<int:pk>/quick-update/",
+        bulk.vehicle_quick_update,
+        name="vehicle-quick-update",
+    ),
     # قرارات المزايدات — قسمُ v1 نفسه (T830أ). قراءةٌ محضة: الترسية في
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),

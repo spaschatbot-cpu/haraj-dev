@@ -1,89 +1,339 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-تعديل سريع للعدادات.
+تعديل سريع للعدادات — كروتُ سياراتِ مزادٍ واحد، يحفظ كلُّ كارتٍ وحده.
 
-الفكرة من v1 صحيحة: الساحةُ تقيس العدّادات دفعةً واحدة، وفتحُ صفحةِ تعديلٍ لكل
-سيارةٍ من ثلاثمئة عملٌ لا يُنجَز. وثلاثة أشياء تُضاف:
+نظيرُ `quick_edit.php` في v1، بترتيبه وحقوله: رقم الموقف، العدّاد وصورتُه،
+نوع اللوحة، الوقود، حالة المركبة، حالة المحرك، المفتاح. والشاصي للقراءة.
 
-* **ما تغيّر وحده يُكتب** — فحفظُ الجدول بلا تعديلٍ لا يكتب ثلاثمئة صفّ.
-* **وكلُّ تغييرٍ قيدٌ بقيمته قبلُ وبعد** — «كم كان العدّاد؟» سؤالٌ يُسأل حين
-  يشكو مشترٍ، ولا يُجاب بالقيمة الحالية.
-* **والقيمةُ الخطأ تُذكر ولا تُسقِط الجدول** — تحت `STRICT_TRANS_TABLES` كان
-  v1 يُجهض التحديث كلَّه لقيمةٍ واحدة، فيخسر الموظّفُ ما أدخله كلَّه (T808).
+ثلاثةٌ مأخوذةٌ من v1 عمداً — وكلُّها لأداء صفحةٍ قد تحمل مئاتِ السيارات:
+* **بناءٌ كسول:** الخادمُ يشحن سجلّاتٍ مضغوطة (`qeData`)، والجافاسكربت يبني
+  دفعةً (٤٠) كلَّ تمرير. فلا ٨٧ ألفَ عقدةٍ تُبنى مرّةً فتتجمّد الصفحة.
+* **حفظٌ تلقائي:** النصُّ يُحفظ بعد سكونِ الكتابة، والشريحةُ والصورةُ فوراً —
+  فلا زرٌّ يُنسى. وزرُّ 💾 لكل كارتٍ يفرض الحفظ حالاً.
+* **بحثٌ حيّ** يُخفي غيرَ المطابق (لا يمحوه) فيبقى أيُّ تعديلٍ غير محفوظ.
+
+وما تغيّر وحده يُكتب، ولكل تغييرٍ قيدٌ في التدقيق (`vehicle_quick_update`).
 {% endcomment %}
-{% block title %}تعديل سريع للعدادات{% endblock %}
-{% block heading %}تعديل سريع للعدادات{% endblock %}
+{% block title %}تعديل سريع — {{ auction.number|unlocalize }}{% endblock %}
+{% block heading %}⚡ تعديل سريع — {{ auction.title }}{% endblock %}
+
+{% block actions %}
+  <a href="{% url 'console:auction-detail' auction.pk %}" class="btn-ghost">↩ رجوع للإدارة</a>
+  <a href="{% url 'console:auctions-quick-edit' %}" class="btn-ghost">قائمة المزادات</a>
+{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="number" name="number" value="{{ number }}" placeholder="رقم المزاد">
-    <button type="submit">افتح</button>
-  </form>
-
-  {% if not auction %}
-    <p class="empty">اكتب رقم مزادٍ لتفتح جدول عدّاداته.</p>
-
-    <div class="scroller">
-      <table>
-      <thead><tr><th>#</th><th>المزاد</th><th>الحالة</th><th>المركبات</th><th></th></tr></thead>
-      <tbody>
-        {% for row in auctions %}
-          <tr>
-            <td>{{ row.number|unlocalize }}</td>
-            <td>{{ row.title }}</td>
-            <td>{{ row.get_state_display }}</td>
-            {% comment %} الصفر يُقرأ قبل الفتح: في v1 بطاقة «#1005 المطبخ»
-               مكتوبٌ عليها `0 سيارة`، وتُفتح على جدولٍ فارغ. {% endcomment %}
-            <td class="count">{{ row.cars|unlocalize }}</td>
-            <td>
-              {% if row.cars %}
-                <a href="{% url 'console:auctions-quick-edit' %}?number={{ row.number|unlocalize }}">افتح ←</a>
-              {% else %}
-                <span class="empty">بلا سيارات</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="qe" data-auction="{{ auction.number|unlocalize }}" data-csrf="{{ csrf_token }}">
+  <div class="qe__bar">
+    <p class="qe__hint">عدّل رقم الموقف والعدّاد والمواصفات مباشرةً. الحفظُ تلقائيّ — كلُّ تعديلٍ يُسجَّل وحده، والعلامةُ جوار الاسم توضّح الحالة.</p>
+    <div class="qe__tools">
+      <label class="qe__search">
+        <span class="qe__search-ic" aria-hidden="true">🔍</span>
+        <input type="search" id="qeSearch" placeholder="ابحث بلوحة أو شاصي أو اسم أو موقف…" autocomplete="off">
+      </label>
+      <span class="qe__count" id="qeCount">—</span>
+      <button type="button" class="btn-primary" id="qeSaveAll">💾 حفظ كل الظاهر</button>
+    </div>
   </div>
 
-  {% else %}
-    <h2>{{ auction.number|unlocalize }} — {{ auction.title }}</h2>
-
-    <form method="post" class="form-card">
-      {% csrf_token %}
-      <input type="hidden" name="number" value="{{ auction.number|unlocalize }}">
-      <div class="scroller">
-        <table>
-        <thead>
-          <tr><th>اللوت</th><th>المركبة</th><th>اللوحة</th><th>العدّاد</th></tr>
-        </thead>
-        <tbody>
-          {% for car in cars %}
-            <tr>
-              <td class="count">{{ car.lot_number|unlocalize }}</td>
-              <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a></td>
-              <td>{{ car.plate_number|default:"—" }}</td>
-              <td>
-                <input type="number" min="0" name="meter-{{ car.pk }}"
-                       value="{{ car.odometer_km|default_if_none:'' }}"
-                       aria-label="عدّاد اللوت {{ car.lot_number|unlocalize }}">
-              </td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4" class="empty">لا سيارات في هذا المزاد.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  {% if count %}
+    <div class="qe-list" id="qeList"></div>
+    <div id="qeSentinel" style="height:1px"></div>
+    <div id="qeMore" class="qe__more" hidden>
+      <button type="button" class="btn-ghost" id="qeLoadMore">تحميل المزيد</button>
     </div>
-      {% if cars %}<button type="submit">احفظ</button>{% endif %}
-    </form>
-
-    <p class="empty">
-      الخانة الفارغة تعني <strong>«لم يُقَس»</strong> لا صفراً. وما تغيّر وحده
-      يُكتب، ولكل تغييرٍ قيدٌ يحمل القيمة قبلُ وبعد.
-    </p>
+  {% else %}
+    <p class="empty">🚗 لا سيارات في هذا المزاد.</p>
   {% endif %}
+</div>
+
+{{ records|json_script:"qeData" }}
+{% comment %} قوائمُ الخيارات بلصائقها العربية — تُبنى منها الشرائح في JS كما
+   يبنيها الخادمُ للحقول ذاتِ التعداد المغلق. {% endcomment %}
+<script type="application/json" id="qeChoices">
+{
+  "plate_type": [{% for v, l in plate_choices %}["{{ v|escapejs }}","{{ l|escapejs }}"]{% if not forloop.last %},{% endif %}{% endfor %}],
+  "fuel_type": [{% for v, l in fuel_choices %}["{{ v|escapejs }}","{{ l|escapejs }}"]{% if not forloop.last %},{% endif %}{% endfor %}],
+  "condition": [{% for v, l in condition_choices %}["{{ v|escapejs }}","{{ l|escapejs }}"]{% if not forloop.last %},{% endif %}{% endfor %}],
+  "runs_presets": [{% for p in runs_presets %}"{{ p|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+  "key_presets": [{% for p in key_presets %}"{{ p|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}]
+}
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var root = document.querySelector('.qe');
+  if (!root) return;
+  var auction = root.dataset.auction;
+  var csrf = root.dataset.csrf;
+  var list = document.getElementById('qeList');
+  if (!list) return;
+
+  var DATA = JSON.parse(document.getElementById('qeData').textContent || '[]');
+  var CH = JSON.parse(document.getElementById('qeChoices').textContent || '{}');
+  var BATCH = 40;
+  var rendered = new Set();
+  var current = DATA;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (m) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+    });
+  }
+
+  function toast(msg, kind) {
+    var t = document.createElement('div');
+    t.className = 'qe-toast' + (kind ? ' qe-toast--' + kind : '');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 2400);
+  }
+
+  // شريحةُ تعدادٍ مغلق: لصائقُ من الخادم، القيمةُ الحاليّة مختارة.
+  function enumChips(field, vid, opts, current) {
+    var h = '<div class="qe-chips" data-field="' + field + '">';
+    for (var i = 0; i < opts.length; i++) {
+      var val = opts[i][0], label = opts[i][1];
+      h += '<label class="qe-chip"><input type="radio" name="' + field + '_' + vid +
+           '" value="' + esc(val) + '"' + (current === val ? ' checked' : '') +
+           '><span>' + esc(label) + '</span></label>';
+    }
+    return h + '</div>';
+  }
+
+  // شريحةٌ حرّة: قيمٌ شائعة + «أخرى» تفتح كتابة — لحالة المحرك والمفتاح.
+  function freeChips(field, vid, presets, current) {
+    var isOther = current !== '' && presets.indexOf(current) === -1;
+    var h = '<div class="qe-chips" data-field="' + field + '" data-free="1">';
+    for (var i = 0; i < presets.length; i++) {
+      h += '<label class="qe-chip"><input type="radio" name="' + field + '_' + vid + '" value="' + esc(presets[i]) + '"' +
+           (current === presets[i] ? ' checked' : '') + '><span>' + esc(presets[i]) + '</span></label>';
+    }
+    h += '<label class="qe-chip qe-chip--other"><input type="radio" name="' + field + '_' + vid + '" value="__other__"' +
+         (isOther ? ' checked' : '') + '><span>أخرى</span></label>';
+    h += '<input type="text" class="qe-other" placeholder="اكتب…" value="' + (isOther ? esc(current) : '') + '"' +
+         (isOther ? '' : ' hidden') + '>';
+    return h + '</div>';
+  }
+
+  function cardHtml(r) {
+    var vid = r.id;
+    var sub = esc(r.plate || '—') + (r.vin ? ' · ' + esc(r.vin) : '') + (r.claim ? ' · مطالبة ' + esc(r.claim) : '');
+    return '<article class="qe-card" data-vid="' + vid + '" data-search="' + esc(r.s) + '">' +
+      '<header class="qe-card__head">' +
+        '<div class="qe-card__title">' + esc(r.name || ('سيارة #' + vid)) +
+          '<span class="qe-card__sub">' + sub + '</span></div>' +
+        '<div class="qe-card__act"><span class="qe-card__status" title="حالة الحفظ"></span>' +
+          '<button type="button" class="qe-card__save" data-save title="حفظ الآن">💾</button></div>' +
+      '</header>' +
+      '<div class="qe-field"><span class="qe-label">رقم الموقف</span>' +
+        '<input type="number" min="1" data-field="lot_number" value="' + esc(r.lot) + '"></div>' +
+      '<div class="qe-field"><span class="qe-label">عداد المسافة (كم)</span>' +
+        '<input type="number" min="0" data-field="odometer_km" value="' + esc(r.odo) + '" placeholder="لم يُقَس">' +
+        '<label class="qe-photo" title="صوّر العدّاد"><input type="file" accept="image/*" capture="environment" data-field="meter_image" hidden>' +
+          '📷 صورة العدّاد<span class="qe-photo__prev" hidden></span></label></div>' +
+      '<div class="qe-field"><span class="qe-label">نوع اللوحة</span>' + enumChips('plate_type', vid, CH.plate_type || [], r.pt) + '</div>' +
+      '<div class="qe-field"><span class="qe-label">الوقود</span>' + enumChips('fuel_type', vid, CH.fuel_type || [], r.ft) + '</div>' +
+      '<div class="qe-field"><span class="qe-label">حالة المركبة</span>' + enumChips('condition', vid, CH.condition || [], r.cond) + '</div>' +
+      '<div class="qe-field"><span class="qe-label">حالة المحرك</span>' + freeChips('runs_status', vid, CH.runs_presets || [], r.runs) + '</div>' +
+      '<div class="qe-field"><span class="qe-label">المفتاح</span>' + freeChips('key_status', vid, CH.key_presets || [], r.key) + '</div>' +
+      '</article>';
+  }
+
+  function renderBatch(rows, n) {
+    var pending = rows.filter(function (r) { return !rendered.has(r.id); }).slice(0, n);
+    if (!pending.length) return 0;
+    var frag = document.createElement('div');
+    frag.innerHTML = pending.map(cardHtml).join('');
+    while (frag.firstChild) list.appendChild(frag.firstChild);
+    pending.forEach(function (r) { rendered.add(r.id); });
+    return pending.length;
+  }
+
+  // ── بحثٌ حيّ ────────────────────────────────────────────────────────────
+  var searchEl = document.getElementById('qeSearch');
+  var countEl = document.getElementById('qeCount');
+  var moreBar = document.getElementById('qeMore');
+  function norm(s) {
+    return String(s || '').toLowerCase().replace(/[\s\-_.\/]/g, '').replace(/[ً-ْ]/g, '');
+  }
+  function applyFilter() {
+    var q = norm(searchEl ? searchEl.value : '');
+    current = q === '' ? DATA : DATA.filter(function (r) { return norm(r.s).includes(q); });
+    var keep = new Set(current.map(function (r) { return r.id; }));
+    list.querySelectorAll('.qe-card').forEach(function (c) {
+      c.classList.toggle('qe-card--off', !keep.has(+c.dataset.vid));
+    });
+    renderBatch(current, Math.max(BATCH, q === '' ? 0 : 200));
+    updateCount();
+    syncMore();
+  }
+  function updateCount() {
+    if (!countEl) return;
+    var shown = list.querySelectorAll('.qe-card:not(.qe-card--off)').length;
+    countEl.textContent = current.length === DATA.length
+      ? shown + ' / ' + DATA.length + ' سيارة'
+      : shown + ' / ' + current.length + ' مطابقة (من ' + DATA.length + ')';
+  }
+  function syncMore() {
+    var left = current.filter(function (r) { return !rendered.has(r.id); }).length;
+    if (moreBar) moreBar.hidden = left <= 0;
+  }
+  function loadMore() { if (renderBatch(current, BATCH) > 0) { updateCount(); syncMore(); } }
+
+  document.getElementById('qeLoadMore') && document.getElementById('qeLoadMore').addEventListener('click', loadMore);
+  var sentinel = document.getElementById('qeSentinel');
+  if (sentinel && 'IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      if (es.some(function (e) { return e.isIntersecting; })) loadMore();
+    }, { rootMargin: '600px 0px' }).observe(sentinel);
+  }
+  searchEl && searchEl.addEventListener('input', applyFilter);
+
+  // ── قراءةُ قيمةِ حقلٍ من كارت ────────────────────────────────────────────
+  function chipValue(card, field) {
+    var grp = card.querySelector('.qe-chips[data-field="' + field + '"]');
+    if (!grp) return null;
+    var sel = grp.querySelector('input[type=radio]:checked');
+    if (!sel) return '';
+    if (sel.value === '__other__') { var t = grp.querySelector('.qe-other'); return t ? t.value.trim() : ''; }
+    return sel.value;
+  }
+
+  // ── حفظُ كارت ────────────────────────────────────────────────────────────
+  function saveCard(card, silent) {
+    var vid = card.dataset.vid;
+    var lot = card.querySelector('[data-field=lot_number]').value.trim();
+    var odo = card.querySelector('[data-field=odometer_km]').value.trim();
+    var fileInput = card.querySelector('[data-field=meter_image]');
+    var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+    var status = card.querySelector('.qe-card__status');
+    var btn = card.querySelector('[data-save]');
+
+    var fd = new FormData();
+    fd.append('lot_number', lot);
+    fd.append('odometer_km', odo);
+    ['plate_type', 'fuel_type', 'condition', 'runs_status', 'key_status'].forEach(function (f) {
+      var v = chipValue(card, f);
+      if (v) fd.append(f, v);
+    });
+    if (file) fd.append('meter_image', file);
+
+    if (status) status.innerHTML = '<span class="qe-spin"></span>';
+    if (btn) btn.disabled = true;
+    return fetch('/console/vehicles/' + vid + '/quick-update/', {
+      method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf },
+    }).then(function (r) { return r.json().then(function (d) { return { s: r.status, d: d }; }); })
+      .then(function (res) {
+        var d = res.d;
+        if (d && d.ok) {
+          if (status) status.textContent = (file && d.image_id) ? '✅📷' : '✅';
+          card.classList.add('qe-card--saved');
+          if (file && fileInput) { fileInput.value = ''; }
+          var prev = card.querySelector('.qe-photo__prev');
+          if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
+          var pb = card.querySelector('.qe-photo'); if (pb) pb.classList.remove('has');
+          if (!silent) toast(file ? '✅ حُفظ ورُفعت صورة العدّاد' : '✅ حُفظ', 'ok');
+          setTimeout(function () { card.classList.remove('qe-card--saved'); }, 1400);
+          return true;
+        }
+        if (status) status.textContent = '❌';
+        if (res.s !== 422 || !silent) toast('❌ ' + ((d && d.message) || 'فشل الحفظ'), 'err');
+        return false;
+      }).catch(function () {
+        if (status) status.textContent = '❌';
+        toast('❌ تعذّر الاتصال', 'err');
+        return false;
+      }).finally(function () { if (btn) btn.disabled = false; });
+  }
+
+  // ── تفاعلاتٌ على الشبكة ──────────────────────────────────────────────────
+  var AUTOSAVE = 900;
+  var timers = new Map();
+  function queueSave(card, immediate) {
+    if (!card) return;
+    var vid = card.dataset.vid;
+    clearTimeout(timers.get(vid));
+    if (immediate) { timers.delete(vid); saveCard(card, true); return; }
+    timers.set(vid, setTimeout(function () { timers.delete(vid); saveCard(card, true); }, AUTOSAVE));
+  }
+
+  // إظهار/إخفاء خانة «أخرى» عند اختيارها.
+  list.addEventListener('change', function (e) {
+    var radio = e.target.closest('.qe-chips[data-free] input[type=radio]');
+    if (radio) {
+      var grp = radio.closest('.qe-chips');
+      var txt = grp.querySelector('.qe-other');
+      var isOther = grp.querySelector('input:checked') && grp.querySelector('input:checked').value === '__other__';
+      if (txt) { txt.hidden = !isOther; if (isOther) txt.focus(); }
+    }
+    // شريحةٌ أو صورةٌ = قرارٌ منتهٍ، يُحفظ حالاً.
+    var hit = e.target.closest('.qe-chips input[type=radio], [data-field=meter_image]');
+    if (hit) queueSave(hit.closest('.qe-card'), true);
+    // معاينةُ صورةِ العدّاد.
+    var fi = e.target.closest('[data-field=meter_image]');
+    if (fi && fi.files && fi.files[0]) {
+      var box = fi.closest('.qe-photo');
+      var prev = box && box.querySelector('.qe-photo__prev');
+      if (box) box.classList.add('has');
+      if (prev) { prev.hidden = false; prev.style.backgroundImage = 'url(' + URL.createObjectURL(fi.files[0]) + ')'; }
+    }
+  });
+  // كتابةٌ في نصّ = حفظٌ بعد سكون.
+  list.addEventListener('input', function (e) {
+    if (e.target.closest('[data-field=lot_number],[data-field=odometer_km],.qe-other')) {
+      queueSave(e.target.closest('.qe-card'), false);
+    }
+  });
+  // مغادرةُ الحقل تُثبّته فوراً.
+  list.addEventListener('focusout', function (e) {
+    if (e.target.closest('[data-field=lot_number],[data-field=odometer_km],.qe-other')) {
+      var card = e.target.closest('.qe-card');
+      if (timers.has(card && card.dataset.vid)) queueSave(card, true);
+    }
+  });
+  // زرُّ 💾 يفرض الحفظ حالاً (بتنبيه).
+  list.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-save]');
+    if (!btn) return;
+    var card = btn.closest('.qe-card');
+    clearTimeout(timers.get(card.dataset.vid)); timers.delete(card.dataset.vid);
+    saveCard(card, false);
+  });
+
+  // «حفظ كل الظاهر» — الظاهرَ فقط، ويتخطّى الفارغ تماماً.
+  var saveAll = document.getElementById('qeSaveAll');
+  saveAll && saveAll.addEventListener('click', function () {
+    saveAll.disabled = true;
+    var old = saveAll.innerHTML;
+    saveAll.innerHTML = '<span class="qe-spin"></span> جارٍ الحفظ…';
+    var cards = [].slice.call(list.querySelectorAll('.qe-card:not(.qe-card--off)'));
+    var i = 0, ok = 0, fail = 0;
+    (function next() {
+      if (i >= cards.length) {
+        saveAll.disabled = false; saveAll.innerHTML = old;
+        toast(fail ? ('⚠ حُفظ ' + ok + ' وفشل ' + fail) : ('✅ حُفظ ' + ok + ' كارت'), fail ? 'err' : 'ok');
+        return;
+      }
+      var card = cards[i++];
+      saveCard(card, true).then(function (r) { r ? ok++ : fail++; next(); });
+    })();
+  });
+
+  // لا يُفقَد تعديلٌ معلّقٌ لو أُغلقت الصفحة في أثناء المؤقّت.
+  window.addEventListener('beforeunload', function () {
+    timers.forEach(function (t, vid) {
+      clearTimeout(t);
+      var card = list.querySelector('.qe-card[data-vid="' + vid + '"]');
+      if (card) saveCard(card, true);
+    });
+  });
+
+  renderBatch(DATA, BATCH);
+  applyFilter();
+})();
+</script>
 {% endblock %}

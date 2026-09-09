@@ -1,0 +1,54 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+اختر مزاداً لتعديلٍ سريع — كروتٌ لا جدول، كأسلوب عرض v1 (`renderAuctionChooser`
+بوضع `quick-edit`). نفسُ كروت شاشة الإدارة، لكن الوجهةُ صفحةُ العدّادات.
+
+**والعددُ يُقرأ قبل الضغط:** بطاقةٌ بـ`0 سيارة` تُفتح على جدولٍ فارغ، فالصفرُ
+في وجه الكارت لا خلف الضغطة — وزرُّ الفتح يغيب عن الفارغ.
+{% endcomment %}
+{% block title %}اختر مزاداً — تعديل سريع{% endblock %}
+{% block heading %}تعديل سريع للعدادات{% endblock %}
+
+{% block content %}
+  <p class="lede">اختر مزاداً لتفتح عدّادات سياراته: العدّاد ورقم الموقف والمواصفات — يحفظ كلُّ كارتٍ وحده.</p>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="ابحث برقم المزاد أو اسمه…" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q %}<a href="{% url 'console:auctions-quick-edit' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
+  </form>
+
+  <div class="pick-grid">
+    {% for row in rows %}
+      {% if row.cars %}
+        <a class="pick-card" href="{% url 'console:auctions-quick-edit' %}?number={{ row.number|unlocalize }}">
+      {% else %}
+        <div class="pick-card pick-card--empty" aria-disabled="true">
+      {% endif %}
+        <div class="pick-card__head">
+          <span class="pick-card__id">#{{ row.number|unlocalize }}</span>
+          <span class="pill" data-tone="{% if row.state == 'live' %}ok{% elif row.state == 'scheduled' %}info{% elif row.state == 'cancelled' %}bad{% else %}plain{% endif %}">{{ row.get_state_display }}</span>
+        </div>
+        <h3 class="pick-card__title">{{ row.title }}</h3>
+        <div class="pick-card__meta">
+          <span class="chip chip--count">{{ row.cars|unlocalize }} سيارة</span>
+          <span class="chip">يبدأ {{ row.starts_at|date:"Y-m-d" }}</span>
+          <span class="chip">ينتهي {{ row.ends_at|date:"Y-m-d" }}</span>
+        </div>
+        {% if row.cars %}
+          <span class="pick-card__cta">⚡ افتح العدّادات <span aria-hidden="true">←</span></span>
+        {% else %}
+          <span class="pick-card__cta pick-card__cta--off">بلا سيارات</span>
+        {% endif %}
+      {% if row.cars %}</a>{% else %}</div>{% endif %}
+    {% empty %}
+      <p class="empty">لا مزادات مطابقة.</p>
+    {% endfor %}
+  </div>
+
+  <p class="table-footer__count">{{ total|unlocalize }} مزاداً · تُعرض أول مئة.</p>
+{% endblock %}

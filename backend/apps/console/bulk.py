@@ -37,14 +37,24 @@ auction_state_single_writer.py`)، وهي التي ترفض النقلة الم�
 from __future__ import annotations
 
 from django.contrib import messages
+from django.db import IntegrityError
 from django.db.models import Count, Q
-from django.shortcuts import redirect, render
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.auctions import services as auctions
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import (
+    Auction,
+    FuelType,
+    PlateType,
+    Vehicle,
+    VehicleCondition,
+)
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid
 from apps.core import audit
+from apps.core.permissions import Capability, can
+from apps.core.uploads import UploadRejected
 
 #: المزادات التي انتهت. تُقرأ من `archive` لا تُكتب ثانيةً.
 from .archive import ARCHIVED  # noqa: E402
@@ -191,71 +201,200 @@ def manage(request):
 # والباقي يُحفظ.
 
 
+#: القيمُ المعروضة كشرائح في «حالة المحرك» و«المفتاح» — نصٌّ حرٌّ في v2
+#: (`varchar`)، فالشريحةُ اختصارٌ للقيمة الشائعة و«أخرى» تفتح كتابةً حرّة،
+#: تماماً كما في v1 (`$optField`).
+RUNS_PRESETS = ["تعمل", "لا تعمل"]
+KEY_PRESETS = ["يوجد", "لا يوجد"]
+
+
+def _qe_record(car: Vehicle) -> dict:
+    """سجلٌّ مضغوطٌ لكل سيارة — تُبنى منه الكروتُ كسولاً بالجافاسكربت.
+
+    v1 يشحن كل سيارةٍ HTMLاً جاهزاً (٨٧ ألف عقدة DOM لـ٨٩٤ سيارة فتتجمّد
+    الصفحة)، ثم صار يشحن سجلّاتٍ مضغوطة ويبني دفعةً كلَّ تمرير. المثلُ هنا.
+    """
+    return {
+        "id": car.pk,
+        "lot": car.lot_number,
+        "name": f"{car.make} {car.model} {car.year}".strip(),
+        "plate": car.plate_number or "",
+        "vin": car.vin or "",
+        "claim": car.claim_number or "",
+        "odo": car.odometer_km if car.odometer_km is not None else "",
+        "pt": car.plate_type or "",
+        "ft": car.fuel_type or "",
+        "cond": car.condition or "",
+        "runs": car.runs_status or "",
+        "key": car.key_status or "",
+        # حقلُ بحثٍ واحدٌ يجمع ما يُبحث به — لوحة/شاصي/مطالبة/اسم/موقف.
+        "s": " ".join(
+            [
+                car.plate_number or "",
+                car.vin or "",
+                car.claim_number or "",
+                car.make,
+                car.model,
+                str(car.lot_number),
+            ]
+        ).lower(),
+    }
+
+
 @console_page("console:auctions-quick-edit")
 def quick_edit(request):
-    """تعديل سريع للعدادات: جدولُ سياراتِ مزادٍ واحد، وما تغيّر وحده يُكتب."""
-    number = request.GET.get("number", "") or request.POST.get("number", "")
+    """تعديل سريع للعدادات — نظيرُ شاشتَي v1 (`quickEditChooser` ثم
+    `quickEditVehicles`): بلا مزادٍ مختار كروتُ اختيار، ومعه كروتُ سياراتٍ
+    يُحرَّر كلٌّ منها في مكانه ويحفظ وحده.
+
+    الترتيبُ والحقولُ كما في v1: رقم الموقف، العدّاد وصورتُه، نوع اللوحة،
+    الوقود، حالة المركبة، حالة المحرك، المفتاح. والشاصي للقراءة فقط. وما
+    تغيّر وحده يُكتب، ولكل تغييرٍ قيدٌ في التدقيق (`vehicle_quick_update`).
+    """
+    number = request.GET.get("number", "").strip()
     auction = None
-    if (number or "").strip().isdigit():
+    if number.isdigit():
         auction = Auction.objects.filter(number=int(number)).first()
 
-    if request.method == "POST" and auction is not None:
-        return _save_meters(request, auction)
+    # وضعُ الاختيار: كروتُ المزادات — نظيرُ `renderAuctionChooser`.
+    if auction is None:
+        rows = quick_edit_targets(request.GET.get("q", ""))
+        return render(
+            request,
+            "console/quick_edit_pick.html",
+            {
+                "rows": rows[:100],
+                "q": request.GET.get("q", ""),
+                "total": rows.count(),
+            },
+        )
 
-    cars = (
-        Vehicle.objects.filter(auction=auction).order_by("lot_number", "id")
-        if auction
-        else Vehicle.objects.none()
-    )
+    # وضعُ التحرير: سجلّاتٌ مضغوطة + قوائمُ الخيارات بلصائقها من النموذج.
+    cars = Vehicle.objects.filter(auction=auction).order_by("lot_number", "id")
+    records = [_qe_record(c) for c in cars]
     return render(
         request,
         "console/auctions_quick_edit.html",
         {
             "auction": auction,
-            "cars": cars,
-            "number": number,
-            "auctions": quick_edit_targets()[:60],
+            "records": records,
+            "count": len(records),
+            "plate_choices": PlateType.choices,
+            "fuel_choices": FuelType.choices,
+            "condition_choices": VehicleCondition.choices,
+            "runs_presets": RUNS_PRESETS,
+            "key_presets": KEY_PRESETS,
         },
     )
 
 
-def _save_meters(request, auction: Auction):
-    """اكتب ما تغيّر وحده، وسمِّ ما لم يُقبَل."""
-    changed, refused = 0, []
+def vehicle_quick_update(request, pk: int):
+    """حفظُ سيارةٍ واحدة من كارت التعديل السريع — نظيرُ `quickUpdateVehicle` في v1.
 
-    for car in Vehicle.objects.filter(auction=auction):
-        raw = (request.POST.get(f"meter-{car.pk}") or "").strip()
+    يُستدعى بـAJAX (حفظٌ تلقائيٌّ لكل كارت). يكتب ما أُرسل فقط، ويتخطّى
+    الفارغَ كي لا يمحو قيمةً قائمة — كقاعدة v1 نفسِها. وكلُّ تغييرٍ قيدٌ يحمل
+    القيمة قبلُ وبعد. وصورةُ العدّاد تدخل معرضَ السيارة عبر الخدمة المُعقَّمة.
+    """
+    if not request.user.is_authenticated or not can(
+        request.user, Capability.AUCTIONS_MANAGE
+    ):
+        return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)
+
+    car = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    changes: dict[str, tuple] = {}
+
+    # العدّاد — رقمٌ صحيحٌ غير سالب، أو فراغٌ يعني «لم يُقَس».
+    if "odometer_km" in request.POST:
+        raw = request.POST.get("odometer_km", "").strip()
         if raw == "":
-            was_blank = car.odometer_km is None
-            if was_blank:
-                continue
-            new = None
+            new_odo = None
+        elif raw.isdigit():
+            new_odo = int(raw)
         else:
-            if not raw.isdigit():
-                refused.append((car, "العدّاد يجب أن يكون رقماً صحيحاً"))
-                continue
-            new = int(raw)
+            return JsonResponse(
+                {"ok": False, "message": "العدّاد يجب أن يكون رقماً صحيحاً."}, status=422
+            )
+        if new_odo != car.odometer_km:
+            changes["odometer_km"] = (car.odometer_km, new_odo)
+            car.odometer_km = new_odo
 
-        if new == car.odometer_km:
-            continue
+    # رقم الموقف — لوتٌ موجب. الفارغُ يُترك، فلا يُمحى موقفٌ قائم.
+    if "lot_number" in request.POST:
+        raw = request.POST.get("lot_number", "").strip()
+        if raw != "":
+            if not raw.isdigit() or int(raw) <= 0:
+                return JsonResponse(
+                    {"ok": False, "message": "رقم الموقف يجب أن يكون رقماً موجباً."},
+                    status=422,
+                )
+            new_lot = int(raw)
+            if new_lot != car.lot_number:
+                changes["lot_number"] = (car.lot_number, new_lot)
+                car.lot_number = new_lot
 
-        before = car.odometer_km
-        car.odometer_km = new
-        car.save(update_fields=["odometer_km", "updated_at"])
-        changed += 1
+    # الحقولُ ذاتُ التعداد المغلق — تُقبل القيمةُ إن كانت من القائمة فقط.
+    enum_fields = {
+        "plate_type": {v for v, _ in PlateType.choices},
+        "fuel_type": {v for v, _ in FuelType.choices},
+        "condition": {v for v, _ in VehicleCondition.choices},
+    }
+    for field, valid in enum_fields.items():
+        if field in request.POST:
+            val = request.POST.get(field, "").strip()
+            if val and val in valid and val != getattr(car, field):
+                changes[field] = (getattr(car, field), val)
+                setattr(car, field, val)
+
+    # حالة المحرك والمفتاح — نصٌّ حرٌّ في v2؛ الفارغُ لا يمحو.
+    for field in ("runs_status", "key_status"):
+        if field in request.POST:
+            val = request.POST.get(field, "").strip()
+            if val and val != getattr(car, field):
+                changes[field] = (getattr(car, field), val)
+                setattr(car, field, val)
+
+    # صورةُ العدّاد — تدخل المعرضَ صورةً عادية (لا غلافاً)، عبر الخدمة الوحيدة.
+    image_id = 0
+    image_error = None
+    photo = request.FILES.get("meter_image")
+    if photo is not None:
+        try:
+            image_id = auctions.add_image(car, photo, cover=False).pk
+        except UploadRejected as refusal:
+            image_error = str(refusal)
+
+    if not changes and image_id == 0 and image_error is None:
+        return JsonResponse({"ok": False, "message": "لا تغيير."}, status=422)
+
+    if changes:
+        try:
+            car.save(update_fields=[*changes.keys(), "updated_at"])
+        except IntegrityError:
+            return JsonResponse(
+                {"ok": False, "message": "رقم الموقف مستعمَل في هذا المزاد."},
+                status=409,
+            )
+        for field, (before, after) in changes.items():
+            audit.record(
+                action="console.quick_edit_field",
+                entity=car,
+                actor=request.user,
+                before={field: before},
+                after={field: after},
+                note=f"{field}: {before} ← {after}",
+            )
+    if image_id:
         audit.record(
-            action="console.quick_edit_meter",
+            action="console.quick_edit_meter_photo",
             entity=car,
             actor=request.user,
-            note=f"العدّاد: {before if before is not None else '—'} ← "
-            f"{new if new is not None else '—'}",
+            after={"image": image_id},
+            note="صورةُ عدّاد من التعديل السريع",
         )
 
-    if changed:
-        messages.success(request, f"حُفظ {changed} عدّاداً.")
-    elif not refused:
-        messages.success(request, "لا تغيير — لم يُكتب شيء.")
-    for car, why in refused:
-        messages.error(request, f"اللوت {car.lot_number}: {why}")
-
-    return redirect(f"{request.path}?number={auction.number}")
+    resp = {"ok": True, "image_id": image_id, "saved": list(changes.keys())}
+    if image_error:
+        resp["image_error"] = image_error
+    return JsonResponse(resp)
