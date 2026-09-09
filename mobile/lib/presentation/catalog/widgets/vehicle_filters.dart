@@ -66,7 +66,13 @@ class _VehicleSearchFieldState extends State<VehicleSearchField> {
           onPressed: () => widget.onSubmitted(_controller.text),
         ),
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        // **١١ رأسياً لا ١٤**: الحقلُ صار داخل شريحةٍ ثابتة ارتفاعُها ٤٨،
+        // و١٤+١٤+سطرٌ بحجم ١٤ تبلغ الثمانيةَ والأربعين بالضبط — فتفيض عند
+        // أول جهازٍ يكبّر خطّه.
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 11,
+        ),
         border: _border(palette.gold.withValues(alpha: 0.30)),
         enabledBorder: _border(palette.gold.withValues(alpha: 0.30)),
         focusedBorder: _border(palette.gold, width: 1.4),
@@ -74,11 +80,12 @@ class _VehicleSearchFieldState extends State<VehicleSearchField> {
     );
   }
 
-  /// كبسولةٌ لا مستطيل: نصفُ القطر ٣٠ أكبر من نصف الارتفاع، فتُقصّ الحافّة
-  /// دائرةً كاملة مهما تغيّر ارتفاع الحقل بحجم الخطّ في إعدادات الجهاز.
+  /// **نصفُ القطر ١٣ لا ٣٠** بطلب المالك في ٩ سبتمبر ٢٠٢٦: الثلاثون تُقصّ
+  /// الحافّةَ كبسولةً كاملة، ومفتاحُ الأطوار تحته حوضٌ نصفُ قطره ١٣ — فكان
+  /// الاثنان شكلين مختلفين في كتلةٍ واحدة.
   OutlineInputBorder _border(Color colour, {double width = 1}) =>
       OutlineInputBorder(
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(13),
         borderSide: BorderSide(color: colour, width: width),
       );
 }
@@ -340,9 +347,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                   child: _YearField(l10n.filterYearFrom, _yearFrom, _apply),
                 ),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: _YearField(l10n.filterYearTo, _yearTo, _apply),
-                ),
+                Expanded(child: _YearField(l10n.filterYearTo, _yearTo, _apply)),
               ],
             ),
             const SizedBox(height: 18),

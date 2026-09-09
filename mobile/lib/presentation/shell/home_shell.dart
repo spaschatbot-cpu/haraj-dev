@@ -17,20 +17,22 @@ enum HomeSection {
   /// التي تحتها على المعنى نفسه.
   home(Icons.home_outlined, Icons.home_rounded),
 
-  /// محفظةٌ لا بطاقة: المال هنا رصيدٌ ودلاء، لا وسيلةَ دفعٍ واحدة.
-  wallet(
-    Icons.account_balance_wallet_outlined,
-    Icons.account_balance_wallet_rounded,
-  ),
+  /// فقاعةُ حديث: «مشاركاتي» ما دار بيني وبين المزاد — مزايداتٌ وفواتيرُ
+  /// ومشتريات، وكلُّها أثرُ تبادلٍ لا وثيقةٌ ساكنة.
+  ///
+  /// **وموضعُها الثاني** — بُدِّلت بالمحفظة بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+  activity(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
 
   /// نجمةٌ لا قلب: القلبُ على كرت المركبة يعني «احفظها»، ونجمةُ الشريط تعني
   /// «المحفوظات». رمزٌ واحدٌ للفعل وللمكان يجعل من يضغط الشريط يظنّ أنه حفظ
   /// شيئاً.
   favourites(Icons.star_border_rounded, Icons.star_rounded),
 
-  /// فقاعةُ حديث: «مشاركاتي» ما دار بيني وبين المزاد — مزايداتٌ وفواتيرُ
-  /// ومشتريات، وكلُّها أثرُ تبادلٍ لا وثيقةٌ ساكنة.
-  activity(Icons.chat_bubble_outline_rounded, Icons.chat_bubble_rounded),
+  /// محفظةٌ لا بطاقة: المال هنا رصيدٌ ودلاء، لا وسيلةَ دفعٍ واحدة.
+  wallet(
+    Icons.account_balance_wallet_outlined,
+    Icons.account_balance_wallet_rounded,
+  ),
 
   account(Icons.person_outline_rounded, Icons.person_rounded);
 

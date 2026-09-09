@@ -355,7 +355,7 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get searchHint => 'ابحث عن سيارة أو رقم اللوت…';
+  String get searchHint => 'ابحث عن سيارة';
 
   @override
   String get filterMake => 'الماركة';
@@ -808,4 +808,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get favouriteFailed => 'تعذّر تحديث المفضلة';
+
+  @override
+  String get vehicleSpecCity => 'المدينة';
+
+  @override
+  String get vehicleBidDetails => 'تفاصيل المزايدة';
+
+  @override
+  String get vehicleEnterAuction => 'دخول المزاد';
+
+  @override
+  String get vehicleSpecsAction => 'مواصفات المركبة';
+
+  @override
+  String get vehiclePrice => 'السعر';
+
+  @override
+  String get vehiclePriceWithVat => 'السعر + الضريبة';
+
+  @override
+  String get vehicleShareCopied => 'نُسخ رابط المركبة';
 }

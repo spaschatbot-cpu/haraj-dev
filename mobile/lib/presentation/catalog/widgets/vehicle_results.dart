@@ -30,8 +30,10 @@ class VehicleResults extends StatelessWidget {
     required this.onLoadMore,
     required this.onRetryMore,
     required this.emptyMessage,
-    required this.onOpenVehicle,
     this.trailing,
+    this.header,
+    this.pinnedHeader,
+    this.pinnedHeaderExtent = 0,
     this.showCount = true,
     this.prefetchThreshold = 3,
     super.key,
@@ -53,8 +55,6 @@ class VehicleResults extends StatelessWidget {
   /// المزادات لا عن البحث. نصٌّ واحد لهما يقول للعميل الشيء الخطأ في أحدهما.
   final String emptyMessage;
 
-  final void Function(VehicleSummary vehicle) onOpenVehicle;
-
   /// ما يقف في الطرف الآخر من سطر العدّ — زرّ الفرز في الرئيسية.
   ///
   /// **في هذا السطر لا فوقه:** سطرُ العدّ وزرُّ الفرز جوابان عن سؤالٍ واحد
@@ -73,6 +73,28 @@ class VehicleResults extends StatelessWidget {
   /// فارغاً: حشوةٌ بثمانية بكسلات فوق أول كرتٍ بلا شيء فيها.
   final bool showCount;
 
+  /// ما يعلو القائمة **وينزلق معها** — لوحةُ الترحيب وحقلُ البحث ومفتاحُ
+  /// الأطوار في الرئيسية.
+  ///
+  /// **داخل `CustomScrollView` لا فوقه**: كان ثلاثتُها ثابتةً في عمودٍ فوق
+  /// القائمة، فتأكل من الشاشة القصيرة نحو مئةٍ وأربعين بكسلاً **في كل
+  /// تمريرة** — ولا يبقى للسيّارات إلا كرتان. وv1 تُنزلقها، فطلب المالك
+  /// مثلَها في ٩ سبتمبر ٢٠٢٦.
+  ///
+  /// و`null` في بقيّة الشاشات: لا شيء فوق قوائمها ينزلق.
+  final Widget? header;
+
+  /// ما يعلو القائمة **ويثبت فوقها** حين تنزلق — حقلُ البحث ومفتاحُ الأطوار.
+  ///
+  /// **ثابتٌ لا منزلق** بطلب المالك في ٩ سبتمبر ٢٠٢٦: هما مقبضا القائمة، ومن
+  /// نزل عشرين كرتاً ثم أراد تبديل الطور كان عليه أن يصعد كلَّها. ولوحةُ
+  /// الترحيب فوقهما تنزلق لأنها تُقرأ مرّةً ولا تُستعمل.
+  final Widget? pinnedHeader;
+
+  /// ارتفاعُ `pinnedHeader` بالضبط — `SliverPersistentHeader` يفرضه ولا
+  /// يقيسه، فالمكوّنُ يُبنى بارتفاعٍ مضبوطٍ في الشاشة المضيفة ويُمرَّر معه.
+  final double pinnedHeaderExtent;
+
   /// كم مركبة قبل نهاية القائمة نطلب الصفحة التالية.
   final int prefetchThreshold;
 
@@ -82,18 +104,33 @@ class VehicleResults extends StatelessWidget {
     final theme = Theme.of(context);
     final palette = HarajPalette.of(context);
 
-    if (vehicles.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(emptyMessage, textAlign: TextAlign.center),
-        ),
-      );
-    }
-
     return CustomScrollView(
       slivers: <Widget>[
-        if (showCount || trailing != null)
+        if (header case final Widget widget) SliverToBoxAdapter(child: widget),
+        if (pinnedHeader case final Widget widget)
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _PinnedHeader(
+              extent: pinnedHeaderExtent,
+              // **أرضيّةٌ معتمة**: الشريحةُ الثابتة تقف فوق الكروت وهي
+              // تمرّ تحتها، وبلا أرضيّةٍ تُقرأ الكروتُ من خلال حقل البحث.
+              child: ColoredBox(color: palette.pageBackground, child: widget),
+            ),
+          ),
+        // **الفراغُ شريحةٌ لا خروجٌ مبكّر**: كان `return Center` قبل بناء
+        // القائمة، فيأخذ معه الترويسةَ — ومن بحث عن كلمةٍ لم تطابق كان يفقد
+        // حقلَ بحثه فلا يستطيع تصحيحها.
+        if (vehicles.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(emptyMessage, textAlign: TextAlign.center),
+              ),
+            ),
+          ),
+        if (vehicles.isNotEmpty && (showCount || trailing != null))
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
@@ -118,8 +155,8 @@ class VehicleResults extends StatelessWidget {
               ),
             ),
           ),
-        SliverList.builder(itemCount: vehicles.length, itemBuilder: _buildCard),
-        SliverToBoxAdapter(child: _tail()),
+        if (vehicles.isNotEmpty) _cards(),
+        if (vehicles.isNotEmpty) SliverToBoxAdapter(child: _tail()),
         // مكانُ الشريط السفليّ، من `MediaQuery` لا رقماً مكتوباً: القشرة هي
         // التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر صفٍّ تحته
         // فيُقرأ نصفه.
@@ -130,6 +167,43 @@ class VehicleResults extends StatelessWidget {
     );
   }
 
+  /// الكروتُ: عمودٌ واحد على الجوّال، وثلاثةٌ جنباً إلى جنب على اللوح
+  /// والحاسوب — بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+  ///
+  /// **`SliverLayoutBuilder` لا `MediaQuery`**: المقياسُ هو عرضُ القائمة نفسها
+  /// لا عرضُ النافذة — والقائمةُ قد تقف في عمودٍ نصفَ الشاشة، فعرضُ النافذة
+  /// يقول «ثلاثة» حيث لا يسع إلا واحد.
+  ///
+  /// **وحدٌّ أقصى للعمود لا عددٌ مكتوب**: `440` هو حدُّ الكرت نفسه، فالعمودُ لا
+  /// يتمدّد أوسع منه مهما اتّسعت الشاشة، والعددُ يخرج من القسمة — أربعةٌ على
+  /// شاشةٍ أعرض، بلا سطرٍ يُكتب.
+  ///
+  /// **والارتفاعُ مفروضٌ في الشبكة** (`mainAxisExtent`) لأن الشبكةَ لا تقيس
+  /// أبناءَها: ١٧٢ هي حدُّ الكرت الأدنى (١٤٤) وحشوتُه (٥+٥) وثمانيةَ عشرَ
+  /// احتياطاً لخطٍّ أكبر في إعدادات الجهاز.
+  Widget _cards() => SliverLayoutBuilder(
+    builder: (context, constraints) {
+      final columns = (constraints.crossAxisExtent / _maxColumnWidth).floor();
+      if (columns < 2) {
+        return SliverList.builder(
+          itemCount: vehicles.length,
+          itemBuilder: _buildCard,
+        );
+      }
+      return SliverGrid.builder(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: columns,
+          mainAxisExtent: _cardExtent,
+          // **فاصلٌ بين الصفوف**: حشوةُ الكرت الرأسيّة (٥+٥) وحدها تترك
+          // عشرةَ بكسلات بين صفَّين، فتُقرأ الصفوفُ شبكةً ملتصقة لا كروتاً.
+          mainAxisSpacing: 12,
+        ),
+        itemCount: vehicles.length,
+        itemBuilder: _buildCard,
+      );
+    },
+  );
+
   Widget _buildCard(BuildContext context, int index) {
     if (hasMore &&
         index >= vehicles.length - prefetchThreshold &&
@@ -139,11 +213,9 @@ class VehicleResults extends StatelessWidget {
     }
 
     final vehicle = vehicles[index];
-    return VehicleCard(
-      key: ValueKey<String>(vehicle.id),
-      vehicle: vehicle,
-      onTap: () => onOpenVehicle(vehicle),
-    );
+    // **بلا `onTap`**: الكرتُ يفتح صندوقَ المزايدة بنفسه منذ حُذفت صفحةُ
+    // المركبة في ٩ سبتمبر ٢٠٢٦، فلا وجهةَ تُمرَّر إليه من الشاشة المضيفة.
+    return VehicleCard(key: ValueKey<String>(vehicle.id), vehicle: vehicle);
   }
 
   Widget _tail() {
@@ -160,3 +232,41 @@ class VehicleResults extends StatelessWidget {
     );
   }
 }
+
+/// شريحةٌ ثابتة بارتفاعٍ واحد لا يتغيّر بالتمرير.
+///
+/// `min` و`max` متساويان: ترويسةٌ تنكمش تحتاج تخطيطاً يتجاوب مع الانكماش،
+/// وحقلُ بحثٍ نصفُ ارتفاعه ليس حقلَ بحث.
+class _PinnedHeader extends SliverPersistentHeaderDelegate {
+  const _PinnedHeader({required this.extent, required this.child});
+
+  final double extent;
+  final Widget child;
+
+  @override
+  double get minExtent => extent;
+
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) => SizedBox.expand(child: child);
+
+  @override
+  bool shouldRebuild(_PinnedHeader oldDelegate) =>
+      oldDelegate.extent != extent || oldDelegate.child != child;
+}
+
+/// أوسعُ ما يبلغه عمودٌ واحد من الكروت — حدُّ الكرت نفسه.
+const double _maxColumnWidth = 440;
+
+/// ارتفاعُ خليّة الشبكة.
+///
+/// كان ١٧٢ — حدُّ الكرت الأدنى (١٤٤) وحشوتُه (١٠) واحتياطٌ يسير. ورُفع إلى
+/// ١٩٢ بطلب المالك في ٩ سبتمبر ٢٠٢٦: الكرتُ على اللوح أوسع، فصورتُه أوسع،
+/// فارتفاعٌ يساوي ارتفاعَ الجوّال يجعله مفلطحاً.
+const double _cardExtent = 192;
