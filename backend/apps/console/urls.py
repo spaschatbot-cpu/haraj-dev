@@ -112,6 +112,11 @@ urlpatterns = [
     ),
     path("auctions/<int:pk>/bids/", archive.auction_bids, name="auction-bids"),
     path("archive/", archive.auction_archive, name="auction-archive"),
+    path(
+        "archive/<int:pk>/vehicles/",
+        archive.archive_auction_vehicles,
+        name="archive-auction-vehicles",
+    ),
     path("auctions/manage/", bulk.manage, name="auctions-manage"),
     path("auctions/bulk/", bulk.bulk, name="auctions-bulk"),
     path("auctions/quick-edit/", bulk.quick_edit, name="auctions-quick-edit"),

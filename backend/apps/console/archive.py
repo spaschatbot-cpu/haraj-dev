@@ -37,7 +37,9 @@ from django.shortcuts import get_object_or_404, render
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
+from apps.money.models import Invoice
 
+from .dashboard import Stat
 from .exports import export, wants_export
 from .tones import with_tones
 from .views import console_page
@@ -91,9 +93,41 @@ def archived(*, text: str = "", state: str = ""):
     ).order_by("-ends_at", "-number")
 
 
+def archive_totals() -> list[Stat]:
+    """البطاقاتُ الأربع في رأس الأرشيف — نظيرُ v1، بأرقامٍ من القاعدة.
+
+    «المبيعات» جمعُ أسعار المرساة، و«المحصّل» و«المتبقّي» **من الفواتير
+    ودفعاتها** لا من عمودٍ مخزَّن — فلا رقمٌ لا يُعرف متى حُسب. تُحسب على كامل
+    الأرشيف (لا المرشَّح) لأنها ملخّصُ الأرشيف كلِّه، كما في v1.
+    """
+    count = Auction.objects.filter(state__in=ARCHIVED).count()
+    sales = (
+        Vehicle.objects.filter(
+            auction__state__in=ARCHIVED, state__in=SOLD
+        ).aggregate(s=Sum("awarded_price"))["s"]
+        or ZERO
+    )
+    inv = Invoice.objects.filter(vehicle__auction__state__in=ARCHIVED)
+    billed = inv.aggregate(s=Sum("amount"))["s"] or ZERO
+    collected = inv.aggregate(s=Sum("amount_paid"))["s"] or ZERO
+    remaining = billed - collected
+
+    return [
+        Stat(label="إجمالي المزادات", value=f"{count:,}",
+             detail="مزاداتٌ منتهية أو ملغاة.", tone="auction", icon="gavel"),
+        Stat(label="إجمالي المبيعات", value=f"{sales:,.2f}",
+             detail="جمعُ أسعار المركبات المرساة.", tone="money", icon="coins"),
+        Stat(label="إجمالي المحصّل", value=f"{collected:,.2f}",
+             detail="من الدفعات المسجَّلة على الفواتير.", tone="money", icon="wallet"),
+        Stat(label="إجمالي المتبقّي", value=f"{remaining:,.2f}",
+             detail="ما بقي على الفواتير — لا من كلمة أودو.",
+             tone="warn" if remaining > ZERO else "plain", icon="minus-wallet"),
+    ]
+
+
 @console_page("console:auction-archive")
 def auction_archive(request):
-    """قائمة المزادات المنتهية — وكل صفٍّ بابٌ إلى مزايداته."""
+    """قائمة المزادات المنتهية — وكل صفٍّ بابٌ إلى مزايداته وسياراته."""
     rows = archived(
         text=request.GET.get("q", ""),
         state=request.GET.get("state", ""),
@@ -133,10 +167,61 @@ def auction_archive(request):
         "console/auction_archive.html",
         {
             "page": page,
+            "cards": archive_totals(),
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "states": [(value, AuctionState(value).label) for value in ARCHIVED],
         },
+    )
+
+
+def archive_auction_vehicles(request, pk: int):
+    """سياراتُ مزادٍ منتهٍ — قِطعةٌ تُحقَن حين يُوسَّع صفُّه في الأرشيف.
+
+    نظيرُ لوحة v1 المنسدلة تحت كل مزاد: لكل سيارة الفائزُ وسعرُ الرسو وفاتورتُها
+    وحالُ سدادها وصورتُها. تُجلَب عند التوسّع لا مع الصفحة — فأرشيفٌ من مئات
+    المزادات لا يبني آلافَ الكروت دفعةً. بيانات القاعدة، لا رقمٌ من الدماغ.
+    """
+    from apps.auctions import cards
+    from apps.console.after_sales import (
+        latest_invoice_field,
+        odoo_move_url,
+        residual_of,
+        state_label,
+    )
+
+    auction = get_object_or_404(Auction, pk=pk)
+    rows = list(
+        auction.vehicles.select_related("awarded_to")
+        .annotate(
+            invoice_number=latest_invoice_field("number"),
+            invoice_state=latest_invoice_field("state"),
+            invoice_amount=latest_invoice_field("amount"),
+            invoice_paid=latest_invoice_field("amount_paid"),
+            invoice_odoo_id=latest_invoice_field("odoo_invoice_id"),
+        )
+        .order_by("lot_number", "id")
+    )
+    covers = {
+        row.pk: cards.thumbnail_of(row)
+        for row in cards.card_queryset(Vehicle.objects.filter(auction=auction))
+    }
+    with_tones(rows)
+    for row in rows:
+        row.thumb = covers.get(row.pk)
+        row.invoice_label = state_label(row.invoice_state) if row.invoice_state else ""
+        row.invoice_residual = residual_of(row) if row.invoice_number else None
+        # رابطُ الفاتورة الضريبيّة في أودو — «عرض في Odoo» كـ v1؛ يظهر الزرُّ
+        # فقط حين للفاتورة معرّفٌ هناك و`ODOO_BASE_URL` مضبوط.
+        row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
+        row.sold = row.state in SOLD
+
+    from django.conf import settings
+
+    return render(
+        request,
+        "console/_archive_vehicles.html",
+        {"auction": auction, "rows": rows, "odoo_base": settings.ODOO_BASE_URL},
     )
 
 

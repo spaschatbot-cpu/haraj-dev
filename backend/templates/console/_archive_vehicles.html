@@ -1,0 +1,51 @@
+{% load l10n %}
+{% comment %}
+سياراتُ مزادٍ منتهٍ — تُحقَن تحت صفّه في الأرشيف عند التوسّع. بحقول كرت v1:
+صورةٌ، اسمٌ، لونٌ، لوحةٌ، فائزٌ، شارةُ سدادٍ وفاتورة، مبلغُ المزايدة ورقمُ
+الفاتورة، وزرّا «عرض في Odoo» و«سجل المزايدات». بيانات القاعدة، لا من الدماغ.
+{% endcomment %}
+{% if rows %}
+  <div class="arch-cards">
+    {% for car in rows %}
+      <article class="arch-card{% if car.invoice_state == 'paid' %} arch-card--paid{% elif not car.sold %} arch-card--unsold{% endif %}">
+        <div class="arch-card__img">
+          {% if car.thumb %}
+            <img src="{{ car.thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">
+          {% else %}<span class="arch-card__noimg">🚗</span>{% endif %}
+        </div>
+        <div class="arch-card__body">
+          <div class="arch-card__top">
+            <h4 class="arch-card__title">{{ car.make }} {{ car.model }} <small>({{ car.year|unlocalize }})</small></h4>
+            <div class="arch-card__badges">
+              {% if car.invoice_state == 'paid' %}<span class="pill" data-tone="ok">مسدَّد</span>
+              {% elif car.sold %}<span class="pill" data-tone="warn">غير مسدَّد</span>{% endif %}
+              {% if car.invoice_number %}<span class="pill" data-tone="info">فاتورة: موجودة</span>
+              {% else %}<span class="pill" data-tone="plain">بلا فاتورة</span>{% endif %}
+            </div>
+          </div>
+          <div class="arch-card__meta">
+            {% if car.colour %}<span class="chip">🎨 {{ car.get_colour_display }}</span>{% endif %}
+            {% if car.plate_number %}<span class="chip">🏷️ {{ car.plate_number }}</span>{% endif %}
+            <span class="chip">👤 {{ car.awarded_to.full_name|default:"بلا فائز" }}</span>
+          </div>
+          <div class="arch-card__money">
+            <div><span class="arch-card__lbl">مبلغ المزايدة</span>
+              <strong class="money tnum">{{ car.awarded_price|default:"—"|unlocalize }} ر.س</strong></div>
+            <div><span class="arch-card__lbl">رقم الفاتورة</span>
+              <strong class="mono">{{ car.invoice_number|default:"—" }}</strong></div>
+          </div>
+          <div class="arch-card__actions">
+            {% comment %} «عرض في Odoo» لكل سيارةٍ لها فاتورة — كـ v1: يربط
+               بحركة الفاتورة في أودو إن كان لها معرّفٌ هناك، وإلا بقاعدة أودو. {% endcomment %}
+            {% if car.invoice_number %}
+              <a class="btn-sm btn-odoo" href="{{ car.odoo_invoice_url|default:odoo_base }}" target="_blank" rel="noopener">🔗 عرض في Odoo</a>
+            {% endif %}
+            <button type="button" class="btn-sm" data-content-url="{% url 'console:vehicle-bid-list' car.pk %}">🔨 سجل المزايدات</button>
+          </div>
+        </div>
+      </article>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="empty">لا سيارات في هذا المزاد.</p>
+{% endif %}

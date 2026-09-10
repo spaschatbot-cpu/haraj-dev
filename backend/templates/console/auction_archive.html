@@ -1,65 +1,137 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-`unlocalize` على كل رقم: المبلغ يُعرض كما يخزّنه الدفتر لا كما تنسّقه اللغة
-(المادة ٣-٢). ورقمُ المزاد ليس مبلغاً لكنه معرّف — و«٩٠٥» بفاصلة آلافٍ عربية
-ليست الرقم الذي يُبحث به.
+أرشيف المزادات — عرضُ v1 مُعادُ التنظيم، وعملياتُه نفسُها: أربعُ بطاقاتٍ
+(مزادات · مبيعات · محصّل · متبقّي)، وصفٌّ لكل مزادٍ منتهٍ **يُوسَّع** فيُظهر
+سياراتِه (فائز · سعر رسو · فاتورة · سداد · صورة) — تُجلَب عند التوسّع لا مع
+الصفحة، فأرشيفٌ من مئات المزادات لا يبني آلافَ الكروت دفعةً.
 
-أرشيف المزادات — قراءةٌ محضة، ولا زرَّ يكتب.
-
-«إجمالي المبيعات» محسوبٌ من أسعار المركبات المرساة في المزاد نفسه، لا مقروءاً
-من عمودٍ مخزَّن كما في v1. الرقم الذي لا يعرف أحدٌ متى حُسب رقمٌ لا يُبنى عليه.
+قراءةٌ محضة، ولا زرَّ يكتب. و«إجمالي المبيعات/المحصّل/المتبقّي» **من القاعدة
+ودفعاتها** لا من عمودٍ مخزَّن — الرقم الذي لا يُعرف متى حُسب لا يُبنى عليه.
 {% endcomment %}
 {% block title %}أرشيف المزادات{% endblock %}
 {% block heading %}أرشيف المزادات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="اسم المزاد أو رقمه">
-    <select name="state">
-      <option value="">كل الحالات المنتهية</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  <section class="board-stats board-stats--compact" aria-label="أرقام الأرشيف">
+    {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
+  </section>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}" placeholder="اسم المزاد أو رقمه" aria-label="بحث">
+      <select name="state" aria-label="الحالة">
+        <option value="">كل الحالات المنتهية</option>
+        {% for value, label in states %}
+          <option value="{{ value }}"{% if value == state %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q or state %}<a href="{% url 'console:auction-archive' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
   </form>
 
   <div class="scroller">
-    <table>
+    <table class="arch-table">
+    {% comment %} أعمدةُ v1 نفسُها لا أكثر: زرُّ التوسّع، ثم الاسم والانتهاء
+       والعدد وإجمالي المبيعات. الرقمُ والحالةُ والمزايداتُ في صفحة المزاد
+       (الاسمُ رابطُها)، والمباعةُ داخل اللوحة المنسدلة. {% endcomment %}
     <thead>
       <tr>
-        <th>الرقم</th>
+        <th></th>
         <th>اسم المزاد</th>
-        <th>الحالة</th>
         <th>تاريخ الانتهاء</th>
         <th>عدد المركبات</th>
-        <th>المباعة</th>
-        <th>إجمالي المبيعات</th>
-        <th>المزايدات</th>
+        <th>إجمالي المبيعات (ر.س)</th>
       </tr>
     </thead>
     <tbody>
       {% for row in page %}
-        <tr>
-          <td>{{ row.number|unlocalize }}</td>
-          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-          <td>{{ row.ends_at }}</td>
+        {% comment %} الصفُّ كلُّه يُوسِّع: لا صفحةَ منفصلة تُفتح بالضغط، بل
+           تُظهَر تفاصيلُ سياراته وصورُها تحته — كأرشيف v1. {% endcomment %}
+        <tr class="arch-row{% if row.vehicle_count %} arch-row--clickable{% endif %}"
+            {% if row.vehicle_count %}data-arch-toggle
+            data-url="{% url 'console:archive-auction-vehicles' row.pk %}"
+            aria-expanded="false"{% endif %}>
+          <td>
+            {% if row.vehicle_count %}
+              <span class="arch-toggle" aria-hidden="true">▸</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ row.title }}</strong></td>
+          <td>{{ row.ends_at|date:"Y-m-d H:i" }}</td>
           <td class="count">{{ row.vehicle_count|unlocalize }}</td>
-          <td class="count">{{ row.sold_count|unlocalize }}</td>
-          {% comment %} صفرٌ صريح لا خانةٌ فارغة: مزادٌ لم يبع شيئاً معلومةٌ،
-             والخانة الفارغة تُقرأ «لم يُحسب». {% endcomment %}
-          <td class="money">{{ row.sold_total|default:"0.00"|unlocalize }}</td>
-          <td><a href="{% url 'console:auction-bids' row.pk %}">المزايدات</a></td>
+          <td class="money tnum">{{ row.sold_total|default:"0.00"|unlocalize }}</td>
         </tr>
+        {% if row.vehicle_count %}
+          <tr class="arch-panel" hidden><td colspan="5"><div class="arch-panel__inner" data-arch-panel></div></td></tr>
+        {% endif %}
       {% empty %}
-        <tr><td colspan="8" class="empty">لا مزادات منتهية مطابقة.</td></tr>
+        <tr><td colspan="5" class="empty">لا مزادات منتهية مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-  <p>{{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  <div class="table-footer">
+    <div class="table-footer__count">
+      {{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+    </div>
+  </div>
+
+  {% comment %} نافذةُ «سجل المزايدات» — تُجلَب من كرت السيارة وتُحقَن. {% endcomment %}
+  <dialog class="modal cmodal" data-content-dialog>
+    <div data-content-body></div>
+  </dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  // «سجل المزايدات» — الكروتُ تُحقَن عند التوسّع، فالربطُ بتفويض حدثٍ على المستند.
+  var cDialog = document.querySelector('[data-content-dialog]');
+  var cBody = cDialog ? cDialog.querySelector('[data-content-body]') : null;
+  if (cDialog && cDialog.showModal && cBody) {
+    document.addEventListener('click', function (e) {
+      var opener = e.target.closest('[data-content-url]');
+      if (opener) {
+        e.preventDefault(); e.stopPropagation();
+        fetch(opener.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+          .then(function (r) { return r.text(); })
+          .then(function (html) {
+            cBody.innerHTML = html; cDialog.showModal();
+            cBody.querySelectorAll('[data-bids-close], [data-content-close], [data-close]').forEach(function (el) {
+              el.addEventListener('click', function () { cDialog.close(); });
+            });
+          });
+        return;
+      }
+    });
+  }
+})();
+(function () {
+  // الضغطُ على صفِّ مزادٍ يُوسِّعه: يجلب سياراتِه مرّةً (يُخزَّن) ثم يُظهر/يُخفي
+  // اللوحة تحته. لا صفحةَ منفصلة — التفاصيلُ والصورُ تنزل تحت الصفّ نفسِه.
+  document.querySelectorAll('tr[data-arch-toggle]').forEach(function (row) {
+    var panel = row.nextElementSibling; // صفُّ اللوحة
+    var inner = panel ? panel.querySelector('[data-arch-panel]') : null;
+    var mark = row.querySelector('.arch-toggle');
+    if (!inner) return;
+    var loaded = false;
+    row.addEventListener('click', function () {
+      var open = panel.hidden;
+      if (open && !loaded) {
+        inner.innerHTML = '<p class="muted" style="padding:1rem">…جارٍ التحميل</p>';
+        fetch(row.getAttribute('data-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+          .then(function (r) { return r.text(); })
+          .then(function (html) { inner.innerHTML = html; loaded = true; });
+      }
+      panel.hidden = !open;
+      row.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (mark) { mark.classList.toggle('is-open', open); mark.textContent = open ? '▾' : '▸'; }
+    });
+  });
+})();
+</script>
 {% endblock %}

@@ -4589,6 +4589,59 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* صفُّ «إضافة سيارة يدويًا» أعلى الشاشة — موضعُ v1، تحت البطاقات. */
 .cat-add-row { margin: 0 0 1rem; }
 
+/* ---- أرشيف المزادات: صفٌّ يُوسَّع إلى كروت سياراته. T886 ------------------ */
+/* الصفُّ كلُّه قابلٌ للنقر — يُوسِّع لا يفتح صفحة. */
+.arch-row--clickable { cursor: pointer; transition: background .12s ease; }
+.arch-row--clickable:hover { background: var(--raised); }
+.arch-row--clickable[aria-expanded="true"] { background: var(--brand-soft); }
+/* علامةُ التوسّع — مثلّثٌ يدور، لا زرّ. */
+.arch-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  inline-size: 1.6rem; block-size: 1.6rem; border-radius: var(--radius);
+  color: var(--ink-soft); font-size: .8rem; line-height: 1;
+  border: 1px solid var(--line); background: var(--panel);
+}
+.arch-toggle.is-open { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+.arch-panel > td { padding: 0 !important; background: var(--raised); }
+.arch-panel__inner { padding: 1rem 1.1rem; }
+.arch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }
+.arch-card {
+  display: flex; gap: .7rem; padding: .7rem; background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow);
+}
+.arch-card--paid { border-inline-start: 3px solid var(--ok, #16a34a); }
+.arch-card--unsold { opacity: .72; }
+.arch-card__img {
+  flex: 0 0 5rem; inline-size: 5rem; block-size: 5rem; border-radius: var(--radius);
+  overflow: hidden; background: var(--raised); display: flex; align-items: center; justify-content: center;
+}
+.arch-card__img img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.arch-card__noimg { font-size: .68rem; color: var(--muted); }
+.arch-card__body { min-inline-size: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: .5rem; }
+.arch-card__top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; }
+.arch-card__title { margin: 0; font-size: .9rem; font-weight: 800; }
+.arch-card__title small { color: var(--muted); font-weight: 600; }
+.arch-card__badges { display: flex; flex-wrap: wrap; gap: .3rem; }
+.arch-card__meta { display: flex; flex-wrap: wrap; gap: .3rem; }
+/* الأرقامُ تحت لصائقها لا بجانبها — لصيقةٌ صغيرةٌ فوق قيمةٍ بارزة، وكلُّ
+   زوجٍ في صفٍّ يملأ العرض فيقرأ من فوقٍ لتحت: كلمةٌ ثم رقمُها تحتها. */
+.arch-card__money { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .9rem; padding-block-start: .5rem; border-block-start: 1px solid var(--line-soft); }
+.arch-card__money > div { display: flex; flex-direction: column; gap: .15rem; min-inline-size: 0; }
+.arch-card__lbl { font-size: .68rem; font-weight: 700; color: var(--muted); }
+.arch-card__money strong { font-size: .95rem; font-weight: 800; }
+@media (max-width: 480px) { .arch-card__money { grid-template-columns: 1fr; } }
+.arch-card__actions { display: flex; flex-wrap: wrap; gap: .4rem; margin-block-start: auto; padding-block-start: .3rem; }
+.btn-odoo { border-color: #714B67; color: #714B67; }
+.btn-odoo:hover { background: #714B67; color: #fff; border-color: #714B67; }
+/* دخولُ الكروت متدرّجاً حين تُحقَن — يُحترَم `prefers-reduced-motion`. */
+.arch-cards .arch-card { animation: archIn .3s ease both; }
+.arch-cards .arch-card:nth-child(2) { animation-delay: .04s; }
+.arch-cards .arch-card:nth-child(3) { animation-delay: .08s; }
+.arch-cards .arch-card:nth-child(4) { animation-delay: .12s; }
+.arch-cards .arch-card:nth-child(n+5) { animation-delay: .16s; }
+@keyframes archIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .arch-cards .arch-card { animation: none !important; } }
+
 /* أنميشنُ الأيقونات الأساسية في الصفوف (عرض · مزايدات · فاتورة · صور):
    نبضةٌ لطيفةٌ عند المرور، وارتدادٌ عند الضغط، ودخولٌ متدرّج أول تحميل.
    يُحترَم `prefers-reduced-motion`: من أطفأ الحركةَ لا يراها. */
