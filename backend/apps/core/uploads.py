@@ -270,6 +270,17 @@ def vehicle_preview_path(instance, filename: str) -> str:  # noqa: ARG001
     return generated_name("vehicles/previews", _suffix_of(filename))
 
 
+def exit_declaration_path(instance, filename: str) -> str:  # noqa: ARG001
+    """``upload_to`` لملفّ إقرار الخروج (PDF/صورة يرفعها الموظّف). اسمٌ مولَّدٌ
+    في مجلّده — لا اسم المستخدِم، للسبب نفسِه: مجلّدٌ يُشار إليه ويُنظَّف."""
+    return generated_name("exits/declarations", _suffix_of(filename))
+
+
+def exit_proof_path(instance, filename: str) -> str:  # noqa: ARG001
+    """``upload_to`` لإثبات نقل الملكية. مجلّدٌ خاصّ به."""
+    return generated_name("exits/transfers", _suffix_of(filename))
+
+
 def _suffix_of(filename: str) -> str:
     """The extension **we** put on the name we generated, never the uploader's.
 

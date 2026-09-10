@@ -468,3 +468,8 @@ class VehicleImage(models.Model):
 # ---------------------------------------------------------------------------
 
 from .favourites import Favourite  # noqa: E402,F401  (registration import)
+
+# أمرُ الخروج ونقل الملكية — يعيش مع خدماته في `exits.py`، ويُستورَد هنا كي
+# يجده سجلُّ التطبيقات (`makemigrations`). القواعدُ (الكاتبُ الواحد، مراحلُ لا
+# تُملأ إلا في محلّها) ثلاثةُ أسطرٍ منه هناك لا هنا.
+from .exits import VehicleExit  # noqa: E402,F401  (registration import)

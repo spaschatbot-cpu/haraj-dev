@@ -1,77 +1,250 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-الخروج ونقل الملكية — لسانان لا أربعة.
-
-v1 عنده «إنشاء الخروج» و«متابعة نقل الملكية» و«أرشيف المنقولة» و«البوابة»،
-**وكلُّها تعرض الصفوف نفسها بحالة «لم يُنشأ»** — أربعُ شاشاتٍ لحالةٍ لم
-تُسجَّل قطّ في اثني عشر ألف صفّ. وهنا الخروج حالةٌ في المركبة تكتبها
-`auctions.services` وحدها، فاللسانان هما ما تحمله فعلاً.
-
-**وطابور الخروج هو المسدَّد وحده.** لا تُسلَّم سيارةٌ لم يصل مالُها، وشاشةٌ
-تعرضها في الطابور تدعو إلى ذلك — وv1 يعرض المفوتَر وغير المفوتَر معاً بلا
-تمييز.
-
-وعمود المزاد هنا رقمٌ حقيقي: في v1 يقول `0` في الخمسين صفّاً كلّها، والسيارة
-خرجت من مزادٍ له رقم.
+الخروج ونقل الملكية — دورةُ حياةٍ كاملة، نظيرُ v1: أربعةُ ألسنة (إنشاء ·
+متابعة · أرشيف · بوابة). الكتابةُ عبر `apps.auctions.exits` وحدها، وكلُّ فعلٍ
+POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي فعل.
 {% endcomment %}
 {% block title %}الخروج ونقل الملكية{% endblock %}
 {% block heading %}الخروج ونقل الملكية{% endblock %}
 
 {% block content %}
-  <p>
-    <a href="{% url 'console:vehicle-exit' %}?state=awaiting">بانتظار الخروج ({{ awaiting_count|unlocalize }})</a> ·
-    <a href="{% url 'console:vehicle-exit' %}?state=released">خرجت ({{ released_count|unlocalize }})</a>
-  </p>
+  <p class="lede">أوامرُ الخروج الإلكترونية بالباركود، ومتابعةُ نقل الملكية حتى الأرشيف — لِما بيع وسُدِّد.</p>
 
-  <form method="get">
-    <input type="hidden" name="state" value="{{ which }}">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="سيارة أو لوحة أو شاصي أو مشتري أو جوال أو رقم مزاد">
-    <button type="submit">بحث</button>
-  </form>
+  <div class="ex-tabs" role="tablist">
+    <button type="button" class="ex-tab is-on" data-tab="create">📤 إنشاء الخروج <span class="ex-tab__n">{{ counts.create|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="follow">🔄 متابعة نقل الملكية <span class="ex-tab__n">{{ counts.follow|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="archive">🗄️ أرشيف المنقولة <span class="ex-tab__n">{{ counts.archive|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="gate">🚧 البوابة</button>
+  </div>
 
-  <div class="scroller">
-    <table>
-    <thead>
-      <tr>
-        <th>المزاد</th>
-        <th>اللوت</th>
-        <th>السيارة</th>
-        <th>اللوحة</th>
-        <th>الشاصي</th>
-        <th>المشتري</th>
-        <th>الجوال</th>
-        <th>سعر الترسية</th>
-        <th>الحالة</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
-        <tr>
-          <td>
-            <a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.number|unlocalize }}</a>
-          </td>
-          <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
-          <td><a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a></td>
-          <td>{{ row.awarded_to.phone|unlocalize }}</td>
-          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="9" class="empty">لا مركبات في هذا الطابور.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  {# ── لسانُ الإنشاء ────────────────────────────────────────────────── #}
+  <section class="ex-pane" data-pane="create">
+    <form method="get" class="filters filters--row">
+      <div class="filters__main">
+        <input type="search" name="q" value="{{ q }}" placeholder="سيارة · لوحة · شاصي · مشترٍ · جوّال · رقم مزاد" aria-label="بحث">
+        <button type="submit" class="btn-primary">بحث</button>
+        {% if q %}<a href="{% url 'console:vehicle-exit' %}" class="filters__reset">مسح</a>{% endif %}
+        <a href="{{ export_url }}" class="ex-act" title="تصدير كل النتائج المطابقة">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          <span>تصدير Excel</span></a>
+      </div>
+    </form>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>المزاد</th><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>حالة الخروج</th><th>إجراءات</th></tr>
+        </thead>
+        <tbody>
+          {% for car in page %}
+            <tr>
+              <td class="count">{{ car.auction.number|unlocalize }}</td>
+              <td><strong>{{ car.make }} {{ car.model }}</strong></td>
+              <td class="mono">{{ car.plate_number|default:"—" }}</td>
+              <td>{{ car.year|unlocalize }}</td>
+              <td>{{ car.awarded_to.full_name|default:"—" }}</td>
+              <td class="mono">{{ car.awarded_to.phone|default:"—"|unlocalize }}</td>
+              <td>
+                {% if car.exit_order %}
+                  <span class="pill" data-tone="{% if car.exit_order.stage == 'archived' %}ok{% elif car.exit_order.stage == 'under_transfer' %}warn{% else %}info{% endif %}">{{ car.exit_order.get_stage_display }}</span>
+                {% else %}
+                  <span class="pill" data-tone="plain">لم يُنشأ</span>
+                {% endif %}
+              </td>
+              <td class="actions actions--nowrap">
+                {% if car.exit_order %}
+                  {% comment %} ثلاثةُ أفعالٍ كـ v1، أيقونةٌ ونصٌّ معاً: الإقرار/
+                     الباركود · رفع الموقّع · تعديل بيانات المستلِم. {% endcomment %}
+                  <a class="ex-act" href="{% url 'console:exit-declaration' car.pk %}" target="_blank">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1M7 15h10v6H7z"/></svg>
+                    <span>الإقرار/الباركود</span></a>
+                  <button type="button" class="ex-act ex-act--edit"
+                          data-exit-edit
+                          data-pk="{{ car.exit_order.pk|unlocalize }}"
+                          data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}"
+                          data-name="{{ car.exit_order.recipient_name }}"
+                          data-id="{{ car.exit_order.recipient_id }}"
+                          data-phone="{{ car.exit_order.recipient_phone|unlocalize }}"
+                          data-decl="{{ car.exit_order.declaration_date|date:'Y-m-d' }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8a2.8 2.8 0 0 0-4-4L4 16zM14 6l4 4"/></svg>
+                    <span>تعديل</span></button>
+                {% else %}
+                  <button type="button" class="ex-act ex-act--create" data-exit-create
+                          data-action="{% url 'console:exit-create' car.pk %}"
+                          data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+                    <span>إنشاء الخروج</span></button>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="8" class="empty">لا مركباتٍ مسدَّدة مطابقة.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="table-footer__count">{{ page.paginator.count|unlocalize }} مركبة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  </section>
 
-  <p>{{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  {# ── لسانُ المتابعة ──────────────────────────────────────────────── #}
+  <section class="ex-pane" data-pane="follow" hidden>
+    {% if follow %}
+      <div class="scroller">
+        <table>
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>إجراءات</th></tr></thead>
+          <tbody>
+            {% for o in follow %}
+              <tr>
+                <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
+                <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td>{{ o.vehicle.year|unlocalize }}</td>
+                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
+                <td class="mono">{{ o.vehicle.awarded_to.phone|default:"—"|unlocalize }}</td>
+                <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td class="count">{% if o.days_out is not None %}{{ o.days_out|unlocalize }} يوم{% else %}—{% endif %}</td>
+                <td><a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a></td>
+                <td class="actions actions--nowrap">
+                  <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
+                    {% csrf_token %}<input type="hidden" name="tab" value="follow">
+                    <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
+                    <button type="submit" class="btn-primary-sm">✅ تأكيد النقل</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty">لا مركباتٍ قيد متابعة النقل.</p>
+    {% endif %}
+  </section>
 
-  <p class="empty">
-    الطابور هو <strong>المسدَّد</strong> وحده: لا تُسلَّم سيارةٌ لم يصل مالُها.
-    وما رسا ولم يُسدَّد بعدُ مكانه <a href="{% url 'console:after-sales' %}">ما بعد البيع</a>.
-  </p>
+  {# ── لسانُ الأرشيف ───────────────────────────────────────────────── #}
+  <section class="ex-pane" data-pane="archive" hidden>
+    {% if archive %}
+      <div class="scroller">
+        <table>
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
+          <tbody>
+            {% for o in archive %}
+              <tr>
+                <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
+                <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td>{{ o.vehicle.year|unlocalize }}</td>
+                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
+                <td>{{ o.warehouse_exit_at|date:"Y-m-d"|default:"—" }}</td>
+                <td>{{ o.transfer_at|date:"Y-m-d"|default:"—" }}</td>
+                <td>
+                  <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
+                  {% if o.transfer_proof_file %}<a class="btn-sm" href="{{ o.transfer_proof_file.url }}" target="_blank">إثبات النقل</a>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="empty">لا مركباتٍ منقولةٍ بعد.</p>
+    {% endif %}
+  </section>
+
+  {# ── نافذةُ إنشاء أمر الخروج: بياناتُ المستلِم كـ v1 ─────────────── #}
+  <dialog class="modal" data-exit-create-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-create-form>
+      {% csrf_token %}
+      <h2>إنشاء أمر خروج</h2>
+      <p class="muted" data-exit-car></p>
+      <label>اسم المستلِم<input type="text" name="recipient_name"></label>
+      <label>رقم هوية المستلِم<input type="text" name="recipient_id" inputmode="numeric"></label>
+      <label>جوال المستلِم<input type="text" name="recipient_phone" inputmode="tel" placeholder="9665…"></label>
+      <label>صورة الهوية<input type="file" name="recipient_id_image" accept="image/*"></label>
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">إنشاء وطباعة الإقرار</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── نافذةُ تعديل بيانات المستلِم ────────────────────────────────── #}
+  <dialog class="modal" data-exit-edit-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-edit-form>
+      {% csrf_token %}<input type="hidden" name="tab" value="create">
+      <h2>تعديل إقرار الخروج</h2>
+      <p class="muted" data-f="car"></p>
+      <label>اسم المستلِم<input type="text" name="recipient_name" data-f="name"></label>
+      <label>رقم هوية المستلِم<input type="text" name="recipient_id" data-f="id"></label>
+      <label>جوال المستلِم<input type="text" name="recipient_phone" data-f="phone"></label>
+      <label>تاريخ الإقرار<input type="date" name="declaration_date" data-f="decl"></label>
+      <label>صورة التفويض/الهوية الجديدة (اختياري — للاستبدال)<input type="file" name="recipient_id_image" accept="image/*"></label>
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">حفظ</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── لسانُ البوابة ──────────────────────────────────────────────── #}
+  <section class="ex-pane" data-pane="gate" hidden>
+    <div class="ex-gate">
+      <h2>🚧 بوابة الخروج</h2>
+      <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) ثم اضغط تأكيد.</p>
+      <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__form">
+        {% csrf_token %}<input type="hidden" name="tab" value="gate">
+        <input type="text" name="barcode" placeholder="EX…" autocomplete="off" autofocus
+               inputmode="latin" class="ex-gate__input">
+        <button type="submit" class="btn-primary">تأكيد الخروج</button>
+      </form>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var tabs = [].slice.call(document.querySelectorAll('.ex-tab'));
+  var panes = [].slice.call(document.querySelectorAll('.ex-pane'));
+  function show(name) {
+    tabs.forEach(function (t) { t.classList.toggle('is-on', t.dataset.tab === name); });
+    panes.forEach(function (p) { p.hidden = p.dataset.pane !== name; });
+    try { history.replaceState(null, '', '?tab=' + name + (location.search.match(/[?&]q=([^&]*)/) ? '&q=' + RegExp.$1 : '')); } catch (e) {}
+  }
+  tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.tab); }); });
+  // اللسانُ من الرابط (يعود إليه بعد أي فعل)، وإلا الإنشاء.
+  var m = location.search.match(/[?&]tab=([a-z]+)/);
+  show(m ? m[1] : 'create');
+
+  // نافذةُ الإنشاء: تُضبَط وجهتُها من الزرّ، وتُعرَض بياناتُ السيارة.
+  var cDlg = document.querySelector('[data-exit-create-dialog]');
+  var cForm = cDlg && cDlg.querySelector('[data-exit-create-form]');
+  document.querySelectorAll('[data-exit-create]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      cForm.setAttribute('action', btn.getAttribute('data-action'));
+      cDlg.querySelector('[data-exit-car]').textContent = btn.getAttribute('data-car') || '';
+      cForm.reset();
+      cDlg.showModal();
+    });
+  });
+
+  // نافذةُ التعديل: تُملأ من `data-*` على زرّ الكارت.
+  var eDlg = document.querySelector('[data-exit-edit-dialog]');
+  var eForm = eDlg && eDlg.querySelector('[data-exit-edit-form]');
+  document.querySelectorAll('[data-exit-edit]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      eForm.setAttribute('action', '/console/vehicle-exit/' + btn.getAttribute('data-pk') + '/edit/');
+      eForm.querySelector('[data-f=car]').textContent = btn.getAttribute('data-car') || '';
+      eForm.querySelector('[data-f=name]').value = btn.getAttribute('data-name') || '';
+      eForm.querySelector('[data-f=id]').value = btn.getAttribute('data-id') || '';
+      eForm.querySelector('[data-f=phone]').value = btn.getAttribute('data-phone') || '';
+      eForm.querySelector('[data-f=decl]').value = btn.getAttribute('data-decl') || '';
+      eDlg.showModal();
+    });
+  });
+
+  // أزرارُ الإلغاء تُغلق نافذتَها.
+  document.querySelectorAll('dialog [data-close]').forEach(function (b) {
+    b.addEventListener('click', function () { b.closest('dialog').close(); });
+  });
+})();
+</script>
 {% endblock %}

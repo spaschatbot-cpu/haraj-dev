@@ -4589,6 +4589,116 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* صفُّ «إضافة سيارة يدويًا» أعلى الشاشة — موضعُ v1، تحت البطاقات. */
 .cat-add-row { margin: 0 0 1rem; }
 
+/* ---- الخروج ونقل الملكية: ألسنةٌ وبوابةٌ وإقرار. T887 --------------------- */
+.ex-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 1rem; border-block-end: 1px solid var(--line); }
+.ex-tab {
+  appearance: none; border: 0; background: none; cursor: pointer;
+  padding: .6rem .9rem; font: inherit; font-weight: 800; font-size: .88rem;
+  color: var(--muted); border-block-end: 3px solid transparent; margin-block-end: -1px;
+}
+.ex-tab:hover { color: var(--ink); }
+.ex-tab.is-on { color: var(--brand-dark); border-block-end-color: var(--brand-solid); }
+.ex-tab__n { display: inline-block; min-inline-size: 1.2rem; padding: 0 .35rem; margin-inline-start: .25rem; font-size: .72rem; background: var(--raised); border: 1px solid var(--line); border-radius: 999px; color: var(--ink-soft); }
+.ex-tab.is-on .ex-tab__n { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); }
+.ex-inline { display: flex; align-items: center; gap: .35rem; margin: 0; flex-wrap: wrap; }
+.ex-inline input[type=file] { max-inline-size: 11rem; font-size: .76rem; }
+
+/* أزرارُ الإجراءات: أيقونةٌ ورسمةٌ ونصٌّ معاً، بأنميشن دخولٍ وتفاعلٍ عند المرور. */
+.actions--nowrap { display: inline-flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+.ex-act {
+  display: inline-flex; align-items: center; gap: .35rem; cursor: pointer;
+  padding: .32rem .6rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink-soft); font: inherit; font-size: .78rem; font-weight: 700;
+  text-decoration: none; white-space: nowrap;
+  transition: border-color .15s ease, background .15s ease, color .15s ease, transform .12s ease;
+  animation: exActIn .32s ease both;
+}
+.ex-act svg { inline-size: 1rem; block-size: 1rem; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+.ex-act:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); transform: translateY(-1px); }
+.ex-act:hover svg { transform: scale(1.18) rotate(-6deg); }
+.ex-act:active { transform: translateY(0) scale(.97); }
+.ex-act--edit:hover { border-color: var(--warn, #b45309); color: var(--warn, #b45309); background: var(--warn-soft, #fef3c7); }
+/* «إنشاء الخروج» أبرزُ قليلاً — فعلٌ رئيسيّ بلون العلامة. */
+.ex-act--create { border-color: var(--brand); color: var(--brand-dark); }
+.ex-act--create:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
+.ex-upload { display: inline; margin: 0; }
+.actions--nowrap .ex-act:nth-child(2) { animation-delay: .05s; }
+.actions--nowrap .ex-act:nth-child(3) { animation-delay: .1s; }
+@keyframes exActIn { from { opacity: 0; transform: translateY(4px) scale(.92); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .ex-act { animation: none !important; } .ex-act, .ex-act svg { transition: none !important; } }
+
+.ex-gate { max-inline-size: 30rem; margin: 1rem auto; text-align: center; padding: 1.6rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.ex-gate h2 { margin: 0 0 .3rem; }
+.ex-gate__form { display: flex; gap: .5rem; margin-block-start: 1rem; }
+.ex-gate__input { flex: 1 1 auto; padding: .7rem .9rem; font: inherit; font-size: 1.1rem; font-family: var(--mono, ui-monospace, monospace); letter-spacing: .1em; text-align: center; border: 2px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); text-transform: uppercase; }
+.ex-gate__input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+
+/* إقرارُ واستلام المركبة — ورقةٌ قانونيّة تُطبَع. */
+.decl { max-inline-size: 50rem; margin: 0 auto; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 1.8rem; line-height: 1.7; }
+.decl__org { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block-end: 1rem; border-block-end: 2px solid var(--line); }
+.decl__org h2 { margin: 0; font-size: 1.05rem; }
+.decl__barcode { text-align: center; }
+.decl__barcode svg { max-inline-size: 100%; background: #fff; border-radius: var(--radius); padding: .3rem; }
+.decl__code { margin: .2rem 0 0; font-family: var(--mono, ui-monospace, monospace); font-weight: 800; letter-spacing: .12em; font-size: .82rem; }
+.decl__title { text-align: center; margin: 1rem 0 .3rem; font-size: 1.15rem; }
+.decl__date { text-align: center; color: var(--muted); margin: 0 0 1rem; font-size: .9rem; }
+.decl__recipient { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .4rem .9rem; margin: 0 0 1rem; padding: .8rem 1rem; background: var(--raised); border-radius: var(--radius); }
+.decl__recipient > div { display: flex; gap: .4rem; }
+.decl__recipient dt { color: var(--muted); font-weight: 700; margin: 0; }
+.decl__recipient dd { margin: 0; font-weight: 800; }
+.decl__lead { font-weight: 800; margin: 1rem 0 .4rem; }
+.decl__clauses { margin: 0; padding-inline-start: 1.3rem; display: grid; gap: .5rem; font-size: .88rem; }
+.decl__clauses li { padding-inline-start: .2rem; }
+.decl__sub { margin: 1.4rem 0 .5rem; font-size: .95rem; }
+/* جدولُ بيانات المركبة: يملأ العرضَ كاملاً ويلتفّ محتواه — لا تمريرَ أفقيّ،
+   فيظهر بأعمدته العشرة كلِّها في صفحةٍ واحدة عند الطباعة. */
+.decl__veh { inline-size: 100%; border-collapse: collapse; font-size: .74rem; table-layout: fixed; }
+.decl__veh th, .decl__veh td { border: 1px solid var(--line); padding: .35rem .3rem; text-align: center; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+.decl__veh th { background: var(--raised); font-weight: 800; }
+/* حاوي الجدول في الإقرار لا يُمرَّر — الجدولُ يفيت أصلاً. */
+.decl .scroller { overflow: visible; }
+.decl__notes { margin: 1.2rem 0; padding: .8rem; border: 1px dashed var(--line); border-radius: var(--radius); min-block-size: 2.5rem; }
+.decl__foot { display: flex; flex-wrap: wrap; gap: 1.5rem 2.5rem; align-items: flex-end; margin-block-start: 1.5rem; font-size: .9rem; font-weight: 700; }
+.decl__idimg { display: flex; flex-direction: column; gap: .3rem; }
+.decl__idimg span { font-size: .74rem; color: var(--muted); }
+.decl__idimg img { max-inline-size: 9rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.decl__idbox { display: flex; align-items: center; justify-content: center; inline-size: 9rem; block-size: 5.5rem; border: 1.5px dashed var(--line); border-radius: var(--radius); color: var(--muted); font-size: .78rem; }
+@media print {
+  /* لا يُطبَع إلا الإقرار: يُخفى الشريطُ الجانبيّ والعلويّ ورأسُ الصفحة (فيه
+     زرّا الطباعة والرجوع)، ويُفرَد المحتوى على العرض كلِّه. */
+  .sidebar, .topbar, .page, .notice { display: none !important; }
+  .layout, .shell, main { display: block !important; margin: 0 !important; padding: 0 !important; max-inline-size: none !important; background: #fff !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  html, body { background: #fff !important; }
+  /* الثيمُ داكن، فتُجبَر ألوانُ الإقرار فاتحةً في الورق مهما كان مظهرُ الشاشة:
+     ورقةٌ سوداء لا تُطبَع. */
+  .decl, .decl * { color: #000 !important; background: transparent !important; box-shadow: none !important; border-color: #999 !important; }
+  .decl { background: #fff !important; border: 0 !important; max-inline-size: none !important; padding: 0 !important; line-height: 1.6; }
+  .decl__recipient, .decl__notes { background: #f3f3f3 !important; }
+  .decl__veh th { background: #e8e8e8 !important; }
+  /* الجدولُ كاملاً في الورق: خطٌّ أصغر ولا تمريرَ، فتظهر الأعمدةُ العشرة معاً. */
+  .decl .scroller { overflow: visible !important; }
+  .decl__veh { font-size: .6rem !important; table-layout: fixed !important; inline-size: 100% !important; }
+  .decl__veh th, .decl__veh td { padding: .2rem !important; white-space: normal !important; overflow-wrap: anywhere !important; }
+  .decl__barcode svg { background: #fff !important; block-size: 40px !important; }
+  .decl .muted, .decl__idimg span { color: #555 !important; }
+
+  /* صفحةٌ واحدة: يُضغَط كلُّ شيء ليدخل في ورقةٍ واحدة (٩ فقرات + جدول + توقيع). */
+  @page { size: A4 portrait; margin: 8mm; }
+  .decl { line-height: 1.28 !important; font-size: 8.6pt !important; }
+  .decl__org { padding-block-end: .3rem !important; margin-block-end: .3rem !important; }
+  .decl__org h2 { font-size: 11pt !important; }
+  .decl__title { font-size: 11pt !important; margin: .3rem 0 .1rem !important; }
+  .decl__date { margin: 0 0 .3rem !important; font-size: 8pt !important; }
+  .decl__recipient { padding: .3rem .5rem !important; margin: 0 0 .35rem !important; gap: .1rem .8rem !important; }
+  .decl__lead { margin: .35rem 0 .15rem !important; }
+  .decl__clauses { gap: .12rem !important; font-size: 8pt !important; padding-inline-start: 1rem !important; }
+  .decl__sub { margin: .5rem 0 .2rem !important; font-size: 9pt !important; }
+  .decl__notes { margin: .4rem 0 !important; padding: .35rem !important; min-block-size: 1.4rem !important; }
+  .decl__foot { margin-block-start: .5rem !important; gap: .5rem 2rem !important; font-size: 8.5pt !important; }
+  .decl__idimg img, .decl__idbox { max-inline-size: 6rem !important; block-size: 3.4rem !important; inline-size: 6rem !important; }
+}
+
 /* ---- أرشيف المزادات: صفٌّ يُوسَّع إلى كروت سياراته. T886 ------------------ */
 /* الصفُّ كلُّه قابلٌ للنقر — يُوسِّع لا يفتح صفحة. */
 .arch-row--clickable { cursor: pointer; transition: background .12s ease; }

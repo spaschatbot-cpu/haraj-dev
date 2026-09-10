@@ -25,6 +25,7 @@ from . import (
     catalog,
     customer_file,
     decisions,
+    exits,
     health,
     importexport,
     inbox,
@@ -173,7 +174,21 @@ urlpatterns = [
     path("vehicles/catalog/", catalog.vehicle_catalog, name="vehicle-catalog"),
     path("vehicles/search/", catalog.vehicle_search, name="vehicle-search"),
     path("after-sales/", after_sales.after_sales, name="after-sales"),
-    path("vehicle-exit/", catalog.vehicle_exit, name="vehicle-exit"),
+    # الخروج ونقل الملكية — دورةُ حياةٍ كاملة (T887). الكتابةُ عبر
+    # `apps.auctions.exits` وحدها؛ وكلُّ فعلٍ POST فلا يُطلَق برابطٍ من السجلّ.
+    path("vehicle-exit/", exits.vehicle_exit, name="vehicle-exit"),
+    path("vehicle-exit/<int:pk>/create/", exits.exit_create, name="exit-create"),
+    path(
+        "vehicle-exit/<int:pk>/declaration/",
+        exits.exit_declaration,
+        name="exit-declaration",
+    ),
+    path("vehicle-exit/gate/", exits.exit_gate, name="exit-gate"),
+    path("vehicle-exit/<int:pk>/transfer/", exits.exit_transfer, name="exit-transfer"),
+    path("vehicle-exit/<int:pk>/lift-ban/", exits.exit_lift_ban, name="exit-lift-ban"),
+    path("vehicle-exit/<int:pk>/upload/", exits.exit_upload, name="exit-upload"),
+    path("vehicle-exit/<int:pk>/edit/", exits.exit_edit, name="exit-edit"),
+    path("vehicle-exit/<int:pk>/note/", exits.exit_note, name="exit-note"),
     path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
     # الفواتير (T830ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
     path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),

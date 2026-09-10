@@ -1,0 +1,97 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+إقرار واستلام نهائي للمركبة — نصُّ v1 القانونيّ كاملاً. يُطبَع ويُوقَّع
+ويُسلَّم مع السيارة إلى البوابة. الباركود (Code128) يُمسَح لتأكيد الخروج.
+{% endcomment %}
+{% block title %}إقرار خروج {{ order.barcode }}{% endblock %}
+{% block heading %}إقرار واستلام نهائي للمركبة{% endblock %}
+
+{% block actions %}
+  <button type="button" class="btn-primary" onclick="window.print()">🖨️ طباعة</button>
+  <a href="{% url 'console:vehicle-exit' %}" class="btn-ghost">↩ رجوع</a>
+{% endblock %}
+
+{% block content %}
+  <div class="decl">
+    <header class="decl__org">
+      <div>
+        <h2>شركة حراج واحد للخدمات اللوجستية</h2>
+        <p class="muted">س.ت: 1010916469 — المملكة العربية السعودية — الرياض</p>
+      </div>
+      <div class="decl__barcode">
+        <svg id="declBarcode"></svg>
+        <p class="decl__code">{{ order.barcode }}</p>
+      </div>
+    </header>
+
+    <h3 class="decl__title">إقرار واستلام نهائي للمركبة</h3>
+    <p class="decl__date">إنه في يوم ......... الموافق ..... / ..... / ...... هـ — {% if order.declaration_date %}{{ order.declaration_date|date:"Y / m / d" }} م{% else %}..... / ..... / ...... م{% endif %}</p>
+
+    <dl class="decl__recipient">
+      <div><dt>اسم المستلم:</dt><dd>{{ order.recipient_name|default:vehicle.awarded_to.full_name|default:"—" }}</dd></div>
+      <div><dt>رقم الهوية/الإقامة:</dt><dd class="tnum">{{ order.recipient_id|default:"—" }}</dd></div>
+      <div><dt>الجوال:</dt><dd class="tnum">{{ order.recipient_phone|default:vehicle.awarded_to.phone|default:"—"|unlocalize }}</dd></div>
+    </dl>
+
+    <p class="decl__lead">أقر أنا الموقّع أدناه بما يلي:</p>
+    <ol class="decl__clauses">
+      <li>أقر بأنني استلمت المركبة الموضحة بياناتها أدناه من شركة حراج واحد للخدمات اللوجستية (بصفتها مشغّل منصة حراج واحد التقنية) ومالك المركبة بموجب التنازل من شركة التأمين (المالك)، وذلك نيابةً عن نفسي وبوصفي المالك الجديد للمركبة أو من يمثله نظاماً.</li>
+      <li>أقر بأن استلامي للمركبة تم بعد معاينتها معاينةً كافية من حيث الشكل الخارجي والهيكل والداخلية، وأنني رضيت بها على حالتها الراهنة (حطام / كما هي) دون أي ضمان من الشركة على حالة المركبة أو صلاحيتها لأي غرض.</li>
+      <li>أقر بأن شركة حراج واحد للخدمات اللوجستية ليست مسؤولة عن أي عيوب ظاهرة أو خفية في المركبة، ولا عن أي أعطال ميكانيكية أو كهربائية أو إلكترونية أو هيكلية أو حوادث سابقة أو غرق، وألا يحق لي الرجوع أو المطالبة على الشركة بشأن حالة المركبة.</li>
+      <li>أقر بأن جميع البيانات والمواصفات التي بُني عليها قراري بالشراء قد اطلعت عليها وعاينت المركبة على ضوئها، ولا أستند إلى أي تصريحات أو وعود أو ضمانات أخرى صادرة من الشركة أو موظفيها أياً كان نوعها.</li>
+      <li>أقر بأن هذا الاستلام يُعد استلاماً نهائياً للمركبة، ولا يحق لي بعده مطالبة الشركة بأي مطالبات مالية أو تعويضات أو استرجاع أو استبدال أو فسخ بسبب حالة المركبة أو عيوبها أو ملحقاتها.</li>
+      <li>أقر بأن مسؤولية حراسة المركبة وخطر هلاكها أو سرقتها أو تلفها تنتقل إليّ بالكامل من لحظة توقيعي على هذا الإقرار واستلامي للمركبة فعلياً، ولا تتحمل الشركة بعد هذه اللحظة أي مسؤولية مهما كان سبب الضرر.</li>
+      <li>في حال وجود أي ملاحظة على المركبة عند الاستلام فقد تم إثباتها كتابةً في خانة الملاحظات أدناه، وما لم يُثبت فيها يُعتبر متنازلاً عنه ولا يحق لي إثارته لاحقاً.</li>
+      <li>أقر بأن توقيعي على هذا الإقرار يُعد مكملاً لشروط وأحكام استخدام منصة حراج واحد، وأن جميع تلك الشروط جزء لا يتجزأ من هذا الإقرار وواجبة التطبيق.</li>
+      <li>أقر بصحة جميع البيانات الواردة في هذا الإقرار، وأن توقيعي عليه تم بكامل إرادتي ودون إكراه، وأنه حجة قاطعة عليّ في مواجهة شركة حراج واحد للخدمات اللوجستية.</li>
+    </ol>
+
+    <h4 class="decl__sub">بيانات المركبة المستلمة</h4>
+    <div class="scroller">
+      <table class="decl__veh">
+        <thead>
+          <tr><th>رقم المزاد</th><th>معرّف التطبيق</th><th>رقم الموقف</th><th>نوع السيارة</th><th>الموديل</th><th>اللون</th><th>رقم اللوحة</th><th>رقم الهيكل</th><th>رقم المطالبة</th><th>جوال المستلم</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="tnum">{{ vehicle.auction.number|unlocalize }}</td>
+            <td class="tnum">{{ vehicle.pk|unlocalize }}</td>
+            <td class="tnum">{{ vehicle.lot_number|unlocalize }}</td>
+            <td>{{ vehicle.make }} {{ vehicle.model }}</td>
+            <td>{{ vehicle.year|unlocalize }}</td>
+            <td>{{ vehicle.get_colour_display }}</td>
+            <td class="tnum">{{ vehicle.plate_number|default:"—" }}</td>
+            <td class="tnum">{{ vehicle.vin|default:"—" }}</td>
+            <td class="tnum">{{ vehicle.claim_number|default:"—" }}</td>
+            <td class="tnum">{{ order.recipient_phone|default:vehicle.awarded_to.phone|default:"—"|unlocalize }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="decl__notes"><strong>الملاحظات عند الاستلام (إن وجدت):</strong> {{ order.notes|default:"" }}</p>
+
+    <div class="decl__foot">
+      <div>الاسم الكامل: {{ order.recipient_name|default:vehicle.awarded_to.full_name|default:"" }}</div>
+      <div>التوقيع: ..........................</div>
+      {% comment %} صورةُ الهوية تظهر دائماً: صورةٌ إن رُفعت، وإلا خانةٌ تُلصَق
+         فيها الهويةُ يدوياً على الورقة المطبوعة — كـ v1. {% endcomment %}
+      <div class="decl__idimg">
+        <span>صورة الهوية</span>
+        {% if order.recipient_id_image %}
+          <img src="{{ order.recipient_id_image.url }}" alt="هوية">
+        {% else %}
+          <span class="decl__idbox">تُلصَق هنا</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script>
+  try { JsBarcode('#declBarcode', '{{ order.barcode|escapejs }}', { format: 'CODE128', height: 56, displayValue: false, margin: 6 }); } catch (e) {}
+</script>
+{% endblock %}
