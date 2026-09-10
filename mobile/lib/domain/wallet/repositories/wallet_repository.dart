@@ -1,8 +1,8 @@
 import '../../common/snapshot.dart';
 import '../entities/ledger_movement.dart';
+import '../entities/refund_request.dart';
 import '../entities/top_up.dart';
 import '../entities/wallet_balance.dart';
-
 /// عقد المحفظة.
 ///
 /// يرجع `Snapshot` لا الكيان مجرَّداً: العرض يحتاج أن يعرف إن كانت هذه آخر نسخة
@@ -20,6 +20,12 @@ abstract interface class WalletRepository {
     int page,
     WalletBucketKind? bucket,
   });
+
+  /// يقرأ طلباتِ الاسترداد التي قدّمها العميل.
+  ///
+  /// **قائمةٌ لا عدد**: العدّ يُقرأ من طولها، والمبلغُ والحالةُ يُقرآن من
+  /// صفوفها — ومجموعٌ يحسبه التطبيق رقمٌ بلا قيدٍ يقابله (المادة ١-٦).
+  Future<Snapshot<List<RefundRequest>>> loadRefundRequests();
 
   /// يفتح نيّة شحن بالبطاقة عند الخادم. بلا مبلغ: الخادم يحدّده.
   Future<TopUp> startTopUp();

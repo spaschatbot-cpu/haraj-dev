@@ -6,6 +6,9 @@ import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../domain/common/money.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../bidding/bidding_controllers.dart';
+import '../../bidding/lower_bid_confirmation_dialog.dart';
+import '../../common/failure_message.dart';
 import '../../common/money_text.dart';
 import '../favourites_controller.dart';
 import 'remote_image.dart';
@@ -17,24 +20,26 @@ import 'remote_image.dart';
 /// المالك النافذة في ٩ سبتمبر ٢٠٢٦ على مثال v1 — **والسببُ محفوظ**: لا مزايدةَ
 /// تقع من هنا. الصندوقُ يعرض ما يعرفه الكرت، وزرُّه الوحيد ينقل إلى الصفحة.
 ///
-/// **ولا خانةَ سعرٍ فيه** خلافاً لـv1. المزاد **مغلق** في هذا المنتج
-/// (`ce013b9`) فلا `reserve_price` يصل ولا مزايدةَ برقمٍ يُكتب هنا، وخانةٌ
-/// فارغة تسأل عن مبلغٍ لا يُرسَل أسوأ من غيابها.
+/// **والمزايدةُ تقع من هنا** — بقرار المالك في ٩ سبتمبر ٢٠٢٦، وحُذفت شاشةُ
+/// المزايدة التي كانت تستقبلها. والشرطُ الذي حماها يومَ كان الزرُّ ينقل إلى
+/// شاشة: لا مزايدةَ بضغطةٍ واحدة على كرتٍ في قائمة — فالمبلغُ يُكتب في الصندوق
+/// أوّلاً، وزرٌّ بلا مبلغٍ معطَّل.
+///
+/// **ولا حكمَ هنا على المبلغ** (معيار J7): لا حدَّ أدنى يُحسب، ولا أهليّةَ
+/// تُفحص، ولا مقارنةَ بمزايدةٍ قائمة. الخادمُ وحده يقبل أو يرفض، ونصُّ رفضِه
+/// هو ما يُعرض — وأيُّ فرعٍ هنا ينتج سبباً ثانياً يفترق عنه.
 Future<void> showVehicleBidSheet(
   BuildContext context, {
   required VehicleSummary vehicle,
-  required VoidCallback? onEnterAuction,
 }) => showDialog<void>(
   context: context,
-  builder: (dialogContext) =>
-      _BidSheet(vehicle: vehicle, onEnterAuction: onEnterAuction),
+  builder: (dialogContext) => _BidSheet(vehicle: vehicle),
 );
 
 class _BidSheet extends ConsumerStatefulWidget {
-  const _BidSheet({required this.vehicle, required this.onEnterAuction});
+  const _BidSheet({required this.vehicle});
 
   final VehicleSummary vehicle;
-  final VoidCallback? onEnterAuction;
 
   @override
   ConsumerState<_BidSheet> createState() => _BidSheetState();
@@ -80,6 +85,69 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
   /// المشاركة **نسخُ الرابط** لا ورقةَ نظام: `share_plus` ليست في التبعيّات،
   /// وإضافةُ حزمةٍ لزرٍّ في نافذة أكبرُ من ثمنه. والنسخُ يفعل ما يريده من
   /// ضغط الزرّ: أن يخرج الرابطُ من التطبيق إلى محادثة.
+  /// يرسل المبلغَ المكتوب، ويعرض جوابَ الخادم كما وصل.
+  ///
+  /// **والتأكيدُ على خفض المبلغ يمرّ بحواره** كما في الشاشة المحذوفة: النداءُ
+  /// الثاني وحده يحمل `confirmLower`، ولا يحمله إلا بعد أن طلبه الخادمُ
+  /// وأقرّه العميل. استنتاجُه هنا يمشي خلال الحارس الذي وُجد له.
+  Future<void> _placeBid() async {
+    final amount = _price.text.trim();
+    if (amount.isEmpty) return;
+
+    final controller = ref.read(
+      placeBidControllerProvider(vehicle.id).notifier,
+    );
+    await controller.submit(amount);
+    if (!mounted) return;
+
+    final first = ref.read(placeBidControllerProvider(vehicle.id));
+    if (first case final PlaceBidNeedsConfirmation pending) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) =>
+            LowerBidConfirmationDialog(request: pending.request),
+      );
+      if (!mounted) return;
+      if (!(confirmed ?? false)) {
+        controller.dismiss();
+        return;
+      }
+      await controller.submit(amount, confirmLower: true);
+      if (!mounted) return;
+    }
+
+    // **تُقرأ الحالةُ بعد الفرعين معاً**: نداءٌ واحد أو نداءان، والجوابُ
+    // المعروض هو الأخير لا الأول.
+    final state = ref.read(placeBidControllerProvider(vehicle.id));
+    switch (state) {
+      case PlaceBidAccepted():
+        // **القائمةُ تُبطَل لا تُعدَّل**: «مشاركاتي» تُبنى من مزايدات الخادم،
+        // وإضافةُ صفٍّ محلياً تقول «سُجّلت» قبل أن يقولها هو.
+        ref.invalidate(myBidsProvider);
+        Navigator.of(context).pop();
+        await showDialog<void>(
+          context: context,
+          builder: (context) => _NoticeDialog(
+            message: AppLocalizations.of(context).bidPlacedTitle,
+            accepted: true,
+          ),
+        );
+      case PlaceBidRefused(:final failure):
+        // **حوارٌ في وسط الشاشة لا شريطُ رسالةٍ في قاعها** — بطلب المالك في ٩
+        // سبتمبر ٢٠٢٦. الشريطُ يظهر أسفل الصندوق وقد يمرّ قبل أن يُقرأ،
+        // ورفضُ مزايدةٍ جوابٌ على فعلٍ مقصود يستحقّ إقراراً بضغطة.
+        await showDialog<void>(
+          context: context,
+          builder: (context) => _NoticeDialog(
+            message: failureMessage(context, failure),
+            accepted: false,
+          ),
+        );
+      case _:
+        break;
+    }
+  }
+
   Future<void> _share() async {
     await Clipboard.setData(
       ClipboardData(text: '${vehicle.title} — ${vehicle.reference}'),
@@ -117,7 +185,6 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
     final odometer = vehicle.odometerKm;
-    final onEnterAuction = widget.onEnterAuction;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
@@ -219,15 +286,12 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
               palette: palette,
               l10n: l10n,
               priceController: _price,
-              onEnterAuction: onEnterAuction == null
-                  ? null
-                  : () {
-                      // الإغلاقُ أوّلاً ثم التنقّل: نافذةٌ تبقى مفتوحة فوق
-                      // الصفحة الجديدة تُقرأ عطلاً، ورجوعُ النظام يغلقها بدل
-                      // أن يرجع.
-                      Navigator.of(context).pop();
-                      onEnterAuction();
-                    },
+              // **معطَّلٌ بلا مبلغ**: زرٌّ يستجيب ولا يرسل شيئاً يُقرأ عطلاً،
+              // وزرٌّ يرسل بلا مبلغٍ مزايدةٌ بالخطأ.
+              onPlaceBid: _price.text.trim().isEmpty ? null : _placeBid,
+              submitting:
+                  ref.watch(placeBidControllerProvider(vehicle.id))
+                      is PlaceBidSubmitting,
             ),
           ],
         ),
@@ -277,7 +341,7 @@ class _Header extends StatelessWidget {
               fontFamily: HarajTheme.fontFamily,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: palette.brown,
+              color: palette.ink,
             ),
           ),
         ),
@@ -430,7 +494,7 @@ class _Spec extends StatelessWidget {
                   fontFamily: HarajTheme.fontFamily,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: palette.brown,
+                  color: palette.ink,
                   height: 1.25,
                 ),
               ),
@@ -452,14 +516,20 @@ class _BidPanel extends StatelessWidget {
     required this.palette,
     required this.l10n,
     required this.priceController,
-    required this.onEnterAuction,
+    required this.onPlaceBid,
+    required this.submitting,
   });
 
   final VehicleSummary vehicle;
   final HarajPalette palette;
   final AppLocalizations l10n;
   final TextEditingController priceController;
-  final VoidCallback? onEnterAuction;
+
+  /// `null` حين لا مبلغَ مكتوب — الزرُّ معطَّل حينها.
+  final VoidCallback? onPlaceBid;
+
+  /// طلبٌ جارٍ: الزرُّ يدور ولا يقبل ضغطةً ثانية.
+  final bool submitting;
 
   /// «السعر + الضريبة» من السعر المكتوب — **بحسابٍ صحيحٍ بالهللات**.
   ///
@@ -529,7 +599,7 @@ class _BidPanel extends StatelessWidget {
         ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: palette.brown.withValues(alpha: 0.10),
+            color: palette.ink.withValues(alpha: 0.10),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -550,7 +620,7 @@ class _BidPanel extends StatelessWidget {
                   fontFamily: HarajTheme.fontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: palette.brown,
+                  color: palette.ink,
                 ),
               ),
             ],
@@ -616,9 +686,22 @@ class _BidPanel extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _EnterButton(
-            label: l10n.vehicleEnterAuction,
+            label: l10n.bidSubmit,
             palette: palette,
-            onTap: onEnterAuction,
+            onTap: submitting ? null : onPlaceBid,
+            busy: submitting,
+          ),
+          const SizedBox(height: 8),
+          // **«الخادم يقرّر» مكتوبةٌ تحت الزرّ** كما كانت في الشاشة المحذوفة:
+          // من يضغط يجب أن يعرف أن المبلغ طلبٌ لا نتيجة.
+          Text(
+            l10n.bidServerDecides,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 10.5,
+              color: palette.inkMuted,
+            ),
           ),
         ],
       ),
@@ -696,7 +779,7 @@ class _PriceField extends StatelessWidget {
             fontFamily: HarajTheme.fontFamily,
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: palette.brown,
+            color: palette.ink,
           ),
         ),
       ],
@@ -765,7 +848,7 @@ class _MoneyBox extends StatelessWidget {
               fontFamily: HarajTheme.fontFamily,
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: emphasised ? palette.goldDeep : palette.brown,
+              color: emphasised ? palette.goldDeep : palette.ink,
             ),
           )
         else
@@ -789,11 +872,15 @@ class _EnterButton extends StatelessWidget {
     required this.label,
     required this.palette,
     required this.onTap,
+    this.busy = false,
   });
 
   final String label;
   final HarajPalette palette;
   final VoidCallback? onTap;
+
+  /// طلبٌ جارٍ — مؤشّرٌ مكان النصّ بنفس ارتفاع الزرّ، فلا ينكمش تحت الإصبع.
+  final bool busy;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -813,26 +900,111 @@ class _EnterButton extends StatelessWidget {
         onTap: onTap,
         child: SizedBox(
           height: 44,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(Icons.gavel_rounded, size: 17, color: palette.heroBottom),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  // شبه أسود على الذهبيّ لا أبيض: الأبيض على `#B8860B`
-                  // نسبتُه ٣٫٣:١ وهي دون الحدّ، وهذا نحو ٧:١.
-                  color: palette.heroBottom,
+          child: busy
+              ? Center(
+                  child: SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: palette.heroBottom,
+                    ),
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Icon(
+                      Icons.gavel_rounded,
+                      size: 17,
+                      color: palette.heroBottom,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        // شبه أسود على الذهبيّ لا أبيض: الأبيض على `#B8860B`
+                        // نسبتُه ٣٫٣:١ وهي دون الحدّ، وهذا نحو ٧:١.
+                        color: palette.heroBottom,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     ),
   );
+}
+
+/// حوارٌ صغير في وسط الشاشة — جوابُ الخادم على المزايدة، قبولاً أو رفضاً.
+///
+/// **حوارٌ لا شريطُ رسالة**: الشريط يمرّ ويختفي ويظهر في قاع الشاشة بعيداً عن
+/// موضع النظر، وجوابُ المزايدة خبرٌ على فعلٍ مقصود يستحقّ إقراراً بضغطة.
+///
+/// **وواحدٌ للجوابين**: نصُّه ولونُ أيقونته يفترقان، وبنيتُه واحدة — حوارانِ
+/// متطابقان إلا في أيقونةٍ يفترقان عند أول تعديل (المادة ٤-٥).
+class _NoticeDialog extends StatelessWidget {
+  const _NoticeDialog({required this.message, required this.accepted});
+
+  final String message;
+
+  /// قبولٌ أم رفض — يقرّر الأيقونةَ ولونَها وحدهما.
+  final bool accepted;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    // **أحمرُ الثيم للرفض لا لونٌ مكتوب**: الرفضُ حالةُ خطأ، ولونُها في
+    // `ColorScheme` واحدٌ لكل الشاشات.
+    final tint = accepted
+        ? palette.goldDeep
+        : Theme.of(context).colorScheme.error;
+
+    return AlertDialog(
+      backgroundColor: palette.cardSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: tint.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              accepted ? Icons.check_rounded : Icons.info_outline_rounded,
+              size: 28,
+              color: tint,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: <Widget>[
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(),
+          style: FilledButton.styleFrom(
+            backgroundColor: palette.goldDeep,
+            foregroundColor: Colors.white,
+          ),
+          child: Text(MaterialLocalizations.of(context).okButtonLabel),
+        ),
+      ],
+    );
+  }
 }

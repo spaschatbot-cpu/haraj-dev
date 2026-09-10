@@ -264,6 +264,26 @@ def settle_auction(auction: Auction, *, now: datetime | None = None) -> Settleme
     return Settlement(auction_id=auction.pk, vehicles=vehicles, holds=holds)
 
 
+def try_close(auction: Auction, *, now: datetime | None = None) -> bool:
+    """أغلِق المزادَ إن لم يبقَ فيه ما يُحسم. يُنادى عند الحدث لا بالاستطلاع.
+
+    `close_auction` يرفض ما دامت مركبةٌ لم تُحسم — وهو رفضٌ صحيحٌ لا عطل: قرارُ
+    المالك يأخذ ما يأخذ. وكان الجوابُ عن «هل حُسمت الأخيرة؟» استطلاعاً يمرّ على
+    كل مزادٍ منتهٍ كلَّ دقيقة يسأل.
+
+    والسؤالُ له لحظتان فقط تُغيّران جوابَه: **انتهاءُ التسوية**، و**قرارٌ على آخر
+    مركبةٍ كانت تنتظر**. فيُسأل عندهما، ولا يُسأل بينهما — فمن لا شيء تغيّر فيه
+    لا يُعاد فحصُه.
+    """
+    try:
+        close_auction(auction, now=now)
+    except ValueError as waiting:
+        log.info("auction %s not closed yet: %s", auction.pk, waiting)
+        return False
+    log.info("auction %s closed — nothing left unresolved", auction.pk)
+    return True
+
+
 def settle_holds(auction: Auction) -> list[HoldOutcome]:
     """Release the deposits that are free to go, and say why each one stayed.
 
@@ -743,6 +763,7 @@ __all__ = [
     "decide_vehicle",
     "invoice_award",
     "settle_auction",
+    "try_close",
     "settle_holds",
     "winners_in",
 ]

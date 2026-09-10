@@ -32,7 +32,6 @@ abstract final class Routes {
   static const String myBids = 'my-bids';
 
   /// المزايدة على مركبة بعينها.
-  static const String bid = 'bid';
   static const String wallet = 'wallet';
   static const String walletStatement = 'walletStatement';
   static const String walletTopUp = 'walletTopUp';
@@ -64,7 +63,6 @@ abstract final class Routes {
   static const String profilePath = '/profile';
   static const String auctionPath = '/auctions/:auctionId';
   static const String bidsPath = '/bids';
-  static const String bidPath = '/vehicles/:vehicleId/bid';
   static const String walletPath = '/wallet';
   static const String walletTopUpPath = '/wallet/topup';
   static const String walletTransactionsPath = '/wallet/transactions';
@@ -100,15 +98,8 @@ abstract final class Routes {
   // وحلّ محلَّها صندوقُ المزايدة الذي يفتحه الكرت. وسقط معها
   // `vehicleLocation` و`goToVehicle`.
 
-  /// عنوان شاشة المزايدة على مركبة — نصّاً، لمن يحتاج العنوان لا الانتقال.
-  static String bidLocation(String vehicleId) => '/vehicles/$vehicleId/bid';
-
-  /// ينتقل إلى شاشة المزايدة. يفتحه زرُّ «دخول المزاد» في صندوق المزايدة.
-  static void goToBid(BuildContext context, String vehicleId) =>
-      GoRouter.of(context).goNamed(
-        bid,
-        pathParameters: <String, String>{'vehicleId': vehicleId},
-      );
+  // **ولا مسارَ لشاشة مزايدة** — حُذفت في ٩ سبتمبر ٢٠٢٦ وصارت المزايدة تقع
+  // في صندوق المزايدة نفسه.
 }
 
 /// يترجم وجهة إشعار إلى عنوان يفهمه `go_router`.
@@ -123,12 +114,11 @@ abstract final class PushLocations {
 
     return switch (destination.target) {
       PushTarget.auction when auctionId != null => '/auctions/$auctionId',
-      // **إلى المزايدة لا إلى صفحة المركبة**: الصفحةُ حُذفت في ٩ سبتمبر
-      // ٢٠٢٦، وعنوانُها القديم يهبط بالمستخدم على «مسار غير موجود» — وهو
-      // أسوأ ما يفعله إشعار. وشاشةُ المزايدة أقربُ ما بقي إلى مركبةٍ بعينها.
-      PushTarget.vehicle when vehicleId != null => Routes.bidLocation(
-        vehicleId,
-      ),
+      // **إلى الرئيسية**: صفحةُ المركبة وشاشةُ المزايدة حُذفتا في ٩ سبتمبر
+      // ٢٠٢٦، ولم يبقَ للمركبة عنوانٌ تُفتح به — صندوقُها يُفتح من كرتها في
+      // القائمة. وعنوانٌ لشاشةٍ غير موجودة يهبط بالمستخدم على «مسار غير
+      // موجود»، وهو أسوأ ما يفعله إشعار.
+      PushTarget.vehicle when vehicleId != null => Routes.homePath,
       PushTarget.bids => Routes.bidsPath,
       PushTarget.wallet => Routes.walletPath,
       // رقم الفاتورة يصل في الحمولة ولا يدخل العنوان: لا توجد شاشة فاتورةٍ

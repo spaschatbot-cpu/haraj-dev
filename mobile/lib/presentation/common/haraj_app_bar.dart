@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../l10n/generated/app_localizations.dart';
 
 /// شريطُ عنوان الشاشة — **تحت الهيدر لا بدلاً منه**.
 ///
@@ -81,13 +83,30 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                   IconButton(
                     onPressed: () => GoRouter.of(context).pop(),
                     icon: const Icon(Icons.arrow_forward_rounded, size: 20),
-                    color: palette.brown,
+                    color: palette.ink,
                     tooltip: MaterialLocalizations.of(
                       context,
                     ).backButtonTooltip,
                   )
                 else
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
+                // **خيطٌ ذهبيٌّ قائم قبل الاسم**: الشريطُ فاتحٌ على ورقةٍ
+                // فاتحة، فبلا علامةٍ في أوّله يُقرأ سطرَ نصٍّ سائباً لا
+                // عنوانَ شاشة. وقائمٌ لا أفقيّ: الأفقيُّ يفصل، والقائمُ
+                // يُعنون.
+                Container(
+                  width: 3,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[palette.gold, palette.goldDeep],
+                    ),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 9),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,8 +118,11 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: palette.brown,
+                          color: palette.ink,
                           fontWeight: FontWeight.w700,
+                          // تباعدٌ خفيف: العربية بوزن ٧٠٠ تتراصّ، وحرفٌ يلمس
+                          // حرفاً يُقرأ ككلمةٍ واحدة.
+                          letterSpacing: 0.2,
                         ),
                       ),
                       if (subtitle case final String line)
@@ -117,7 +139,39 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
                 if (actions case final List<Widget> widgets) ...widgets,
-                const SizedBox(width: 8),
+                // **بيتٌ في الطرف الآخر حين لا يوجد ما يُرجَع إليه** — بطلب
+                // المالك في ٩ سبتمبر ٢٠٢٦.
+                //
+                // أقسامُ الشريط السفليّ جذورُ مكدّساتها، فلا `pop` فيها ولا
+                // زرَّ رجوع. والشريطُ السفليّ يعرف الطريق إلى الرئيسية،
+                // لكنّ من دخل من إشعارٍ أو رابطٍ يفتح قسماً بعينه لا يعرف
+                // أنّ تحته شريطاً — وهذه أيقونةٌ تقول ذلك في مكان النظر.
+                //
+                // **حوضٌ ذهبيٌّ خفيف لا أيقونةٌ عارية**: أيقونةٌ وحدها على
+                // ورقةٍ فاتحة تُقرأ زخرفةً لا زرّاً، والحوضُ يقول «هذا
+                // يُضغط». وهو نظيرُ حوضِ الجرس والحساب في الهيدر فوقه.
+                if (!canPop)
+                  Semantics(
+                    button: true,
+                    label: AppLocalizations.of(context).navHome,
+                    child: Material(
+                      color: palette.gold.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        onTap: () => GoRouter.of(context).go(Routes.homePath),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: const EdgeInsets.all(7),
+                          child: Icon(
+                            Icons.home_rounded,
+                            size: 17,
+                            color: palette.goldDeep,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 16),
               ],
             ),
           ),

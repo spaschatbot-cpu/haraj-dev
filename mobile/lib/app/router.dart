@@ -9,7 +9,6 @@ import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
 import '../presentation/auth/sign_in_screen.dart';
 import '../presentation/auth/verify_code_screen.dart';
-import '../presentation/bidding/bid_screen.dart';
 import '../presentation/bidding/my_bids_screen.dart';
 import '../presentation/catalog/auction_vehicles_screen.dart';
 import '../presentation/catalog/favourites_screen.dart';
@@ -81,17 +80,6 @@ List<RouteBase> appRoutes() => <RouteBase>[
                 builder: (context, state) => AuctionVehiclesScreen(
                   auctionId: state.pathParameters['auctionId']!,
                 ),
-              ),
-              GoRoute(
-                // **لا صفحةَ مركبة فوقها** — حُذفت بطلب المالك في ٩ سبتمبر
-                // ٢٠٢٦، وحلّ محلَّها صندوقُ المزايدة الذي يفتحه الكرت.
-                // والمسارُ بقي كما كان (`vehicles/:id/bid`): الإشعارُ
-                // والرابطُ المشارَك يفتحانه به (معيار H6)، وتغييرُه يكسر ما
-                // أُرسل قبل اليوم. فصار فرعاً مباشراً بنفس العنوان.
-                path: 'vehicles/:vehicleId/bid',
-                name: Routes.bid,
-                builder: (context, state) =>
-                    BidScreen(vehicleId: state.pathParameters['vehicleId']!),
               ),
             ],
           ),
@@ -218,7 +206,6 @@ const Set<String> authenticatedRoutes = <String>{
   Routes.profilePath,
   Routes.walletPath,
   Routes.bidsPath,
-  Routes.bidPath,
   Routes.myActivityPath,
   Routes.favouritesPath,
 };

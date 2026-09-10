@@ -114,6 +114,10 @@ class VehicleResults extends StatelessWidget {
               extent: pinnedHeaderExtent,
               // **أرضيّةٌ معتمة**: الشريحةُ الثابتة تقف فوق الكروت وهي
               // تمرّ تحتها، وبلا أرضيّةٍ تُقرأ الكروتُ من خلال حقل البحث.
+              //
+              // وبلون الصفحة لا بيضاء: جُرِّبت البيضاء في ١٠ سبتمبر ٢٠٢٦
+              // ورُدَّت — الشريحةُ ليست بطاقةً فوق الصفحة، هي الصفحةُ نفسها
+              // ثابتةً.
               child: ColoredBox(color: palette.pageBackground, child: widget),
             ),
           ),

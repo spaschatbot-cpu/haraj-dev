@@ -24,11 +24,11 @@ class FavouritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
     final state = ref.watch(favouritesProvider);
 
     return Scaffold(
-      appBar: HarajAppBar(title: l10n.favouritesTitle),
+      // **لا `appBar`**: شريطُ العنوان داخل القائمة فينزلق معها، بطلب
+      // المالك في ٩ سبتمبر ٢٠٢٦.
       body: switch (state) {
         AsyncData(value: final snapshot) => RefreshIndicator(
           onRefresh: () async => ref.refresh(favouritesProvider.future),
@@ -56,25 +56,27 @@ class _Favourites extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final page = snapshot.value;
 
-    return Column(
-      children: <Widget>[
-        StaleDataBanner(snapshot: snapshot),
-        Expanded(
-          child: VehicleResults(
-            vehicles: page.vehicles,
-            totalCount: page.totalCount,
-            // الترقيم مُطفأ صراحةً لا مُهمَل: `hasMore` مِن الخادم قد يقول
-            // «نعم» على قائمةٍ طويلة، وتمريرٌ يطلب صفحةً لا أحد يجلبها يعلّق
-            // الشاشة على دوّامة لا تنتهي.
-            hasMore: false,
-            loadingMore: false,
-            moreFailure: null,
-            onLoadMore: _noPaging,
-            onRetryMore: _noPaging,
-            emptyMessage: l10n.favouritesEmpty,
-          ),
-        ),
-      ],
+    return VehicleResults(
+      // **شريطُ العنوان ولافتةُ القِدَم في ترويسة القائمة**: كانا فوقها
+      // ثابتَين، فيأكلان من الشاشة القصيرة كرتاً في كل تمريرة.
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          HarajAppBar(title: l10n.favouritesTitle),
+          StaleDataBanner(snapshot: snapshot),
+        ],
+      ),
+      vehicles: page.vehicles,
+      totalCount: page.totalCount,
+      // الترقيم مُطفأ صراحةً لا مُهمَل: `hasMore` مِن الخادم قد يقول «نعم»
+      // على قائمةٍ طويلة، وتمريرٌ يطلب صفحةً لا أحد يجلبها يعلّق الشاشة على
+      // دوّامة لا تنتهي.
+      hasMore: false,
+      loadingMore: false,
+      moreFailure: null,
+      onLoadMore: _noPaging,
+      onRetryMore: _noPaging,
+      emptyMessage: l10n.favouritesEmpty,
     );
   }
 

@@ -37,11 +37,23 @@ class HomeHero extends StatelessWidget {
   const HomeHero({
     required this.onOpenNotifications,
     required this.onOpenAccount,
+    this.showActions = true,
     super.key,
   });
 
   final VoidCallback onOpenNotifications;
   final VoidCallback onOpenAccount;
+
+  /// هل يظهر الجرسُ وزرُّ الحساب — **في الرئيسية وحدها** بطلب المالك في ٩
+  /// سبتمبر ٢٠٢٦.
+  ///
+  /// وعلّتُه أن الزرّين مقبضان إلى قسمين في الشريط السفليّ: من هو في
+  /// «مشاركاتي» يرى جرساً يفتح «مشاركاتي»، ومن هو في «حسابي» يرى زرّ حسابٍ
+  /// يفتح حسابه. ومقبضٌ يعيدك إلى مكانك يُقرأ عطلاً.
+  ///
+  /// **وبدونهما تتوسّط العلامة**: صفٌّ بعنصرٍ واحدٍ متراصٍّ يميناً يترك ثلثي
+  /// اللوحة فارغاً.
+  final bool showActions;
 
   /// أدنى ارتفاع — **حدٌّ لا مقاس**.
   ///
@@ -152,32 +164,47 @@ class HomeHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Row(
+                      mainAxisAlignment: showActions
+                          ? MainAxisAlignment.start
+                          : MainAxisAlignment.center,
                       children: <Widget>[
                         // **`Expanded` لا `Spacer` بعده:** الاسم صفٌّ يقيس
                         // نفسه، ولو تُرك بلا حدٍّ أخذ عرضه كاملاً ودفع
                         // الزرّين خارج اللوحة. و`Expanded` يعطيه ما بقي بعد
-                        // الزرّين لا قبلهما.
-                        Expanded(
-                          child: _Brand(
-                            palette: palette,
-                            theme: theme,
-                            l10n: l10n,
+                        // الزرّين لا قبلهما. وبلا زرّين لا حدَّ يلزمه: الصفُّ
+                        // يقيس نفسه ويتوسّط.
+                        if (showActions)
+                          Expanded(
+                            child: _Brand(
+                              palette: palette,
+                              theme: theme,
+                              l10n: l10n,
+                            ),
+                          )
+                        else
+                          Flexible(
+                            child: _Brand(
+                              palette: palette,
+                              theme: theme,
+                              l10n: l10n,
+                            ),
                           ),
-                        ),
                         // الأزرار في الطرف الآخر — يسارُ الشاشة في العربية.
-                        _CircleAction(
-                          icon: Icons.notifications_none_rounded,
-                          tooltip: l10n.homeNotifications,
-                          onTap: onOpenNotifications,
-                          palette: palette,
-                        ),
-                        const SizedBox(width: 10),
-                        _CircleAction(
-                          icon: Icons.person_outline_rounded,
-                          tooltip: l10n.homeAccountAction,
-                          onTap: onOpenAccount,
-                          palette: palette,
-                        ),
+                        if (showActions) ...<Widget>[
+                          _CircleAction(
+                            icon: Icons.notifications_none_rounded,
+                            tooltip: l10n.homeNotifications,
+                            onTap: onOpenNotifications,
+                            palette: palette,
+                          ),
+                          const SizedBox(width: 10),
+                          _CircleAction(
+                            icon: Icons.person_outline_rounded,
+                            tooltip: l10n.homeAccountAction,
+                            onTap: onOpenAccount,
+                            palette: palette,
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -363,13 +390,16 @@ class _Brand extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
-            color: palette.goldOnDark,
+            // **أبيضُ لا أزرقٌ فاتح** بطلب المالك في ٩ سبتمبر ٢٠٢٦: اسمُ
+            // العلامة على أرضيّةٍ كحليّة، والأزرقُ الفاتح عليها من عائلتها
+            // فيذوب فيها — والأبيضُ وحده يقف فوقها.
+            color: Colors.white,
             fontWeight: FontWeight.w700,
             // تباعدٌ موجبٌ خفيف: تباعدُ الحروف يعطي الاسمَ وقارَ العلامة بدل
             // أن يُقرأ عنوانَ شاشة.
             letterSpacing: 0.5,
-            // ظلٌّ ذهبيّ: الاسم يقع على الوهج نفسه، وبلا فصلٍ عنه يذوب حرفُه
-            // في ضوئه.
+            // ظلٌّ من لون الوهج: الاسم يقع على الوهج نفسه، وبلا فصلٍ عنه
+            // يذوب حرفُه في ضوئه.
             shadows: <Shadow>[
               Shadow(
                 color: palette.heroGlow.withValues(alpha: 0.60),
