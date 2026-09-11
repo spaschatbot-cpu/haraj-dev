@@ -447,6 +447,15 @@ REFRESH_TOKEN_TTL_SECONDS = env.int(
 # of sending them.
 SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.sms.console_backend")
 
+#: بوّابةُ الرسائل — OURSMS، وهي نفسُها التي يرسل منها v1.
+#:
+#: فارغةٌ افتراضياً، و`SMS_BACKEND` يبقى على `console_backend` حتى يُوجَّه
+#: صراحةً إلى `apps.accounts.sms.oursms_backend`. فبيئةٌ تُرفع بلا مفاتيح تطبع
+#: ولا ترسل، ولا تكلّف هللة — بدل أن ترسل إلى أرقامٍ حقيقيةٍ بلا قصد.
+OURSMS_API_URL = env("OURSMS_API_URL", default="")
+OURSMS_TOKEN = env("OURSMS_TOKEN", default="")
+OURSMS_SENDER = env("OURSMS_SENDER", default="HirajOne")
+
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 

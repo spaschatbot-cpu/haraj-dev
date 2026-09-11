@@ -72,3 +72,53 @@ def disabled_backend(*, phone: str, body: str) -> None:
     is not the console one.
     """
     raise SmsSendFailed("no SMS provider is configured for this environment")
+
+
+def oursms_backend(*, phone: str, body: str) -> None:
+    """المزوّد الحقيقيّ — OURSMS، وهو نفسُه الذي يرسل من v1.
+
+    النداءُ كما هو هناك: ``GET {API_URL}?token=&src=&dests=&body=``. ولا شيءَ
+    في الشكل يستحقّ التغيير — لكن **معالجةَ الجواب تستحقّ**.
+
+    v1 يسمّيها `sendSmsSafely`، وهي آمنةٌ بالمعنى الخطأ: تبتلع كلَّ استثناء،
+    ولا تنظر في ردّ المزوّد أصلاً (`curl_exec` ثم `curl_close` بلا فحص). فرسالةٌ
+    رفضها المزوّد — رصيدٌ نفد، رقمٌ غير صالح، توكنٌ منتهٍ — تُقرأ عندنا نجاحاً.
+    وذاك بالضبط عطلُ «تعذّر إرسال رمز التحقق» الذي عاش في v1: الرصيدُ نفد ولم
+    يُخبر أحدٌ أحداً.
+
+    فهنا تُرفع `SmsSendFailed` — ويسجّلها `SmsFailure` ويراها الموظّف. والمهلةُ
+    عشر ثوانٍ كما في v1: رسالةٌ لا تصل في عشرٍ لن تصل في عشرين، والمستخدمُ
+    ينتظر على شاشةٍ بيضاء.
+    """
+    import requests
+
+    url = (settings.OURSMS_API_URL or "").strip()
+    token = (settings.OURSMS_TOKEN or "").strip()
+    if not url or not token:
+        raise SmsSendFailed(
+            "OURSMS_API_URL or OURSMS_TOKEN is unset", provider="oursms"
+        )
+
+    try:
+        response = requests.get(
+            url,
+            params={
+                "token": token,
+                "src": settings.OURSMS_SENDER,
+                "dests": phone,
+                "body": body,
+            },
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        # لم نبلغهم — ولا نعرف أوصلت الرسالةُ أم لا. تُرفع، ولا يُعاد الإرسال
+        # من هنا: رسالتان تصلان العميلَ أسوأُ من واحدةٍ تتأخّر، والقرارُ لمن
+        # يعرف السياق (رمزُ دخولٍ يُعاد طلبه، وتذكيرٌ لا).
+        raise SmsSendFailed(f"could not reach oursms: {exc}", provider="oursms") from exc
+
+    if response.status_code >= 400:
+        raise SmsSendFailed(
+            f"oursms answered {response.status_code}: {response.text[:200]}",
+            provider="oursms",
+        )
+    log.info("SMS to %s accepted by oursms", phone)
