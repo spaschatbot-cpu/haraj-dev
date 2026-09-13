@@ -253,7 +253,13 @@ somebody went looking for it.
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.4-4.4"/></svg>
         بحث في المركبات
       </a>
-      <a href="{{ export_url }}{% if filters.keep %}&amp;{{ filters.keep }}{% endif %}" class="btn-sm"
+      {% comment %} `export_url` **هو هذا الطلبُ نفسُه** بـ`export=xlsx` مضافةً
+         و`page` محذوفة (`context._export_url`) — فالفلاترُ فيه بالبناء. وكان
+         `filters.keep` يُلحَق فوقه، فيخرج الرابط `?marketing=1&export=xlsx&marketing=1`:
+         المعامل مرّتين. لا يغيّر النتيجة اليوم (جانغو يأخذ الأخيرة وهي نفسُها)،
+         ويكسر يومَ يقرأ العرضُ `getlist` — وهو نوعُ العطل الذي لا يظهر إلا بعد
+         التغيير الذي سبّبه. T868 {% endcomment %}
+      <a href="{{ export_url }}" class="btn-sm"
          title="تصدير ما يعرضه الجدول الآن إلى إكسل">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
@@ -285,7 +291,7 @@ somebody went looking for it.
         {% if can_manage %}
           <button type="button" class="veh-card__img" data-display-image
                   data-pk="{{ car.pk|unlocalize }}" title="اضغط لرفع صورة العرض">
-            <span class="veh-card__noimg">📷 اضغط لرفع صورة العرض</span>
+            <span class="veh-card__noimg">{% include "console/_act_icon.html" with path=action_icons.camera %} اضغط لرفع صورة العرض</span>
             {% if car.thumb %}
               <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
                    loading="lazy" decoding="async" onerror="this.remove()">
@@ -295,7 +301,7 @@ somebody went looking for it.
         {% else %}
           <a class="veh-card__img" href="{% url 'console:vehicle-images' car.pk %}"
              title="معرض صور المركبة">
-            <span class="veh-card__noimg">لا صورة عرض</span>
+            <span class="veh-card__noimg">{% include "console/_act_icon.html" with path=action_icons.camera %} لا صورة عرض</span>
             {% if car.thumb %}
               <img src="{{ car.thumb }}" alt="صورة {{ car.make }} {{ car.model }}"
                    loading="lazy" decoding="async" onerror="this.remove()">

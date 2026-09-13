@@ -23,7 +23,7 @@
 
   {% comment %} «إضافة سيارة يدويًا» أعلى الشاشة تحت البطاقات — موضعُها في v1. {% endcomment %}
   <div class="cat-add-row">
-    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">➕ إضافة سيارة يدويًا</button>
+    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">{% include "console/_act_icon.html" with path=plus_icon %} إضافة سيارة يدويًا</button>
   </div>
 
   {% comment %} صفُّ الفلاتر — لصائقُ v1 الكاملة فوق كل حقل: يُعرَف أيُّ تاريخٍ
@@ -116,12 +116,20 @@
           <td class="mono">{{ row.vin|default:"—" }}</td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>
           <td>
+            {% comment %} الرسمُ `<svg>` لا `📷`: نظامُ التشغيل يرسم المحرف
+               بأسلوبه هو، وهو ما رفضه المالك في T837.
+
+               و**الصفرُ كلمةٌ لا رقم**. الترحيلُ لم ينقل ملفّات الصور — ٩٢٬٠٢٤
+               صفّاً تشير إلى قرص خادم v1 — فالعمودُ صفرٌ في كل صفّ، و«0» صامتةً
+               تُقرأ «عطلٌ في الشاشة» أو «لم يُحسب بعد». «بلا صور» تُقرأ كما هي.
+               والرفعُ لا بابَ له من هنا: هذه الشاشة `auctions.view` والمعرضُ
+               `auctions.manage` — ورابطٌ يفتح ٤٠٣ أسوأ من غيابه. T866 {% endcomment %}
             {% if row.image_count %}
               <button type="button" class="link-btn" data-images-modal
                       data-url="{% url 'console:vehicle-images' row.pk %}?modal=1"
-                      title="عرض كل صور السيارة">📷 {{ row.image_count|unlocalize }}</button>
+                      title="عرض كل صور السيارة">{% include "console/_act_icon.html" with path=camera_icon %} {{ row.image_count|unlocalize }}</button>
             {% else %}
-              <span class="muted">0</span>
+              <span class="muted">بلا صور</span>
             {% endif %}
           </td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.auction.get_state_display }}</span></td>

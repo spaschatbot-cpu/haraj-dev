@@ -8,7 +8,17 @@ operator had typed into.
   <ul>{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul>
 {% endif %}
 
-{% for field in form %}
+{% comment %}
+الحقولُ المخفيّة أوّلاً وبلا عنوان. كان اللفُّ على `form` كلِّها، فكان حارسُ
+التزامن `row_stamp` — وهو `HiddenInput` — يأخذ عنواناً يولّده جانغو من اسمه:
+**«Row stamp» إنجليزيّةً وسطَ استمارةٍ عربيّةٍ كاملة**، فوق `<p>` فارغةٍ لا
+حقلَ فيها. رُئي على «تعديل عميل» و«بيانات الشركة» (والثانيةُ تضعه في وسط
+الاستمارة بين «ملاحظة» و«رقم المبنى»). واستمارتا المركبة والمزاد تكتبان
+`row_stamp` بأيديهما فلم يُصبهما هذا.
+{% endcomment %}
+{% for field in form.hidden_fields %}{{ field }}{% endfor %}
+
+{% for field in form.visible_fields %}
   <p>
     <label for="{{ field.id_for_label }}">{{ field.label }}</label><br>
     {{ field }}

@@ -34,6 +34,7 @@ from apps.auctions.models import Vehicle, VehicleImage
 from apps.core import audit
 from apps.core.uploads import UploadRejected
 
+from .icons import path_of
 from .views import console_page
 
 #: كم صورةً تُقبل في الرفعة الواحدة. v1 بلا حدٍّ إطلاقاً — لا للعدد ولا للحجم
@@ -98,6 +99,10 @@ def _render_gallery(request, vehicle: Vehicle, *, modal: bool):
             "auction": vehicle.auction,
             "shots": list(_gallery_of(vehicle)),
             "batch": BATCH,
+            # رسما المعرض من `icons.py`. كانا `📤` و`✕` مكتوبين في القالب،
+            # ونظامُ التشغيل هو الذي يرسمهما — وهو ما رفضه المالك في T837.
+            "upload_icon": path_of("upload"),
+            "close_icon": path_of("close"),
         },
     )
 
@@ -108,9 +113,7 @@ def _upload(request, vehicle: Vehicle):
         messages.error(request, "لم يُختَر ملفّ.")
         return
     if len(files) > BATCH:
-        messages.error(
-            request, f"{len(files)} ملفّاً في رفعةٍ واحدة — الحدّ {BATCH}."
-        )
+        messages.error(request, f"{len(files)} ملفّاً في رفعةٍ واحدة — الحدّ {BATCH}.")
         return
 
     # الموضعُ يتابع آخر ما في المعرض، ولا يبدأ من الصفر: صفران بالموضع نفسه
@@ -226,7 +229,9 @@ def set_display_image(request, pk: int):
 
     from apps.core.permissions import Capability, can
 
-    if not request.user.is_authenticated or not can(request.user, Capability.AUCTIONS_MANAGE):
+    if not request.user.is_authenticated or not can(
+        request.user, Capability.AUCTIONS_MANAGE
+    ):
         return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
     if request.method != "POST":
         return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)

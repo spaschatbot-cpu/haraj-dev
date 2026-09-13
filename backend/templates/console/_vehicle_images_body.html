@@ -19,7 +19,7 @@
   {% csrf_token %}
   <input type="hidden" name="op" value="upload">
   <label class="dropzone" data-dropzone>
-    <span class="dropzone__hint">📤 اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
+    <span class="dropzone__hint">{% include "console/_act_icon.html" with path=upload_icon %} اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
     <input type="file" name="images" accept="image/*" multiple required data-file-input>
   </label>
   <div class="dropzone__preview" data-preview hidden></div>

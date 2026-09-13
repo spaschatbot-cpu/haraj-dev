@@ -127,7 +127,9 @@ def upload(request):
             "updated": len(report.updated),
             "rejected": len(report.rejections),
         }
-        touched = Vehicle.objects.filter(pk__in=report.created + report.updated + report.transferred)
+        touched = Vehicle.objects.filter(
+            pk__in=report.created + report.updated + report.transferred
+        )
         for vehicle in touched:
             audit.record(
                 action="console.import_vehicles",
@@ -197,7 +199,9 @@ def import_auction_vehicles(request, pk: int):
             "updated": len(report.updated),
             "rejected": len(report.rejections),
         }
-        for vehicle in Vehicle.objects.filter(pk__in=report.created + report.updated + report.transferred):
+        for vehicle in Vehicle.objects.filter(
+            pk__in=report.created + report.updated + report.transferred
+        ):
             audit.record(
                 action="console.import_vehicles",
                 entity=vehicle,

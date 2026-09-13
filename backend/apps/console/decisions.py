@@ -47,6 +47,7 @@ from django.shortcuts import render
 
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
+from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice
 
@@ -87,13 +88,14 @@ def awarded(*, text: str = "", first: str = "", last: str = ""):
     if text:
         # ما يُتذكَّر من مركبةٍ رست: لوحتها، أو شاصيها، أو اسم من أخذها، أو
         # رقم مزادها. ولا يُعرف أيُّها في يد السائل، فتُطابَق الأربعة.
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(awarded_to__full_name__icontains=text)
-            | Q(awarded_to__phone__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
+        matches = search_q(
+            text,
+            "plate_number",
+            "vin",
+            "awarded_to__full_name",
+            "awarded_to__phone",
+            "make",
+            "model",
         )
         if text.isdigit():
             matches |= Q(auction__number=int(text)) | Q(lot_number=int(text))

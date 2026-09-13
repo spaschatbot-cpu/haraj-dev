@@ -14,7 +14,7 @@ v1 يحمل `sms_reminder_time` منذ سنة، وتملؤه استمارةُ إ
 from __future__ import annotations
 
 from django.contrib import messages
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 

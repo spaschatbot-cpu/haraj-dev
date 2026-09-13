@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -35,6 +34,7 @@ from apps.auctions.models import Auction, Showcase, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 
 from . import columns, icons, vehicle_bulk, vehicle_filters
@@ -166,7 +166,7 @@ def auctions(request):
     if search:
         # البحث يشمل الموقع أيضاً (T846): «ابحث بالاسم أو الساحة أو الرقم».
         rows = (
-            rows.filter(Q(title__icontains=search) | Q(location__icontains=search))
+            rows.filter(search_q(search, "title", "location"))
             if not search.isdigit()
             else rows.filter(number=int(search))
         )
@@ -380,6 +380,11 @@ def auction_detail(request, pk: int):
                 # إخفاء/إظهار — رؤيةُ السيارة عن العملاء. نظيرُ v1.
                 "hide": icons.path_of("eye-off"),
                 "show": icons.path_of("eye"),
+                # خانةُ الصورة الفارغة في الكارت. كانت `📷` مكتوبةً في القالب،
+                # ونظامُ التشغيل هو الذي يرسمها — وهو ما رفضه المالك في T837
+                # بالحرف: «غيّرها، متبنش ذكاء اصطناعي». ولم يمسكها حارسُ
+                # الأيقونات لأنها ليست `Page.icon` ولا `Stat.icon`.
+                "camera": icons.path_of("camera"),
             },
         },
     )
@@ -400,7 +405,7 @@ def vehicles(request):
     if search:
         from django.db.models import Q
 
-        terms = Q(make__icontains=search) | Q(model__icontains=search)
+        terms = search_q(search, "make", "model")
         if search.isdigit():
             terms = terms | Q(lot_number=int(search)) | Q(auction__number=int(search))
         rows = rows.filter(terms)

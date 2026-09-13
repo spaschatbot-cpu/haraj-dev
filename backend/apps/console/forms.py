@@ -225,7 +225,11 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             if name in self.fields:
                 self.fields[name].required = False
         # المرحلة الافتراضية «لاحقاً» كـ v1 (بدل `upcoming` الافتراضيّ في النموذج).
-        if "showcase" in self.fields and not self.is_bound and not self.initial.get("showcase"):
+        if (
+            "showcase" in self.fields
+            and not self.is_bound
+            and not self.initial.get("showcase")
+        ):
             self.fields["showcase"].initial = Showcase.LATER
 
     def clean(self):

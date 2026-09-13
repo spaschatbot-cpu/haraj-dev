@@ -512,6 +512,19 @@ body {
   line-height: 1;
   cursor: pointer;
 }
+/* رسمٌ مضمَّنٌ لا محرفٌ نصّيّ: `☰` و`◐` و`✕` كان يرسمها نظامُ التشغيل — وهي
+   حجّة T837 نفسُها التي أخرجت الإيموجي من الشريط والرموزَ الهندسية من بطاقات
+   الأرقام. والسمكُ والزوايا هنا هي هي في `.nav__icon` و`.act svg`، لأن ما
+   يجعل الرسوم تُقرأ مجموعةً واحدة هو التطابقُ في السمك لا التشابهُ في الموضوع. */
+.btn__icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .icon-btn:hover { background: var(--brand-soft); color: var(--brand-dark); border-color: var(--line); box-shadow: none; }
 .icon-btn[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-dark); }
 
@@ -2191,7 +2204,14 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
 
 
 /* زر الإجراء الرئيسي في رأس الصفحة: يبرز بلون المنظومة المصمت لتمييز الإنشاء عن التصدير */
+/* زرُّ «طباعة» في إقرار الخروج يحمل رسمَ طابعةٍ بدل `🖨️` — وهي صفحةٌ تُطبَع
+   فعلاً: الإيموجي يخرج من الطابعة ملوَّناً بأسلوب نظام التشغيل بجوار نصٍّ
+   أسود. (T837 — الذيل) */
+.page__actions .btn-primary svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .page__actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
   background: var(--brand-solid);
   color: #fff;
   border-color: var(--brand-solid);
@@ -4219,6 +4239,14 @@ dialog.row-modal {
   white-space: nowrap;
 }
 .chip--count { color: var(--brand-dark); border-color: var(--brand); }
+/* حبّةٌ برسمٍ داخلها: الرسمُ `<svg>` مضمَّنٌ لا محرف `🎨`/`🏷️`/`👤` — وكان
+   المحرفُ يرسمه نظامُ التشغيل ملوّناً بأسلوبه، وهو ما رفضه المالك (T837).
+   و`inline-flex` لأن الرسمَ والكلمةَ سطرٌ واحد لا سطران على الالتفاف. */
+.chip:has(svg) { display: inline-flex; align-items: center; gap: .3rem; }
+.chip svg { inline-size: .85rem; block-size: .85rem; flex: none; }
+.arch-card__noimg svg { inline-size: 1.6rem; block-size: 1.6rem; }
+.arch-card__actions .btn-sm svg,
+.arch-card__actions .btn-odoo svg { inline-size: .85rem; block-size: .85rem; vertical-align: -.15em; }
 .pick-card__cta {
   margin-block-start: auto;
   padding: .55rem .8rem;
@@ -4272,6 +4300,9 @@ dialog.row-modal {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* فجوةٌ بين الرسم والكلمة: الرسمُ `<svg>` مضمَّنٌ لا محرف `📷`، فلا مسافةَ
+     نصّيّةٌ تفصلهما من تلقاء نفسها. T837 */
+  gap: .35rem;
   color: var(--muted);
   font-size: .82rem;
 }
@@ -4359,6 +4390,14 @@ dialog.row-modal {
   line-height: 1;
 }
 .modal__close:hover { border-color: var(--brand); color: var(--ink); }
+/* زرُّ الإغلاق رسمٌ مضمَّن لا محرف `✕`: نافذتان في اللوحة تُغلقان، وكانت
+   واحدةٌ منهما بالرسم والأخرى بالمحرف. و`inline-flex` ليتوسّط الرسمُ المربّعَ
+   كما كان المحرف يتوسّطه. (T837 — الذيل) */
+.modal__close { display: inline-flex; align-items: center; justify-content: center; }
+/* و`flex: none` لازمٌ لا زينة: الزرُّ صار حاوياً مرناً ليتوسّط الرسمُ فيه،
+   والعنصرُ المرن ينكمش افتراضياً — فقِيس عرضُ الرسم على الشاشة **صفراً**
+   وارتفاعُه ١٤٫٤ (أي شريطٌ رأسيّ لا صليب). */
+.modal__close svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .gallery-msgs { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .4rem; }
 
 /* بطاقةُ مزادٍ بلا سيارات في مُنتقي التعديل السريع: لا تُفتح، فتُعتّم ويغيب
@@ -4532,8 +4571,37 @@ dialog.row-modal {
   background: var(--ink); color: var(--panel); padding: .6rem 1.1rem; border-radius: var(--radius);
   font-weight: 800; font-size: .84rem; z-index: 9999; box-shadow: var(--shadow-lift);
 }
-.qe-toast--ok { background: var(--ok, #16a34a); color: #fff; }
+/* ولونٌ مثبَّت هنا أيضاً، وهذا عطلٌ **قائمٌ قبل هذا العمل** كشفه القياس على
+   الشاشة: `--ok` يقلب في المظهر الداكن إلى `#63d3a4` — أخضرَ فاتح، وعليه نصٌّ
+   أبيض بنسبة **١٫٨٤** (والحدّ ٤٫٥). أي أن رسالةَ «حُفظ» كانت لا تُقرأ في
+   المظهر الداكن أصلاً. و`#12704a` (قيمةُ `--ok` في المظهر الفاتح) نسبتُه مع
+   الأبيض **٦٫١٠** في المظهرين — والتوستُ طبقةٌ تحمل خلفيّتها ولا ترث الصفحة،
+   فلا معنى لأن يتبدّل لونُها مع المظهر. و`--bad` غيرُ معرَّفٍ أصلاً فالبديل
+   `#dc2626` هو العامل، ونسبتُه **٤٫٨٣** — يمرّ، فتُرك. */
+.qe-toast--ok { background: #12704a; color: #fff; }
 .qe-toast--err { background: var(--bad, #dc2626); color: #fff; }
+/* نغمةٌ ثالثة: «حُفظت البيانات ورُفضت الصورة» و«حُفظ ٩ وفشل ١» ليستا فشلاً —
+   شيءٌ كُتب فعلاً. كانتا تحملان `⚠` في النصّ واللونَ الأحمر معاً، فالمحرف
+   يقول تحذيراً واللونُ يقول خطأً. (T837 — الذيل)
+
+   ولونٌ مثبَّت لا `var(--warn)`: الرمزُ يقلب `--warn` في المظهر الداكن إلى
+   `#f0c268` — أصفرَ شاحب، وعليه نصٌّ أبيض بنسبة ١٫٩، أي لا يُقرأ. والمثبَّت
+   `#8a5a00` نسبتُه مع الأبيض **٥٫٩٣** في المظهرين معاً، لأن التوستَ طبقةٌ
+   فوق الصفحة تحمل خلفيّتها معها ولا ترث شيئاً. */
+.qe-toast--warn { background: #8a5a00; color: #fff; }
+/* الرسمُ والكلمة سطرٌ واحد، والرسمُ يرث `currentColor` — وهو ما لا يفعله
+   المحرفُ الذي كان يبدأ كلَّ رسالة. */
+.qe-toast { display: inline-flex; align-items: center; gap: .45rem; }
+.qe-toast svg { flex: none; }
+/* علامةُ حالة الحفظ في رأس الكارت: رسمٌ لا محرف، ولونٌ يقول الحالة. */
+.qe-card__status { display: inline-flex; align-items: center; justify-content: center; gap: .12rem; }
+.qe-card__status.is-ok { color: var(--ok, #16a34a); }
+.qe-card__status.is-bad { color: var(--bad, #dc2626); }
+.qe__search-ic { display: inline-flex; }
+.qe__search-ic svg { inline-size: .95rem; block-size: .95rem; }
+.qe-photo__lbl { display: inline-flex; align-items: center; gap: .3rem; }
+#qeSaveAll { display: inline-flex; align-items: center; gap: .35rem; }
+#qeSaveAll svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 @media (max-width: 600px) { .qe-list { grid-template-columns: 1fr; } }
 
 /* ---- كتالوج السيارات: أدواتٌ صغيرة مشتركة. T884 ------------------------- */
@@ -4712,6 +4780,22 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
   border: 1px solid var(--line); background: var(--panel);
 }
 .arch-toggle.is-open { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+/* علامةُ الطيّ: رسمٌ واحدٌ يُدار، لا محرفان يُبدَّلان. كان القالبُ يحمل `▸`
+   ويكتب JS فوقه `▾` بـ`textContent` — فالشكلُ والحالة في مكانين، وحذفُ محرفٍ
+   من القالب يترك السطرَ في JS يعيده. الآن الصنفُ `is-open` وحدَه يقلبه.
+   والدورانُ ٩٠ درجة لا ١٨٠: السهمُ يشير يميناً مطوياً وأسفلَ مفتوحاً، كما
+   كان `▸`/`▾` بالضبط. (T837 — الذيل) */
+.arch-toggle svg { inline-size: .8rem; block-size: .8rem; transition: transform .15s ease; }
+.arch-toggle.is-open svg { transform: rotate(90deg); }
+/* ألسنةُ شاشة الخروج وأزرارُها: الرسمُ والكلمةُ سطرٌ واحد. كانت `📤` `🔄`
+   `🗄️` `🚧` `✅` — يرسمها نظامُ التشغيل بأسلوبه، وتكبر مع حجم الخطّ. */
+.ex-tab { display: inline-flex; align-items: center; gap: .35rem; }
+.ex-tab svg, .ex-inline .btn-primary-sm svg { inline-size: .9rem; block-size: .9rem; flex: none; }
+.ex-inline .btn-primary-sm { display: inline-flex; align-items: center; gap: .3rem; }
+.ex-gate__form svg { inline-size: .9rem; block-size: .9rem; }
+/* «إضافة سيارة يدويًا» — كانت `➕`. */
+.cat-add-row .btn-primary { display: inline-flex; align-items: center; gap: .35rem; }
+.cat-add-row .btn-primary svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .arch-panel > td { padding: 0 !important; background: var(--raised); }
 .arch-panel__inner { padding: 1rem 1.1rem; }
 .arch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }

@@ -40,6 +40,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from apps.accounts.services import find_by_phone
+from apps.core.arabic import search_q
 from apps.money.models import PaymentIntent, PaymentIntentState
 
 from .exports import export, wants_export
@@ -70,7 +71,7 @@ def search(*, text: str = "", state: str = ""):
     if text:
         # ثلاثة مداخل، لأن ثلاثةً هي ما يصل به السؤال: المرجع من إشعار
         # البوابة، والجوّال من العميل على الهاتف، والاسم حين لا يُتذكّر غيره.
-        matches = Q(reference__icontains=text) | Q(user__full_name__icontains=text)
+        matches = search_q(text, "reference", "user__full_name")
         person = find_by_phone(text)
         if person is not None:
             matches |= Q(user=person)
@@ -157,9 +158,7 @@ def payment_attempts(request):
     rows = PaymentIntent.objects.select_related("user", "resulting_transaction")
     if query:
         rows = rows.filter(
-            Q(user__phone__icontains=query)
-            | Q(reference__icontains=query)
-            | Q(gateway_payment_id__icontains=query)
+            search_q(query, "user__phone", "reference", "gateway_payment_id")
         )
 
     cutoff = timezone.now() - STALE_AFTER

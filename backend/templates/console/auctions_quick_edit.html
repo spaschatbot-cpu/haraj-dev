@@ -16,10 +16,14 @@
 وما تغيّر وحده يُكتب، ولكل تغييرٍ قيدٌ في التدقيق (`vehicle_quick_update`).
 {% endcomment %}
 {% block title %}تعديل سريع — {{ auction.number|unlocalize }}{% endblock %}
-{% block heading %}⚡ تعديل سريع — {{ auction.title }}{% endblock %}
+{% comment %} و`⚡` سقط من العنوان بلا بديل، و`↩` من زرِّ الرجوع: واحدةٌ
+   وأربعون شاشةً في اللوحة و**لا عنوانَ فيها يحمل رسماً** — فرسمٌ هنا وحده
+   يقول إن هذه الشاشة نوعٌ آخر. والرجوعُ له سهمُه في `page__back` بالترويسة.
+   ذيلُ T837. {% endcomment %}
+{% block heading %}تعديل سريع — {{ auction.title }}{% endblock %}
 
 {% block actions %}
-  <a href="{% url 'console:auction-detail' auction.pk %}" class="btn-ghost">↩ رجوع للإدارة</a>
+  <a href="{% url 'console:auction-detail' auction.pk %}" class="btn-ghost">رجوع للإدارة</a>
   <a href="{% url 'console:auctions-quick-edit' %}" class="btn-ghost">قائمة المزادات</a>
 {% endblock %}
 
@@ -29,11 +33,11 @@
     <p class="qe__hint">عدّل رقم الموقف والعدّاد والمواصفات مباشرةً. الحفظُ تلقائيّ — كلُّ تعديلٍ يُسجَّل وحده، والعلامةُ جوار الاسم توضّح الحالة.</p>
     <div class="qe__tools">
       <label class="qe__search">
-        <span class="qe__search-ic" aria-hidden="true">🔍</span>
+        <span class="qe__search-ic" aria-hidden="true">{% include "console/_act_icon.html" with path=qe_icons.search %}</span>
         <input type="search" id="qeSearch" placeholder="ابحث بلوحة أو شاصي أو اسم أو موقف…" autocomplete="off">
       </label>
       <span class="qe__count" id="qeCount">—</span>
-      <button type="button" class="btn-primary" id="qeSaveAll">💾 حفظ كل الظاهر</button>
+      <button type="button" class="btn-primary" id="qeSaveAll">{% include "console/_act_icon.html" with path=qe_icons.save %} حفظ كل الظاهر</button>
     </div>
     {% comment %} فلاترٌ لكل حقلٍ عدا المسافة ورقم الموقف — تُبنى قوائمُها في JS
        من التعدادات ومن القيم الحاضرة، وتُدمَج مع البحث النصّي. {% endcomment %}
@@ -47,11 +51,17 @@
       <button type="button" class="btn-ghost" id="qeLoadMore">تحميل المزيد</button>
     </div>
   {% else %}
-    <p class="empty">🚗 لا سيارات في هذا المزاد.</p>
+    {% comment %} و`🚗` سقط: `_archive_vehicles.html` يكتب الجملةَ نفسها
+       («لا سيارات في هذا المزاد.») بلا رسم، ورسمٌ في واحدةٍ منهما يجعل
+       الفراغَ يُقرأ فراغين. ذيلُ T837. {% endcomment %}
+    <p class="empty">لا سيارات في هذا المزاد.</p>
   {% endif %}
 </div>
 
 {{ records|json_script:"qeData" }}
+{% comment %} مساراتُ الرسوم التي يبنيها الجافاسكربت — من `icons.py` عبر
+   `qe_icons` في العرض، لا محرفاً في سلسلة. {% endcomment %}
+{{ qe_icons|json_script:"qeIcons" }}
 {% comment %} قوائمُ الخيارات بلصائقها العربية — تُبنى منها الشرائح في JS كما
    يبنيها الخادمُ للحقول ذاتِ التعداد المغلق. {% endcomment %}
 <script type="application/json" id="qeChoices">
@@ -77,6 +87,7 @@
 
   var DATA = JSON.parse(document.getElementById('qeData').textContent || '[]');
   var CH = JSON.parse(document.getElementById('qeChoices').textContent || '{}');
+  var ICO = JSON.parse(document.getElementById('qeIcons').textContent || '{}');
   var BATCH = 40;
   var rendered = new Set();
   var current = DATA;
@@ -87,12 +98,62 @@
     });
   }
 
+  // ── رسمٌ من السجلّ، لا محرفٌ في سلسلة ────────────────────────────────────
+  // كانت رسائلُ هذه الشاشة تبدأ بـ`✅` أو `❌` أو `⚠` مكتوبةً داخل سلسلةِ
+  // جافاسكربت — تسعةَ عشرَ محرفاً في الملفّ، يرسمها نظامُ التشغيل بأسلوبه.
+  //
+  // ولماذا **دالّةٌ تبني العنصر** لا الشكلان الآخران:
+  // * **صنفُ CSS يرسم بـ`::before`** يحتاج المسارَ مُرمَّزاً `data:` في ورقة
+  //   الأنماط — فيخرج الرسمُ من `icons.py` إلى مكانٍ ثانٍ، **ويفقد
+  //   `currentColor`** لأن الصورةَ الخلفيّة لا ترث لونَ النصّ. وهما بالضبط
+  //   ما بُني T837 عليه: سجلٌّ واحد، ورسمٌ يتلوّن مع ما حوله.
+  // * **قالبٌ مخفيٌّ يُستنسخ** يعني ثلاثَ عُقَدٍ ميّتة في كل صفحةٍ لثلاث
+  //   حالات، وإضافةُ حالةٍ رابعة تُنسى في القالب لا في الكود.
+  // * والدالّةُ تقرأ من `ICO` (هو `icons.py` نفسُه، مشحوناً مع الصفحة)،
+  //   و`kind` وسيطٌ **قائمٌ أصلاً** في كل نداء — فالرسمُ يأتي بلا وسيطٍ جديد.
+  function svg(name, size) {
+    var d = ICO[name] || '';
+    if (!d) return '';
+    var px = size || 16;
+    return '<svg viewBox="0 0 24 24" width="' + px + '" height="' + px + '" fill="none" ' +
+      'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true" focusable="false"><path d="' + d + '"/></svg>';
+  }
+
+  // والمعنى يبقى مقروءاً لقارئ الشاشة: `✅`/`❌` كانا يُنطقان («علامة صحّ»)،
+  // والرسمُ `aria-hidden` لا يُنطق أصلاً. فاللونُ وحدَه كان سيحمل نجاحَ
+  // العمليّة من فشلها — ومن لا يميّز الأحمرَ من الأخضر لا يرى فرقاً.
+  // `role="status"` يُعلن الرسالةَ حين تظهر، وكلمةٌ مخفيّةٌ تقول أيَّ حالةٍ هي.
+  var TOAST_WORD = { ok: 'تمّ', err: 'خطأ', warn: 'تنبيه' };
+
   function toast(msg, kind) {
     var t = document.createElement('div');
     t.className = 'qe-toast' + (kind ? ' qe-toast--' + kind : '');
-    t.textContent = msg;
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    var word = TOAST_WORD[kind] || '';
+    t.innerHTML = svg(kind === 'err' ? 'err' : (kind === 'warn' ? 'warn' : 'ok'), 15) +
+      (word ? '<span class="sr-only">' + word + ': </span>' : '') +
+      '<span class="qe-toast__txt"></span>';
+    t.querySelector('.qe-toast__txt').textContent = msg;
     document.body.appendChild(t);
     setTimeout(function () { t.remove(); }, 2400);
+  }
+
+  // علامةُ حالة الحفظ في رأس الكارت. كانت `status.textContent = '✅'` — والنصّ
+  // يمحو الرسمَ، ولا `aria-label` يقول ما يعني اللون. و`title` وحدَه على
+  // `<span>` لا يُعلن في كل قارئ.
+  var MARK_WORD = { ok: 'محفوظ', saved_img: 'محفوظ ومعه صورة العدّاد', err: 'فشل الحفظ' };
+
+  function setMark(el, kind) {
+    if (!el) return;
+    el.innerHTML = kind === 'saved_img'
+      ? svg('ok', 15) + svg('camera', 15)
+      : svg(kind === 'err' ? 'err' : 'ok', 15);
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', MARK_WORD[kind] || '');
+    el.classList.toggle('is-bad', kind === 'err');
+    el.classList.toggle('is-ok', kind !== 'err');
   }
 
   // شريحةُ تعدادٍ مغلق: لصائقُ من الخادم، القيمةُ الحاليّة مختارة.
@@ -130,8 +191,10 @@
         '<div class="qe-card__title">' + esc(r.name || ('سيارة #' + vid)) +
           '<span class="qe-card__sub">' + sub + '</span></div>' +
         '<div class="qe-card__act"><span class="qe-card__status" title="حالة الحفظ"></span>' +
+          // الرسمُ من `ICO` لا مساراً مكتوباً هنا: هو الرسمُ نفسُه الذي في زرّ
+          // «حفظ كل الظاهر» أعلى الشاشة، وكان مكتوباً مرّتين بشكلين. T837
           '<button type="button" class="qe-card__save" data-save title="حفظ الآن" aria-label="حفظ الآن">' +
-            '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1M8 4v5h7V4M8 14h8v6H8z"/></svg>' +
+            svg('save', 17) +
           '</button></div>' +
       '</header>' +
       '<div class="qe-field"><span class="qe-label">رقم الموقف</span>' +
@@ -139,7 +202,8 @@
       '<div class="qe-field"><span class="qe-label">عداد المسافة (كم)</span>' +
         '<input type="number" min="0" data-field="odometer_km" value="' + esc(r.odo) + '" placeholder="لم يُقَس">' +
         '<label class="qe-photo" title="صوّر العدّاد"><input type="file" accept="image/*" capture="environment" data-field="meter_image" hidden>' +
-          '<span class="qe-photo__lbl">📷 صورة العدّاد</span><span class="qe-photo__prev" hidden></span></label></div>' +
+          '<span class="qe-photo__lbl">' + svg('camera', 14) + ' صورة العدّاد</span>' +
+          '<span class="qe-photo__prev" hidden></span></label></div>' +
       '<div class="qe-field"><span class="qe-label">نوع اللوحة</span>' + enumChips('plate_type', vid, CH.plate_type || [], r.pt) + '</div>' +
       '<div class="qe-field"><span class="qe-label">الوقود</span>' + enumChips('fuel_type', vid, CH.fuel_type || [], r.ft) + '</div>' +
       '<div class="qe-field"><span class="qe-label">حالة المركبة</span>' + enumChips('condition', vid, CH.condition || [], r.cond) + '</div>' +
@@ -317,7 +381,7 @@
         var d = res.d;
         if (d && d.ok) {
           var gotImage = file && d.image_id;
-          if (status) status.textContent = gotImage ? '✅📷' : '✅';
+          setMark(status, gotImage ? 'saved_img' : 'ok');
           card.classList.add('qe-card--saved');
           if (file && fileInput) { fileInput.value = ''; }
           var prev = card.querySelector('.qe-photo__prev');
@@ -325,20 +389,24 @@
           if (gotImage && pb) {
             // أثرٌ دائمٌ يقول إنّ الصورةَ دخلت المعرض، فلا تُظنّ ضائعة.
             pb.classList.remove('has'); pb.classList.add('saved');
-            var lbl = pb.querySelector('.qe-photo__lbl'); if (lbl) lbl.textContent = '✅ صورة العدّاد محفوظة';
+            var lbl = pb.querySelector('.qe-photo__lbl');
+            if (lbl) lbl.innerHTML = svg('ok', 14) + ' صورة العدّاد محفوظة';
             if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
           } else if (prev) { prev.hidden = true; prev.style.backgroundImage = ''; }
-          if (d.image_error) toast('⚠ حُفظت البيانات، لكن الصورة رُفضت: ' + d.image_error, 'err');
-          else if (!silent) toast(gotImage ? '✅ حُفظ ورُفعت صورة العدّاد' : '✅ حُفظ', 'ok');
+          // و«حُفظت البيانات لكن الصورة رُفضت» تحذيرٌ لا خطأ — كانت تحمل `⚠`
+          // في نصّها وتُلوَّن `err` الحمراء، فالمحرفُ يقول شيئاً واللونُ
+          // يقول غيره. صارت `warn` في الاثنين.
+          if (d.image_error) toast('حُفظت البيانات، لكن الصورة رُفضت: ' + d.image_error, 'warn');
+          else if (!silent) toast(gotImage ? 'حُفظ ورُفعت صورة العدّاد' : 'حُفظ', 'ok');
           setTimeout(function () { card.classList.remove('qe-card--saved'); }, 1400);
           return true;
         }
-        if (status) status.textContent = '❌';
-        if (res.s !== 422 || !silent) toast('❌ ' + ((d && d.message) || 'فشل الحفظ'), 'err');
+        setMark(status, 'err');
+        if (res.s !== 422 || !silent) toast((d && d.message) || 'فشل الحفظ', 'err');
         return false;
       }).catch(function () {
-        if (status) status.textContent = '❌';
-        toast('❌ تعذّر الاتصال', 'err');
+        setMark(status, 'err');
+        toast('تعذّر الاتصال', 'err');
         return false;
       }).finally(function () { if (btn) btn.disabled = false; });
   }
@@ -408,7 +476,8 @@
     (function next() {
       if (i >= cards.length) {
         saveAll.disabled = false; saveAll.innerHTML = old;
-        toast(fail ? ('⚠ حُفظ ' + ok + ' وفشل ' + fail) : ('✅ حُفظ ' + ok + ' كارت'), fail ? 'err' : 'ok');
+        // «حُفظ ٩ وفشل ١» ليست فشلاً: تسعةٌ كُتبت فعلاً. `warn` لا `err`.
+        toast(fail ? ('حُفظ ' + ok + ' وفشل ' + fail) : ('حُفظ ' + ok + ' كارت'), fail ? 'warn' : 'ok');
         return;
       }
       var card = cards[i++];

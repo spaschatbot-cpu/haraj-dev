@@ -11,7 +11,7 @@
         <div class="arch-card__img">
           {% if car.thumb %}
             <img src="{{ car.thumb }}" alt="" loading="lazy" decoding="async" onerror="this.remove()">
-          {% else %}<span class="arch-card__noimg">🚗</span>{% endif %}
+          {% else %}<span class="arch-card__noimg">{% include "console/_act_icon.html" with path=card_icons.car %}</span>{% endif %}
         </div>
         <div class="arch-card__body">
           <div class="arch-card__top">
@@ -24,9 +24,9 @@
             </div>
           </div>
           <div class="arch-card__meta">
-            {% if car.colour %}<span class="chip">🎨 {{ car.get_colour_display }}</span>{% endif %}
-            {% if car.plate_number %}<span class="chip">🏷️ {{ car.plate_number }}</span>{% endif %}
-            <span class="chip">👤 {{ car.awarded_to.full_name|default:"بلا فائز" }}</span>
+            {% if car.colour %}<span class="chip">{% include "console/_act_icon.html" with path=card_icons.colour %} {{ car.get_colour_display }}</span>{% endif %}
+            {% if car.plate_number %}<span class="chip">{% include "console/_act_icon.html" with path=card_icons.plate %} {{ car.plate_number }}</span>{% endif %}
+            <span class="chip">{% include "console/_act_icon.html" with path=card_icons.winner %} {{ car.awarded_to.full_name|default:"بلا فائز" }}</span>
           </div>
           <div class="arch-card__money">
             <div><span class="arch-card__lbl">مبلغ المزايدة</span>
@@ -38,9 +38,9 @@
             {% comment %} «عرض في Odoo» لكل سيارةٍ لها فاتورة — كـ v1: يربط
                بحركة الفاتورة في أودو إن كان لها معرّفٌ هناك، وإلا بقاعدة أودو. {% endcomment %}
             {% if car.invoice_number %}
-              <a class="btn-sm btn-odoo" href="{{ car.odoo_invoice_url|default:odoo_base }}" target="_blank" rel="noopener">🔗 عرض في Odoo</a>
+              <a class="btn-sm btn-odoo" href="{{ car.odoo_invoice_url|default:odoo_base }}" target="_blank" rel="noopener">{% include "console/_act_icon.html" with path=card_icons.odoo %} عرض في Odoo</a>
             {% endif %}
-            <button type="button" class="btn-sm" data-content-url="{% url 'console:vehicle-bid-list' car.pk %}">🔨 سجل المزايدات</button>
+            <button type="button" class="btn-sm" data-content-url="{% url 'console:vehicle-bid-list' car.pk %}">{% include "console/_act_icon.html" with path=card_icons.bids %} سجل المزايدات</button>
           </div>
         </div>
       </article>

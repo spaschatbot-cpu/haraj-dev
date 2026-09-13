@@ -20,7 +20,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from apps.core.permissions import can
 
@@ -68,6 +68,22 @@ def console_page(url_name: str):
             # ويحوّل عنده، وقلبُ المنطقة لكلّ طلبٍ في المشروع كان سيغيّر
             # مخرَج تلك النقاط أيضاً.
             timezone.activate(ZoneInfo(settings.DISPLAY_TIME_ZONE))
+            # ولغةُ اللوحة عربيّةٌ بقرارٍ لا بترويسةِ متصفّح — T839.
+            #
+            # كلُّ قالبٍ هنا يكتب `<html lang="ar" dir="rtl">` ثابتاً،
+            # و`LocaleMiddleware` مع `LANGUAGES` فيها الإنجليزية كانت تختار
+            # اللغة من `Accept-Language`. فمتصفّحُ ويندوز الافتراضيّ
+            # (`en-US`) يجعل الصفحةَ **تدّعي العربية وتُرسم إنجليزيّة**: قِيس
+            # على هذه القاعدة في ١٣ سبتمبر ٢٠٢٦ — تاريخُ التسجيل يُقرأ
+            # «Sept. 13, 2026, 4:40 p.m.» وسط جدولٍ عربيّ، ورفضُ كلمةِ مرورٍ
+            # ضعيفةٍ في «إضافة مشرف» يخرج «This password is too common.»
+            # وحدها. وبترويسة `ar` تخرج الاثنتان عربيّتين — فالترجمةُ موجودة،
+            # والمختارُ هو الخطأ.
+            #
+            # والتفعيلُ هنا لا في الإعدادات، للسبب نفسه الذي وُضعت له المنطقة
+            # فوق: نقاطُ الـAPI يقرؤها العميلُ ويتفاوض عليها بلغته، وقلبُ
+            # اللغة للمشروع كلِّه كان سيغيّر مخرَجها معها.
+            translation.activate("ar")
             try:
                 response = view(request, *args, **kwargs)
                 # لا bfcache على صفحات اللوحة: المتصفّح كان يخدم نسخةً محفوظة
@@ -76,11 +92,16 @@ def console_page(url_name: str):
                 # فكلُّ عودةٍ إلى صفحةٍ تُجلَب طازجةً بحالتها بعد الفعل.
                 if hasattr(response, "headers"):
                     response.headers["Cache-Control"] = "no-store, must-revalidate"
+                    # `LocaleMiddleware` يكتب `Content-Language` بما تفاوض
+                    # عليه (`setdefault`)، فيُعلن الردُّ إنجليزيّةً ومحتواه
+                    # عربيّ. والمكتوبُ هنا يسبقه.
+                    response.headers["Content-Language"] = "ar"
                 return response
             finally:
                 # الخيوطُ يُعاد استعمالها: منطقةٌ مفعَّلةٌ لا تُعاد تُسرّب
-                # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة.
+                # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة. واللغةُ مثلها.
                 timezone.deactivate()
+                translation.deactivate()
 
         return guarded
 

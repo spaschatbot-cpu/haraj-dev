@@ -53,11 +53,13 @@ from apps.auctions.models import (
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 from apps.core.uploads import UploadRejected
 
 #: المزادات التي انتهت. تُقرأ من `archive` لا تُكتب ثانيةً.
 from .archive import ARCHIVED  # noqa: E402
+from .icons import path_of
 from .views import console_page
 
 
@@ -156,7 +158,7 @@ def quick_edit_targets(text: str = ""):
     )
     text = (text or "").strip()
     if text:
-        matches = Q(title__icontains=text)
+        matches = search_q(text, "title")
         if text.isdigit():
             matches |= Q(number=int(text))
         rows = rows.filter(matches)
@@ -284,6 +286,23 @@ def quick_edit(request):
             "condition_choices": VehicleCondition.choices,
             "runs_presets": RUNS_PRESETS,
             "key_presets": KEY_PRESETS,
+            # الرسوم التي يحتاجها الجافاسكربت — تُشحن مع الصفحة كبقيّة
+            # السجلّات (`qeData`، `qeChoices`) لا تُكتب بحرفها في السلسلة.
+            #
+            # والشاشةُ كانت **أثقلَ ما بقي من إيموجي**: تسعةَ عشرَ محرفاً،
+            # أكثرُها داخل سلاسلِ جافاسكربت لرسائل التوست وعلامة الحفظ. ونسخُ
+            # وسم `<svg>` في تلك السلاسل كان سيضاعف السطر ويُخفي المعنى؛
+            # والمصدرُ الواحد هنا يجعل `toast()` و`setMark()` تبنيان الرسمَ
+            # من اسمٍ واحد. ذيلُ T837.
+            "qe_icons": {
+                "save": path_of("save"),
+                "camera": path_of("camera"),
+                "ok": path_of("check"),
+                "warn": path_of("warn"),
+                "err": path_of("x-circle"),
+                "search": path_of("search"),
+                "car": path_of("car"),
+            },
         },
     )
 

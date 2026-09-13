@@ -62,16 +62,18 @@ from decimal import Decimal
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 from django.utils.dateparse import parse_date
 
 from apps.auctions import engine
 from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
+from apps.core.arabic import search_q
 from apps.money.models import InvoiceSource
 
 from .dashboard import Stat
 from .exports import export, wants_export
+from .icons import path_of
 from .tones import with_tones
 from .views import console_page
 
@@ -131,12 +133,7 @@ def catalogue(
 
     text = (text or "").strip()
     if text:
-        matches = (
-            Q(vin__icontains=text)
-            | Q(plate_number__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-        )
+        matches = search_q(text, "vin", "plate_number", "make", "model")
         if text.isdigit():
             matches |= Q(lot_number=int(text)) | Q(auction__number=int(text))
         rows = rows.filter(matches)
@@ -302,6 +299,11 @@ def vehicle_catalog(request):
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
+            # رسمُ عمود الصور — من `icons.py` لا محرفاً في القالب. T837
+            "camera_icon": path_of("camera"),
+            # و«إضافة سيارة يدويًا» كانت `➕` — والمحرفُ يرسمه نظامُ التشغيل
+            # فيأتي أخضرَ سميكاً لا يشبه زرَّ اللوحة. ذيلُ T837.
+            "plus_icon": path_of("plus"),
         },
     )
 
@@ -324,11 +326,11 @@ def found(*, plate: str = "", vin: str = "", name: str = "", lot: str = ""):
         return None
 
     if plate:
-        rows = rows.filter(plate_number__icontains=plate)
+        rows = rows.filter(search_q(plate, "plate_number"))
     if vin:
-        rows = rows.filter(vin__icontains=vin)
+        rows = rows.filter(search_q(vin, "vin"))
     if name:
-        rows = rows.filter(Q(make__icontains=name) | Q(model__icontains=name))
+        rows = rows.filter(search_q(name, "make", "model"))
     if lot.isdigit():
         rows = rows.filter(lot_number=int(lot))
     return rows
@@ -386,13 +388,14 @@ def vehicle_exit(request):
 
     text = (request.GET.get("q", "") or "").strip()
     if text:
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-            | Q(awarded_to__full_name__icontains=text)
-            | Q(awarded_to__phone__icontains=text)
+        matches = search_q(
+            text,
+            "plate_number",
+            "vin",
+            "make",
+            "model",
+            "awarded_to__full_name",
+            "awarded_to__phone",
         )
         if text.isdigit():
             matches |= Q(auction__number=int(text))

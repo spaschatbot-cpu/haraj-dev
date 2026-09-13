@@ -350,7 +350,13 @@ HEADER_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     (
         "سعر الوقوف",
-        ("سعر_الوقوف", "السعر_الابتدائي", "starting_price", "start_price", "reserve_price"),
+        (
+            "سعر_الوقوف",
+            "السعر_الابتدائي",
+            "starting_price",
+            "start_price",
+            "reserve_price",
+        ),
     ),
     (
         "حالة المركبة",
@@ -417,7 +423,8 @@ KNOWN_BUT_NOT_A_COLUMN: dict[str, str] = {
 }
 
 #: مؤشرات v1 الأربعة لاكتشاف صف الرأس (looksLikeVehicleHeader 3362-3371):
-#: vehicle_name أو vehicle_brand (الماركة) أو starting_price (سعر الوقوف) أو vehicle_condition (الحالة الفنية).
+#: vehicle_name أو vehicle_brand (الماركة) أو starting_price (سعر الوقوف)
+#: أو vehicle_condition (الحالة الفنية).
 HEADER_INDICATORS: set[str] = {
     "الماركة",
     "سعر الوقوف",
@@ -648,7 +655,11 @@ def import_vehicles(
             if not any(cell.strip() for cell in row):
                 continue
             padded_row = (row + [""] * len(headers))[: len(headers)]
-            record = dict(zip(headers, padded_row))
+            # `strict=True` لا `False`: السطرُ فوقه يجعل طولَ `padded_row`
+            # مساوياً لطول `headers` بالضبط — يحشو الناقصَ ويقصّ الزائد. فإن
+            # اختلّ الطولان يوماً فذلك عطلٌ في الحشو نفسه، و`zip` الصامت كان
+            # سيبتلع أعمدةً من ملفِّ المالك بلا كلمة.
+            record = dict(zip(headers, padded_row, strict=True))
             _apply_row(
                 record,
                 known,
@@ -876,7 +887,9 @@ def _auction_is_live(auction) -> bool:
     return auction.state == AuctionState.LIVE
 
 
-def _transfer(existing, auction, lot_number, attributes: dict, report: ImportReport) -> None:
+def _transfer(
+    existing, auction, lot_number, attributes: dict, report: ImportReport
+) -> None:
     """انقل مركبةً غير مباعةٍ إلى مزادٍ جديد — نظيرُ `transferVehicleToAuction` في v1.
 
     المزايداتُ القديمة تُسحَب (`is_withdrawn`) لا تُحذَف: التاريخُ يبقى، والفتحةُ

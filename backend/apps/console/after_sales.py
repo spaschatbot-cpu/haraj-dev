@@ -57,6 +57,7 @@ from django.urls import reverse
 
 from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import AuctionState
+from apps.core.arabic import search_q
 from apps.money.models import Invoice, InvoiceSource, InvoiceState, Transaction
 
 #: حالاتُ المركبة التي تعني «بيعت» — من `catalog` نفسِها ولا تُكتب ثانيةً:
@@ -182,16 +183,19 @@ def sold_rows(
 
     text = (text or "").strip()
     if text:
-        # سبعةُ حقولٍ نصّية كما في v1، ومعها اسمُ المشتري وهاتفُه.
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(claim_number__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-            | Q(colour__icontains=text)
-            | Q(awarded_to__full_name__icontains=text)
-            | Q(awarded_to__phone__icontains=text)
+        # سبعةُ حقولٍ نصّية كما في v1، ومعها اسمُ المشتري وهاتفُه — ومطابقةٌ
+        # تطبّع العربية (T897)، فـ«شاحنه» تجد «شاحنة» و«دطق1265» تجد
+        # «د ط ق 1265» وهي مكتوبةٌ بمسافاتٍ في القاعدة المُرحَّلة.
+        matches = search_q(
+            text,
+            "plate_number",
+            "vin",
+            "claim_number",
+            "make",
+            "model",
+            "colour",
+            "awarded_to__full_name",
+            "awarded_to__phone",
         )
         # الأرقام وحدها تُقارَن بالأرقام. في v1 كان `(int)'تويوتا' = 0` يُقارَن
         # بـ`av.id` فيرجع آلافَ الصفوف لأي كلمةٍ عربية — عطلٌ مكتوبٌ في

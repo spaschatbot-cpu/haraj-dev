@@ -12,10 +12,14 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   <p class="lede">أوامرُ الخروج الإلكترونية بالباركود، ومتابعةُ نقل الملكية حتى الأرشيف — لِما بيع وسُدِّد.</p>
 
   <div class="ex-tabs" role="tablist">
-    <button type="button" class="ex-tab is-on" data-tab="create">📤 إنشاء الخروج <span class="ex-tab__n">{{ counts.create|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="follow">🔄 متابعة نقل الملكية <span class="ex-tab__n">{{ counts.follow|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="archive">🗄️ أرشيف المنقولة <span class="ex-tab__n">{{ counts.archive|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="gate">🚧 البوابة</button>
+    {% comment %} رسومٌ من `icons.py` لا إيموجي: اللسانُ الواحد مرحلةٌ في
+       دورة حياة، والمراحلُ الأربع تُقرأ صفّاً واحداً حين تكون بسمكٍ وزوايا
+       واحدة — وهو ما لا يفعله أربعةُ محارفَ يرسمها نظامُ التشغيل. ذيلُ T837.
+    {% endcomment %}
+    <button type="button" class="ex-tab is-on" data-tab="create">{% include "console/_act_icon.html" with path=tab_icons.create %} إنشاء الخروج <span class="ex-tab__n">{{ counts.create|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="follow">{% include "console/_act_icon.html" with path=tab_icons.follow %} متابعة نقل الملكية <span class="ex-tab__n">{{ counts.follow|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="archive">{% include "console/_act_icon.html" with path=tab_icons.archive %} أرشيف المنقولة <span class="ex-tab__n">{{ counts.archive|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="gate">{% include "console/_act_icon.html" with path=tab_icons.gate %} البوابة</button>
   </div>
 
   {# ── لسانُ الإنشاء ────────────────────────────────────────────────── #}
@@ -107,7 +111,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                   <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
                     {% csrf_token %}<input type="hidden" name="tab" value="follow">
                     <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
-                    <button type="submit" class="btn-primary-sm">✅ تأكيد النقل</button>
+                    <button type="submit" class="btn-primary-sm">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد النقل</button>
                   </form>
                 </td>
               </tr>
@@ -187,7 +191,10 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ البوابة ──────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="gate" hidden>
     <div class="ex-gate">
-      <h2>🚧 بوابة الخروج</h2>
+      {% comment %} و`🚧` سقط من العنوان بلا بديل: اللسانُ الذي فُتحت منه هذه
+         اللوحةُ يحمل رسمَ البوّابة بالفعل، ورسمٌ ثانٍ في العنوان تحته مباشرةً
+         تكرارٌ لا يضيف. ذيلُ T837. {% endcomment %}
+      <h2>بوابة الخروج</h2>
       <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) ثم اضغط تأكيد.</p>
       <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__form">
         {% csrf_token %}<input type="hidden" name="tab" value="gate">

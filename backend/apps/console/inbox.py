@@ -107,6 +107,10 @@ def inbox(request):
 
     search = (request.GET.get("q") or "").strip()
     if search:
+        # **لا يُطبَّع عربيّاً عمداً** (T897): `subject_ref` مرجعُ رسالةٍ من
+        # Odoo — `res.partner,1842` وأمثالُه — يكتبه النظامان لبعضهما، ولا
+        # يُقرأ ولا يُكتب بالعربية. وتطبيعُه يحذف النقطةَ والشرطةَ من المُدخَل
+        # فيصير المرجعُ الدقيقُ مطابقةً أوسع، والدقّةُ هي المقصودة هنا.
         rows = rows.filter(subject_ref__icontains=search)
 
     if wants_export(request):

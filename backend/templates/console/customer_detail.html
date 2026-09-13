@@ -42,9 +42,19 @@
     {% if not customer.is_staff %}
       · <a href="{% url 'console:customer-access' customer.pk %}">الوصول</a>
     {% endif %}
-    · <a href="{% url 'console:money-customer' customer.pk %}">دفتره</a>
+    {% if can_view_money %}
+      · <a href="{% url 'console:money-customer' customer.pk %}">دفتره</a>
+    {% endif %}
   </p>
 
+  {% comment %} قسمُ التأمين خلف `money.view` كالقوائم الستّ — وكان مكشوفاً.
+     قِيس في ١٣ سبتمبر ٢٠٢٦ بحسابٍ حقيقيّ يحمل `users.view` وحدها: القوائمُ
+     الستُّ غابت كما يجب، **وهذا القسم ظهر** بأرقامه («محجوز على مزادات
+     ١٠٬٠٠٠» و«عليه مستحقات ١٠٠٬٥٨٣»)، ومعه رابطُ «دفتره». وهو عينُ ما يقسمه
+     T801 ثلاثاً: من يملك `users.view` يعرف **من** هو العميل، ولا يقرأ
+     **كم** له. والرابطُ يُخفى لا يُترك ليُرفض — زرٌّ يظهر ثم يقول «ممنوع»
+     يُقرأ عطلاً في اللوحة لا قراراً في الصلاحيات. {% endcomment %}
+  {% if can_view_money %}
   {# ------------------------------------------------------------------ #}
   <h2>التأمين — وما منه يُنفَق فعلاً</h2>
   <div class="scroller">
@@ -89,6 +99,7 @@
       — لا من حسابٍ ثانٍ يشبهها.
     </p>
   {% endif %}
+  {% endif %}{# can_view_money #}
 
   {# ------------------------------------------------------------------ #}
   {% comment %} الوثائقُ الأربع. الغائبُ يُعرض غائباً عمداً: السؤالُ على الهاتف
@@ -297,8 +308,17 @@
     <details class="activity"{% if card.open %} open{% endif %}>
       <summary>
         <span class="activity__title">{{ card.title }}</span>
-        <span class="pill">{{ card.rows|length|unlocalize }}</span>
+        {% comment %} العدّادُ كلُّ الصفوف لا طولُ الشريحة: «٥٠» على عميلٍ له
+           ٦٬٦٧٢ مزايدةً رقمٌ يُقرأ جواباً وهو حدُّ العرض. {% endcomment %}
+        <span class="pill">{{ card.total|unlocalize }}</span>
       </summary>
+
+    {% if card.clipped %}
+      <p class="empty">
+        أحدثُ {{ card.shown|unlocalize }} من {{ card.total|unlocalize }} — والباقي
+        في شاشته.
+      </p>
+    {% endif %}
 
     {% if card.kind == "bids" %}
       <div class="scroller">

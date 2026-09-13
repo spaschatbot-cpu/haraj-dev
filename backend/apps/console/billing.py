@@ -40,8 +40,9 @@ from django.utils.dateparse import parse_date
 
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
+from apps.core.arabic import search_q
 from apps.money import services as money
-from apps.money.models import Invoice
+from apps.money.models import Invoice, InvoiceState
 
 from .exports import export, wants_export
 from .tones import with_tones
@@ -79,7 +80,7 @@ def lookup(*, vin: str = "", plate: str = "") -> dict | None:
     if vin:
         cars = cars.filter(vin__iexact=vin)
     if plate:
-        cars = cars.filter(plate_number__icontains=plate)
+        cars = cars.filter(search_q(plate, "plate_number"))
 
     found = list(cars.order_by("-id")[:2])
     if not found:
@@ -95,7 +96,14 @@ def lookup(*, vin: str = "", plate: str = "") -> dict | None:
         "vehicle": car,
         "many": False,
         "invoice": invoice,
-        "state": money.derive_invoice_state(invoice) if invoice else "",
+        # **الاسمُ العربيُّ لا قيمةَ العمود.** كانت الشاشةُ تطبع `paid` و`open`
+        # خاماً وسطَ عربيّةٍ كاملة — وهي الشاشةُ الوحيدة الموجَّهةُ إلى **خارج
+        # الشركة** (التأمين والجهات)، أي أن السائلَ لا يملك ما يترجم له الكلمة.
+        # و«حالة المركبة» فوقها بسطرٍ واحدٍ كانت تُعرَض بـ`get_state_display`
+        # عربيّةً، فالسطران متجاوران وأحدهما بلغةٍ أخرى.
+        "state": InvoiceState(money.derive_invoice_state(invoice)).label
+        if invoice
+        else "",
     }
 
 
@@ -127,8 +135,6 @@ def invoices_between(*, since: str = "", until: str = "", state: str = ""):
     if end:
         rows = rows.filter(issued_at__date__lte=end)
 
-    from apps.money.models import InvoiceState
-
     if (state or "").strip() in InvoiceState.values:
         rows = rows.filter(state=state)
     return rows
@@ -142,7 +148,6 @@ def invoices_export(request):
     الضاغط أهو ثلاثةُ صفوفٍ أم ثلاثةَ عشرَ ألفاً حتى يفتح الملف. ومن ينتظر
     ملفاً ثقيلاً بلا سببٍ يضغط ثانيةً.
     """
-    from apps.money.models import InvoiceState
 
     since = request.GET.get("since", "")
     until = request.GET.get("until", "")
@@ -209,12 +214,7 @@ def decided(*, text: str = "", which: str = ""):
 
     text = (text or "").strip()
     if text:
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-        )
+        matches = search_q(text, "plate_number", "vin", "make", "model")
         if text.isdigit():
             matches |= Q(auction__number=int(text)) | Q(lot_number=int(text))
         rows = rows.filter(matches)

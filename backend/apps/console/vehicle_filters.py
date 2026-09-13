@@ -16,8 +16,6 @@
 
 from __future__ import annotations
 
-import re
-import unicodedata
 from urllib.parse import urlencode
 
 from django.db.models import Count, Q
@@ -26,6 +24,8 @@ from django.urls import reverse
 from apps.auctions import engine
 from apps.auctions.models import VehicleColour
 from apps.auctions.states import VehicleState
+from apps.core.arabic import fold, search_q
+from apps.core.arabic import matches as _folded_in
 
 #: تبويبة الصور: بلا صور تعني `image_count == 0`، ولها صور ما فوقه. والعددُ من
 #: `image_count` المعلَّق أصلاً في `engine.vehicle_rows` — لا يُحسب ثانيةً.
@@ -59,26 +59,11 @@ def _get(params, key: str) -> str:
     return "" if value is None else str(value)
 
 
-def normalize(text) -> str:
-    """طيُّ النصّ قبل المطابقة — دالةٌ واحدة للمُدخَل ولقيمة العمود معاً.
-
-    كما في v1 (`initColumnFilters`): الأرقامُ العربية-الهندية ٠-٩ والفارسية
-    ۰-۹ إلى ASCII — فلوحةُ المفاتيح العربية تُخرج «٣١٠» حيث الخليّة «310».
-    وفوق v1: أ إ آ←ا · ى←ي · ة←ه، وحذفُ التشكيل والتطويل — فـ«الماركه» تجد
-    «الماركة». ثم lower وحذفُ المسافات و- _ . /.
-    """
-    chars = str(text or "")
-    chars = chars.translate(_ARABIC_DIGITS).translate(_PERSIAN_DIGITS)
-    chars = re.sub("[أإآ]", "ا", chars)
-    chars = chars.replace("ى", "ي").replace("ة", "ه")
-    chars = chars.replace("ـ", "")
-    chars = re.sub("[ً-ْ]", "", chars)
-    chars = unicodedata.normalize("NFKC", chars)
-    return re.sub(r"[\s\-_./]", "", chars.lower())
-
-
-_ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
-_PERSIAN_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789")
+#: التطبيعُ **لم يعد يعيش هنا** — انتقل إلى `apps.core.arabic` يوم صار لأكثر
+#: من شاشة (T897). وكان مكتوباً في `console/bids.py` أنها تطبّع وهي لا تطبّع،
+#: لأن الدالّة كانت حبيسةَ هذا الملفّ. وقاعدةٌ واحدةٌ تعيش في موضعين قاعدتان
+#: تتفارقان (المادة ٤-٥)، فالاسمُ هنا مجرّدُ اسمٍ قديمٍ للدالّة المشتركة.
+normalize = fold
 
 
 def apply(rows, params):
@@ -104,100 +89,73 @@ def apply(rows, params):
     elif marketing == MKT_OFF:
         rows = rows.filter(is_marketing=False)
 
-    # بحثٌ موحّد لشاشة الكروت (أسلوب v1: لوحة/شاصي/اسم في خانةٍ واحدة). مطابقةٌ
-    # مباشرة `icontains` كبحث v1 نفسِه — للّوحة والشاصي والرقم تكفي، والاسمُ
-    # يُطابَق كما كُتب. ورقمٌ صِرفٌ يُقارَن باللوت أيضاً.
+    # بحثٌ موحّد لشاشة الكروت (أسلوب v1: لوحة/شاصي/اسم في خانةٍ واحدة) — ويطبّع
+    # العربية كبقيّة اللوحة (T897)، لا `icontains` أعمى: لوحاتُ القاعدة
+    # المُرحَّلة مكتوبةٌ «د ط ق 1265» بمسافات، ومن ينسخها من ورقةٍ يكتبها ملتصقة.
     q = _get(params, "q").strip()
     if q:
-        from django.db.models import Q as _Q
-
-        match = (
-            _Q(make__icontains=q)
-            | _Q(model__icontains=q)
-            | _Q(plate_number__icontains=q)
-            | _Q(vin__icontains=q)
-        )
+        match = search_q(q, "make", "model", "plate_number", "vin")
         if q.isdigit():
-            match |= _Q(lot_number=int(q))
+            match |= Q(lot_number=int(q))
         rows = rows.filter(match)
 
     return _apply_text(rows, params)
 
 
+#: «مُعامِلُ الفلتر ← أعمدتُه» للحقول النصّية. الماركةُ خانةٌ واحدة على
+#: عمودين كما في v1 (`vehColFilter` على خليّة «الماركة / الموديل»).
+_TEXT_COLUMNS: dict[str, tuple[str, ...]] = {
+    "q_make": ("make", "model"),
+    "q_vin": ("vin",),
+    "q_claim": ("claim_number",),
+    "q_plate": ("plate_number",),
+    "q_insurance": ("insurance_company",),
+}
+
+#: وعمودان عدديّان (`PositiveIntegerField`): لا همزةَ فيهما ولا تشكيل، فطيُّ
+#: **المُدخَل** وحده يكفي — «١٢٦٥» تصير «1265» ثم `icontains` على النصّ.
+#: ولا يُبنى لهما تعبيرٌ نمطيّ: `~*` لا يقبل عموداً عدديّاً بلا `Cast`، وثمنُ
+#: الصبّ بلا فائدةٍ هنا.
+_NUMBER_COLUMNS = {"q_lot": "lot_number", "q_year": "year"}
+
+
 def _apply_text(rows, params):
-    """بحثُ الأعمدة الثمانية — مطابقةٌ عربية كاملة، لا `icontains` أعمى.
+    """بحثُ الأعمدة الثمانية — مطابقةٌ عربية كاملة **في القاعدة**.
 
     العمودُ مخزَّنٌ خاماً («الماركة») والمُدخَلُ قد يُكتب بصورةٍ أخرى
-    («الماركه»)، ولا توجد دالةُ SQL واحدة تطبّق `normalize` على الطرفين —
-    فـ`icontains` على المُدخَل المطبَّع وحده **لا يجدها أبداً**: «الماركه» ليست
-    جزءاً من «الماركة».
+    («الماركه»)، و`icontains` على المُدخَل المطبَّع وحده **لا يجده أبداً**.
+    فالمُدخَلُ يُطوى ثم يُوسَّع إلى تعبيرٍ نمطيّ يقبل كلَّ صور الحرف في العمود
+    (`apps.core.arabic`)، والمطابقةُ تبقى في SQL.
 
-    فالمرشَّحاتُ هنا تُقرأ من القاعدة على مستوى المزاد كلّه (مئاتُ الصفوف لا
-    الصفحة)، وتُطابَق في بايثون بالدالة الواحدة على الطرفين، ثم تعود
-    `pk__in` — فتبقى QuerySet قبل الترقيم، وتبقى العدّادات على القاعدة.
-    واللونُ مخزَّنٌ رمزاً (`white`) فيُطابَق على تسميته العربية لا على الرمز.
+    **وكان هذا يُقرأ صفّاً صفّاً في بايثون** — `values_list` على صفوف المزاد
+    كلِّها ثم `pk__in` بقائمةٍ من مئات المعرّفات. صحيحٌ على مزادٍ صغير، وثمنُه
+    قراءةُ الجدول كاملاً في كل ضغطة، ورابطُه بالبحث في بقيّة اللوحة مستحيل.
+    فصار الترشيحُ `Q` واحدةً تتراكب (AND) كفلاتر v1 تماماً.
+
+    واللونُ وحده يبقى في بايثون: العمودُ يخزّن رمزاً (`white`) والموظّفُ يكتب
+    «أبيض»، والتسميةُ في `choices` لا في القاعدة. فتُطوى التسمياتُ هنا ويُرشَّح
+    بـ`colour__in` — ومعها الرمزُ نفسُه لمن يكتبه.
     """
-    wanted: dict[str, str] = {}
-    for key, _label in SEARCH_FIELDS:
-        query = normalize(_get(params, key))
-        if query:
-            wanted[key] = query
-    if not wanted:
-        return rows
+    for key, columns in _TEXT_COLUMNS.items():
+        clause = search_q(_get(params, key), *columns)
+        if clause:
+            rows = rows.filter(clause)
 
-    colour_labels = dict(VehicleColour.choices)
-    columns = (
-        "lot_number",
-        "make",
-        "model",
-        "year",
-        "vin",
-        "claim_number",
-        "plate_number",
-        "colour",
-        "insurance_company",
-    )
-    hits: list[int] = []
-    for values in rows.values_list("pk", *columns):
-        record = dict(zip(("pk", *columns), values, strict=True))
-        if _matches(record, wanted, colour_labels):
-            hits.append(record["pk"])
-    return rows.filter(pk__in=hits)
+    for key, column in _NUMBER_COLUMNS.items():
+        folded = fold(_get(params, key))
+        if folded:
+            rows = rows.filter(**{f"{column}__icontains": folded})
 
+    colour = _get(params, "q_colour").strip()
+    if colour:
+        codes = [
+            value
+            for value, label in VehicleColour.choices
+            if _folded_in(label, colour) or _folded_in(value, colour)
+        ]
+        rows = rows.filter(colour__in=codes)
 
-def _matches(record: dict, wanted: dict[str, str], colour_labels: dict) -> bool:
-    """كلُّ حقلٍ مكتوبٍ يجب أن يتحقّق (AND) — كفلاتر v1 تماماً."""
-    for key, query in wanted.items():
-        if key == "q_lot":
-            if query not in normalize(record["lot_number"]):
-                return False
-        elif key == "q_make":
-            if query not in normalize(record["make"]) and query not in normalize(
-                record["model"]
-            ):
-                return False
-        elif key == "q_year":
-            if query not in normalize(record["year"]):
-                return False
-        elif key == "q_vin":
-            if query not in normalize(record["vin"]):
-                return False
-        elif key == "q_claim":
-            if query not in normalize(record["claim_number"]):
-                return False
-        elif key == "q_plate":
-            if query not in normalize(record["plate_number"]):
-                return False
-        elif key == "q_colour":
-            label = colour_labels.get(record["colour"], "")
-            if query not in normalize(label) and query not in str(
-                record["colour"] or ""
-            ).lower():
-                return False
-        elif key == "q_insurance":
-            if query not in normalize(record["insurance_company"]):
-                return False
-    return True
+    return rows
 
 
 def counts(rows):

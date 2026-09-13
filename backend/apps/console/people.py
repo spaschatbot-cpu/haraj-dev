@@ -31,6 +31,7 @@ from django.urls import reverse
 from apps.accounts import services as accounts_services
 from apps.accounts.models import AccountType, Company, StaffGrant, User
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import (
     Capability,
     can,
@@ -194,7 +195,7 @@ def customer_rows(*, text: str = "", kind: str = "", status: str = ""):
     text = (text or "").strip()
     if text:
         digits = "".join(character for character in text if character.isdigit())
-        terms = Q(full_name__icontains=text)
+        terms = search_q(text, "full_name")
         if digits:
             terms = terms | Q(phone__contains=digits) | Q(national_id=digits)
         rows = rows.filter(terms)
@@ -519,7 +520,7 @@ def invoices(request):
     search = (request.GET.get("q") or "").strip()
     if search:
         digits = "".join(character for character in search if character.isdigit())
-        terms = Q(number__icontains=search) | Q(customer__full_name__icontains=search)
+        terms = search_q(search, "number", "customer__full_name")
         if digits:
             terms = terms | Q(customer__phone__contains=digits)
         rows = rows.filter(terms)

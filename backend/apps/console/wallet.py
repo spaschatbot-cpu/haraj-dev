@@ -50,12 +50,12 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
-from django.db.models import Q
 from django.shortcuts import redirect, render
 
 from apps.accounts.models import User
 from apps.accounts.services import display_name
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import UNPAID_INVOICE_STATES, Hold, HoldState, Invoice
 
@@ -80,7 +80,7 @@ def people(text: str = ""):
         return None
     return (
         User.objects.filter(is_staff=False)
-        .filter(Q(full_name__icontains=text) | Q(phone__icontains=text))
+        .filter(search_q(text, "full_name", "phone"))
         .order_by("full_name", "id")[:FOUND]
     )
 
@@ -221,7 +221,11 @@ def bank_topups(request):
         rows = rows.filter(state=state)
 
     counts = [
-        {"value": s.value, "label": s.label, "n": rows.model.objects.filter(state=s.value).count()}
+        {
+            "value": s.value,
+            "label": s.label,
+            "n": rows.model.objects.filter(state=s.value).count(),
+        }
         for s in BankTopupState
     ]
     open_count = BankTopupRequest.objects.filter(

@@ -25,9 +25,11 @@ from apps.auctions.exits import ExitStage, VehicleExit
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 
 from .exports import export, wants_export
+from .icons import path_of
 from .views import console_page
 
 PAGE_SIZE = 30
@@ -55,13 +57,14 @@ def vehicle_exit(request):
         .order_by("-awarded_at", "-id")
     )
     if q:
-        match = (
-            Q(plate_number__icontains=q)
-            | Q(vin__icontains=q)
-            | Q(make__icontains=q)
-            | Q(model__icontains=q)
-            | Q(awarded_to__full_name__icontains=q)
-            | Q(awarded_to__phone__icontains=q)
+        match = search_q(
+            q,
+            "plate_number",
+            "vin",
+            "make",
+            "model",
+            "awarded_to__full_name",
+            "awarded_to__phone",
         )
         if q.isdigit():
             match |= Q(auction__number=int(q))
@@ -71,7 +74,10 @@ def vehicle_exit(request):
         return export(
             create_rows,
             name="الخروج-ونقل-الملكية",
-            headers=["المزاد", "السيارة", "اللوحة", "الموديل", "المشتري", "الجوال", "حالة الخروج"],
+            headers=[
+                "المزاد", "السيارة", "اللوحة", "الموديل",
+                "المشتري", "الجوال", "حالة الخروج",
+            ],
             cell=lambda c: [
                 c.auction.number,
                 f"{c.make} {c.model}",
@@ -79,7 +85,9 @@ def vehicle_exit(request):
                 c.year,
                 c.awarded_to.full_name if c.awarded_to else "",
                 c.awarded_to.phone if c.awarded_to else "",
-                c.exit_order.get_stage_display() if hasattr(c, "exit_order") and c.exit_order else "لم يُنشأ",
+                c.exit_order.get_stage_display()
+                if hasattr(c, "exit_order") and c.exit_order
+                else "لم يُنشأ",
             ],
         )
 
@@ -89,7 +97,9 @@ def vehicle_exit(request):
     orders = VehicleExit.objects.select_related(
         "vehicle", "vehicle__auction", "vehicle__awarded_to"
     )
-    follow = list(orders.filter(stage=ExitStage.UNDER_TRANSFER).order_by("warehouse_exit_at"))
+    follow = list(
+        orders.filter(stage=ExitStage.UNDER_TRANSFER).order_by("warehouse_exit_at")
+    )
     archive = list(orders.filter(stage=ExitStage.ARCHIVED).order_by("-transfer_at"))
 
     return render(
@@ -108,6 +118,17 @@ def vehicle_exit(request):
                 "follow": len(follow),
                 "archive": len(archive),
             },
+            # رسومُ الألسنة الأربعة والأفعال — من `icons.py` لا محارفَ في
+            # القالب. كانت `📤` `🔄` `🗄️` `🚧` `✅`، وواحدةٌ منها (`🚧`)
+            # تقول المعنى الخطأ أصلاً: «أعمالٌ جارية» لا «بوّابةُ حارس».
+            # ذيلُ T837.
+            "tab_icons": {
+                "create": path_of("upload"),
+                "follow": path_of("refresh"),
+                "archive": path_of("archive"),
+                "gate": path_of("gate"),
+            },
+            "confirm_icon": path_of("check"),
         },
     )
 
@@ -158,7 +179,10 @@ def exit_declaration(request, pk: int):
     return render(
         request,
         "console/exit_declaration.html",
-        {"vehicle": vehicle, "order": order},
+        # رسمُ «طباعة» من `icons.py` — كان `🖨️` ومعه `U+FE0F` الخفيّ. وهي
+        # صفحةٌ تُطبَع: الطابعةُ تُخرج الإيموجي بأسلوب نظام التشغيل، فيخرج
+        # الإقرارُ الرسميُّ برسمٍ ملوَّن بجوار نصٍّ أسود. ذيلُ T837.
+        {"vehicle": vehicle, "order": order, "print_icon": path_of("printer")},
     )
 
 

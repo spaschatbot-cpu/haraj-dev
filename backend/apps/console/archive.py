@@ -37,10 +37,12 @@ from django.shortcuts import get_object_or_404, render
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
+from apps.core.arabic import search_q
 from apps.money.models import Invoice
 
 from .dashboard import Stat
 from .exports import export, wants_export
+from .icons import path_of
 from .tones import with_tones
 from .views import console_page
 
@@ -81,7 +83,7 @@ def archived(*, text: str = "", state: str = ""):
     if text:
         # الرقم أو الاسم: الاثنان ما يُتذكَّر من مزادٍ مضى، ولا يُعرف أيّهما
         # في يد السائل. و`number` رقمٌ فيُطابَق تماماً لا جزئياً.
-        matches = Q(title__icontains=text)
+        matches = search_q(text, "title")
         if text.isdigit():
             matches |= Q(number=int(text))
         rows = rows.filter(matches)
@@ -171,6 +173,12 @@ def auction_archive(request):
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "states": [(value, AuctionState(value).label) for value in ARCHIVED],
+            # علامةُ الطيّ — رسمٌ **واحد** يُدار بـCSS، لا محرفان يقلبهما JS.
+            # كانت `▸`/`▾` و`mark.textContent = open ? '▾' : '▸'` بجوار
+            # `mark.classList.toggle('is-open', open)` — أي أن الحالة مكتوبةٌ
+            # مرّتين، وتغييرُ الشكل في القالب يترك السطرَ في JS يكتب فوقه.
+            # ذيلُ T837.
+            "toggle_icon": path_of("chevron"),
         },
     )
 
@@ -221,7 +229,22 @@ def archive_auction_vehicles(request, pk: int):
     return render(
         request,
         "console/_archive_vehicles.html",
-        {"auction": auction, "rows": rows, "odoo_base": settings.ODOO_BASE_URL},
+        {
+            "auction": auction,
+            "rows": rows,
+            "odoo_base": settings.ODOO_BASE_URL,
+            # رسومُ الكارت من `icons.py` لا محارفَ في القالب: كانت `🚗` و`🎨`
+            # و`🏷️` و`👤` و`🔗` و`🔨` — يرسمها نظامُ التشغيل بأسلوبه هو،
+            # ومختلفةً بين ويندوز وماك. وهو ما رفضه المالك في T837 بالحرف.
+            "card_icons": {
+                "car": path_of("car"),
+                "colour": path_of("pencil-line"),
+                "plate": path_of("card"),
+                "winner": path_of("users"),
+                "odoo": path_of("inbox"),
+                "bids": path_of("gavel"),
+            },
+        },
     )
 
 

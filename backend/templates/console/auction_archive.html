@@ -56,7 +56,7 @@
             aria-expanded="false"{% endif %}>
           <td>
             {% if row.vehicle_count %}
-              <span class="arch-toggle" aria-hidden="true">▸</span>
+              <span class="arch-toggle" aria-hidden="true">{% include "console/_act_icon.html" with path=toggle_icon %}</span>
             {% endif %}
           </td>
           <td><strong>{{ row.title }}</strong></td>
@@ -129,7 +129,10 @@
       }
       panel.hidden = !open;
       row.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (mark) { mark.classList.toggle('is-open', open); mark.textContent = open ? '▾' : '▸'; }
+      // الصنفُ وحدَه يقلب العلامة — الرسمُ واحدٌ يُدار ٩٠ درجة في `app.css`.
+      // وكان هنا سطرٌ ثانٍ يكتب `textContent` بمحرفَي `▾`/`▸`: حالةٌ واحدة
+      // مكتوبةٌ في مكانين، والرسمُ الذي يضعه القالبُ يُمحى عند أول ضغطة.
+      if (mark) { mark.classList.toggle('is-open', open); }
     });
   });
 })();

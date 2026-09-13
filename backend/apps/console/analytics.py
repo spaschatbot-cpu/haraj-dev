@@ -48,6 +48,7 @@ from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid, BidRefusal
+from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import AccountKind, Invoice
 
@@ -215,9 +216,9 @@ def report_for(*, phone: str = "", name: str = "") -> dict | None:
 
     people = User.objects.filter(is_staff=False)
     if phone:
-        people = people.filter(phone__icontains=phone)
+        people = people.filter(search_q(phone, "phone"))
     if name:
-        people = people.filter(full_name__icontains=name)
+        people = people.filter(search_q(name, "full_name"))
 
     matches = list(people.order_by("full_name", "id")[:2])
     if not matches:
@@ -346,7 +347,7 @@ def wallet_rows(*, text: str = "", low: str = "", high: str = "", order: str = "
 
     text = (text or "").strip()
     if text:
-        rows = rows.filter(Q(full_name__icontains=text) | Q(phone__icontains=text))
+        rows = rows.filter(search_q(text, "full_name", "phone"))
 
     for value, field in ((low, "insurance__gte"), (high, "insurance__lte")):
         value = (value or "").strip()
@@ -470,8 +471,17 @@ def active_auction(request):
 # مكانٍ يُراجَع لا خانةٌ تُملأ.
 
 
-def profit_rows(*, first: str = "", last: str = "", state: str = ""):
-    """كل مزادٍ وما أنتجه — من المركبات المرساة فيه لا من عمودٍ مخزَّن."""
+def profit_base(*, first: str = "", last: str = "", state: str = ""):
+    """المزاداتُ المطلوبة **بلا تجميع** — أساسُ الإجماليّات.
+
+    تُفصَل عن `profit_rows` لأن الإجماليَّ المحسوبَ فوق طبقةِ التجميع يقتل
+    الخادم: ضمُّ `vehicles__bids` إلى استعلامٍ يحمل أربعةَ `Count/Sum` على
+    ضمِّ `vehicles` يُنتج حاصلَ ضربٍ ديكارتيّاً (١٢٬٩٨١ مركبةً × ١٦٣٬٢٨٣
+    مزايدة) يُغلَّف في `COUNT(*) FROM (SELECT DISTINCT …)`. قِيس على
+    `haraj2_t307`: **يتجاوز ٢٠ ثانية بحدٍّ زمنيّ، و١٠ دقائقَ بلا حدّ حتى
+    تموت عمليّةُ الخادم** فتسقط اللوحةُ كلُّها لا هذه الشاشةُ وحدها. والعدُّ
+    نفسُه على قاعدةٍ نظيفة: **٠٫٢٤ ثانية، والجواب ٢١**.
+    """
     rows = Auction.objects.all()
 
     if (first or "").strip().isdigit():
@@ -480,6 +490,13 @@ def profit_rows(*, first: str = "", last: str = "", state: str = ""):
         rows = rows.filter(number__lte=int(last))
     if (state or "").strip() in AuctionState.values:
         rows = rows.filter(state=state)
+
+    return rows
+
+
+def profit_rows(*, first: str = "", last: str = "", state: str = ""):
+    """كل مزادٍ وما أنتجه — من المركبات المرساة فيه لا من عمودٍ مخزَّن."""
+    rows = profit_base(first=first, last=last, state=state)
 
     won = Q(vehicles__state__in=AWARDED_STATES)
     return rows.annotate(
@@ -490,18 +507,21 @@ def profit_rows(*, first: str = "", last: str = "", state: str = ""):
     ).order_by("-starts_at", "-number")
 
 
-def profit_totals(rows) -> dict:
+def profit_totals(base) -> dict:
     """الإجماليّات — والمفوتَرُ والمحصَّلُ من الفواتير لا من ضربٍ في نسبة.
 
     v1 يعرض «مع الضريبة» و«بدون الضريبة» فيضرب الإجمالي في ١٫١٥. وهنا
     «المفوتَر» مجموعُ الفواتير الصادرة فعلاً، و«المحصَّل» ما وصل منها —
     والفرقُ بين الثلاثة هو ما يُقرأ.
+
+    ويأخذ **قاعدةً بلا تجميع** (`profit_base`) لا صفوفَ الشاشة: انظر ثمنَ
+    ذلك في `profit_base`.
     """
-    invoices = Invoice.objects.filter(vehicle__auction__in=rows)
+    invoices = Invoice.objects.filter(vehicle__auction__in=base)
     return {
-        "auctions": rows.count(),
-        "with_bids": rows.filter(vehicles__bids__isnull=False).distinct().count(),
-        "revenue": rows.aggregate(t=Sum("vehicles__awarded_price"))["t"] or ZERO,
+        "auctions": base.count(),
+        "with_bids": base.filter(vehicles__bids__isnull=False).distinct().count(),
+        "revenue": base.aggregate(t=Sum("vehicles__awarded_price"))["t"] or ZERO,
         "invoiced": invoices.aggregate(t=Sum("amount"))["t"] or ZERO,
         "collected": invoices.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
     }
@@ -547,7 +567,7 @@ def profit_report(request):
         "console/profit_report.html",
         {
             "page": page,
-            "totals": profit_totals(rows),
+            "totals": profit_totals(profit_base(first=first, last=last, state=state)),
             "first": first,
             "last": last,
             "state": state,

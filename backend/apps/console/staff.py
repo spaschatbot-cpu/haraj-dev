@@ -43,6 +43,7 @@ from django.urls import reverse
 
 from apps.accounts.models import ConsoleRole, User
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import (
     Capability,
     Role,
@@ -82,7 +83,7 @@ def staff_rows(*, text: str = "", role: str = "", state: str = ""):
 
     text = (text or "").strip()
     if text:
-        rows = rows.filter(Q(full_name__icontains=text) | Q(phone__icontains=text))
+        rows = rows.filter(search_q(text, "full_name", "phone"))
 
     # المرشّح يمرّ بالبوابة: `console_role` له قارئٌ واحد في المستودع
     # (`ops/checks/one_permission_gate.py`)، وهذه شاشةُ عرضٍ لا بوابة.
@@ -428,6 +429,15 @@ def password_change(request):
 
     وupdate_session_auth_hash ليست تفصيلاً: بدونها يُخرِج تغييرُ كلمة
     المرور صاحبَها من جلسته فوراً، فيظنّ أن التغيير فشل ويحاول ثانيةً.
+
+    **وهنا وحده يُخفض `must_change_password`.** كان يُرفع في موضعين
+    (`admin_new` و`admin_password_reset`) ولا يُخفَض في موضعٍ واحد — وقِيس
+    أثرُه على حسابٍ حقيقيّ في ١٣ سبتمبر ٢٠٢٦: مشرفٌ أُنشئ، وغيّر كلمته من
+    هذه الشاشة بنجاح، **ثم بقي محوَّلاً إليها من كلّ صفحة**. لأن الحارس في
+    `console_page` يردّ كلَّ شاشةٍ إلى هنا ما دام العلمُ مرفوعاً، وهذه الشاشة
+    تُعيده إلى `console:settings` فيردّه الحارسُ ثانيةً — دورةٌ مغلقة، والحسابُ
+    الجديد لا يفتح شيئاً أبداً. فعلَمٌ يُرفع بلا من يخفضه ليس حمايةً ناقصة:
+    هو قفلٌ بلا مفتاح.
     """
     from django.contrib import messages
     from django.contrib.auth import update_session_auth_hash
@@ -439,6 +449,19 @@ def password_change(request):
         if form.is_valid():
             form.save()
             update_session_auth_hash(request, form.user)
+            if request.user.must_change_password:
+                request.user.must_change_password = False
+                request.user.save(update_fields=["must_change_password"])
+                # قيدٌ لأن السؤال يُسأل: «متى بطلت الكلمةُ التي كتبها له
+                # المنشئ؟» — وبين رفعِ العلم وخفضِه تبقى كلمةٌ يعرفها اثنان.
+                audit.record(
+                    action="console.password_changed",
+                    entity=request.user,
+                    actor=request.user,
+                    before={"must_change_password": True},
+                    after={"must_change_password": False},
+                    note="غيّر صاحبُ الحساب الكلمةَ المؤقّتة.",
+                )
             messages.success(request, "غُيّرت كلمة المرور.")
             return redirect("console:settings")
     else:

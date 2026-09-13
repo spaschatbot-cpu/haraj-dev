@@ -467,9 +467,11 @@ class VehicleImage(models.Model):
 # what somebody reading it needs, and they are three lines away there.
 # ---------------------------------------------------------------------------
 
-from .favourites import Favourite  # noqa: E402,F401  (registration import)
-
-# أمرُ الخروج ونقل الملكية — يعيش مع خدماته في `exits.py`، ويُستورَد هنا كي
-# يجده سجلُّ التطبيقات (`makemigrations`). القواعدُ (الكاتبُ الواحد، مراحلُ لا
-# تُملأ إلا في محلّها) ثلاثةُ أسطرٍ منه هناك لا هنا.
+# وأمرُ الخروج ونقل الملكية مثلُها — يعيش مع خدماته في `exits.py`، ويُستورَد
+# هنا كي يجده سجلُّ التطبيقات (`makemigrations`). القواعدُ (الكاتبُ الواحد،
+# مراحلُ لا تُملأ إلا في محلّها) ثلاثةُ أسطرٍ منه هناك لا هنا.
+#
+# والاثنان في كتلةٍ واحدة مرتّبةٍ أبجدياً (`exits` قبل `favourites`): كانا
+# مفصولين بسطرٍ فارغ، فقرأهما `ruff` كتلةً واحدة غيرَ مرتّبة (`I001`).
 from .exits import VehicleExit  # noqa: E402,F401  (registration import)
+from .favourites import Favourite  # noqa: E402,F401  (registration import)

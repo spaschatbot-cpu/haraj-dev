@@ -31,7 +31,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=931">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=936">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
@@ -109,7 +109,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
            الذي يكتبه `theme.js`. {% endcomment %}
         <button type="button" class="icon-btn" data-nav-toggle aria-expanded="true"
                 aria-label="طيّ الشريط الجانبي أو فتحه">
-          <span aria-hidden="true">☰</span>
+          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ nav_toggle_icon }}"/></svg>
         </button>
 
         {% comment %} Article 5-6: every screen says which environment it is, so nobody
@@ -128,7 +128,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         {% endif %}
 
         <button type="button" class="icon-btn" data-themer-open aria-label="المظهر والألوان">
-          <span aria-hidden="true">◐</span>
+          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ themer_icon }}"/></svg>
         </button>
 
         {% comment %} A form and not a link: `LogoutView` refuses GET since Django 5.0, and a
@@ -187,7 +187,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
     <div class="themer__head">
       <h2>المظهر</h2>
       <button type="button" class="icon-btn" data-themer-close aria-label="إغلاق">
-        <span aria-hidden="true">✕</span>
+        <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ close_icon }}"/></svg>
       </button>
     </div>
 

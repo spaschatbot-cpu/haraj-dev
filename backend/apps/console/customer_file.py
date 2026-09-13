@@ -59,6 +59,34 @@ SECRET_FIELDS = frozenset({"password", "iban"})
 ACTIVITY_LIMIT = 50
 
 
+def _activity_card(title: str, kind: str, queryset, *, is_open: bool = False) -> dict:
+    """قائمةُ نشاطٍ واحدة: شريحةٌ تُعرض، **وعددٌ صادق** في عنوانها.
+
+    وكان العدّاد يقول طولَ الشريحة لا عددَ الصفوف — فعميلٌ له ٦٬٦٧٢ مزايدةً
+    و٦١٠ فواتيرَ يُقرأ على شاشته «المزايدات ٥٠» و«الفواتير ٥٠» (قِيس على
+    العميل ٧١٩٣ في ١٣ سبتمبر ٢٠٢٦). وذلك عطلُ «الرصيد صفرٌ في كل صفّ» بعينه:
+    **رقمٌ يُقرأ إجابةً وهو حدُّ العرض**، ومن يفتح الملفّ ليعرف «كم زايد» يخرج
+    برقمٍ يظنّه جواباً. والمطويُّ خاصّةً لا يُصحَّح بالفتح: من يقرأ «٥٠» لا
+    يفتح ليعدّ.
+
+    والعدُّ لا يُسأل إلا حين تمتلئ الشريحة: من له تسعُ فواتيرَ عددُه في يدنا
+    أصلاً، فاستعلامُ `COUNT` له ثمنٌ بلا مقابل — وستُّ قوائمَ في صفحةٍ واحدة.
+    """
+    rows = list(queryset[:ACTIVITY_LIMIT])
+    total = len(rows) if len(rows) < ACTIVITY_LIMIT else queryset.count()
+    return {
+        "title": title,
+        "kind": kind,
+        "open": is_open,
+        "rows": rows,
+        "total": total,
+        # ما يُعرض أقلُّ مما هو: يُقال صريحاً تحت العنوان، لأن جدولاً ينتهي
+        # بلا كلمة يُقرأ كاملاً.
+        "shown": len(rows),
+        "clipped": total > len(rows),
+    }
+
+
 def full_record(customer: User) -> list[tuple[str, object]]:
     """كلُّ عمودٍ في الصفّ إلا السرّ — مبنيّاً من النموذج لا من قائمةٍ باليد.
 
@@ -99,68 +127,64 @@ def activity_of(customer: User, *, viewer) -> list[dict]:
     cards: list[dict] = []
 
     if can(viewer, Capability.AUCTIONS_VIEW):
+        # أوّلُ قائمةٍ تُفتح، والباقي مطويّ. والسبب أن الصفحة ستُّ قوائمَ
+        # بمئتي صفٍّ مجتمعة، ومن يفتحها يسأل عن **واحدة** — وستٌّ مفتوحةٌ
+        # تعني تمريراً طويلاً قبل الوصول إلى المقصود. والعددُ في العنوان يبقى
+        # ظاهراً، فالمطويُّ يُعرف حجمُه.
         cards.append(
-            {
-                "title": "المزايدات",
-                "kind": "bids",
-                # أوّلُ قائمةٍ تُفتح، والباقي مطويّ. والسبب أن الصفحة ستُّ
-                # قوائمَ بمئتي صفٍّ مجتمعة، ومن يفتحها يسأل عن **واحدة** —
-                # وستٌّ مفتوحةٌ تعني تمريراً طويلاً قبل الوصول إلى المقصود.
-                # والعددُ في العنوان يبقى ظاهراً، فالمطويُّ يُعرف حجمُه.
-                "open": True,
-                "rows": Bid.objects.filter(bidder=customer)
+            _activity_card(
+                "المزايدات",
+                "bids",
+                Bid.objects.filter(bidder=customer)
                 .select_related("vehicle", "vehicle__auction")
-                .order_by("-placed_at")[:ACTIVITY_LIMIT],
-            }
+                .order_by("-placed_at"),
+                is_open=True,
+            )
         )
 
     if can(viewer, Capability.INVOICES_VIEW):
         cards.append(
-            {
-                "title": "الفواتير",
-                "kind": "invoices",
-                "rows": Invoice.objects.filter(customer=customer).order_by("-issued_at")[
-                    :ACTIVITY_LIMIT
-                ],
-            }
+            _activity_card(
+                "الفواتير",
+                "invoices",
+                Invoice.objects.filter(customer=customer).order_by("-issued_at"),
+            )
         )
         cards.append(
-            {
-                "title": "محاولات الدفع",
-                "kind": "payments",
-                "rows": PaymentIntent.objects.filter(user=customer)
+            _activity_card(
+                "محاولات الدفع",
+                "payments",
+                PaymentIntent.objects.filter(user=customer)
                 .select_related("resulting_transaction")
-                .order_by("-created_at")[:ACTIVITY_LIMIT],
-            }
+                .order_by("-created_at"),
+            )
         )
 
     if can(viewer, Capability.MONEY_VIEW):
         cards.append(
-            {
-                "title": "طلبات الاسترداد",
-                "kind": "refunds",
-                "rows": RefundRequest.objects.filter(user=customer).order_by(
-                    "-created_at"
-                )[:ACTIVITY_LIMIT],
-            }
+            _activity_card(
+                "طلبات الاسترداد",
+                "refunds",
+                RefundRequest.objects.filter(user=customer).order_by("-created_at"),
+            )
         )
         cards.append(
-            {
-                "title": "دفتر المحفظة",
-                "kind": "entries",
-                "rows": Entry.objects.filter(owner=customer)
+            _activity_card(
+                "دفتر المحفظة",
+                "entries",
+                Entry.objects.filter(owner=customer)
                 .select_related("transaction", "account")
-                .order_by("-id")[:ACTIVITY_LIMIT],
-            }
+                .order_by("-id"),
+            )
         )
         cards.append(
-            {
-                "title": "الحجوزات القائمة",
-                "kind": "holds",
-                "rows": Hold.objects.filter(owner=customer, state=HoldState.ACTIVE)
+            _activity_card(
+                "الحجوزات القائمة",
+                "holds",
+                Hold.objects.filter(owner=customer, state=HoldState.ACTIVE)
                 .select_related("auction", "invoice")
-                .order_by("-created_at")[:ACTIVITY_LIMIT],
-            }
+                .order_by("-created_at"),
+            )
         )
 
     return cards
