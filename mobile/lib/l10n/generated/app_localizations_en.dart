@@ -954,4 +954,259 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletMethodSoon => 'Coming soon — this method is not enabled yet';
+
+  @override
+  String get profileAccountIndividual => 'Individual account';
+
+  @override
+  String get profileAccountCompany => 'Company account';
+
+  @override
+  String get profileIdVerified => 'Verified identity';
+
+  @override
+  String get accountMenuSection => 'My services';
+
+  @override
+  String get accountMenuWallet => 'My wallet';
+
+  @override
+  String get accountMenuRefundDeposit => 'Request deposit refund';
+
+  @override
+  String get accountMenuPurchases => 'My purchases';
+
+  @override
+  String get accountMenuOrders => 'Orders';
+
+  @override
+  String get accountMenuEditRequest => 'Request data change';
+
+  @override
+  String get accountMenuRegistrationGuide => 'Registration guide';
+
+  @override
+  String get accountMenuWalletGuide => 'Wallet top-up guide';
+
+  @override
+  String get accountMenuAbout => 'About us';
+
+  @override
+  String get accountMenuFaq => 'FAQ';
+
+  @override
+  String get accountMenuTerms => 'Terms and conditions';
+
+  @override
+  String get accountMenuSupport => 'Contact support';
+
+  @override
+  String get accountPageComingSoon => 'Content will be added soon.';
+
+  @override
+  String get accountLanguageSection => 'Language';
+
+  @override
+  String get accountLanguageSoon => 'This language is not enabled yet';
+
+  @override
+  String get refundHeaderTitle => 'Deposit refund';
+
+  @override
+  String get refundHeaderSubtitle =>
+      'Refund of the insurance deposit — reviewed by admin.';
+
+  @override
+  String get refundInsuranceLabel => 'Insurance amount';
+
+  @override
+  String get refundNoInsurance =>
+      'No refundable insurance right now — refund is available after the full insurance is paid.';
+
+  @override
+  String get refundFormSection => 'Request details';
+
+  @override
+  String get refundAmountLabel => 'Refund amount';
+
+  @override
+  String get refundIbanLabel => 'IBAN';
+
+  @override
+  String get refundIbanHint =>
+      'Must be 24 characters (uppercase letters and digits).';
+
+  @override
+  String get refundIbanImageLabel => 'IBAN image';
+
+  @override
+  String get refundChooseFile => 'Choose file';
+
+  @override
+  String get refundNoFile => 'No file chosen';
+
+  @override
+  String get refundNotesLabel => 'Notes';
+
+  @override
+  String get refundSubmit => 'Submit to wallet balance';
+
+  @override
+  String get refundSubmitSoon => 'Submission is not enabled yet.';
+
+  @override
+  String get refundPreviousSection => 'Previous requests';
+
+  @override
+  String get refundPreviousEmpty => 'No previous requests.';
+
+  @override
+  String get purchasesEmptyTitle => 'No purchases yet';
+
+  @override
+  String get purchasesEmptyBody =>
+      'You have not completed any purchases yet. Explore the live auctions and start bidding now!';
+
+  @override
+  String get purchasesBrowse => 'Browse auctions';
+
+  @override
+  String get purchasesSelectedCount => 'Selected';
+
+  @override
+  String get purchasesTotalDue => 'Total due';
+
+  @override
+  String get purchasesPayAll => 'Pay all selected';
+
+  @override
+  String get purchasesClear => 'Clear selection';
+
+  @override
+  String get purchasesPaySoon => 'Payment is not enabled yet.';
+
+  @override
+  String purchasesLotNumber(String number) {
+    return 'Lot $number';
+  }
+
+  @override
+  String get ordersSoon => 'Soon';
+
+  @override
+  String get ordersHandover => 'Waiver request';
+
+  @override
+  String get ordersTransfer => 'Ownership transfer';
+
+  @override
+  String get ordersDelivery => 'Delivery request';
+
+  @override
+  String get ordersReceive => 'Pickup request';
+
+  @override
+  String get supportTitle => 'Support';
+
+  @override
+  String get supportSubtitle => 'Pick the way that suits you to reach our team';
+
+  @override
+  String get supportWhatsApp => 'WhatsApp us';
+
+  @override
+  String get supportNotConfigured => 'Support number is not set yet.';
+
+  @override
+  String get supportInfo =>
+      'Reach the support team on WhatsApp and we will reply shortly.';
+
+  @override
+  String get editRequestInfo =>
+      'Editing your data is not available directly from the account. To change your data, open the in-app chat or reach us on WhatsApp and the support team will do it for you.';
+
+  @override
+  String get guideHeaderTitle => 'How to register on the auction site';
+
+  @override
+  String get guideHeaderSubtitle => 'Follow the simple steps to start bidding';
+
+  @override
+  String get guideStep1Title => 'Open the registration page';
+
+  @override
+  String get guideStep1Body =>
+      'From the home page, tap \"Sign up\" or \"Create new account\".';
+
+  @override
+  String get guideStep2Title => 'Enter your details';
+
+  @override
+  String get guideStep2Body => 'Type your mobile number.';
+
+  @override
+  String get guideStep3Title => 'Confirm your mobile';
+
+  @override
+  String get guideStep3Body =>
+      'A verification code is sent to your mobile; enter it to activate the account.';
+
+  @override
+  String get guideStep4Title => 'Activate and participate';
+
+  @override
+  String get guideStep4Body =>
+      'After confirming, you can sign in, subscribe to a plan, and take part in auctions.';
+
+  @override
+  String get guideVideoSoon => 'The video will be added soon.';
+
+  @override
+  String get guideSupportHint =>
+      'If you face any problem registering, reach us on support WhatsApp or the contact form.';
+
+  @override
+  String get guideContactHint =>
+      'For any question, reach us on support WhatsApp or the contact form.';
+
+  @override
+  String get walletGuideHeaderTitle => 'How to top up the wallet';
+
+  @override
+  String get walletGuideHeaderSubtitle => 'Learn how to manage your wallet';
+
+  @override
+  String get walletGuideStep1Title => 'Open the wallet';
+
+  @override
+  String get walletGuideStep1Body =>
+      'After signing in, from the main menu pick \"Account\", then \"Wallet\" to see the balance and the top-up button.';
+
+  @override
+  String get walletGuideStep2Title => 'Choose a payment method';
+
+  @override
+  String get walletGuideStep2Body =>
+      'You can top up by bank transfer or electronic payment (card / Apple Pay).';
+
+  @override
+  String get walletGuideStep3Title => 'Transfer the amount';
+
+  @override
+  String get walletGuideStep3Body =>
+      'Transfer the required amount to the bank account shown on the top-up page.';
+
+  @override
+  String get walletGuideStep4Title => 'Upload the transfer image';
+
+  @override
+  String get walletGuideStep4Body =>
+      'After transferring, upload the receipt image through the form.';
+
+  @override
+  String get walletGuideStep5Title => 'Wait for approval';
+
+  @override
+  String get walletGuideStep5Body =>
+      'The request is reviewed and the wallet top-up is confirmed shortly.';
 }

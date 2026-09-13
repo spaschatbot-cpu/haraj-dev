@@ -82,7 +82,9 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                 if (canPop)
                   IconButton(
                     onPressed: () => GoRouter.of(context).pop(),
-                    icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                    // `arrow_back_rounded` (يشير يساراً) بطلب المالك في ١٣
+                    // سبتمبر ٢٠٢٦ — كان `arrow_forward_rounded` يشير يميناً.
+                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
                     color: palette.ink,
                     tooltip: MaterialLocalizations.of(
                       context,

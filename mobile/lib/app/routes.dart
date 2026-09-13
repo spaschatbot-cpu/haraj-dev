@@ -21,6 +21,21 @@ abstract final class Routes {
   static const String profile = 'profile';
   static const String companyProfile = 'companyProfile';
   static const String changePhone = 'changePhone';
+
+  /// صفحات «حسابي» — أضيفت بطلب المالك في ١٣ سبتمبر ٢٠٢٦. كلُّها أبناءُ
+  /// `/profile` كي يبقى الشريطُ السفليّ على «حسابي» حين تُفتَح، ومحتواها
+  /// يُملأ لاحقاً. «محفظتي» و«مشترياتي» لا اسمَ لهما هنا: الأولى تشير إلى
+  /// `/wallet` القائمة، والثانية صفحةٌ جديدة اسمُها `accountPurchases`.
+  static const String accountRefundDeposit = 'accountRefundDeposit';
+  static const String accountPurchases = 'accountPurchases';
+  static const String accountOrders = 'accountOrders';
+  static const String accountEditRequest = 'accountEditRequest';
+  static const String accountRegistrationGuide = 'accountRegistrationGuide';
+  static const String accountWalletGuide = 'accountWalletGuide';
+  static const String accountAbout = 'accountAbout';
+  static const String accountFaq = 'accountFaq';
+  static const String accountTerms = 'accountTerms';
+  static const String accountSupport = 'accountSupport';
   static const String auction = 'auction';
   static const String auctionVehicles = 'auction-vehicles';
   static const String bids = 'bids';

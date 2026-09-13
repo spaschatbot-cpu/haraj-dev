@@ -88,6 +88,12 @@ class HomeShell extends StatelessWidget {
         HomeHero(
           // الأزرارُ في الرئيسية وحدها — الشرحُ عند `showActions`.
           showActions: navigationShell.currentIndex == HomeSection.home.index,
+          // «حسابي» فوق شاشة الحساب بدل اسم العلامة (١٣ سبتمبر ٢٠٢٦)؛ وبقيّةُ
+          // الأقسام تُبقي العلامة (`title: null`).
+          title:
+              navigationShell.currentIndex == HomeSection.account.index
+              ? AppLocalizations.of(context).navAccount
+              : null,
           // لا شاشةَ إشعاراتٍ في التطبيق بعد، وأقربُ ما يجيب عن «ما الذي
           // حدث لي؟» هو مشاركاتي. والجرسُ يذهب إليها ولا يبقى زرّاً لا يفعل
           // شيئاً — زرٌّ لا يستجيب يُقرأ عطلاً.

@@ -38,11 +38,17 @@ class HomeHero extends StatelessWidget {
     required this.onOpenNotifications,
     required this.onOpenAccount,
     this.showActions = true,
+    this.title,
     super.key,
   });
 
   final VoidCallback onOpenNotifications;
   final VoidCallback onOpenAccount;
+
+  /// عنوانُ اللوحة. `null` = اسمُ العلامة (`homeBrand`) — الحالةُ الافتراضيّة
+  /// في كل الأقسام. يمرّره قسمٌ يريد اسمَه بدل العلامة: «حسابي» بطلب المالك في
+  /// ١٣ سبتمبر ٢٠٢٦، فلا يبقى فوق شاشة الحساب اسمُ التطبيق.
+  final String? title;
 
   /// هل يظهر الجرسُ وزرُّ الحساب — **في الرئيسية وحدها** بطلب المالك في ٩
   /// سبتمبر ٢٠٢٦.
@@ -179,6 +185,7 @@ class HomeHero extends StatelessWidget {
                               palette: palette,
                               theme: theme,
                               l10n: l10n,
+                              title: title,
                             ),
                           )
                         else
@@ -187,6 +194,7 @@ class HomeHero extends StatelessWidget {
                               palette: palette,
                               theme: theme,
                               l10n: l10n,
+                              title: title,
                             ),
                           ),
                         // الأزرار في الطرف الآخر — يسارُ الشاشة في العربية.
@@ -346,11 +354,15 @@ class _Brand extends StatelessWidget {
     required this.palette,
     required this.theme,
     required this.l10n,
+    this.title,
   });
 
   final HarajPalette palette;
   final ThemeData theme;
   final AppLocalizations l10n;
+
+  /// عنوانٌ يحلّ محلّ اسم العلامة، أو `null` فالعلامة.
+  final String? title;
 
   @override
   Widget build(BuildContext context) => Row(
@@ -386,7 +398,7 @@ class _Brand extends StatelessWidget {
       // بعد أن يأخذ الاسم كل ما تركه الزرّان.
       Flexible(
         child: Text(
-          l10n.homeBrand,
+          title ?? l10n.homeBrand,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleMedium?.copyWith(
