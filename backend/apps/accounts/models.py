@@ -3,6 +3,11 @@
 A person signs in with a Saudi mobile number, not an email address, so the
 number is the username. Everything else about them — company details, tax
 profile, national id — hangs off that.
+
+وذلك **للعميل** وحده منذ T918: الموظّف يدخل اللوحة باسمٍ في `username` وكلمةِ
+مرور، لا برقمه — بقرار المالك. و`USERNAME_FIELD` يبقى `phone` لأن تغييرَه يمسّ
+`createsuperuser` وكلَّ هجرةٍ قائمةٍ ومسارَ العميل؛ المُبدَّلُ خلفيّةُ المصادقة
+(`apps.accounts.backends`) لا حقلُ الهويّة.
 """
 
 from __future__ import annotations
@@ -22,6 +27,45 @@ PHONE_PATTERN = r"^9665\d{8}$"
 PHONE_ERROR = "الرقم لازم يكون بصيغة 9665XXXXXXXX"
 
 saudi_mobile = RegexValidator(PHONE_PATTERN, PHONE_ERROR)
+
+# ---------------------------------------------------------------------------
+# اسمُ دخولِ الموظّف — بابٌ مستقلٌّ عن الجوّال. T918
+# ---------------------------------------------------------------------------
+#
+# قرارُ المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و باس، مش بالرقم.
+# الرقم و الـOTP دا للمستخدمين». وv1 يفعلها بجدولٍ منفصلٍ اسمه `management`
+# فيه `username` و`password` (`admin3/login/admin_login.php`) — و**البنيةُ لا
+# تُنقل**: هويّةُ الموظّف في جدولٍ وهويّةُ العميل في آخر تعني شخصاً واحداً في
+# مكانين يتفارقان، ومن غيّر جوّالَه في أحدهما لم يغيّره في الآخر. المنقولُ
+# **المنطق**: اسمٌ يُعرَف به الموظّف لا يتعلّق برقمه.
+#
+#: الطولُ ٣٢ لا ١٥٠: الاسم يُكتب في خانةٍ ويُقرأ في جدول، وواحدٌ بمئةِ حرفٍ
+#: يكسر عمودَ الجدول ولا يخدم أحداً.
+USERNAME_MAX_LENGTH = 32
+
+#: الحروفُ المسموحة. `A-Z` مقبولةٌ هنا **وتُطوى إلى صغيرةٍ في `save`**، لا
+#: لأن `Ahmad` اسمٌ ثانٍ — بل لأنه العينُ نفسها، ورفضُه عند الكتابة رفضٌ بلا
+#: فائدةٍ لمن كتب اسمَه بحرفٍ كبير. والطيُّ هو الحارس: `Ahmad` و`ahmad`
+#: اسمان لعينٍ واحدة، واختلافُ الحالة بابُ انتحالٍ صامت.
+USERNAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$"
+USERNAME_ERROR = (
+    "اسم الدخول: من ٣ إلى ٣٢ محرفاً، حروفاً لاتينية وأرقاماً و. _ - "
+    "ويُحفظ بحروفٍ صغيرة."
+)
+
+staff_username = RegexValidator(USERNAME_PATTERN, USERNAME_ERROR)
+
+
+def not_a_phone_number(value: str) -> None:
+    """اسمُ الدخول لا يكون رقماً — وإلا عاد البابُ الذي أُغلق من الخلف.
+
+    لو جاز `966500000000` اسمَ دخول، لصار الموظّف يدخل برقمه فعلاً وإن كانت
+    الخلفيّة تبحث في عمودٍ آخر — فيلتبس البابان على من يقرأ الشاشة وعلى من
+    يقرأ الكود. والمنعُ على **كلّ ما هو أرقامٌ محضة** لا على صيغة `9665…`
+    وحدها: `0500000000` رقمُ جوّالٍ أيضاً في عين من يكتبه.
+    """
+    if value and value.isdigit():
+        raise ValidationError("اسم الدخول لا يكون أرقاماً وحدها — الرقم للعملاء.")
 
 
 class UserManager(BaseUserManager["User"]):
@@ -69,6 +113,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     # actually holds the shape.
     phone = models.CharField(
         "الجوال", max_length=12, unique=True, validators=[saudi_mobile]
+    )
+    #: اسمُ دخولِ الموظّف. فارغٌ لكلّ عميل — و**الفراغُ ليس هويّة**: أربعةٌ
+    #: وأربعون ألفَ عميلٍ يحملونه، فقيدُ التفرّد جزئيٌّ على غرار `national_id`
+    #: تماماً، و`StaffUsernameBackend` يردّ الاسمَ الفارغ قبل أيّ استعلام.
+    username = models.CharField(
+        "اسم الدخول",
+        max_length=USERNAME_MAX_LENGTH,
+        blank=True,
+        default="",
+        validators=[staff_username, not_a_phone_number],
     )
     full_name = models.CharField("الاسم الكامل", max_length=200)
     name_ar = models.CharField("الاسم بالعربي", max_length=255, blank=True)
@@ -130,7 +184,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "phone"
-    REQUIRED_FIELDS = ["full_name"]
+    # و`username` معهما — وهي ليست زينةً في القائمة (T918): `createsuperuser`
+    # ينشئ حساباً `is_staff` وحقلُ اسم الدخول فارغ، و**الفارغُ لا يُصادِق**
+    # (الحارس الأول في `StaffUsernameBackend`). أي أن الأمر الوحيد الذي يُنشئ
+    # أوّلَ مديرٍ في قاعدةٍ جديدة كان سيُنشئه **مقفولاً خارج اللوحة**، بلا
+    # رسالةٍ تقول لماذا. فالسؤال عنه صار جزءاً من الأمر.
+    REQUIRED_FIELDS = ["full_name", "username"]
 
     class Meta:
         verbose_name = "مستخدم"
@@ -152,7 +211,30 @@ class User(AbstractBaseUser, PermissionsMixin):
                 name="user_national_id_unique_when_set",
                 violation_error_message="رقم الهوية مسجَّل على حساب آخر",
             ),
+            # اسمُ دخولٍ واحدٌ لحسابٍ واحد — بالشكل نفسه وللسبب نفسه: كلُّ
+            # عميلٍ يبدأ به فارغاً، و`""` ليست هويّة. وقيدٌ كامل (لا جزئيّ)
+            # كان سيمنع المستخدمَ الثاني من الوجود أصلاً.
+            models.UniqueConstraint(
+                fields=["username"],
+                condition=~models.Q(username=""),
+                name="user_username_unique_when_set",
+                violation_error_message="اسم الدخول مستعمَل لحسابٍ آخر",
+            ),
         ]
+
+    def save(self, *args, **kwargs):
+        """الاسمُ يُطوى إلى حروفٍ صغيرة — هنا وحدَه، لا في كلّ من يكتبه.
+
+        الطيُّ في الاستمارة وحدها يترك باباً مفتوحاً: صفٌّ يُكتب من `shell` أو
+        من هجرةٍ بحرفٍ كبير يصير اسماً **لا يستطيع صاحبُه الدخول به** (الخلفيّة
+        تبحث بالمصغَّر)، ولا رسالةَ تقول لماذا. وأسوأ منه: `Ahmad` و`ahmad`
+        صفّان يمرّان من قيد التفرّد معاً — وذلك انتحالٌ صامت.
+
+        و`update_fields` لا يُمَسّ: طيُّ خاصّيّةٍ لا تُحفَظ في هذا النداء لا
+        يضرّ، وإضافتُها إلى القائمة كانت ستكتب عموداً لم يطلب أحدٌ كتابته.
+        """
+        self.username = (self.username or "").strip().lower()
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         # Imported here because services imports this module. The admin is a

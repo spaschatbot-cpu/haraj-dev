@@ -22,33 +22,101 @@ Why a route rather than a decorator on `AdminSite.login`: `config.urls` mounts
 this path *before* `admin.site.urls`, so the limit is visible where the route
 is, and nothing monkey-patches an object Django owns. A reader of `urls.py` can
 see that staff sign-in is metered without knowing this module exists.
+
+الدخولُ باسمٍ لا برقم — T918
+=============================
+كان هذا المسار ينتهي إلى `admin.site.login`، وتلك شاشةُ جانغو: عنوانُ خانتها
+يأتي من `USERNAME_FIELD` وهو `phone`، فكان الموظّف يدخل **برقم جوّاله**. وقرارُ
+المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و باس، مش بالرقم. الرقم و
+الـOTP دا للمستخدمين». وسُئل عن عاملٍ ثانٍ فقال: لا.
+
+فصار المسار `LoginView` من عندنا باستمارةٍ وقالبٍ لنا، والمصادقةُ في
+`apps.accounts.backends.StaffUsernameBackend`. **والعدّاد لم يُمَسّ**: الحقلُ
+المُرسَل ما زال اسمُه `username`، وهو ما يقرؤه `ACCOUNT_FIELD` — ولو تغيّر اسمُ
+الحقل ولم يتغيّر الثابت لصار العدُّ كلُّه على `(anonymous)` والحدُّ بالحساب
+ميّتاً بلا أن يشتكي أحد.
 """
 
 from __future__ import annotations
 
 import logging
 
-from django.contrib import admin
+from django import forms
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.views import LoginView
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 
+from apps.accounts.models import USERNAME_MAX_LENGTH
 from apps.core import ratelimit
 from apps.core.net import client_ip
 
 log = logging.getLogger(__name__)
 
-#: The field the sign-in form posts the account under. `User.USERNAME_FIELD` is
-#: `phone`, and Django's admin form still names the input `username`.
+#: The field the sign-in form posts the account under — and the name
+#: `StaffSignInForm` posts it under too, which is the half that matters: a
+#: renamed input with this constant left behind counts every attempt against
+#: `(anonymous)` and the per-account limit dies without a word (T918).
 ACCOUNT_FIELD = "username"
 
 REFUSAL = "محاولات دخول كثيرة. انتظر قليلاً ثم أعد المحاولة، أو تواصل مع مسؤول النظام."
+
+#: جملةُ الرفض — **واحدةٌ لكلّ الحالات**: اسمٌ غيرُ موجود، وكلمةٌ خاطئة، وحسابٌ
+#: معطَّل، وعميلٌ يحاول. وثلاثتُها تكشف ما لا يُكشَف لو افترقت: «الاسم غير
+#: موجود» تُحوّل تخمينَ زوجٍ إلى تخمينِ اسمٍ وحده، و«الحساب معطّل» تقول لمن
+#: يخمّن إنه أصاب الاسم والكلمة معاً وإن الباب يُفتح بحسابٍ آخر.
+BAD_CREDENTIALS = "اسم الدخول أو كلمة المرور غير صحيحة."
+
+
+class StaffSignInForm(AuthenticationForm):
+    """اسمُ دخولٍ وكلمةُ مرور. ولا عاملَ ثانٍ — سُئل المالك فقال لا."""
+
+    username = forms.CharField(
+        label="اسم المستخدم",
+        max_length=USERNAME_MAX_LENGTH,
+        widget=forms.TextInput(
+            attrs={"autofocus": True, "autocomplete": "username", "dir": "ltr"}
+        ),
+    )
+
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": BAD_CREDENTIALS,
+        # لا تُقرأ عملياً — `StaffUsernameBackend` يردّ المعطَّل فيصير الخطأ
+        # `invalid_login` — ومكتوبةٌ بالجملة نفسها لأن الافتراقَ هنا يوماً ما
+        # هو تسريبٌ كامل، ولا يصحّ أن يتوقّف منعُه على مسارٍ لا يمرّ به أحد.
+        "inactive": BAD_CREDENTIALS,
+    }
+
+    def __init__(self, request=None, *args, **kwargs):
+        super().__init__(request, *args, **kwargs)
+        # ‏`AuthenticationForm.__init__` تفرض على الخانة طولَ `USERNAME_FIELD`
+        # — أي **١٢** (طولُ `9665XXXXXXXX`) — بعد أن أعلنّا ٣٢. فاسمٌ من ١٤
+        # حرفاً كان سيُرفض في الاستمارة بجملةٍ عن طولٍ لا معنى له هنا. تُعاد
+        # بعد `super()` لا قبله، لأنها تُكتب هناك لا تُقرأ.
+        field = self.fields["username"]
+        field.max_length = USERNAME_MAX_LENGTH
+        field.widget.attrs["maxlength"] = USERNAME_MAX_LENGTH
+
+
+class StaffSignInView(LoginView):
+    """شاشةُ دخول اللوحة. قالبُنا، واستمارتُنا، وخلفيّتُنا."""
+
+    template_name = "console/sign_in.html"
+    authentication_form = StaffSignInForm
+    # ‏`redirect_authenticated_user` يبقى مطفأً: تشغيلُه يجعل الصفحة تعيد
+    # توجيهَ من هو داخلٌ أصلاً، وهي قناةُ كشفٍ صغيرة (يُعرف من ردّ الصفحة أنّ
+    # الجلسة قائمة) مقابل راحةٍ لا يطلبها أحد.
+
+
+_sign_in = StaffSignInView.as_view()
 
 
 @never_cache
 @csrf_protect
 def throttled_staff_login(request: HttpRequest) -> HttpResponse:
-    """The admin sign-in page, behind a counter on POST only.
+    """The staff sign-in page, behind a counter on POST only.
 
     `GET` is not metered: it renders a form, and metering it would let anybody
     lock the login page for a whole office by loading it in a loop — a
@@ -59,7 +127,7 @@ def throttled_staff_login(request: HttpRequest) -> HttpResponse:
         if refusal is not None:
             return refusal
 
-    return admin.site.login(request)
+    return _sign_in(request)
 
 
 def _refuse(request: HttpRequest) -> HttpResponse | None:
@@ -71,7 +139,9 @@ def _refuse(request: HttpRequest) -> HttpResponse | None:
     hour has a different problem.
     """
     address = client_ip(request)
-    account = str(request.POST.get(ACCOUNT_FIELD, ""))[:64].strip()
+    # يُصغَّر كما تُصغّره الخلفيّة: `Ahmad` و`ahmad` حسابٌ واحد، فلو عُدّا
+    # مفتاحين لصار الحدُّ بالحساب يُتجاوَز بقلب حرفٍ واحد.
+    account = str(request.POST.get(ACCOUNT_FIELD, ""))[:64].strip().lower()
 
     by_address = ratelimit.consume("staff_login_ip", address)
     # Counted even when the form named no account, under a key of its own: a
@@ -97,4 +167,4 @@ def _refuse(request: HttpRequest) -> HttpResponse | None:
     return response
 
 
-__all__ = ["REFUSAL", "throttled_staff_login"]
+__all__ = ["BAD_CREDENTIALS", "REFUSAL", "StaffSignInForm", "throttled_staff_login"]

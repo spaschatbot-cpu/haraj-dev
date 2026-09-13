@@ -24,7 +24,7 @@
 
   <form method="get" class="filters">
     <div class="filters__main">
-      <input id="q" type="search" name="q" value="{{ q }}" placeholder="ابحث بالاسم أو رقم الجوال..." aria-label="البحث في المشرفين">
+      <input id="q" type="search" name="q" value="{{ q }}" placeholder="ابحث بالاسم أو اسم الدخول أو رقم الجوال..." aria-label="البحث في المشرفين">
 
       <select id="role" name="role" aria-label="الدور">
         <option value="">كل الأدوار</option>
@@ -63,6 +63,10 @@
       <thead>
         <tr>
           <th>المشرف</th>
+          {% comment %} اسمُ الدخول عمودٌ لا سطرٌ تحت الاسم: «بأيّ اسمٍ يدخل
+             فلان؟» سؤالُ دعمٍ يُسأل، وجوابُه كان في v1 في جدولٍ آخر لا يراه
+             أحد (T918). و«رقم التواصل» بقي — صار قناةَ تواصلٍ لا باباً. {% endcomment %}
+          <th>اسم الدخول</th>
           <th>الدور والصلاحية</th>
           <th>رقم التواصل</th>
           <th>حالة الحساب</th>
@@ -85,6 +89,9 @@
                   {% endif %}
                 </div>
               </div>
+            </td>
+            <td>
+              <span class="code-font" style="direction: ltr; unicode-bidi: isolate;">{{ person.username|default:"—" }}</span>
             </td>
             <td>
               {% if person.is_owner %}
@@ -153,7 +160,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="8" class="empty">لا يوجد مشرفون مطابقون لمعايير البحث.</td></tr>
+          <tr><td colspan="9" class="empty">لا يوجد مشرفون مطابقون لمعايير البحث.</td></tr>
         {% endfor %}
       </tbody>
     </table>

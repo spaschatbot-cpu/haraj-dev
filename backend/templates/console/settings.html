@@ -20,7 +20,12 @@
     <table>
     <tbody>
       <tr><th>الاسم</th><td>{{ request.user.full_name }}</td></tr>
-      <tr><th>الجوال — وهو اسم الدخول</th><td>{{ request.user.phone|unlocalize }}</td></tr>
+      {% comment %} كان هذا السطر «الجوال — وهو اسم الدخول»، وصار كذباً يوم
+         فُصل البابان (T918): الموظّف يدخل باسمٍ، والجوّالُ قناةُ تواصلٍ
+         وسجلّ. وسطرٌ في شاشة الإعدادات يقول للموظّف بأيّ شيء يدخل هو أوّلُ
+         ما يُقرأ حين يُنسى — فلا يجوز أن يشير إلى الباب الخطأ. {% endcomment %}
+      <tr><th>اسم الدخول</th><td><span class="code-font" style="direction: ltr; unicode-bidi: isolate;">{{ request.user.username|default:"—" }}</span></td></tr>
+      <tr><th>الجوال — للتواصل لا للدخول</th><td>{{ request.user.phone|unlocalize }}</td></tr>
       <tr><th>الدور</th><td>{{ role }}</td></tr>
       <tr><th>آخر دخول</th><td>{{ request.user.last_login|default:"لم يُسجَّل بعد" }}</td></tr>
       <tr>

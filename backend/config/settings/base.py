@@ -215,6 +215,20 @@ USE_TZ = True
 # by hand — `ops/checks/console_urls_are_named.py` fails the build on one.
 APP_BASE = env("APP_BASE", default="console").strip("/")
 
+# من يُصادَق وبماذا — خلفيّةٌ واحدة، و`ModelBackend` **ليس** معها. T918
+#
+# قرارُ المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و باس، مش بالرقم».
+# و`ModelBackend` يُصادِق بـ`USERNAME_FIELD` وهو `phone` — فلو بقي في القائمة
+# لبقي دخولُ الموظّف **برقم جوّاله وكلمته** شغّالاً إلى جانب الاسم، أي أن
+# القرار يُنفَّذ في الشاشة ويُنقَض في الخلفيّة، وهو أسوأُ من ألّا يُنفَّذ:
+# الشاشةُ تقول «اسم المستخدم» والباب القديم مفتوح خلفها.
+#
+# وما يعتمد عليه — فُحص لا افتُرض: لا نداءَ لـ`authenticate()` في `apps/`
+# إطلاقاً (الوحيدةُ في `apps.accounts.authentication` صنفُ DRF لا خلفيّة)،
+# ودخولُ العميل جوّالٌ و‎OTP‎ ولا يمرّ بخلفيّاتِ جانغو أصلاً، وآلةُ الصلاحيات
+# موروثةٌ كاملةً لأن الخلفيّة تمتدّ `ModelBackend` ولا تُعيد كتابتَه.
+AUTHENTICATION_BACKENDS = ["apps.accounts.backends.StaffUsernameBackend"]
+
 # Staff sign-in lands in the staff console, not Django's raw admin index. An
 # explicit `?next=` still wins — this is only the default for a bare visit to
 # the login page, which otherwise drops a freshly signed-in operator on a
