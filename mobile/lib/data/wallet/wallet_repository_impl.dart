@@ -13,6 +13,7 @@ import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
 import '../local/cache/response_cache.dart';
 import 'wallet_mapper.dart';
+
 /// المحفظة: الخادم أولاً، والكاش شبكة أمان عند **صمت** الخادم وحده.
 ///
 /// هذا المستودع هو الشريحة المرجعية للبذرة: من هنا تُنسخ بقية المستودعات بعد

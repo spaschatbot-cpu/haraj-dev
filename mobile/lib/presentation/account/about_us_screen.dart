@@ -40,7 +40,8 @@ class AboutUsScreen extends StatelessWidget {
           const _IntroBox(
             // حُذف عنوانُ «من نحن؟» من البطاقة بطلب المالك (١٣ سبتمبر ٢٠٢٦) —
             // يكفي عنوانُ الشاشة في الشريط، وبقي الشرحُ وحده.
-            body: 'نحن شركة رائدة في مجال التجارة الإلكترونية والخدمات '
+            body:
+                'نحن شركة رائدة في مجال التجارة الإلكترونية والخدمات '
                 'اللوجستية في المملكة.',
             icon: Icons.location_on,
           ),
@@ -109,7 +110,8 @@ class AboutUsScreen extends StatelessWidget {
           const SizedBox(height: 14),
           _StrokeCard(
             title: 'منصة إلكترونية متطورة',
-            body: 'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
+            body:
+                'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
                 'تطلّعات عملائنا.',
             icon: Icons.laptop_mac_rounded,
             accent: palette.gold,
@@ -117,7 +119,8 @@ class AboutUsScreen extends StatelessWidget {
           ),
           _StrokeCard(
             title: 'شفافية كاملة في المزادات المفتوحة',
-            body: 'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
+            body:
+                'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
                 'تطلّعات عملائنا.',
             icon: Icons.lock_outline_rounded,
             accent: _orange,
@@ -125,7 +128,8 @@ class AboutUsScreen extends StatelessWidget {
           ),
           _StrokeCard(
             title: 'سرية تامة لمزادات المظاريف المغلقة',
-            body: 'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
+            body:
+                'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
                 'تطلّعات عملائنا.',
             icon: Icons.visibility_outlined,
             accent: _green,
@@ -133,7 +137,8 @@ class AboutUsScreen extends StatelessWidget {
           ),
           _StrokeCard(
             title: 'دعم فني متميّز 24/7',
-            body: 'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
+            body:
+                'نسعى للتميّز والابتكار في تقديم حلول لوجستية ذكية تخدم '
                 'تطلّعات عملائنا.',
             icon: Icons.headset_mic_outlined,
             accent: _blue,

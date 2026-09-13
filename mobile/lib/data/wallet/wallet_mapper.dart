@@ -11,6 +11,7 @@ import '../api/generated/models/payment_intent.dart' as api;
 import '../api/generated/models/payment_intent_state_enum.dart' as api;
 import '../api/generated/models/refund_request.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
+
 /// تحويل نماذج المخطط المولَّدة إلى كيانات النطاق.
 ///
 /// طبقة التحويل مقصودة: لولاها لسافر نموذج مولَّد إلى الشاشات، فصار كل تغيير

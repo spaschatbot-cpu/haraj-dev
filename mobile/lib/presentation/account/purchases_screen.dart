@@ -43,13 +43,12 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
     return Scaffold(
       appBar: HarajAppBar(title: l10n.accountMenuPurchases),
       body: switch (state) {
-        AsyncData(value: final Snapshot<List<Purchase>> snapshot) =>
-          _Body(
-            purchases: snapshot.value,
-            selected: _selected,
-            onToggle: _toggle,
-            onClear: () => setState(_selected.clear),
-          ),
+        AsyncData(value: final Snapshot<List<Purchase>> snapshot) => _Body(
+          purchases: snapshot.value,
+          selected: _selected,
+          onToggle: _toggle,
+          onClear: () => setState(_selected.clear),
+        ),
         AsyncError(:final error) => Center(
           child: FailureView(
             failure: error is Failure ? error : UnexpectedFailure(error),
@@ -92,7 +91,12 @@ class _Body extends StatelessWidget {
           child: purchases.isEmpty
               ? _EmptyState(bottomPadding: barSpace + footerHeight)
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, barSpace + footerHeight),
+                  padding: const EdgeInsets.fromLTRB(
+                    16,
+                    16,
+                    16,
+                    barSpace + footerHeight,
+                  ),
                   itemCount: purchases.length,
                   itemBuilder: (context, i) => _PurchaseCard(
                     purchase: purchases[i],
