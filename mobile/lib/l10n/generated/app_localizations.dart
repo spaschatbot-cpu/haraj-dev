@@ -1663,6 +1663,480 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'قريباً — هذه الطريقة لم تُفعَّل بعد'**
   String get walletMethodSoon;
+
+  /// No description provided for @profileAccountIndividual.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب فرد'**
+  String get profileAccountIndividual;
+
+  /// No description provided for @profileAccountCompany.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب شركة'**
+  String get profileAccountCompany;
+
+  /// No description provided for @profileIdVerified.
+  ///
+  /// In ar, this message translates to:
+  /// **'هوية موثّقة'**
+  String get profileIdVerified;
+
+  /// عنوان قائمة صفحات الحساب في شاشة حسابي
+  ///
+  /// In ar, this message translates to:
+  /// **'خدماتي'**
+  String get accountMenuSection;
+
+  /// No description provided for @accountMenuWallet.
+  ///
+  /// In ar, this message translates to:
+  /// **'محفظتي'**
+  String get accountMenuWallet;
+
+  /// No description provided for @accountMenuRefundDeposit.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب استرداد مبلغ التأمين'**
+  String get accountMenuRefundDeposit;
+
+  /// No description provided for @accountMenuPurchases.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشترياتي'**
+  String get accountMenuPurchases;
+
+  /// No description provided for @accountMenuOrders.
+  ///
+  /// In ar, this message translates to:
+  /// **'الطلبات'**
+  String get accountMenuOrders;
+
+  /// No description provided for @accountMenuEditRequest.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب تعديل البيانات'**
+  String get accountMenuEditRequest;
+
+  /// No description provided for @accountMenuRegistrationGuide.
+  ///
+  /// In ar, this message translates to:
+  /// **'شرح التسجيل'**
+  String get accountMenuRegistrationGuide;
+
+  /// No description provided for @accountMenuWalletGuide.
+  ///
+  /// In ar, this message translates to:
+  /// **'شرح شحن المحفظة'**
+  String get accountMenuWalletGuide;
+
+  /// No description provided for @accountMenuAbout.
+  ///
+  /// In ar, this message translates to:
+  /// **'من نحن'**
+  String get accountMenuAbout;
+
+  /// No description provided for @accountMenuFaq.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأسئلة الشائعة'**
+  String get accountMenuFaq;
+
+  /// No description provided for @accountMenuTerms.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشروط والأحكام'**
+  String get accountMenuTerms;
+
+  /// No description provided for @accountMenuSupport.
+  ///
+  /// In ar, this message translates to:
+  /// **'تواصل مع الدعم'**
+  String get accountMenuSupport;
+
+  /// نصّ مؤقّت في صفحات الحساب قبل تعبئة محتواها
+  ///
+  /// In ar, this message translates to:
+  /// **'المحتوى سيُضاف قريباً.'**
+  String get accountPageComingSoon;
+
+  /// No description provided for @accountLanguageSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللغة'**
+  String get accountLanguageSection;
+
+  /// يظهر عند اختيار لغةٍ غير مترجَمة بعد
+  ///
+  /// In ar, this message translates to:
+  /// **'هذه اللغة لم تُفعَّل بعد'**
+  String get accountLanguageSoon;
+
+  /// No description provided for @refundHeaderTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب استرداد'**
+  String get refundHeaderTitle;
+
+  /// No description provided for @refundHeaderSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'استرداد مبلغ التأمين — يُراجَع الطلب من الإدارة.'**
+  String get refundHeaderSubtitle;
+
+  /// No description provided for @refundInsuranceLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيمة التأمين'**
+  String get refundInsuranceLabel;
+
+  /// No description provided for @refundNoInsurance.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد تأمين قابل للاسترداد حالياً — الاسترداد متاح بعد دفع التأمين كاملاً.'**
+  String get refundNoInsurance;
+
+  /// No description provided for @refundFormSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيانات الطلب'**
+  String get refundFormSection;
+
+  /// No description provided for @refundAmountLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المسترد'**
+  String get refundAmountLabel;
+
+  /// No description provided for @refundIbanLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الآيبان'**
+  String get refundIbanLabel;
+
+  /// No description provided for @refundIbanHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يجب أن يتكوّن من ٢٤ خانة (أحرف كبيرة وأرقام).'**
+  String get refundIbanHint;
+
+  /// No description provided for @refundIbanImageLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'صورة الآيبان'**
+  String get refundIbanImageLabel;
+
+  /// No description provided for @refundChooseFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار ملف'**
+  String get refundChooseFile;
+
+  /// No description provided for @refundNoFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُختَر أي ملف'**
+  String get refundNoFile;
+
+  /// No description provided for @refundNotesLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظات'**
+  String get refundNotesLabel;
+
+  /// No description provided for @refundSubmit.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال طلب برصيد المحفظة'**
+  String get refundSubmit;
+
+  /// No description provided for @refundSubmitSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإرسال لم يُفعَّل بعد.'**
+  String get refundSubmitSoon;
+
+  /// No description provided for @refundPreviousSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'الطلبات السابقة'**
+  String get refundPreviousSection;
+
+  /// No description provided for @refundPreviousEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد طلبات سابقة.'**
+  String get refundPreviousEmpty;
+
+  /// No description provided for @purchasesEmptyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد مشتريات حتى الآن'**
+  String get purchasesEmptyTitle;
+
+  /// No description provided for @purchasesEmptyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تقم بإتمام أي عمليات شراء حتى الآن. استكشف المزادات الحالية وابدأ المزايدة الآن!'**
+  String get purchasesEmptyBody;
+
+  /// No description provided for @purchasesBrowse.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصفح المزادات'**
+  String get purchasesBrowse;
+
+  /// No description provided for @purchasesSelectedCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'عدد المختارة'**
+  String get purchasesSelectedCount;
+
+  /// No description provided for @purchasesTotalDue.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإجمالي المستحق'**
+  String get purchasesTotalDue;
+
+  /// No description provided for @purchasesPayAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفع كامل المختارة'**
+  String get purchasesPayAll;
+
+  /// No description provided for @purchasesClear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح التحديد'**
+  String get purchasesClear;
+
+  /// No description provided for @purchasesPaySoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدفع لم يُفعَّل بعد.'**
+  String get purchasesPaySoon;
+
+  /// No description provided for @purchasesLotNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم اللوت {number}'**
+  String purchasesLotNumber(String number);
+
+  /// No description provided for @ordersSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'قريباً'**
+  String get ordersSoon;
+
+  /// No description provided for @ordersHandover.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب تنازل'**
+  String get ordersHandover;
+
+  /// No description provided for @ordersTransfer.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب نقل ملكية'**
+  String get ordersTransfer;
+
+  /// No description provided for @ordersDelivery.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب توصيل'**
+  String get ordersDelivery;
+
+  /// No description provided for @ordersReceive.
+  ///
+  /// In ar, this message translates to:
+  /// **'طلب استلام'**
+  String get ordersReceive;
+
+  /// No description provided for @supportTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدعم الفني'**
+  String get supportTitle;
+
+  /// No description provided for @supportSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الطريقة المناسبة للتواصل مع فريقنا'**
+  String get supportSubtitle;
+
+  /// No description provided for @supportWhatsApp.
+  ///
+  /// In ar, this message translates to:
+  /// **'واتساب مباشر'**
+  String get supportWhatsApp;
+
+  /// No description provided for @supportNotConfigured.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُضف رقم الدعم بعد.'**
+  String get supportNotConfigured;
+
+  /// No description provided for @supportInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'تواصل مع فريق الدعم عبر واتساب وسنردّ عليك في أقرب وقت.'**
+  String get supportInfo;
+
+  /// No description provided for @editRequestInfo.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل البيانات غير متاح مباشرة من الحساب. إذا كنت تريد تعديل بياناتك، افتح الشات الداخلي أو تواصل عبر واتساب وسيقوم فريق الدعم بتنفيذ الطلب لك.'**
+  String get editRequestInfo;
+
+  /// No description provided for @guideHeaderTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'شرح التسجيل في موقع المزاد'**
+  String get guideHeaderTitle;
+
+  /// No description provided for @guideHeaderSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتبع الخطوات البسيطة لبدء المزايدة'**
+  String get guideHeaderSubtitle;
+
+  /// No description provided for @guideStep1Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدخول إلى صفحة التسجيل'**
+  String get guideStep1Title;
+
+  /// No description provided for @guideStep1Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'من الصفحة الرئيسية، اضغط على زر «تسجيل» أو «إنشاء حساب جديد».'**
+  String get guideStep1Body;
+
+  /// No description provided for @guideStep2Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدخال البيانات الشخصية'**
+  String get guideStep2Title;
+
+  /// No description provided for @guideStep2Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'قم بكتابة رقم الجوال.'**
+  String get guideStep2Body;
+
+  /// No description provided for @guideStep3Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد رقم الجوال'**
+  String get guideStep3Title;
+
+  /// No description provided for @guideStep3Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم إرسال كود تحقق إلى رقم جوالك، أدخله لتفعيل الحساب.'**
+  String get guideStep3Body;
+
+  /// No description provided for @guideStep4Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفعيل الحساب والمشاركة'**
+  String get guideStep4Title;
+
+  /// No description provided for @guideStep4Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد التأكيد، يمكنك الدخول، والاشتراك في باقة، والمشاركة في المزادات.'**
+  String get guideStep4Body;
+
+  /// No description provided for @guideVideoSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفيديو سيُضاف قريباً.'**
+  String get guideVideoSoon;
+
+  /// No description provided for @guideSupportHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذا واجهت أي مشكلة في التسجيل، تواصل معنا عبر واتساب الدعم أو نموذج المراسلة.'**
+  String get guideSupportHint;
+
+  /// No description provided for @guideContactHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'في حال وجود أي استفسار، تواصل عبر واتساب الدعم أو نموذج المراسلة.'**
+  String get guideContactHint;
+
+  /// No description provided for @walletGuideHeaderTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'شرح شحن المحفظة للمزاد'**
+  String get walletGuideHeaderTitle;
+
+  /// No description provided for @walletGuideHeaderSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعرّف على كيفية إدارة محفظتك المالية'**
+  String get walletGuideHeaderSubtitle;
+
+  /// No description provided for @walletGuideStep1Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدخول إلى المحفظة'**
+  String get walletGuideStep1Title;
+
+  /// No description provided for @walletGuideStep1Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد تسجيل الدخول، من القائمة الرئيسية اختر «حسابي»، ثم «المحفظة» لعرض الرصيد وزر الشحن.'**
+  String get walletGuideStep1Body;
+
+  /// No description provided for @walletGuideStep2Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار طريقة الدفع'**
+  String get walletGuideStep2Title;
+
+  /// No description provided for @walletGuideStep2Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'يمكنك الشحن عبر التحويل البنكي أو الدفع الإلكتروني (بطاقة / Apple Pay).'**
+  String get walletGuideStep2Body;
+
+  /// No description provided for @walletGuideStep3Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل المبلغ'**
+  String get walletGuideStep3Title;
+
+  /// No description provided for @walletGuideStep3Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّل المبلغ المطلوب إلى الحساب البنكي الظاهر في صفحة الشحن.'**
+  String get walletGuideStep3Body;
+
+  /// No description provided for @walletGuideStep4Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'رفع صورة التحويل'**
+  String get walletGuideStep4Title;
+
+  /// No description provided for @walletGuideStep4Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد التحويل، ارفع صورة الإيصال من خلال النموذج.'**
+  String get walletGuideStep4Body;
+
+  /// No description provided for @walletGuideStep5Title.
+  ///
+  /// In ar, this message translates to:
+  /// **'انتظار الموافقة'**
+  String get walletGuideStep5Title;
+
+  /// No description provided for @walletGuideStep5Body.
+  ///
+  /// In ar, this message translates to:
+  /// **'يتم مراجعة الطلب وتأكيد شحن المحفظة خلال وقت قصير.'**
+  String get walletGuideStep5Body;
 }
 
 class _AppLocalizationsDelegate

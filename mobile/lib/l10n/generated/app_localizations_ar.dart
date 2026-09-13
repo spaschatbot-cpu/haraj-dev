@@ -956,4 +956,259 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get walletMethodSoon => 'قريباً — هذه الطريقة لم تُفعَّل بعد';
+
+  @override
+  String get profileAccountIndividual => 'حساب فرد';
+
+  @override
+  String get profileAccountCompany => 'حساب شركة';
+
+  @override
+  String get profileIdVerified => 'هوية موثّقة';
+
+  @override
+  String get accountMenuSection => 'خدماتي';
+
+  @override
+  String get accountMenuWallet => 'محفظتي';
+
+  @override
+  String get accountMenuRefundDeposit => 'طلب استرداد مبلغ التأمين';
+
+  @override
+  String get accountMenuPurchases => 'مشترياتي';
+
+  @override
+  String get accountMenuOrders => 'الطلبات';
+
+  @override
+  String get accountMenuEditRequest => 'طلب تعديل البيانات';
+
+  @override
+  String get accountMenuRegistrationGuide => 'شرح التسجيل';
+
+  @override
+  String get accountMenuWalletGuide => 'شرح شحن المحفظة';
+
+  @override
+  String get accountMenuAbout => 'من نحن';
+
+  @override
+  String get accountMenuFaq => 'الأسئلة الشائعة';
+
+  @override
+  String get accountMenuTerms => 'الشروط والأحكام';
+
+  @override
+  String get accountMenuSupport => 'تواصل مع الدعم';
+
+  @override
+  String get accountPageComingSoon => 'المحتوى سيُضاف قريباً.';
+
+  @override
+  String get accountLanguageSection => 'اللغة';
+
+  @override
+  String get accountLanguageSoon => 'هذه اللغة لم تُفعَّل بعد';
+
+  @override
+  String get refundHeaderTitle => 'طلب استرداد';
+
+  @override
+  String get refundHeaderSubtitle =>
+      'استرداد مبلغ التأمين — يُراجَع الطلب من الإدارة.';
+
+  @override
+  String get refundInsuranceLabel => 'قيمة التأمين';
+
+  @override
+  String get refundNoInsurance =>
+      'لا يوجد تأمين قابل للاسترداد حالياً — الاسترداد متاح بعد دفع التأمين كاملاً.';
+
+  @override
+  String get refundFormSection => 'بيانات الطلب';
+
+  @override
+  String get refundAmountLabel => 'المبلغ المسترد';
+
+  @override
+  String get refundIbanLabel => 'رقم الآيبان';
+
+  @override
+  String get refundIbanHint => 'يجب أن يتكوّن من ٢٤ خانة (أحرف كبيرة وأرقام).';
+
+  @override
+  String get refundIbanImageLabel => 'صورة الآيبان';
+
+  @override
+  String get refundChooseFile => 'اختيار ملف';
+
+  @override
+  String get refundNoFile => 'لم يُختَر أي ملف';
+
+  @override
+  String get refundNotesLabel => 'ملاحظات';
+
+  @override
+  String get refundSubmit => 'إرسال طلب برصيد المحفظة';
+
+  @override
+  String get refundSubmitSoon => 'الإرسال لم يُفعَّل بعد.';
+
+  @override
+  String get refundPreviousSection => 'الطلبات السابقة';
+
+  @override
+  String get refundPreviousEmpty => 'لا توجد طلبات سابقة.';
+
+  @override
+  String get purchasesEmptyTitle => 'لا توجد مشتريات حتى الآن';
+
+  @override
+  String get purchasesEmptyBody =>
+      'لم تقم بإتمام أي عمليات شراء حتى الآن. استكشف المزادات الحالية وابدأ المزايدة الآن!';
+
+  @override
+  String get purchasesBrowse => 'تصفح المزادات';
+
+  @override
+  String get purchasesSelectedCount => 'عدد المختارة';
+
+  @override
+  String get purchasesTotalDue => 'الإجمالي المستحق';
+
+  @override
+  String get purchasesPayAll => 'دفع كامل المختارة';
+
+  @override
+  String get purchasesClear => 'مسح التحديد';
+
+  @override
+  String get purchasesPaySoon => 'الدفع لم يُفعَّل بعد.';
+
+  @override
+  String purchasesLotNumber(String number) {
+    return 'رقم اللوت $number';
+  }
+
+  @override
+  String get ordersSoon => 'قريباً';
+
+  @override
+  String get ordersHandover => 'طلب تنازل';
+
+  @override
+  String get ordersTransfer => 'طلب نقل ملكية';
+
+  @override
+  String get ordersDelivery => 'طلب توصيل';
+
+  @override
+  String get ordersReceive => 'طلب استلام';
+
+  @override
+  String get supportTitle => 'الدعم الفني';
+
+  @override
+  String get supportSubtitle => 'اختر الطريقة المناسبة للتواصل مع فريقنا';
+
+  @override
+  String get supportWhatsApp => 'واتساب مباشر';
+
+  @override
+  String get supportNotConfigured => 'لم يُضف رقم الدعم بعد.';
+
+  @override
+  String get supportInfo =>
+      'تواصل مع فريق الدعم عبر واتساب وسنردّ عليك في أقرب وقت.';
+
+  @override
+  String get editRequestInfo =>
+      'تعديل البيانات غير متاح مباشرة من الحساب. إذا كنت تريد تعديل بياناتك، افتح الشات الداخلي أو تواصل عبر واتساب وسيقوم فريق الدعم بتنفيذ الطلب لك.';
+
+  @override
+  String get guideHeaderTitle => 'شرح التسجيل في موقع المزاد';
+
+  @override
+  String get guideHeaderSubtitle => 'اتبع الخطوات البسيطة لبدء المزايدة';
+
+  @override
+  String get guideStep1Title => 'الدخول إلى صفحة التسجيل';
+
+  @override
+  String get guideStep1Body =>
+      'من الصفحة الرئيسية، اضغط على زر «تسجيل» أو «إنشاء حساب جديد».';
+
+  @override
+  String get guideStep2Title => 'إدخال البيانات الشخصية';
+
+  @override
+  String get guideStep2Body => 'قم بكتابة رقم الجوال.';
+
+  @override
+  String get guideStep3Title => 'تأكيد رقم الجوال';
+
+  @override
+  String get guideStep3Body =>
+      'سيتم إرسال كود تحقق إلى رقم جوالك، أدخله لتفعيل الحساب.';
+
+  @override
+  String get guideStep4Title => 'تفعيل الحساب والمشاركة';
+
+  @override
+  String get guideStep4Body =>
+      'بعد التأكيد، يمكنك الدخول، والاشتراك في باقة، والمشاركة في المزادات.';
+
+  @override
+  String get guideVideoSoon => 'الفيديو سيُضاف قريباً.';
+
+  @override
+  String get guideSupportHint =>
+      'إذا واجهت أي مشكلة في التسجيل، تواصل معنا عبر واتساب الدعم أو نموذج المراسلة.';
+
+  @override
+  String get guideContactHint =>
+      'في حال وجود أي استفسار، تواصل عبر واتساب الدعم أو نموذج المراسلة.';
+
+  @override
+  String get walletGuideHeaderTitle => 'شرح شحن المحفظة للمزاد';
+
+  @override
+  String get walletGuideHeaderSubtitle =>
+      'تعرّف على كيفية إدارة محفظتك المالية';
+
+  @override
+  String get walletGuideStep1Title => 'الدخول إلى المحفظة';
+
+  @override
+  String get walletGuideStep1Body =>
+      'بعد تسجيل الدخول، من القائمة الرئيسية اختر «حسابي»، ثم «المحفظة» لعرض الرصيد وزر الشحن.';
+
+  @override
+  String get walletGuideStep2Title => 'اختيار طريقة الدفع';
+
+  @override
+  String get walletGuideStep2Body =>
+      'يمكنك الشحن عبر التحويل البنكي أو الدفع الإلكتروني (بطاقة / Apple Pay).';
+
+  @override
+  String get walletGuideStep3Title => 'تحويل المبلغ';
+
+  @override
+  String get walletGuideStep3Body =>
+      'حوّل المبلغ المطلوب إلى الحساب البنكي الظاهر في صفحة الشحن.';
+
+  @override
+  String get walletGuideStep4Title => 'رفع صورة التحويل';
+
+  @override
+  String get walletGuideStep4Body =>
+      'بعد التحويل، ارفع صورة الإيصال من خلال النموذج.';
+
+  @override
+  String get walletGuideStep5Title => 'انتظار الموافقة';
+
+  @override
+  String get walletGuideStep5Body =>
+      'يتم مراجعة الطلب وتأكيد شحن المحفظة خلال وقت قصير.';
 }

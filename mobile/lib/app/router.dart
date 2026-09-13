@@ -4,6 +4,16 @@ import 'package:go_router/go_router.dart';
 
 import '../domain/catalog/entities/auction_phase.dart';
 import '../domain/wallet/entities/wallet_balance.dart';
+import '../presentation/account/about_us_screen.dart';
+import '../presentation/account/edit_request_screen.dart';
+import '../presentation/account/faq_screen.dart';
+import '../presentation/account/orders_screen.dart';
+import '../presentation/account/purchases_screen.dart';
+import '../presentation/account/refund_deposit_screen.dart';
+import '../presentation/account/registration_guide_screen.dart';
+import '../presentation/account/support_screen.dart';
+import '../presentation/account/terms_screen.dart';
+import '../presentation/account/wallet_guide_screen.dart';
 import '../presentation/activity/my_activity_screen.dart';
 import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
@@ -170,6 +180,61 @@ List<RouteBase> appRoutes() => <RouteBase>[
                 path: 'phone',
                 name: Routes.changePhone,
                 builder: (context, state) => const ChangePhoneScreen(),
+              ),
+
+              // صفحات قائمة «حسابي» (١٣ سبتمبر ٢٠٢٦) — أبناءُ `/profile`
+              // فيبقى الشريطُ على «حسابي» حين تُفتَح. «محفظتي» و«مشترياتي»
+              // في القائمة: الأولى تذهب إلى `/wallet` القائمة لا صفحةً
+              // ثانية، والثانية هذه الصفحة الجديدة.
+              GoRoute(
+                path: 'refund-deposit',
+                name: Routes.accountRefundDeposit,
+                builder: (context, state) => const RefundDepositScreen(),
+              ),
+              GoRoute(
+                path: 'purchases',
+                name: Routes.accountPurchases,
+                builder: (context, state) => const PurchasesScreen(),
+              ),
+              GoRoute(
+                path: 'orders',
+                name: Routes.accountOrders,
+                builder: (context, state) => const OrdersScreen(),
+              ),
+              GoRoute(
+                path: 'edit-request',
+                name: Routes.accountEditRequest,
+                builder: (context, state) => const EditRequestScreen(),
+              ),
+              GoRoute(
+                path: 'registration-guide',
+                name: Routes.accountRegistrationGuide,
+                builder: (context, state) => const RegistrationGuideScreen(),
+              ),
+              GoRoute(
+                path: 'wallet-guide',
+                name: Routes.accountWalletGuide,
+                builder: (context, state) => const WalletGuideScreen(),
+              ),
+              GoRoute(
+                path: 'about',
+                name: Routes.accountAbout,
+                builder: (context, state) => const AboutUsScreen(),
+              ),
+              GoRoute(
+                path: 'faq',
+                name: Routes.accountFaq,
+                builder: (context, state) => const FaqScreen(),
+              ),
+              GoRoute(
+                path: 'terms',
+                name: Routes.accountTerms,
+                builder: (context, state) => const TermsScreen(),
+              ),
+              GoRoute(
+                path: 'support',
+                name: Routes.accountSupport,
+                builder: (context, state) => const SupportScreen(),
               ),
             ],
           ),
