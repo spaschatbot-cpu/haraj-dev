@@ -33,6 +33,17 @@ ZIP_MAGIC = b"PK\x03\x04"
 #: the people receiving these files use Excel on Windows.
 CSV_ENCODING = "utf-8-sig"
 
+#: وما يُخرجه إكسل العربيّ على ويندوز حين يُحفَظ الملفُّ «CSV» لا «CSV UTF-8»:
+#: windows-1256. وقياسُ T867 على الشاشة ردَّ ملفاً كهذا كلَّه برسالة «الترميز
+#: ليس UTF-8» — والملفُّ صحيحٌ وصاحبُه لا يعرف معنى الترميز أصلاً، فيعود إلى
+#: إدخال ثلاثمئة صفٍّ باليد. وهذا هو بالضبط العطلُ الذي بُني له هذا التاسك.
+#:
+#: ولا يُجرَّب إلا بعد أن يفشل UTF-8: بايتاتُ UTF-8 الصحيحةُ لا تصل إلى هنا،
+#: فلا يُقرأ ملفٌ سليمٌ بترميزٍ خاطئ. وثمنُه أن ملفاً بترميزٍ ثالثٍ نادرٍ
+#: (cp1252 مثلاً) يُقرأ حروفاً مشوّهة بدل أن يُردَّ برسالةٍ صريحة — فتسقط
+#: أعمدتُه إلى «غير معروفة» بدل أن يُقال «الترميز».
+CSV_FALLBACK_ENCODING = "cp1256"
+
 
 class SheetError(Exception):
     """The file could not be read as a table, with an Arabic reason."""
@@ -71,10 +82,15 @@ class Sheet:
     def _raw_csv(cls, data: bytes) -> list[list[str]]:
         try:
             text = data.decode(CSV_ENCODING)
-        except UnicodeDecodeError as exc:
-            raise SheetError(
-                "تعذّرت قراءة الملف: الترميز ليس UTF-8 وليس ملف إكسل"
-            ) from exc
+        except UnicodeDecodeError:
+            try:
+                text = data.decode(CSV_FALLBACK_ENCODING)
+            except UnicodeDecodeError as exc:
+                # بلا بادئة «تعذّرت قراءة الملف» — الشاشةُ تضعها، وكانت الرسالة
+                # تُطبع مرّتين على التوالي في لوحة الاستيراد (قِيس في T867).
+                raise SheetError(
+                    "ترميز الملف ليس UTF-8 ولا windows-1256، وليس ملف إكسل"
+                ) from exc
 
         reader = csv.reader(io.StringIO(text, newline=""))
         return [[cell.strip() for cell in row] for row in reader]

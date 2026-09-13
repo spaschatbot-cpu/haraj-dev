@@ -1072,6 +1072,13 @@ DETAIL_PAGES: tuple[Page, ...] = (
         "",
         parent="console:odoo-inbox",
     ),
+    Page(
+        "console:gateway-retry",
+        "إعادة تشغيل طابور البوّابة",
+        Capability.ODOO_INBOX,
+        "",
+        parent="console:odoo-inbox",
+    ),
 )
 
 

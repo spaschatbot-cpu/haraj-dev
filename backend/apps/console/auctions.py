@@ -41,7 +41,7 @@ from . import columns, icons, vehicle_bulk, vehicle_filters
 from .exports import export, wants_export
 from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
 from .tones import tone_of, tone_of_phase, with_tones
-from .views import console_page
+from .views import atomic_write, console_page, row_for_write
 
 #: Rows per page. Twenty-five rather than the API's twenty: a console user is
 #: scanning rather than scrolling a phone, and a page that ends after twenty
@@ -760,6 +760,7 @@ def auction_new(request):
 
 
 @console_page("console:auction-edit")
+@atomic_write
 def auction_edit(request, pk: int):
     """تعديلُ بيانات المزاد — **نافذةٌ من القائمة**، والصفحةُ احتياطٌ لا غير.
 
@@ -771,7 +772,7 @@ def auction_edit(request, pk: int):
     فتح نافذةً على القائمة يتوقّع أن يرجع إليها. وأخطاءُ الحقول تُقال في
     `messages` لأن النافذةَ لا تحمل أخطاءَ حقلٍ بجانب حقلها.
     """
-    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    auction = row_for_write(request, Auction.objects.all(), pk=pk)
     form = AuctionIdentityForm(request.POST or None, instance=auction)
     from_list = request.POST.get("back") == "list"
 

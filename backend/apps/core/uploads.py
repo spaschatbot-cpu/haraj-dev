@@ -281,6 +281,20 @@ def exit_proof_path(instance, filename: str) -> str:  # noqa: ARG001
     return generated_name("exits/transfers", _suffix_of(filename))
 
 
+def customer_document_path(instance, filename: str) -> str:  # noqa: ARG001
+    """``upload_to`` لوثيقة عميل: سجلّ تجاريّ · شهادة ضريبيّة · هويّة · آيبان.
+
+    مجلّدٌ واحدٌ لها جميعاً لا مجلّدٌ لكل نوع، وهي **أخطر ما يُرفع على المنصّة**:
+    صورةُ هويّةٍ وصورةُ آيبان يكفيان لانتحال شخص. فمجلّدٌ واحدٌ يُشار إليه بقاعدةٍ
+    واحدةٍ في إعداد الخادم ويُمنع تنفيذُه وتصفّحُه — وأربعةُ مجلّداتٍ أربعُ قواعد،
+    تُنسى إحداها.
+
+    والاسمُ مولَّدٌ كغيره: لا اسمَ العميل ولا نوعَ الوثيقة في المسار، فرابطٌ
+    مسرَّبٌ لا يقول لمن هو ولا يُخمَّن جارُه.
+    """
+    return generated_name("customer-docs", _suffix_of(filename))
+
+
 def _suffix_of(filename: str) -> str:
     """The extension **we** put on the name we generated, never the uploader's.
 
@@ -298,6 +312,7 @@ def _suffix_of(filename: str) -> str:
 __all__ = [
     "ALLOWED_IMAGE_FORMATS",
     "SanitisedImage",
+    "customer_document_path",
     "UploadRejected",
     "generated_name",
     "sanitise_image",

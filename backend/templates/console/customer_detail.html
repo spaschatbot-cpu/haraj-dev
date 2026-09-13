@@ -91,11 +91,58 @@
   {% endif %}
 
   {# ------------------------------------------------------------------ #}
+  {% comment %} الوثائقُ الأربع. الغائبُ يُعرض غائباً عمداً: السؤالُ على الهاتف
+     «هل عنده صورة آيبان؟»، وقائمةٌ تعرض المرفوعَ وحده تجيب عنه بالصمت. {% endcomment %}
+  <h2>الوثائق</h2>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>الوثيقة</th><th>الساري</th><th>رُفعت</th><th>من رفعها</th><th>نسخ أقدم</th></tr></thead>
+      <tbody>
+        {% for doc in documents %}
+          <tr>
+            <td>{{ doc.label }}</td>
+            <td>
+              {% if doc.current %}
+                <a href="{{ doc.current.file.url }}" target="_blank" rel="noopener">فتح</a>
+                {% if doc.current.note %}<span class="muted"> — {{ doc.current.note }}</span>{% endif %}
+              {% else %}
+                <span class="pill" data-tone="warn">غير مرفوعة</span>
+              {% endif %}
+            </td>
+            <td>{% if doc.current %}{{ doc.current.uploaded_at }}{% else %}—{% endif %}</td>
+            <td>
+              {% if doc.current.uploaded_by %}{{ doc.current.uploaded_by.full_name|default:doc.current.uploaded_by.phone }}
+              {% elif doc.current %}العميل نفسه{% else %}—{% endif %}
+            </td>
+            <td>{{ doc.older|length|default:"0" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if can_manage_users %}
+    <form method="post" action="{% url 'console:customer-documents' customer.pk %}"
+          enctype="multipart/form-data" class="stack">
+      {% csrf_token %}
+      <label>
+        النوع
+        <select name="kind" required>
+          {% for doc in documents %}<option value="{{ doc.kind }}">{{ doc.label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>الملف <input type="file" name="file" accept="image/*" required></label>
+      <label>ملاحظة <input type="text" name="note" placeholder="من أين وصلت"></label>
+      <button type="submit">ارفع</button>
+    </form>
+  {% endif %}
+
+  {# ------------------------------------------------------------------ #}
   <h2>الربط بأودو</h2>
   {% if odoo_links %}
     <div class="scroller">
 <table>
-      <thead><tr><th>رقم العميل في أودو</th><th>الأساسي</th><th>ملاحظة</th><th>رُبط</th></tr></thead>
+      <thead><tr><th>رقم العميل في أودو</th><th>الأساسي</th><th>ملاحظة</th><th>رُبط</th>{% if can_act_money %}<th>فكّ</th>{% endif %}</tr></thead>
       <tbody>
         {% for link in odoo_links %}
           <tr>
@@ -103,6 +150,15 @@
             <td>{% if link.is_primary %}<span class="pill" data-tone="ok">نعم</span>{% else %}—{% endif %}</td>
             <td>{{ link.note|default:"—" }}</td>
             <td>{{ link.linked_at }}</td>
+            {% if can_act_money %}
+              <td>
+                <form method="post" action="{% url 'console:customer-odoo-link' customer.pk %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="unlink" value="{{ link.pk }}">
+                  <button type="submit" data-tone="danger">فكّ الربط</button>
+                </form>
+              </td>
+            {% endif %}
           </tr>
         {% endfor %}
       </tbody>
@@ -115,6 +171,27 @@
       غير مربوطٍ بأودو. ولا استعلامَ يُبنى على هذا الغياب — ولذلك لا تُعرض
       هنا أرقامُ أحدٍ آخر.
     </p>
+  {% endif %}
+
+  {% if can_act_money %}
+    {% comment %} بلا هذه الاستمارة لم يكن في المستودع كلِّه ما يكتب صفَّ ربط،
+       فكلُّ دفعةٍ من أودو تذهب إلى الحساب المعلَّق وتنتظر يداً. والربطُ قرارٌ
+       لا مطابقة: بالجوّال طابقَ صفٌّ واحدٌ فارغٌ الجميعَ في v1. {% endcomment %}
+    <form method="post" action="{% url 'console:customer-odoo-link' customer.pk %}" class="stack">
+      {% csrf_token %}
+      <label>
+        رقم العميل في أودو
+        <input type="text" name="odoo_customer_id" inputmode="numeric" required>
+      </label>
+      <label>
+        ملاحظة
+        <input type="text" name="note" placeholder="من أين عُرف هذا الرقم">
+      </label>
+      <label>
+        <input type="checkbox" name="is_primary"> الحساب الأساسي — تُنسب إليه دفعات أودو الجديدة
+      </label>
+      <button type="submit">اربط</button>
+    </form>
   {% endif %}
 
   {# ------------------------------------------------------------------ #}

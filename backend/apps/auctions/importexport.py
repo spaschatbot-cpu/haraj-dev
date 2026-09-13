@@ -188,6 +188,9 @@ class Column:
     attribute: str | None = None
     required: bool = False
     optional: bool = False
+    #: عمودٌ تعداديّ (`_choice_reader`). خليّتُه الفارغةُ تعني «لم يُقَل» —
+    #: انظر `_apply_row`، وهناك ثمنُ القرار.
+    choice: bool = False
 
 
 COLUMNS: tuple[Column, ...] = (
@@ -243,6 +246,7 @@ COLUMNS: tuple[Column, ...] = (
         write=lambda v: _choice_writer(PlateType)(v.plate_type),
         read=_choice_reader(PlateType, "نوع اللوحة"),
         attribute="plate_type",
+        choice=True,
     ),
     Column(
         "الممشى",
@@ -256,18 +260,21 @@ COLUMNS: tuple[Column, ...] = (
         write=lambda v: _choice_writer(Transmission)(v.transmission),
         read=_choice_reader(Transmission, "ناقل الحركة"),
         attribute="transmission",
+        choice=True,
     ),
     Column(
         "الوقود",
         write=lambda v: _choice_writer(FuelType)(v.fuel_type),
         read=_choice_reader(FuelType, "الوقود"),
         attribute="fuel_type",
+        choice=True,
     ),
     Column(
         "الحالة الفنية",
         write=lambda v: _choice_writer(VehicleCondition)(v.condition),
         read=_choice_reader(VehicleCondition, "الحالة الفنية"),
         attribute="condition",
+        choice=True,
     ),
     Column(
         "سعر الوقوف",
@@ -720,6 +727,20 @@ def _apply_row(
         column = COLUMNS_BY_HEADER[header]
         raw = record.get(header, "")
         if column.read is None:
+            continue
+        # خليّةٌ تعداديّةٌ فارغةٌ تعني «لم يُقَل»، فتُترك القيمةُ المخزَّنة أو
+        # افتراضُ الموديل — ولا تُقرأ فتُرفض.
+        #
+        # قِيس على الشاشة (T867): صفٌّ في ملفٍّ حقيقيّ نقصته الخلايا الأخيرة —
+        # وإكسل يُسقط الفارغَ في آخر الصفّ، و`Sheet._fit` يتسامح معه صراحةً —
+        # فرجع بـ«قيمة «الحالة الفنية» غير معروفة: «»»، أي أن الصفَّ رُفض لأنه
+        # **لم يقل شيئاً**. وللتعداد قيمةُ «غير محدد» لمن أراد أن يقول «لا
+        # أعرف»، فالفراغُ ليس قيمةً ثالثة.
+        #
+        # وثمنُه: لا يُمحى تعدادٌ بتفريغ خانته — تُكتب «غير محدد» صراحةً. وذلك
+        # أرخص من رفضِ صفٍّ كاملٍ لخانةٍ لم تُملأ، وهو ما يجعل المستورِد
+        # يُهجَر إلى الإدخال اليدويّ.
+        if column.choice and raw.strip() == "":
             continue
         if (
             column.header == AUCTION_HEADER

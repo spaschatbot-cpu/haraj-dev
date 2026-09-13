@@ -263,6 +263,18 @@ urlpatterns = [
     path("partners/<int:pk>/reject/", partners.reject, name="partner-reject"),
     path("customers/", people.customers, name="customers"),
     path("customers/<int:pk>/", customer_file.customer_detail, name="customer-detail"),
+    # ليست صفّاً في `PAGES`: فعلٌ على صفحةٍ قائمة لا وجهةٌ في الشريط. حراستُها
+    # حراسةُ ملفّ العميل، وفوقها `money.act` داخل المنظر نفسه.
+    path(
+        "customers/<int:pk>/odoo-link/",
+        customer_file.odoo_link,
+        name="customer-odoo-link",
+    ),
+    path(
+        "customers/<int:pk>/documents/",
+        customer_file.customer_documents,
+        name="customer-documents",
+    ),
     path("customers/<int:pk>/edit/", people.customer_edit, name="customer-edit"),
     path("customers/<int:pk>/company/", people.company_edit, name="company-edit"),
     path("customers/<int:pk>/access/", people.customer_access, name="customer-access"),
@@ -312,4 +324,6 @@ urlpatterns = [
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),
     path("inbox/<int:pk>/replay/", inbox.replay, name="odoo-replay"),
+    # الطابورُ كلُّه دفعةً واحدة — المنادي الوحيد لـ`retry_failed_gateway`.
+    path("inbox/gateway-retry/", inbox.gateway_retry, name="gateway-retry"),
 ]
