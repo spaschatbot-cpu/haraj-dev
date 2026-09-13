@@ -18,6 +18,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from apps.odoo import envelope
 from apps.odoo.client import OdooDisabled, OdooUnreachable, call
 
 
@@ -41,7 +42,9 @@ class Command(BaseCommand):
         )
 
         pid = opts["payment"] or 999999999
-        payload = {"jsonrpc": "2.0", "method": "call", "id": 1, "params": {"payment_id": pid}}
+        # عبر `envelope.wrap` لا بيدٍ هنا: الغلافُ المكتوب مرّتين يتباعد،
+        # وهذا الملفُّ كان الوحيدَ الذي يكتبه صحيحاً بينما الصادرُ الحقيقيّ لا.
+        payload = envelope.wrap("call", {"payment_id": pid})
         try:
             result = call(opts["endpoint"], payload, reference=f"ping-{pid}")
         except OdooDisabled as exc:
@@ -58,10 +61,13 @@ class Command(BaseCommand):
             # 4xx: وصل ورُفض. 401/403 = توكن؛ غيرها = رفضٌ تجاريّ (ما يزال وصولاً).
             msg = str(exc)
             if "401" in msg or "403" in msg:
-                self.stderr.write(self.style.ERROR(f"وصل لكن رُفضت المصادقة (توكن): {msg}"))
+                self.stderr.write(
+                    self.style.ERROR(f"وصل لكن رُفضت المصادقة (توكن): {msg}")
+                )
             else:
                 self.stdout.write(self.style.SUCCESS(
-                    f"وصل وأُصيبت المصادقة — أودو ردّ رفضاً تجاريّاً (متوقَّع لمعرّفٍ وهميّ):\n{msg}"
+                    "وصل وأُصيبت المصادقة — أودو ردّ رفضاً تجاريّاً "
+                    f"(متوقَّع لمعرّفٍ وهميّ):\n{msg}"
                 ))
             return
 

@@ -23,6 +23,14 @@ question that actually brings people here half the time is «هل وصلتنا �
      re-filtering whatever page the browser happened to be on. {% endcomment %}
   <p><a href="{% url 'console:odoo-inbox' %}?state={{ failed }}">عرض الفاشلة فقط</a></p>
 
+  {% comment %} المنادي الوحيد لـ`money.retry_failed_gateway`: كانت مُعرَّفةً بلا زرٍّ
+     ولا نبضة، فطابورُ إعادةِ رسائل البوّابة لا يوقظه شيء. POST في نموذج لا
+     رابط — ضغطةٌ تُقيّد مالاً لا تُطلَق من سجلّ المتصفّح. {% endcomment %}
+  <form method="post" action="{% url 'console:gateway-retry' %}">
+    {% csrf_token %}
+    <button type="submit">إعادة تشغيل الفاشلة المستحقّة (بوّابة الدفع)</button>
+  </form>
+
   <form method="get">
     <input type="search" name="q" value="{{ q }}" placeholder="رقم فاتورة أو دفعة">
     <select name="state">
