@@ -644,6 +644,30 @@ abstract class AppLocalizations {
   /// **'ابحث عن سيارة'**
   String get searchHint;
 
+  /// No description provided for @homeFilterAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get homeFilterAll;
+
+  /// No description provided for @homeFilterPrice.
+  ///
+  /// In ar, this message translates to:
+  /// **'السعر'**
+  String get homeFilterPrice;
+
+  /// No description provided for @homeFilterYearRange.
+  ///
+  /// In ar, this message translates to:
+  /// **'من - إلى'**
+  String get homeFilterYearRange;
+
+  /// No description provided for @homeFilterSoon.
+  ///
+  /// In ar, this message translates to:
+  /// **'الترشيح لم يُفعَّل بعد.'**
+  String get homeFilterSoon;
+
   /// No description provided for @filterMake.
   ///
   /// In ar, this message translates to:
@@ -1345,6 +1369,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حسابي'**
   String get homeAccountAction;
+
+  /// No description provided for @heroHeadlineLead.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتشف أفضل العروض في'**
+  String get heroHeadlineLead;
+
+  /// No description provided for @heroHeadline.
+  ///
+  /// In ar, this message translates to:
+  /// **'بوابة مزادات حراج'**
+  String get heroHeadline;
+
+  /// No description provided for @heroHeadlineAccent.
+  ///
+  /// In ar, this message translates to:
+  /// **'العصرية'**
+  String get heroHeadlineAccent;
+
+  /// No description provided for @heroChipCars.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيارات مميزة'**
+  String get heroChipCars;
+
+  /// No description provided for @heroChipTrusted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مزادات موثوقة'**
+  String get heroChipTrusted;
+
+  /// No description provided for @heroChipOpportunities.
+  ///
+  /// In ar, this message translates to:
+  /// **'فرص استثنائية'**
+  String get heroChipOpportunities;
 
   /// زرّ يفتح ورقة الطور والماركة والسنة.
   ///

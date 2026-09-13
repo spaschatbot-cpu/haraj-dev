@@ -78,6 +78,11 @@ flutter:
   # يشغّل gen_l10n على ملفات ARB (T703)
   generate: true
 
+  # صورةُ لوحة الترحيب (السيّارة والمدينة) — أُضيفت بطلب المالك في ١٣ سبتمبر
+  # ٢٠٢٦ لهيدر الرئيسية.
+  assets:
+    - assets/images/hero_car.png
+
   fonts:
     - family: IBMPlexSansArabic
       fonts:
