@@ -12,9 +12,14 @@
  * إعادة توليد يُفشل بناء الويب، لا يمرّ ليُكتشف في المتصفح.*
  *
  * The comparison is against the generator's output rather than against the YAML
- * directly, because the YAML is itself pinned on the backend side
- * (`backend/tests/test_schema_is_pinned.py`) and checking the same thing twice
- * in two ways proves less than checking each link of the chain once.
+ * directly, because the YAML is itself pinned on the backend side and checking
+ * the same thing twice in two ways proves less than checking each link of the
+ * chain once.
+ *
+ * ‏كان المكتوب هنا أن تثبيت الـYAML في `backend/tests/test_schema_is_pinned.py`،
+ * وقد حُذفت حزمةُ الاختبارات كلُّها في `ad916d2` — فصار هذا السطرُ يحيل إلى ملفٍّ
+ * غير موجود، ويطمئن قارئَه إلى حلقةٍ لم تعد مربوطة. الحلقةُ الآن
+ * `manage.py schema_check` في الخلفية، وتشغّلها بوابةُ `contract.yml`.
  */
 
 import { mkdtemp, readFile, rm } from "node:fs/promises";

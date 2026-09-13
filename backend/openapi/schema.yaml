@@ -1106,6 +1106,74 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorEnvelope'
+  /api/v1/profile/documents/:
+    get:
+      operationId: v1_profile_documents_list
+      description: |-
+        الساري من كل نوع — أربعةُ صفوفٍ دائماً، والغائبُ `file: null`.
+
+        الأربعةُ كلُّها لا المرفوعُ منها، لأن الشاشة تسأل «ماذا ينقصني؟» وقائمةٌ
+        بما رُفع تجيب عن سؤالٍ آخر.
+      tags:
+      - profile
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomerDocument'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
+    post:
+      operationId: v1_profile_documents_create
+      description: |-
+        `GET`/`POST /api/v1/profile/documents/` — وثائقُ صاحب الرمز وحده.
+
+        الوثائقُ الأربع (سجل تجاريّ · شهادة ضريبيّة · هويّة · آيبان) لم يكن لها
+        طريقٌ في v2 إطلاقاً، ولا يزال في v1 ثلاثةُ أعمدةِ مسارٍ على صفّ المستخدم.
+        وصورةُ الآيبان **شرطٌ لفتح طلب الاسترداد** (`request_refund`)، فبلا هذه
+        النقطة لا سبيل للعميل إلى استرداده إلا بموظّفٍ يرفع عنه.
+
+        ولا معرّفَ مستخدمٍ في المسار ولا في الجسم — كبقيّة هذا الملفّ. صاحبُ الوثيقة
+        هو صاحبُ الرمز، ولا شيء آخر يقرّر ذلك: ثغرةُ محفظة v1 كانت بالضبط معرّفاً
+        يُقرأ من الطلب.
+      tags:
+      - profile
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomerDocumentUpload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomerDocumentUpload'
+        required: true
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerDocument'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/profile/national-id/:
     put:
       operationId: profile_set_national_id
@@ -1593,6 +1661,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorEnvelope'
+  /api/v1/wallet/topups/{reference}/cancel/:
+    post:
+      operationId: v1_wallet_topups_cancel_create
+      description: |-
+        ألغِ عمليّةَ شحنٍ لم تُدفَع بعد. POST لأنها تكتب.
+
+        الحالةُ `cancelled` كانت **معرَّفةً ولا يصل إليها مسار**: كلُّ نيّةٍ فتحها
+        عميلٌ ثم عدل تبقى `pending` إلى الأبد، وزرُّ الدفع حيٌّ عليها، ورابطُ
+        البوّابة يقبل ماله بعد شهر. الإلغاءُ هنا هو نصفُ الجواب؛ ونصفُه الآخر
+        المهلةُ (`services.expire_stale_intents`) لمن لم يُلغِ ولم يدفع.
+      parameters:
+      - in: path
+        name: reference
+        schema:
+          type: string
+        required: true
+      tags:
+      - wallet
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentIntent'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/topups/{reference}/checkout/:
     get:
       operationId: v1_wallet_topups_checkout_retrieve
@@ -1943,6 +2045,63 @@ components:
       - current_code
       - new_code
       - new_phone
+    CustomerDocument:
+      type: object
+      description: |-
+        نوعُ وثيقةٍ وحالتُه — صفٌّ لكل نوعٍ من الأربعة، مرفوعاً كان أو لا.
+
+        `document` قد يكون `None`، و`file` حينها `null`. وذلك أصدقُ من إسقاط الصفّ:
+        شاشةٌ تقرأ أربعةَ صفوفٍ تعرف ما ينقص، وشاشةٌ تقرأ اثنين تعرف ما وُجد فقط.
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        uploaded_at:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        file:
+          type: string
+          nullable: true
+          readOnly: true
+        note:
+          type: string
+          readOnly: true
+        uploaded_by_staff:
+          type: boolean
+          description: |-
+            هل رفعها موظّفٌ عن العميل؟ — سؤالٌ يسأله العميل نفسُه.
+
+            «لم أرفع هذه» شكوى حقيقية، وجوابُها هنا لا في تخمين.
+          readOnly: true
+      required:
+      - file
+      - kind
+      - label
+      - note
+      - uploaded_at
+      - uploaded_by_staff
+    CustomerDocumentUpload:
+      type: object
+      description: |-
+        رفعُ وثيقة. الملفُّ يُفحص في `uploads.sanitise_image` لا هنا.
+
+        النوعُ من التعداد حصراً: `kind` حرٌّ كان سيجعل العميل يخترع أنواعاً لا يقرؤها
+        أحد، فتُرفع وثيقةٌ ولا تفتح ما رُفعت لأجله.
+      properties:
+        kind:
+          $ref: '#/components/schemas/KindEnum'
+        file:
+          type: string
+          format: uri
+        note:
+          type: string
+          maxLength: 200
+      required:
+      - file
+      - kind
     Device:
       type: object
       description: A registered handset, as its owner sees it.
@@ -2107,6 +2266,18 @@ components:
         * `partial` - مسدَّدة جزئياً
         * `paid` - مسدَّدة
         * `cancelled` - ملغاة
+    KindEnum:
+      enum:
+      - cr
+      - tax
+      - id
+      - iban
+      type: string
+      description: |-
+        * `cr` - السجل التجاري
+        * `tax` - الشهادة الضريبية
+        * `id` - صورة الهوية
+        * `iban` - صورة الآيبان
     LedgerEntry:
       type: object
       description: One line of the statement, read straight off an ``Entry`` row.

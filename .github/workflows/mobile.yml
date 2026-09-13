@@ -66,18 +66,18 @@ jobs:
     # معيار قبول T621 بنصّه: «ولّد عميل Dart منه في CI للتأكد من صلاحيته؛
     # وكسر المخطط يُسقط الـCI».
     #
-    # ولماذا وظيفةٌ منفصلة عن `generated-client-matches-schema` فوقها: تلك
-    # تحرس **العميل المرفوع** ضدّ المخطط الذي يولّده اليوم (`haraj-mock.yaml`)،
-    # وهذه تحرس **مخطّط الخلفية** ضدّ قدرته على إنتاج عميل Dart أصلاً. سؤالان
-    # مختلفان، ودمجُهما يعني أن أحدهما يتوقّف عن السؤال يوم يُنقَل التطبيق.
+    # **كُتبت هذه الوظيفة يوم كان `swagger_parser.yaml` على `haraj-mock.yaml`**،
+    # فكانت تنسخ مخطّط الخلفية وتُبدّل `schema_path` إليه بـ`sed`. وقد نُقل
+    # المولِّد منذُها إلى `../backend/openapi/schema.yaml` — فصار أحدُ تعبيرَي
+    # `sed` لا يطابق شيئاً، والنسخةُ قبله ملفاً لا يقرؤه أحد. أي أن الخطوة كانت
+    # تعلن ما لا تفعل، وتنجح، ولا يظهر ذلك في أي سجلّ. حُذف الميّت منها
+    # (٢٠٢٦-٠٩-١٣) وبقي التحويل الحيّ وحده: مجلّدُ خرجٍ يُرمى.
     #
-    # والمولَّد هنا يُرمى ولا يُرفع: التطبيق ما زال يستهلك عميل المخطط المؤقّت
-    # (`wallet_repository_impl` وغيره)، وتبديل المصدر اليوم يحذف عملاء تعتمد
-    # عليهم شيفرةٌ قائمة. المطلوب في هذا التاسك أن يُثبَت أن المخطط **يُولِّد**،
-    # لا أن يُنقَل التطبيق — ذاك عمل الفيز 008.
-    #
-    # فإن عجز `swagger_parser` عن نوعٍ أو مُسلسِل، سقط هنا وفي وقتٍ يُقرأ فيه
-    # السبب — لا في يومٍ يحاول فيه أحدٌ النقل ويجد المخطط لا يصلح.
+    # وما تبقّى من الفرق بينها وبين `generated-client-matches-schema` فوقها:
+    # تلك تسأل «هل المولَّد المرفوع هو ما يولّده المخطط اليوم؟» وتحتاج
+    # `build_runner` و`dart format` لتجيب؛ وهذه تسأل «هل المخطط يولّد عميلاً
+    # أصلاً؟» بـ`swagger_parser` وحده. فمخطّطٌ يعجز عن إنتاج عميل يُسمّى هنا
+    # بسببه، لا يُقرأ كـ«العميل المرفوع قديم» هناك.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -90,12 +90,15 @@ jobs:
 
       - run: flutter pub get
 
-      - name: توجيه المولّد إلى مخطّط الخلفية الحقيقي
+      - name: التوليد إلى مجلّد يُرمى
         # في نسخة العمل الزائلة وحدها. الملف المرفوع لا يتغيّر، ولذلك لا
         # `git diff` بعد هذه الوظيفة: مخرَجها هو نجاحها أو فشلها، لا ملفّ.
         run: |
-          cp ../backend/openapi/schema.yaml openapi/backend-schema.yaml
-          sed -i             -e 's#schema_path: openapi/haraj-mock.yaml#schema_path: openapi/backend-schema.yaml#'             -e 's#output_directory: lib/data/api/generated#output_directory: build/backend_client#'             swagger_parser.yaml
+          sed -i -e 's#output_directory: lib/data/api/generated#output_directory: build/backend_client#' swagger_parser.yaml
+          grep -q 'output_directory: build/backend_client' swagger_parser.yaml || {
+            echo "::error::تحويلُ مجلّد الخرج لم يطابق — التوليد كان سيكتب فوق المرفوع." >&2
+            exit 1
+          }
 
       - name: توليد عميل Dart من المخطط
         run: dart run swagger_parser

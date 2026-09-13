@@ -1,0 +1,96 @@
+# بوابةُ العقد — T621.
+#
+# `backend/openapi/schema.yaml` عقدٌ **واحد** يستهلكه عميلان مولَّدان: Dart في
+# `mobile/lib/data/api/generated` وTypeScript في `web/lib/api/schema.ts`. ولا
+# قناةَ تملك نقطةً خاصّةً بها (T1026)، فحقلٌ يُعاد تسميته في مُسلسِلٍ واحد هو
+# تغييرٌ كاسرٌ للاثنين معاً.
+#
+# **ولماذا ملفُّ سير عملٍ لهذا وحده:** بوابةُ الخلفية القديمة (`ci.yml`) حُذفت
+# مع حزمة الاختبارات في `ad916d2` بقرار المالك، وكانت خطوة «المخطط المرفوع
+# يطابق الكود» بداخلها — فذهبت معها. ولم يبقَ شيءٌ يرى انحراف العقد إطلاقاً:
+# يُعدَّل مُسلسِلٌ، ويبقى `schema.yaml` على حاله، ويُبنى العميلان من ملفٍّ يصف
+# خلفيّةً لم تعد موجودة. وهذا ليس إعادةً لحزمة الاختبارات: لا اختبار هنا ولا
+# حارس، بل **فرقٌ يُقرأ** — أمرٌ واحد يعيد التوليد ويقارن.
+#
+# جوبتان لا واحدة: الأولى تسأل «هل العقد هو ما يقوله الكود؟» والثانية «هل عميل
+# الويب هو ما يقوله العقد؟». سؤالان مختلفان، ودمجُهما يخفي أيَّهما سقط.
+#
+# وعميل Dart ليس هنا: يحرسه `mobile.yml` — وهو يعمل على هذا الملفّ نفسه، فهو
+# في مُشغِّلاته.
+
+name: contract
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "web/**"
+      - ".github/workflows/contract.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "web/**"
+      - ".github/workflows/contract.yml"
+
+concurrency:
+  group: contract-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend-schema-is-pinned:
+    name: المخطط المرفوع = ما يولّده الكود
+    runs-on: ubuntu-24.04
+    env:
+      # التطوير لا الإنتاج: هي الإعدادات نفسها التي يشغّل بها المطوّر
+      # `manage.py schema_check` على جهازه، وبوابةٌ تقيس بإعدادٍ غير الذي يقيس
+      # به الناس تُنتج فرقاً لا يستطيع أحدٌ إعادة إنتاجه.
+      DJANGO_SETTINGS_MODULE: config.settings.dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: التبعيات
+        working-directory: backend
+        # `--frozen`: ما يقوله القفل حرفياً. حلٌّ أحدث هنا هو عطلٌ لا يستطيع
+        # أحدٌ إعادة إنتاجه محلياً.
+        run: uv sync --frozen
+
+      # بلا قاعدة بيانات عمداً: توليد المخطط لا يفتح اتصالاً (قِيس)، وخدمةُ
+      # PostgreSQL هنا دقيقتان تُدفعان مقابل لا شيء.
+      - name: schema_check
+        working-directory: backend
+        # يفعل ثلاثة: يبني بـ`--fail-on-warn`، ويقارن بايتاً ببايت بالمرفوع،
+        # ويتأكّد أن كل مسارٍ مسجَّلٍ تحت `/api/v1/` دخل المخطط — فspectacular
+        # يتخطّى بصمتٍ عرضاً لا يستبطنه، والمسار المتخطَّى لا يظهر في أي فرق.
+        run: uv run python manage.py schema_check
+
+  web-client-matches-schema:
+    name: عميل الويب = المخطط
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      # `ci` لا `install`: القفلُ هو المُدخَل.
+      - run: npm ci
+
+      - name: schema:check
+        # يعيد توليد `lib/api/schema.ts` من العقد ويقارنه بالمرفوع. حقلٌ
+        # تغيّر في الخلفية بلا `npm run schema` يسقط هنا، لا في متصفّح عميل.
+        run: npm run schema:check

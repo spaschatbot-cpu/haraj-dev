@@ -7,6 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/company_profile_read.dart';
+import '../models/customer_document.dart';
+import '../models/kind_enum.dart';
 import '../models/profile.dart';
 
 part 'profile_api.g.dart';
@@ -52,6 +54,31 @@ abstract class ProfileApi {
     @Part(name: 'district') String? district,
     @Part(name: 'city') String? city,
     @Part(name: 'postal_code') String? postalCode,
+  });
+
+  /// الساري من كل نوع — أربعةُ صفوفٍ دائماً، والغائبُ `file: null`.
+  ///
+  /// الأربعةُ كلُّها لا المرفوعُ منها، لأن الشاشة تسأل «ماذا ينقصني؟» وقائمةٌ.
+  /// بما رُفع تجيب عن سؤالٍ آخر.
+  @GET('/api/v1/profile/documents/')
+  Future<List<CustomerDocument>> v1ProfileDocumentsList();
+
+  /// `GET`/`POST /api/v1/profile/documents/` — وثائقُ صاحب الرمز وحده.
+  ///
+  /// الوثائقُ الأربع (سجل تجاريّ · شهادة ضريبيّة · هويّة · آيبان) لم يكن لها.
+  /// طريقٌ في v2 إطلاقاً، ولا يزال في v1 ثلاثةُ أعمدةِ مسارٍ على صفّ المستخدم.
+  /// وصورةُ الآيبان **شرطٌ لفتح طلب الاسترداد** (`request_refund`)، فبلا هذه.
+  /// النقطة لا سبيل للعميل إلى استرداده إلا بموظّفٍ يرفع عنه.
+  ///
+  /// ولا معرّفَ مستخدمٍ في المسار ولا في الجسم — كبقيّة هذا الملفّ. صاحبُ الوثيقة.
+  /// هو صاحبُ الرمز، ولا شيء آخر يقرّر ذلك: ثغرةُ محفظة v1 كانت بالضبط معرّفاً.
+  /// يُقرأ من الطلب.
+  @MultiPart()
+  @POST('/api/v1/profile/documents/')
+  Future<CustomerDocument> v1ProfileDocumentsCreate({
+    @Part(name: 'kind') required KindEnum kind,
+    @Part(name: 'file') required String file,
+    @Part(name: 'note') String? note,
   });
 
   /// تثبيت رقم الهوية.

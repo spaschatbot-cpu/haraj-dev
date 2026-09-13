@@ -156,9 +156,25 @@ dbshell:
 # the contract two generated clients are built from — the Flutter app and the
 # web — so the diff it produces is the API change itself, in a form a reviewer
 # can read. CI fails when the committed copy and the code disagree.
+#
+# `schema_check --write` and not `spectacular` directly: the same command that
+# checks is the command that writes, so the check can never fail on a
+# difference the writer itself introduced — and it asks a second question
+# `spectacular` does not, namely whether every route registered under
+# `/api/v1/` actually reached the file.
+#
+# ‏بلا `uv` على جهازك (وهو غير مثبَّت هنا):
+#     backend/.venv/Scripts/python.exe manage.py schema_check --write
+[working-directory('backend')]
 schema:
-    cd backend && uv run python manage.py spectacular --validate --fail-on-warn --file openapi/schema.yaml
-    @echo "backend/openapi/schema.yaml updated — commit the diff"
+    uv run python manage.py schema_check --write
+
+# Fail if the committed schema is not what the code generates (T621).
+#
+# ‏بلا `uv`:  backend/.venv/Scripts/python.exe manage.py schema_check
+[working-directory('backend')]
+schema-check:
+    uv run python manage.py schema_check
 
 
 # Django's own system check.
@@ -205,4 +221,4 @@ web-check:
 web-lint-rules:
 
 # What CI runs, end to end, before you ask CI to run it.
-ci: lint check-migrations test check-deploy web-lint-rules web-check
+ci: lint check-migrations test check-deploy schema-check web-lint-rules web-check

@@ -7,9 +7,20 @@ body that eventually does.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from rest_framework import serializers
 
-from apps.accounts.models import PHONE_ERROR, PHONE_PATTERN, OtpPurpose
+from apps.accounts.models import (
+    PHONE_ERROR,
+    PHONE_PATTERN,
+    DocumentKind,
+    OtpPurpose,
+)
+
+# الرابطُ يُبنى في موضعٍ واحد (المادة ٤-٥): عميلُ التطبيق ليس الخادم، ومسارٌ
+# نسبيٌّ يجعله يطلب `/media/...` من أصلِه هو فيعود 404 — وقع ذلك في الكروت.
+from apps.auctions.cards import media_url
 
 
 class SendCodeSerializer(serializers.Serializer):
@@ -227,3 +238,57 @@ class CompanyProfileReadSerializer(CompanyProfileSerializer):
     """The same fields plus whether they add up to something invoiceable."""
 
     is_complete = serializers.BooleanField(read_only=True)
+
+
+class CustomerDocumentSerializer(serializers.Serializer):
+    """نوعُ وثيقةٍ وحالتُه — صفٌّ لكل نوعٍ من الأربعة، مرفوعاً كان أو لا.
+
+    `document` قد يكون `None`، و`file` حينها `null`. وذلك أصدقُ من إسقاط الصفّ:
+    شاشةٌ تقرأ أربعةَ صفوفٍ تعرف ما ينقص، وشاشةٌ تقرأ اثنين تعرف ما وُجد فقط.
+    """
+
+    kind = serializers.CharField()
+    label = serializers.CharField()
+    uploaded_at = serializers.SerializerMethodField()
+    file = serializers.SerializerMethodField()
+    note = serializers.SerializerMethodField()
+    uploaded_by_staff = serializers.SerializerMethodField()
+
+    # أنواعُ العائد مكتوبةٌ لأن `SerializerMethodField` لا يُستنتج منه نوع:
+    # يُحذّر drf-spectacular ويضع `string`، فيصير `uploaded_at` نصّاً و
+    # `uploaded_by_staff` نصّاً في كل عميلٍ مولَّد — يُصرَّف ويحمل النوع الخطأ.
+    # وبوابة T621 تبني بـ`--fail-on-warn` تحديداً كي لا يمرّ ذلك صامتاً.
+
+    def get_uploaded_at(self, row: dict) -> datetime | None:
+        doc = row.get("document")
+        return doc.uploaded_at if doc else None
+
+    def get_file(self, row: dict) -> str | None:
+        doc = row.get("document")
+        if not doc or not doc.file:
+            return None
+        return media_url(doc.file)
+
+    def get_note(self, row: dict) -> str:
+        doc = row.get("document")
+        return doc.note if doc else ""
+
+    def get_uploaded_by_staff(self, row: dict) -> bool:
+        """هل رفعها موظّفٌ عن العميل؟ — سؤالٌ يسأله العميل نفسُه.
+
+        «لم أرفع هذه» شكوى حقيقية، وجوابُها هنا لا في تخمين.
+        """
+        doc = row.get("document")
+        return bool(doc and doc.uploaded_by_id)
+
+
+class CustomerDocumentUploadSerializer(serializers.Serializer):
+    """رفعُ وثيقة. الملفُّ يُفحص في `uploads.sanitise_image` لا هنا.
+
+    النوعُ من التعداد حصراً: `kind` حرٌّ كان سيجعل العميل يخترع أنواعاً لا يقرؤها
+    أحد، فتُرفع وثيقةٌ ولا تفتح ما رُفعت لأجله.
+    """
+
+    kind = serializers.ChoiceField(choices=DocumentKind.choices)
+    file = serializers.FileField()
+    note = serializers.CharField(max_length=200, required=False, allow_blank=True)
