@@ -93,10 +93,14 @@ class HomeShell extends StatelessWidget {
         if (navigationShell.currentIndex != HomeSection.home.index)
           HomeHero(
             showActions: false,
-            title:
-                navigationShell.currentIndex == HomeSection.account.index
-                ? AppLocalizations.of(context).navAccount
-                : null,
+            // **اسمُ القسم لا العلامة** بطلب المالك (١٣ سبتمبر ٢٠٢٦): كان
+            // «مزاد حراج واحد» في رأس كل قسمٍ إلا «حسابي»، فيقرأ من فتح
+            // «المحفظة» اسمَ التطبيق مرّتين — في الرأس وفي الشريط السفليّ —
+            // ولا يقرأ أين هو. ومن التعداد لا بشرطٍ لكل قسم: القسمُ يعرف
+            // اسمه، وقائمةٌ ثانية تفترق عنه عند أول إضافة.
+            title: HomeSection
+                .values[navigationShell.currentIndex]
+                .label(AppLocalizations.of(context)),
             onOpenNotifications: () => context.go(Routes.myActivityPath),
             onOpenAccount: () => context.go(Routes.profilePath),
           ),

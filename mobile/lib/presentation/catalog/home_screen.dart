@@ -51,16 +51,20 @@ const double _searchHeight = 48;
 
 /// حاشيةُ صندوق البحث العلويّة.
 ///
-/// **صفرٌ** بطلب المالك (١٣ سبتمبر ٢٠٢٦): يُرفع الحقلُ حتى يلامس أسفلَ صورة
-/// اللوحة. والتراكبُ الحقيقيّ فوقها — كما كان — لم يعد ممكناً بعد أن صار
-/// الصندوقُ شريحةً مثبَّتة: ما يعلو حدَّها يقصّه إطارُ التمرير عند التثبيت،
-/// وأرضيّتُها الرماديّة تحجب ما تحتها.
-const double _searchCardTop = 0;
+/// **عشرةٌ** بطلب المالك (١٣ سبتمبر ٢٠٢٦): هي الفراغُ فوق الحقل حين تثبت
+/// الشريحةُ في رأس الشاشة — بصفرٍ كان يلتصق بالحافّة. ولا يُفقَد التراكبُ
+/// على الصورة: `_searchOverlap` زِيد بقدرها.
+const double _searchCardTop = 10;
 
 /// ارتفاعُ الشريحة المثبَّتة **بالضبط** — `SliverPersistentHeader` يفرضه ولا
 /// يقيسه، فأيُّ زيادةٍ في محتواه تفيض وتُقصّ. وهو مجموعُ ما فيه:
 /// الحاشيةُ العلويّة + حقلُ البحث + الفاصلُ + حاويةُ التبويبات (٤٢).
-const double _searchCardExtent = _searchCardTop + _searchHeight + 12 + 42;
+const double _searchCardExtent =
+    _searchCardTop + _searchHeight + 12 + 42 + _searchCardBottom;
+
+/// فراغٌ أسفل التبويبات قبل أول كرت — بطلب المالك (١٣ سبتمبر ٢٠٢٦): كانت
+/// حاويةُ الأطوار تلامس حافّة الكرت الأول فتُقرأان كتلةً واحدة.
+const double _searchCardBottom = 10;
 
 /// ارتفاعُ اللوحة الغنيّة **بلا** حاشية النظام العلويّة — تُضاف في البناء.
 ///
@@ -69,11 +73,24 @@ const double _searchCardExtent = _searchCardTop + _searchHeight + 12 + 42;
 /// العنوان (١٨) + حاشيةٌ سفلى (٢٦).
 const double _heroExtent = 120;
 
+/// العرضُ الذي تنقلب عنده الترويسة إلى صفٍّ واحد.
+///
+/// **٨٦٠**: دون ذلك لا يسع الصفُّ نصَّ اللوحة وصندوقَ بحثٍ بعرض ٤٤٠ معاً.
+const double _wideAt = 860;
+
+/// ارتفاعُ ترويسة اللاب — صفُّ العلامة والنصُّ، وصندوقُ البحث والتبويبات
+/// فوق الصورة. رُفع إلى ٢١٦ حين نزل العنوانُ وكبُر خطُّه.
+const double _wideHeaderExtent = 216;
+
+/// فراغٌ بين أسفل الصورة وأول صفٍّ من الكروت على اللاب — بطلب المالك: كانت
+/// الكروتُ تلتصق بحافّة الصورة فتُقرأ امتداداً لها.
+const double _wideHeaderGap = 16;
+
 /// كم يعلو صندوقُ البحث على أسفل صورة اللوحة، على موكاب المالك.
 ///
 /// ويتلاشى مع الانطواء: بلا تلاشٍ يبقى شريطٌ شفّافٌ بعرض عشرين فوق الشريحة
 /// المثبَّتة، تظهر فيه الكروتُ وهي تمرّ من خلف الحقل.
-const double _searchOverlap = 20;
+const double _searchOverlap = 30;
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
@@ -223,20 +240,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
             emptyMessage: _emptyMessage(l10n),
             showCount: false,
-            sliverHeader: SliverPersistentHeader(
-              pinned: true,
-              delegate: _HomeHeader(
-                palette: HarajPalette.of(context),
-                heroExtent:
-                    _heroExtent + MediaQuery.paddingOf(context).top,
-                card: _searchCard(),
-                hero: HomeHero(
-                  onOpenNotifications: () =>
-                      context.go(Routes.myActivityPath),
-                  onOpenAccount: () => context.go(Routes.profilePath),
-                ),
-              ),
-            ),
+            // **هيئتان للترويسة**: على الجوّال شريحةٌ تنطوي — اللوحةُ تنزلق
+            // وصندوقُ البحث يثبت. وعلى اللاب صفٌّ واحد: النصُّ يميناً
+            // وصندوقُ البحث والتبويبات شمالاً داخل الصورة، على هيئة v1
+            // (بطلب المالك، ١٣ سبتمبر ٢٠٢٦) — ولا تثبيتَ هناك لأن الشاشة
+            // العريضة لا يضيق بها الطول.
+            sliverHeader: MediaQuery.sizeOf(context).width >= _wideAt
+                ? SliverToBoxAdapter(child: _wideHeader(context))
+                : SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _HomeHeader(
+                      palette: HarajPalette.of(context),
+                      heroExtent:
+                          _heroExtent + MediaQuery.paddingOf(context).top,
+                      card: _searchCard(),
+                      hero: HomeHero(
+                        onOpenNotifications: () =>
+                            context.go(Routes.myActivityPath),
+                        onOpenAccount: () => context.go(Routes.profilePath),
+                      ),
+                    ),
+                  ),
             // **لا زرّ فرزٍ ولا ورقة تصفية** — مُحي بطلب المالك في ٩ سبتمبر
             // ٢٠٢٦، مرّتين: من سطر العدّ أوّلاً، ثم من جانب حقل البحث.
             //
@@ -283,6 +307,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           current: widget.phase,
           counts: _counts,
           onSelect: (phase) => Routes.goToPhase(context, phase),
+        ),
+      ],
+    ),
+  );
+
+  /// ترويسةُ اللاب: النصُّ يميناً وصندوقُ البحث شمالاً **داخل الصورة**.
+  ///
+  /// `PositionedDirectional` لا `Positioned`: «شمال» في العربية هي `end`،
+  /// و`left` مكتوبةً تضع الصندوقَ في الجهة الخطأ لو فُتح التطبيق بالإنجليزية.
+  Widget _wideHeader(BuildContext context) => Container(
+    height: _wideHeaderExtent,
+    margin: const EdgeInsets.only(bottom: _wideHeaderGap),
+    child: Stack(
+      children: <Widget>[
+        Positioned.fill(
+          child: HomeHero(
+            onOpenNotifications: () => context.go(Routes.myActivityPath),
+            onOpenAccount: () => context.go(Routes.profilePath),
+          ),
+        ),
+        PositionedDirectional(
+          end: 24,
+          top: 64,
+          width: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              SizedBox(
+                height: _searchHeight,
+                child: VehicleSearchField(
+                  search: _query.search,
+                  onSubmitted: _search,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _PhaseTabs(
+                current: widget.phase,
+                counts: _counts,
+                onSelect: (phase) => Routes.goToPhase(context, phase),
+              ),
+            ],
+          ),
         ),
       ],
     ),
