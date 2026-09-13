@@ -52,6 +52,11 @@ class VehicleCard extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(14, 5, 14, 5),
           child: Material(
             color: palette.cardSurface,
+            // **`surfaceTintColor` شفّافٌ صراحةً**: Material 3 يخلط
+            // `colorScheme.surfaceTint` بأرضيّة السطح كلّما ارتفع `elevation`،
+            // فأبيضُ الكرت (#FFFFFF) كان يُرسم مشوباً برصاصيٍّ خفيف — ولا
+            // يظهر ذلك في اللون المكتوب، إنما في ما يُرسم.
+            surfaceTintColor: Colors.transparent,
             borderRadius: BorderRadius.circular(_radius),
             // **`antiAlias` وليس تدويرَ الصورة بيدها**: الصورة تلامس حافّة
             // الكرت من ثلاث جهات، فقصُّها هو ما يدوّر زاويتيها — وتدويرٌ
@@ -138,8 +143,9 @@ const double _radius = 18;
 ///
 /// كان ١٤٠، مقاسَ كرت v1 كما قرأته أدوات المتصفّح (`135.5×140`). ونزل إلى
 /// ١٢٦ بطلب المالك في ٩ سبتمبر ٢٠٢٦ بعد أن جُمع الموقعُ مع الحالة في سطر،
-/// ثم إلى ١٤٤ ليسع فاصلَي الاسم والعدّاد وحشوةَ سطر الموقع.
-const double _height = 144;
+/// ثم إلى ١٤٤ ليسع فاصلَي الاسم والعدّاد وحشوةَ سطر الموقع، ثم إلى ١٦٠
+/// بطلب المالك في ١٣ سبتمبر ٢٠٢٦.
+const double _height = 160;
 
 /// نصفُ البيانات: الاسم ومرجعُه، ثم ثلاثُ خاناتٍ، ثم الحالةُ والموقع في
 /// سطر، ثم العدّاد، ثم زرّ المزايدة — ترتيبُ v1.

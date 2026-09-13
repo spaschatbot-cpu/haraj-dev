@@ -67,6 +67,10 @@ class _RichHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    // **حجمان للنصّ**: الصغير مقيَّدٌ بارتفاع الشريحة على الجوّال — صندوقُ
+    // البحث يتراكب على أسفلها. وعلى اللاب الصندوقُ إلى جانبه لا فوقه،
+    // فلا قيدَ يخنق العنوان (بطلب المالك، ١٣ سبتمبر ٢٠٢٦).
+    final wide = MediaQuery.sizeOf(context).width >= 860;
 
     return DecoratedBox(
       // خلفٌ كحليٌّ يظهر لو تعذّرت الصورة، وتحت حوافّها الشفّافة.
@@ -153,12 +157,14 @@ class _RichHero extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  // **فراغٌ أوسعُ على اللاب** بطلب المالك (١٣ سبتمبر ٢٠٢٦):
+                  // ينزل العنوانُ إلى وسط الصورة بدل أن يلتصق بصفّ العلامة.
+                  SizedBox(height: wide ? 36 : 10),
                   // العنوانُ القياديّ — في الجزء الفاضي من الصورة.
                   Row(
                     children: <Widget>[
                       Container(
-                        width: 22,
+                        width: wide ? 30 : 22,
                         height: 3,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(2),
@@ -178,7 +184,7 @@ class _RichHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 9.5,
+                            fontSize: wide ? 15.5 : 9.5,
                             fontWeight: FontWeight.w600,
                             fontFamily: HarajTheme.fontFamily,
                             shadows: const <Shadow>[
@@ -194,8 +200,8 @@ class _RichHero extends StatelessWidget {
                     text: TextSpan(
                       style: TextStyle(
                         // **١٣٫٥ لا ١٩** بطلب المالك مرّتين: السطران يظهران
-                        // كاملين فوق صندوق البحث المتراكب.
-                        fontSize: 13.5,
+                        // كاملين فوق صندوق البحث المتراكب. وعلى اللاب ٢٨.
+                        fontSize: wide ? 32 : 13.5,
                         fontWeight: FontWeight.w800,
                         height: 1.3,
                         fontFamily: HarajTheme.fontFamily,
