@@ -49,6 +49,32 @@ class HomeScreen extends ConsumerStatefulWidget {
 /// ارتفاعُ حقل البحث داخل صندوق البحث.
 const double _searchHeight = 48;
 
+/// حاشيةُ صندوق البحث العلويّة.
+///
+/// **صفرٌ** بطلب المالك (١٣ سبتمبر ٢٠٢٦): يُرفع الحقلُ حتى يلامس أسفلَ صورة
+/// اللوحة. والتراكبُ الحقيقيّ فوقها — كما كان — لم يعد ممكناً بعد أن صار
+/// الصندوقُ شريحةً مثبَّتة: ما يعلو حدَّها يقصّه إطارُ التمرير عند التثبيت،
+/// وأرضيّتُها الرماديّة تحجب ما تحتها.
+const double _searchCardTop = 0;
+
+/// ارتفاعُ الشريحة المثبَّتة **بالضبط** — `SliverPersistentHeader` يفرضه ولا
+/// يقيسه، فأيُّ زيادةٍ في محتواه تفيض وتُقصّ. وهو مجموعُ ما فيه:
+/// الحاشيةُ العلويّة + حقلُ البحث + الفاصلُ + حاويةُ التبويبات (٤٢).
+const double _searchCardExtent = _searchCardTop + _searchHeight + 12 + 42;
+
+/// ارتفاعُ اللوحة الغنيّة **بلا** حاشية النظام العلويّة — تُضاف في البناء.
+///
+/// مكتوبٌ لا مقيس، لأن `SliverPersistentHeader` يفرض ارتفاعه: حاشيةٌ علويّة
+/// (١٢) + صفُّ العلامة (٣٤) + فاصلٌ (١٠) + سطرُ التمهيد (١٣) + فاصلٌ (٦) +
+/// العنوان (١٨) + حاشيةٌ سفلى (٢٦).
+const double _heroExtent = 120;
+
+/// كم يعلو صندوقُ البحث على أسفل صورة اللوحة، على موكاب المالك.
+///
+/// ويتلاشى مع الانطواء: بلا تلاشٍ يبقى شريطٌ شفّافٌ بعرض عشرين فوق الشريحة
+/// المثبَّتة، تظهر فيه الكروتُ وهي تمرّ من خلف الحقل.
+const double _searchOverlap = 20;
+
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
   AsyncValue<Snapshot<VehicleFeed>> _first =
@@ -167,136 +193,100 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final palette = HarajPalette.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // ساعةُ النظام وبطّاريّتُه فوق لوحةٍ داكنة: تُركا للثيم الفاتح كانا
       // سيُرسمان أسودَين على أسود.
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-        body: Column(
-          children: <Widget>[
-            // **الهيدرُ الغنيّ داخل الرئيسية** (١٣ سبتمبر ٢٠٢٦): هنا لا في
-            // القشرة، كي يتراكب صندوقُ البحث على أسفل صورته بلا قصّ.
-            HomeHero(
-              onOpenNotifications: () => context.go(Routes.myActivityPath),
-              onOpenAccount: () => context.go(Routes.profilePath),
-            ),
-            Expanded(
-              // **ورقةٌ كريميّةٌ مسحوبةٌ فوق الهيدر** بطلب المالك (١٣ سبتمبر
-              // ٢٠٢٦): تُرفع اثنين وعشرين بكسلاً بزاويتين علويّتين مدوّرتين
-              // فيتراكب صندوقُ البحث والتبويبات على أسفل صورة اللوحة، كالموكاب.
-              // وحُذفت لوحةُ الترحيب («بوابة مزادات حراج الحصرية») لأن الهيدر
-              // صار يحمل العنوان.
-              child: DecoratedBox(
-                // **الخلفيّةُ في مكانها الطبيعي تحت الهيدر** (١٣ سبتمبر ٢٠٢٦):
-                // لا تُسحب كلُّها فتغطّي العنوان — يُسحب صندوقُ البحث وحده
-                // (بحاشيةٍ علويّةٍ سالبة) ليتراكب على أسفل الصورة، وتبقى الورقةُ
-                // الرماديّة أسفله.
-                decoration: BoxDecoration(
-                  color: palette.pageBackground,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(24),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    // **صندوقُ البحث ثابتٌ فوق القائمة، لا ينزلق** (١٣ سبتمبر
-                    // ٢٠٢٦): صندوقٌ أبيضُ واحدٌ يجمع البحثَ وقوائمَ الترشيح
-                    // والتبويبات، متراكبٌ على أسفل صورة الهيدر كالموكاب.
-                    _searchCard(),
-                    Expanded(
-                      child: SnapshotView<VehicleFeed>(
-                        state: _first,
-                        onRetry: _reload,
-                        builder: (context, snapshot) => VehicleResults(
-                          vehicles: _vehicles,
-                          totalCount: _totalCount,
-                          hasMore: _hasMore,
-                          loadingMore: _loadingMore,
-                          moreFailure: _moreFailure,
-                          onLoadMore: _loadMore,
-                          onRetryMore: () {
-                            setState(() => _moreFailure = null);
-                            _loadMore();
-                          },
-                          emptyMessage: _emptyMessage(l10n),
-                          showCount: false,
-                          // **لا زرّ فرزٍ ولا ورقة تصفية** — مُحي
-                          // بطلب المالك في ٩ سبتمبر ٢٠٢٦، مرّتين: من سطر
-                          // العدّ أوّلاً، ثم من جانب حقل البحث.
-                          //
-                          // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة:
-                          // الماركةُ والسنتان (`VehicleQuery.make`
-                          // و`yearFrom` و`yearTo`) تعمل ويرسلها `_apply`
-                          // إلى الخادم، **ولا مقبضَ لها في الرئيسية**.
-                          // و`VehicleFiltersButton` باقيةٌ تعمل في شاشة
-                          // مركبات المزاد. والطورُ له مفتاحُه في الترويسة.
-                        ),
-                      ),
-                    ),
-                  ],
+        // **الهيدرُ ينزلق والبحثُ يثبت** بطلب المالك (١٣ سبتمبر ٢٠٢٦، على
+        // سلوك v1): اللوحةُ الغنيّة شريحةٌ أولى تمضي إلى أعلى مع الكروت،
+        // وصندوقُ البحث والتبويبات شريحةٌ **مثبَّتة** تبقى فوق القائمة — فهما
+        // مقبضاها، ومن نزل عشرين كرتاً ثم أراد تبديل الطور لا يصعد كلَّها.
+        //
+        // وبهذا ذهبت الورقةُ الكريميّة ذاتُ الزاويتين المدوّرتين: كانت تحيط
+        // بعمودٍ ثابتٍ فوق القائمة، ولا عمودَ الآن. وحافّةُ الهيدر السفلى
+        // مدوّرةٌ أصلاً (`HomeHero`) فلا يُفقَد شيءٌ من الشكل.
+        body: SnapshotView<VehicleFeed>(
+          state: _first,
+          onRetry: _reload,
+          builder: (context, snapshot) => VehicleResults(
+            vehicles: _vehicles,
+            totalCount: _totalCount,
+            hasMore: _hasMore,
+            loadingMore: _loadingMore,
+            moreFailure: _moreFailure,
+            onLoadMore: _loadMore,
+            onRetryMore: () {
+              setState(() => _moreFailure = null);
+              _loadMore();
+            },
+            emptyMessage: _emptyMessage(l10n),
+            showCount: false,
+            sliverHeader: SliverPersistentHeader(
+              pinned: true,
+              delegate: _HomeHeader(
+                palette: HarajPalette.of(context),
+                heroExtent:
+                    _heroExtent + MediaQuery.paddingOf(context).top,
+                card: _searchCard(),
+                hero: HomeHero(
+                  onOpenNotifications: () =>
+                      context.go(Routes.myActivityPath),
+                  onOpenAccount: () => context.go(Routes.profilePath),
                 ),
               ),
             ),
-          ],
+            // **لا زرّ فرزٍ ولا ورقة تصفية** — مُحي بطلب المالك في ٩ سبتمبر
+            // ٢٠٢٦، مرّتين: من سطر العدّ أوّلاً، ثم من جانب حقل البحث.
+            //
+            // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة: الماركةُ والسنتان
+            // (`VehicleQuery.make` و`yearFrom` و`yearTo`) تعمل ويرسلها
+            // `_apply` إلى الخادم، **ولا مقبضَ لها في الرئيسية**.
+            // و`VehicleFiltersButton` باقيةٌ تعمل في شاشة مركبات المزاد.
+            // والطورُ له مفتاحُه في الترويسة.
+          ),
         ),
       ),
     );
   }
 
-  /// صندوقُ البحث الأبيض — يجمع حقلَ البحث وقوائمَ الترشيح والتبويبات في بطاقةٍ
-  /// واحدةٍ متراكبةٍ على أسفل صورة الهيدر، على موكاب المالك (١٣ سبتمبر ٢٠٢٦).
+  /// صندوقُ البحث والتبويبات — متراكبٌ على أسفل صورة الهيدر بلا بطاقةٍ تحته.
   ///
   /// **قوائمُ الترشيح (الكل/الماركة/السعر/من-إلى) بصريّةٌ بعد**: الماركةُ
   /// والسنتان تعملان في `VehicleQuery` بلا منتقٍ في الرئيسية، فالقوائمُ تقول
   /// «لم يُفعَّل بعد» بدل منتقٍ لا يفتح — تُوصَل حين يُبنى المنتقي.
-  Widget _searchCard() {
-    final palette = HarajPalette.of(context);
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      // الإزاحةُ تسحب الصندوقَ وحده فوق أسفل الصورة، والخلفيّةُ الرماديّة تبقى
-      // في مكانها تحته (١٣ سبتمبر ٢٠٢٦).
-      transform: Matrix4.translationValues(0, -34, 0),
-      margin: const EdgeInsets.fromLTRB(14, 4, 14, 6),
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
-      decoration: BoxDecoration(
-        // أبيضُ مخفَّفٌ قليلاً (٩٤٪) فيبدو ناعماً لا ناصعاً حادّاً فوق الصورة.
-        color: palette.cardSurface.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(20),
-        // ظلٌّ أقوى فيبدو الصندوق طافياً قدّام الصورة.
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.20),
-            blurRadius: 26,
-            offset: const Offset(0, 10),
+  Widget _searchCard() => Container(
+    margin: const EdgeInsets.fromLTRB(14, _searchCardTop, 14, 0),
+    // **بلا أرضيّةٍ بيضاءَ خلف صندوق البحث** بطلب المالك (١٣ سبتمبر ٢٠٢٦):
+    // كانت بطاقةٌ بيضاءُ شفّافةٌ بظلٍّ تحمل الحقلَ والتبويبات، فصارت ثلاثةَ
+    // صناديقَ متداخلة — الحقلُ أبيضُ أصلاً والتبويباتُ لها حوضُها، فالأرضيّةُ
+    // الثالثة زائدة.
+    //
+    // ولا إزاحةَ تسحبه فوق الصورة بعد اليوم: صار شريحةً مثبَّتةً داخل
+    // القائمة، وما يعلو حدَّها يقصّه إطارُ التمرير عند التثبيت.
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        SizedBox(
+          height: _searchHeight,
+          child: VehicleSearchField(
+            search: _query.search,
+            onSubmitted: _search,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          SizedBox(
-            height: _searchHeight,
-            child: VehicleSearchField(
-              search: _query.search,
-              onSubmitted: _search,
-            ),
-          ),
-          // صفُّ قوائم الترشيح (الكل/الماركة/السعر/من-إلى) حُذف بطلب المالك
-          // (١٣ سبتمبر ٢٠٢٦).
-          const SizedBox(height: 12),
-          _PhaseTabs(
-            current: widget.phase,
-            counts: _counts,
-            onSelect: (phase) => Routes.goToPhase(context, phase),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        // صفُّ قوائم الترشيح (الكل/الماركة/السعر/من-إلى) حُذف بطلب المالك
+        // (١٣ سبتمبر ٢٠٢٦).
+        const SizedBox(height: 12),
+        _PhaseTabs(
+          current: widget.phase,
+          counts: _counts,
+          onSelect: (phase) => Routes.goToPhase(context, phase),
+        ),
+      ],
+    ),
+  );
 
   /// الطور الفارغ يقول **لماذا** هو فارغ.
   ///
@@ -367,7 +357,10 @@ class _PhaseTabs extends StatelessWidget {
         // على شاشةٍ عريضة كان القسم الواحد يبلغ ٤٥٠ بكسلاً لكلمةٍ ورقم.
         constraints: const BoxConstraints(maxWidth: 440),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 9),
+          // **بلا حاشيةٍ سفلى** (١٣ سبتمبر ٢٠٢٦): الصندوقُ مزاحٌ بعشرين
+          // فوق الصورة، والتسعةُ تُضاف إليها فتصير الفجوةُ إلى أول كرتٍ
+          // أربعين — ضِعفَ ما بين كرتين.
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
           child: SizedBox(
             height: _height,
             child: DecoratedBox(
@@ -550,4 +543,84 @@ class _Segment extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// ترويسةُ الرئيسية: **لوحةٌ تنطوي وصندوقُ بحثٍ يثبت**.
+///
+/// شريحةٌ واحدة لا شريحتان، لأن صندوق البحث يتراكب على أسفل صورة اللوحة —
+/// وتراكبُ شريحتين منفصلتين يقصّه إطارُ التمرير. فاللوحةُ هنا تنزلق إلى أعلى
+/// داخل الترويسة (`top: -shrinkOffset`)، والصندوقُ يلزم أسفلَها حتى يبلغ
+/// رأسَ الشاشة فيثبت وحده.
+///
+/// وأرضيّةُ الصندوق **تنزل عشرين ثم تصعد معه**: في الأعلى تبدأ تحت الحقل
+/// فيظهر الحقلُ على الصورة، وعند الانطواء تغطّي الشريحةَ كلَّها — وبلا ذلك
+/// يبقى شريطٌ شفّافٌ تمرّ فيه الكروتُ من خلف الحقل.
+class _HomeHeader extends SliverPersistentHeaderDelegate {
+  const _HomeHeader({
+    required this.palette,
+    required this.heroExtent,
+    required this.hero,
+    required this.card,
+  });
+
+  final HarajPalette palette;
+  final double heroExtent;
+  final Widget hero;
+  final Widget card;
+
+  @override
+  double get minExtent => _searchCardExtent;
+
+  @override
+  double get maxExtent => heroExtent + _searchCardExtent - _searchOverlap;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final travel = maxExtent - minExtent;
+    final progress = travel <= 0 ? 1.0 : (shrinkOffset / travel).clamp(0.0, 1.0);
+    return Stack(
+      clipBehavior: Clip.hardEdge,
+      children: <Widget>[
+        Positioned(
+          top: -shrinkOffset,
+          left: 0,
+          right: 0,
+          height: heroExtent,
+          child: hero,
+        ),
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: _searchCardExtent,
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                top: _searchOverlap * (1 - progress),
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: ColoredBox(color: palette.pageBackground),
+              ),
+              // **`Positioned.fill` لا طفلاً حرّاً**: الطفلُ الحرّ في `Stack`
+              // يأخذ عرضَه الطبيعيّ، وعمودُ الصندوق بلا عرضٍ طبيعيّ فينكمش.
+              Positioned.fill(child: card),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  bool shouldRebuild(_HomeHeader old) =>
+      old.heroExtent != heroExtent ||
+      old.hero != hero ||
+      old.card != card ||
+      old.palette != palette;
 }
