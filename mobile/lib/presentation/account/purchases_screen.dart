@@ -77,30 +77,36 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (purchases.isEmpty) return const _EmptyState();
-
-    return Column(
+    // **شريطُ الدفع عائمٌ في الأسفل، والمحتوى يمرّر خلفه** (بطلب المالك ١٣
+    // سبتمبر ٢٠٢٦): `Stack` بدل `Column` — القائمةُ تملأ الشاشة بحاشيةٍ سفليّةٍ
+    // تكفي الشريطَ فلا يُقصّ آخرُها، والشريطُ فوقها ملتصقٌ بالحافّة. يظهر دائماً
+    // حتى مع لا مشتريات، بعددٍ وإجماليٍّ صفر وزرّين معطَّلين.
+    const barSpace = 150.0;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    return Stack(
       children: <Widget>[
-        Expanded(
-          child: ListView.builder(
-            padding: EdgeInsets.fromLTRB(
-              16,
-              16,
-              16,
-              16 + MediaQuery.paddingOf(context).bottom,
-            ),
-            itemCount: purchases.length,
-            itemBuilder: (context, i) => _PurchaseCard(
-              purchase: purchases[i],
-              selected: selected.contains(purchases[i].id),
-              onTap: () => onToggle(purchases[i].id),
-            ),
-          ),
+        Positioned.fill(
+          child: purchases.isEmpty
+              ? _EmptyState(bottomPadding: barSpace + bottomInset)
+              : ListView.builder(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, barSpace + bottomInset),
+                  itemCount: purchases.length,
+                  itemBuilder: (context, i) => _PurchaseCard(
+                    purchase: purchases[i],
+                    selected: selected.contains(purchases[i].id),
+                    onTap: () => onToggle(purchases[i].id),
+                  ),
+                ),
         ),
-        _PayBar(
-          purchases: purchases,
-          selected: selected,
-          onClear: onClear,
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: _PayBar(
+            purchases: purchases,
+            selected: selected,
+            onClear: onClear,
+          ),
         ),
       ],
     );
@@ -109,20 +115,17 @@ class _Body extends StatelessWidget {
 
 /// الحالةُ الفارغة — عربةٌ بعلامة منعٍ، وعنوانٌ وشرحٌ وزرُّ تصفّح.
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.bottomPadding});
+
+  /// حاشيةٌ سفليّةٌ تكفي شريطَ الدفع العائم فلا يحجب البطاقةَ الفارغة.
+  final double bottomPadding;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
     return SingleChildScrollView(
-      // حاشيةٌ سفليّةٌ تُضاف لحاشية الشريط السفليّ ليصل التمرير لآخر الصفحة.
-      padding: EdgeInsets.fromLTRB(
-        24,
-        24,
-        24,
-        24 + MediaQuery.paddingOf(context).bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPadding),
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
@@ -511,13 +514,20 @@ class _DarkButton extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: HarajTheme.fontFamily,
+              // `Flexible` وقصٌّ: الاسمُ طويلٌ وزرٌّ ضيّق، فبلا حدٍّ يفيض أفقيّاً
+              // ويظهر شريطُ الطفح الأحمر. حُلّ بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
