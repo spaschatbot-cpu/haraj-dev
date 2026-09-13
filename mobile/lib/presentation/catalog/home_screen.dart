@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
@@ -13,6 +14,7 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/snapshot_view.dart';
+import 'widgets/home_hero.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
 
@@ -44,15 +46,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-/// ارتفاعُ حقل البحث داخل الشريحة الثابتة.
+/// ارتفاعُ حقل البحث داخل صندوق البحث.
 const double _searchHeight = 48;
-
-/// ارتفاعُ الشريحة الثابتة كلِّها: حشوةُ البحث (١٠+٦) وحقلُه (٤٨)، ثم مفتاحُ
-/// الأطوار بحشوته (٠+٤٢+٩) — والستّةُ نزلت من تسعةٍ ثم صعدت من اثنين.
-///
-/// والأرقامُ تغيّرت مرّتين في ٩ سبتمبر ٢٠٢٦: المفتاحُ اقترب من حقل البحث
-/// حتى صار بينهما بكسلان، ونزل تسعةً عن أول كرت — كان ملتصقاً به.
-const double _pinnedExtent = 10 + _searchHeight + 6 + 0 + 42 + 9;
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
@@ -181,36 +176,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Scaffold(
         body: Column(
           children: <Widget>[
-            // **الورقة مسطّحةٌ لا مدوّرة**: البانر هو من يدوّر حافّته
-            // السفلى الآن، وتدويرُ الاثنين معاً يترك بينهما هلالاً من أرضيّة
-            // الـ`Scaffold` يُقرأ شقّاً.
+            // **الهيدرُ الغنيّ داخل الرئيسية** (١٣ سبتمبر ٢٠٢٦): هنا لا في
+            // القشرة، كي يتراكب صندوقُ البحث على أسفل صورته بلا قصّ.
+            HomeHero(
+              onOpenNotifications: () => context.go(Routes.myActivityPath),
+              onOpenAccount: () => context.go(Routes.profilePath),
+            ),
             Expanded(
-              child: ColoredBox(
-                color: palette.pageBackground,
+              // **ورقةٌ كريميّةٌ مسحوبةٌ فوق الهيدر** بطلب المالك (١٣ سبتمبر
+              // ٢٠٢٦): تُرفع اثنين وعشرين بكسلاً بزاويتين علويّتين مدوّرتين
+              // فيتراكب صندوقُ البحث والتبويبات على أسفل صورة اللوحة، كالموكاب.
+              // وحُذفت لوحةُ الترحيب («بوابة مزادات حراج الحصرية») لأن الهيدر
+              // صار يحمل العنوان.
+              child: DecoratedBox(
+                // **الخلفيّةُ في مكانها الطبيعي تحت الهيدر** (١٣ سبتمبر ٢٠٢٦):
+                // لا تُسحب كلُّها فتغطّي العنوان — يُسحب صندوقُ البحث وحده
+                // (بحاشيةٍ علويّةٍ سالبة) ليتراكب على أسفل الصورة، وتبقى الورقةُ
+                // الرماديّة أسفله.
+                decoration: BoxDecoration(
+                  color: palette.pageBackground,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // **الترويسةُ تنزلق مع القائمة** — لوحةُ الترحيب
-                    // وحقلُ البحث ومفتاحُ الأطوار داخل `CustomScrollView`
-                    // لا فوقه، بطلب المالك في ٩ سبتمبر ٢٠٢٦ على مثال v1.
-                    //
-                    // **إلا حين لا تكون هناك قائمة**: أثناء أول تحميلٍ أو
-                    // بعد فشله لا `VehicleResults` يحمل الترويسة، وحقلُ
-                    // البحث يجب أن يبقى — عميلٌ بحث فأخطأ الخادم يجب أن
-                    // يبقى قادراً على تعديل كلمته، لا أن يواجه شاشة خطأ بلا
-                    // مخرج. والحالتان متنافيتان فلا تظهر مرّتين.
-                    if (!_first.hasValue) ...<Widget>[
-                      const _WelcomePanel(),
-                      _pinnedHeader(),
-                    ],
+                    // **صندوقُ البحث ثابتٌ فوق القائمة، لا ينزلق** (١٣ سبتمبر
+                    // ٢٠٢٦): صندوقٌ أبيضُ واحدٌ يجمع البحثَ وقوائمَ الترشيح
+                    // والتبويبات، متراكبٌ على أسفل صورة الهيدر كالموكاب.
+                    _searchCard(),
                     Expanded(
                       child: SnapshotView<VehicleFeed>(
                         state: _first,
                         onRetry: _reload,
                         builder: (context, snapshot) => VehicleResults(
-                          header: const _WelcomePanel(),
-                          pinnedHeader: _pinnedHeader(),
-                          pinnedHeaderExtent: _pinnedExtent,
                           vehicles: _vehicles,
                           totalCount: _totalCount,
                           hasMore: _hasMore,
@@ -246,37 +246,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// حقلُ البحث ومفتاحُ الأطوار — **ثابتان فوق القائمة** بطلب المالك في ٩
-  /// سبتمبر ٢٠٢٦، ولوحةُ الترحيب وحدها تنزلق.
+  /// صندوقُ البحث الأبيض — يجمع حقلَ البحث وقوائمَ الترشيح والتبويبات في بطاقةٍ
+  /// واحدةٍ متراكبةٍ على أسفل صورة الهيدر، على موكاب المالك (١٣ سبتمبر ٢٠٢٦).
   ///
-  /// **دالّةٌ لا مكوّنٌ مستقلّ**: الاثنان يقرآن `_query` و`_counts`
-  /// و`widget.phase` ويكتبان عبر `_search`، ونقلُهما إلى مكوّنٍ خارج الشاشة
-  /// يعني تمريرَ أربعة معاملات لتُعاد كما هي.
-  Widget _pinnedHeader() => Column(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: <Widget>[
-      Padding(
-        // **بعرض الحقل كلِّه**: كان بجانبه زرُّ «الفرز والتصفية» فيقتطع منه
-        // نحو مئةٍ وعشرين بكسلاً، ومُحي بطلب المالك في ٩ سبتمبر ٢٠٢٦.
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
-        // **ارتفاعٌ مضبوط**: الشريحةُ الثابتة تُبنى بارتفاعٍ يُفرَض عليها،
-        // فلو نما الحقلُ بحجم خطّ الجهاز لفاض عن الشريحة.
-        child: SizedBox(
-          height: _searchHeight,
-          child: VehicleSearchField(
-            search: _query.search,
-            onSubmitted: _search,
+  /// **قوائمُ الترشيح (الكل/الماركة/السعر/من-إلى) بصريّةٌ بعد**: الماركةُ
+  /// والسنتان تعملان في `VehicleQuery` بلا منتقٍ في الرئيسية، فالقوائمُ تقول
+  /// «لم يُفعَّل بعد» بدل منتقٍ لا يفتح — تُوصَل حين يُبنى المنتقي.
+  Widget _searchCard() {
+    final palette = HarajPalette.of(context);
+    final l10n = AppLocalizations.of(context);
+    return Container(
+      // الإزاحةُ تسحب الصندوقَ وحده فوق أسفل الصورة، والخلفيّةُ الرماديّة تبقى
+      // في مكانها تحته (١٣ سبتمبر ٢٠٢٦).
+      transform: Matrix4.translationValues(0, -34, 0),
+      margin: const EdgeInsets.fromLTRB(14, 4, 14, 6),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+      decoration: BoxDecoration(
+        // أبيضُ مخفَّفٌ قليلاً (٩٤٪) فيبدو ناعماً لا ناصعاً حادّاً فوق الصورة.
+        color: palette.cardSurface.withValues(alpha: 0.94),
+        borderRadius: BorderRadius.circular(20),
+        // ظلٌّ أقوى فيبدو الصندوق طافياً قدّام الصورة.
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.20),
+            blurRadius: 26,
+            offset: const Offset(0, 10),
           ),
-        ),
+        ],
       ),
-      _PhaseTabs(
-        current: widget.phase,
-        counts: _counts,
-        onSelect: (phase) => Routes.goToPhase(context, phase),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          SizedBox(
+            height: _searchHeight,
+            child: VehicleSearchField(
+              search: _query.search,
+              onSubmitted: _search,
+            ),
+          ),
+          // صفُّ قوائم الترشيح (الكل/الماركة/السعر/من-إلى) حُذف بطلب المالك
+          // (١٣ سبتمبر ٢٠٢٦).
+          const SizedBox(height: 12),
+          _PhaseTabs(
+            current: widget.phase,
+            counts: _counts,
+            onSelect: (phase) => Routes.goToPhase(context, phase),
+          ),
+        ],
       ),
-    ],
-  );
+    );
+  }
 
   /// الطور الفارغ يقول **لماذا** هو فارغ.
   ///
@@ -290,168 +310,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       AuctionPhase.active || AuctionPhase.unknown => l10n.homeEmptyActive,
       AuctionPhase.ended => l10n.homeEmptyEnded,
     };
-  }
-}
-
-/// لوحةُ الترحيب فوق حقل البحث — سطران بنصّ المالك حرفياً.
-///
-/// **موضعُها تحت اللوحة الداكنة لا داخلها**: الهيدر ارتفاعه ٥٨ ولا يتّسع
-/// لسطرين (جُرِّب، وأفاض `Spacer` اللوحةَ ٤٦ بكسلاً)، وأرضيّتُه داكنة فسطرٌ
-/// طويلٌ عليه يُقرأ بجهد. والورقةُ الكريميّة تحته فارغةٌ ومقروءة.
-///
-/// **ثابتةٌ لا تنزلق مع القائمة**: هي وحقلُ البحث كتلةٌ واحدة تفتتح الصفحة،
-/// وتمريرُ إحداهما دون الأخرى يترك الحقلَ معلّقاً بلا سياق.
-///
-/// **بعرضٍ محدود (٤٤٠) لا بعرض الشاشة**: على شاشةٍ عريضة كان الخيطان يمتدّان
-/// من حافةٍ لحافة فيصيران خطَّ فصلٍ يقطع الصفحة، ويقف العنوانُ في وسط فراغٍ
-/// لا يخصّه. والكتلةُ المحدودة تُقرأ لوحةً معنونة.
-class _WelcomePanel extends StatelessWidget {
-  const _WelcomePanel();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final palette = HarajPalette.of(context);
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: Column(
-            children: <Widget>[
-              const _Ornament(),
-              const SizedBox(height: 9),
-              // **العنوان ذهبيٌّ متدرّج** بطلب المالك في ٩ سبتمبر ٢٠٢٦.
-              //
-              // و`ShaderMask` لا لونٌ واحد: الذهبُ المسطّح على ورقةٍ كريميّة
-              // يُقرأ خردليّاً باهتاً — ما يجعله ذهباً هو تحوّلُه من غائرٍ
-              // إلى لامعٍ إلى غائر، كما ينعكس الضوءُ على معدن.
-              //
-              // **والأطرافُ الثلاثة كلُّها غائرة** (`#8A6508` و`#B8860B`):
-              // الذهبيُّ الفاتح (`#E3BC57`) نسبتُه على الكريميّ ٢٫٥:١ ولا
-              // يبلغ حدَّ العناوين، فيُقرأ العنوانُ باهتاً على شاشةٍ في
-              // الشمس. وهذان يبلغان ٤٫١:١ فما فوق ويبقيان ذهباً.
-              ShaderMask(
-                blendMode: BlendMode.srcIn,
-                shaderCallback: (bounds) => LinearGradient(
-                  begin: Alignment.centerRight,
-                  end: Alignment.centerLeft,
-                  colors: <Color>[
-                    palette.goldDeep,
-                    palette.gold,
-                    palette.goldDeep,
-                  ],
-                  stops: const <double>[0, 0.5, 1],
-                ).createShader(bounds),
-                child: Text(
-                  l10n.homeTagline,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                    // اللون يُبتلع بـ`srcIn`، لكنه ليس زائداً: هو ما يظهر لو
-                    // سقط الشيدر (بعض المتصفّحات في وضع التباين العالي).
-                    color: palette.goldDeep,
-                    height: 1.35,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ),
-              // **السطر الثاني لا يظهر على الجوّال** بطلب المالك في ٩
-              // سبتمبر ٢٠٢٦: ارتفاع الشاشة هناك هو المورد النادر، وهذا
-              // السطرُ ترحيبٌ يُقرأ مرّةً ويأكل من كل تمريرةٍ بعدها. وعلى
-              // الشاشة العريضة الارتفاعُ فائضٌ فيبقى.
-              //
-              // **٦٠٠ حدّاً**: هو حدُّ اللوح المتعارف عليه، وأعرضُ جوّالٍ
-              // قائمٍ دونه بفارقٍ مريح — فلا يقع جوّالٌ كبير في جهة اللوح.
-              // و`sizeOf` لا `of`: هذه تُعيد بناءَ اللوحة عند تغيّر أي حقلٍ
-              // في `MediaQuery` — حتى ظهورِ لوحة المفاتيح تحت حقل البحث.
-              if (MediaQuery.sizeOf(context).width >= 600) ...<Widget>[
-                const SizedBox(height: 6),
-                Text(
-                  l10n.homeSubtagline,
-                  textAlign: TextAlign.center,
-                  // سطران حدّاً أقصى: وثالثٌ يزيح حقلَ البحث لا يُقصّ.
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    // خافتٌ لا رماديّ: الفرق بينه وبين العنوان شدّةٌ في نفس
-                    // العائلة الدافئة، ورماديٌّ محايد بينهما يُقرأ
-                    // «معطَّلاً».
-                    color: palette.inkMuted,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// زخرفةٌ ذهبيّة فوق العنوان: خيطان قصيران بينهما معيّن.
-///
-/// **بعرضٍ ثابت لا `Expanded`**: خيطٌ يمتدّ بعرض الشاشة يُقرأ فاصلاً بين
-/// قسمين، وهذه ليست فاصلاً — هي تاجُ العنوان. وعرضُها ثابتٌ لأنها لا تحمل
-/// نصّاً يطول بالترجمة.
-class _Ornament extends StatelessWidget {
-  const _Ornament();
-
-  @override
-  Widget build(BuildContext context) {
-    final gold = HarajPalette.of(context).gold;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        _OrnamentRule(gold: gold, fadeAtStart: true),
-        const SizedBox(width: 8),
-        // معيّنٌ لا نقطة: النقطةُ تُقرأ علامةَ ترقيمٍ سقطت، والمعيّنُ شكلٌ
-        // مقصود. وهو مربّعٌ مُدارٌ ٤٥° لا مسارٌ مرسوم — ستّةُ بكسلات لا
-        // تستحقّ `CustomPainter`.
-        Transform.rotate(
-          angle: 0.785398,
-          child: Container(width: 5, height: 5, color: gold),
-        ),
-        const SizedBox(width: 8),
-        _OrnamentRule(gold: gold, fadeAtStart: false),
-      ],
-    );
-  }
-}
-
-class _OrnamentRule extends StatelessWidget {
-  const _OrnamentRule({required this.gold, required this.fadeAtStart});
-
-  final Color gold;
-
-  /// أيُّ طرفٍ يتلاشى — الخارجيُّ دائماً، فالخيطان يخرجان من المعيّن ولا
-  /// يدخلان إليه.
-  final bool fadeAtStart;
-
-  @override
-  Widget build(BuildContext context) {
-    final colours = <Color>[
-      gold.withValues(alpha: 0),
-      gold.withValues(alpha: 0.8),
-    ];
-
-    return Container(
-      width: 34,
-      height: 1,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: fadeAtStart ? colours : colours.reversed.toList(),
-        ),
-      ),
-    );
   }
 }
 

@@ -358,6 +358,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get searchHint => 'ابحث عن سيارة';
 
   @override
+  String get homeFilterAll => 'الكل';
+
+  @override
+  String get homeFilterPrice => 'السعر';
+
+  @override
+  String get homeFilterYearRange => 'من - إلى';
+
+  @override
+  String get homeFilterSoon => 'الترشيح لم يُفعَّل بعد.';
+
+  @override
   String get filterMake => 'الماركة';
 
   @override
@@ -786,6 +798,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get homeAccountAction => 'حسابي';
+
+  @override
+  String get heroHeadlineLead => 'اكتشف أفضل العروض في';
+
+  @override
+  String get heroHeadline => 'بوابة مزادات حراج';
+
+  @override
+  String get heroHeadlineAccent => 'العصرية';
+
+  @override
+  String get heroChipCars => 'سيارات مميزة';
+
+  @override
+  String get heroChipTrusted => 'مزادات موثوقة';
+
+  @override
+  String get heroChipOpportunities => 'فرص استثنائية';
 
   @override
   String get homeSortAndFilter => 'الفرز والتصفية';

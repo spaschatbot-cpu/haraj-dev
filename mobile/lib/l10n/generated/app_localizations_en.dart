@@ -355,6 +355,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchHint => 'Search for a car';
 
   @override
+  String get homeFilterAll => 'All';
+
+  @override
+  String get homeFilterPrice => 'Price';
+
+  @override
+  String get homeFilterYearRange => 'From - To';
+
+  @override
+  String get homeFilterSoon => 'Filtering is not enabled yet.';
+
+  @override
   String get filterMake => 'Make';
 
   @override
@@ -783,6 +795,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeAccountAction => 'My account';
+
+  @override
+  String get heroHeadlineLead => 'Discover the best deals in';
+
+  @override
+  String get heroHeadline => 'the modern Haraj';
+
+  @override
+  String get heroHeadlineAccent => 'auctions';
+
+  @override
+  String get heroChipCars => 'Premium cars';
+
+  @override
+  String get heroChipTrusted => 'Trusted auctions';
+
+  @override
+  String get heroChipOpportunities => 'Exceptional deals';
 
   @override
   String get homeSortAndFilter => 'Sort and filter';

@@ -85,21 +85,21 @@ class HomeShell extends StatelessWidget {
       children: <Widget>[
         // **خارج `_BarInset`**: الحاشيةُ التي يضيفها إنما تدفع المحتوى من
         // تحت الشريط السفليّ، والهيدرُ في الأعلى لا يمسّه.
-        HomeHero(
-          // الأزرارُ في الرئيسية وحدها — الشرحُ عند `showActions`.
-          showActions: navigationShell.currentIndex == HomeSection.home.index,
-          // «حسابي» فوق شاشة الحساب بدل اسم العلامة (١٣ سبتمبر ٢٠٢٦)؛ وبقيّةُ
-          // الأقسام تُبقي العلامة (`title: null`).
-          title:
-              navigationShell.currentIndex == HomeSection.account.index
-              ? AppLocalizations.of(context).navAccount
-              : null,
-          // لا شاشةَ إشعاراتٍ في التطبيق بعد، وأقربُ ما يجيب عن «ما الذي
-          // حدث لي؟» هو مشاركاتي. والجرسُ يذهب إليها ولا يبقى زرّاً لا يفعل
-          // شيئاً — زرٌّ لا يستجيب يُقرأ عطلاً.
-          onOpenNotifications: () => context.go(Routes.myActivityPath),
-          onOpenAccount: () => context.go(Routes.profilePath),
-        ),
+        // **الرئيسيةُ تبني هيدرَها بنفسها** (١٣ سبتمبر ٢٠٢٦): صندوقُ البحث
+        // يتراكب على أسفل صورة الهيدر، ومحتوى الأقسام في `IndexedStack` يقصّ ما
+        // يفيض فوقه؛ فلو بقي الهيدرُ هنا فوق المحتوى لانقصّ التراكب. بنقلِ
+        // الهيدر الغنيّ إلى داخل الرئيسية يصير التراكبُ داخل شجرتها بلا قصّ.
+        // وبقيّةُ الأقسام تُبقي الشريطَ المدمج هنا.
+        if (navigationShell.currentIndex != HomeSection.home.index)
+          HomeHero(
+            showActions: false,
+            title:
+                navigationShell.currentIndex == HomeSection.account.index
+                ? AppLocalizations.of(context).navAccount
+                : null,
+            onOpenNotifications: () => context.go(Routes.myActivityPath),
+            onOpenAccount: () => context.go(Routes.profilePath),
+          ),
         Expanded(child: _BarInset(child: navigationShell)),
       ],
     ),
