@@ -479,8 +479,10 @@ class _ArticleTile extends StatelessWidget {
                     children: <Widget>[
                       // رقمُ المادة في شارةٍ ذهبيّة (يمين RTL).
                       Container(
-                        width: 34,
-                        height: 34,
+                        // **٢٦ لا ٣٤** بطلب المالك (١٣ سبتمبر ٢٠٢٦): رقمُ
+                        // المادة علامةٌ على مكانها، لا عنوانٌ ينازع اسمَها.
+                        width: 26,
+                        height: 26,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
@@ -494,7 +496,7 @@ class _ArticleTile extends StatelessWidget {
                           '$number',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             fontFamily: HarajTheme.fontFamily,
                           ),

@@ -153,8 +153,10 @@ class _StepRow extends StatelessWidget {
           Column(
             children: <Widget>[
               Container(
-                width: 42,
-                height: 42,
+                // **٣٢ لا ٤٢** بطلب المالك (١٣ سبتمبر ٢٠٢٦): الدائرةُ رقمُ
+                // خطوةٍ لا شارةٌ تنازع عنوانَ الخطوة على العين.
+                width: 32,
+                height: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -163,7 +165,7 @@ class _StepRow extends StatelessWidget {
                     end: Alignment.bottomLeft,
                     colors: <Color>[palette.gold, palette.goldDeep],
                   ),
-                  border: Border.all(color: palette.cardSurface, width: 3),
+                  border: Border.all(color: palette.cardSurface, width: 2.5),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: palette.gold.withValues(alpha: 0.40),
@@ -176,7 +178,7 @@ class _StepRow extends StatelessWidget {
                   '$number',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.w800,
                     fontFamily: HarajTheme.fontFamily,
                   ),
@@ -185,7 +187,7 @@ class _StepRow extends StatelessWidget {
               if (!isLast)
                 Expanded(
                   child: Container(
-                    width: 3,
+                    width: 2.5,
                     margin: const EdgeInsets.symmetric(vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(2),
