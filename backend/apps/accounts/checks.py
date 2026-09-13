@@ -16,6 +16,13 @@ from django.core.checks import Error, Tags, Warning, register
 
 CONSOLE_BACKEND = "apps.accounts.sms.console_backend"
 
+#: البوّاباتُ الحقيقيّة التي يعرف هذا المستودعُ ما تحتاجه، ولكلٍّ متغيّراتُها.
+#: مكتوبةٌ لا مشتقّة: إضافةُ مزوّدٍ تعديلٌ مقصودٌ في مكانين، لا مزوّدٌ يدخل
+#: بلا أن يقول أحدٌ ما الذي يجعله شغّالاً.
+REAL_SMS_GATEWAYS = {
+    "apps.accounts.sms.oursms_backend": ("OURSMS_API_URL", "OURSMS_TOKEN"),
+}
+
 
 @register(Tags.security, deploy=True)
 def one_time_codes_are_safe_in_a_deployed_environment(app_configs, **kwargs) -> list:
@@ -57,6 +64,64 @@ def one_time_codes_are_safe_in_a_deployed_environment(app_configs, **kwargs) -> 
                 id="accounts.W002",
             )
         )
+
+    return findings
+
+
+@register(Tags.security, deploy=True)
+def the_sms_gateway_is_configured_when_it_is_real(app_configs, **kwargs) -> list:
+    """`SMS_BACKEND` يشير إلى بوّابةٍ حقيقيّة — فليكن معها ما تُرسل به.
+
+    الفحصُ فوق يمسك **الطرفَ الأوّل**: مزوّدٌ صوريٌّ في بيئةٍ منشورة. وهذا
+    يمسك الطرفَ الثاني، وهو أهدأ وأخطر: مزوّدٌ حقيقيٌّ **بلا مفاتيح**. مقيسٌ في
+    `docs/environment-contract.md` §٤ — `SMS_BACKEND=…oursms_backend` بلا
+    `OURSMS_TOKEN` يعطي `check --deploy` رمزَ خروجٍ **صفراً**، ثم لا يمرّ تحقّقٌ
+    واحدٌ في تلك البيئة إطلاقاً: كلُّ محاولةِ دخولٍ ترفع `SmsSendFailed`، ويُكتب
+    السطرُ في `SmsFailure`، ولا أحدَ ينظر في جدولٍ لا يعرف أنه امتلأ.
+
+    وهو عطلُ v1 نفسُه بوجهٍ آخر: هناك ابتلعت `sendSmsSafely` ردَّ المزوّد فلم
+    يعرف أحدٌ أن الرصيد نفد؛ وهنا قد لا يكون ثمّة رصيدٌ ولا توكنٌ أصلاً.
+
+    و`E005` — المسارُ الذي لا يُستورَد — أشدُّها صمتاً: خطأٌ إملائيٌّ في اسم
+    الوحدة لا يظهر عند الإقلاع أبداً، لأن `import_string` تُنادى **لحظةَ
+    الإرسال**. أوّلُ من يكتشفه عميلٌ يرى 500 في شاشة الدخول.
+    """
+    backend = str(getattr(settings, "SMS_BACKEND", "") or "").strip()
+    if not backend or backend == CONSOLE_BACKEND:
+        # لا مزوّد، أو مزوّدُ السجلّ — والفحصُ أعلاه يقول فيهما ما يلزم.
+        return []
+
+    findings: list = []
+
+    from django.utils.module_loading import import_string
+
+    try:
+        import_string(backend)
+    except ImportError:
+        findings.append(
+            Error(
+                f"SMS_BACKEND هو {backend!r} ولا يمكن استيراده.",
+                hint="لا يُنادى إلا لحظةَ إرسال أوّل رمز، فالخطأُ لا يظهر عند "
+                "الإقلاع: كلُّ محاولةِ دخولٍ تصير 500. تحقّق من المسار "
+                "الكامل للدالّة.",
+                id="accounts.E005",
+            )
+        )
+        # لا معنى لسؤال «أين مفاتيحه؟» عن وحدةٍ لا وجود لها.
+        return findings
+
+    for name in REAL_SMS_GATEWAYS.get(backend, ()):
+        if not str(getattr(settings, name, "") or "").strip():
+            findings.append(
+                Error(
+                    f"SMS_BACKEND هو بوّابةٌ حقيقيّة ({backend}) و{name} فارغ.",
+                    hint="لا رسالةَ تخرج: أوّلُ إرسالٍ يرفع `SmsSendFailed` "
+                    "ويُسجَّل في `SmsFailure`، فلا يتحقّق أحدٌ من رقمه ولا "
+                    "يدخل أحدٌ إلى النظام — والشاشةُ لا تقول أكثر من «تعذّر "
+                    "إرسال رمز التحقق».",
+                    id="accounts.E004",
+                )
+            )
 
     return findings
 

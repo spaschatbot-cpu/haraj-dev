@@ -8,6 +8,7 @@ see `specs/001-foundation/plan.md`).
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # base.py sits two packages deep (config/settings/), so BASE_DIR is the
 # third parent, not the second.
@@ -20,10 +21,61 @@ env = environ.Env(
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
+
+#: ما تقبله `django-environ` صحيحاً، حرفياً (`environ.Env.BOOLEAN_TRUE_STRINGS`).
+TRUE_WORDS = ("true", "on", "ok", "y", "yes", "1")
+#: وما نقبله خطأً. وكلُّ ما عداهما **يُرفض**، ولا يُقرأ إطفاءً.
+FALSE_WORDS = ("false", "off", "no", "n", "0")
+
+
+def flag(name: str, *, default: bool) -> bool:
+    """قيمةٌ منطقيّةٌ من البيئة — **أو رفضٌ يسمّي المتغيّر**، لا إطفاءٌ صامت.
+
+    `env.bool` تقرأ كلَّ ما ليس في :data:`TRUE_WORDS` **خطأً**: فمن كتب
+    ``ODOO_ENABLED=yes`` بمسافةٍ زائدة، أو ``True.`` بنقطة، أو ``ture``، يظنّ
+    أودو شغّالاً وهو مطفأ — ولا سطرَ واحدٌ يقول ذلك. مقيسٌ في
+    `docs/environment-contract.md` §٥-٣: ``ODOO_ENABLED=maybe`` تُقرأ ``False``
+    بلا خطأ، والفحصُ يمرّ بـ`rc=0`، ولا يُكتشف العطلُ إلا من محاسبٍ يسأل عن
+    فواتيرَ لم تصل.
+
+    والقاعدةُ هي نفسُها التي في :mod:`apps.money.units` («عملةٌ لا نعرف وحدتها
+    تُرفَض ولا تُقسَم على ١٠٠ تخميناً»): **ما لا يُفهم يُرفض، ولا يُفسَّر بأهون
+    المعنيين**. وثمنُ ذلك أن خطأً إملائيّاً يمنع الإقلاع — وهو الثمنُ المقصود:
+    السقوطُ في الثانية الأولى أرخصُ من تكاملٍ مطفأٍ يُكتشف بعد أسبوع.
+
+    والمُعرَّفُ فارغاً (``ODOO_ENABLED=``) يبقى على الافتراض: سطرٌ بلا قيمة هو
+    «لم أقل شيئاً»، لا قيمةٌ لا تُفهم.
+    """
+    # `cast=str` صراحةً: المتغيّرُ قد يكون في مخطّط `Env` أعلاه بـ`(bool, …)`،
+    # وعندها تُحوّله `env()` بنفسها **قبل أن نراه** — فتبتلع القيمةَ المجهولة
+    # وتردّها `False`، وهو العطلُ نفسُه الذي كُتبت هذه الدالّة له.
+    raw = env(name, cast=str, default=None)
+    if raw is None or isinstance(raw, bool):
+        return default if raw is None else raw
+    text = str(raw).strip().lower()
+    if not text:
+        return default
+    if text in TRUE_WORDS:
+        return True
+    if text in FALSE_WORDS:
+        return False
+    raise ImproperlyConfigured(
+        f"{name}={raw!r} قيمةٌ لا تُفهم. المقبول: "
+        f"{', '.join(TRUE_WORDS)} أو {', '.join(FALSE_WORDS)}. "
+        "ولا تُقرأ قيمةٌ مجهولةٌ إطفاءً — تكاملٌ يظنّه مشغّلُه شغّالاً وهو مطفأ "
+        "لا يُكتشف إلا بعد أسبوع."
+    )
+
+
 INSECURE_SECRET_KEY = "dev-only-insecure-key"
 
+#: قاعدةُ التطوير، مسمّاةً كي يميّزها حارسُ `prod.py` عن قاعدةٍ حقيقيّة.
+#: بلا هذا الاسم يكون الافتراضُ قيمةً مجهولةَ المصدر في `env.db`، ولا شيء
+#: يستطيع أن يقول «هذه قاعدةُ جهازِ مطوّرٍ، لا قاعدةُ إنتاج».
+DEV_DATABASE_URL = "postgres://haraj:haraj@127.0.0.1:5432/haraj2"
+
 SECRET_KEY = env("SECRET_KEY", default=INSECURE_SECRET_KEY)
-DEBUG = env("DEBUG")
+DEBUG = flag("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 # The environment names itself on /health, in the UI, and in every outbound
@@ -116,7 +168,11 @@ TEMPLATES = [
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://haraj:haraj@127.0.0.1:5432/haraj2",
+        # والافتراضُ هنا قاعدةُ جهازِ المطوّر. وهو مريحٌ محلّيّاً وخطرٌ منشوراً:
+        # إنتاجٌ بلا `DATABASE_URL` يُقلع صامتاً مشيراً إليها، وعلى آلةٍ فيها
+        # PostgreSQL محلّيّ **قد يتّصل فعلاً** فيكتب في دفترٍ ليس دفترَه.
+        # لذلك يرفضه `prod.py` بالاسم — انظر الحارس هناك.
+        default=DEV_DATABASE_URL,
     )
 }
 # Connection reuse is an environment decision: prod holds connections open,
@@ -527,7 +583,7 @@ PAYMENT_INTENT_TTL_MINUTES = env.int("PAYMENT_INTENT_TTL_MINUTES", default=120)
 #: يثق بحمولة الويبهوك أبداً. `False` إعلانُ مشغّلٍ صريحٌ بأن بوّابة هذه البيئة
 #: بلا واجهةِ استعلام — وعندها تصير الحمولةُ الموقّعة هي المصدر، ويُكتب ذلك في
 #: ملاحظة الرسالة لا يُسكت عنه.
-PAYMENT_CONFIRM_WITH_GATEWAY = env.bool("PAYMENT_CONFIRM_WITH_GATEWAY", default=True)
+PAYMENT_CONFIRM_WITH_GATEWAY = flag("PAYMENT_CONFIRM_WITH_GATEWAY", default=True)
 
 #: مفاتيح Moyasar — فارغةٌ افتراضاً، والتكاملُ يرفض بالعربيّة حين تكون كذلك.
 #:
@@ -547,7 +603,9 @@ PAYMENT_RETURN_URL_TEMPLATE = env("PAYMENT_RETURN_URL_TEMPLATE", default="")
 # operator turns it on for this environment, deliberately.
 # --------------------------------------------------------------------------
 
-ODOO_ENABLED = env("ODOO_ENABLED")
+# `flag` لا `env("ODOO_ENABLED")`: القيمةُ المجهولة تُرفض بصوتٍ ولا تُفسَّر
+# إطفاءً — وهي المخالفةُ المقيسة في §٥-٣ من عقد البيئة.
+ODOO_ENABLED = flag("ODOO_ENABLED", default=False)
 ODOO_BASE_URL = env("ODOO_BASE_URL", default="")
 ODOO_DB = env("ODOO_DB", default="")
 ODOO_USERNAME = env("ODOO_USERNAME", default="")
@@ -555,7 +613,7 @@ ODOO_API_KEY = env("ODOO_API_KEY", default="")
 ODOO_WEBHOOK_SECRET = env("ODOO_WEBHOOK_SECRET", default="")
 #: أطفئ التحقّق من TLS في التطوير فقط (شهادةُ أجهزة التطوير قديمة غالباً، كـ v1).
 #: يبقى `False` في الإنتاج — التحقّقُ قائم.
-ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
+ODOO_INSECURE_TLS = flag("ODOO_INSECURE_TLS", default=False)
 #: `payment_code` الذي يفرضه عقدُ أودو على كل دفعةٍ واستردادٍ واشتراك — وهو
 #: **دفترُ اليومية عندهم**، أي أن قيمةً خاطئةً تُرحّل المالَ إلى الحساب الخطأ
 #: بلا أن يُرفض النداء. لذلك إعدادُ بيئةٍ لا ثابتٌ في الشيفرة: قيمةُ الاختبار
