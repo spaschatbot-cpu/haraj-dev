@@ -31,6 +31,7 @@ class VehicleResults extends StatelessWidget {
     required this.onRetryMore,
     required this.emptyMessage,
     this.trailing,
+    this.sliverHeader,
     this.header,
     this.pinnedHeader,
     this.pinnedHeaderExtent = 0,
@@ -73,6 +74,14 @@ class VehicleResults extends StatelessWidget {
   /// فارغاً: حشوةٌ بثمانية بكسلات فوق أول كرتٍ بلا شيء فيها.
   final bool showCount;
 
+  /// **شريحةٌ** كاملةٌ تعلو القائمة، تبنيها الشاشةُ المضيفة بنفسها.
+  ///
+  /// مخرجٌ لحالةٍ واحدة: الرئيسيّةُ تحتاج ترويسةً **تنطوي** — لوحةٌ تنزلق
+  /// وصندوقُ بحثٍ يتراكب على أسفلها ثم يثبت وحده. وذلك لا يُركَّب من
+  /// [header] و[pinnedHeader] لأنهما شريحتان منفصلتان: التراكبُ بينهما يقصّه
+  /// إطارُ التمرير. فتُمرَّر الشريحةُ كاملةً من هناك، و`null` في غيرها.
+  final Widget? sliverHeader;
+
   /// ما يعلو القائمة **وينزلق معها** — لوحةُ الترحيب وحقلُ البحث ومفتاحُ
   /// الأطوار في الرئيسية.
   ///
@@ -106,6 +115,7 @@ class VehicleResults extends StatelessWidget {
 
     return CustomScrollView(
       slivers: <Widget>[
+        if (sliverHeader case final Widget sliver) sliver,
         if (header case final Widget widget) SliverToBoxAdapter(child: widget),
         if (pinnedHeader case final Widget widget)
           SliverPersistentHeader(

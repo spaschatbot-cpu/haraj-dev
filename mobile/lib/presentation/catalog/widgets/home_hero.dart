@@ -119,7 +119,10 @@ class _RichHero extends StatelessWidget {
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+              // **٢٦ أسفلَ**: صندوقُ البحث يتراكب على آخر عشرين بكسلاً من
+              // اللوحة، فحاشيةٌ أقلُّ منها تجعله يقطع سطرَ «بوابة مزادات حراج
+              // العصرية».
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 26),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +153,7 @@ class _RichHero extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 22),
+                  const SizedBox(height: 10),
                   // العنوانُ القياديّ — في الجزء الفاضي من الصورة.
                   Row(
                     children: <Widget>[
@@ -175,7 +178,7 @@ class _RichHero extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 11.5,
+                            fontSize: 9.5,
                             fontWeight: FontWeight.w600,
                             fontFamily: HarajTheme.fontFamily,
                             shadows: const <Shadow>[
@@ -190,7 +193,9 @@ class _RichHero extends StatelessWidget {
                   RichText(
                     text: TextSpan(
                       style: TextStyle(
-                        fontSize: 19,
+                        // **١٣٫٥ لا ١٩** بطلب المالك مرّتين: السطران يظهران
+                        // كاملين فوق صندوق البحث المتراكب.
+                        fontSize: 13.5,
                         fontWeight: FontWeight.w800,
                         height: 1.3,
                         fontFamily: HarajTheme.fontFamily,
