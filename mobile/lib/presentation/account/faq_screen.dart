@@ -84,18 +84,8 @@ class _FaqScreenState extends State<FaqScreen> {
           16 + MediaQuery.paddingOf(context).bottom,
         ),
         children: <Widget>[
-          // حُذفت بطاقةُ الرأس «الأسئلة الشائعة حول المزادات» بطلب المالك
-          // (١٣ سبتمبر ٢٠٢٦) — يكفي عنوانُ الشاشة في الشريط.
-          Text(
-            'الأسئلة الشائعة',
-            style: TextStyle(
-              color: palette.ink,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              fontFamily: HarajTheme.fontFamily,
-            ),
-          ),
-          const SizedBox(height: 12),
+          // حُذف عنوانُ الرأس وبطاقتُه بطلب المالك (١٣ سبتمبر ٢٠٢٦) — يكفي
+          // عنوانُ الشاشة في الشريط.
           for (var i = 0; i < _faqs.length; i++)
             _FaqTile(
               faq: _faqs[i],

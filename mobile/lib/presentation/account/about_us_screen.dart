@@ -37,8 +37,9 @@ class AboutUsScreen extends StatelessWidget {
           16 + MediaQuery.paddingOf(context).bottom,
         ),
         children: <Widget>[
-          _IntroBox(
-            title: 'من نحن؟',
+          const _IntroBox(
+            // حُذف عنوانُ «من نحن؟» من البطاقة بطلب المالك (١٣ سبتمبر ٢٠٢٦) —
+            // يكفي عنوانُ الشاشة في الشريط، وبقي الشرحُ وحده.
             body: 'نحن شركة رائدة في مجال التجارة الإلكترونية والخدمات '
                 'اللوجستية في المملكة.',
             icon: Icons.location_on,
@@ -203,13 +204,8 @@ class AboutUsScreen extends StatelessWidget {
 
 /// صندوقُ التعريف العلويّ — أزرقُ فاتحٌ هادئ، أيقونةٌ وعنوانٌ وسطران.
 class _IntroBox extends StatelessWidget {
-  const _IntroBox({
-    required this.title,
-    required this.body,
-    required this.icon,
-  });
+  const _IntroBox({required this.body, required this.icon});
 
-  final String title;
   final String body;
   final IconData icon;
 
@@ -225,29 +221,14 @@ class _IntroBox extends StatelessWidget {
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: palette.ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: HarajTheme.fontFamily,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  body,
-                  style: TextStyle(
-                    color: palette.inkMuted,
-                    fontSize: 13,
-                    height: 1.6,
-                    fontFamily: HarajTheme.fontFamily,
-                  ),
-                ),
-              ],
+            child: Text(
+              body,
+              style: TextStyle(
+                color: palette.inkMuted,
+                fontSize: 13,
+                height: 1.6,
+                fontFamily: HarajTheme.fontFamily,
+              ),
             ),
           ),
           const SizedBox(width: 14),

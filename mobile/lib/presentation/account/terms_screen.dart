@@ -398,16 +398,8 @@ class _Header extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              const Text(
-                'الشروط والأحكام',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 19,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: HarajTheme.fontFamily,
-                ),
-              ),
-              const SizedBox(height: 6),
+              // حُذف عنوانُ «الشروط والأحكام» من البطاقة بطلب المالك (١٣ سبتمبر
+              // ٢٠٢٦) — يكفي عنوانُ الشاشة في الشريط، وبقي الشرحُ وحده.
               Text(
                 'الأحكام العامة لاستخدام منصة حراج واحد للخدمات اللوجستية '
                 '— للمزادات الإلكترونية.',
