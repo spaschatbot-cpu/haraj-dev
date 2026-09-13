@@ -188,10 +188,13 @@ class _ProfileHeaderCard extends StatelessWidget {
     final isCompany = profile.accountType == 'company';
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      // **بطاقةٌ مقصوصة**: الشريطُ الداكن يبلغ حافّتها، والقصُّ هو ما يدوّر
+      // زاويتيه العلويّتين — وتدويرٌ ثانٍ عليه يترك بين القوسين هلالاً أبيض.
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: palette.cardSurface,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: palette.gold.withValues(alpha: 0.14)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: palette.ink.withValues(alpha: 0.10),
@@ -202,47 +205,54 @@ class _ProfileHeaderCard extends StatelessWidget {
       ),
       child: Column(
         children: <Widget>[
-          // الصورة الرمزيّة: أيقونةُ عميلٍ بالذهبيّ داخل حلقةٍ ذهبيّة على
-          // أرضيّةٍ كحليّة متدرّجة. أيقونةٌ لا حرفان بطلب المالك — رمزٌ واحدٌ
-          // للحساب أوضحُ من حرفين يختلفان بكل اسم.
-          Container(
-            width: 84,
-            height: 84,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: <Color>[palette.heroTop, palette.heroBottom],
-              ),
-              border: Border.all(color: palette.gold, width: 2.5),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: palette.gold.withValues(alpha: 0.28),
-                  blurRadius: 14,
+          // **شريطٌ فاتحٌ في رأس البطاقة والصورةُ نصفُها عليه**، لا كحليٌّ
+          // داكن: جُرِّب الداكن في ١٣ سبتمبر ٢٠٢٦ وردَّه المالك — كتلةٌ
+          // سوداء فوق بطاقةٍ بيضاء تحت هيدرٍ أسود تجعل الصفحة ثلاثَ طبقاتٍ
+          // متنازعة. والفاتحُ يرفع الرأسَ عن باقي البطاقة بلا كتلة.
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
+            children: <Widget>[
+              Container(
+                height: _bannerHeight,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.alphaBlend(
+                        palette.gold.withValues(alpha: 0.10),
+                        palette.cardSurface,
+                      ),
+                      palette.cardSurface,
+                    ],
+                  ),
                 ),
-              ],
-            ),
-            child: Icon(
-              isCompany ? Icons.business_rounded : Icons.person_rounded,
-              color: palette.goldOnDark,
-              size: 44,
-            ),
+              ),
+              Positioned(
+                top: _bannerHeight - _avatarSize / 2,
+                child: _Avatar(isCompany: isCompany, palette: palette),
+              ),
+            ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: _avatarSize / 2 + 10),
 
           // الاسم.
-          Text(
-            profile.displayName,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: palette.ink,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              fontFamily: HarajTheme.fontFamily,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              profile.displayName,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: palette.ink,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+                fontFamily: HarajTheme.fontFamily,
+              ),
             ),
           ),
           const SizedBox(height: 6),
@@ -254,43 +264,107 @@ class _ProfileHeaderCard extends StatelessWidget {
             style: TextStyle(
               color: palette.inkMuted,
               fontSize: 14,
+              letterSpacing: 0.4,
               fontFamily: HarajTheme.fontFamily,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // شارتان: نوعُ الحساب، والتوثيقُ إن وُجد.
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                _HeaderChip(
+                  icon: isCompany
+                      ? Icons.business_outlined
+                      : Icons.person_outline,
+                  label: isCompany
+                      ? l10n.profileAccountCompany
+                      : l10n.profileAccountIndividual,
+                  palette: palette,
+                ),
+                if (profile.nationalIdVerified)
+                  _HeaderChip(
+                    icon: Icons.verified_outlined,
+                    label: l10n.profileIdVerified,
+                    palette: palette,
+                    highlight: true,
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 14),
 
-          // شارتان: نوعُ الحساب، والتوثيقُ إن وُجد.
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              _HeaderChip(
-                icon: isCompany
-                    ? Icons.business_outlined
-                    : Icons.person_outline,
-                label: isCompany
-                    ? l10n.profileAccountCompany
-                    : l10n.profileAccountIndividual,
-                palette: palette,
-              ),
-              if (profile.nationalIdVerified)
-                _HeaderChip(
-                  icon: Icons.verified_outlined,
-                  label: l10n.profileIdVerified,
-                  palette: palette,
-                  highlight: true,
-                ),
-            ],
+          // خيطٌ يفصل التعريفَ عن الفعل: ما فوقه **من أنت**، وما تحته **ما
+          // تفعله**. وبلا فصلٍ يُقرأ زرُّ المحفظة شارةً ثالثة.
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: palette.ink.withValues(alpha: 0.06),
           ),
-          const SizedBox(height: 18),
 
           // زرُّ المحفظة البارز — التدرّجُ الذهبيّ، والرصيدُ من الخادم.
-          _WalletButton(balance: balance, palette: palette),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            child: _WalletButton(balance: balance, palette: palette),
+          ),
         ],
       ),
     );
   }
+}
+
+/// ارتفاعُ الشريط الداكن في رأس البطاقة، وقطرُ الصورة الرمزيّة — الصورةُ تقف
+/// على حافّته بنصفها، فالرقمان يُقرأان معاً ولا يُبدَّل أحدهما وحده.
+const double _bannerHeight = 62;
+const double _avatarSize = 72;
+
+/// الصورة الرمزيّة: أيقونةُ عميلٍ داخل حلقةٍ ذهبيّة على أرضيّةٍ كحليّة، وحولها
+/// طوقٌ بلون البطاقة يفصلها عن الشريط الداكن الذي تقف عليه.
+///
+/// أيقونةٌ لا حرفان بطلب المالك — رمزٌ واحدٌ للحساب أوضحُ من حرفين يختلفان
+/// بكل اسم.
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.isCompany, required this.palette});
+
+  final bool isCompany;
+  final HarajPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: _avatarSize,
+    height: _avatarSize,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      // أرضيّةٌ فاتحةٌ بمسحةٍ من لون العلامة، لا كحليٌّ صلب: الأيقونةُ هي
+      // ما يُرى، والقرصُ الداكن حولها يبتلعها.
+      color: Color.alphaBlend(
+        palette.gold.withValues(alpha: 0.12),
+        palette.cardSurface,
+      ),
+      border: Border.all(
+        color: palette.gold.withValues(alpha: 0.35),
+        width: 1.5,
+      ),
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: palette.ink.withValues(alpha: 0.10),
+          blurRadius: 14,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    ),
+    child: Icon(
+      isCompany ? Icons.business_rounded : Icons.person_rounded,
+      color: palette.gold,
+      size: 36,
+    ),
+  );
 }
 
 /// زرُّ المحفظة البارز في رأس الملف — يفتح المحفظة، ويعرض الرصيد المتاح.
@@ -326,8 +400,10 @@ class _WalletButton extends StatelessWidget {
               ),
             ],
           ),
+          // **الاسمُ في طرفٍ والرصيدُ في الطرف الآخر**، لا الثلاثةُ متراصّةً
+          // في الوسط: الرصيدُ هو ما تبحث عنه العينُ هنا، وفي الوسط كان يُقرأ
+          // ذيلاً للاسم لا رقماً قائماً بنفسه.
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               const Icon(
                 Icons.account_balance_wallet_rounded,
@@ -344,9 +420,7 @@ class _WalletButton extends StatelessWidget {
                   fontFamily: HarajTheme.fontFamily,
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(width: 1, height: 16, color: Colors.white24),
-              const SizedBox(width: 8),
+              const Spacer(),
               // الرصيد: شرطةٌ حتى يصل، ثم المبلغ والعملة كما أرسلهما الخادم.
               Directionality(
                 textDirection: TextDirection.ltr,
@@ -356,11 +430,18 @@ class _WalletButton extends StatelessWidget {
                       : '${balance!.amount} ${balance!.currency}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
                     fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_left_rounded,
+                color: Colors.white70,
+                size: 20,
               ),
             ],
           ),
