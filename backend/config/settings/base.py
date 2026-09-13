@@ -508,6 +508,39 @@ PAYMENT_WEBHOOK_SECRET = env("PAYMENT_WEBHOOK_SECRET", default="")
 #: The gateway's own words for "the money arrived". Kept as data, because a new
 #: word from them must never be read as success by accident.
 PAYMENT_SUCCESS_STATUSES = env.list("PAYMENT_SUCCESS_STATUSES", default=["paid"])
+#: بأيّ وحدةٍ تتكلّم هذه البوّابة: `minor` (هللة/سنت) أو `major` (ريال).
+#:
+#: الافتراضُ `minor` لأن البوّابة الافتراضيّة Moyasar ترسل الهللة — وv1 يقسم على
+#: ١٠٠ صراحةً. وكان هذا الطرفُ **غائباً تماماً**، فكانت كلُّ دفعةٍ ستُقرأ مئةَ
+#: ضعفها وتذهب إلى المعلَّق. راجع :mod:`apps.money.units`.
+PAYMENT_AMOUNT_UNIT = env("PAYMENT_AMOUNT_UNIT", default="minor")
+#: كم دقيقةً تبقى نيّةُ الدفع قابلةً للدفع قبل أن تنتهي.
+#:
+#: ١٢٠ لأن v1 يكتب `payments_intents.expires_at = NOW() + INTERVAL 2 HOUR`.
+#: وكان `PaymentIntentState.EXPIRED` و`CANCELLED` **معرَّفتين ولا يسندهما أي
+#: مسار** — فنيّةٌ هجرها صاحبُها تبقى `pending` للأبد، وزرُّ الدفع حيٌّ عليها،
+#: ورابطُ البوّابة يقبل الدفع بعد شهر.
+PAYMENT_INTENT_TTL_MINUTES = env.int("PAYMENT_INTENT_TTL_MINUTES", default=120)
+#: هل يُستعلَم عن الدفعة من البوّابة قبل تقييدها؟ **نعم افتراضاً.**
+#:
+#: v1 يفعلها في كل مسارٍ بلا استثناء («Fetch من Moyasar (مصدر الحقيقة)»)، ولا
+#: يثق بحمولة الويبهوك أبداً. `False` إعلانُ مشغّلٍ صريحٌ بأن بوّابة هذه البيئة
+#: بلا واجهةِ استعلام — وعندها تصير الحمولةُ الموقّعة هي المصدر، ويُكتب ذلك في
+#: ملاحظة الرسالة لا يُسكت عنه.
+PAYMENT_CONFIRM_WITH_GATEWAY = env.bool("PAYMENT_CONFIRM_WITH_GATEWAY", default=True)
+
+#: مفاتيح Moyasar — فارغةٌ افتراضاً، والتكاملُ يرفض بالعربيّة حين تكون كذلك.
+#:
+#: السرّيُّ وحده كافٍ لأن **الخادم هو من يُنشئ الفاتورة**: لا يحتاج أيُّ عميلٍ
+#: مفتاحاً منشوراً، ولا يصل المبلغ إلى متصفّحٍ أصلاً. v1 يضع
+#: `publishable_api_key` في صفحة HTML ويمرّر `amount` من `$_GET` — وهو الباب
+#: الذي أُغلق في v2 ولا يُفتح من الخلف.
+MOYASAR_API_BASE = env("MOYASAR_API_BASE", default="https://api.moyasar.com/v1")
+MOYASAR_SECRET_KEY = env("MOYASAR_SECRET_KEY", default="")
+#: أين يعود العميلُ بعد الدفع. قالبٌ يسمّي `{reference}`، وفارغٌ يعني «لا
+#: ترسل `callback_url` إلى Moyasar». الوجهةُ صفحةُ عميلٍ لا نقطةُ API: العودةُ
+#: تحت إبهام الدافع ولا يتحرّك بها مال (`TopupDetailView` تشرح لماذا).
+PAYMENT_RETURN_URL_TEMPLATE = env("PAYMENT_RETURN_URL_TEMPLATE", default="")
 
 # --------------------------------------------------------------------------
 # Odoo — off by default. Nothing reaches the accounting system until an
@@ -523,6 +556,11 @@ ODOO_WEBHOOK_SECRET = env("ODOO_WEBHOOK_SECRET", default="")
 #: أطفئ التحقّق من TLS في التطوير فقط (شهادةُ أجهزة التطوير قديمة غالباً، كـ v1).
 #: يبقى `False` في الإنتاج — التحقّقُ قائم.
 ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
+#: `payment_code` الذي يفرضه عقدُ أودو على كل دفعةٍ واستردادٍ واشتراك — وهو
+#: **دفترُ اليومية عندهم**، أي أن قيمةً خاطئةً تُرحّل المالَ إلى الحساب الخطأ
+#: بلا أن يُرفض النداء. لذلك إعدادُ بيئةٍ لا ثابتٌ في الشيفرة: قيمةُ الاختبار
+#: غيرُ قيمة الإنتاج، وv1 يستعمل `005/01` للفواتير و`0002/02` للاشتراكات.
+ODOO_PAYMENT_CODE = env("ODOO_PAYMENT_CODE", default="005/01")
 
 # ---------------------------------------------------------------------------
 # v1 — read only, and empty by default (phase 004)
@@ -536,6 +574,14 @@ ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
 # D6). `apps.migration.extract` refuses to send anything but a read, but that
 # is the readable sentence in front of the guard, not the guard.
 V1_DSN = env("V1_DSN", default="")
+
+#: مسارُ نسخة `mysqldump` من v1، حين يُرحَّل من ملفٍّ لا من خادم
+#: (:mod:`apps.migration.dumpfile`). فارغٌ افتراضاً للسبب نفسِه أعلاه.
+#:
+#: **إعدادٌ لا ثابتٌ في الأمر**: كان مسارُ جهازٍ بعينه (`D:/tmp/...`) مكتوباً
+#: `default` داخل `import_v1`، فيفشل عند غيره صامتاً بـ«النسخة غير موجودة»،
+#: ويحتاج أمران متتاليان كتابةَ المسار مرّتين ويختلفان يومَ تتغيّر النسخة.
+V1_DUMP_PATH = env("V1_DUMP_PATH", default="")
 
 LOGGING = {
     "version": 1,

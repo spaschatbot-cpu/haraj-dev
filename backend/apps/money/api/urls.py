@@ -29,6 +29,11 @@ urlpatterns = [
         name="topup-checkout",
     ),
     path(
+        "wallet/topups/<str:reference>/cancel/",
+        views.TopupCancelView.as_view(),
+        name="topup-cancel",
+    ),
+    path(
         "wallet/refund-requests/",
         views.RefundRequestListCreateView.as_view(),
         name="refund-request-list",

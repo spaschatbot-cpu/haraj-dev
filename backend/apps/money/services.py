@@ -19,6 +19,7 @@ import hashlib
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.conf import settings
@@ -1155,6 +1156,15 @@ def start_topup(
     if existing is not None:
         return existing
 
+    # **تُقتل النيّاتُ المهجورةُ عند بدء واحدةٍ جديدة، كما في v1 حرفيّاً**
+    # (`UPDATE payments_intents SET status='expired' …` عند كل بدء دفع). حدثٌ
+    # يوقظ التنظيف، لا كرون: المشروع لا يُجدوِل شيئاً (المادة ٥-٢)، وهذه هي
+    # اللحظةُ التي يكون فيها الجوابُ مهمّاً فعلاً — صاحبُ النيّة نفسه واقفٌ
+    # أمام الشاشة. ومقصورةٌ عليه: تنظيفُ نيّات الآخرين هنا قفلُ صفوفٍ لا يخصّ
+    # هذا الطلب.
+    expire_stale_intents(user=user)
+
+    ttl = int(getattr(settings, "PAYMENT_INTENT_TTL_MINUTES", 120) or 0)
     return PaymentIntent.objects.create(
         reference=reference,
         user=user,
@@ -1163,7 +1173,91 @@ def start_topup(
         purpose=purpose,
         auction=auction,
         gateway=settings.PAYMENT_GATEWAY,
+        # مهلةٌ مكتوبةٌ على الصفّ لا محسوبةٌ عند القراءة — انظر `expires_at`
+        # في الموديل. و`None` حين تُصفَّر المهلةُ في الإعداد: بيئةٌ اختارت ألّا
+        # تنتهي نيّاتُها، وذلك اختيارٌ صريحٌ لا صمت.
+        expires_at=(timezone.now() + timedelta(minutes=ttl)) if ttl > 0 else None,
     )
+
+
+def expire_stale_intents(*, user=None, now=None) -> int:
+    """اقلب كلَّ نيّةٍ `pending` مضت مهلتُها إلى `expired`، وأعِد عددَها.
+
+    ## العطل
+
+    `PaymentIntentState.CANCELLED` و`EXPIRED` كانتا **معرَّفتين ولا يُسنِدهما أيُّ
+    مسار**. فنيّةٌ فتحها عميلٌ ثم أغلق التطبيق تبقى `pending` إلى الأبد: زرُّ
+    الدفع حيٌّ عليها في كل تحميلٍ لقائمة عملياته، ورابطُ البوّابة يقبل الدفع بعد
+    شهرٍ من وديعةٍ لم يعد أحدٌ ينتظرها. وv1 — على كلّ ما فيه — يضع
+    `expires_at = NOW()+2h` ويُطبّقها.
+
+    ## لماذا لا `update()` جماعيّ
+
+    لأن الصفَّ نفسه قد يكون تحت `select_for_update` في
+    :func:`apply_gateway_payment` في هذه اللحظة: دفعةٌ وصلت فعلاً بينما المهلةُ
+    تنتهي. فالقفلُ أولاً ثم إعادةُ فحص الحالة — وإلّا انتهت صلاحيةُ نيّةٍ
+    قُيِّدت للتوّ، فبقي في الدفتر إيداعٌ نيّتُه تقول «انتهت مهلتها».
+    """
+    now = now or timezone.now()
+    rows = PaymentIntent.objects.filter(
+        state=PaymentIntentState.PENDING,
+        expires_at__isnull=False,
+        expires_at__lte=now,
+    )
+    if user is not None:
+        rows = rows.filter(user=user)
+
+    expired = 0
+    for pk in list(rows.values_list("pk", flat=True)):
+        with db_transaction.atomic():
+            intent = PaymentIntent.objects.select_for_update().filter(pk=pk).first()
+            if intent is None or intent.state != PaymentIntentState.PENDING:
+                continue
+            if intent.expires_at is None or intent.expires_at > now:
+                continue
+            intent.state = PaymentIntentState.EXPIRED
+            intent.note = f"انتهت مهلة الدفع ({intent.expires_at:%Y-%m-%d %H:%M})."
+            intent.save(update_fields=["state", "note", "updated_at"])
+            expired += 1
+
+    if expired:
+        log.info("expire_stale_intents: %s intent(s) expired", expired)
+    return expired
+
+
+@db_transaction.atomic
+def cancel_topup(*, user, intent: PaymentIntent) -> PaymentIntent:
+    """ألغِ نيّةَ دفعٍ لم تُدفع، بطلب صاحبها.
+
+    الحالةُ الثانيةُ التي لم يكن يُسنِدها شيء. وهي ليست ترفاً: عميلٌ فتح عمليّةً
+    بعشرة آلافٍ ثم عدل يبقى أمامه زرُّ دفعٍ حيٌّ ورابطٌ عند البوّابة يقبل ماله،
+    وأقربُ ما يفعله هو أن يدفع مرّتين ثم يتّصل.
+
+    ولا يُلغى إلا `pending`: نيّةٌ نجحت إلغاؤها إخفاءٌ لإيداعٍ وقع، وواحدةٌ
+    فشلت أو انتهت منتهيةٌ أصلاً — والقفلُ قبل القراءة لأن الويبهوك قد يكون
+    يقيّدها في هذه اللحظة بعينها.
+    """
+    row = (
+        PaymentIntent.objects.select_for_update()
+        .filter(pk=intent.pk, user=user)
+        .first()
+    )
+    if row is None:
+        raise MoneyError(
+            f"intent {intent.pk} does not belong to user {user.pk}",
+            user_message="هذه العملية غير موجودة.",
+        )
+    if row.state != PaymentIntentState.PENDING:
+        raise MoneyError(
+            f"intent {row.reference} is {row.state}, not pending",
+            user_message="هذه العملية لم تعد قابلة للإلغاء.",
+        )
+
+    row.state = PaymentIntentState.CANCELLED
+    row.note = "ألغاها العميل قبل الدفع."
+    row.save(update_fields=["state", "note", "updated_at"])
+    log.info("cancel_topup: %s cancelled by its owner", row.reference)
+    return row
 
 
 @dataclass(frozen=True)
@@ -1189,6 +1283,7 @@ def apply_gateway_payment(
     amount: Decimal,
     status_raw: str,
     succeeded: bool,
+    currency: str = "",
     gateway: str | None = None,
     occurred_at=None,
 ) -> GatewayOutcome:
@@ -1248,7 +1343,12 @@ def apply_gateway_payment(
             transaction=txn,
         )
 
-    if amount != intent.amount:
+    # عملةٌ مختلفةٌ عن عملة النيّة = مبلغٌ مختلف، مهما تطابق الرقم. «١٠٬٠٠٠»
+    # بعملةٍ أخرى ليست عشرةَ آلاف ريال، وقيدُها على أنها هي يخلق فرقاً لا يظهر
+    # في أي مقارنة — لأن الرقمين متطابقان. فتُعامَل معاملةَ اختلاف المبلغ:
+    # محفوظةٌ كاملةً في المعلَّق، والنيّةُ `DISPUTED`، والقرارُ لإنسان.
+    said_currency = (currency or intent.currency).strip().upper()
+    if amount != intent.amount or said_currency != intent.currency.upper():
         # We will not guess which number is right. The money is kept whole in
         # suspense and a human decides; crediting either figure silently is how
         # a discrepancy becomes a loss nobody notices.
@@ -1262,7 +1362,10 @@ def apply_gateway_payment(
         intent.state = PaymentIntentState.DISPUTED
         intent.gateway_payment_id = payment_id or intent.gateway_payment_id
         intent.gateway_status_raw = status_raw
-        intent.note = f"البوابة أبلغت {amount} والنية {intent.amount}"
+        intent.note = (
+            f"البوابة أبلغت {amount} {said_currency} والنية "
+            f"{intent.amount} {intent.currency}"
+        )
         intent.save(
             update_fields=[
                 "state",
@@ -1275,8 +1378,8 @@ def apply_gateway_payment(
         return GatewayOutcome(
             disposition="suspense",
             note=(
-                f"المبلغ العائد {amount} لا يطابق النية {intent.amount}؛ حُفظ في "
-                "حساب المعلّق ولم يُنسب."
+                f"المبلغ العائد {amount} {said_currency} لا يطابق النية "
+                f"{intent.amount} {intent.currency}؛ حُفظ في حساب المعلّق ولم يُنسب."
             ),
             transaction=txn,
             intent=intent,
@@ -1347,6 +1450,25 @@ def request_refund(
         raise InvalidAmount(
             f"refund amount {amount!r}",
             user_message="مبلغ الاسترداد لازم يكون أكبر من صفر.",
+        )
+
+    # **صورةُ الآيبان شرطٌ، كما في v1 حرفيّاً.** الآيبانُ حقلٌ نصّيّ يكتبه من
+    # يطلب، وتحويلُ عشرةِ آلافٍ إلى رقمٍ لا يقابله مستندٌ باسم صاحبه هو تحويلٌ
+    # إلى رقمٍ كتبه أحدٌ في خانة — رقماً مخطئاً أو رقمَ غيرِه. وv1 يفرضها
+    # (`refunds_requests.iban_image`) لهذا السبب بعينه.
+    #
+    # وقبل الحساب لا بعده: الرفضُ بعد قفل الصفّ يكلّف قفلاً بلا داعٍ، والرفضُ
+    # بعد فتح الطلب يترك طلباً يمنع صاحبَه من طلبٍ آخر.
+    from apps.accounts.models import CustomerDocument, DocumentKind
+
+    if CustomerDocument.current(user, DocumentKind.IBAN) is None:
+        raise MoneyError(
+            f"user {user.pk} has no IBAN document on file",
+            user_message=(
+                "صورة الآيبان مطلوبة قبل طلب الاسترداد. ارفعها من ملفّك، أو "
+                "أرسلها لخدمة العملاء لترفعها عنك."
+            ),
+            detail={"missing_document": DocumentKind.IBAN.value},
         )
 
     reference = (
@@ -1423,9 +1545,11 @@ def request_refund(
             },
         )
 
-    from apps.odoo.models import OutboxMessage
+    # عبر `enqueue` لا بإنشاءٍ مباشر: الإنشاءُ المباشر يكتب الصفَّ ولا يوقظ
+    # المُرسِل، فيجلس الطلبُ في الصندوق بلا أن يحاول أحدٌ إرساله — وهو ما كان.
+    from apps.odoo import outbox as odoo_outbox
 
-    outbox = OutboxMessage.objects.create(
+    outbox = odoo_outbox.enqueue(
         endpoint="refund.request",
         reference=f"refund:{reference}",
         payload={
@@ -1480,9 +1604,9 @@ def start_bank_topup(*, user, amount: Decimal, receipt) -> BankTopupRequest:
 
     reference = f"banktopup-{user.pk}-{uuid.uuid4().hex}"
 
-    from apps.odoo.models import OutboxMessage
+    from apps.odoo import outbox as odoo_outbox
 
-    outbox = OutboxMessage.objects.create(
+    outbox = odoo_outbox.enqueue(
         endpoint="banktopup.submit",
         reference=f"banktopup:{reference}",
         payload={
@@ -1878,6 +2002,16 @@ def issue_invoice(
         "issued invoice %s: net %s + fee %s + tax %s = %s (customer %s)",
         invoice.number, net, fee, taxed.tax, taxed.total, customer.pk,
     )
+
+    # **وتذهب إلى أودو.** كانت لا تذهب إطلاقاً: `odoo_invoice_id` يُكتب من
+    # رسالةٍ واردةٍ وحدها، فالمحاسبةُ تنتظر مستنداً لا يرسله أحد — ودفعةٌ على
+    # فاتورةٍ لا يعرفها أودو مرفوضةٌ عندهم بالتعريف، فيقف مسارُ الفائز كلُّه.
+    #
+    # صفٌّ في الصندوق لا نداءٌ من هنا: الإصدارُ فعلٌ ماليّ داخل معاملة، وشبكةٌ
+    # بطيئةٌ بداخلها تُبقي أقفال الدفتر مرفوعةً بقدر مهلة أودو.
+    from apps.odoo import outbox as odoo_outbox
+
+    odoo_outbox.queue_invoice(invoice)
     return invoice
 
 
@@ -1988,8 +2122,54 @@ def record_payment(
 
     if invoice.state == InvoiceState.PAID:
         _release_holds_on(invoice)
+    else:
+        _shrink_locks_to_dues(invoice)
 
     return txn
+
+
+def _shrink_locks_to_dues(invoice: Invoice) -> None:
+    """دفعةٌ جزئيّة تُنقص الدَّين، فتُنقص الرهنَ معه — لا تتركه كاملاً.
+
+    الفحصُ `check_locked_not_above_dues` يعلن القاعدة بنصّه: «الرهنُ ضمانٌ لا
+    عقوبة. وحجزُ أكثرَ من الدَّين مالٌ يُنتزع من متناول العميل بلا ما نُدافع به
+    أمامه — **واستردادٌ كان من حقّه ولم يأخذه**».
+
+    وكان `record_payment` يفكّ الرهنَ عند السداد **الكامل وحده**. فدفعةٌ نقديّةٌ
+    جزئيّة تُنقص `outstanding` ويبقى الرهنُ على قيمته الأولى، فيتجاوزها. وهو
+    عطلٌ صامت: لا استثناء، ولا شاشةَ تشكو، والعميلُ يرى تأمينَه محجوزاً على
+    دَينٍ سدَّد أكثرَه.
+
+    **كشفته بياناتُ الترحيل** لا قراءةٌ: ثلاثُ ملاحظاتٍ في `verify_ledger` بعد
+    بناء دفتر v1 — «المقفول ١٠٬٠٠٠ والمستحقّ ٠٫٢٥».
+
+    ولا يمسّ رهنَ المزاد (`HoldReason.BIDDING`): ذاك ضمانُ مزايدةٍ لا ضمانُ
+    دَين، ويُفكّ بقواعده هو (HR-01).
+
+    والسدادُ من التأمين نفسِه لا يمرّ من هنا: `_consume_locked_claim` يكون قد
+    أنقص الرهنَ بما أُنفق منه، فالدلوُ والادّعاءُ ينقصان معاً.
+    """
+    outstanding = invoice.outstanding
+    claims = Hold.objects.select_for_update().filter(
+        invoice=invoice, state=HoldState.ACTIVE, reason=HoldReason.DUES
+    )
+    for hold in claims:
+        excess = hold.amount - outstanding
+        if excess <= ZERO:
+            continue
+        post(
+            kind=TransactionKind.INSURANCE_UNLOCK,
+            # المفتاحُ يحمل ما صار إليه الرهن، كما في `_top_up_hold` — فإعادةُ
+            # الدفعة نفسِها لا تفكّ مرّتين.
+            idempotency_key=f"unlock:{hold.pk}:down-to:{outstanding}",
+            memo=f"تقليص القفل بعد سدادٍ جزئيّ على الفاتورة {invoice.number}",
+            legs=[
+                Leg(account_for(hold.owner, AccountKind.INSURANCE_LOCKED), -excess),
+                Leg(account_for(hold.owner, AccountKind.INSURANCE_FREE), excess),
+            ],
+        )
+        hold.amount = outstanding
+        hold.save(update_fields=["amount"])
 
 
 def _consume_locked_claim(invoice: Invoice, amount: Decimal, txn: Transaction) -> None:
@@ -2089,6 +2269,22 @@ def _release_holds_on(invoice: Invoice) -> None:
             hold.save(update_fields=["state", "ended_at"])
             continue
         release_hold(hold, memo=f"سُدِّدت الفاتورة {invoice.number}")
+
+
+@db_transaction.atomic
+def release_invoice_holds(invoice: Invoice) -> None:
+    """فُكَّ ما رهنته هذه الفاتورة، لأنها لم تعد تطالب بشيء.
+
+    مدخلٌ عامّ لـ:func:`_release_holds_on` وحده، وسببُ وجوده أن للقاعدة اليوم
+    **سبيلين لا سبيلاً واحداً**: الفاتورةُ تُسدَّد، أو تُلغى. الأول يمرّ من
+    :func:`record_payment`؛ والثاني من إلغاء أودو
+    (:func:`apps.odoo.processing._handle_invoice_cancelled`).
+
+    والمنطقُ واحدٌ عمداً ولا يُنسخ: رهنُ المزاد يُفَكّ حين لا تبقى **أيُّ** فاتورةٍ
+    غير مسدَّدةٍ في ذلك المزاد — وفكُّه قبل ذلك هو حادثةُ الـ٢٣٠ وديعةً بعينها.
+    ودالّةٌ ثانيةٌ «تشبهها» للإلغاء كانت ستفقد هذا الشرط أوّلَ ما تُبسَّط.
+    """
+    _release_holds_on(invoice)
 
 
 # ---------------------------------------------------------------------------

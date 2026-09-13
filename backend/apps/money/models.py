@@ -648,6 +648,27 @@ class PaymentIntent(models.Model):
     #: allowed to fail the write that carries it.
     gateway_status_raw = models.CharField(max_length=64, blank=True)
 
+    #: فاتورةُ البوّابة المستضافة التي أنشأها الخادمُ لهذه النيّة، ورابطُها.
+    #:
+    #: يُحفظان لأن `checkout_target` نداءٌ شبكيّ الآن: بلا حفظٍ يُنشئ كلُّ ضغطةٍ
+    #: على «ادفع» فاتورةً جديدةً عند Moyasar لنفس النيّة — عشرُ فواتيرَ معلّقةٍ
+    #: لدفعةٍ واحدة، وكلُّها قابلةٌ للدفع.
+    #:
+    #: و`gateway_checkout_id` طريقُ إسنادٍ ثانٍ على مسار العودة: إن لم تُعِد
+    #: البوّابةُ `metadata.reference` مع الدفعة، يُعرَف صاحبُها من رقم الفاتورة
+    #: (`payment.invoice_id`). v1 لم يكن له إلا طريقٌ واحدٌ هشّ، فسقطت منه
+    #: ~٢١٠٠ دفعةٍ بلا صاحب.
+    gateway_checkout_id = models.CharField(max_length=128, blank=True, db_index=True)
+    gateway_checkout_url = models.URLField(max_length=500, blank=True)
+
+    #: متى تنتهي صلاحيةُ هذه النيّة. نظيرُ `payments_intents.expires_at` في v1
+    #: (`NOW() + INTERVAL 2 HOUR`).
+    #:
+    #: عمودٌ مكتوبٌ لا فرقٌ محسوبٌ من `created_at`: مهلةُ نيّةٍ قائمةٍ يجب ألّا
+    #: تتحرّك لأن مشغّلاً عدّل `PAYMENT_INTENT_TTL_MINUTES` — وإلّا صار تعديلُ
+    #: إعدادٍ إحياءً بأثرٍ رجعيٍّ لنيّاتٍ ماتت، أو قتلاً لنيّاتٍ حيّة.
+    expires_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
     resulting_transaction = models.ForeignKey(
         Transaction,
         null=True,

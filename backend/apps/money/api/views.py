@@ -193,6 +193,24 @@ class TopupCheckoutView(APIView):
         return HttpResponseRedirect(target)
 
 
+class TopupCancelView(APIView):
+    """ألغِ عمليّةَ شحنٍ لم تُدفَع بعد. POST لأنها تكتب.
+
+    الحالةُ `cancelled` كانت **معرَّفةً ولا يصل إليها مسار**: كلُّ نيّةٍ فتحها
+    عميلٌ ثم عدل تبقى `pending` إلى الأبد، وزرُّ الدفع حيٌّ عليها، ورابطُ
+    البوّابة يقبل ماله بعد شهر. الإلغاءُ هنا هو نصفُ الجواب؛ ونصفُه الآخر
+    المهلةُ (`services.expire_stale_intents`) لمن لم يُلغِ ولم يدفع.
+    """
+
+    @extend_schema(request=None, responses=PaymentIntentSerializer)
+    def post(self, request, reference: str):
+        intent = get_object_or_404(PaymentIntent, reference=reference, user=request.user)
+        cancelled = services.cancel_topup(user=request.user, intent=intent)
+        return Response(
+            PaymentIntentSerializer(cancelled, context={"request": request}).data
+        )
+
+
 class PaymentCallbackView(APIView):
     """The gateway telling us what happened. The only path that credits a card.
 
@@ -241,10 +259,6 @@ class PaymentCallbackView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        signature = request.headers.get("X-Signature", "")
-        expected = hmac.new(secret.encode(), raw, "sha256").hexdigest()
-        signature_ok = hmac.compare_digest(signature, expected)
-
         # ``jsonio.loads`` is the whole reason this is parsed by hand: a plain
         # json.loads would turn an amount into a float before any of our code
         # could refuse it (Article 3-2, one decoder for both boundaries).
@@ -252,8 +266,25 @@ class PaymentCallbackView(APIView):
             payload = jsonio.loads(raw or b"{}")
         except ValueError:
             payload = {}
+        if not isinstance(payload, dict):
+            payload = {}
 
-        message = self._store(payload, raw=raw, signature_ok=signature_ok)
+        signature_ok = self._verified(
+            secret,
+            raw=raw,
+            payload=payload,
+            signature=request.headers.get("X-Signature", ""),
+        )
+
+        # **السرُّ لا يُخزَّن.** آليّةُ Moyasar تضع السرَّ المشترك *داخل* الجسم،
+        # وحفظُ الجسم كما هو يضع سرَّ الويبهوك نصّاً صريحاً في صفٍّ تعرضه شاشةُ
+        # الرسالة في اللوحة لكل من يملك `odoo.inbox`. وهو نفسُ سببِ عدم حفظ
+        # التوقيع هنا أصلاً، ونفسِ ما يفعله `apps.odoo.views._safe_headers`.
+        # ويُحجَب من `raw_body` أيضاً: المحجوبُ سرُّنا نحن، لا واقعةٌ من وقائع
+        # البوّابة — والدليلُ يبقى كاملاً فيما عدا ذلك.
+        payload, raw_text = self._redact(payload, raw=raw)
+
+        message = self._store(payload, raw_text=raw_text, signature_ok=signature_ok)
 
         if not signature_ok:
             log.warning("payment callback with a bad signature, stored as %s", message.pk)
@@ -265,7 +296,55 @@ class PaymentCallbackView(APIView):
         self._interpret(message, payload)
         return Response({"received": True})
 
-    def _store(self, payload: dict, *, raw: bytes, signature_ok: bool) -> InboundMessage:
+    @staticmethod
+    def _verified(secret: str, *, raw: bytes, payload: dict, signature: str) -> bool:
+        """هل هذه الرسالة من البوّابة فعلاً؟ — شكلان مقبولان، وواحدٌ مرفوض.
+
+        ## العطل
+
+        v2 كان يقبل شكلاً واحداً: HMAC-SHA256 على الجسم الخام في ترويسة
+        `X-Signature`. وهو أقوى تشفيريّاً بلا جدال — **لكنّ Moyasar لا ترسله**.
+        فالنقطةُ كانت سترفض كلَّ ويبهوكٍ حقيقيٍّ بـ401، ويُخزَّن كلُّ دفعٍ ناجحٍ
+        `rejected_signature`، وهي حالةٌ **لا يفسّرها شيءٌ أبداً** — لا طابورُ
+        الإعادة ولا زرُّ اللوحة (T913). دفعاتٌ محصَّلةٌ، ومحافظُ صفر.
+
+        ## القرار
+
+        ١. `payload["secret_token"]` — **الآليّةُ الرسميّة لـMoyasar**، وهي ما
+           يفحصه `callback3.php` في v1 بنصّه: «الصحيح في Moyasar: secret_token
+           داخل الـ payload». (والحيُّ `moyasar_webhook.php` لا يفحصها — يفحص
+           ترويسةً لا ترسلها Moyasar، وهو عطلُ v1 نفسه من الجهة المقابلة.)
+        ٢. `X-Signature` بـHMAC — يبقى مقبولاً: بوّابةٌ أخرى قد ترسله، وإسقاطُه
+           كان سيكسر كلَّ بيئةٍ ضُبطت عليه.
+
+        **وما لا يُنقَل من v1:** السرُّ في الـquery (`?whsec=`). الـquery يُكتب
+        في سجلّ وصول كلِّ وسيطٍ على الطريق، فسرُّ ويبهوكٍ هناك سرٌّ منشور.
+
+        و`compare_digest` في الشكلين: المقارنةُ بـ`==` تتسرّب زمنيّاً، وسرٌّ
+        يُخمَّن حرفاً حرفاً هو محفظةٌ تُشحن مجّاناً.
+        """
+        token = payload.get("secret_token")
+        if isinstance(token, str) and token and hmac.compare_digest(token, secret):
+            return True
+
+        if signature:
+            expected = hmac.new(secret.encode(), raw, "sha256").hexdigest()
+            return hmac.compare_digest(signature, expected)
+
+        return False
+
+    def _redact(self, payload: dict, *, raw: bytes) -> tuple[dict, str]:
+        """انزع السرَّ المشترك من الجسم المحفوظ ومن نصّه الخام."""
+        text = raw.decode("utf-8", errors="replace")
+        token = payload.get("secret_token")
+        if isinstance(token, str) and token:
+            payload = {k: v for k, v in payload.items() if k != "secret_token"}
+            text = text.replace(token, "[سرٌّ محجوب]")
+        return payload, text
+
+    def _store(
+        self, payload: dict, *, raw_text: str, signature_ok: bool
+    ) -> InboundMessage:
         """Write the message down before understanding it.
 
         Deduplication is on the gateway's own delivery id, never on what the
@@ -283,14 +362,24 @@ class PaymentCallbackView(APIView):
         would be handed an unlimited supply of verified (message, MAC) pairs —
         which is why ``apps/odoo/views._safe_headers`` strips its own.
         """
-        reference = str((payload.get("metadata") or {}).get("reference", ""))[:128]
+        body = payload.get("data") or payload.get("payment") or payload
+        if not isinstance(body, dict):
+            body = payload
+        reference = str(
+            (body.get("metadata") or payload.get("metadata") or {}).get("reference", "")
+        )[:128]
         message = InboundMessage(
             source="payment_gateway",
             event=str(payload.get("type") or payload.get("status") or "")[:64],
-            delivery_id=str(payload.get("id", ""))[:128],
+            # **رقمُ الدفعة من الأشكال الثلاثة، لا من `payload["id"]` وحده.**
+            # Moyasar ترسل `{"type": …, "data": {"id": …}}` أيضاً، وقراءةُ
+            # المفتاح الأعلى وحده تعطي `delivery_id=""` لكل تلك الرسائل — فتصير
+            # **كلُّها رسالةً واحدة** في الفهرس الفريد، وتُبتلَع الثانيةُ فصاعداً
+            # بوصفها تكراراً. v1 يجرّب الثلاثة لأنه رآها.
+            delivery_id=inbound.payment_id_of(payload)[:128],
             subject_ref=reference,
             payload=payload,
-            raw_body=raw.decode("utf-8", errors="replace"),
+            raw_body=raw_text,
             headers={"signature_ok": signature_ok},
         )
         if not signature_ok:

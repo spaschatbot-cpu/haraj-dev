@@ -23,24 +23,45 @@ that endpoint is where the handoff is decided. Switching gateway is then a
 change here and nowhere else — neither client is rebuilt, neither is redeployed,
 and neither ever learns what a Moyasar is.
 
+والفاتورةُ تُنشأ عند البوّابة، لا تُملأ في قالب
+-----------------------------------------------
+كان هذا الملفّ يملأ `PAYMENT_CHECKOUT_TEMPLATE` بالمرجع والمبلغ ويرسل العميل إلى
+النصّ الناتج — **بلا استدعاءٍ صادرٍ واحدٍ إلى البوّابة في `apps/money` كلّه**. وهو
+لا يعمل مع Moyasar أصلاً: لا يوجد رابطٌ ثابتٌ عندها يُملأ بقالب، الدفعةُ تُنشَأ
+بنداء. فصار المسارُ الأول هو :func:`apps.money.moyasar.create_invoice`، والقالبُ
+احتياطٌ لبوّابةٍ أخرى أو لبيئةٍ تختبر الشكل بلا شبكة.
+
+والنداءُ لا يتكرّر: رقمُ الفاتورة ورابطُها يُحفظان على النيّة، فضغطتان على «ادفع»
+لا تصيران فاتورتين قابلتين للدفع.
+
 Off by default, like every other integration
 --------------------------------------------
-With no `PAYMENT_CHECKOUT_TEMPLATE` configured this module produces nothing and
-the endpoint refuses in Arabic. That is the same stance the Odoo client and the
-payment callback take: an integration that is not configured must refuse rather
-than guess, because the guess is a customer sent to a broken page with money in
-their hand.
+بلا `MOYASAR_SECRET_KEY` وبلا `PAYMENT_CHECKOUT_TEMPLATE` لا يُنتج هذا الملفّ
+شيئاً وترفض النقطةُ بالعربيّة. وهو موقفُ عميل أودو ومسارِ الويبهوك نفسه:
+تكاملٌ غيرُ مضبوطٍ يرفض ولا يخمّن، لأن التخمين هنا عميلٌ أُرسل إلى صفحةٍ مكسورةٍ
+ومالُه في يده.
 """
 
 from __future__ import annotations
 
+import logging
 from urllib.parse import quote
 
 from django.conf import settings
+from django.utils import timezone
 
+from . import moyasar, units
 from .models import PaymentIntent, PaymentIntentState
 
-__all__ = ["CheckoutUnavailable", "checkout_target", "is_payable"]
+log = logging.getLogger(__name__)
+
+__all__ = [
+    "CheckoutUnavailable",
+    "available_for",
+    "checkout_target",
+    "is_configured",
+    "is_payable",
+]
 
 
 class CheckoutUnavailable(Exception):
@@ -64,32 +85,131 @@ def is_payable(intent: PaymentIntent) -> bool:
     deposit already made; a failed or cancelled one is a row somebody would be
     paying against after the platform stopped expecting it. Both are cases where
     the *absence* of a button is the correct interface.
+
+    **والمهلةُ تُقرأ من الساعة لا من العمود.** النيّةُ المنتهية قد تكون ما زالت
+    `pending` في القاعدة لأن لا شيء مرّ عليها بعد (`services.expire_stale_intents`
+    تُنادى عند بدء عمليّةٍ جديدةٍ لصاحبها، كما في v1 تماماً). فلو سألنا العمودَ
+    وحده لبقي زرُّ الدفع حيّاً على نيّةٍ ماتت ساعتين — وهي الحالةُ التي كُتبت هذه
+    المهلةُ من أجلها.
     """
-    return intent.state == PaymentIntentState.PENDING
+    if intent.state != PaymentIntentState.PENDING:
+        return False
+    return intent.expires_at is None or intent.expires_at > timezone.now()
+
+
+def is_configured() -> bool:
+    """هل في هذه البيئة بوّابةٌ يمكن إرسالُ أحدٍ إليها أصلاً؟ سؤالٌ بلا شبكة."""
+    return moyasar.is_configured() or bool(
+        getattr(settings, "PAYMENT_CHECKOUT_TEMPLATE", "")
+    )
+
+
+def available_for(intent: PaymentIntent) -> bool:
+    """هل يُعرَض زرُّ الدفع لهذه النيّة؟ **بلا أيّ نداءٍ شبكيّ.**
+
+    مفصولةٌ عن :func:`checkout_target` لأن الأخيرة صارت تُنشئ فاتورةً عند
+    البوّابة. وكان المُسلسِل (`PaymentIntentSerializer.get_checkout_url`) يستدعي
+    `checkout_target` لمجرّد أن يعرف هل يعرض الزرّ — فصفحةُ «عمليّاتي» التي
+    تُسلسِل عشرَ نيّاتٍ كانت ستُنشئ **عشرَ فواتيرَ** عند Moyasar في كل تحميل.
+    """
+    return is_payable(intent) and is_configured()
+
+
+def _return_url(intent: PaymentIntent) -> str:
+    """رابطُ عودة العميل بعد الدفع، أو فراغٌ إن لم تسمّه البيئة.
+
+    والفراغُ ليس عطلاً: الويبهوكُ مستقلٌّ عن عودة العميل تماماً، وهو ما أصلح
+    عطلَ v1 «الدفع نجح والعميل أغلق التطبيق ⇒ المال ضاع» (سببُ وجود الـbackstop،
+    ٢٠٢٦-٠٦-٠٤). فالعودةُ راحةُ عينٍ لا مسارَ مال.
+    """
+    template = getattr(settings, "PAYMENT_RETURN_URL_TEMPLATE", "")
+    if not template:
+        return ""
+    return template.format(reference=quote(intent.reference, safe=""))
+
+
+def _amount_for_gateway(intent: PaymentIntent) -> str:
+    try:
+        return units.to_gateway(intent.amount, intent.currency)
+    except units.AmountUnreadable as exc:
+        # عملةٌ لا نعرف وحدتها الصغرى: يُرفض الإرسال ولا يُخمَّن المقسومُ عليه.
+        # وجملةُ العميل عامّة — تفصيلُ العملة في السجلّ لا على شاشته.
+        log.error("checkout: %s — %s", intent.reference, exc)
+        raise CheckoutUnavailable("تعذّر تجهيز الدفع لهذه العملة.") from exc
 
 
 def checkout_target(intent: PaymentIntent) -> str:
     """Where to send this customer, right now, to pay this intent.
 
-    Built from a configured template rather than assembled in code, so the
-    gateway is an environment decision and not a deployment. The template names
-    what it needs:
+    ثلاثةُ مساراتٍ بترتيبٍ مقصود:
 
-        PAYMENT_CHECKOUT_TEMPLATE="https://pay.example.com/{reference}?amount={amount}"
+    ١. **رابطٌ محفوظٌ على النيّة** — فاتورةٌ أُنشئت في ضغطةٍ سابقة. تُعاد كما هي،
+       فلا تصير الضغطتان فاتورتين.
+    ٢. **Moyasar** حين يكون مفتاحُها السرّيّ مضبوطاً: يُنشئ الخادمُ فاتورةً
+       بمبلغِه هو ومرجعِه هو ومهلتِه هو، ويُعاد `url`ها. وأسبقيّتُها على القالب
+       مقصودة: المفتاحُ السرّيّ موجودٌ في البيئة إعلانٌ صريحٌ من مشغّلٍ بأن
+       البوّابةَ الحقيقيّة مشغّلة، والقالبُ سبقها في الزمن لا في الأولويّة.
+    ٣. **القالب** `PAYMENT_CHECKOUT_TEMPLATE` لبوّابةٍ أخرى أو لفحص الشكل بلا
+       شبكة. يسمّي ما يحتاج:
 
-    ``reference`` is the only identifier that crosses. It is ours, it is opaque,
-    and it is what a returning payment is attributed by — the gateway never
-    learns a user id, which is the whole reason `PaymentIntent` exists as a row
-    written before the customer leaves (v1 tried to recover the customer from
-    the return url and lost payments that way).
+           PAYMENT_CHECKOUT_TEMPLATE="https://pay.example.com/{reference}?amount={amount}"
 
-    ``amount`` is included because most gateways want it echoed, and it is the
-    server's figure from `deposit_amount_for` — never a number a client named.
-    It is substituted as the decimal *string* the ledger stores, so nothing on
-    this path turns an amount into a float (Article 3-2).
+    ``reference`` هو المُعرِّف الوحيد الذي يعبر في كل المسارات. ملكُنا، ومبهَم،
+    وبه تُسنَد الدفعةُ العائدة — ولا تعرف البوّابةُ مُعرِّفَ مستخدمٍ أبداً، وهو
+    كلُّ سبب وجود `PaymentIntent` صفّاً يُكتب قبل أن يغادر العميل (v1 حاول
+    استرجاع صاحب الدفعة من رابط العودة فضاعت منه دفعات).
+
+    ``amount`` يخرج **بوحدة البوّابة** (:func:`apps.money.units.to_gateway`) — أي
+    بالهللة لـMoyasar. وكان يُوضَع بالريال، فنموذجٌ مستضافٌ يقرؤه هللةً يطالب
+    العميلَ بمئة ريالٍ بدل عشرة آلاف: مرآةُ عطلِ القراءة على مسار الدخول. ويبقى
+    **نصّاً** في كل خطوة، فلا يصير `float` على مسار مالٍ (المادة ٣-٢).
     """
     if not is_payable(intent):
         raise CheckoutUnavailable("هذه العملية لم تعد قابلة للدفع.")
+
+    if intent.gateway_checkout_url:
+        return intent.gateway_checkout_url
+
+    amount = _amount_for_gateway(intent)
+
+    if moyasar.is_configured():
+        try:
+            invoice = moyasar.create_invoice(
+                amount_minor=amount,
+                currency=intent.currency,
+                description=f"شحن تأمين ({intent.reference})",
+                reference=intent.reference,
+                callback_url=_return_url(intent),
+                expires_at=intent.expires_at,
+            )
+        except moyasar.MoyasarDisabled as exc:  # pragma: no cover - حارسٌ منطقيّ
+            log.error("checkout: %s — %s", intent.reference, exc)
+            raise CheckoutUnavailable("الدفع بالبطاقة غير مفعّل في هذه البيئة.") from exc
+        except (moyasar.MoyasarUnreachable, moyasar.MoyasarRejected) as exc:
+            # **لا رابطَ مخمَّن.** بوّابةٌ لم تردّ تعني أننا لا نعرف رقم فاتورةٍ
+            # ولا رابطاً؛ وإرسالُ العميل إلى عنوانٍ مبنيٍّ بالحدس هو إرسالُه
+            # ليدفع في مكانٍ لا يعود منه شيء.
+            log.error("checkout: %s — %s", intent.reference, exc)
+            raise CheckoutUnavailable(
+                "تعذّر تجهيز الدفع الآن. حاول بعد قليل."
+            ) from exc
+
+        url = str(invoice.get("url") or "")
+        if not url:
+            log.error("checkout: %s — فاتورةُ Moyasar بلا رابط", intent.reference)
+            raise CheckoutUnavailable("تعذّر تجهيز الدفع الآن. حاول بعد قليل.")
+
+        intent.gateway_checkout_id = str(invoice.get("id") or "")[:128]
+        intent.gateway_checkout_url = url[:500]
+        intent.save(
+            update_fields=["gateway_checkout_id", "gateway_checkout_url", "updated_at"]
+        )
+        log.info(
+            "checkout: intent %s -> moyasar invoice %s",
+            intent.reference,
+            intent.gateway_checkout_id,
+        )
+        return url
 
     template = getattr(settings, "PAYMENT_CHECKOUT_TEMPLATE", "")
     if not template:
@@ -100,6 +220,6 @@ def checkout_target(intent: PaymentIntent) -> str:
     # template that breaks the day a gateway wants a different reference format.
     return template.format(
         reference=quote(intent.reference, safe=""),
-        amount=quote(str(intent.amount), safe=""),
+        amount=quote(amount, safe=""),
         currency=quote(intent.currency, safe=""),
     )
