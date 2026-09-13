@@ -82,14 +82,17 @@ class _Body extends StatelessWidget {
     // تكفي الشريطَ فلا يُقصّ آخرُها، والشريطُ فوقها ملتصقٌ بالحافّة. يظهر دائماً
     // حتى مع لا مشتريات، بعددٍ وإجماليٍّ صفر وزرّين معطَّلين.
     const barSpace = 150.0;
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    // ارتفاعُ الشريط السفليّ للقشرة بالضبط (`_GoldNavigationBar.barHeight` = ٧٠):
+    // `MediaQuery.bottom` هنا أكبرُ منه فيترك فجوةً فوق الفوتر. ثابتٌ مطابقٌ له
+    // يُجلس شريطَ الدفع فوق الفوتر تماماً (١٣ سبتمبر ٢٠٢٦).
+    const footerHeight = 70.0;
     return Stack(
       children: <Widget>[
         Positioned.fill(
           child: purchases.isEmpty
-              ? _EmptyState(bottomPadding: barSpace + bottomInset)
+              ? _EmptyState(bottomPadding: barSpace + footerHeight)
               : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, barSpace + bottomInset),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, barSpace + footerHeight),
                   itemCount: purchases.length,
                   itemBuilder: (context, i) => _PurchaseCard(
                     purchase: purchases[i],
@@ -98,10 +101,13 @@ class _Body extends StatelessWidget {
                   ),
                 ),
         ),
+        // يُرفَع الشريطُ بمقدار ارتفاع الشريط السفليّ للقشرة (`bottomInset`)
+        // فيجلس فوقه تماماً لا خلفه — القشرةُ تمدّ المحتوى خلف شريطها
+        // (`extendBody`)، فالموضعُ ٠ يخفيه تحته. بطلب المالك (١٣ سبتمبر ٢٠٢٦).
         Positioned(
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: footerHeight,
           child: _PayBar(
             purchases: purchases,
             selected: selected,
@@ -351,12 +357,10 @@ class _PayBar extends StatelessWidget {
     );
 
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        12 + MediaQuery.paddingOf(context).bottom,
-      ),
+      // **بلا حاشية `MediaQuery.bottom`**: الصفحة داخل قشرةٍ تدفع محتواها من
+      // فوق الشريط السفليّ أصلاً، فإضافتُها تحسب ارتفاعَه مرّتين وتترك فجوةً
+      // بين هذا الشريط والشريط السفليّ. حُذفت بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: BoxDecoration(
         color: palette.cardSurface,
         boxShadow: <BoxShadow>[
@@ -397,7 +401,10 @@ class _PayBar extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: <Widget>[
+              // زرُّ الدفع أوسعُ (٣) من زرّ المسح (٢) ليتّسع اسمُه كاملاً بلا
+              // قصّ، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
               Expanded(
+                flex: 3,
                 child: _DarkButton(
                   label: l10n.purchasesPayAll,
                   icon: Icons.credit_card_rounded,
@@ -413,6 +420,7 @@ class _PayBar extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
+                flex: 2,
                 child: OutlinedButton.icon(
                   onPressed: selected.isEmpty ? null : onClear,
                   icon: const Icon(Icons.cancel_outlined, size: 18),
@@ -501,7 +509,7 @@ class _DarkButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             gradient: LinearGradient(
