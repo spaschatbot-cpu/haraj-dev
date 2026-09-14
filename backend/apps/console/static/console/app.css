@@ -843,6 +843,10 @@ td.count, td.money, th.count, th.money { font-variant-numeric: tabular-nums; }
 .pill[data-tone="warn"] { background: var(--warn-soft); color: var(--warn); }
 .pill[data-tone="bad"] { background: var(--danger-soft); color: var(--danger); }
 .pill[data-tone="info"] { background: var(--info-soft); color: var(--info); }
+/* أشدُّ من `bad`: أرضيّةٌ مصمتة لا باهتة. الدرجةُ الرابعة في مؤقّت متابعة النقل
+   («تنبيه المالك» عند ٣٠ يوماً) لو أخذت نبرةً غيرَ معرَّفةٍ لسقطت إلى الرماديّ
+   الافتراضيّ — فيخرج أخطرُ صفٍّ في الجدول أهدأَ من الذي قبله. */
+.pill[data-tone="critical"] { background: var(--danger); color: #fff; }
 .pill[data-tone="money"] { background: var(--money-soft); color: var(--money); }
 .pill[data-tone="auction"] { background: var(--auction-soft); color: var(--auction); }
 
@@ -4689,11 +4693,39 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* «إنشاء الخروج» أبرزُ قليلاً — فعلٌ رئيسيّ بلون العلامة. */
 .ex-act--create { border-color: var(--brand); color: var(--brand-dark); }
 .ex-act--create:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
+.ex-act--papers:hover { border-color: var(--ok, #15803d); color: var(--ok, #15803d); background: var(--ok-soft, #dcfce7); }
 .ex-upload { display: inline; margin: 0; }
+
+/* مجموعاتُ الاختيار في نافذة الأوراق: نوعُ الخروج وسببُه.
+   و`[hidden]` بـ`!important` ضرورةٌ لا زينة: `.modal label` أعلاه تُعلن
+   `display:block`، وقاعدةُ المؤلِّف تغلب `[hidden]` في ورقة المتصفّح — فحقلُ
+   إثبات النقل كان يبقى ظاهراً بعد إخفائه من الشيفرة. */
+.modal [hidden] { display: none !important; }
+.ex-choice { margin: 0 0 .7rem; padding: .5rem .7rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.ex-choice legend { padding-inline: .3rem; font-size: .8rem; font-weight: 700; color: var(--ink-soft); }
+.ex-choice__opt { display: flex !important; align-items: center; gap: .45rem; margin-block-end: .3rem; font-weight: 600; cursor: pointer; }
+.ex-choice__opt:last-child { margin-block-end: 0; }
+.ex-choice__opt input { inline-size: auto; margin: 0; accent-color: var(--brand-solid, currentColor); }
 .actions--nowrap .ex-act:nth-child(2) { animation-delay: .05s; }
 .actions--nowrap .ex-act:nth-child(3) { animation-delay: .1s; }
 @keyframes exActIn { from { opacity: 0; transform: translateY(4px) scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ex-act { animation: none !important; } .ex-act, .ex-act svg { transition: none !important; } }
+
+/* ---- لسانُ متابعة نقل الملكية -------------------------------------------
+   الصفُّ يُلوَّن بدرجة تأخّره، والمحظورُ يسبق التأخّر: `data-ban` بعد `data-late`
+   في الترتيب فيغلبه عند التساوي في الخصوصيّة. والتلوينُ خفيفٌ عمداً — أرضيّةٌ
+   لا تُذهب قراءةَ النصّ فوقها في الوضعين الفاتح والداكن. */
+.ex-row[data-late="1"] > td { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.ex-row[data-late="2"] > td { background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.ex-row[data-late="3"] > td { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.ex-row[data-ban] > td { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.ex-files { display: flex; flex-wrap: wrap; gap: .25rem; }
+.ex-note { display: flex; gap: .3rem; align-items: flex-start; min-inline-size: 11rem; }
+.ex-note textarea {
+  flex: 1; min-inline-size: 7rem; resize: vertical; font: inherit; font-size: .78rem;
+  padding: .3rem .4rem; border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink);
+}
 
 .ex-gate { max-inline-size: 30rem; margin: 1rem auto; text-align: center; padding: 1.6rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
 .ex-gate h2 { margin: 0 0 .3rem; }

@@ -60,8 +60,21 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                   {% comment %} ثلاثةُ أفعالٍ كـ v1، أيقونةٌ ونصٌّ معاً: الإقرار/
                      الباركود · رفع الموقّع · تعديل بيانات المستلِم. {% endcomment %}
                   <a class="ex-act" href="{% url 'console:exit-declaration' car.pk %}" target="_blank">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1M7 15h10v6H7z"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.declaration %}
                     <span>الإقرار/الباركود</span></a>
+                  {% if car.exit_order.stage == 'created' or car.exit_order.stage == 'sent_to_gate' %}
+                    {% comment %} حتى البوّابة وحدها: بعدها خرجت السيارةُ فعلاً
+                       ونوعُ خروجها قد وجّهها، فتغييرُه لاحقاً يعيد كتابةَ ما
+                       حدث. {% endcomment %}
+                    <button type="button" class="ex-act ex-act--papers"
+                            data-exit-papers
+                            data-action="{% url 'console:exit-upload' car.exit_order.pk %}"
+                            data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}"
+                            data-type="{{ car.exit_order.exit_type }}"
+                            data-reason="{{ car.exit_order.exit_reason }}">
+                      {% include "console/_act_icon.html" with path=row_icons.papers %}
+                      <span>رفع الموقّع</span></button>
+                  {% endif %}
                   <button type="button" class="ex-act ex-act--edit"
                           data-exit-edit
                           data-pk="{{ car.exit_order.pk|unlocalize }}"
@@ -70,13 +83,13 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                           data-id="{{ car.exit_order.recipient_id }}"
                           data-phone="{{ car.exit_order.recipient_phone|unlocalize }}"
                           data-decl="{{ car.exit_order.declaration_date|date:'Y-m-d' }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8a2.8 2.8 0 0 0-4-4L4 16zM14 6l4 4"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.edit %}
                     <span>تعديل</span></button>
                 {% else %}
                   <button type="button" class="ex-act ex-act--create" data-exit-create
                           data-action="{% url 'console:exit-create' car.pk %}"
                           data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.create %}
                     <span>إنشاء الخروج</span></button>
                 {% endif %}
               </td>
@@ -95,24 +108,52 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
     {% if follow %}
       <div class="scroller">
         <table>
-          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>إجراءات</th></tr></thead>
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>الغرض / الحالة</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>ملاحظات المتابعة</th><th>إجراءات</th></tr></thead>
           <tbody>
             {% for o in follow %}
-              <tr>
+              {% comment %} لونُ الصفّ من درجة التأخّر، ومن الحظر قبلها: صفٌّ
+                 محظورٌ يُقرأ قبل أن يُقرأ مؤقّتُه، لأن متابعتَه شيءٌ آخر. {% endcomment %}
+              <tr class="ex-row" data-late="{{ o.timer.2|unlocalize }}"{% if o.is_banned %} data-ban="1"{% endif %}>
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
                 <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
                 <td class="mono">{{ o.vehicle.awarded_to.phone|default:"—"|unlocalize }}</td>
+                <td><span class="pill" data-tone="{{ o.purpose.1 }}">{{ o.purpose.0 }}</span></td>
                 <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
-                <td class="count">{% if o.days_out is not None %}{{ o.days_out|unlocalize }} يوم{% else %}—{% endif %}</td>
-                <td><a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a></td>
-                <td class="actions actions--nowrap">
-                  <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
+                <td><span class="pill" data-tone="{{ o.timer.1 }}">{{ o.timer.0 }}</span></td>
+                <td class="ex-files">
+                  <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
+                  {% if o.declaration_file %}<a class="btn-sm" href="{{ o.declaration_file.url }}" target="_blank">الموقّع</a>{% endif %}
+                  {% if o.transfer_proof_file %}<a class="btn-sm" href="{{ o.transfer_proof_file.url }}" target="_blank">إثبات النقل</a>{% endif %}
+                </td>
+                <td>
+                  {% comment %} الملاحظةُ تُحفَظ بزرّها لا بمغادرة الخانة: حفظٌ
+                     تلقائيٌّ عند كلّ ضغطةِ مفتاحٍ يعني طلبَ شبكةٍ لكلّ حرف،
+                     وحفظٌ عند `blur` يضيع إن أُغلق اللسان. {% endcomment %}
+                  <form method="post" action="{% url 'console:exit-note' o.pk %}" class="ex-note">
                     {% csrf_token %}<input type="hidden" name="tab" value="follow">
-                    <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
-                    <button type="submit" class="btn-primary-sm">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد النقل</button>
+                    <textarea name="notes" rows="1" placeholder="اكتب ملاحظة…">{{ o.notes }}</textarea>
+                    <button type="submit" class="btn-sm">حفظ</button>
                   </form>
+                </td>
+                <td class="actions actions--nowrap">
+                  {% if o.is_banned %}
+                    {% comment %} المحظورةُ لها فعلٌ واحد: رفعُ الحظر. و«تأكيد
+                       النقل» يُحجب عنها لا يُعرَض معطَّلاً — زرٌّ يُضغَط فيرفض
+                       يُعلّم الموظّفَ أن الشاشة تكذب. {% endcomment %}
+                    <form method="post" action="{% url 'console:exit-lift-ban' o.pk %}" class="ex-inline">
+                      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+                      <button type="submit" class="btn-danger-sm">تم رفع الحظر</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
+                      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+                      <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
+                      <button type="submit" class="btn-primary-sm">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد النقل</button>
+                    </form>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}
@@ -139,8 +180,9 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                 <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
                 <td>{{ o.warehouse_exit_at|date:"Y-m-d"|default:"—" }}</td>
                 <td>{{ o.transfer_at|date:"Y-m-d"|default:"—" }}</td>
-                <td>
+                <td class="ex-files">
                   <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
+                  {% if o.declaration_file %}<a class="btn-sm" href="{{ o.declaration_file.url }}" target="_blank">الموقّع</a>{% endif %}
                   {% if o.transfer_proof_file %}<a class="btn-sm" href="{{ o.transfer_proof_file.url }}" target="_blank">إثبات النقل</a>{% endif %}
                 </td>
               </tr>
@@ -165,6 +207,48 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       <label>صورة الهوية<input type="file" name="recipient_id_image" accept="image/*"></label>
       <p class="modal__buttons">
         <button type="submit" class="btn-primary">إنشاء وطباعة الإقرار</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── نافذةُ أوراق الخروج: نوعٌ وسببٌ وإقرارٌ موقّع → البوابة ───────── #}
+  <dialog class="modal" data-exit-papers-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-papers-form>
+      {% csrf_token %}<input type="hidden" name="tab" value="create">
+      <h2>رفع المستند الموقّع</h2>
+      <p class="muted" data-f="car"></p>
+
+      <fieldset class="ex-choice">
+        <legend>نوع الخروج</legend>
+        {% for value, label in exit_types %}
+          <label class="ex-choice__opt">
+            <input type="radio" name="exit_type" value="{{ value }}" data-f="type" required>
+            <span>{{ label }}{% if value == after_transfer %} ← الأرشيف{% else %} ← متابعة النقل{% endif %}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      {% comment %} سببُ الخروج لا يُسأل عن المنقولة سلفاً — يُخفى ويُنزَع
+         `required` معاً، فحقلٌ مخفيٌّ وهو `required` يمنع الإرسال بلا أن يُرى
+         سببُ المنع. و`{# … #}` لا يصلح هنا: تعليقُ جانغو القصير **سطرٌ واحد**،
+         وما امتدّ منه إلى سطرٍ ثانٍ يُطبَع في الصفحة كما هو — ظهر في النافذة
+         نصّاً عربياً بين مجموعتي الاختيار. {% endcomment %}
+      <fieldset class="ex-choice" data-f="reasonBox">
+        <legend>سبب الخروج</legend>
+        {% for value, label in exit_reasons %}
+          <label class="ex-choice__opt">
+            <input type="radio" name="exit_reason" value="{{ value }}" data-f="reason">
+            <span>{{ label }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <label>صورة الإقرار / الخروج الموقّع<input type="file" name="signed" accept="image/*,application/pdf" capture="environment"></label>
+      <label data-f="proofBox">صورة إثبات نقل الملكية<input type="file" name="proof" accept="image/*,application/pdf" capture="environment" data-f="proof"></label>
+
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">حفظ وإرسال للبوابة</button>
         <button type="button" data-close>إلغاء</button>
       </p>
     </form>
@@ -245,6 +329,39 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       eForm.querySelector('[data-f=phone]').value = btn.getAttribute('data-phone') || '';
       eForm.querySelector('[data-f=decl]').value = btn.getAttribute('data-decl') || '';
       eDlg.showModal();
+    });
+  });
+
+  // نافذةُ الأوراق: النوعُ يُظهر أحدَ حقلين ويُخفي الآخر، كـ v1.
+  var pDlg = document.querySelector('[data-exit-papers-dialog]');
+  var pForm = pDlg && pDlg.querySelector('[data-exit-papers-form]');
+  var AFTER = '{{ after_transfer }}';
+  function papersSync() {
+    var picked = pForm.querySelector('input[name=exit_type]:checked');
+    var after = picked && picked.value === AFTER;
+    pForm.querySelector('[data-f=reasonBox]').hidden = !!after;
+    pForm.querySelector('[data-f=proofBox]').hidden = !after;
+    // `required` يتبع الظهور: المخفيُّ لا يُطالَب به، والظاهرُ يُطالَب.
+    pForm.querySelectorAll('[data-f=reason]').forEach(function (r) { r.required = !after; });
+    pForm.querySelector('[data-f=proof]').required = !!after;
+  }
+  if (pForm) {
+    pForm.querySelectorAll('[data-f=type]').forEach(function (el) {
+      el.addEventListener('change', papersSync);
+    });
+  }
+  document.querySelectorAll('[data-exit-papers]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      pForm.setAttribute('action', btn.getAttribute('data-action'));
+      pForm.reset();
+      pForm.querySelector('[data-f=car]').textContent = btn.getAttribute('data-car') || '';
+      // أمرٌ رُفعت أوراقُه وأُعيد فتحُه: يُستعاد اختيارُه لا يُعاد من الصفر.
+      var t = btn.getAttribute('data-type');
+      var r = btn.getAttribute('data-reason');
+      if (t) { var ti = pForm.querySelector('[name=exit_type][value="' + t + '"]'); if (ti) ti.checked = true; }
+      if (r) { var ri = pForm.querySelector('[name=exit_reason][value="' + r + '"]'); if (ri) ri.checked = true; }
+      papersSync();
+      pDlg.showModal();
     });
   });
 

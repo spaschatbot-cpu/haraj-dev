@@ -21,7 +21,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.auctions import exits as exit_services
-from apps.auctions.exits import ExitStage, VehicleExit
+from apps.auctions.exits import ExitReason, ExitStage, ExitType, VehicleExit
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
 from apps.core import audit
@@ -111,6 +111,12 @@ def vehicle_exit(request):
             "follow": follow,
             "archive": archive,
             "export_url": f"?export=xlsx&q={q}",
+            # مفرداتُ النوع والسبب من التعداد لا من القالب: خانةٌ تُكتب بيدها
+            # في HTML تنجو من أي تغييرٍ في الموديل بلا أن تشتكي، فتُرسل قيمةً
+            # يردّها `set_papers` ولا يفهم المستخدمُ لماذا.
+            "exit_types": ExitType.choices,
+            "exit_reasons": ExitReason.choices,
+            "after_transfer": ExitType.AFTER_TRANSFER.value,
             "counts": {
                 "create": Vehicle.objects.filter(
                     state__in=EXITABLE, exit_order__isnull=True
@@ -129,6 +135,16 @@ def vehicle_exit(request):
                 "gate": path_of("gate"),
             },
             "confirm_icon": path_of("check"),
+            # رسومُ أفعال الصفّ — من `icons.py` لا مسارات `d` مكتوبةً بيدٍ في
+            # القالب. كانت الثلاثةُ الأولى مرسومةً هناك سطراً سطراً، فخرجت
+            # بسماكاتٍ وزوايا لا تشبه بقيّة اللوحة (T837: ما يجعلها مجموعةً
+            # واحدة هو التطابقُ في السُمك لا التشابهُ في الموضوع).
+            "row_icons": {
+                "declaration": path_of("printer"),
+                "papers": path_of("upload"),
+                "edit": path_of("pencil-line"),
+                "create": path_of("exit-door"),
+            },
         },
     )
 
@@ -142,7 +158,6 @@ def exit_create(request, pk: int):
         order = exit_services.create_exit(
             vehicle,
             actor=request.user,
-            exit_reason=request.POST.get("exit_reason", "").strip(),
             recipient_name=request.POST.get("recipient_name", "").strip(),
             recipient_id=request.POST.get("recipient_id", "").strip(),
             recipient_phone=request.POST.get("recipient_phone", "").strip(),
@@ -201,13 +216,20 @@ def exit_gate(request):
         action="console.exit_gate_confirm",
         entity=order.vehicle,
         actor=request.user,
-        after={"barcode": order.barcode},
+        after={"barcode": order.barcode, "routed": order.stage},
         note="تأكيد الخروج من البوابة",
+    )
+    # الوجهةُ تُقال في الرسالة: حارسُ البوّابة يمسح ثم يرفع بصره، والسطرُ هو
+    # كلُّ ما يخبره أذهبت السيارةُ إلى الأرشيف أم إلى طابور المتابعة.
+    where = (
+        "أُرشِف مباشرةً (خروجٌ بعد النقل)"
+        if order.stage == ExitStage.ARCHIVED
+        else "صار قيد متابعة النقل"
     )
     messages.success(
         request,
         f"أُكِّد خروجُ {order.vehicle.make} {order.vehicle.model} (لوت "
-        f"{order.vehicle.lot_number}) — صار قيد متابعة النقل.",
+        f"{order.vehicle.lot_number}) — {where}.",
     )
     return redirect(_back(request))
 
@@ -246,23 +268,39 @@ def exit_lift_ban(request, pk: int):
 
 
 def exit_upload(request, pk: int):
-    """رفعُ الإقرار الموقّع — يُخزَّن في `declaration_file`. نظيرُ «📎 رفع الموقّع»."""
+    """أوراقُ الخروج: نوعٌ وسببٌ وإقرارٌ موقّع — ثم إلى البوابة. نظيرُ «رفع الموقّع».
+
+    كانت تحفظ الملفَّ وحده، فلا يُكتب نوعُ خروجٍ أبداً وتوجيهُ البوابة معطَّل.
+    والتحقّقُ كلُّه في `apps.auctions.exits.set_papers` — الكاتبُ الواحد — وهنا
+    عرضُ سببِ الرفض لا تكرارُ شروطه.
+    """
     if not _guard(request):
         return redirect("console:vehicle-exit")
     order = get_object_or_404(VehicleExit.objects.select_related("vehicle"), pk=pk)
-    signed = request.FILES.get("signed")
-    if signed is None:
-        messages.error(request, "لم يُختَر ملفّ.")
+    try:
+        exit_services.set_papers(
+            order,
+            exit_type=(request.POST.get("exit_type", "") or "").strip(),
+            exit_reason=(request.POST.get("exit_reason", "") or "").strip(),
+            signed=request.FILES.get("signed"),
+            proof=request.FILES.get("proof"),
+        )
+    except ValueError as why:
+        messages.error(request, str(why))
         return redirect(_back(request))
-    order.declaration_file = signed
-    order.save(update_fields=["declaration_file", "updated_at"])
+
     audit.record(
         action="console.exit_upload_signed",
         entity=order.vehicle,
         actor=request.user,
-        note="رفع الإقرار الموقّع",
+        after={"exit_type": order.exit_type, "exit_reason": order.exit_reason},
+        note="أوراق الخروج والإرسال إلى البوابة",
     )
-    messages.success(request, "رُفع الإقرار الموقّع.")
+    messages.success(
+        request,
+        f"حُفظت أوراقُ الخروج ({order.get_exit_type_display()}) — "
+        f"الباركود {order.barcode} بانتظار البوابة.",
+    )
     return redirect(_back(request))
 
 
