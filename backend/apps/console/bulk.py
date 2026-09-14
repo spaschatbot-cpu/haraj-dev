@@ -307,12 +307,44 @@ def quick_edit(request):
     )
 
 
+#: سقفُ العدّاد. `odometer_km` عمودُ `PositiveIntegerField` أي `integer` في
+#: بوستجرس، وسقفُه ٢٬١٤٧٬٤٨٣٬٦٤٧ — وما فوقه **`DataError` غيرُ ملتقَط**: قِيس
+#: بإرسال `99999999999999` فخرج **٥٠٠** وصفحةُ خطأٍ من HTML، والجافاسكربت
+#: يحاول `r.json()` عليها فيسقط في `catch` ويقول «تعذّر الاتصال» — وهي كذبة،
+#: فالاتصالُ سليمٌ والخادمُ هو الذي انكسر.
+#:
+#: والرقمُ المكتوب هنا **ليس سقفَ العمود** بل سقفٌ يعنيه الواقع: عشرةُ ملايين
+#: كيلومتر أكثرُ مما تمشيه سيّارةٌ بمراحل، وما فوقه خطأُ إدخالٍ لا قياس. ورفضُه
+#: برسالةٍ يُقرأ، وقبولُه ثم الانهيارُ عند سقف العمود لا يُقرأ.
+ODOMETER_MAX = 10_000_000
+
+#: طولُ `runs_status` و`key_status` في النموذج (`max_length=100`). الحقلان نصٌّ
+#: حرّ، ولا شيء كان يقصّهما قبل `save` — فـ٢٠٠ حرفٍ في «أخرى» يخرج **٥٠٠**
+#: و`DataError`، وقد قِيس. والرفضُ هنا لا القصُّ: قصُّ ما كتبه الموظّف صامتاً
+#: يكتب في القاعدة غيرَ ما رآه على الشاشة.
+FREE_TEXT_MAX = 100
+
+
 def vehicle_quick_update(request, pk: int):
     """حفظُ سيارةٍ واحدة من كارت التعديل السريع — نظيرُ `quickUpdateVehicle` في v1.
 
     يُستدعى بـAJAX (حفظٌ تلقائيٌّ لكل كارت). يكتب ما أُرسل فقط، ويتخطّى
     الفارغَ كي لا يمحو قيمةً قائمة — كقاعدة v1 نفسِها. وكلُّ تغييرٍ قيدٌ يحمل
     القيمة قبلُ وبعد. وصورةُ العدّاد تدخل معرضَ السيارة عبر الخدمة المُعقَّمة.
+
+    والمركبةُ تُقيَّد بمزادها المفتوح
+    ================================
+    v1 يأخذ المزادَ والمركبةَ معاً في المسار
+    (`/auctions/{aid}/vehicles/{vid}/quick-update`) ويرفض ٤٠٤ إن لم يكونا
+    زوجاً (`AuctionController.php:4913` → `findAuctionVehicle`). وهذا المسارُ
+    أسقط المزادَ من العنوان فأسقط معه الشرط: `pk` وحدَه كان يفتح **أيَّ مركبةٍ
+    في القاعدة** — قِيس في ١٤ سبتمبر ٢٠٢٦ بإرسال قيمةٍ مساويةٍ إلى المركبة
+    ١٢٨٠٥ (مزاد ١٠١٧ **المنتهي**) فردَّ «لا تغيير» ٤٢٢ لا ٤٠٤، أي أنه وجدها
+    وقارن. وتغييرُ رقمٍ في الطلب كان يكفي لتعديل عدّادِ سيّارةٍ في مزادٍ آخر،
+    والعدّادُ يغيّر سعرَها.
+
+    فالمزادُ يُرسَل في الجسد (`auction`، برقمه كما في الشاشة) ويُطابَق. وهو
+    شرطُ v1 نفسُه، مكتوباً حيث يقدر هذا المسارُ أن يكتبه.
     """
     if not request.user.is_authenticated or not can(
         request.user, Capability.AUCTIONS_MANAGE
@@ -321,23 +353,45 @@ def vehicle_quick_update(request, pk: int):
     if request.method != "POST":
         return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)
 
-    car = get_object_or_404(Vehicle.objects.all(), pk=pk)
+    car = get_object_or_404(Vehicle.objects.select_related("auction"), pk=pk)
+
+    # الزوجُ (مزاد، مركبة) كما يتحقّق منه v1. والرقمُ هو ما تحمله الشاشةُ في
+    # `data-auction`، فلا يُطلب من الجافاسكربت أن يعرف `pk` لا يراه.
+    wanted = (request.POST.get("auction") or "").strip()
+    if not wanted.isdigit() or int(wanted) != car.auction.number:
+        return JsonResponse(
+            {"ok": False, "message": "هذه المركبة ليست في المزاد المفتوح."},
+            status=404,
+        )
+
     changes: dict[str, tuple] = {}
 
-    # العدّاد — رقمٌ صحيحٌ غير سالب، أو فراغٌ يعني «لم يُقَس».
+    # العدّاد — رقمٌ صحيحٌ غير سالب ودون السقف. والفارغُ **يُترك** كما في v1
+    # (`if ($mileage !== '')`, `AuctionController.php:4929`): كان الفراغُ يمحو
+    # القيمةَ القائمة، والحفظُ تلقائيٌّ بعد ٩٠٠ مللي من آخر ضغطةِ مفتاح — فمسحُ
+    # الخانة لإعادة كتابتها كان يكفي لمحو قياسٍ من الساحة بلا سؤال، وقيدُ
+    # التدقيق يشهد: `odometer_km: 5 ← None`. ومَن أراد محوَ قراءةٍ خاطئة
+    # فبابُه صفحةُ المركبة، لا خانةٌ تُفرَّغ سهواً.
     if "odometer_km" in request.POST:
         raw = request.POST.get("odometer_km", "").strip()
-        if raw == "":
-            new_odo = None
-        elif raw.isdigit():
+        if raw != "":
+            if not raw.isdecimal():
+                return JsonResponse(
+                    {"ok": False, "message": "العدّاد يجب أن يكون رقماً صحيحاً."},
+                    status=422,
+                )
             new_odo = int(raw)
-        else:
-            return JsonResponse(
-                {"ok": False, "message": "العدّاد يجب أن يكون رقماً صحيحاً."}, status=422
-            )
-        if new_odo != car.odometer_km:
-            changes["odometer_km"] = (car.odometer_km, new_odo)
-            car.odometer_km = new_odo
+            if new_odo > ODOMETER_MAX:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "message": f"العدّاد أكبر من المعقول (السقف {ODOMETER_MAX:,}).",
+                    },
+                    status=422,
+                )
+            if new_odo != car.odometer_km:
+                changes["odometer_km"] = (car.odometer_km, new_odo)
+                car.odometer_km = new_odo
 
     # رقم الموقف — لوتٌ موجب. الفارغُ يُترك، فلا يُمحى موقفٌ قائم.
     if "lot_number" in request.POST:
@@ -366,10 +420,19 @@ def vehicle_quick_update(request, pk: int):
                 changes[field] = (getattr(car, field), val)
                 setattr(car, field, val)
 
-    # حالة المحرك والمفتاح — نصٌّ حرٌّ في v2؛ الفارغُ لا يمحو.
+    # حالة المحرك والمفتاح — نصٌّ حرٌّ في v2؛ الفارغُ لا يمحو، والطويلُ يُردّ
+    # برسالةٍ لا بـ`DataError` من القاعدة.
     for field in ("runs_status", "key_status"):
         if field in request.POST:
             val = request.POST.get(field, "").strip()
+            if len(val) > FREE_TEXT_MAX:
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "message": f"النصّ أطولُ من {FREE_TEXT_MAX} حرفاً.",
+                    },
+                    status=422,
+                )
             if val and val != getattr(car, field):
                 changes[field] = (getattr(car, field), val)
                 setattr(car, field, val)

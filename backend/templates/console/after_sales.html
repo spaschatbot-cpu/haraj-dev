@@ -9,9 +9,16 @@
 `data-*`، وأيقونةُ الفاتورة تفتحها في `<dialog>` — والمتصفّح يحبس التركيز
 ويُغلق بـEscape ويُعتم الخلف بلا سطرِ جافاسكربت لكلٍّ منها.
 
-**وv1 يجلب النافذة من الخادم** (`fetch` لكل ضغطة على «عرض»). وهذه بيانات
-الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا صفحةُ خطأٍ داخل
-نافذة.
+**وv1 يفتح صفحةً أخرى.** كُتب هنا مرّةً أنه «يجلب النافذة بـ`fetch`»، وكُتب في
+الجافاسكربت أنه «`iframe` من `/invoice?inv=…`» — **ولا واحدةَ منهما صحيحة**،
+ولا وجود لذلك المسار أصلاً. المقروءُ في `D:\haraj 1\applicationtest`: زرُّ
+«عرض» في `admin3/bills/check.php:124` و`admin3/bills/invoices_list_ajax.php:181`
+وسمٌ `<a href="invoice_view.php?id=…" target="_blank">` — **تبويبٌ جديدٌ يفقد
+الموظّفُ معه صفحتَه ومرشّحاتِه**؛ و`admin3/view/index.php:94-109` وحدَه يحمّل
+`get_invoice_by_auction.php?id=` في نافذةٍ برحلةِ خادمٍ لكل ضغطة.
+
+وهذه بياناتُ الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا
+تبويبٌ يضيع فيه ما كان على الشاشة.
 
 **والصورةُ عمودٌ لأنه يُسأل عنه:** «السيارة البيضا اللي في مزاد ٥٠» جملةٌ
 تُقال في الهاتف، والصورةُ تُجيبها في نظرة. ومصدرُها غلافُ المركبة باستعلامٍ
@@ -123,8 +130,10 @@
             </td>
             <td>
               {% comment %} المركبةُ نصٌّ لا رابط بطلب المالك — الضغطُ عليها
-                 لا يفتح صفحة. وأيقونةُ «فتح ملفّ المركبة» في عمود «عرض» تفعله
-                 صراحةً لمن أراد. {% endcomment %}
+                 لا يفتح صفحة. وكان مكتوباً هنا أن «أيقونة فتح ملفّ المركبة في
+                 عمود عرض تفعله صراحةً»، **والأيقونةُ أُزيلت** بطلب المالك ولا
+                 وجود لها — فلا تُفتح صفحةُ مركبةٍ من هذه الشاشة أصلاً.
+              {% endcomment %}
               <span>{{ row.make }} {{ row.model }}</span>
               {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
             </td>
@@ -153,8 +162,9 @@
             <td><span class="tnum code-font">{{ row.claim_number|default:"—" }}</span></td>
             <td>
               {% comment %} اسمُ المشتري نصٌّ لا رابط — بطلب المالك: الضغطُ
-                 عليه لا يفتح صفحةً. ومن أراد ملفَّ المشتري فأيقونةُ «فتح ملفّ
-                 المشتري» في عمود «عرض» تفعله صراحةً. {% endcomment %}
+                 عليه لا يفتح صفحةً. وكان مكتوباً هنا أن «أيقونة فتح ملفّ
+                 المشتري في عمود عرض تفعله»، **وقد أُزيلت** معها — فلا يُفتح
+                 ملفُّ مشترٍ من هذه الشاشة. {% endcomment %}
               {% if row.awarded_to %}
                 <span>{{ row.awarded_to.full_name }}</span>
                 <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
@@ -164,9 +174,10 @@
             </td>
             <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
             <td>
-              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك. وتفاصيلُها
-                 في سند الدفع (أيقونة «عرض»)، ومنه زرُّ «فتح الفاتورة» صراحةً.
-              {% endcomment %}
+              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك، وتفاصيلُها
+                 في سند الدفع (أيقونة «عرض»). وكان مكتوباً أن في السند «زرَّ
+                 فتح الفاتورة» — **ولا زرَّ هناك**: لا تُفتح صفحةٌ من هذه
+                 الشاشة إلا السند نفسه. {% endcomment %}
               {% if row.invoice_number %}
                 <span class="tnum code-font">{{ row.invoice_number }}</span>
               {% else %}
@@ -175,7 +186,11 @@
             </td>
             <td>
               {% if row.invoice_number %}
-                <span class="pill" data-tone="{% if row.invoice_state == 'paid' %}ok{% elif row.invoice_state == 'cancelled' %}bad{% elif row.invoice_state == 'partial' %}warn{% else %}plain{% endif %}">{{ row.invoice_label }}</span>
+                {% comment %} النغمةُ من `tones.py` عبر `row.invoice_tone`، لا
+                   سلسلةَ `{% if %}` هنا: تلك كانت تعطي «مستحقة» رماديّاً
+                   محايداً بينما الخريطةُ الواحدة تقول `warn`، فتبدو فاتورةٌ
+                   لم يصلها ريالٌ أهدأَ من فاتورةٍ وصل نصفُها. {% endcomment %}
+                <span class="pill" data-tone="{{ row.invoice_tone }}">{{ row.invoice_label }}</span>
               {% else %}
                 <span class="empty">بلا فاتورة بعد</span>
               {% endif %}
@@ -200,8 +215,14 @@
                         data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
                         data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
                         data-number="{{ row.invoice_number }}"
-                        data-href="{% url 'console:invoice-detail' row.invoice_pk %}"
+                        {% comment %} `data-href` كانت هنا برابط صفحة الفاتورة،
+                           **ولا عنصرَ في السند يقرؤها** — والجافاسكربت يبحث عن
+                           `[data-inv-href]` فلا يجده ويمضي. رابطٌ يُبنى لكل
+                           صفٍّ في كل تحميل ولا يُعرَض، وتعليقٌ يَعِد بزرٍّ لا
+                           وجود له. حُذف الاثنان؛ ويوم يُقرّر المالك فتحَ صفحة
+                           الفاتورة من هنا يُضاف الزرُّ ومعه رابطُه. {% endcomment %}
                         data-state="{{ row.invoice_label }}"
+                        data-tone="{{ row.invoice_tone }}"
                         data-source="{{ row.invoice_source_label }}"
                         data-odoo="{{ row.invoice_odoo|default:'—' }}"
                         data-odoo-url="{{ row.odoo_invoice_url }}"
@@ -231,11 +252,12 @@
 {% endblock %}
 
 {% block scripts %}
-  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا صفحةٌ في `iframe` كـv1.
+  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا تبويبٌ آخرُ كـv1.
 
-     v1 يفتح `<iframe>` يحمّل صفحةً كاملة من `/invoice?inv=…` (مستند HTML كامل
-     + Bootstrap + رحلةُ خادم) لكل ضغطة. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً،
-     فالنافذةُ تُملأ من `data-*` بلا شبكة — أسرعُ وأبسط.
+     v1 يفتح `invoice_view.php?id=…` في `target="_blank"` (مستند HTML كامل +
+     Bootstrap + رحلةُ خادم) لكل ضغطة على «عرض»، فيخرج الموظّفُ من جدوله
+     ومرشّحاتِه. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً، فالنافذةُ تُملأ من
+     `data-*` بلا شبكة — أسرعُ، والجدولُ يبقى خلفها.
 
      **وبحقولنا نحن لا حقول v1.** سندُ v1 يعرض «قيمة المركبة» و«رسوم إدارية»
      مقسومتين، وفاتورتُنا تخزّن `amount` واحداً (الإجمالي) — فلا نخترع تقسيماً
@@ -311,5 +333,5 @@
   {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
      نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —
      وهو ما حدث. يُزاد الرقمُ مع كل تعديلٍ في الملفّ. {% endcomment %}
-  <script src="{% static 'console/after_sales.js' %}?v=3" defer></script>
+  <script src="{% static 'console/after_sales.js' %}?v=4" defer></script>
 {% endblock %}

@@ -28,7 +28,15 @@
 {% endblock %}
 
 {% block content %}
-<div class="qe" data-auction="{{ auction.number|unlocalize }}" data-csrf="{{ csrf_token }}">
+{% comment %} و`data-save-url` لأن الجافاسكربت كان يبني المسارَ بيده:
+   `'/console/vehicles/' + vid + '/quick-update/'`. و`console/` هنا هو
+   `APP_BASE` — إعدادٌ متغيّرٌ (`settings.APP_BASE`)، وُضع أصلاً لأن «لوحات v1
+   كانت تكتب بادئتَها بأحرفها» (`config/urls.py:45`). فالسطرُ كان يعيد العطلَ
+   الذي وُضع الإعدادُ لمنعه: تغييرُ `APP_BASE` يترك الصفحةَ تُفتح والحفظَ
+   يُصيب ٤٠٤. والعنوانُ يأتي من `{% templatetag openblock %} url {% templatetag closeblock %}` كبقيّة روابط اللوحة —
+   و`0` موضعٌ يُستبدَل، لأن `{% templatetag openblock %} url {% templatetag closeblock %}` تحتاج رقماً تبنيه به. {% endcomment %}
+<div class="qe" data-auction="{{ auction.number|unlocalize }}" data-csrf="{{ csrf_token }}"
+     data-save-url="{% url 'console:vehicle-quick-update' 0 %}">
   <div class="qe__bar">
     <p class="qe__hint">عدّل رقم الموقف والعدّاد والمواصفات مباشرةً. الحفظُ تلقائيّ — كلُّ تعديلٍ يُسجَّل وحده، والعلامةُ جوار الاسم توضّح الحالة.</p>
     <div class="qe__tools">
@@ -82,6 +90,8 @@
   if (!root) return;
   var auction = root.dataset.auction;
   var csrf = root.dataset.csrf;
+  // `…/vehicles/0/quick-update/` من `{% templatetag openblock %} url {% templatetag closeblock %}`، و`0` هو موضعُ المعرّف.
+  var SAVE_URL = root.dataset.saveUrl || '';
   var list = document.getElementById('qeList');
   if (!list) return;
 
@@ -354,7 +364,16 @@
   }
 
   // ── حفظُ كارت ────────────────────────────────────────────────────────────
-  function saveCard(card, silent) {
+  //
+  // يُرجع `'saved'` أو `'nochange'` أو `'failed'` — لا `true`/`false`. ولماذا
+  // ثلاثةٌ لا اثنان: الخادمُ يردّ **٤٢٢ «لا تغيير»** على كارتٍ لم يُمَسّ (وهو
+  // عقدُ v1 نفسُه، `422 NOTHING_TO_UPDATE`)، وكان يُحسب فشلاً. فيقع أمران معاً
+  // في «حفظ كل الظاهر» على مزادٍ لم يُعدَّل فيه شيء:
+  //   * كلُّ كارتٍ يلبس علامةً حمراء `aria-label="فشل الحفظ"`، و
+  //   * الرسالةُ تقول «حُفظ ٠ وفشل ٣٨٦».
+  // ولا شيء فشل؛ لم يكن ثمّة ما يُحفَظ. وشاشةٌ تقول للموظّف إن ٣٨٦ سيارةً فشلت
+  // وهي سليمة تُعلّمه أن يتجاهل علامةَ الخطأ — فحين تفشل واحدةٌ حقاً لا يراها.
+  function saveCard(card, silent, unloading) {
     var vid = card.dataset.vid;
     var lot = card.querySelector('[data-field=lot_number]').value.trim();
     var odo = card.querySelector('[data-field=odometer_km]').value.trim();
@@ -364,6 +383,9 @@
     var btn = card.querySelector('[data-save]');
 
     var fd = new FormData();
+    // المزادُ مع كلّ حفظ: الخادمُ يرفض المركبةَ التي ليست فيه — شرطُ v1
+    // (`findAuctionVehicle($auctionId, $vehicleId)`).
+    fd.append('auction', auction);
     fd.append('lot_number', lot);
     fd.append('odometer_km', odo);
     ['plate_type', 'fuel_type', 'condition', 'runs_status', 'key_status'].forEach(function (f) {
@@ -374,11 +396,32 @@
 
     if (status) status.innerHTML = '<span class="qe-spin"></span>';
     if (btn) btn.disabled = true;
-    return fetch('/console/vehicles/' + vid + '/quick-update/', {
+    return fetch(SAVE_URL.replace(/0\/quick-update\/$/, vid + '/quick-update/'), {
       method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-CSRFToken': csrf },
-    }).then(function (r) { return r.json().then(function (d) { return { s: r.status, d: d }; }); })
+      keepalive: !!unloading,
+    }).then(function (r) {
+      // ردٌّ ليس JSON يعني صفحةَ خطأٍ من HTML (٥٠٠، أو ٤٠٣ من CSRF). و`r.json()`
+      // عليها يرمي، وكان الرميُ يسقط في `catch` فيقول «تعذّر الاتصال» — والاتصالُ
+      // سليم. فتُقرأ الحالةُ ويُقال ما جرى.
+      return r.text().then(function (body) {
+        var d = null;
+        try { d = JSON.parse(body); } catch (e) { d = null; }
+        return { s: r.status, ok: r.ok, d: d };
+      });
+    })
       .then(function (res) {
         var d = res.d;
+        if (!d) {
+          setMark(status, 'err');
+          toast('عطلٌ في الخادم (' + res.s + ') — لم يُحفَظ. أعِد المحاولة.', 'err');
+          return 'failed';
+        }
+        // «لا تغيير» ليست فشلاً: لم يكن ثمّة ما يُكتب.
+        if (!d.ok && res.s === 422 && d.message === 'لا تغيير.') {
+          if (status) { status.innerHTML = ''; status.removeAttribute('role'); status.removeAttribute('aria-label'); }
+          if (!silent) toast('لا تغيير في هذا الكارت.', 'warn');
+          return 'nochange';
+        }
         if (d && d.ok) {
           var gotImage = file && d.image_id;
           setMark(status, gotImage ? 'saved_img' : 'ok');
@@ -399,15 +442,18 @@
           if (d.image_error) toast('حُفظت البيانات، لكن الصورة رُفضت: ' + d.image_error, 'warn');
           else if (!silent) toast(gotImage ? 'حُفظ ورُفعت صورة العدّاد' : 'حُفظ', 'ok');
           setTimeout(function () { card.classList.remove('qe-card--saved'); }, 1400);
-          return true;
+          return 'saved';
         }
+        // رفضٌ حقيقيّ (عدّادٌ غير رقميّ، لوتٌ مستعمَل، نصٌّ أطولُ من الحدّ،
+        // مركبةٌ ليست في هذا المزاد) — يُقال دائماً، حتى في الحفظ التلقائيّ:
+        // إخفاؤه يترك الموظّفَ يظنّ أن ما كتبه وصل.
         setMark(status, 'err');
-        if (res.s !== 422 || !silent) toast((d && d.message) || 'فشل الحفظ', 'err');
-        return false;
+        toast((d && d.message) || 'فشل الحفظ', 'err');
+        return 'failed';
       }).catch(function () {
         setMark(status, 'err');
         toast('تعذّر الاتصال', 'err');
-        return false;
+        return 'failed';
       }).finally(function () { if (btn) btn.disabled = false; });
   }
 
@@ -472,26 +518,47 @@
     var old = saveAll.innerHTML;
     saveAll.innerHTML = '<span class="qe-spin"></span> جارٍ الحفظ…';
     var cards = [].slice.call(list.querySelectorAll('.qe-card:not(.qe-card--off)'));
-    var i = 0, ok = 0, fail = 0;
+    var i = 0, ok = 0, fail = 0, same = 0;
     (function next() {
       if (i >= cards.length) {
         saveAll.disabled = false; saveAll.innerHTML = old;
-        // «حُفظ ٩ وفشل ١» ليست فشلاً: تسعةٌ كُتبت فعلاً. `warn` لا `err`.
-        toast(fail ? ('حُفظ ' + ok + ' وفشل ' + fail) : ('حُفظ ' + ok + ' كارت'), fail ? 'warn' : 'ok');
+        // ثلاثةُ أرقامٍ لا رقمان، لأن للخادم ثلاثةَ ردود. و«لم يتغيّر» يُقال
+        // ولا يُخفى: الموظّفُ الذي ضغط «حفظ كل الظاهر» ينتظر جواباً، و«حُفظ ٠»
+        // وحدَها تُقرأ عطلاً.
+        var parts = [];
+        if (ok) parts.push('حُفظ ' + ok);
+        if (same) parts.push('بلا تغيير ' + same);
+        if (fail) parts.push('فشل ' + fail);
+        toast(parts.join(' · ') || 'لا كروتَ ظاهرة', fail ? 'warn' : 'ok');
         return;
       }
       var card = cards[i++];
-      saveCard(card, true).then(function (r) { r ? ok++ : fail++; next(); });
+      saveCard(card, true).then(function (r) {
+        if (r === 'saved') ok++; else if (r === 'nochange') same++; else fail++;
+        next();
+      });
     })();
   });
 
-  // لا يُفقَد تعديلٌ معلّقٌ لو أُغلقت الصفحة في أثناء المؤقّت.
-  window.addEventListener('beforeunload', function () {
+  // تعديلٌ معلّقٌ في المؤقّت يُدفَع عند إغلاق الصفحة — و`keepalive` هي التي
+  // تجعله يصل. كان هنا `saveCard()` عارياً، و`fetch` بلا `keepalive` **يُلغى
+  // مع الصفحة**: الطلبُ يُقطع قبل أن يبلغ الخادم، فالسطرُ الذي كُتب ليقول «لا
+  // يُفقَد تعديل» كان يفقده. و`keepalive` تُبقي الطلبَ حيّاً بعد التفريغ (بحدّ
+  // ٦٤ ك.ب — وهذه حقولُ نصّ، والصورةُ تُحفظ فورَ اختيارها لا بمؤقّت).
+  //
+  // و`visibilitychange` معه لأن المتصفّحات على الجوّال قد لا تُطلق
+  // `beforeunload` أصلاً حين يُغلَق التبويب — والساحةُ تُصوَّر بالجوّال.
+  function flushPending() {
     timers.forEach(function (t, vid) {
       clearTimeout(t);
       var card = list.querySelector('.qe-card[data-vid="' + vid + '"]');
-      if (card) saveCard(card, true);
+      if (card) saveCard(card, true, true);
     });
+    timers.clear();
+  }
+  window.addEventListener('beforeunload', flushPending);
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flushPending();
   });
 
   buildFilters();

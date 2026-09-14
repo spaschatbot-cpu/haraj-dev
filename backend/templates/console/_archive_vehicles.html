@@ -28,11 +28,26 @@
             {% if car.plate_number %}<span class="chip">{% include "console/_act_icon.html" with path=card_icons.plate %} {{ car.plate_number }}</span>{% endif %}
             <span class="chip">{% include "console/_act_icon.html" with path=card_icons.winner %} {{ car.awarded_to.full_name|default:"بلا فائز" }}</span>
           </div>
+          {% comment %} «الإجمالي» و«المتبقّي» كانا **يُحسبان ويُرميان**: العرضُ
+             يُعلّق `invoice_amount` و`invoice_paid` على كلّ صفّ ثم يُخرج
+             `invoice_residual` من `residual_of` — ولا سطرَ هنا يطبع واحداً
+             منها. وv1 يعرض `الإجمالي` (`inv_total`) في الكارت نفسِه
+             (`archive.php:324`)، فكان استعلامٌ يُدفع ثمنُه وحقلٌ في v1 لا يُرى.
+             و«المتبقّي» يُعرض حين يكون له معنىً فقط: صفرٌ تحت كلّ كارتٍ مسدَّدٍ
+             ضجيجٌ يُخفي الكارتَ الذي عليه باقٍ فعلاً (٣٠٢ فاتورةٍ جزئيّة). {% endcomment %}
           <div class="arch-card__money">
             <div><span class="arch-card__lbl">مبلغ المزايدة</span>
               <strong class="money tnum">{{ car.awarded_price|default:"—"|unlocalize }} ر.س</strong></div>
             <div><span class="arch-card__lbl">رقم الفاتورة</span>
               <strong class="mono">{{ car.invoice_number|default:"—" }}</strong></div>
+            {% if car.invoice_number %}
+              <div><span class="arch-card__lbl">إجمالي الفاتورة</span>
+                <strong class="money tnum">{{ car.invoice_amount|default:"—"|unlocalize }} ر.س</strong></div>
+              {% if car.invoice_residual %}
+                <div><span class="arch-card__lbl">المتبقّي</span>
+                  <strong class="money tnum" data-tone="warn">{{ car.invoice_residual|unlocalize }} ر.س</strong></div>
+              {% endif %}
+            {% endif %}
           </div>
           <div class="arch-card__actions">
             {% comment %} «عرض في Odoo» لكل سيارةٍ لها فاتورة — كـ v1: يربط

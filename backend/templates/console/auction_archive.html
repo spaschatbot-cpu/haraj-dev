@@ -98,12 +98,21 @@
       if (opener) {
         e.preventDefault(); e.stopPropagation();
         fetch(opener.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) { return r.text(); })
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+          })
           .then(function (html) {
             cBody.innerHTML = html; cDialog.showModal();
             cBody.querySelectorAll('[data-bids-close], [data-content-close], [data-close]').forEach(function (el) {
               el.addEventListener('click', function () { cDialog.close(); });
             });
+          })
+          // نافذةٌ لا تُفتح بلا سببٍ مكتوب أسوأُ من نافذةٍ تقول لماذا: كان
+          // الفشلُ صامتاً تماماً — الضغطةُ لا تفعل شيئاً ولا رسالةَ.
+          .catch(function (err) {
+            cBody.textContent = 'تعذّر جلبُ سجلّ المزايدات (' + err.message + ').';
+            cDialog.showModal();
           });
         return;
       }
@@ -124,8 +133,23 @@
       if (open && !loaded) {
         inner.innerHTML = '<p class="muted" style="padding:1rem">…جارٍ التحميل</p>';
         fetch(row.getAttribute('data-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) { return r.text(); })
-          .then(function (html) { inner.innerHTML = html; loaded = true; });
+          // الحالةُ تُقرأ قبل النصّ. كان `r.text()` وحدَه، فردُّ ٤٠٣ أو ٥٠٠
+          // **صفحةُ خطأٍ كاملةٌ من HTML تُحقَن في اللوحة** — `<html>` و`<head>`
+          // داخل `<td>`، ويُعلَّم `loaded = true` فلا تُجرَّب ثانيةً. والموظّفُ
+          // يرى فوضى ولا يعرف أنها رفضُ صلاحية.
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+          })
+          .then(function (html) { inner.innerHTML = html; loaded = true; })
+          .catch(function (err) {
+            inner.innerHTML = '';
+            var p = document.createElement('p');
+            p.className = 'empty';
+            p.style.padding = '1rem';
+            p.textContent = 'تعذّر جلبُ سيارات هذا المزاد (' + err.message + '). أعِد المحاولة.';
+            inner.appendChild(p);
+          });
       }
       panel.hidden = !open;
       row.setAttribute('aria-expanded', open ? 'true' : 'false');

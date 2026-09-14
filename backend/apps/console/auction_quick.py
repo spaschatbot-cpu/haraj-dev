@@ -126,11 +126,16 @@ def _read_window(request, auction: Auction) -> str | None:
 def auction_showcase(request, pk: int):
     """غيّر لافتة المزاد أو حالته من القائمة — نافذةُ «تغيير الحالة».
 
-    **واللافتة غيرُ الحالة**، وهذا الفرق هو ما يجعل النافذة آمنة: «لاحقاً»
-    و«قادم» و«قريباً» ثلاثُ طرقِ عرضٍ لمزادٍ مجدولٍ واحد، فتغييرُها كتابةٌ في
-    `showcase` لا نقلةٌ في آلة الحالات — ولا توقظ تسويةً ولا بوّابة. و«نشط»
-    و«منتهٍ» **نقلتان**، فتمرّان بـ`_mover` — الكاتب نفسه الذي يستعمله زرّ
-    صفحة المزاد، فلا يوجد بابان إلى الحالة.
+    **واللافتة غيرُ الحالة**: «لاحقاً» و«قادم» و«قريباً» ثلاثُ طرقِ عرضٍ لمزادٍ
+    مجدولٍ واحد، فتغييرُها كتابةٌ في `showcase`. و«نشط» و«منتهٍ» **نقلتان**،
+    فتمرّان بـ`_mover` — الكاتب نفسه الذي يستعمله زرّ صفحة المزاد، فلا يوجد
+    بابان إلى الحالة.
+
+    **ولافتةٌ على مسودّة تجدولها أيضاً**، وهذا ليس تفصيلاً: مزادٌ `draft` يمرّ
+    بـ`move_auction(SCHEDULED)` في الفرع نفسِه، فيخضع لحرّاسها — ومزادٌ بلا
+    مركبات يُرَدّ بـ«لا يمكن جدولة مزاد بلا مركبات» ولا تُكتب لافتتُه (قِيس على
+    مزاد ٩٨٦٨ في ١٤ سبتمبر ٢٠٢٦). وكان مكتوباً هنا أن تغيير اللافتة «لا نقلةٌ
+    في آلة الحالات» على إطلاقه — وهو صحيحٌ لمزادٍ مجدولٍ وحده.
     """
     auction = get_object_or_404(Auction.objects.all(), pk=pk)
 
@@ -376,6 +381,27 @@ def auction_end_now(request, pk: int):
     before = audit.snapshot(auction, fields)
     now = timezone.now()
 
+    # **مزادٌ لم يبدأ بعد لا يُنهى الآن**، ويُقال ذلك بجملة.
+    #
+    # التثبيتُ أدناه يكتب `ends_at = now`؛ ومزادٌ بدايتُه في المستقبل يجعل
+    # النهايةَ قبل البداية، فيرفضه قيدُ `auction_ends_after_it_starts` في
+    # القاعدة. وكان `except Exception` وحده تحته، فيخرج نصُّ الخطأ الخام إلى
+    # الموظّف: «new row for relation "auctions_auction" violates check
+    # constraint "auction_ends_after_it_starts"» — قِيس على مزاد ٩٨٦٨ في
+    # ١٤ سبتمبر ٢٠٢٦. ونافذةُ «تغيير الحالة» تُعالج الحالةَ نفسَها وتقول
+    # `_BAD_WINDOW`، فكان لفعلٍ واحدٍ رسالتان وأسوأُهما على أوضح زرّ.
+    #
+    # والفحصُ قبل الكتابة لا `IntegrityError` بعدها: `IntegrityError` داخل
+    # معاملةٍ تُسمّمها، وهو ما يجعل الإمساك بها هنا أثقل من منعها.
+    if auction.starts_at is not None and auction.starts_at > now:
+        messages.error(
+            request,
+            f"مزاد {auction.number} لم يبدأ بعد — يبدأ "
+            f"{_CLOCK.prepare_value(auction.starts_at):%Y-%m-%d %H:%M} بتوقيت الرياض. "
+            "لا يُنهى الآن: أعِد جدولته أو ألغِه من «تغيير الحالة».",
+        )
+        return _back(request, auction)
+
     try:
         with transaction.atomic():
             if not engine.has_finished(auction, now=now):
@@ -410,9 +436,15 @@ def auction_delete(request, pk: int):
 
     * **مزادٌ فارغ** — مسودّةٌ أُنشئت بالخطأ، أو نسخةٌ مكرّرة — يُحذف. ولا شيء
       يشير إليه فلا شيء يُكسَر.
-    * **مزادٌ تحته سيارةٌ أو تأمين** لا يُحذف، ولا في القاعدة أصلاً:
-      ``Vehicle.auction`` و``Hold.auction`` و``PaymentSheet.auction`` كلُّها
-      ``PROTECT``. فلو أذن الكودُ رفضت القاعدة.
+    * **مزادٌ تحته سيارةٌ أو تأمين أو نيّةُ دفع** لا يُحذف، ولا في القاعدة
+      أصلاً: ``Vehicle.auction`` و``Hold.auction`` و``PaymentIntent.auction``
+      ثلاثتُها ``PROTECT``. فلو أذن الكودُ رفضت القاعدة.
+
+      وكان مكتوباً هنا ``PaymentSheet.auction`` — **و``PaymentSheet`` بلا حقل
+      مزادٍ أصلاً**؛ الثالثُ هو ``PaymentIntent``. فُحص في القاعدة: مفاتيحُ
+      `auctions_auction` الواردة ثلاثةٌ، من `auctions_vehicle` و`money_hold`
+      و`money_paymentintent`. واسمٌ خاطئٌ في وصفٍ يُقرأ بدل الشيفرة هو كيف
+      يسقط عدٌّ ناقصٌ من المراجعة.
 
     **والرفضُ يقول العدد.** «لا يمكن الحذف» جملةٌ تُنتج تذكرة دعم؛ و«تحته ٧
     سيارات و٣ تأمينات محجوزة» جملةٌ يتصرّف بها الموظّف. وv1 يرفض بلا عدد.
@@ -421,7 +453,7 @@ def auction_delete(request, pk: int):
     الفعلُ الصحيح: يفكّ الحجوز ويُبطل الفواتير غير المدفوعة **ثم** ينقل
     الحالة، ويترك صفّاً يُسأل عنه: من ألغاه ومتى ولماذا.
     """
-    from apps.money.models import Hold, HoldState
+    from apps.money.models import Hold, HoldState, PaymentIntent
 
     auction = get_object_or_404(Auction.objects.all(), pk=pk)
 
@@ -432,13 +464,20 @@ def auction_delete(request, pk: int):
 
     cars = auction.vehicles.count()
     holds = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).count()
+    # نيّاتُ الدفع تُعدّ كالبقيّة: هي المفتاحُ الثالثُ الحامي، وكانت خارج العدّ
+    # — فمزادٌ بلا سيارةٍ ولا تأمينٍ وعليه نيّةُ دفعٍ كان يمرّ من الفحص ويصطدم
+    # بـ`ProtectedError`، فيقرأ الموظّفُ نصَّ جانغو الخام بدل الجملة التي
+    # يَعِد بها وصفُ هذه الدالّة. (صفرُ صفٍّ اليوم في `haraj2_t307` — العطلُ
+    # كامنٌ لا قائم.)
+    intents = PaymentIntent.objects.filter(auction=auction).count()
 
-    if cars or holds:
+    if cars or holds or intents:
         blocking = " و".join(
             part
             for part in (
                 f"{cars} سيارة" if cars else "",
                 f"{holds} تأميناً محجوزاً" if holds else "",
+                f"{intents} نيّةَ دفع" if intents else "",
             )
             if part
         )

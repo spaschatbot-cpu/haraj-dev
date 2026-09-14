@@ -48,10 +48,15 @@ somebody went looking for it.
       تعديل المزاد
     </button>
   {% endif %}
+{% comment %} الملفُّ يحمل «سعر الوقوف» حين يملؤه صفّ، والشاشةُ لا تعرضه —
+     فحارسُه `AUCTIONS_IMPORT` كحارس `console:vehicles-export`، والزرُّ لا
+     يُرسَم لمن سيُرَدّ. {% endcomment %}
+  {% if can_export %}
   <a href="{{ export_url }}" class="btn-secondary" title="تصدير مركبات المزاد إلى ملف إكسل">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
     تصدير إكسل
   </a>
+  {% endif %}
   {% if can_manage %}
     {% comment %} رفعُ ملف سيارات لهذا المزاد — كـ v1: يختار الموظّفُ الملفَّ
        فيُرفَع فوراً، وتدخل الصفوفُ هذا المزاد (default_auction). صيغةُ الملف
@@ -259,11 +264,13 @@ somebody went looking for it.
          المعامل مرّتين. لا يغيّر النتيجة اليوم (جانغو يأخذ الأخيرة وهي نفسُها)،
          ويكسر يومَ يقرأ العرضُ `getlist` — وهو نوعُ العطل الذي لا يظهر إلا بعد
          التغيير الذي سبّبه. T868 {% endcomment %}
+      {% if can_export %}
       <a href="{{ export_url }}" class="btn-sm"
          title="تصدير ما يعرضه الجدول الآن إلى إكسل">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
       </a>
+      {% endif %}
     </div>
   </div>
 

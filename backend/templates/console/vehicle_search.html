@@ -54,7 +54,10 @@
             <td class="count">{{ row.lot_number|unlocalize }}</td>
             <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
             <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-            <td>{{ row.created_at }}</td>
+            {% comment %} `Y-m-d H:i` كبقيّة اللوحة. كان الحقلُ يُرسَم خاماً
+               فيخرج «سبتمبر 14, 2026, 12:15 ص» وسط جدولٍ كلُّ تواريخه أرقام
+               — وv1 يكتب العشرةَ الأولى وحدها (`slice(0,10)`). {% endcomment %}
+            <td class="tnum">{{ row.created_at|date:"Y-m-d H:i" }}</td>
             <td>
               <a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.number|unlocalize }}</a>
             </td>
@@ -65,6 +68,21 @@
       </tbody>
     </table>
   </div>
-    <p>{{ page.paginator.count|unlocalize }} نتيجةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+    {% comment %} ذيلُ الصفحات. كان السطرُ يقول «صفحة ١ من ٢٦٠» **ولا رابط**:
+       خمسون صفّاً مرئية ومئتان وتسعٌ وخمسون صفحةً لا سبيل إليها إلا بكتابة
+       `?page=` بيدٍ في شريط العنوان. و`keep` يحمل الخانات الأربع معه، وإلّا
+       أعادت الصفحةُ الثانية بحثاً آخر. {% endcomment %}
+    <div class="table-footer">
+      <div class="table-footer__count">
+        {{ page.paginator.count|unlocalize }} نتيجةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+      </div>
+      {% if page.paginator.num_pages > 1 %}
+        <nav class="pagination" aria-label="صفحات نتائج البحث">
+          {% if page.has_previous %}<a href="?{% if keep %}{{ keep }}&{% endif %}page={{ page.previous_page_number }}">السابق</a>{% endif %}
+          <span>{{ page.number|unlocalize }} / {{ page.paginator.num_pages|unlocalize }}</span>
+          {% if page.has_next %}<a href="?{% if keep %}{{ keep }}&{% endif %}page={{ page.next_page_number }}">التالي</a>{% endif %}
+        </nav>
+      {% endif %}
+    </div>
   {% endif %}
 {% endblock %}

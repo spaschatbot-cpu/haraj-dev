@@ -45,15 +45,21 @@
 (`VehicleState.RELEASED`) تكتبها `auctions.services` وحدها، فما يُعرض هنا هو
 ما وقع فعلاً.
 
-وعمودان من v1 لا مقابل لهما هنا — ويُقالان
-==========================================
-**اللون** و**شركة التأمين** حقلان في v1 وليسا في :class:`Vehicle`. ولا
-يُخترعان: عمودٌ فارغٌ في كل صفّ أسوأ من عمودٍ غائب.
+عمودان كانا غائبين ثم صارا حقلين — والفقرةُ صُحّحت
+====================================================
+كان مكتوباً هنا أن **اللون** و**شركة التأمين** «حقلان في v1 وليسا في
+:class:`Vehicle`، ولا يُخترعان». **وذلك لم يعد صحيحاً**: `colour` و
+`insurance_company` حقلان في الموديل اليوم، وعمودان مرسومان في
+`vehicle_catalog.html`. صُحّح في مراجعة ١٤ سبتمبر ٢٠٢٦.
 
-و«شركة التأمين» يجب أن تُحسم قبل أن تُنقَل أصلاً: قيمتها في الإنتاج تشمل
-`الشركة التعاونية للتامين التعاوني` وتشمل **`مشتريات خارجيه`** — والثانية
-ليست شركة تأمين، هي **مصدرُ المركبة**. فالعمود يحمل معنيين، ونقلُه كما هو
-ينقل الالتباس. القرار للمالك: حقلُ «مصدر» وحقلُ «مؤمِّن»، لا واحدٌ لهما.
+وما بقي صحيحاً منها اثنان، وكلاهما مقيسٌ على `haraj2_t307`:
+
+* **اللون لا يحمل معلومة**: `colour = unknown` في ١٢٬٩٨٥ من ١٢٬٩٨٨ صفّاً.
+  فالعمود يُرسم و«غير معروف» جوابُه في كل صفّ تقريباً، ولا يُرشَّح به هنا.
+* **و«شركة التأمين» تحمل معنيين** — مملوءةٌ في ١٢٬٩٤٩ صفّاً — وقيمتُها في
+  الإنتاج تشمل `الشركة التعاونية للتامين التعاوني` وتشمل **`مشتريات خارجيه`**
+  — والثانية ليست شركة تأمين، هي **مصدرُ المركبة**. ونقلُ العمود كما هو نقل
+  الالتباسَ معه. القرار للمالك: حقلُ «مصدر» وحقلُ «مؤمِّن»، لا واحدٌ لهما.
 """
 
 from __future__ import annotations
@@ -68,13 +74,15 @@ from django.utils.dateparse import parse_date
 from apps.auctions import engine
 from apps.auctions.models import Vehicle
 from apps.auctions.states import AuctionState, VehicleState
-from apps.core.arabic import search_q
+from apps.core.arabic import fold, search_q
+from apps.core.permissions import Capability, can
 from apps.money.models import InvoiceSource
 
 from .dashboard import Stat
 from .exports import export, wants_export
 from .icons import path_of
 from .tones import with_tones
+from .vehicle_filters import keep
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -95,14 +103,41 @@ SOLD = (
 AWAITING_EXIT = (VehicleState.PAID,)
 
 
-def _dated(rows, field: str, since: str, until: str):
-    """ضيّق بمدىً من التواريخ — وتجاهل ما ليس تاريخاً.
+def _day(raw: str):
+    """يومٌ من نصّ المستخدم، أو ``None`` — ولا خطأ ٥٠٠.
 
-    `parse_date` تُرجع `None` لما لا يُقرأ، فخانةٌ يكتب فيها موظّفٌ حرفاً
-    تُقرأ «لا مرشّح» لا «لا نتائج» ولا خطأ ٥٠٠.
+    `parse_date` تُرجع `None` لما **لا يشبه** تاريخاً («أمس»)، لكنها **ترفع**
+    `ValueError` لما يشبهه ولا يوجد: `2026-02-30` يطابق `date_re` ثم يسقط في
+    `datetime.date(2026, 2, 30)`. وكان مكتوباً هنا أن الخانة «تُقرأ لا مرشّح
+    لا خطأ ٥٠٠» — **وهي تُخرج ٥٠٠ فعلاً**: قِيس على `:8001` في ١٤ سبتمبر
+    ٢٠٢٦، `?listed_from=2026-02-30` و`?auction_from=2026-13-01` كلاهما
+    `HTTP 500`. والخانة `<input type="date">` لا تُخرج ذلك، لكنّ الرابط يُكتب
+    بيدٍ ويُحفظ في مفضّلةٍ ويُرسَل في رسالة.
     """
-    start = parse_date((since or "").strip())
-    end = parse_date((until or "").strip())
+    try:
+        return parse_date((raw or "").strip())
+    except ValueError:
+        return None
+
+
+def _int(raw: str) -> int | None:
+    """عددٌ صحيحٌ من نصّ المستخدم بعد طيّ أرقامه، أو ``None``.
+
+    `str.isdigit()` تقول «نعم» لثلاثةٍ لا يقبل `int` منها إلا واحداً: `١٢٣`
+    تمرّ، و`²` و`⑤` ترفعان `ValueError`. فـ`?q=²` كان **٥٠٠** على الكتالوج
+    والبحث معاً (قِيس على `:8001` في ١٤ سبتمبر ٢٠٢٦). و`fold` تحلّ الاثنين
+    معاً: تطوي `٠-٩` و`۰-۹` إلى ASCII كما يفعل `foldArabicDigits` في v1، ثم
+    `NFKC` تردّ `²` إلى `2` و`⑤` إلى `5`. فما بقي بعدها رقماً لاتينياً
+    فهو رقم، وما عداه ليس مرشّحاً.
+    """
+    digits = fold(raw)
+    return int(digits) if digits.isascii() and digits.isdigit() else None
+
+
+def _dated(rows, field: str, since: str, until: str):
+    """ضيّق بمدىً من التواريخ — وتجاهل ما ليس تاريخاً."""
+    start = _day(since)
+    end = _day(until)
     if start:
         rows = rows.filter(**{f"{field}__date__gte": start})
     if end:
@@ -134,8 +169,9 @@ def catalogue(
     text = (text or "").strip()
     if text:
         matches = search_q(text, "vin", "plate_number", "make", "model")
-        if text.isdigit():
-            matches |= Q(lot_number=int(text)) | Q(auction__number=int(text))
+        number = _int(text)
+        if number is not None:
+            matches |= Q(lot_number=number) | Q(auction__number=number)
         rows = rows.filter(matches)
 
     state = (state or "").strip()
@@ -296,6 +332,21 @@ def vehicle_catalog(request):
             "listed_to": request.GET.get("listed_to", ""),
             "auction_from": request.GET.get("auction_from", ""),
             "auction_to": request.GET.get("auction_to", ""),
+            # الفلاترُ مسلسلةً لروابط الصفحات. وكان القالبُ يبني `?q=…&page=`
+            # بيده، فيُسقط **الخمسة الباقية**: من يرشّح بحالةِ مزادٍ أو بمدىً
+            # من التواريخ ثم يضغط «التالي» يقع في الجدول كلِّه (١٢٬٩٨٩ صفّاً)
+            # وهو يظنّ نفسه داخل نتيجته. وv1 لا يفعل ذلك: صفحاتُ
+            # `Views/Admin/vehicles/catalog.php` تُبنى من `$_GET` كلِّها
+            # منقوصةً `page` وحدها.
+            "keep": keep(request.GET),
+            # الشاشةُ `auctions.view`، وثلاثةٌ من أزرارها تقصد `auctions.manage`:
+            # «إضافة سيارة يدويًا» (`vehicle-new`) و«إنشاء مزاد من المحدد»
+            # (`auction-new`) ونافذةُ الصور (`vehicle-images`). وكان القالبُ
+            # يرسمها للجميع — وفي تعليقه نفسِه مكتوبٌ أن «رابطاً يفتح ٤٠٣ أسوأ
+            # من غيابه»، وهو يرسم ثلاثة. والصورُ لا تُرى اليوم لأن `image_count`
+            # صفرٌ في ١٢٬٩٩٠ صفّاً (الترحيلُ لم ينقل الملفّات)، فالفخُّ نائمٌ لا
+            # غائب. والنظيرُ في `auctions.py:299` يمرّر `can_manage` منذ T868.
+            "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
@@ -314,25 +365,34 @@ def found(*, plate: str = "", vin: str = "", name: str = "", lot: str = ""):
     والفرق عن خانةٍ واحدة ليس ذوقاً: من يبحث بلوحةٍ يعرف أنها لوحة، وخانةٌ
     واحدة تطابق النصّ في ستّة أعمدة تُرجع له صفوفاً لا يفهم لماذا ظهرت.
     والاثنان معاً يضيّقان — `لكزس` في الاسم و`2024` في اللوت يعنيان الاثنين.
+
+    و`None` تعني «لم يُطلب بحثٌ بعد»، **وتُقرَّر من القيود التي نشأت فعلاً لا
+    من امتلاء الخانات**. وكان القرارُ على الامتلاء، فمُدخَلٌ يملأ الخانة ولا
+    يصنع قيداً — `?lot=abc` (ليس رقماً) و`?name=-` (لا يبقى منه بعد الطيّ
+    شيء) — كان يمرّ من الحارس ثم يُرشِّح بلا شيء: **١٢٬٩٨٩ مركبةً على شاشةٍ
+    اسمها «بحث»** (قِيس على `:8001` في ١٤ سبتمبر ٢٠٢٦، ٢٦٠ صفحة). و`admin_v2`
+    في v1 يفعل الصواب هنا: `ctype_digit` تسقط `abc` ثم `$where === []` فيردّ
+    `rows: []` بحالة `empty` (`AuctionController::vehicleSearchData`).
     """
-    rows = Vehicle.objects.select_related("auction", "awarded_to").order_by("-id")
+    clauses = [
+        clause
+        for clause in (
+            search_q(plate, "plate_number"),
+            search_q(vin, "vin"),
+            search_q(name, "make", "model"),
+        )
+        if clause
+    ]
+    number = _int(lot)
+    if number is not None:
+        clauses.append(Q(lot_number=number))
 
-    plate = (plate or "").strip()
-    vin = (vin or "").strip()
-    name = (name or "").strip()
-    lot = (lot or "").strip()
-
-    if not any((plate, vin, name, lot)):
+    if not clauses:
         return None
 
-    if plate:
-        rows = rows.filter(search_q(plate, "plate_number"))
-    if vin:
-        rows = rows.filter(search_q(vin, "vin"))
-    if name:
-        rows = rows.filter(search_q(name, "make", "model"))
-    if lot.isdigit():
-        rows = rows.filter(lot_number=int(lot))
+    rows = Vehicle.objects.select_related("auction", "awarded_to").order_by("-id")
+    for clause in clauses:
+        rows = rows.filter(clause)
     return rows
 
 
@@ -364,6 +424,9 @@ def vehicle_search(request):
             "vin": request.GET.get("vin", ""),
             "name": request.GET.get("name", ""),
             "lot": request.GET.get("lot", ""),
+            # الخاناتُ الأربع مسلسلةً لروابط الصفحات — والقالبُ لم يكن يرسم
+            # روابطَ أصلاً: كان يكتب «صفحة ١ من ٢٦٠» ولا سبيل إلى الثانية.
+            "keep": keep(request.GET),
         },
     )
 

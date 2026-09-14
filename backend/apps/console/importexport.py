@@ -162,7 +162,15 @@ def import_auction_vehicles(request, pk: int):
     صفحة المزاد برسالةٍ في `messages`.
     """
     auction = get_object_or_404(Auction, pk=pk)
-    if not can(request.user, Capability.AUCTIONS_MANAGE):
+    # **القدرتان معاً، لأن المحرّك واحد.** الشاشةُ المخصَّصة لنفس
+    # `import_vehicles` (`console:vehicles-import`) محروسةٌ بـ`AUCTIONS_IMPORT`،
+    # وكان هذا البابُ يقبل `AUCTIONS_MANAGE` وحدها — بابان لكاتبٍ واحد،
+    # وأضعفُهما هو الحارسُ الفعليّ. ولا دورَ يخسر شيئاً اليوم: «المالك»
+    # و«العمليات» يحملان الاثنتين، و`accounts_consolerole` فارغٌ في القاعدة.
+    if not (
+        can(request.user, Capability.AUCTIONS_MANAGE)
+        and can(request.user, Capability.AUCTIONS_IMPORT)
+    ):
         raise PermissionDenied("إدارة سيارات المزاد غير مسموحة لهذا المستخدم")
 
     back = redirect("console:auction-detail", pk=auction.pk)

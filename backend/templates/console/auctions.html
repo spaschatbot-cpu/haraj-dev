@@ -255,6 +255,7 @@ have to undo one in their head.
             أربعةً وخمسين مزاداً في ثمانية كيلوبايت، لا سيارات المزاد المنقور.
             وهو عطلٌ صامت — الملفُّ ينزل، فلا شيء يقول إنه الملفّ الخطأ.
             {% endcomment %}
+            {% if can_export %}
             {% with icon=action_icons.export %}
               <a href="{% url 'console:auction-detail' auction.pk %}?export=xlsx"
                  class="act act--export" title="{{ icon.0 }} — {{ auction.number }}"
@@ -262,6 +263,7 @@ have to undo one in their head.
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
               </a>
             {% endwith %}
+            {% endif %}
             {% if can_manage %}
               {% with icon=action_icons.fees %}
                 <button type="button" class="act act--fees" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"

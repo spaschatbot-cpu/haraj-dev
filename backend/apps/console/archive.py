@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, render
@@ -38,7 +39,8 @@ from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
-from apps.money.models import Invoice
+from apps.core.permissions import Capability, can
+from apps.money.models import Invoice, InvoiceState
 
 from .dashboard import Stat
 from .exports import export, wants_export
@@ -101,6 +103,26 @@ def archive_totals() -> list[Stat]:
     «المبيعات» جمعُ أسعار المرساة، و«المحصّل» و«المتبقّي» **من الفواتير
     ودفعاتها** لا من عمودٍ مخزَّن — فلا رقمٌ لا يُعرف متى حُسب. تُحسب على كامل
     الأرشيف (لا المرشَّح) لأنها ملخّصُ الأرشيف كلِّه، كما في v1.
+
+    والفاتورةُ الملغاة خارج «المتبقّي» — ولماذا
+    ============================================
+    كان المتبقّي `SUM(amount) - SUM(amount_paid)` على **كلّ** فاتورة، والملغاةُ
+    فيها. وفاتورةٌ ملغاةٌ لا يدين بها أحد، فكانت البطاقةُ تعرض ديناً لا وجود له:
+    قِيس على `haraj2_t307` في ١٤ سبتمبر ٢٠٢٦ — الشاشةُ ٢٢٬٧٥٤٬١١٧٫٧٣ والصحيحُ
+    ١٢٬٣٣٨٬٥٢٣٫١١، أي **زيادةٌ قدرُها ١٠٬٤١٥٬٥٩٤٫٦٢** من ٢٥٢ فاتورةٍ ملغاة.
+
+    والشرطُ ليس اجتهاداً هنا، هو مكتوبٌ في موضعين قبل هذا:
+    * **v1 يستثنيها نصّاً** في استعلام البطاقتين
+      (`AuctionArchiveController.php:315-328`):
+      `PaymentStatus NOT IN ('cancelled','reversed')`. فإدخالُها هنا كان
+      **إسقاطاً لشرطٍ كان في القديم**، لا تبسيطاً.
+    * و:attr:`~apps.money.models.Invoice.outstanding` — تعريفُ طبقةِ المال
+      نفسِها لِما «لا يزال مستحقّاً» — يُرجع صفراً للملغاة.
+
+    ولذلك يُطرح مبلغُ الملغاة من المفوتَر بدل أن يُجمَع الباقي صفّاً صفّاً:
+    الجمعُ في بايثون على ١٢٬٣٢٤ فاتورةً استعلامٌ يجرّها كلَّها إلى الذاكرة،
+    والطرحُ يبقى استعلامَ تجميعٍ واحداً. وقد قِيس أن الطريقتين تعطيان الرقم
+    نفسَه بالهللة — ١٢٬٣٣٨٬٥٢٣٫١١ — فالأرخصُ منهما هو المختار.
     """
     count = Auction.objects.filter(state__in=ARCHIVED).count()
     sales = (
@@ -112,7 +134,14 @@ def archive_totals() -> list[Stat]:
     inv = Invoice.objects.filter(vehicle__auction__state__in=ARCHIVED)
     billed = inv.aggregate(s=Sum("amount"))["s"] or ZERO
     collected = inv.aggregate(s=Sum("amount_paid"))["s"] or ZERO
-    remaining = billed - collected
+    # الملغاةُ تخرج من طرفَي الطرح معاً: مبلغُها ليس ديناً، وما سُدِّد عليها قبل
+    # الإلغاء ليس تحصيلاً قائماً. وإخراجُها من طرفٍ واحد كان سيقلب الإشارة.
+    voided = inv.filter(state=InvoiceState.CANCELLED).aggregate(
+        billed=Sum("amount"), paid=Sum("amount_paid")
+    )
+    remaining = (billed - (voided["billed"] or ZERO)) - (
+        collected - (voided["paid"] or ZERO)
+    )
 
     return [
         Stat(label="إجمالي المزادات", value=f"{count:,}",
@@ -122,7 +151,7 @@ def archive_totals() -> list[Stat]:
         Stat(label="إجمالي المحصّل", value=f"{collected:,.2f}",
              detail="من الدفعات المسجَّلة على الفواتير.", tone="money", icon="wallet"),
         Stat(label="إجمالي المتبقّي", value=f"{remaining:,.2f}",
-             detail="ما بقي على الفواتير — لا من كلمة أودو.",
+             detail="ما بقي على الفواتير غير الملغاة — لا من كلمة أودو.",
              tone="warn" if remaining > ZERO else "plain", icon="minus-wallet"),
     ]
 
@@ -189,7 +218,28 @@ def archive_auction_vehicles(request, pk: int):
     نظيرُ لوحة v1 المنسدلة تحت كل مزاد: لكل سيارة الفائزُ وسعرُ الرسو وفاتورتُها
     وحالُ سدادها وصورتُها. تُجلَب عند التوسّع لا مع الصفحة — فأرشيفٌ من مئات
     المزادات لا يبني آلافَ الكروت دفعةً. بيانات القاعدة، لا رقمٌ من الدماغ.
+
+    وحارسُها مكتوبٌ في جسدها لا بـ`@console_page`
+    ==============================================
+    **كانت بلا حارسٍ أصلاً**، ولا `@console_page` ولا `login_required`. وهي
+    مسارٌ قائمٌ بذاته (`archive/<pk>/vehicles/`)، فكان يُفتح **بلا جلسةٍ ولا
+    كعكة**: قِيس في ١٤ سبتمبر ٢٠٢٦ على `haraj2_t307` — `GET` بلا أيّ ترويسةٍ
+    على `archive/38/vehicles/` ردَّ **٢٠٠ ومعه ١٬٠٧٧٬٦٢١ بايتاً** فيها ٣٣٧
+    كارتَ سيارةٍ بأسماء الفائزين ولوحاتِهم وحالِ سدادهم، بينما الصفحةُ الأمّ
+    `archive/` تُحوّل إلى `/admin/login/` كما يجب. والصفحةُ محروسةٌ والقِطعةُ
+    مفتوحة يعني أن الحارسَ زينة.
+
+    و`@console_page` تأخذ **اسمَ صفحةٍ في `navigation.PAGES`**، وهذه قِطعةٌ لا
+    صفحة: لا صفَّ لها هناك، وإضافةُ صفٍّ كانت ستُدخلها في قائمةٍ تُبنى منها
+    الشاشات. فالحارسُ هنا كما في `vehicle_quick_update` و`columns_save` —
+    مكتوبٌ في الجسد، وبالقدرة التي تحرس الشاشةَ الأمّ نفسِها
+    (`AUCTIONS_VIEW`)، فلا قدرتان لبابين إلى البيانات ذاتها.
     """
+    if not request.user.is_authenticated:
+        raise PermissionDenied("قِطعةُ الأرشيف تحتاج جلسة.")
+    if not can(request.user, Capability.AUCTIONS_VIEW):
+        raise PermissionDenied("auctions.view غير مسموحة لهذا المستخدم")
+
     from apps.auctions import cards
     from apps.console.after_sales import (
         latest_invoice_field,
@@ -198,7 +248,11 @@ def archive_auction_vehicles(request, pk: int):
         state_label,
     )
 
-    auction = get_object_or_404(Auction, pk=pk)
+    # ومنتهٍ فعلاً: الدالّةُ تقول «مزادٍ منتهٍ» وكانت تقبل أيَّ `pk` — مسودّةً
+    # أو جاريةً — فتُخرج سياراتِ مزادٍ لم يبدأ من بابِ الأرشيف. وv1 يحصر
+    # `?auction=` في قائمة المنتهية قبل استعمالها
+    # (`AuctionArchiveController.php:93-95`)، وهو الشرطُ نفسُه هنا.
+    auction = get_object_or_404(Auction, pk=pk, state__in=ARCHIVED)
     rows = list(
         auction.vehicles.select_related("awarded_to")
         .annotate(
@@ -218,7 +272,15 @@ def archive_auction_vehicles(request, pk: int):
     for row in rows:
         row.thumb = covers.get(row.pk)
         row.invoice_label = state_label(row.invoice_state) if row.invoice_state else ""
-        row.invoice_residual = residual_of(row) if row.invoice_number else None
+        # والملغاةُ لا متبقّيَ عليها — التعريفُ نفسُه الذي في
+        # :attr:`~apps.money.models.Invoice.outstanding` وفي بطاقة «المتبقّي»
+        # أعلاه. و`residual_of` طرحٌ مجرّدٌ لا يعرف الحالة، فلو مرّ وحدَه لعرض
+        # الكارتُ مبلغَ فاتورةٍ ملغاةٍ ديناً على المشتري.
+        row.invoice_residual = (
+            residual_of(row)
+            if row.invoice_number and row.invoice_state != InvoiceState.CANCELLED
+            else None
+        )
         # رابطُ الفاتورة الضريبيّة في أودو — «عرض في Odoo» كـ v1؛ يظهر الزرُّ
         # فقط حين للفاتورة معرّفٌ هناك و`ODOO_BASE_URL` مضبوط.
         row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)

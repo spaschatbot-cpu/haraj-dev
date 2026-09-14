@@ -8,7 +8,7 @@ have to undo one in their head.
 {% endcomment %}
 {% block title %}المركبات{% endblock %}
 {% block heading %}المركبات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}{% if can_export %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endif %}{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
