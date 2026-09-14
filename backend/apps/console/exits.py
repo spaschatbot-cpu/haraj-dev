@@ -184,6 +184,7 @@ def vehicle_exit(request):
                 "papers": path_of("upload"),
                 "edit": path_of("pencil-line"),
                 "create": path_of("exit-door"),
+                "export": path_of("download"),
             },
         },
     )

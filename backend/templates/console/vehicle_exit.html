@@ -30,7 +30,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
         <button type="submit" class="btn-primary">بحث</button>
         {% if q %}<a href="{% url 'console:vehicle-exit' %}" class="filters__reset">مسح</a>{% endif %}
         <a href="{{ export_url }}" class="ex-act" title="تصدير كل النتائج المطابقة">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          {% include "console/_act_icon.html" with path=row_icons.export %}
           <span>تصدير Excel</span></a>
       </div>
     </form>

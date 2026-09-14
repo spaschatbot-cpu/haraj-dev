@@ -4961,9 +4961,19 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* ألسنةُ شاشة الخروج وأزرارُها: الرسمُ والكلمةُ سطرٌ واحد. كانت `📤` `🔄`
    `🗄️` `🚧` `✅` — يرسمها نظامُ التشغيل بأسلوبه، وتكبر مع حجم الخطّ. */
 .ex-tab { display: inline-flex; align-items: center; gap: .35rem; }
-.ex-tab svg, .ex-inline .btn-primary-sm svg { inline-size: .9rem; block-size: .9rem; flex: none; }
+/* **مقاسٌ واحدٌ وسُمكٌ واحد لكلّ رسمٍ في هذه الشاشة.** كانت رسومُ الألسنة
+   ‏`.9rem` بسُمك `2` (السُمكُ من خاصّية `_act_icon.html` لأن لا قاعدةَ تكتبه)،
+   ورسومُ الأفعال `1rem` بسُمك `1.7` — أي مقاسان وسُمكان في عرضٍ واحد. ورسمان
+   بسُمكين لا يُقرآن مجموعةً واحدة ولو كانا من الملفّ نفسه (T837: التطابقُ في
+   السُمك هو ما يصنع المجموعة، لا التشابهُ في الموضوع).
+   ويُكتَب هنا في قاعدةٍ واحدة لا في أربع، فلا يُنسى واحدٌ عند أيّ تعديلٍ لاحق. */
+.ex-tab svg,
+.ex-act svg,
+.ex-inline .btn-primary-sm svg,
+.ex-gate__form svg {
+  inline-size: 1rem; block-size: 1rem; flex: none; stroke-width: 1.7;
+}
 .ex-inline .btn-primary-sm { display: inline-flex; align-items: center; gap: .3rem; }
-.ex-gate__form svg { inline-size: .9rem; block-size: .9rem; }
 /* «إضافة سيارة يدويًا» — كانت `➕`. */
 .cat-add-row .btn-primary { display: inline-flex; align-items: center; gap: .35rem; }
 .cat-add-row .btn-primary svg { inline-size: .9rem; block-size: .9rem; flex: none; }
