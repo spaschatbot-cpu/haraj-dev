@@ -97,18 +97,26 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                 // عنوانَ شاشة. وقائمٌ لا أفقيّ: الأفقيُّ يفصل، والقائمُ
                 // يُعنون.
                 Container(
-                  width: 3,
-                  height: 18,
+                  width: 3.5,
+                  height: 20,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: <Color>[palette.gold, palette.goldDeep],
                     ),
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(3),
+                    // وهجٌ خفيف تحت الخيط: يرفعه عن الورقة فيُقرأ علامةً
+                    // مقصودة لا خطّاً بقي من تخطيط.
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: palette.gold.withValues(alpha: 0.35),
+                        blurRadius: 6,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 9),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,10 +129,12 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           color: palette.ink,
-                          fontWeight: FontWeight.w700,
-                          // تباعدٌ خفيف: العربية بوزن ٧٠٠ تتراصّ، وحرفٌ يلمس
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w800,
+                          // تباعدٌ خفيف: العربية بوزن ٨٠٠ تتراصّ، وحرفٌ يلمس
                           // حرفاً يُقرأ ككلمةٍ واحدة.
                           letterSpacing: 0.2,
+                          height: 1.2,
                         ),
                       ),
                       if (subtitle case final String line)
@@ -152,21 +162,29 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
                 // **حوضٌ ذهبيٌّ خفيف لا أيقونةٌ عارية**: أيقونةٌ وحدها على
                 // ورقةٍ فاتحة تُقرأ زخرفةً لا زرّاً، والحوضُ يقول «هذا
                 // يُضغط». وهو نظيرُ حوضِ الجرس والحساب في الهيدر فوقه.
+                //
+                // **ودائرةٌ بحدٍّ لا مربّعٌ مدوَّر** (١٤ سبتمبر ٢٠٢٦): حوضا
+                // الجرس والحساب في الهيدر دائرتان بحدٍّ ذهبيّ، ومربّعٌ هنا
+                // يُقرأ زرّاً من عائلةٍ أخرى.
                 if (!canPop)
                   Semantics(
                     button: true,
                     label: AppLocalizations.of(context).navHome,
                     child: Material(
-                      color: palette.gold.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(10),
+                      color: palette.gold.withValues(alpha: 0.10),
+                      shape: CircleBorder(
+                        side: BorderSide(
+                          color: palette.gold.withValues(alpha: 0.35),
+                        ),
+                      ),
                       child: InkWell(
                         onTap: () => GoRouter.of(context).go(Routes.homePath),
-                        borderRadius: BorderRadius.circular(10),
+                        customBorder: const CircleBorder(),
                         child: Padding(
                           padding: const EdgeInsets.all(7),
                           child: Icon(
                             Icons.home_rounded,
-                            size: 17,
+                            size: 18,
                             color: palette.goldDeep,
                           ),
                         ),
