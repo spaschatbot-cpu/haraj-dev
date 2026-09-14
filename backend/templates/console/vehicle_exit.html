@@ -239,20 +239,31 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       </div>
       <div class="scroller">
         <table>
-          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
+          {% comment %} تسعةُ أعمدةٍ كـ v1 حرفيّاً. كانت سبعة: **رقمُ المطالبة
+             والجوّال** ساقطان — ورقمُ المطالبة هو ما يُبحَث به الصفُّ في ملفّ
+             التأمين بعد شهور، والأرشيفُ بلا جوّالِ المشتري لا يُتّصَل منه بأحد.
+             والوقتُ يُعرَض بالساعة والدقيقة لا باليوم وحده: صفٌّ خرج ونُقل في
+             اليوم نفسه (`after_transfer`) كان يُقرأ تاريخين متطابقين. {% endcomment %}
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
           <tbody>
             {% for o in archive %}
               <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}">
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
                 <td>
                   {% if o.vehicle.buyer_name %}{{ o.vehicle.buyer_name }}
                   {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
                   {% else %}—{% endif %}
                 </td>
-                <td>{{ o.warehouse_exit_at|date:"Y-m-d"|default:"—" }}</td>
-                <td>{{ o.transfer_at|date:"Y-m-d"|default:"—" }}</td>
+                <td class="mono">
+                  {% if o.vehicle.buyer_phone %}{{ o.vehicle.buyer_phone|unlocalize }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td>{{ o.transfer_at|date:"Y-m-d H:i"|default:"—" }}</td>
                 <td class="ex-files">
                   <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
                   {% if o.declaration_file %}<a class="btn-sm" href="{{ o.declaration_file.url }}" target="_blank">الموقّع</a>{% endif %}
