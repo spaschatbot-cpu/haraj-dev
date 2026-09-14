@@ -47,6 +47,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from apps.auctions.states import VehicleState
 from apps.core.permissions import Capability, can
 
 #: قدرةُ المبالغ: مبلغُ الفاتورة والمسدَّدُ والباقي ومجاميعُها.
@@ -55,6 +56,42 @@ MONEY = Capability.INVOICES_VIEW
 #: قدرةُ بيانات العميل: اسمُ المشتري وجوّالُه.
 CUSTOMER = Capability.USERS_VIEW
 
+#: قدرةُ المحفظة: التأمينُ وأرصدتُه ومجاميعُه. T901
+#:
+#: **وليست :data:`MONEY`** — الفرقُ هو نفسُه المشروح فوق بالمقلوب. `MONEY`
+#: فاتورةُ فوزٍ ومسدَّدُها، وشاشتُها «مركز الفواتير» خلف `invoices.view`. وهذا
+#: **دفترُ التأمينات**، وشاشتُه «تقرير المحفظة» (`console:insurance-report`)
+#: خلف `money.view` واسمُ القدرة في التعداد «عرض دفتر التأمينات والحركات».
+#: فالقدرةُ الصحيحة هي التي تحرس الشاشةَ التي يُقصَد فيها هذا الرقمُ أصلاً.
+#:
+#: وجاءت من جردٍ لا من نظريّة: «منصة الملاك» (`auctions.view`) كانت تعرض
+#: «إجمالي التأمين **9,050,004.00**» لموظّف ساحةٍ لا يملك `money.view` — وهو
+#: الرقمُ نفسُه الذي يحرسه `money.view` في «تقرير المحفظة» بجوارها، **وبالدالّة
+#: نفسِها** (`wallet_rows`). قِيس على `haraj2_t307` في ١٤ سبتمبر ٢٠٢٦.
+WALLET = Capability.MONEY_VIEW
+
+#: الكلمةُ التي تُكتب مكان المحجوب **في ملفّ التصدير**. T901.
+#:
+#: وليست فراغاً: خليّةٌ فارغةٌ في عمود «المبلغ» تُقرأ «مزايدةٌ بلا مبلغ» — وهو
+#: ما لا يوجد — فيُظنُّ الملفُّ ناقصاً أو القاعدةُ معطوبة. والعمودُ الذي يُحجَب
+#: كلُّه يسقط بـ:func:`columns_for` ولا يصل هنا؛ وهذه لخليّةٍ **تُحجَب في صفٍّ
+#: وتظهر في الصفّ الذي تحته**، وتلك حالةُ مبلغ المزايدة وحدَها.
+HIDDEN = "محجوب"
+
+#: المركبةُ التي رست. نسخةٌ واحدةٌ يقرؤها الحارسُ ومَن يبني الشاشة معاً.
+#:
+#: وكانت مكتوبةً مرّتين — `decisions.AWARDED` و`archive.SOLD` — بالقيم نفسها.
+#: وتعريفان لكلمة «رست» في لوحةٍ واحدة هما كيف تُصلَح قاعدةٌ في شاشةٍ وتُترك
+#: في أختها، وهو بعينه العطلُ الذي جاءت منه هذه الجولة. فصارت هنا،
+#: و`decisions.AWARDED` اسمٌ آخرُ لها لا نسخةٌ ثانية.
+#: (و`archive.SOLD` ما زالت نسخةً ثانيةً — ملفٌّ خارج نصيب هذه الجولة.)
+AWARDED_STATES = (
+    VehicleState.AWARDED,
+    VehicleState.INVOICED,
+    VehicleState.PAID,
+    VehicleState.RELEASED,
+)
+
 
 @dataclass(frozen=True)
 class Shown:
@@ -62,6 +99,9 @@ class Shown:
 
     money: bool
     customer: bool
+    #: دفترُ التأمينات — أرصدةً ومجاميع. ثالثٌ لا مرادفٌ للأوّل: انظر
+    #: :data:`WALLET`.
+    wallet: bool = False
 
 
 def shown_to(user) -> Shown:
@@ -71,7 +111,11 @@ def shown_to(user) -> Shown:
     `StaffGrant` في كلّ نداء، وخمسون صفّاً × حقلين = مئةُ رحلةٍ إلى القاعدة
     لسؤالٍ جوابُه واحدٌ في الطلب كلِّه.
     """
-    return Shown(money=can(user, MONEY), customer=can(user, CUSTOMER))
+    return Shown(
+        money=can(user, MONEY),
+        customer=can(user, CUSTOMER),
+        wallet=can(user, WALLET),
+    )
 
 
 def person_on(rows, seen: Shown, *, field: str = "awarded_to") -> None:
@@ -115,6 +159,160 @@ def prepare(rows, seen: Shown) -> None:
         row.award_price = getattr(row, "awarded_price", None) if seen.money else None
 
 
+def sold(vehicle) -> bool:
+    """أرَست هذه المركبة؟ — سؤالٌ واحد، يقرؤه حارسُ المبلغ وحدَه هنا."""
+    return getattr(vehicle, "state", None) in AWARDED_STATES
+
+
+def amount_of(bid, seen: Shown, *, vehicle=None):
+    """مبلغُ هذه المزايدة، أو ``None`` حين لا يحقُّ لقارئها رؤيتُه.
+
+    **والشرطُ مركبتُها لا الشاشة**: أعلى مزايدةٍ قائمةٍ على مركبةٍ **رست** هي
+    سعرُ رسوّها حرفياً، فإظهارُها بعد حجب `awarded_price` في الكارت والكتالوج
+    يفتح البابَ من الخلف بالرقم نفسِه. أمّا مزايدةٌ على مركبةٍ لم تَرسُ فلا
+    مالَ لأحدٍ فيها — رقمُ سوقٍ في مزادٍ مفتوح، وهو ما تعرضه «مزايدات المزاد
+    الجاري» بلا حجب، وهو حكمُ المالك المكتوب.
+
+    وليست نسخةً من `archive.auction_bids`: تلك تحجب المبلغَ في صفوفها كلِّها
+    بلا شرط، ولها أن تفعل — جدولُها مزادٌ **منتهٍ** بعينه، ومركباتُه كلُّها
+    خرجت من المزايدة. والشاشاتُ هنا تخلط المزادات: صفٌّ لمركبةٍ رست وتحته صفٌّ
+    لمركبةٍ في مزادٍ جارٍ. فالشرطُ لكلّ صفٍّ على حدة، وإلّا حُجب عن موظّف
+    الساحة رقمُ السوق الذي هو عملُه.
+
+    و`vehicle` لمن يحمل مركبتَه في يده أصلاً (قِطعةُ سجلّ المركبة تسأل مركبةً
+    واحدةً لكلّ صفوفها): لا `bid.vehicle` في حلقةٍ من مئةٍ وتسعة عشر صفّاً،
+    فذلك استعلامٌ لكلّ صفٍّ حين لا يكون `select_related` قد جاء بها.
+    """
+    if not seen.money and sold(vehicle if vehicle is not None else bid.vehicle):
+        return None
+    return bid.amount
+
+
+def amounts_on(rows, seen: Shown, *, vehicle=None) -> None:
+    """اكتبْ على كلّ مزايدةٍ `bid_amount` — مبلغَها أو لا شيء.
+
+    و**لا يُكتب على `amount`** للسبب الذي مُنع من أجله الكتابةُ على
+    `awarded_price` في :func:`prepare`: `Bid.amount` عمودٌ حقيقيّ، ومحوُه على
+    صفٍّ مُحمَّلٍ يجعل أيَّ `save()` بعد العرض يكتب `NULL` فوق مبلغِ مزايدةٍ
+    وقعت — حجبُ عرضٍ يصير إتلافَ بيان. والحقلُ الجديد يُقرأ في القالب ولا
+    يُكتب أبداً.
+    """
+    for row in rows:
+        row.bid_amount = amount_of(row, seen, vehicle=vehicle)
+
+
+def cell_amount(bid, seen: Shown, *, vehicle=None):
+    """خليّةُ «المبلغ» في ملفّ التصدير: المبلغُ أو :data:`HIDDEN`.
+
+    والملفُّ يرث حارسَ الشاشة صفّاً صفّاً هنا، لا عموداً كاملاً: عمودُ المبلغ
+    يحمل مركباتٍ رست وأخرى لم تَرسُ في الملفّ الواحد، فإسقاطُه كلُّه يحجب ما
+    يحقُّ رؤيته، وإبقاؤه كما هو يُنزِّل في ملفٍّ ما حُجب على الشاشة.
+    """
+    value = amount_of(bid, seen, vehicle=vehicle)
+    return HIDDEN if value is None else value
+
+
+def scrub(row: dict, seen: Shown, *, money=(), customer=()) -> dict:
+    """قاموسُ صفٍّ منقوصاً مفاتيحَه المحجوبة — نظيرُ :func:`prepare` للتجميع. T832.
+
+    لماذا قاموسٌ لا كائنُ نموذج
+    ===========================
+    :func:`prepare` و:func:`person_on` تكتبان على صفٍّ هو كائنُ نموذج، وشاشاتُ
+    **التجميع** لا تُرجع كائنات: `values().annotate()` يُعطي قواميس. فكان كلُّ
+    من يحتاج الحجبَ على قاموسٍ يبنيه بيده مفتاحاً مفتاحاً — وهو ما تفعله
+    `analytics._top_shown` اليوم (ملفٌّ خارج نصيب هذه الجولة، والقاعدةُ فيه
+    هي هذه بعينها مكتوبةً بيد).
+
+    **والحذفُ لا التصفير**: مفتاحٌ يبقى بقيمة `None` يصل القالبَ فيُخفى فيه،
+    وذاك حجبٌ بصريٌّ ليس حجباً. والمفتاحُ المحذوف لا يُكتب في HTML أصلاً —
+    وهو العطلُ الذي فُتح له هذا الملفّ كلُّه.
+
+    ولا :data:`WALLET` هنا: دفترُ التأمينات لا يمرّ بشاشةِ تجميعِ مزايدات، وقدرةٌ
+    تُقبل في توقيعٍ ولا يستعملها أحد هي البابُ الذي يُنسى مفتوحاً.
+    """
+    out = dict(row)
+    for key in money:
+        if not seen.money:
+            out.pop(key, None)
+    for key in customer:
+        if not seen.customer:
+            out.pop(key, None)
+    return out
+
+
+def aggregate_money(value, seen: Shown):
+    """مبلغٌ **مجمَّع** على أكثر من مركبة: يظهر كلُّه أو يُحجَب كلُّه. T832.
+
+    ولا :func:`amount_of` هنا — والفرقُ قاعدةٌ لا تفصيل. تلك تسأل **مركبةَ
+    الصفّ**: رست فالمبلغُ سعرُ رسوٍّ يُحجَب، لم تَرسُ فهو رقمُ سوقٍ يبقى. وهذه
+    مجموعٌ فوق مركباتٍ من الحالتين معاً — لا مركبةَ واحدة تُسأل عنها، ولا سبيلَ
+    إلى فصل النصفين بعد الجمع. فالحجبُ للمجموع كلِّه، وهو **ثمنُ التجميع لا
+    تشدُّدٌ زائد**: إجماليُّ مزايداتِ شخصٍ فيه بالضرورة أسعارُ ما رسا له.
+
+    وهي القاعدةُ التي تطبّقها `analytics.bids_analysis` على أربعتها الماليّة
+    بأربعة أسطرٍ مكتوبةٍ بيد — اسمٌ واحدٌ هنا كي لا تُقرأ ثالثةً على أنها
+    قاعدةٌ أخرى.
+    """
+    return value if seen.money else None
+
+
+#: كم محرفاً من الآيبان يبقى ظاهراً بلا كشف. T919.
+#:
+#: أربعةٌ لأنها تكفي **للتمييز** ولا تكفي **للاستعمال**: الموظّف يقرأ الطابور
+#: فيرى أن صفَّين مختلفَين جاءا من حسابين مختلفين، وذلك كلُّ ما يحتاجه قبل أن
+#: يفتح الكشف. والآيبان الكامل يُطلب حين يُطابَق سطرٌ بعينه، وطلبُه فعلٌ
+#: يُكتب.
+IBAN_TAIL = 4
+
+
+def masked_iban(value: str) -> str:
+    """الآيبان بآخر أربعةٍ، أو فارغاً — ولا يُرسَم كاملاً هنا أبداً.
+
+    و«محجوب» لا تُكتب مكانه: العمودُ يحمل صفوفاً بآيبانٍ وأخرى بلا آيبان (وهو
+    حقلٌ يملؤه الموظّف عند المراجعة، فالصفُّ المعلّق فارغٌ بطبيعته)، فكلمةٌ
+    واحدةٌ للحالتين تجعل «لم يُكتب بعد» تُقرأ «مكتوبٌ وممنوعٌ عنك».
+    """
+    value = (value or "").strip()
+    if not value:
+        return ""
+    return f"…{value[-IBAN_TAIL:]}" if len(value) > IBAN_TAIL else value
+
+
+def bank_match_on(rows, seen: Shown, *, revealed=None) -> None:
+    """سندُ المطابقة على كلّ صفّ: `iban_shown` و`sender_shown` — أو فارغَين.
+
+    والآيبانُ بيانُ عميلٍ كاسمه وجوّاله، فقدرتُه :data:`CUSTOMER`. ومن لا
+    يملكها **لا يصل الحقلُ قالبَه أصلاً** — لا مقنَّعاً ولا محجوباً: الأربعةُ
+    الأخيرة بيانٌ أيضاً.
+
+    **واسمُ المُرسِل معه** وإن بدا ملاحظةَ موظّفٍ عن سطرٍ في كشفٍ بنكيّ: هو
+    اسمُ العميل نفسِه من بابٍ آخر. وقِيس: أوّلُ رسمٍ لهذه الشاشة أخفى
+    `buyer_name` عمّن لا يملك `users.view` وأبقى «عبدالله محمد» في
+    `bank_sender_name` — مرّةً واحدةً في مصدر الصفحة، وهي كلُّ ما يلزم. وبابٌ
+    يُغلق وبجواره بابٌ مفتوحٌ على الشيء نفسِه ليس باباً مُغلقاً.
+
+    ولماذا مقنَّعٌ **حتى لمن يملك القدرة**
+    ======================================
+    لأن القدرةَ تجيب «أيحقُّ له أن يرى؟» ولا تجيب «أيحتاج أن يرى الآن؟».
+    والطابورُ خمسون صفّاً في الصفحة الواحدة، والموظّفُ يطابق **واحداً**؛ فوضعُ
+    خمسين آيباناً كاملاً في مصدر الصفحة ليقرأ واحداً هو نفسُه العطلُ الذي
+    أُصلح في `data-phone` فوق: يدخل ذاكرةَ المتصفّح، ويظهر في «عرض المصدر»،
+    ويُقرأ في مشاركةِ شاشة.
+
+    و``revealed`` مفتاحُ صفٍّ واحدٍ كُشف عمداً — ويأتي من `POST` لا من رابط،
+    ومعه قيدٌ في `AuditLog`: من كشف آيبانَ من ومتى. فالكشفُ **حدثٌ يُسأل عنه**
+    لا حالةُ صفحةٍ تُشارَك برابط.
+    """
+    for row in rows:
+        raw = getattr(row, "bank_iban", "") if seen.customer else ""
+        asked = revealed is not None and row.pk == revealed
+        row.iban_shown = raw if asked else masked_iban(raw)
+        row.iban_revealed = bool(raw) and row.iban_shown == raw
+        row.sender_shown = (
+            getattr(row, "bank_sender_name", "") if seen.customer else ""
+        )
+
+
 def columns_for(columns, seen: Shown):
     """أعمدةُ تصديرٍ منقوصةً ما لا يحقّ رؤيتُه — **الملفُّ يرث حارسَ الشاشة**.
 
@@ -128,7 +326,7 @@ def columns_for(columns, seen: Shown):
     عند أوّل حذفٍ مشروط، فيخرج الملفُّ بعنوانٍ فوق خليّةِ غيره — وهو خطأٌ لا
     يُرى إلّا بفتح الملفّ.
     """
-    allowed = {MONEY: seen.money, CUSTOMER: seen.customer}
+    allowed = {MONEY: seen.money, CUSTOMER: seen.customer, WALLET: seen.wallet}
     return [
         (header, getter)
         for header, getter, need in columns
@@ -137,11 +335,23 @@ def columns_for(columns, seen: Shown):
 
 
 __all__ = [
+    "AWARDED_STATES",
     "CUSTOMER",
+    "HIDDEN",
+    "IBAN_TAIL",
     "MONEY",
+    "WALLET",
     "Shown",
+    "aggregate_money",
+    "amount_of",
+    "amounts_on",
+    "cell_amount",
     "columns_for",
+    "bank_match_on",
+    "masked_iban",
     "person_on",
     "prepare",
+    "scrub",
     "shown_to",
+    "sold",
 ]

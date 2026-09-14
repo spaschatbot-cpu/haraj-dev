@@ -24,6 +24,20 @@
 تُقال في الهاتف، والصورةُ تُجيبها في نظرة. ومصدرُها غلافُ المركبة باستعلامٍ
 واحدٍ لكل الصفحة (`covers`) لا واحدٍ لكل صفّ.
 {% endcomment %}
+{% comment %} **الشاشةُ تطلب الشريطَ مطويّاً، لا عرضُ النافذة يفرضه.** قِيس
+   على ٢٨٨ مركبةً مرحَّلة بمنفذ ١٦٠٠: بالشريط مفتوحاً (غلاف ١٢٢٨) يبقى الجدولُ
+   فائضاً ٢٣٨ بكسلاً بعد كلّ ضغطٍ ممكن، وبالشريط مطويّاً (غلاف ١٤٥٩) يفيض
+   صفراً. فالرافعةُ الحاسمة هي الشريط، وعتبةُ عرضٍ لا تنفع: المالكُ يفتح
+   اللوحةَ على ١٦٠٠ وهي فوق أي عتبةٍ معقولة.
+
+   ولماذا لا تُطوى اللوحةُ كلُّها: اثنتان وستّون شاشةً تتّسع بالشريط مفتوحاً،
+   وطيُّها جميعاً يُخفي أسماءَ أربعةٍ وستّين مدخلاً بلا سبب.
+
+   **واختيارُ الموظّف مُحترَم**: `theme.js` يحفظ اختيارَ هذه الشاشات في مفتاحٍ
+   مستقلّ (`navWide`)، فمن فتح الشريطَ بيده هنا يجده مفتوحاً هنا كلّما عاد —
+   ولا يُصيب ذلك بقيّةَ اللوحة، ولا تُصيبها بقيّةُ اللوحة. {% endcomment %}
+{% block html_attrs %} data-wide-table{% endblock %}
+
 {% block title %}ما بعد البيع{% endblock %}
 {% block heading %}ما بعد البيع{% endblock %}
 
@@ -32,11 +46,21 @@
 {% endblock %}
 
 {% block content %}
+  {% comment %} هذا القالبُ **جدولُ شاشتين**: «ما بعد البيع» و«القرارات
+     المنتهية» (`ended_decisions.html` يرثه). وهو ما تطلبه وثيقةُ جرد v1 نصّاً
+     عن هاتين بعينهما: «شاشتان بجدولٍ واحد يفترقان بعمود — في v2 تُبنى واحدةً
+     بفلترٍ يُظهر العمود، لا شاشتين تُصانان معاً».
+
+     فالكتلُ الفارغة أدناه (`lede` · `extra_filter` · `col_*_first` ·
+     `col_*_last`) هي مواضعُ الفرق، وتبقى فارغةً في هذه الشاشة فلا تغيّر
+     مخرجَها بحرف. {% endcomment %}
+  {% block lede %}
   <p class="lede">
     كلُّ مركبةٍ رست في مزادٍ منتهٍ: من أخذها، وبكم، وأين وصلت فاتورتُها.
     و<strong>حالةُ الفاتورة محسوبةٌ من الدفعات المسجَّلة</strong> — وكلمةُ أودو
     بجوارها دليلاً لا حقيقة، واختلافُهما هو ما تُفتح الشاشة لتُريَه.
   </p>
+  {% endblock %}
 
   <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
@@ -76,6 +100,8 @@
         <option value="no"{% if settle == "no" %} selected{% endif %}>لم تُسدَّد من ملفّ</option>
       </select>
 
+      {% block extra_filter %}{% endblock %}
+
       <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
         {% for choice in row_choices %}
           <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
@@ -85,14 +111,17 @@
       <button type="submit" class="btn-primary">بحث</button>
 
       {% if filtered %}
-        <a href="{% url 'console:after-sales' %}" class="filters__reset">إلغاء الفلترة</a>
+        {% comment %} `reset_url` من العرض لا `{% url %}` هنا: القالبُ يخدم
+           شاشتين، ورابطٌ مكتوبٌ باسمٍ واحد كان سيُعيد موظّفَ «القرارات
+           المنتهية» إلى شاشةٍ أخرى عند إلغاء الفلترة. {% endcomment %}
+        <a href="{{ reset_url }}" class="filters__reset">إلغاء الفلترة</a>
       {% endif %}
     </div>
   </form>
 
   <div class="table-bar">
     <div class="table-bar__info">
-      <h2>المركبات المباعة <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
+      <h2>{% block table_title %}المركبات المباعة{% endblock %} <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
     </div>
     <div class="table-bar__actions">
       <a href="{{ export_url }}" class="btn-sm" title="تصدير كلّ النتائج المطابقة">تصدير إكسل</a>
@@ -103,6 +132,7 @@
     <table>
       <thead>
         <tr>
+          {% block col_head_first %}{% endblock %}
           <th>الموقف</th>
           <th>المزاد</th>
           <th>المركبة</th>
@@ -118,15 +148,32 @@
           <th>الفاتورة</th>
           <th>حالة الفاتورة</th>
           <th>عرض</th>
+          {% block col_head_last %}{% endblock %}
         </tr>
       </thead>
       <tbody>
         {% for row in rows %}
           <tr>
-            <td class="count">{{ row.lot_number|unlocalize }}</td>
+            {% comment %} كتلةٌ داخل حلقة: تُرسَم لكلّ صفٍّ بسياقه، ويملؤها
+               القالبُ الوارث. وهي مكانُ عمودِ «المزايدون» في «القرارات
+               المنتهية» — آخراً كما في v1 (`aftersales/index.php:147`).
+
+               و`col_*_first` **فارغتان في الشاشتين اليوم**: كان فيهما عمودُ
+               «القرار»، وحُذف في ٢٠٢٦-٠٩-١٤ ليتّسع الجدولُ للشاشة، وصار
+               القرارُ سطراً في خليّة المركبة (`vehicle_note`). وتُركتا مكانَ
+               عمودٍ أوّلٍ يُضاف يوماً. {% endcomment %}
+            {% block col_cell_first %}{% endblock %}
+            {% comment %} «—» لا خليّةٌ فارغة حين لا لوت: v1 يكتب
+               `$r['lot_number'] ?: '—'` (`:160`)، وخليّةٌ خاليةٌ في عمودٍ رقميّ
+               تُقرأ «لم يُحمَّل» لا «لا رقمَ له». {% endcomment %}
+            <td class="count">{{ row.lot_number|default:"—"|unlocalize }}</td>
             <td>
               #{{ row.auction.number|unlocalize }}
-              <small class="empty">{{ row.auction.title }}</small>
+              {% comment %} `cell-clip` يقصّ بثلاث نقاط ويترك القيمةَ كاملةً
+                 في `title`: اسمُ المزاد يبلغ عشرين حرفاً فيدفع الجدولَ إلى
+                 التمرير، والرقمُ فوقه هو ما يُبحث به. {% endcomment %}
+              <small class="empty cell-clip clip-aname"
+                     title="{{ row.auction.title }}">{{ row.auction.title }}</small>
             </td>
             <td>
               {% comment %} المركبةُ نصٌّ لا رابط بطلب المالك — الضغطُ عليها
@@ -134,13 +181,42 @@
                  عمود عرض تفعله صراحةً»، **والأيقونةُ أُزيلت** بطلب المالك ولا
                  وجود لها — فلا تُفتح صفحةُ مركبةٍ من هذه الشاشة أصلاً.
               {% endcomment %}
-              <span>{{ row.make }} {{ row.model }}</span>
+              {% comment %} **الصانعُ وحدَه، لا الصانعُ والطراز.** v1 يكتب هنا
+                 `vehicle_name ?: vehicle_brand` (`aftersales/index.php:161`)
+                 — **بلا طراز**، لأن الطرازَ عمودُه التالي. وكانت الخليّةُ
+                 تكتب `make model` فيظهر الطرازُ هنا ويغيب عن عموده، ويصير
+                 هذا أعرضَ عمودٍ في الجدول (٢٨١ بكسلاً من ١٧٤٣).
+
+                 و`cell-clip` تبقى شبكةَ أمانٍ لصانعٍ طويل الاسم: تقصّ بثلاث
+                 نقاط وتترك القيمةَ كاملةً في `title`، ولا تُقَصُّ في ملفّ
+                 التصدير ولا في شاشة التفصيل. {% endcomment %}
+              <span class="cell-clip clip-name"
+                    title="{{ row.make }}">{{ row.make|default:"—" }}</span>
               {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+              {% comment %} سطرٌ ثانٍ تحت الاسم، فارغٌ في هذه الشاشة. وهو
+                 موضعُ ما تحتاجه شاشةٌ وارثة ولا يستحقّ عموداً: خليّةُ المزاد
+                 بجواره تحمل سطرين أصلاً، فالسطرُ هنا **لا يزيد ارتفاعَ
+                 الصفّ**، ولا يزيد عرضَ العمود ما دام أقصرَ من الاسم فوقه.
+              {% endcomment %}
+              {% block vehicle_note %}{% endblock %}
             </td>
-            {% comment %} «الموديل» عمودٌ مستقلٌّ كما في v1، وهو سنةُ الصنع —
-               «موديل ٢٠٢١» في العُرف. وكان مدموجاً في «المركبة»، والمالك ردّه
-               عموداً على حِدَة التزاماً بترويسة v1. {% endcomment %}
-            <td class="count">{{ row.year|unlocalize }}</td>
+            {% comment %} **«الموديل» هو الطراز، والسنةُ سطرٌ خافتٌ تحته** —
+               كما في v1 حرفياً (`aftersales/index.php:162`):
+               `$modelTxt` ثم `<small>$yearTxt</small>` وحدَه إن اختلف عنه.
+
+               وكُتب هنا مرّةً أن «الموديل سنةُ الصنع — موديل ٢٠٢١ في العُرف»،
+               **وذلك خطأٌ قِيس على المصدر**: كانت الخليّةُ تطبع السنةَ وحدَها
+               فيغيب الطرازُ عن الشاشة كلِّها. والعُرفُ لا يُقدَّم على الترويسة
+               التي تُطابَق.
+
+               وشرطُ «إن اختلف» من v1 نفسِه: بياناتٌ مرحَّلةٌ كثيرةٌ تضع السنةَ
+               في حقل الطراز، فطباعتُهما معاً تُعطي «2021» فوق «2021». {% endcomment %}
+            <td>
+              <span class="cell-clip clip-model" title="{{ row.model }}">{{ row.model|default:"—" }}</span>
+              {% if row.year and row.year|stringformat:"s" != row.model %}
+                <small class="empty tnum">{{ row.year|unlocalize }}</small>
+              {% endif %}
+            </td>
             <td>
               {% comment %} `loading="lazy"` لأن خمسين صورةً في تحميلٍ واحد
                  تؤخّر الجدولَ نفسَه، والجدولُ هو الغرض. {% endcomment %}
@@ -155,7 +231,9 @@
             </td>
             <td><span class="tnum code-font">{{ row.plate_number|default:"—" }}</span></td>
             <td class="count">
-              {% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}<span class="empty">—</span>{% endif %}
+              {% comment %} `odometer_text` من `after_sales.decorate` —
+                 بفاصل آلافٍ كما في v1، وسببُه مكتوبٌ هناك. {% endcomment %}
+              {% if row.odometer_text %}<span class="tnum">{{ row.odometer_text }}</span>{% else %}<span class="empty">—</span>{% endif %}
             </td>
             <td>{{ row.get_colour_display|default:"—" }}</td>
             <td><span class="tnum code-font">{{ row.vin|default:"—" }}</span></td>
@@ -170,12 +248,20 @@
                  القالب لا يمرّ من حارسٍ، فيبقى بابٌ مفتوحٌ في شاشةٍ أُغلق في
                  أختها. وهما فارغان لمن لا يملك `users.view`. {% endcomment %}
               {% if row.buyer_name %}
-                <span>{{ row.buyer_name }}</span>
+                {% comment %} كاسم المركبة: يُقَصُّ ويبقى كاملاً في `title`.
+                   والجوّالُ تحته لا يُقَصُّ — عشرةُ أرقامٍ بعرضٍ معلوم.
+                {% endcomment %}
+                <span class="cell-clip clip-buyer"
+                      title="{{ row.buyer_name }}">{{ row.buyer_name }}</span>
                 <small class="empty tnum">{{ row.buyer_phone|unlocalize }}</small>
               {% elif row.awarded_to and not show_customer %}
                 <span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
               {% else %}
-                <span class="empty">—</span>
+                {% comment %} `buyer_blank` من `after_sales.decorate` لا «—»
+                   مكتوبةً هنا: في «القرارات المنتهية» يكون الصفُّ **مرفوضاً**،
+                   فخليّةٌ خاليةٌ تُقرأ «ناقصٌ يُلاحَق» والصحيحُ «لا مشتريَ لها
+                   بحكم القرار». وهي «—» حرفياً في هذه الشاشة. {% endcomment %}
+                <span class="empty">{{ row.buyer_blank|default:"—" }}</span>
               {% endif %}
             </td>
             <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
@@ -198,7 +284,11 @@
                    لم يصلها ريالٌ أهدأَ من فاتورةٍ وصل نصفُها. {% endcomment %}
                 <span class="pill" data-tone="{{ row.invoice_tone }}">{{ row.invoice_label }}</span>
               {% else %}
-                <span class="empty">بلا فاتورة بعد</span>
+                {% comment %} كـ`buyer_blank` فوق: «بلا فاتورة بعد» في هذه
+                   الشاشة، و«مرفوضة — لا فاتورة» في القرارات المنتهية. و«بعدُ»
+                   تَعِد بفاتورةٍ قادمة، ومركبةٌ رفضها المالك لا تُفوتَر أبداً.
+                {% endcomment %}
+                <span class="empty">{{ row.invoice_blank|default:"بدون فاتورة" }}</span>
               {% endif %}
             </td>
             <td class="actions">
@@ -253,18 +343,20 @@
                 <span class="empty">—</span>
               {% endif %}
             </td>
+            {% block col_cell_last %}{% endblock %}
           </tr>
         {% empty %}
-          <tr><td colspan="15" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
+          <tr><td colspan="{{ colspan|default:15 }}" class="empty">{% block empty_note %}لا مركبات مباعة مطابقة لهذه المرشّحات.{% endblock %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
   <p class="table-footer__count">
-    {{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة
+    {{ page.paginator.count|unlocalize }} {% block count_noun %}مركبةً مباعة{% endblock %} · صفحة
     {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
   </p>
+  {% block footer_note %}{% endblock %}
 {% endblock %}
 
 {% block scripts %}
@@ -287,6 +379,11 @@
      «سُدِّدت من ملفّ شريك» — وهو لهذه الشاشة وحدَها، إذ لا مجموعةَ محسوبةً
      في الكتالوج وسطرٌ يقول «—» دائماً يُقرأ «لا» ويكذب. {% endcomment %}
   {% include "console/_invoice_voucher.html" with sheet=1 %}
+
+  {% comment %} مكانٌ تملؤه الشاشةُ الوارثة بما تحتاجه من نوافذ — «القرارات
+     المنتهية» تضع فيه نافذةَ المحتوى لزرّ «المزايدون». وفارغٌ هنا: هذه
+     الشاشةُ لا عمودَ مزايدين فيها، ونافذةٌ تُحمَّل ولا تُفتح حِملٌ بلا سبب. {% endcomment %}
+  {% block modals %}{% endblock %}
 
   {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
      نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —

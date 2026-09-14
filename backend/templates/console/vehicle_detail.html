@@ -71,8 +71,26 @@
     <div><dt>التسويق</dt><dd>{% if vehicle.is_marketing %}سيارة شريك التسويق (التعاونية){% else %}عاديّة{% endif %}</dd></div>
     <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
     <div><dt>الشريك المالك</dt><dd>{{ vehicle.owner_company.name|default:"—" }}</dd></div>
-    <div><dt>الفائز</dt><dd>{{ vehicle.awarded_to.full_name|default:"—" }}</dd></div>
-    <div><dt>سعر الرسو</dt><dd class="money">{{ vehicle.awarded_price|default:"—"|unlocalize }}</dd></div>
+    {% comment %} الفائزُ اسماً وسعرُ رسوّه — الحقلان الوحيدان الحسّاسان في
+       واحدٍ وعشرين حقلاً، والشاشةُ `auctions.view` وحدَها. وهما بعينهما ما
+       أُغلق في كتالوج السيارات وكارت الأرشيف، وكانا يبقيان هنا: نافذةُ
+       التفاصيل تُفتح من زرٍّ في **كلّ صفٍّ** من جدول المزايدات، فالبابُ الذي
+       أُغلق في الجدول كان مفتوحاً بنقرةٍ واحدةٍ فوقه.
+
+       و`shown` من معالج سياق اللوحة (`console/context.py`) لا من هذا العرض:
+       عرضُه في `auctions.py`، والقاعدةُ في `sensitive.py` — موضعٌ واحدٌ
+       يقرؤه الاثنان.
+
+       وسعرُ الوقوف أعلاه يبقى: سعرٌ بلا مشترٍ (المالكُ شركةٌ لا شخص)، وهو
+       المعيارُ الذي استُقرَّ عليه في `ended-decisions`. {% endcomment %}
+    <div><dt>الفائز</dt><dd>
+      {% if shown.customer %}{{ vehicle.awarded_to.full_name|default:"—" }}
+      {% elif vehicle.awarded_to_id %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+      {% else %}—{% endif %}</dd></div>
+    <div><dt>سعر الرسو</dt><dd class="money">
+      {% if shown.money %}{{ vehicle.awarded_price|default:"—"|unlocalize }}
+      {% elif vehicle.awarded_price %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
+      {% else %}—{% endif %}</dd></div>
   </dl>
   </div>
 {% endblock %}

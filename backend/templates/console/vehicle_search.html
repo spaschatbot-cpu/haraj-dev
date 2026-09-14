@@ -115,8 +115,18 @@
                فيخرج «سبتمبر 14, 2026, 12:15 ص» وسط جدولٍ كلُّ تواريخه أرقام
                — وv1 يكتب العشرةَ الأولى وحدها (`slice(0,10)`). {% endcomment %}
             <td class="tnum">{{ row.created_at|date:"Y-m-d H:i" }}</td>
+            {% comment %} `?focus=` لا رابطٌ إلى المزاد وحده: الموظّفُ يبحث عن
+               لوحةٍ في اثنتي عشرةَ ألفَ مركبة ثمّ يريد أن يراها **في مكانها**
+               — الصفُّ الذي فوقها والذي تحتها جزءٌ من الجواب، وهو ما تفعله
+               شاشةُ v1 (`manage_vehicles.php:1449`). والخادمُ يُنزله على
+               صفحتها في القائمة المرشَّحة، والقالبُ هناك يُضيء صفَّها. {% endcomment %}
             <td>
-              <a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.number|unlocalize }}</a>
+              {% comment %} الرقمُ **واسمُه**: v1 يكتب `#1017 — اسم المزاد`،
+                 والموظّفُ يعرف مزاداتِه بأسمائها لا بأرقامها. ورقمٌ وحده يجعل
+                 صفوفَ البحث من خمسةِ مزاداتٍ تبدو صفّاً واحداً. {% endcomment %}
+              <a href="{% url 'console:auction-detail' row.auction.pk %}?focus={{ row.pk|unlocalize }}"
+                 title="افتحها في مكانها من المزاد">#{{ row.auction.number|unlocalize }}</a>
+              {% if row.auction.title %}<small>{{ row.auction.title }}</small>{% endif %}
             </td>
           </tr>
         {% empty %}

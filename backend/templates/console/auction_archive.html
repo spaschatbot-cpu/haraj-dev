@@ -95,45 +95,14 @@
     </div>
   </div>
 
-  {% comment %} نافذةُ «سجل المزايدات» — تُجلَب من كرت السيارة وتُحقَن. {% endcomment %}
-  <dialog class="modal cmodal" data-content-dialog>
-    <div data-content-body></div>
-  </dialog>
+  {% comment %} نافذةُ «سجل المزايدات» — والقالبُ المشترَك. كان مقتطفُها
+     مكتوباً هنا بيده، وهو الأمتنُ بين النسختين (تفويضٌ على المستند، ورسالةُ
+     فشلٍ مكتوبة)، فانتقل سلوكُه إلى المشترَك كما هو. {% endcomment %}
+  {% include "console/_content_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-(function () {
-  // «سجل المزايدات» — الكروتُ تُحقَن عند التوسّع، فالربطُ بتفويض حدثٍ على المستند.
-  var cDialog = document.querySelector('[data-content-dialog]');
-  var cBody = cDialog ? cDialog.querySelector('[data-content-body]') : null;
-  if (cDialog && cDialog.showModal && cBody) {
-    document.addEventListener('click', function (e) {
-      var opener = e.target.closest('[data-content-url]');
-      if (opener) {
-        e.preventDefault(); e.stopPropagation();
-        fetch(opener.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) {
-            if (!r.ok) throw new Error(r.status);
-            return r.text();
-          })
-          .then(function (html) {
-            cBody.innerHTML = html; cDialog.showModal();
-            cBody.querySelectorAll('[data-bids-close], [data-content-close], [data-close]').forEach(function (el) {
-              el.addEventListener('click', function () { cDialog.close(); });
-            });
-          })
-          // نافذةٌ لا تُفتح بلا سببٍ مكتوب أسوأُ من نافذةٍ تقول لماذا: كان
-          // الفشلُ صامتاً تماماً — الضغطةُ لا تفعل شيئاً ولا رسالةَ.
-          .catch(function (err) {
-            cBody.textContent = 'تعذّر جلبُ سجلّ المزايدات (' + err.message + ').';
-            cDialog.showModal();
-          });
-        return;
-      }
-    });
-  }
-})();
 (function () {
   // الضغطُ على صفِّ مزادٍ يُوسِّعه: يجلب سياراتِه مرّةً (يُخزَّن) ثم يُظهر/يُخفي
   // اللوحة تحته. لا صفحةَ منفصلة — التفاصيلُ والصورُ تنزل تحت الصفّ نفسِه.

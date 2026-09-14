@@ -1,0 +1,135 @@
+{% extends "console/base.html" %}
+{% load l10n static %}
+{% comment %}
+شريط الأخبار — الجملةُ التي يقرؤها كلُّ زائرٍ على واجهة العميل.
+
+**والشاشةُ تقول «يُعرَض الآن» لا «مفعّلة».** العلمُ وحده يكذب: رسالةٌ مفعّلةٌ
+نافذتُها انتهت أمس تُقرأ في جدولٍ يعرض `is_active` على أنها شغّالة، فيُبحث عن
+عطلٍ في واجهة العميل ولا عطل. فالعمودُ هنا يجمع الثلاثة — العلمَ والبدايةَ
+والنهاية — ويقول الجواب الذي يُسأل فعلاً.
+
+**والنافذةُ الفارغة تُكتب كلاماً لا شرطةً.** «من الآن» و«بلا نهاية» جملتان
+تُقرآن، و«—» تترك القارئ يخمّن أهي «بلا حدّ» أم «لم تُملأ».
+{% endcomment %}
+{% block title %}شريط الأخبار{% endblock %}
+{% block heading %}شريط الأخبار{% endblock %}
+{% block actions %}
+  <button type="button" class="btn-primary-sm" data-opens="newsNew">+ رسالة جديدة</button>
+{% endblock %}
+
+{% block content %}
+<div{% if opens %} data-open-dialog="{{ opens }}"{% endif %}>
+
+  <p class="lede">
+    ما يُكتب هنا <strong>يخرج إلى الناس</strong> — يمرّ في شريط واجهة العميل لكلّ
+    زائر. ولكلّ رسالةٍ نافذةٌ زمنيّةٌ ومفتاحُ إيقاف، وكلُّ كتابةٍ لها قيدٌ في
+    <a href="{% url 'console:audit' %}">سجلّ التدقيق</a> بالنصّ قبلها وبعدها ومن كتبه.
+  </p>
+
+  <p class="notice">
+    <strong>{{ showing|unlocalize }}</strong> رسالةً تُعرَض على العميل الآن،
+    و<strong>{{ stopped|unlocalize }}</strong> موقوفة.
+    والمتداخلتان تمرّان معاً في الشريط — لا واحدةَ تحجب أختَها.
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>النص</th>
+          <th>النافذة</th>
+          <th>الحالة</th>
+          <th>آخر تعديل</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row, edit_form in pairs %}
+          <tr>
+            <td>
+              {{ row.text_ar }}
+              {% if row.text_en %}<small class="empty">{{ row.text_en }}</small>{% endif %}
+            </td>
+            {% comment %} «من … حتى …» كلاماً لا سهماً (`←`): اتّجاهُ السهم في
+               صفحةٍ `dir="rtl"` يعتمد على المحرف لا على القراءة، فيلتبس أيُّ
+               الطرفين البداية. والكلمتان لا تلتبسان. {% endcomment %}
+            <td>
+              من {% if row.starts_at %}{{ row.starts_at|date:"Y-m-d H:i" }}{% else %}<span class="empty">الآن</span>{% endif %}
+              حتى {% if row.ends_at %}{{ row.ends_at|date:"Y-m-d H:i" }}{% else %}<span class="empty">بلا نهاية</span>{% endif %}
+            </td>
+            <td>
+              {% if not row.is_active %}
+                <span class="pill" data-tone="bad">موقوفة</span>
+              {% elif row.is_showing %}
+                <span class="pill" data-tone="ok">تُعرَض الآن</span>
+              {% else %}
+                {% comment %} مفعّلةٌ وخارج نافذتها: لا «شغّالة» ولا «موقوفة». {% endcomment %}
+                <span class="pill" data-tone="info">مفعّلة خارج نافذتها</span>
+              {% endif %}
+            </td>
+            <td>{{ row.updated_at|date:"Y-m-d H:i" }}</td>
+            {% comment %} الزرّان في صفٍّ مرن: `display:inline` على النموذج
+               كان يُنزل زرَّ الإيقاف سطراً ويُركبه على جاره. رُئي. {% endcomment %}
+            <td>
+              <div style="display:flex; gap:.4rem; align-items:center;">
+                <button type="button" class="btn-sm" data-opens="newsEdit{{ row.pk|unlocalize }}">تعديل</button>
+                {% comment %} الإيقافُ `POST` لا رابط: فعلٌ يغيّر ما يراه العملاء
+                   لا يقع من سجلّ المتصفّح ولا من `<img src>`. {% endcomment %}
+                <form method="post" style="margin:0">
+                  {% csrf_token %}
+                  <input type="hidden" name="op" value="toggle">
+                  <input type="hidden" name="pk" value="{{ row.pk|unlocalize }}">
+                  <button type="submit" class="btn-sm">{% if row.is_active %}أوقف{% else %}فعّل{% endif %}</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">لا رسالة في الشريط.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <dialog id="newsNew" class="modal">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="create">
+      <h2>رسالةٌ جديدة</h2>
+      <p class="alarm">ما تكتبه هنا يقرؤه <strong>كلُّ زائر</strong> لواجهة العميل.</p>
+      {% include "console/_form.html" with form=form %}
+      <p class="empty">
+        اترك «يبدأ العرض» فارغاً لتظهر من الآن، و«ينتهي العرض» فارغاً لتبقى بلا نهاية.
+      </p>
+      <div class="modal__buttons">
+        <button type="submit">أضف الرسالة</button>
+        <button type="button" data-close>إلغاء</button>
+      </div>
+    </form>
+  </dialog>
+
+  {% comment %} نافذةُ تعديلٍ لكلّ صفّ — استمارةٌ من الخادم لا واحدةٌ تُملأ
+     بجافاسكربت: الحقولُ أربعةٌ والصفوفُ قليلة، والثمنُ الذي يشتريه ذلك أن
+     الرفضَ يعود بأخطائه بجانب حقولها وبما كتبه الموظّف. {% endcomment %}
+  {% for row, edit_form in pairs %}
+    <dialog id="newsEdit{{ row.pk|unlocalize }}" class="modal">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="op" value="edit">
+        <input type="hidden" name="pk" value="{{ row.pk|unlocalize }}">
+        <h2>تعديل الرسالة</h2>
+        <p class="alarm">التعديلُ يقع على واجهة العميل <strong>فوراً</strong>.</p>
+        {% include "console/_form.html" with form=edit_form %}
+        <div class="modal__buttons">
+          <button type="submit">احفظ</button>
+          <button type="button" data-close>إلغاء</button>
+        </div>
+      </form>
+    </dialog>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'console/storefront.js' %}" defer></script>
+{% endblock %}

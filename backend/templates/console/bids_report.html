@@ -1,0 +1,141 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+تقرير المزايدات — صفٌّ لكلّ **مزايد** لا لكلّ مزايدة. T832.
+
+الشاشةُ تجيب «مَن»: ألفٌ وثمانمئةُ مزايدٍ مرتّبين، وما فعله كلٌّ منهم في رقمٍ
+واحد. وجارتاها تجيبان غيرها — «تحليل المزايدات» تعطي عشرةً ثابتين، و«تقرير
+مزايدات مستخدم» تُسأل عن واحدٍ تعرفه سلفاً.
+
+والاسمُ الفارغ «—» لا «محجوب»: أربعةٌ وأربعون ألفاً من أصل ٤٤٬٠٣٩ عميلاً
+اسمُهم فارغٌ في القاعدة المُرحَّلة، فالفراغُ هو **البيان** لا الحجب. والمحجوبُ
+يُقال بكلمته ولا يُخلط به.
+{% endcomment %}
+{% block title %}تقرير المزايدات{% endblock %}
+{% block heading %}تقرير المزايدات{% endblock %}
+{% block actions %}<a href="?{{ keep }}export=xlsx" class="btn-secondary">تصدير إكسل</a>{% endblock %}
+
+{% block content %}
+  {% comment %} الأرقامُ فوق الجدول من **نفس الاستعلام المرشَّح** تحتها: رقمٌ
+     في ترويسةٍ لا يتبع مرشّحَ جدوله هو كيف صار مركزُ تقارير v1 يقول «٦٬٥٠٣»
+     وتقول شاشتُه «٤٬٣٧٨». {% endcomment %}
+  <div class="board-stats">
+    <div class="stat"><span class="stat__label">مزايدون</span><strong class="stat__value">{{ bidders }}</strong></div>
+    <div class="stat"><span class="stat__label">مزايدات</span><strong class="stat__value">{{ bids }}</strong></div>
+    {% if show_money %}
+      <div class="stat"><span class="stat__label">إجمالي قيمة المزايدات</span><strong class="stat__value">{{ value }}</strong></div>
+    {% endif %}
+  </div>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <select name="auction" aria-label="فلتر المزاد">
+        <option value="">كل المزادات</option>
+        {% for a in auctions %}
+          <option value="{{ a.number|unlocalize }}" {% if a.number|stringformat:"s" == auction %}selected{% endif %}>{{ a.number|unlocalize }} — {{ a.title }}</option>
+        {% endfor %}
+      </select>
+      {% comment %} مدىً بأرقام المزادات لا بالتواريخ — كما في «تحليل
+         المزايدات» المجاورة فيُقارَن التقريران. و`placed_at` في ٤٣٬٣٦٢ مزايدةً
+         من ١٦٣٬٢٨٩ هو لحظةُ الاستيراد لا لحظةُ المزايدة، فمرشّحُ تاريخٍ يقسم
+         على «متى استُوردت». {% endcomment %}
+      <input type="number" name="from" value="{{ first }}" placeholder="من مزاد" aria-label="من رقم مزاد">
+      <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد" aria-label="إلى رقم مزاد">
+      <input type="search" name="q" value="{{ q }}" placeholder="اسم المزايد أو جوّاله…" aria-label="بحث">
+      <select name="sort" aria-label="الترتيب">
+        <option value="bids" {% if sort == "bids" %}selected{% endif %}>الأكثر مزايدةً</option>
+        <option value="vehicles" {% if sort == "vehicles" %}selected{% endif %}>الأكثر مركباتٍ</option>
+        <option value="withdrawn" {% if sort == "withdrawn" %}selected{% endif %}>الأكثر سحباً</option>
+        <option value="last" {% if sort == "last" %}selected{% endif %}>الأحدث مزايدةً</option>
+        {% comment %} خيارا المال يُسقَطان لمن لا يرى المال: جدولٌ مرتَّبٌ
+           بإجمالي القيمة يقول «هذا أكبرُ من ذاك» بلا رقمٍ واحدٍ في الصفحة —
+           فالترتيبُ وحدَه يُفشي ما حُجب. والخادم يُسقطهما كذلك، فمن يكتبهما
+           في شريط العنوان يأخذ الترتيبَ الافتراضيّ لا صفحةَ خطأ. {% endcomment %}
+        {% if show_money %}
+          <option value="value" {% if sort == "value" %}selected{% endif %}>الأعلى إجمالاً</option>
+          <option value="highest" {% if sort == "highest" %}selected{% endif %}>صاحب أعلى مزايدة</option>
+        {% endif %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if q or auction or first or last %}<a href="{% url 'console:bids-report' %}" class="filters__reset">مسح</a>{% endif %}
+    </div>
+  </form>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المزايد</th><th>الجوال</th>
+          <th>مزايدات</th><th>مركبات</th><th>مزادات</th>
+          <th>قائمة</th><th>مستبدَلة</th><th>مسحوبة</th>
+          <th>رسا له</th>
+          {% if show_money %}<th>إجمالي المزايدات</th><th>أعلى مزايدة</th><th>قيمة ما رسا له</th>{% endif %}
+          <th>آخر مزايدة</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            {% comment %} الاسمُ فارغاً «—» لمن يملك الصلاحية، و«محجوب» لمن
+               لا يملكها. وهما حالتان لا واحدة: الأولى تقول «القاعدةُ لا تعرف
+               اسمه»، والثانية «أنت لا ترى الأسماء». وخلطُهما عطلٌ وقع
+               وأُصلح. {% endcomment %}
+            <td>
+              {% if show_customer %}{{ row.name|default:"—" }}
+              {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+            </td>
+            <td>
+              {% if show_customer %}{{ row.phone|default:"—"|unlocalize }}
+              {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+            </td>
+            <td class="count">{{ row.bids|unlocalize }}</td>
+            <td class="count">{{ row.vehicles|unlocalize }}</td>
+            <td class="count">{{ row.auctions|unlocalize }}</td>
+            <td class="count">{{ row.standing|unlocalize }}</td>
+            <td class="count">{{ row.superseded|unlocalize }}</td>
+            <td class="count">{{ row.withdrawn|unlocalize }}</td>
+            <td class="count">{{ row.won|unlocalize }}</td>
+            {% comment %} الثلاثةُ الماليّة تجميعٌ فوق مركباتٍ رست وأخرى لم
+               تَرسُ معاً، فلا شرطَ صفٍّ يفصلها كما يفصله جدولُ المزايدات.
+               فتُحجَب كلُّها — وهو ثمنُ التجميع لا تشدُّدٌ زائد
+               (`sensitive.aggregate_money`). {% endcomment %}
+            {% if show_money %}
+              {% comment %} `default_if_none` لا `default`: `Decimal("0.00")`
+                 قيمةٌ كاذبةٌ في بايثون، فـ`default` كانت تكتب «—» مكان صفرٍ
+                 حقيقيّ — و«—» تُقرأ «لا نعرف» بينما الصفرُ يقول «لم يرسُ له
+                 شيء». وهما جوابان مختلفان بجوار عمود «رسا له». {% endcomment %}
+              <td class="money">{{ row.value|default_if_none:"—"|unlocalize }}</td>
+              <td class="money">{{ row.highest|default_if_none:"—"|unlocalize }}</td>
+              <td class="money">{{ row.won_value|default_if_none:"—"|unlocalize }}</td>
+            {% endif %}
+            <td>{{ row.last|date:"Y-m-d H:i" }}</td>
+            {% comment %} الجوابُ التالي دائماً: «وماذا زايد بالضبط؟» — ويُفتح
+               تقريرُ الشخص المبنيّ (`user-bids`) بجوّاله، فلا تُبنى شاشةٌ
+               ثالثةٌ تقول ما تقوله الثانية. ولا يُعرض لمن لا يرى الجوّالَ
+               أصلاً: الرابطُ نفسُه يحمل الجوّال في عنوانه. {% endcomment %}
+            {% if show_customer and row.phone %}
+              <td><a class="btn-sm" href="{% url 'console:user-bids' %}?phone={{ row.phone|urlencode }}">تقريره</a></td>
+            {% else %}
+              <td></td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr><td colspan="{% if show_money %}15{% else %}12{% endif %}" class="empty">لا مزايدين مطابقين.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-footer">
+    <div class="table-footer__count">
+      {{ page.paginator.count|unlocalize }} مزايداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+    </div>
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pagination" aria-label="صفحات المزايدين">
+        {% if page.has_previous %}<a class="pagination__btn" href="?{{ keep }}page={{ page.previous_page_number }}">السابق</a>{% endif %}
+        <span class="pagination__current">{{ page.number|unlocalize }} / {{ page.paginator.num_pages|unlocalize }}</span>
+        {% if page.has_next %}<a class="pagination__btn" href="?{{ keep }}page={{ page.next_page_number }}">التالي</a>{% endif %}
+      </nav>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -156,13 +156,76 @@ def _page(request, queryset):
     `MAX_PAGE_SIZE` is shared with the customer API deliberately: `?limit=100000`
     is a table scan whoever asks for it, and an operator's session is not a
     reason to allow one.
+
+    **و`?focus=<pk>` يختار الصفحةَ التي فيها تلك المركبة**، لا الأولى. الرابطُ
+    يأتي من «بحث عن سيارة»: الموظّف يبحث عن لوحةٍ في اثنتي عشرةَ ألفَ مركبة، ثمّ
+    يريد أن يراها **في مكانها من مزادها** — الصفُّ الذي فوقها والذي تحتها جزءٌ
+    من الجواب.
+
+    وv1 يفعلها في المتصفّح (`manage_vehicles.php:1449`): ينقل الترقيمَ ثمّ يمرّر
+    ثمّ يُضيء. وترقيمُنا في الخادم، فالنقلةُ هنا — **وذلك أسلمُ لا أسهلُ فقط**:
+    صفحةُ v1 تحمل المركباتِ كلَّها ثمّ تُخفي، فالترقيمُ هناك زينةٌ فوق جدولٍ
+    كاملٍ نُقل على الشبكة.
+
+    **والموضعُ يُحسب في القائمة المرشَّحة نفسِها** التي سيراها، لا في الجدول
+    الخام: من يصل ومعه `?photos=without` يجب أن يقع على صفحتها في **تلك**
+    القائمة. وإن لم تكن المركبةُ فيها — رُشّحت خارجَها أو ليست في هذا المزاد —
+    فلا تُخترَع صفحة: تُعاد الأولى، **والقالبُ يقول إنها لم تُوجَد** بدل أن
+    يُحوّل الموظّفَ ويُريه جدولاً لا يفهم لماذا فُتح. وذلك عطلُ v1 الذي علّق
+    عليه كاتبُه بنفسه: «يبدو للمستخدم أن الرابط حوّله ولم يُظهر شيئاً».
+
+    و`?page=` الصريحةُ تغلب: من ضغط «التالي» بعد وصوله قرّر أين يقف.
     """
     try:
         size = min(int(request.GET.get("limit", PAGE_SIZE)), MAX_PAGE_SIZE)
     except (TypeError, ValueError):
         size = PAGE_SIZE
 
-    return Paginator(queryset, max(size, 1)).get_page(request.GET.get("page"))
+    size = max(size, 1)
+    paginator = Paginator(queryset, size)
+    number = request.GET.get("page")
+
+    if number is None:
+        number = _page_holding(paginator, queryset, size, request.GET.get("focus"))
+
+    return paginator.get_page(number)
+
+
+def _focus_on_page(page, focus) -> int | None:
+    """مفتاحُ المركبة المطلوبة **إن كانت في هذه الصفحة فعلاً**، وإلّا ``None``."""
+    if not focus:
+        return None
+    try:
+        wanted = int(focus)
+    except (TypeError, ValueError):
+        return None
+    return wanted if any(row.pk == wanted for row in page.object_list) else None
+
+
+def _focus_missing(page, focus) -> bool:
+    """هل طُلبت مركبةٌ بعينها ولم تُوجَد؟ — جملةٌ تُقال، لا صمت."""
+    return bool(focus) and _focus_on_page(page, focus) is None
+
+
+def _page_holding(paginator, queryset, size, focus) -> int | None:
+    """رقمُ الصفحة التي تحمل المركبةَ ``focus``، أو ``None`` إن لم تُوجَد.
+
+    الموضعُ يُقرأ بمفاتيح الصفحات وحدها (`values_list("pk")`) لا بالصفوف: جدولٌ
+    من اثني عشرَ ألفاً يُحمَّل كاملاً ليُعرَف موضعُ صفٍّ واحدٍ هو استعلامٌ ثمنُه
+    أعلى من الشاشة التي يخدمها.
+    """
+    if not focus:
+        return None
+    try:
+        wanted = int(focus)
+    except (TypeError, ValueError):
+        # مُعرّفٌ مشوَّه في الرابط ليس خطأً يستحقّ ٥٠٠ — الشاشةُ تُفتح على أوّلها.
+        return None
+
+    keys = list(queryset.values_list("pk", flat=True))
+    if wanted not in keys:
+        return None
+    return keys.index(wanted) // size + 1
 
 
 @console_page("console:auctions")
@@ -382,6 +445,15 @@ def auction_detail(request, pk: int):
         {
             "auction": auction,
             "page": page,
+            # **المركبةُ التي جاء الموظّفُ من أجلها** (`?focus=`)، مقروءةً من
+            # الصفحة المعروضة لا من الرابط: لو أُخذت من الرابط لأضاء القالبُ
+            # صفّاً قد لا يكون فيها — رُشّح خارجَها، أو ليس في هذا المزاد أصلاً
+            # — فيرى الموظّفُ جدولاً بلا تعليمٍ ولا يعرف لماذا فُتح.
+            #
+            # ولذلك ثلاثةُ حالاتٍ لا حالتان: جاء بـ`focus` ووُجد (يُضاء) · جاء
+            # بها ولم يُوجَد (**تُقال الجملة**) · لم يأتِ بها (لا شيء).
+            "focus_pk": _focus_on_page(page, request.GET.get("focus")),
+            "focus_missing": _focus_missing(page, request.GET.get("focus")),
             "filters": vehicle_filters.state(request.GET, auction),
             # تخصيصُ أعمدة الجدول — القائمةُ للمكوّن، والمخفيُّ للخلايا. T869
             "columns_layout": columns.layout_for(request.user, "auction_vehicles"),

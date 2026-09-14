@@ -9,10 +9,12 @@ looks like a styling problem.
 from __future__ import annotations
 
 from django.conf import settings
+from django.utils.functional import SimpleLazyObject
 
 from .exports import PARAM
 from .icons import path_of
 from .navigation import back_for, sidebar_for
+from .sensitive import shown_to
 
 
 def navigation(request) -> dict:
@@ -26,6 +28,22 @@ def navigation(request) -> dict:
     user = getattr(request, "user", None)
     return {
         "sidebar": sidebar_for(user),
+        # `shown.money` و`shown.customer` لكلّ قالبٍ في اللوحة — **بالحجّة
+        # التي فوق حرفياً**. T901
+        #
+        # العرضُ الذي ينسى الحارسَ يرسم شاشةً فيها جوّالُ عميلٍ ومبلغُ فاتورته
+        # لمن لا يملك قدرتَهما، وهو عطلٌ لا يُرى على الشاشة — يُرى في «عرض
+        # المصدر» بعد أن يكون قد مرّ. وقد وقع هذا في تسع شاشاتٍ في ثلاث
+        # جولات، آخرُها هذه.
+        #
+        # وهنا لأن `vehicle_detail` عرضُه في `auctions.py` وهو خارج نصيب هذه
+        # الجولة: القالبُ يحتاج الجوابَ ولا سبيلَ إليه من عرضه. والعروضُ التي
+        # تحسبه بنفسها تُبقي `show_money`/`show_customer` كما هي — هذا لا
+        # يلغيها، إنّما يجعل النسيانَ غيرَ ممكن.
+        #
+        # و`SimpleLazyObject` لا قيمةً محسوبة: `shown_to` استعلاما `StaffGrant`،
+        # وستٌّ وتسعون شاشةً لا تقرؤه كلُّها. فلا يُدفع الثمنُ إلّا حيث يُقرأ.
+        "shown": SimpleLazyObject(lambda: shown_to(user)),
         "environment": settings.ENVIRONMENT_NAME,
         "app_base": settings.APP_BASE,
         "export_url": _export_url(request),

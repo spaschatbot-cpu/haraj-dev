@@ -117,6 +117,11 @@ LOCAL_APPS = [
     "apps.auctions",
     "apps.bidding",
     "apps.notifications",
+    # ما يقرؤه **العميل** ويحرّره الموظّف: شريطُ الأخبار وباقاتُ الاشتراك.
+    # ليست في `core` لأن `core` أدواتٌ مشتركة (سجلُّ التدقيق، الوقت، القفل) لا
+    # نطاقٌ له شاشات؛ وليست في `notifications` لأن الإشعار رسالةٌ **لشخصٍ**
+    # بقناةٍ وحالةِ تسليم، وشريطُ الأخبار جملةٌ تُعرَض للجميع بلا مُرسَلٍ إليه.
+    "apps.storefront",
     "apps.console",
 ]
 
@@ -525,6 +530,19 @@ SMS_BACKEND = env("SMS_BACKEND", default="apps.accounts.sms.console_backend")
 OURSMS_API_URL = env("OURSMS_API_URL", default="")
 OURSMS_TOKEN = env("OURSMS_TOKEN", default="")
 OURSMS_SENDER = env("OURSMS_SENDER", default="HirajOne")
+
+#: كلفةُ الرسالة النصّيّة الواحدة بالريال — **بلا قيمةٍ افتراضيّة، عمداً**.
+#:
+#: شاشةُ «إرسال إشعار» تعرض تقديرَ الكلفة قبل الزرّ (عددُ المستلمين × هذه)،
+#: والرقمُ المخترَع في شاشةِ إنفاقٍ أسوأُ من فراغ: من يقرأ «٤٤٬٠٣٦ × ٠٫١٠ =
+#: ٤٬٤٠٣ ريالاً» يتصرّف على أساسه، ولو كان العقدُ بضعفِ ذلك لكان قد قرّر على
+#: رقمٍ اخترعناه له. فالفارغُ يُعرض فارغاً: «الكلفة غير معروفة — يحتاج قيمةً
+#: من المالك»، والبثُّ لا يُمنع بسببه.
+#:
+#: وسلسلةٌ لا `float`: المادة ٣-٢ تمنع `float` على مسار مال، وقارئُها الوحيد
+#: يحوّلها `Decimal`. وv1 لا يملك هذا الإعداد ولا ما يشبهه — لا سعرَ رسالةٍ
+#: ولا ميزانيةَ ولا حدّاً أقصى في الشجرة كلِّها.
+SMS_COST_PER_MESSAGE = env.str("SMS_COST_PER_MESSAGE", default="")
 
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)

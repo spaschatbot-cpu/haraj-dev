@@ -287,9 +287,21 @@ somebody went looking for it.
      سيارة تحمل صورتَها وحالتَها وأزرارَها، لا صفَّ جدولٍ يُقرأ عرضاً. حُوِّل
      الجدولُ (بشريطه المجمَّع وفلاتر أعمدته وتخصيصها) إلى شبكة كروت بطلب المالك.
      T880 {% endcomment %}
+  {% comment %} الجملةُ حين يُطلَب صفٌّ ولا يُوجَد — ولا يُصمَت عنها. الرابطُ
+     من «بحث عن سيارة» يحمل `?focus=`، وقد تكون المركبةُ خارجَ المرشّحات
+     المفتوحة أو ليست في هذا المزاد أصلاً. وصمتُ الشاشة هنا هو عطلُ v1 الذي
+     علّق عليه كاتبُه: «يبدو للمستخدم أن الرابط حوّله ولم يُظهر شيئاً». {% endcomment %}
+  {% if focus_missing %}
+    <p class="notice notice--warn" role="status">
+      المركبةُ المطلوبة ليست ضمن ما يعرضه المرشّحُ الحاليّ في هذا المزاد.
+      <a href="?">اعرض الكلّ</a>
+    </p>
+  {% endif %}
+
   <div class="veh-grid">
     {% for car in page %}
-      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}">
+      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}{% if car.pk == focus_pk %} veh-card--focus{% endif %}"
+               {% if car.pk == focus_pk %}id="veh-focus" tabindex="-1"{% endif %}>
         {% comment %} صورةُ الكارت نفسُها زرُّ **صورة العرض** — كـ v1
            (`data-action="display-image"` في `manage.php`): الضغطُ يفتح منتقيَ
            ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض. والفارغةُ تقول
@@ -784,6 +796,26 @@ somebody went looking for it.
       });
       inp.addEventListener('change', go);
     });
+  })();
+  </script>
+  {% endif %}
+
+  {% if focus_pk %}
+  <script>
+  /* التمريرُ إلى المركبة التي جاء الموظّفُ من أجلها. الإضاءةُ والحدُّ في CSS
+     (`.veh-card--focus`) — والخادمُ هو من قرّر الصفحةَ والصفَّ، فلا يبقى
+     للمتصفّح إلا أن يُنزل العينَ عليه.
+
+     ولا `location.hash`: الجزءُ يبقى في شريط العنوان فيُعاد التمريرُ مع كلّ
+     تحديثٍ لصفحةٍ لم يعد الموظّفُ يبحث فيها عن شيء. */
+  (function () {
+    var card = document.getElementById('veh-focus');
+    if (!card) return;
+    var soft = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    card.scrollIntoView({ behavior: soft ? 'auto' : 'smooth', block: 'center' });
+    /* والتركيزُ بعده: من يتنقّل بلوحة المفاتيح يتابع من عند الصفّ لا من رأس
+       الصفحة — والتمريرُ وحده لا ينقل نقطةَ التنقّل. */
+    card.focus({ preventScroll: true });
   })();
   </script>
   {% endif %}

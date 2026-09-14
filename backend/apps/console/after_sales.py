@@ -44,6 +44,23 @@
 مصدرُ الحقيقة الوحيد لصفحة الشريك — أي حقيقةٌ ثانيةٌ بجوار الدفتر (T830ي).
 وهنا دفعةُ الشريك **قيدٌ على الفاتورة**، فالسؤال يُطرح على القيد.
 
+وهذا الملفُّ يبني **شاشتين** لا واحدة — T922
+============================================
+
+«القرارات المنتهية» في v1 هي هذا الجدولُ نفسُه: الخمسةَ عشرَ عموداً
+والمرشّحاتُ الخمسة (قُرئ في `src/Views/Admin/aftersales/index.php:131-147`
+و`src/Controllers/Admin/AfterSalesController.php:245-265` — شاشتان تستدعيان
+`listPage` الواحدة)، **زائداً عموداً واحداً: `المزايدون`**. وعندنا كانت
+جدولاً ثانياً بتسعة أعمدةٍ ومرشّحين في `billing.py`، أي **قاعدتان لسؤالٍ
+واحد**: يُصلَح البحثُ العربيّ في إحداهما ويبقى `icontains` في أختها، ويُحجَب
+الجوّالُ هنا ويظهر هناك. وذلك بعينه ما تشكو منه وثيقةُ الجرد
+(`docs/v1-admin-menu.md` §١٣): «في v2 تُبنى واحدةً بفلترٍ يُظهر العمود، لا
+شاشتين تُصانان معاً».
+
+فالصفوفُ والمرشّحاتُ والأعمدةُ والتصديرُ والحارسُ هنا، ويبقى في `billing.py`
+**ما يختلف حقاً**: مجموعةُ الصفوف (`DECIDED` لا `SOLD`)، ومرشّحُ `which`،
+والعنوانُ. و`sale_table` هي البابُ الذي يدخل منه الاثنان.
+
 والوصلةُ نصٌّ لا مفتاح: `record_payment` تبني
 `payment:{invoice}:sheet:{digest}:{line}`، ولا حقلَ فاتورةٍ على
 :class:`~apps.money.models.Transaction`. فالمرشّح يطابق بادئةَ المفتاح —
@@ -62,7 +79,8 @@ from django.shortcuts import render
 from django.urls import reverse
 
 from apps.auctions.models import Auction, Vehicle, VehicleImage
-from apps.auctions.states import AuctionState
+from apps.auctions.states import AuctionState, VehicleState
+from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 from apps.money.models import Invoice, InvoiceSource, InvoiceState, Transaction
 
@@ -96,6 +114,10 @@ CARD_ICONS = {
     "owing": "coins",
     "marketing": "briefcase",
     "settled": "layers-check",
+    # الثلاثةُ الأخيرة لوجه «القرارات المنتهية» من الشاشة نفسِها.
+    "decided": "stamp",
+    "awarded": "gavel",
+    "rejected": "ban",
 }
 
 #: رسمُ الفعل الوحيد في عمود «عرض»: سندُ الفاتورة. أُزيلت أيقونتا «فتح ملفّ
@@ -161,6 +183,7 @@ def sheet_settled_vehicle_ids() -> frozenset[int]:
 
 def sold_rows(
     *,
+    states: tuple = SOLD,
     text: str = "",
     auction: str = "",
     pay: str = "",
@@ -175,9 +198,18 @@ def sold_rows(
 
     و`sheet_ids` تأتي محسوبةً من :func:`sheet_settled_vehicle_ids` — لا تُحسب
     هنا كي لا تتكرّر بين الصفوف والبطاقات والتصدير في الطلب الواحد.
+
+    و`states` هي **الفرقُ الوحيد** بين هذه الشاشة و«القرارات المنتهية»
+    ==============================================================
+    تلك تسأل «ماذا قرّرنا» فمجموعتُها :data:`~apps.console.billing.DECIDED`
+    والمرفوضةُ فيها كالمقبولة؛ وهذه تسأل «ماذا بعنا» فمجموعتُها :data:`SOLD`.
+    وما عدا ذلك — المرشّحاتُ الخمسة، والأعمدةُ، والتصدير — واحدٌ حرفياً. فلو
+    نُسخ الاستعلامُ لشاشتين لصار **قاعدتين**: يُصلَح البحثُ في إحداهما ويُنسى
+    في أختها، وهو العطلُ الذي وقع في هذه اللوحة مراراً وتشكو منه وثيقةُ جرد
+    v1 عن هاتين الشاشتين بعينهما (`docs/v1-admin-menu.md` §١٣).
     """
     rows = (
-        Vehicle.objects.filter(state__in=SOLD)
+        Vehicle.objects.filter(state__in=states)
         .select_related("auction", "awarded_to")
         .annotate(
             invoice_pk=latest_invoice_field("pk"),
@@ -244,7 +276,9 @@ def sold_rows(
     return rows
 
 
-def tallies(rows, sheet_ids: frozenset[int], *, money: bool = True) -> list[Stat]:
+def tallies(
+    rows, sheet_ids: frozenset[int], *, money: bool = True, decided: bool = False
+) -> list[Stat]:
     """خمسةُ أرقامٍ عن **الصفوف المعروضة**، لا عن الجدول كلِّه.
 
     وذلك مقصود: من رشّح على مزادٍ بعينه يسأل عن ذلك المزاد، وبطاقةٌ تعدّ
@@ -253,7 +287,31 @@ def tallies(rows, sheet_ids: frozenset[int], *, money: bool = True) -> list[Stat
     و«سُدِّدت من ملفّ» **خارج التجميعة الكبرى**: كانت `Count` بمرشّحٍ على
     الاستعلام الفرعيّ الماسح، فتُحوِّل التجميعةَ من مسحٍ واحدٍ رخيص إلى مسحٍ
     لجدول القيود لكل صفّ. وهي الآن عدٌّ مستقلٌّ على `pk__in` — فهرسٌ لا مسح.
+
+    و`decided` يزيد بطاقتين لا شاشةً ثانية
+    =====================================
+    «القرارات المنتهية» تعرض المرفوضَ مع المُرسى، فسؤالُها الأوّل «كم منها
+    رسا وكم رُفض» — وكانت الشاشةُ تجيبه بعدّادَين **يعدّان الجدولَ كلَّه
+    ويتجاهلان المرشّحات**: من يرشّح على مزادٍ واحد يقرأ «٢٨٨ مرفوضة» وتحته
+    جدولٌ فيه ثلاثة. فصارا بطاقتين داخل **نفس** `aggregate` الذي يحسب
+    الباقي — استعلامٌ واحدٌ لا ثلاثة، ورقمٌ يحترم المرشّح كبقيّة البطاقات.
+
+    ولا يُضافان لـ«ما بعد البيع»: مجموعتُها :data:`SOLD` بلا مرفوضةٍ أصلاً،
+    فبطاقةُ «رفضها المالك» فيها صفرٌ دائمٌ يشغل مكاناً. والشرطُ هنا يُسقط
+    `Count`ين من استعلام تلك الشاشة أيضاً، فلا تدفع ثمنَ عمودٍ لا تعرضه.
     """
+    extra = (
+        {
+            "awarded": Count(
+                "pk", distinct=True, filter=~Q(state=VehicleState.REJECTED)
+            ),
+            "rejected": Count(
+                "pk", distinct=True, filter=Q(state=VehicleState.REJECTED)
+            ),
+        }
+        if decided
+        else {}
+    )
     counted = rows.aggregate(
         total=Count("pk", distinct=True),
         unbilled=Count("pk", distinct=True, filter=Q(invoice_pk__isnull=True)),
@@ -267,6 +325,7 @@ def tallies(rows, sheet_ids: frozenset[int], *, money: bool = True) -> list[Stat
             F("invoice_amount") - F("invoice_paid"),
             filter=Q(invoice_state__in=(InvoiceState.OPEN, InvoiceState.PARTIAL)),
         ),
+        **extra,
     )
     residual = counted["residual"] or ZERO
     # **العددُ يبقى والمبلغُ يُحجَب.** «كم فاتورةً لم تكتمل» سؤالُ تشغيلٍ يجيبه
@@ -281,18 +340,50 @@ def tallies(rows, sheet_ids: frozenset[int], *, money: bool = True) -> list[Stat
     # يحترمُ كلَّ المرشّحات القائمة: عدُّ المطابقِ الذي هو أيضاً في المجموعة.
     settled_count = rows.filter(pk__in=sheet_ids).count() if sheet_ids else 0
 
-    return [
+    head = [
         Stat(
-            label="مركبات مباعة",
+            label="قرارات منتهية" if decided else "مركبات مباعة",
             value=f"{counted['total']:,}",
-            detail="ما رست في مزادٍ منتهٍ — بالمرشّحات المطبَّقة الآن.",
+            detail=(
+                "ما حُسم فيه قرار — والمرفوضُ كالمقبول، بالمرشّحات المطبَّقة الآن."
+                if decided
+                else "ما رست في مزادٍ منتهٍ — بالمرشّحات المطبَّقة الآن."
+            ),
             tone="auction",
-            icon=CARD_ICONS["sold"],
+            icon=CARD_ICONS["decided"] if decided else CARD_ICONS["sold"],
         ),
+    ]
+    if decided:
+        head += [
+            Stat(
+                label="رست",
+                value=f"{counted['awarded']:,}",
+                detail="قُبل فيها أعلى عرضٍ — ولها مشترٍ وفاتورة.",
+                tone="auction",
+                icon=CARD_ICONS["awarded"],
+            ),
+            Stat(
+                label="رفضها المالك",
+                value=f"{counted['rejected']:,}",
+                detail="رُدَّ أعلى عرضٍ فيها — فلا مشتريَ لها ولا فاتورة.",
+                tone="warn" if counted["rejected"] else "plain",
+                icon=CARD_ICONS["rejected"],
+            ),
+        ]
+
+    return [
+        *head,
         Stat(
             label="بلا فاتورة بعد",
             value=f"{counted['unbilled']:,}",
-            detail="رست ولم تُفوتَر — ولا يُطالَب صاحبُها بشيءٍ حتى تُفوتَر.",
+            # ونصُّها يختلف في شاشة القرارات: المرفوضةُ هناك بلا فاتورةٍ
+            # **بطبيعتها** لا تأخّراً، فـ«رست ولم تُفوتَر» تقرأ اتّهاماً حيث
+            # لا تأخير — والعدّادُ نفسُه يبقى لأن السؤال «كم بلا فاتورة» واحد.
+            detail=(
+                "لا فاتورة عليها — والمرفوضةُ منها لا تُفوتَر أصلاً."
+                if decided
+                else "رست ولم تُفوتَر — ولا يُطالَب صاحبُها بشيءٍ حتى تُفوتَر."
+            ),
             tone="warn" if counted["unbilled"] else "plain",
             icon=CARD_ICONS["unbilled"],
         ),
@@ -347,29 +438,224 @@ def page_size(raw: str) -> int:
     return DEFAULT_ROWS
 
 
-@console_page("console:after-sales")
-def after_sales(request):
-    """ما بعد البيع: ما بيع، ولمن، وهل وصل مالُه."""
-    text = request.GET.get("q", "")
-    auction = request.GET.get("auction", "")
-    pay = request.GET.get("pay", "")
-    marketing = request.GET.get("mkt", "")
-    settled = request.GET.get("settle", "")
+def bid_counts(page_rows) -> None:
+    """عددُ المزايدين لكلّ صفٍّ في `bids_count` — **باستعلامٍ واحدٍ للصفحة**.
 
-    # تُحسب مرّةً للطلب كلِّه: الصفوفُ والبطاقاتُ والتصدير تقرؤها، فلا تتكرّر.
-    sheet_ids = sheet_settled_vehicle_ids()
+    ولماذا تجميعةٌ على الصفحة لا تعليقٌ على الاستعلام
+    ================================================
+    في القاعدة **١٦٣٬٢٨٩ مزايدة** على ٦٬٥٤٧ مركبة، و`annotate(Count("bids"))`
+    على استعلام الشاشة **وصلةٌ** تُضيف `GROUP BY` إلى كلّ ما يُسأل عن هذا
+    الاستعلام بعدها.
 
-    rows = sold_rows(
-        text=text,
-        auction=auction,
-        pay=pay,
-        marketing=marketing,
-        settled=settled,
-        sheet_ids=sheet_ids,
+    **والمقيس أوّلاً — ثم ما ثبت وما لم يثبت** (`haraj2_t307`، ٢٩٦ قراراً،
+    ١٤ سبتمبر ٢٠٢٦):
+
+    * *لم يثبت* أن المجاميع تفسد. ظُنّ أن `Sum(invoice_amount - invoice_paid)`
+      في :func:`tallies` سيُجمَع مرّةً لكلّ مزايدة فوق الوصلة، **وقِيس فلم
+      يقع**: ٦٨٩٬١٨٦٫٨٥ ريالاً بالوصلة وبدونها سواء، وعددُ الصفوف ٢٩٦ في
+      الحالتين — جانغو يلفّ `aggregate` فوق استعلامٍ مجمَّعٍ أصلاً. فلا يُكتب
+      هنا عطلٌ لم يُشاهَد.
+    * *وثبت الثمن*، وهو وحده سببُ الرفض: التجميعة ٥٫٥ms ⇐ **٢٦ms**، وعدُّ
+      المرقّم ٠٫٨ms ⇐ **٢٣ms**، وخمسون صفّاً ٩٫٢ms ⇐ **٣٧٫٦ms**. أي **نحو
+      ٧١ms تُدفع في كلّ تحميلٍ لكلّ موظّف** ثمناً لعمودٍ واحد — على ٢٩٦ صفّاً؛
+      وشاشةُ «ما بعد البيع» بالبنّاء نفسِه تبلغ اثني عشر ألفاً.
+
+    والمختار: مفاتيحُ الصفحة (خمسون على الأكثر) ثمّ `GROUP BY` واحد —
+    **١٫٧ms** مقابل ٣٤٫٣ms لو سُئل استعلامٌ لكلّ صفّ. كما تفعل :func:`covers`
+    بالصور للسبب نفسِه.
+
+    وضربٌ ديكارتيٌّ فوق تجميعٍ في هذه اللوحة **قتل عمليّةَ خادمٍ فعلاً** (علِق
+    الطلبُ عشرَ دقائقَ وإحدى وأربعين ثانية)، ولذلك قِيست هذه الوصلةُ قبل أن
+    تُكتب لا بعدها.
+
+    و`order_by()` ليس زينةً: ترتيبُ :class:`~apps.bidding.models.Bid`
+    الافتراضيّ يدخل `GROUP BY` فيُفرِّق الصفَّ الواحد على أعمدةِ ترتيبٍ لا
+    تعني شيئاً هنا، فيرجع عددٌ أكبرُ من الحقيقة.
+    """
+    rows = list(page_rows)
+    if not rows:
+        return
+    counted = dict(
+        Bid.objects.filter(vehicle_id__in=[row.pk for row in rows])
+        .order_by()
+        .values_list("vehicle_id")
+        .annotate(number=Count("pk"))
+    )
+    for row in rows:
+        row.bids_count = counted.get(row.pk, 0)
+
+
+def with_bid_counts(rows):
+    """نفسُ العدد، مُعلَّقاً على الاستعلام — **لملفّ التصدير وحده**.
+
+    الملفُّ كلُّ المطابق لا صفحةً، فلا مفاتيحَ في اليد تُجمَّع عليها. والتعليقُ
+    هنا **استعلامٌ فرعيٌّ عدديّ** لا وصلة: لا `GROUP BY` على الاستعلام الخارجيّ،
+    فلا يُدفَع ثمنُه في العدّ ولا في التجميعة. وقِيس: ٢٩٦ صفّاً بالعمود في
+    **٣٦ms**، وسقفُ :data:`~.exports.MAX_ROWS` يحدّه بخمسة آلافٍ على الأكثر.
+
+    ويُعلَّق **في فرع التصدير وحدَه**، لا على الاستعلام الذي تقرؤه
+    :func:`tallies`: هناك يُحسب لكلّ صفٍّ في تجميعةٍ لا تستعمله.
+    """
+    return rows.annotate(
+        bids_count=Subquery(
+            Bid.objects.filter(vehicle=OuterRef("pk"))
+            .order_by()
+            .values("vehicle")
+            .annotate(number=Count("pk"))
+            .values("number")[:1]
+        )
     )
 
-    seen = shown_to(request.user)
 
+def decorate(page_rows, sheet_ids: frozenset[int], *, rejected_note: bool = False):
+    """ما يُحسب لكلّ صفٍّ قبل القالب — لشاشتَي الجدول معاً.
+
+    كان هذا الجسدُ في عرض «ما بعد البيع»، فكان على «القرارات المنتهية» أن
+    تنسخه أو تفقده. وهو مكانُ خمسة قراراتٍ مكتوبةٍ بأسبابها (اسمُ الحالة
+    بالعربية، والنغمةُ من الخريطة الواحدة، والباقي من محرّك المال، ورابطُ
+    أودو، وعضويّةُ مجموعة الملفّات) — ونسخُها يعني أن يُصلَح أحدُها في شاشةٍ
+    ويبقى غلطاً في أختها.
+
+    و`rejected_note` لفرقٍ حقيقيٍّ لا يُمحى
+    ======================================
+    «القرارات المنتهية» تعرض **المرفوضة**، وهي بلا مشترٍ وبلا فاتورة —
+    لا تأخّراً بل بحكم القرار. فخليّةٌ خاليةٌ فيها («—» و«بلا فاتورة بعد»)
+    تُقرأ «ناقصٌ يُلاحَق»، والصحيحُ «مرفوضة، فلا شيءَ هنا أصلاً». والفراغُ
+    يُقال لا يُصمَت عنه.
+    """
+    rows = list(page_rows)
+    source_labels = dict(InvoiceSource.choices)
+    for row in rows:
+        row.invoice_label = state_label(row.invoice_state)
+        # نغمةُ حالة الفاتورة من `tones.py` — الخريطةُ الواحدة. وكانت تُحسب
+        # في القالب بسلسلة `{% if %}`، **فأعطت جواباً غير جوابها**: «مستحقة»
+        # (`open`) رماديّةٌ محايدة هناك و`warn` هنا. أي أن فاتورةً لم يصلها
+        # ريالٌ واحد كانت أهدأ لوناً من فاتورةٍ وصل نصفُها، وبطاقةُ «لم يكتمل
+        # سدادها» فوقها حمراء. و`with_tones` تقول ذلك بنفسها: «قالبٌ يحسب
+        # نغمةً هو مكانٌ ثانٍ للقاعدة».
+        row.invoice_tone = tone_of(row.invoice_state)
+        row.invoice_residual = residual_of(row)
+        row.invoice_source_label = source_labels.get(row.invoice_source, "—")
+        row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
+        # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
+        row.settled_by_sheet = row.pk in sheet_ids
+        # العدّادُ بفاصل آلاف كما في v1 (`aftersales/index.php:166`:
+        # `number_format((float) $mileage)`) — «120,000» لا «120000». ورقمٌ من
+        # ستّة أرقامٍ بلا فاصلٍ في عمودٍ ضيّق يُقرأ خطأً، وهو ما كان يقع.
+        #
+        # ويُحسَب هنا لا في القالب: `intcomma` تحتاج `django.contrib.humanize`
+        # في `INSTALLED_APPS`، وتطبيقٌ كاملٌ لأجل فاصلةٍ أغلى من سطر. والفاصلةُ
+        # لاتينيّةٌ صراحةً (`f"{n:,}"`) لا مترجَمة، كما `unlocalize` في كلّ
+        # أرقام اللوحة. **ولا يُمَسُّ ملفُّ التصدير**: `export_columns` تقرأ
+        # `row.odometer_km` الخام، فيبقى في إكسل رقماً يُجمَع لا نصّاً.
+        row.odometer_text = (
+            f"{row.odometer_km:,}" if isinstance(row.odometer_km, int) else ""
+        )
+        refused = rejected_note and row.state == VehicleState.REJECTED
+        row.buyer_blank = "مرفوضة — لا مشتريَ لها" if refused else "—"
+        # «بدون فاتورة» حرفيّاً كما في v1 (`:176`)، لا «بلا فاتورة بعد»:
+        # و«بعدُ» تَعِد بفاتورةٍ قادمة، وهي وعدٌ لا يقع على مركبةٍ لم تُبَع.
+        row.invoice_blank = "مرفوضة — لا فاتورة" if refused else "بدون فاتورة"
+    return rows
+
+
+def export_columns(sheet_ids: frozenset[int], *, bidders: bool = False):
+    """أعمدةُ الملفّ ثلاثيّاتٍ `(عنوان, دالّة, قدرة)` — قبل أن يقصّها الحارس.
+
+    **و«سعر الترسية» محذوفٌ عمداً**: لا عمودَ له على الشاشة ولا سطرَ في السند —
+    وعمودٌ يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بابُ التسريب نفسُه. (قِيس في
+    ملفٍّ منزَّل: `9500.00` للمركبة 25963 و`20000.00` للمركبة 25961.)
+
+    **و«الإجمالي المستحق» مضاف**: كان الملفُّ يحمل «المسدَّد» و«الباقي» بلا
+    الرقم الذي يُقاسان عليه، فلا يُطابَق به شيء — وهو معروضٌ في السند على
+    الشاشة.
+
+    و«المزايدون» آخرُ الأعمدة لا وسطَها: ترتيبُ الملفّ يُقرأ يساراً في إكسل،
+    وإقحامُ عمودٍ في الوسط يُزحزح كلَّ ما بعده في ملفٍّ يُقارَن بملفٍّ سابق.
+    """
+    columns = [
+        ("الموقف", lambda row: row.lot_number, None),
+        ("المزاد", lambda row: row.auction.number, None),
+        ("اسم المزاد", lambda row: row.auction.title, None),
+        ("المركبة", lambda row: f"{row.make} {row.model}", None),
+        ("السنة", lambda row: row.year, None),
+        ("اللوحة", lambda row: row.plate_number, None),
+        ("العداد", lambda row: row.odometer_km, None),
+        ("اللون", lambda row: row.get_colour_display(), None),
+        ("الشاصي", lambda row: row.vin, None),
+        ("رقم المطالبة", lambda row: row.claim_number, None),
+        (
+            "المشتري",
+            lambda row: row.awarded_to.full_name if row.awarded_to else "",
+            CUSTOMER,
+        ),
+        (
+            "هاتف المشتري",
+            lambda row: row.awarded_to.phone if row.awarded_to else "",
+            CUSTOMER,
+        ),
+        ("معرّف المركبة", lambda row: row.pk, None),
+        ("الفاتورة", lambda row: row.invoice_number, None),
+        ("حالتها — من الدفعات", lambda row: state_label(row.invoice_state), None),
+        ("الإجمالي المستحق", lambda row: row.invoice_amount, MONEY),
+        ("المسدَّد", lambda row: row.invoice_paid, MONEY),
+        ("الباقي", lambda row: residual_of(row), MONEY),
+        ("كلمة أودو", lambda row: row.invoice_odoo, None),
+        ("تسويق", lambda row: "نعم" if row.is_marketing else "لا", None),
+        (
+            "سُدِّدت من ملفّ شريك",
+            lambda row: "نعم" if row.pk in sheet_ids else "لا",
+            MONEY,
+        ),
+    ]
+    if bidders:
+        # القرارُ نفسُه في الملفّ: «ماذا قرّرنا» يحتاج الحالةَ، وv1 يضعها في
+        # ملفّه أيضاً (`حالة المركبة`). و«صفرٌ» لا فراغٌ لمن لا مزايدَ عليها:
+        # الخليّةُ الفارغة تُقرأ «لم يُحسَب» لا «لم يزايد أحد».
+        columns += [
+            ("القرار", lambda row: row.get_state_display(), None),
+            ("وقت القرار", lambda row: row.awarded_at, None),
+            ("المزايدون", lambda row: row.bids_count or 0, None),
+        ]
+    return columns
+
+
+def chosen_filters(request) -> dict:
+    """مرشّحاتُ الشاشة الخمسة من `GET` — تُقرأ مرّةً وتُمرَّر.
+
+    مرّةً واحدةً لأنها تُستعمل مرّتين في الطلب: مرّةً لبناء الصفوف ومرّةً
+    لرسم الخانات في القالب. وقراءتان لنفس المفتاح في نفس الطلب هما كيف يصير
+    `mkt` في الاستعلام و`marketing` في القالب فلا تعود الخانةُ تُظهر ما رُشِّح.
+    """
+    return {
+        "text": request.GET.get("q", ""),
+        "auction": request.GET.get("auction", ""),
+        "pay": request.GET.get("pay", ""),
+        "marketing": request.GET.get("mkt", ""),
+        "settled": request.GET.get("settle", ""),
+    }
+
+
+def sale_table(request, rows, *, chosen, sheet_ids, seen, screen, name, decided=False):
+    """جسدُ الشاشة كاملاً: إمّا ملفُّ تصديرٍ، وإمّا سياقُ قالب الجدول.
+
+    **وهو البنّاءُ الواحد لشاشتين**، وهو ما تطلبه وثيقةُ جرد v1 نصّاً عن
+    هاتين بعينهما: «شاشتان بجدولٍ واحد يفترقان بعمود — في v2 تُبنى واحدةً
+    بفلترٍ يُظهر العمود، لا شاشتين تُصانان معاً».
+
+    ولماذا سياقٌ يُرجَع لا `render` يُنادى
+    =====================================
+    لأن الشاشتين تختلفان في العنوان والافتتاحية وفي مرشّحٍ سادس (`which`)،
+    وعرضُ كلٍّ منهما يضيف ما يخصّه ثمّ يرسم. ودالّةٌ ترسم بنفسها كانت ستحتاج
+    وسائطَ للعنوان وللافتتاحية وللمرشّح الزائد — أي أن يُكتب شكلُ كلّ شاشةٍ
+    في الملفّ الذي يخدمهما معاً.
+
+    و`decided` علمٌ واحدٌ لثلاثة فروقٍ تأتي معاً
+    ==========================================
+    عمودُ «المزايدون» وبطاقتا «رست/رفضها المالك» وكلمةُ «مرفوضة» مكان الخليّة
+    الخالية — ثلاثتُها وجهُ «القرارات المنتهية» ولا يُطلب أحدُها وحده. وعلَمٌ
+    واحدٌ يقول ذلك أصدقُ من ثلاثةٍ تُمرَّر معاً دائماً ويُنسى أحدُها يوماً.
+    """
     if wants_export(request):
         # الملفُّ هو **كلُّ** المطابق لا الصفحةُ المعروضة — كما في v1 حرفياً:
         # «تصدير كل النتائج المطابقة للفلاتر (وليس الصفحة الحالية فقط)». ومن
@@ -385,81 +671,20 @@ def after_sales(request):
         # والمبالغُ خلف `invoices.view` — بالقاعدة نفسِها التي تحجبها في
         # الصفحة (`sensitive.py`). ومن يفتح الشاشة كان يضغط «تصدير» فيأخذ في
         # ملفٍّ واحدٍ ما لا يحقّ له في الصفحة.
-        #
-        # **و«سعر الترسية» حُذف**: لا عمودَ له على الشاشة ولا سطرَ في السند —
-        # وعمودٌ يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بابُ التسريب نفسُه. (قِيس
-        # في ملفٍّ منزَّل: `9500.00` للمركبة 25963 و`20000.00` للمركبة 25961.)
-        #
-        # **و«الإجمالي المستحق» أُضيف**: كان الملفُّ يحمل «المسدَّد» و«الباقي»
-        # بلا الرقم الذي يُقاسان عليه، فلا يُطابَق به شيء — وهو معروضٌ في
-        # السند على الشاشة.
+        stream = with_bid_counts(rows) if decided else rows
         return export_table(
-            rows.iterator(chunk_size=500),
-            name="ما-بعد-البيع",
-            columns=columns_for(
-                [
-                    ("الموقف", lambda row: row.lot_number, None),
-                    ("المزاد", lambda row: row.auction.number, None),
-                    ("اسم المزاد", lambda row: row.auction.title, None),
-                    ("المركبة", lambda row: f"{row.make} {row.model}", None),
-                    ("السنة", lambda row: row.year, None),
-                    ("اللوحة", lambda row: row.plate_number, None),
-                    ("العداد", lambda row: row.odometer_km, None),
-                    ("اللون", lambda row: row.get_colour_display(), None),
-                    ("الشاصي", lambda row: row.vin, None),
-                    ("رقم المطالبة", lambda row: row.claim_number, None),
-                    (
-                        "المشتري",
-                        lambda row: row.awarded_to.full_name if row.awarded_to else "",
-                        CUSTOMER,
-                    ),
-                    (
-                        "هاتف المشتري",
-                        lambda row: row.awarded_to.phone if row.awarded_to else "",
-                        CUSTOMER,
-                    ),
-                    ("معرّف المركبة", lambda row: row.pk, None),
-                    ("الفاتورة", lambda row: row.invoice_number, None),
-                    (
-                        "حالتها — من الدفعات",
-                        lambda row: state_label(row.invoice_state),
-                        None,
-                    ),
-                    ("الإجمالي المستحق", lambda row: row.invoice_amount, MONEY),
-                    ("المسدَّد", lambda row: row.invoice_paid, MONEY),
-                    ("الباقي", lambda row: residual_of(row), MONEY),
-                    ("كلمة أودو", lambda row: row.invoice_odoo, None),
-                    ("تسويق", lambda row: "نعم" if row.is_marketing else "لا", None),
-                    (
-                        "سُدِّدت من ملفّ شريك",
-                        lambda row: "نعم" if row.pk in sheet_ids else "لا",
-                        MONEY,
-                    ),
-                ],
-                seen,
-            ),
+            stream.iterator(chunk_size=500),
+            name=name,
+            columns=columns_for(export_columns(sheet_ids, bidders=decided), seen),
         )
 
     size = page_size(request.GET.get("per_page", ""))
     page = Paginator(rows, size).get_page(request.GET.get("page"))
     with_tones(page.object_list)
     covers(page.object_list)
-
-    source_labels = dict(InvoiceSource.choices)
-    for row in page.object_list:
-        row.invoice_label = state_label(row.invoice_state)
-        # نغمةُ حالة الفاتورة من `tones.py` — الخريطةُ الواحدة. وكانت تُحسب
-        # في القالب بسلسلة `{% if %}`، **فأعطت جواباً غير جوابها**: «مستحقة»
-        # (`open`) رماديّةٌ محايدة هناك و`warn` هنا. أي أن فاتورةً لم يصلها
-        # ريالٌ واحد كانت أهدأ لوناً من فاتورةٍ وصل نصفُها، وبطاقةُ «لم يكتمل
-        # سدادها» فوقها حمراء. و`with_tones` تقول ذلك بنفسها: «قالبٌ يحسب
-        # نغمةً هو مكانٌ ثانٍ للقاعدة».
-        row.invoice_tone = tone_of(row.invoice_state)
-        row.invoice_residual = residual_of(row)
-        row.invoice_source_label = source_labels.get(row.invoice_source, "—")
-        row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
-        # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
-        row.settled_by_sheet = row.pk in sheet_ids
+    decorate(page.object_list, sheet_ids, rejected_note=decided)
+    if decided:
+        bid_counts(page.object_list)
 
     # **المحجوبُ يُمحى هنا، بعد الحساب وقبل القالب.** كانت الشاشةُ تضع في مصدر
     # الصفحة جوّالَ المشتري ومبلغَ فاتورته ومسدَّدَها وباقيها لكلّ صفّ، وهي
@@ -467,33 +692,56 @@ def after_sales(request):
     # «كتالوج السيارات»، فلا تُطبَّق في شاشةٍ وتُترك في أختها.
     prepare(page.object_list, seen)
 
-    return render(
+    return {
+        "page": page,
+        "rows": page.object_list,
+        "cards": tallies(rows, sheet_ids, money=seen.money, decided=decided),
+        "show_money": seen.money,
+        "show_customer": seen.customer,
+        "show_bidders": decided,
+        # عددُ أعمدةِ صفّ «لا نتائج». رقمٌ في السياق لا `{% if %}` في القالب:
+        # عمودٌ يُضاف يوماً يُنسى في الشرط فيخرج صفُّ الفراغ أقصرَ من الجدول.
+        "colspan": 17 if decided else 15,
+        "q": chosen["text"],
+        "auction": chosen["auction"],
+        "pay": chosen["pay"],
+        "mkt": chosen["marketing"],
+        "settle": chosen["settled"],
+        "size": size,
+        "row_choices": ROW_CHOICES,
+        "auctions": ended_auctions(),
+        "pay_choices": [
+            *[(value, label) for value, label in InvoiceState.choices],
+            (NO_INVOICE, "بلا فاتورة"),
+        ],
+        "export_url": f"{reverse(screen)}?{export_query(request)}",
+        "reset_url": reverse(screen),
+        "filtered": any(chosen.values()) or size != DEFAULT_ROWS,
+        "icon_invoice": path_of(ROW_ICONS["invoice"]),
+    }
+
+
+@console_page("console:after-sales")
+def after_sales(request):
+    """ما بعد البيع: ما بيع، ولمن، وهل وصل مالُه."""
+    chosen = chosen_filters(request)
+    # تُحسب مرّةً للطلب كلِّه: الصفوفُ والبطاقاتُ والتصدير تقرؤها، فلا تتكرّر.
+    sheet_ids = sheet_settled_vehicle_ids()
+    rows = sold_rows(states=SOLD, sheet_ids=sheet_ids, **chosen)
+    seen = shown_to(request.user)
+
+    built = sale_table(
         request,
-        "console/after_sales.html",
-        {
-            "page": page,
-            "rows": page.object_list,
-            "cards": tallies(rows, sheet_ids, money=seen.money),
-            "show_money": seen.money,
-            "show_customer": seen.customer,
-            "q": text,
-            "auction": auction,
-            "pay": pay,
-            "mkt": marketing,
-            "settle": settled,
-            "size": size,
-            "row_choices": ROW_CHOICES,
-            "auctions": ended_auctions(),
-            "pay_choices": [
-                *[(value, label) for value, label in InvoiceState.choices],
-                (NO_INVOICE, "بلا فاتورة"),
-            ],
-            "export_url": f"{reverse('console:after-sales')}?{export_query(request)}",
-            "filtered": any([text, auction, pay, marketing, settled])
-            or size != DEFAULT_ROWS,
-            "icon_invoice": path_of(ROW_ICONS["invoice"]),
-        },
+        rows,
+        chosen=chosen,
+        sheet_ids=sheet_ids,
+        seen=seen,
+        screen="console:after-sales",
+        name="ما-بعد-البيع",
     )
+    if not isinstance(built, dict):
+        return built
+    return render(request, "console/after_sales.html", built)
 
 
 def state_label(value: str) -> str:

@@ -41,9 +41,14 @@
         <td class="count">{{ live|unlocalize }}</td>
         <td><a href="{% url 'console:active-auction' %}">احصائيات المزاد النشط ←</a></td>
       </tr>
+      {% comment %} الوحيدُ الذي مبلغٌ بين ستّةِ أعداد — ومبلغُ **دفتر
+         المحفظة**، فقدرتُه «عرض دفتر التأمينات والحركات» (`money.view`) لا
+         قدرةُ الفواتير. وهو الرقمُ الذي تحرسه تلك القدرةُ في «تقرير المحفظة»
+         التي يفتحها الرابطُ بجواره وبالدالّة ذاتها (`analytics.py`). {% endcomment %}
       <tr>
         <th>إجمالي التأمين</th>
-        <td class="money">{{ insurance|unlocalize }}</td>
+        {% if show_wallet %}<td class="money">{{ insurance|unlocalize }}</td>
+        {% else %}<td class="empty" title="دفترُ التأمينات خلف صلاحية «عرض دفتر التأمينات والحركات»">محجوب</td>{% endif %}
         <td><a href="{% url 'console:insurance-report' %}">تقرير المحفظة ←</a></td>
       </tr>
       <tr>
