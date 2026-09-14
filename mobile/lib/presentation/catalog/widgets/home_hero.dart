@@ -27,6 +27,10 @@ class HomeHero extends StatelessWidget {
   final String? title;
 
   static const String _carAsset = 'assets/images/hero_car.png';
+
+  /// شعارُ العلامة — العلامةُ وحدها بيضاءَ على شفافيّة، مقصوصةً من الأصل
+  /// المربّع (الذي يحمل خلفيّةً داكنة واسمَ العلامة تحتها).
+  static const String brandAsset = 'assets/images/logo.png';
   static const double _radius = 24;
 
   @override
@@ -345,25 +349,35 @@ class _Brand extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: <Widget>[
-      Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: palette.goldOnDark.withValues(alpha: 0.55),
-            width: 1.4,
+      // **شعارُ العلامة، لا أيقونةَ مطرقة** (١٤ سبتمبر ٢٠٢٦): كانت
+      // `Icons.gavel_rounded` في حوضٍ دائريّ نائبةً عن شعارٍ لم يصل. وصل،
+      // فحلّ محلّها.
+      //
+      // **بلا حوضٍ حوله**: الشعارُ نفسُه دائرةٌ مرسومة، وحلقةٌ ذهبيّةٌ ثانيةٌ
+      // حولها تجعلهما دائرتين متراكزتين. والوهجُ باقٍ يرفعه عن الصورة.
+      //
+      // وأصلٌ مفقودٌ لا يُسقط الهيدر: تعود المطرقةُ حتى تُضاف الصورة.
+      SizedBox(
+        width: 36,
+        height: 36,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: palette.heroGlow.withValues(alpha: 0.30),
+                blurRadius: 16,
+                spreadRadius: 1,
+              ),
+            ],
           ),
-          color: palette.heroBottom.withValues(alpha: 0.45),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: palette.heroGlow.withValues(alpha: 0.28),
-              blurRadius: 16,
-              spreadRadius: 1,
-            ),
-          ],
+          child: Image.asset(
+            HomeHero.brandAsset,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) =>
+                Icon(Icons.gavel_rounded, size: 18, color: palette.goldOnDark),
+          ),
         ),
-        child: Icon(Icons.gavel_rounded, size: 18, color: palette.goldOnDark),
       ),
       const SizedBox(width: 10),
       Flexible(
