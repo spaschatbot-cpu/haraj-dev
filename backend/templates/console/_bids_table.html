@@ -27,13 +27,40 @@
           </td>
           <td>{{ bid.vehicle.year|unlocalize }}</td>
           <td>{{ bid.vehicle.plate_number|default:"—" }}</td>
-          <td>{{ bid.vehicle.vin|default:"—" }}</td>
+          {% comment %} `mono` كما في «كتالوج السيارات»: الشاصي رمزٌ لا كلمة،
+             والخطُّ الثابت يجعل المقارنةَ بالعين ممكنة. وهي تحمل معها
+             `overflow-wrap: anywhere` — قِيس على منفذ ١٤٤٠: العمودُ كان ١٥٩
+             بكسلاً فيفيض الجدولُ ٢٥، وصار ٦٨ فيفيض صفراً، **وارتفاعُ الصفّ
+             نزل ١١٨ ⇐ ٩٥** لأن أعمدةً أخرى كفّت عن اللفّ. {% endcomment %}
+          <td class="mono">{{ bid.vehicle.vin|default:"—" }}</td>
           <td>{{ bid.vehicle.get_colour_display|default:"—" }}</td>
           <td>{{ bid.vehicle.get_condition_display|default:"—" }}</td>
+          {% comment %} سعرُ الوقوف يبقى بـ`auctions.view` — سؤالُ تشغيلٍ لا
+             سؤالُ مال، وهو سعرٌ بلا مشترٍ (المالكُ شركةٌ لا شخص).
+
+             و`buyer_name`/`buyer_phone`/`bid_amount` من `sensitive.py` لا
+             `bid.bidder`/`bid.amount` من العلاقة والعمود: الشاشتان
+             `auctions.view` وحدَها، وكانت الصفحةُ تضع خمسين جوّالاً في
+             مصدرها. والاسمُ الفارغ يبقى «—» لمن يملك الصلاحية — أسماءُ
+             المزايدين المرحَّلين فارغةٌ في القاعدة.
+
+             والمبلغُ محجوبٌ حين تكون **مركبتُه** قد رست وحدَها: عندها هو
+             سعرُ رسوّها بالهللة. وعلى مركبةٍ في مزادٍ مفتوح هو رقمُ سوقٍ لا
+             مالُ أحد، وهو ما يُفتح هذا الجدولُ لأجله. {% endcomment %}
           <td class="money">{{ bid.vehicle.reserve_price|default:"—"|unlocalize }}</td>
-          <td>{{ bid.bidder.full_name }}</td>
-          <td>{{ bid.bidder.phone|unlocalize }}</td>
-          <td class="money">{{ bid.amount|unlocalize }}</td>
+          <td>
+            {% if bid.buyer_name %}{{ bid.buyer_name }}
+            {% elif show_customer %}<span class="empty">—</span>
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td>
+            {% if show_customer %}{{ bid.buyer_phone|unlocalize }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if bid.bid_amount is not None %}{{ bid.bid_amount|unlocalize }}
+            {% else %}<span class="empty" title="مبلغُ المزايدة على مركبةٍ رست هو سعرُ رسوّها — خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
           <td>
             {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
             {% elif bid.is_superseded %}<span class="pill" data-tone="warn">مستبدَلة بأعلى</span>

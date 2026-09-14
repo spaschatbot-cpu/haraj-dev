@@ -1625,6 +1625,158 @@ def start_bank_topup(*, user, amount: Decimal, receipt) -> BankTopupRequest:
     )
 
 
+class BankTopupNotOpen(MoneyError):
+    code = "bank_topup_not_open"
+    default_message = "هذا الطلب رُوجع من قبل — لم يتغيّر شيء."
+
+
+class ApprovedAmountNeedsReason(MoneyError):
+    code = "approved_amount_needs_reason"
+    default_message = (
+        "المبلغ المعتمَد يخالف ما ادّعاه العميل — اكتب سببَ الفرق قبل الاعتماد."
+    )
+
+
+@db_transaction.atomic
+def approve_bank_topup(
+    *,
+    topup: BankTopupRequest,
+    by,
+    amount: Decimal,
+    sender_name: str = "",
+    transfer_date=None,
+    iban: str = "",
+    note: str = "",
+) -> tuple[BankTopupRequest, Transaction]:
+    """اعتمد طلبَ شحنٍ بنكيّ **بما وصل فعلاً**، وقيّده مرّةً واحدة. T838.
+
+    ``amount`` هو ما قرأه الموظّف في كشف حساب المنصّة، لا ``topup.amount`` الذي
+    ادّعاه العميل. واختلافُهما ليس خطأً يُرفض — هو الحالةُ التي وُجد هذا المسار
+    من أجلها: «حوّلتُ ٥٬٠٠٠» والكشفُ يقول ٤٬٨٥٠. ولذلك ``note`` **إجباريّ حين
+    يختلفان**: رقمٌ يخالف الدعوى بلا سببٍ مكتوب هو ما يُسأل عنه بعد شهرٍ ولا
+    يُجاب.
+
+    والقيدُ يمرّ بـ:func:`credit_payment` لا بـ:func:`deposit_insurance`
+    ==================================================================
+    وهي فرقٌ مقصود: :func:`credit_payment` وحدَها تعرف أن الدفعةَ قد تكون
+    وصلت من قبل (أودو أسرعُ من الموظّف أحياناً) فتُعيد قيدَها ولا تقيّد ثانيةً،
+    وهي وحدَها تطبّق قاعدةَ الوديعة الكاملة (HR-03).
+
+    **وثمنُ ذلك يُقال صريحاً**: مبلغٌ معتمَدٌ ليس مضاعفاً للوديعة — ٤٬٨٥٠ مثلاً
+    — **لا يصير تأميناً**، بل يجلس في «المعلّق» محفوظاً ومعدوداً حتى يُكمِل
+    العميلُ الفرق. وذلك هو الصواب لا نقصٌ فيه: ٤٬٨٥٠ ريالاً لا تشتري وديعةَ
+    عشرة آلاف، ووديعةٌ ناقصةٌ تُحسَب كاملةً هي بعينها ما جعل v1 يغطّي استرداد
+    عشرة آلافٍ بإيداعِ ريالٍ واحد. فالشاشةُ تقول للموظّف أين وقع المال، ولا
+    يخترع هذا المسارُ باباً ثانياً إلى الدفتر ليُدخله حيث لا يجوز.
+
+    و``source="cash"``: التحويلُ البنكيّ ليس بطاقة، والحسابُ الخارجيّ المقابل
+    له `EXTERNAL_CASH` — وهو ما يميّزه عن رسوم البوّابة التي تُخصم من `CARD`.
+    """
+    locked = BankTopupRequest.objects.select_for_update().get(pk=topup.pk)
+    if locked.state != BankTopupState.SUBMITTED:
+        # القفلُ قبل القراءة لا بعدها: موظّفان يفتحان الطابور نفسَه ويضغطان
+        # «اعتماد» على الصفّ نفسِه. والمفتاح `deposit_key` يمنع القيدَ مرّتين،
+        # لكنه لا يمنع الثانيَ من الكتابة فوق مبلغِ الأوّل المعتمَد.
+        raise BankTopupNotOpen(
+            f"bank topup {locked.pk} is {locked.state}",
+            user_message=(
+                f"هذا الطلب حالتُه «{locked.get_state_display()}» — "
+                "لم يتغيّر شيء."
+            ),
+        )
+    if amount <= ZERO:
+        raise InvalidAmount(
+            f"approved bank topup amount {amount!r}",
+            user_message="المبلغ المعتمَد يجب أن يكون رقماً موجباً.",
+        )
+    note = (note or "").strip()
+    if amount != locked.amount and not note:
+        raise ApprovedAmountNeedsReason(
+            f"bank topup {locked.pk}: claimed {locked.amount}, approved {amount}"
+        )
+
+    txn = credit_payment(
+        user=locked.user,
+        amount=amount,
+        source="cash",
+        reference=locked.reference,
+        memo=f"شحن بنكيّ معتمَد — طلب {locked.pk}" + (f" — {note}" if note else ""),
+    )
+
+    before = audit.snapshot(locked, ("state", "amount", "amount_approved"))
+    locked.state = BankTopupState.POSTED
+    locked.amount_approved = amount
+    locked.resulting_transaction = txn
+    locked.bank_sender_name = (sender_name or "").strip()
+    locked.bank_transfer_date = transfer_date
+    locked.bank_iban = (iban or "").strip()
+    locked.admin_note = note
+    locked.save(
+        update_fields=[
+            "state",
+            "amount_approved",
+            "resulting_transaction",
+            "bank_sender_name",
+            "bank_transfer_date",
+            "bank_iban",
+            "admin_note",
+            "updated_at",
+        ]
+    )
+
+    # المُدَّعى والمعتمَد **في القيد الواحد**: سجلٌّ يحمل أحدَهما لا يُجيب
+    # السؤالَ الذي يُسأل — «بكم اعتُمد، وكم كان يقول؟».
+    audit.record(
+        action="money.bank_topup_approved",
+        entity=locked,
+        actor=by,
+        before=before,
+        after=audit.snapshot(locked, ("state", "amount", "amount_approved")),
+        note=(
+            f"مُدَّعى {locked.amount} · معتمَد {amount} · حركة {txn.pk}"
+            + (f" · {note}" if note else "")
+        ),
+    )
+    return locked, txn
+
+
+@db_transaction.atomic
+def reject_bank_topup(*, topup: BankTopupRequest, by, note: str) -> BankTopupRequest:
+    """ارفض طلبَ شحنٍ بنكيّ بسببٍ مكتوب — ولا يمسّ الدفتر.
+
+    والسببُ إجباريّ: «صحّة المحفظة» في v1 تعرض **تسعين بلاغ «إلغاء بلا سبب»**،
+    وكلُّ واحدٍ منها عميلٌ يسأل ولا أحد يعرف الجواب.
+    """
+    note = (note or "").strip()
+    if not note:
+        raise MoneyError(
+            f"bank topup {topup.pk} rejected without a reason",
+            user_message="سببُ الرفض مطلوب — العميل يقرؤه.",
+        )
+    locked = BankTopupRequest.objects.select_for_update().get(pk=topup.pk)
+    if locked.state != BankTopupState.SUBMITTED:
+        raise BankTopupNotOpen(
+            f"bank topup {locked.pk} is {locked.state}",
+            user_message=(
+                f"هذا الطلب حالتُه «{locked.get_state_display()}» — لم يتغيّر شيء."
+            ),
+        )
+
+    before = audit.snapshot(locked, ("state", "amount", "amount_approved"))
+    locked.state = BankTopupState.REJECTED
+    locked.admin_note = note
+    locked.save(update_fields=["state", "admin_note", "updated_at"])
+    audit.record(
+        action="money.bank_topup_rejected",
+        entity=locked,
+        actor=by,
+        before=before,
+        after=audit.snapshot(locked, ("state", "amount", "amount_approved")),
+        note=f"مُدَّعى {locked.amount} · {note}",
+    )
+    return locked
+
+
 # ---------------------------------------------------------------------------
 # Paying for what you bought
 # ---------------------------------------------------------------------------

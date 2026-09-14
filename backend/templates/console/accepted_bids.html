@@ -56,21 +56,53 @@
           </td>
           <td>{{ row.plate_number|default:"—" }}</td>
           <td>{{ row.vin|default:"—" }}</td>
+          {% comment %} `buyer_name`/`buyer_phone`/`award_price` من
+             `sensitive.prepare` لا `row.awarded_to` من العلاقة: الشاشةُ
+             `auctions.view` وحدَها، والاسمُ والجوّالُ خلف `users.view`
+             والمبلغُ خلف `invoices.view`. والحقلُ المحجوب **لا يصل القالبَ
+             أصلاً** — لا مخفيٌّ فيه بـCSS.
+
+             والرابطُ إلى ملفّ العميل يسقط مع الاسم: صفحتُه `users.view`
+             أصلاً، فرابطٌ إليها من هنا وعدٌ بـ`403`.
+
+             و«—» تبقى «—» لمن يملك الصلاحية: أسماءُ المزايدين المرحَّلين
+             فارغةٌ في القاعدة، وكتابةُ «محجوب» مكان اسمٍ فارغٍ لمن يراه
+             عطلٌ وقع فعلاً وأُصلح. {% endcomment %}
           <td>
-            <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
+            {% if row.buyer_name %}<a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.buyer_name }}</a>
+            {% elif show_customer %}<span class="empty">—</span>
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
           </td>
-          <td>{{ row.awarded_to.phone|unlocalize }}</td>
-          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          <td>
+            {% if show_customer %}{{ row.buyer_phone|unlocalize }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if show_money %}{{ row.award_price|default:"—"|unlocalize }}
+            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           {% comment %} الثلاثة الأخيرة من الفاتورة أو لا شيء. و«بلا فاتورة»
              مكتوبةٌ نصّاً لا خانةً فارغة: الفارغة تُقرأ «لم يُحسب» وهذه تقول
              «لم يُفوتَر» — والفرق هو ما ينتظر عملاً. {% endcomment %}
+          {% comment %} ورقمُ الفاتورة يبقى بـ`auctions.view` ومبلغُها لا:
+             «أفُوتِرت؟» سؤالُ تشغيل، و«بكم؟» سؤالُ مال — الفصلُ نفسُه الذي
+             في `sensitive.py` وفي v1 (`catalog.php` يضع الرقم وحده ثم يجلب
+             البقيّةَ عند الضغط). {% endcomment %}
           {% if row.money.invoice %}
             <td>
-              <a href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
+              {% comment %} والرقمُ نصٌّ بلا رابطٍ لمن لا يملك المال: صفحةُ
+                 الفاتورة `invoices.view` أصلاً، فرابطٌ إليها من هنا وعدٌ
+                 بـ`403` — وهو ما فعله كارتُ الأرشيف والكتالوج قبله. {% endcomment %}
+              {% if show_money %}<a href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
+              {% else %}<span class="mono">{{ row.money.invoice.number }}</span>{% endif %}
             </td>
-            <td class="money">{{ row.money.tax|unlocalize }}</td>
-            <td class="money">{{ row.money.total|unlocalize }}</td>
+            {% if show_money %}
+              <td class="money">{{ row.money.tax|unlocalize }}</td>
+              <td class="money">{{ row.money.total|unlocalize }}</td>
+            {% else %}
+              <td class="empty" colspan="2" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>
+            {% endif %}
           {% else %}
             <td class="empty" colspan="3">بلا فاتورة — لا ضريبة على مبلغٍ لم يُفوتَر</td>
           {% endif %}

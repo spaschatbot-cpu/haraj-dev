@@ -21,20 +21,29 @@
 
 «القرارات المنتهية» — ما حُسم، مقبولاً كان أو مرفوضاً
 =====================================================
-v1 يضعها لساناً في `BillController`. وهي هنا الوجهُ الآخر لـ
-`console:partner-decisions`: تلك تعرض ما **ينتظر** قراراً، وهذه ما **انتهى**
-إليه — والمرفوضةُ فيها كالمقبولة، لأن السؤال «ماذا قرّرنا» لا «ماذا بعنا».
+هي هنا الوجهُ الآخر لـ`console:partner-decisions`: تلك تعرض ما **ينتظر**
+قراراً، وهذه ما **انتهى** إليه — والمرفوضةُ فيها كالمقبولة، لأن السؤال «ماذا
+قرّرنا» لا «ماذا بعنا».
 
-وv1 يجمعها مع «المزايدات المقبولة» في شاشةٍ واحدة بستّة ألسنة، فيختلط ما رسا
-بما رُفض تحت اسمٍ واحد.
+**وجدولُها ليس هنا — T922.** كان هنا استعلامٌ ثانٍ وقالبٌ ثانٍ بتسعة أعمدةٍ
+ومرشّحين، وهما في v1 جدولُ «ما بعد البيع» نفسُه: `AfterSalesController` واحدةٌ
+تخدم `/after-sales` و`/ended-decisions` بـ`listPage` الواحدة، والفرقُ علَمٌ
+واحد `showBidders` يُظهر عموداً سادسَ عشر (قُرئ في `src/Controllers/Admin/`
+و`src/Views/Admin/aftersales/index.php:131-147`). ونسختُنا الثانية كلّفت ما
+تكلّفه كلُّ نسخةٍ ثانية: البحثُ العربيُّ أُصلح هناك وبقي هنا على أربعة حقول،
+وحجبُ الجوّال والمبلغ (`sensitive.py`) لم يمرّ على هذه الشاشة أصلاً.
+
+فالصفوفُ والمرشّحاتُ والأعمدةُ والتصديرُ والحارسُ في `after_sales.py`، ويبقى
+هنا **ما يختلف حقاً**: :data:`DECIDED` بدل `SOLD`، ومرشّحُ `which`.
+
+وv1 يجمعها أيضاً مع «المزايدات المقبولة» في شاشةٍ واحدة بستّة ألسنة، فيختلط
+ما رسا بما رُفض تحت اسمٍ واحد.
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
 
-from django.core.paginator import Paginator
-from django.db.models import Q
 from django.shortcuts import render
 from django.utils.dateparse import parse_date
 
@@ -44,12 +53,21 @@ from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
+from .after_sales import (
+    chosen_filters,
+    sale_table,
+    sheet_settled_vehicle_ids,
+    sold_rows,
+)
 from .exports import export, wants_export
-from .tones import with_tones
+from .sensitive import shown_to
 from .views import console_page
 
 ZERO = Decimal("0.00")
-PAGE_SIZE = 50
+
+#: و`PAGE_SIZE = 50` كانت هنا وسقطت مع استعلام «القرارات المنتهية»: مقاسُ
+#: الصفحة صار من `after_sales.page_size` ومعه خانةُ «عدد النتائج في الصفحة».
+#: وثابتٌ لا يقرؤه أحد يُقرأ يوماً على أنه القاعدةَ فيُبنى عليه.
 
 #: ما حُسم فيه قرار: رسا أو رُفض. والمرفوضة معها عمداً — السؤال «ماذا قرّرنا».
 DECIDED = (
@@ -199,46 +217,61 @@ def invoices_export(request):
     )
 
 
-def decided(*, text: str = "", which: str = ""):
-    """ما حُسم فيه قرار — مقبولاً أو مرفوضاً."""
-    rows = (
-        Vehicle.objects.filter(state__in=DECIDED)
-        .select_related("auction", "awarded_to", "owner_company")
-        .order_by("-awarded_at", "-id")
-    )
+def decided(*, which: str = "", **filters):
+    """ما حُسم فيه قرار — مقبولاً أو مرفوضاً، **ببنّاء «ما بعد البيع»**. T922
+
+    ولماذا لا استعلامَ هنا
+    ======================
+    كان هنا استعلامٌ ثانٍ بأربعة حقولِ بحثٍ ومرشّحٍ واحد، بجوار استعلامِ «ما
+    بعد البيع» بتسعة حقولٍ وخمسة مرشّحات — **وهما في v1 استعلامٌ واحد**
+    (`AfterSalesController::listPage`، تستدعيه `index` و`decisions` معاً).
+    وثمنُ النسختين قُبض فعلاً: البحثُ هنا كان لا يطابق اسمَ مشترٍ ولا جوّالاً
+    ولا رقمَ مطالبةٍ ولا لوناً، وحجبُ `sensitive.py` لم يكن يمرّ على هذه
+    الشاشة أصلاً.
+
+    فالصفوفُ من :func:`~apps.console.after_sales.sold_rows` بمجموعةٍ أخرى،
+    و`which` وحده يبقى هنا — لأنه وحده لا معنى له هناك.
+    """
+    rows = sold_rows(states=DECIDED, **filters)
 
     if which == "rejected":
         rows = rows.filter(state=VehicleState.REJECTED)
     elif which == "awarded":
         rows = rows.exclude(state=VehicleState.REJECTED)
-
-    text = (text or "").strip()
-    if text:
-        matches = search_q(text, "plate_number", "vin", "make", "model")
-        if text.isdigit():
-            matches |= Q(auction__number=int(text)) | Q(lot_number=int(text))
-        rows = rows.filter(matches)
     return rows
 
 
 @console_page("console:ended-decisions")
 def ended_decisions(request):
-    """القرارات المنتهية: ما حُسم، والمرفوضُ فيه كالمقبول."""
-    which = request.GET.get("which", "")
-    rows = decided(text=request.GET.get("q", ""), which=which)
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
+    """القرارات المنتهية: ما حُسم، والمرفوضُ فيه كالمقبول.
 
-    return render(
+    وهي في v1 **للمالك وحده** (`AfterSalesController::decisions` ترفع ٤٠٣
+    لغيره). وهنا `auctions.view` كأختها، والحسّاسُ يُحجَب حقلاً حقلاً في
+    `sensitive.py` — وهو حكمُ المالك في ١٤ سبتمبر ٢٠٢٦: «تُحجب الأعمدةُ
+    الحسّاسة، والشاشةُ تبقى مفتوحة». فموظّفُ الساحة يرى القرارَ وعددَ
+    المزايدين، ولا يرى مشترياً ولا مبلغاً.
+    """
+    which = request.GET.get("which", "")
+    chosen = chosen_filters(request)
+    sheet_ids = sheet_settled_vehicle_ids()
+    rows = decided(which=which, sheet_ids=sheet_ids, **chosen)
+    seen = shown_to(request.user)
+
+    built = sale_table(
         request,
-        "console/ended_decisions.html",
-        {
-            "page": page,
-            "q": request.GET.get("q", ""),
-            "which": which,
-            "rejected": Vehicle.objects.filter(state=VehicleState.REJECTED).count(),
-            "awarded": Vehicle.objects.filter(state__in=DECIDED)
-            .exclude(state=VehicleState.REJECTED)
-            .count(),
-        },
+        rows,
+        chosen=chosen,
+        sheet_ids=sheet_ids,
+        seen=seen,
+        screen="console:ended-decisions",
+        name="القرارات-المنتهية",
+        decided=True,
     )
+    if not isinstance(built, dict):
+        return built
+
+    built["which"] = which
+    # المرشّحُ السادس يدخل حسابَ «هل رُشِّحت الشاشة؟» — وإلّا اختفى زرُّ
+    # «إلغاء الفلترة» لمن رشّح به وحده، فبقي على «رفضها المالك» بلا مخرج.
+    built["filtered"] = built["filtered"] or bool(which)
+    return render(request, "console/ended_decisions.html", built)

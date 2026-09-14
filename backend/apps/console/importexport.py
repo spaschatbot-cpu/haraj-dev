@@ -32,6 +32,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
+from .exports import oversize, refuse
 from .views import console_page
 
 #: What one upload may carry. A file larger than this is a mistake — a
@@ -58,6 +59,18 @@ def export(request):
     state = request.GET.get("state")
     if state:
         rows = rows.filter(state=state)
+
+    # **وسقفُ الصفوف نفسُه** (`exports.MAX_ROWS`): `export_vehicles` تبني
+    # الصفوفَ كلَّها في الذاكرة قبل أن تكتب بايتاً — نفسُ كلفةِ تصدير الكتالوج
+    # (٥٬٠٠٠ صفٍّ ⇐ ٢٩٦٢ms · ١٢٬٩٩٣ ⇐ ٧٩٤٠ms، مقيسةً في ١٤ سبتمبر ٢٠٢٦).
+    #
+    # ولا يكسر ذلك «الملفُّ هو مُدخَلُ الاستيراد»: الدورةُ الكاملةُ تجري على
+    # مزادٍ واحد، وأكبرُ مزادٍ في القاعدة ٣٨٦ مركبة. السقفُ يصيب «صدّر كلَّ
+    # شيءٍ بلا مرشّح» وحدَها — ويردّ عليها صفحةً صريحةً تطلب ترشيحاً، لا ملفّاً
+    # مقصوصاً صامتاً يُرفَع بعد ذلك فيستورد ثلثَ ما كان.
+    count = oversize(rows)
+    if count:
+        return refuse(request, count)
 
     payload = export_vehicles(rows.order_by("auction_id", "lot_number"))
     stamp = timezone.now().strftime("%Y%m%d-%H%M")
@@ -162,7 +175,15 @@ def import_auction_vehicles(request, pk: int):
     صفحة المزاد برسالةٍ في `messages`.
     """
     auction = get_object_or_404(Auction, pk=pk)
-    if not can(request.user, Capability.AUCTIONS_MANAGE):
+    # **القدرتان معاً، لأن المحرّك واحد.** الشاشةُ المخصَّصة لنفس
+    # `import_vehicles` (`console:vehicles-import`) محروسةٌ بـ`AUCTIONS_IMPORT`،
+    # وكان هذا البابُ يقبل `AUCTIONS_MANAGE` وحدها — بابان لكاتبٍ واحد،
+    # وأضعفُهما هو الحارسُ الفعليّ. ولا دورَ يخسر شيئاً اليوم: «المالك»
+    # و«العمليات» يحملان الاثنتين، و`accounts_consolerole` فارغٌ في القاعدة.
+    if not (
+        can(request.user, Capability.AUCTIONS_MANAGE)
+        and can(request.user, Capability.AUCTIONS_IMPORT)
+    ):
         raise PermissionDenied("إدارة سيارات المزاد غير مسموحة لهذا المستخدم")
 
     back = redirect("console:auction-detail", pk=auction.pk)

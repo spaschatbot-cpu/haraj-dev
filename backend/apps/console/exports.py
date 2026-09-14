@@ -35,6 +35,7 @@ from collections.abc import Callable, Iterable
 from typing import Any
 
 from django.http import HttpResponse
+from django.shortcuts import render
 from django.utils import timezone
 
 from apps.core.sheets import Sheet
@@ -44,10 +45,60 @@ XLSX_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml
 #: The query parameter that turns a list screen into a download.
 PARAM = "export"
 
+#: سقفُ صفوفِ الملفّ الواحد — **رفضٌ صريح، لا قصٌّ صامت**. T901.
+#:
+#: القياسُ الذي جاء منه الرقم (كتالوج السيارات على `haraj2_t307`، ١٤ سبتمبر
+#: ٢٠٢٦): بلا مرشّح ⇐ **١٢٬٩٩٠ صفّاً في ٧٤٣٤ms و١٣٢٢ كيلوبايت**؛ وبمرشّحٍ
+#: نصّيّ ⇐ ٢٥١ms و٢٨ كيلوبايت. و:class:`~apps.core.sheets.Sheet` تبني الصفوفَ
+#: **كلَّها في الذاكرة** قبل أن تكتب بايتاً واحداً، فضغطتان متزامنتان على
+#: قاعدةٍ أكبر بابُ استنزاف.
+#:
+#: ولماذا خمسةُ آلافٍ لا اثنا عشر ألفاً ولا خمسمئة — **مقيسٌ على نفس المسار**
+#: (`export_table` على الكتالوج، `t307`، ١٤ سبتمبر ٢٠٢٦):
+#: ٥٬٠٠٠ صفٍّ ⇐ **٢٩٦٢ms و٥٦٢ كيلوبايت** · ١٢٬٩٩٣ صفّاً ⇐ **٧٩٤٠ms و١٤٦٣
+#: كيلوبايت**. فثلاثُ ثوانٍ ملفٌّ ينتظره الموظّفُ ولا يظنّ الشاشةَ معلّقة،
+#: وثمانٍ ليست كذلك.
+#: وهو أوسعُ من أيّ مزادٍ حقيقيّ بكثير: أكبرُ ثلاثة مزاداتٍ في `t307` هي
+#: ٣٨٦ و٣٥٧ و٣٤٤ مركبة. فالسقفُ لا يصيب عملاً يوميّاً — يصيب «صدّر كلَّ
+#: شيء» وحدَها.
+#:
+#: **والمقصوصُ صامتاً أسوأ من المرفوض**: ملفٌّ فيه خمسةُ آلافٍ من اثني عشر
+#: ألفاً يُفتح ويُقرأ كاملاً ويُطابَق به كشفٌ بنكيّ، ولا شيء فيه يقول إنّ ثلثيه
+#: ناقص. فالسقفُ يردّ صفحةً تقول العددَ والسقفَ وتطلب ترشيحاً — والمرشّحاتُ
+#: تعمل فعلاً (٢٥١ms بمرشّح)، فليس حرماناً.
+MAX_ROWS = 5000
+
 
 def wants_export(request) -> bool:
     """Whether this request is asking for the file rather than the page."""
     return request.GET.get(PARAM) == "xlsx"
+
+
+def oversize(rows) -> int:
+    """عددُ الصفوف إن تجاوز :data:`MAX_ROWS`، وإلّا صفر.
+
+    العدُّ استعلامٌ واحدٌ رخيص (قِيس: ٠٫٠٠٤ ثانيةٍ على ١٢٬٩٨١ صفّاً — جانغو
+    يُسقط الاستعلاماتِ الفرعيّةَ غيرَ المستعملة من `COUNT`)، وأرخصُ بكثيرٍ من
+    بناء اثني عشرَ ألفَ صفٍّ في الذاكرة ثم رميها.
+    """
+    count = rows.count()
+    return count if count > MAX_ROWS else 0
+
+
+def refuse(request, count: int) -> HttpResponse:
+    """صفحةٌ تقول: النتيجةُ أكبرُ من السقف، رشّح ثمّ صدّر.
+
+    و`400` لا `200`: الطلبُ لم يُنفَّذ، وصفحةٌ بحالة نجاحٍ تحمل اعتذاراً هي ما
+    يجعل نصّاً كهذا يُقرأ «تنبيهٌ» ويُتجاوَز.
+    """
+    # الرقمان مفصولان بفواصلِ آلافٍ **هنا لا في القالب**، كما تفعل بطاقاتُ
+    # اللوحة (`f"{n:,}"`): «12993» تُقرأ بعدّ الأرقام، و«12,993» تُقرأ لمحةً.
+    return render(
+        request,
+        "console/export_too_many.html",
+        {"count": f"{count:,}", "cap": f"{MAX_ROWS:,}"},
+        status=400,
+    )
 
 
 def workbook_response(payload: bytes, *, name: str) -> HttpResponse:
@@ -119,6 +170,22 @@ def export(
     return sheet_response(sheet, name=name)
 
 
+def export_table(rows: Iterable[Any], *, name: str, columns) -> HttpResponse:
+    """تصديرٌ بأعمدةٍ ثنائيّة `(عنوان, دالّة)` — العنوانُ وخليّتُه في سطرٍ واحد.
+
+    و:func:`export` بقائمتين متوازيتين تبقى لمن لا يحجب عموداً. أمّا حيث
+    تُحذف أعمدةٌ بحسب صلاحيةِ القارئ (`sensitive.columns_for`) فقائمتان
+    تتفارقان عند أوّل حذف: تُحذف الخليّةُ ويبقى عنوانُها، فيخرج الملفُّ
+    بعنوانٍ فوق قيمةِ غيره — خطأٌ لا يُرى إلّا بفتح الملفّ ومقارنتِه بالشاشة.
+    """
+    return export(
+        rows,
+        name=name,
+        headers=[header for header, _ in columns],
+        cell=lambda row: [getter(row) for _, getter in columns],
+    )
+
+
 def _text(value: Any) -> str:
     if value is None:
         return ""
@@ -128,8 +195,12 @@ def _text(value: Any) -> str:
 
 
 __all__ = [
+    "MAX_ROWS",
     "PARAM",
     "export",
+    "export_table",
+    "oversize",
+    "refuse",
     "sheet_response",
     "wants_export",
     "workbook_response",

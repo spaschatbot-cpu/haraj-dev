@@ -44,9 +44,13 @@ from apps.auctions.models import Auction, Vehicle
 from apps.auctions.services import (
     PartnerRulingPending,
     award,
+    mark_paid,
     partner_lock_reason,
     reject,
     send_to_owner,
+)
+from apps.auctions.services import (
+    invoice as mark_invoiced,
 )
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
@@ -58,6 +62,7 @@ from apps.money.models import (
     HoldState,
     Invoice,
     InvoiceState,
+    PaymentMethod,
 )
 
 log = logging.getLogger(__name__)
@@ -371,10 +376,152 @@ def invoice_award(vehicle: Vehicle, *, due_at: datetime | None = None):
             # secured by whatever is free rather than by nothing.
             money.lock_for_invoice(user=vehicle.awarded_to, invoice=invoice)
 
-    from apps.auctions.services import invoice as mark_invoiced
-
     mark_invoiced(vehicle)
     return invoice
+
+
+# ---------------------------------------------------------------------------
+# فاتورةٌ تُسدَّد ⇦ مركبةٌ تُسدَّد — البابُ الواحد، في الاتّجاهين
+# ---------------------------------------------------------------------------
+
+
+@transaction.atomic
+def sync_vehicle_to_invoice(invoice: Invoice) -> Vehicle | None:
+    """حالةُ الفاتورة تغيّرت، فتلحق بها مركبتُها — صعوداً وهبوطاً.
+
+    **العطلُ الذي كُتبت من أجله، مقيساً** (١٤ سبتمبر ٢٠٢٦، `haraj2_t307`):
+    ‏١١٬٤٩٥ فاتورةً حالتُها `paid` مقابل **صفرِ مركبةٍ** حالتُها `paid`،
+    وطابورُ الخروج صفرُ صفّ.
+    ‏`record_payment` تكتب الدفترَ وعمودَ الفاتورة ولا تنقل المركبة، و
+    `auctions.services.mark_paid` كانت **بلا مستدعٍ واحدٍ في المستودع كلِّه**.
+    والأثرُ ليس في شاشةِ ما بعد البيع وحدها: `console/exits.py` يقول
+    ‏`EXITABLE = (PAID, RELEASED)` — فسيّارةٌ سُدِّد ثمنُها كاملاً **لا تدخل
+    طابورَ الخروج أبداً**، وشاشةُ «الخروج ونقل الملكية» فارغةٌ بنيويّاً.
+
+    **أين تقع النقلة؟ ثلاثةُ احتمالاتٍ ولكلٍّ ثمن:**
+
+    ١. *داخل* ``money.record_payment`` — أقصرُ الطرق، وثمنُه قلبُ الطبقات:
+       ‏`apps/money/services.py` لا يستورد إلا `apps.core`، و`auctions`
+       و`bidding` يستوردانه لا العكس. واستيرادُ `auctions` هناك — ولو مؤجَّلاً
+       داخل دالّة — يجعل كاتبَ الدفتر يعرف السيّارات، ويُخفي الانعكاسَ عن
+       قارئ رأس الملفّ. **مرفوض.**
+    ٢. *عند كلّ مستدعٍ للدفع* — ستّةُ مواضع اليوم (أودو · ملفُّ الشريك ·
+       واجهةُ العميل · بناءُ الدفتر · بذرتان)، وغداً سبعة. **القاعدةُ تعيش في
+       ستّة أماكن، ويكفي أن ينساها بابٌ واحدٌ فتُفقَد سيّارةٌ من الطابور بلا
+       أثر** — وهو عطلُ v1 بعينه: خمسةُ تعريفاتٍ متناقضةٍ لمعنى «مدفوعة»
+       (‏`PaymentStatus` · `InvoiceMath` · `paid/get2.php` ·
+       ‏`invoices_list_ajax.php` · `winner_paid_at`). **مرفوض.**
+    ٣. *خيطٌ واحدٌ في الطبقة التي فوق المال* — هذه. `settlement` يستورد
+       ‏`money` أصلاً، ويملك اتّجاهَ «ترسية ⇦ فاتورة» (`invoice_award` أعلاه
+       ينتهي بـ`mark_invoiced`). فامتلاكُه اتّجاهَ «فاتورة مسدَّدة ⇦ مركبة
+       مسدَّدة» اتّساقٌ لا اختراع. **المختار.**
+
+    و**القاعدةُ هنا وحدها**: المستدعون لا يقرّرون شيئاً، إنما يقولون «حالةُ
+    هذه الفاتورة تغيّرت». ولذلك لا تُصدَّق الفاتورةُ الممرَّرة على علّاتها بل
+    تُقرأ **الفاتورةُ الحيّةُ للمركبة** من القاعدة: قيدُ
+    ‏`one_live_invoice_per_vehicle` يضمن واحدةً على الأكثر، فإلغاءُ فاتورةٍ
+    قديمةٍ لا يسحب مركبةً سُدِّدت بفاتورةٍ أخرى. والدالّةُ **تُعاد بلا أثر**
+    (idempotent): نداؤها مرّتين لا يصنع نقلتين.
+
+    و**لا إشارة** (`post_save`/`Signal`) — ممنوعةٌ في المشروع كلِّه (T008)،
+    ونداءٌ صريحٌ يراه قارئُ الكود هو ما نريد أصلاً.
+
+    و**لا التفافَ على آلة الحالات**: النقلتان عبر `move_vehicle` بجدولِه، لا
+    ‏`Vehicle.objects.update(state=…)`. وقد رفض الجدولُ العكسيّةَ فأُضيفت
+    فيه — `Move(PAID, INVOICED)` في `auctions/states.py` — لا حوله.
+
+    و**لا أثرَ رجعيّاً**: المركباتُ المُرحَّلة `draft`، والجدولُ لا يعرف
+    ‏`draft ⇦ paid`. فبناءُ الدفتر يمرّ من هنا و**لا يحرّك شيئاً** — وذلك
+    صحيح: الترحيلُ لا يُرسي، والترسيةُ فعلُ تشغيلٍ لا بندُ ترحيل.
+    """
+    if invoice.vehicle_id is None:
+        # فاتورةُ خدمةٍ أو رسمٍ لا تخصّ مركبة. لا شيء يلحق بها.
+        return None
+
+    vehicle = Vehicle.objects.select_for_update().get(pk=invoice.vehicle_id)
+
+    live = (
+        Invoice.objects.filter(vehicle_id=vehicle.pk)
+        .exclude(state=InvoiceState.CANCELLED)
+        .order_by("-issued_at", "-id")
+        .first()
+    )
+    settled = live is not None and live.state == InvoiceState.PAID
+
+    if settled and vehicle.state == VehicleState.INVOICED:
+        log.info(
+            "vehicle %s: invoice %s settled → paid", vehicle.pk, live.number
+        )
+        return mark_paid(vehicle)
+
+    if not settled and vehicle.state == VehicleState.PAID:
+        # دفعةٌ ارتدّت أو فاتورةٌ أُلغيت. السيّارةُ تعود، وإلّا خرجت من
+        # البوّابة على مالٍ لم يعد لنا.
+        log.info(
+            "vehicle %s: no settled invoice any more → back to invoiced", vehicle.pk
+        )
+        return mark_invoiced(vehicle)
+
+    # حالةٌ لا تعني شيئاً هنا: مركبةٌ مُرحَّلةٌ `draft`، أو `awarded` بفاتورةٍ
+    # جزئيّة، أو `released` خرجت فعلاً. تُترك كما هي.
+    return vehicle
+
+
+@transaction.atomic
+def record_vehicle_payment(
+    *,
+    invoice: Invoice,
+    amount: Decimal,
+    source: str,
+    reference: str,
+    occurred_at=None,
+    by=None,
+):
+    """قيِّد دفعةً على فاتورةٍ **ثمّ ألحِق المركبةَ بها** — في معاملةٍ واحدة.
+
+    غلافٌ رقيقٌ حول `money.record_payment`، وسببُ وجوده أن يكون **البابَ
+    الوحيد**: من يقيّد دفعةً من خارج `apps.money` ينادي هذه، فلا يبقى على
+    المستدعي أن يتذكّر سطراً. ولو نجحت الدفعةُ وفشلت النقلةُ لرجعتا معاً —
+    فاتورةٌ مسدَّدةٌ ومركبةٌ ليست مسدَّدة هي الحالةُ التي نُصلحها، لا حالةٌ
+    نصنعها نصفَ ثانيةٍ في السنة.
+    """
+    txn = money.record_payment(
+        invoice=invoice,
+        amount=amount,
+        source=source,
+        reference=reference,
+        occurred_at=occurred_at,
+        by=by,
+    )
+    invoice.refresh_from_db()
+    sync_vehicle_to_invoice(invoice)
+    return txn
+
+
+@transaction.atomic
+def pay_vehicle_invoice_from_balance(
+    *,
+    user,
+    invoice: Invoice,
+    method: str = PaymentMethod.BALANCE,
+    reference: str | None = None,
+    occurred_at=None,
+):
+    """سدِّد فاتورةً من رصيد العميل **ثمّ ألحِق المركبةَ بها**.
+
+    نظيرُ :func:`record_vehicle_payment` للطريق الآخر. الطريقان اثنان لأن
+    الفعلين اثنان (`money.services` يشرح الفرق)، والبابُ بعدهما واحد.
+    """
+    txn = money.pay_invoice_from_balance(
+        user=user,
+        invoice=invoice,
+        method=method,
+        reference=reference,
+        occurred_at=occurred_at,
+    )
+    invoice.refresh_from_db()
+    sync_vehicle_to_invoice(invoice)
+    return txn
 
 
 def _release_bidding_hold(vehicle: Vehicle) -> None:
@@ -538,7 +685,13 @@ def _undo_award(vehicle: Vehicle, *, reason: str) -> None:
 
         invoice.state = InvoiceState.CANCELLED
         invoice.save(update_fields=["state"])
+        # والمركبةُ تلحق بفاتورتها هنا أيضاً — **الاتّجاهُ العكسيّ**. وهذا هو
+        # الطريقُ الوحيدُ في المستودع الذي يُلغي فاتورةً **مسدَّدة**
+        # (‏`cancel_auction` يستثني المسدَّد، وأودو يرفضه)، فبغير هذا السطر
+        # تبقى سيّارةٌ نُقلت ترسيتُها إلى مشترٍ آخر في طابور الخروج بحالة
+        # `paid` — تخرج من البوّابة على فاتورةٍ لم تعد قائمة.
         customers.add(invoice.customer)
+        sync_vehicle_to_invoice(invoice)
         log.info("invoice %s cancelled: %s", invoice.number, reason)
 
     # And the auction's own pledge, which names the auction and not the invoice
@@ -611,6 +764,12 @@ def cancel_auction(auction: Auction, *, reason: str, now: datetime | None = None
                     money.release_hold(hold, memo=f"أُلغي المزاد: {reason}")
                 invoice.state = InvoiceState.CANCELLED
                 invoice.save(update_fields=["state"])
+                # البابُ نفسُه، وإن كان لا ينقل شيئاً هنا اليوم: `_close_out`
+                # أعلاه أخرج المركبةَ من `awarded` قبل هذا السطر، والمسدَّدُ
+                # مستثنىً من الإلغاء أصلاً (`continue` فوق). يُنادى كي تبقى
+                # القاعدةُ في موضعٍ واحد: كلُّ من يغيّر حالةَ فاتورةٍ يقول
+                # ذلك للباب، ولا يقرّر بنفسه ما تستحقّه المركبة.
+                sync_vehicle_to_invoice(invoice)
                 voided.append(invoice.number)
 
         # Every hold on the auction, bidding or pledged. Restricting this to
@@ -762,7 +921,10 @@ __all__ = [
     "competitors_in",
     "decide_vehicle",
     "invoice_award",
+    "pay_vehicle_invoice_from_balance",
+    "record_vehicle_payment",
     "settle_auction",
+    "sync_vehicle_to_invoice",
     "try_close",
     "settle_holds",
     "winners_in",

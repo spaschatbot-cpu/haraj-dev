@@ -55,6 +55,7 @@ from apps.money.models import AccountKind, Invoice
 from .decisions import AWARDED as DECISION_AWARDED
 from .decisions import awarded
 from .exports import export, wants_export
+from .sensitive import shown_to
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -154,6 +155,38 @@ def top_bidders(*, limit: int = TOP):
     )
 
 
+def _top_shown(rows, seen) -> list[dict]:
+    """صفوفُ «أكثر المزايدين نشاطاً» منقوصةً ما لا يحقُّ رؤيتُه. T901.
+
+    و`top_bidders` تُرجع قواميسَ `values()` لا كائناتِ نموذج، فلا تصلح لها
+    :func:`~apps.console.sensitive.person_on` التي تكتب على الصفّ — والقاموسُ
+    يُبنى هنا من جديدٍ بلا المفاتيح المحجوبة، **فلا يصل القالبَ مفتاحٌ محجوب**
+    ليُخفى فيه.
+
+    والاسمُ الفارغ يبقى فارغاً لمن يملك الصلاحية: أسماءُ المزايدين المرحَّلين
+    فارغةٌ في القاعدة (`full_name == ''`)، وكتابةُ «محجوب» مكانَها لمن يراها
+    عطلٌ وقع في جولةٍ سابقة وأُصلح.
+
+    و«إجمالي القيمة» مبلغٌ يُحجَب للحجّة التي في :func:`bids_analysis`: مجموعُ
+    مزايداتِ شخصٍ فيه مزايداتُه على ما رسا له. أمّا عددُ مزايداته ومركباتِه
+    فعددٌ يبقى — وهو السؤالُ الذي تُفتح الشاشةُ لأجله.
+    """
+    out = []
+    for row in rows:
+        shown = {
+            "bidder__id": row["bidder__id"],
+            "bids": row["bids"],
+            "vehicles": row["vehicles"],
+        }
+        if seen.customer:
+            shown["bidder__full_name"] = row["bidder__full_name"]
+            shown["bidder__phone"] = row["bidder__phone"]
+        if seen.money:
+            shown["value"] = row["value"]
+        out.append(shown)
+    return out
+
+
 @console_page("console:analytics-bids")
 def bids_analysis(request):
     """تحليل المزايدات: قسمةٌ تجمع، وأعلى المزايدين."""
@@ -161,12 +194,30 @@ def bids_analysis(request):
     last = request.GET.get("to", "")
     shape = bid_shape(first=first, last=last)
 
+    # الشاشةُ `auctions.view`، وكانت تضع في مصدرها عشرةَ جوّالاتٍ بأسمائها
+    # وثلاثةَ عشرَ مبلغاً. والأعدادُ كلُّها تبقى — القسمةُ وعددُ المزايدين
+    # والمركبات هي سببُ فتح الشاشة، وهي التي تكذب في v1.
+    seen = shown_to(request.user)
+
+    # **والأربعةُ الماليّة لا تُقسَم على مركبة، فتُحجَب كلُّها.**
+    #
+    # قاعدةُ المالك: مبلغُ مزايدةٍ على مركبةٍ **رست** مالٌ، وعلى مركبةٍ لم
+    # تَرسُ رقمُ سوق. و`highest`/`lowest`/`average`/`value` تجميعٌ على
+    # **كلّ** المزايدات، فيها مزايداتُ المركبات المرساة — أي أن «أعلى مزايدة»
+    # قد تكون بعينها سعرَ رسوِّ مركبةٍ، و«إجمالي القيمة» يحمل أسعارَ الرسوّ
+    # كلَّها. ولا شرطَ صفٍّ يفصلها هنا كما يفصلها في جدول المزايدات، فالحجبُ
+    # للأربعة كلِّها — وذلك ثمنُ التجميع لا تشدّدٌ زائد.
+    if not seen.money:
+        shape |= {"highest": None, "lowest": None, "average": None, "value": None}
+
     return render(
         request,
         "console/analytics_bids.html",
         {
             "shape": shape,
-            "top": top_bidders(),
+            "show_money": seen.money,
+            "show_customer": seen.customer,
+            "top": _top_shown(top_bidders(), seen),
             "first": first,
             "last": last,
             # يُحسب هنا لا في القالب: قالبٌ يجمع ثلاثة أرقامٍ ليعرض رابعاً هو
@@ -298,7 +349,15 @@ def user_bids(request):
 @console_page("console:analytics")
 def reports(request):
     """لوحة التقارير: خمسة أرقام، وكلٌّ منها بابٌ إلى شاشته."""
-    return render(request, "console/analytics.html", {"totals": report_totals()})
+    # خمسةٌ منها أعداد، والسادس **مبلغ**: «إجمالي أسعار الترسية» هو بعينه
+    # الرقمُ الذي حُجب في «ملخّص المقبولة» التي يشير إليها الرابطُ بجواره.
+    # فإظهارُه هنا يُبطل حجبَه هناك بنقرةٍ أقلّ. قِيس: `52000.00` كانت تُقرأ
+    # بـ`auctions.view` وحدَها على `haraj2_t307`.
+    return render(
+        request,
+        "console/analytics.html",
+        {"totals": report_totals(), "show_money": shown_to(request.user).money},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -600,6 +659,16 @@ def owners_console(request):
     User = get_user_model()
     live = engine.open_now()
 
+    # **والرقمُ نفسُه يستحقّ حارسَ شاشته نفسَه.** T901
+    #
+    # ستّةٌ من السبعة أعداد، و«إجمالي التأمين» مبلغٌ — ومبلغُ **دفتر
+    # المحفظة** لا مبلغُ فاتورة، فقدرتُه `money.view` لا `invoices.view`
+    # (`sensitive.WALLET`). وهو الرقمُ الذي يحرسه `money.view` في «تقرير
+    # المحفظة» التي يفتحها الرابطُ بجواره، **وبالدالّة ذاتها**
+    # (`wallet_rows`) — فكان يُقرأ هنا بـ`auctions.view` وحدَها:
+    # `9,050,004.00` على `haraj2_t307` لموظّف ساحة.
+    seen = shown_to(request.user)
+
     return render(
         request,
         "console/owners_console.html",
@@ -608,9 +677,16 @@ def owners_console(request):
             "customers": User.objects.filter(is_staff=False).count(),
             "auctions": Auction.objects.count(),
             "live": live.count(),
+            "show_wallet": seen.wallet,
             # الرقم نفسه الذي يعرضه «تقرير المحفظة» — من الدفتر، وبالدالّة
             # ذاتها. فلا يقول هذا تسعةً وثلاثمئة ألفٍ ويقول ذاك غيرها.
-            "insurance": wallet_rows().aggregate(t=Sum("insurance"))["t"] or ZERO,
+            # ولا يُجمَع أصلاً لمن لا يراه: استعلامُ تجميعٍ على أربعةٍ
+            # وأربعين ألف عميلٍ ثمنُه يُدفَع، والحجبُ بعد الدفع ليس توفيراً.
+            "insurance": (
+                wallet_rows().aggregate(t=Sum("insurance"))["t"] or ZERO
+                if seen.wallet
+                else None
+            ),
             "bidders": Bid.objects.values("bidder").distinct().count(),
             "awarded": awarded().count(),
         },

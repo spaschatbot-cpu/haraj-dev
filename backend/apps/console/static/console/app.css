@@ -118,6 +118,8 @@
      ورأسيّاً لا يُدفَع شيء: الشريط يمرّر وحده أصلاً. */
   --sidebar-w: 19rem;
   --sidebar-w-mini: 4.6rem;
+  /* حشوةُ خليّة الجدول أفقيّاً — تُقرأ في `th, td` وهناك شرحُ قياسها. */
+  --cell-pad-x: .45rem;
   --ring: color-mix(in srgb, var(--brand) 26%, transparent);
 }
 
@@ -762,20 +764,92 @@ form[method="get"] button[type="submit"] { margin-inline-start: auto; }
 }
 .scroller > table { margin: 0; }
 
-/* ---- جدولٌ لا يُضغَط ------------------------------------------------------
-   `table { width: 100% }` يجعل الجدولَ يملأ غلافه مهما كثرت أعمدتُه — وذلك
-   صحيحٌ لثمانية أعمدة وخطأٌ لستّة عشر: في «ما بعد البيع» انضغط عمودُ المزاد
-   إلى ٦٧ بكسلاً فلفَّ اسمَ المزاد ثلاثةَ أسطر، وانضغطت خانةُ الأفعال فنزلت
-   أيقوناتُها الثلاث واحدةً تحت واحدة — فصار ارتفاعُ الصفّ ١٤٢ بكسلاً، أي
-   خمسةُ صفوفٍ في الشاشة بدل اثني عشر.
+/* ---- جدولُ سبعةَ عشرَ عموداً: يضيق ولا يُمرَّر ------------------------------
+   يستعمله «ما بعد البيع» و«القرارات المنتهية» (يرث قالبَها).
 
-   والعرضُ الأدنى يجعل `.scroller` يمرّر أفقياً كما بُني ليفعل. وثمنُه صريح:
-   من يقرأ آخرَ الأعمدة يمرّر — وهو أرخص من قراءة خمسة صفوفٍ في نظرة. */
-.scroller--wide > table { min-inline-size: 92rem; }
+   **`white-space: nowrap` تبقى، وهي أهمُّ سطرٍ هنا.** جُرِّب إلغاؤها وقِيس:
+   الجدولُ ينزل من ١٨٦٣ إلى ١٤٣٣ بكسلاً — **وارتفاعُ الصفّ يقفز من ٦٨ إلى
+   ١٢٦**، أي أربعةَ عشرَ صفّاً في الشاشة تصير سبعة. فالعرضُ لا يُشترى بنصف
+   الصفوف؛ يُشترى من الحشوة والخطّ والحدود الدنيا.
+
+   **وكان هنا `min-inline-size: 92rem` فحُذفت** (٢٠٢٦-٠٩-١٤). حجّتُها كانت أن
+   `width: 100%` يضغط الأعمدة فيلفّ اسمُ المزاد ثلاثةَ أسطر — **و`nowrap`
+   أعلاه تمنع ذلك وحدَها**، فالعرضُ الأدنى كان يحرس ما هو محروس. وثمنُها
+   مقيس: بعد ضغط الحشوة والخطّ توقّف الجدولُ عند ١٤٧٢ بالضبط (= ٩٢rem) وهو
+   **سقفٌ كاذب** يفرض تمريراً لم يعد له سبب. قِيس بعد الحذف: ١٤٥٩ في غلافٍ
+   ١٤٥٩، أي صفرَ فيض، وارتفاعُ الصفّ ٦٤ كما كان.
+
+   والحشوةُ ٤ بكسل والخطُّ ٠٫٧٨ريم هنا وحدَهما لا في اللوحة كلّها: سبعةَ عشرَ
+   عموداً تدفع الفرقَ أربعاً وثلاثين مرّة، وجدولُ ستّةِ أعمدةٍ لا يحتاجه. */
 .scroller--wide td,
 .scroller--wide th { white-space: nowrap; }
+.scroller--wide th,
+.scroller--wide td { padding-inline: 4px; font-size: .78rem; }
+/* خانةُ الأفعال هنا **أيقونةٌ واحدة** (سند الدفع) — و`td.actions` العامّة
+   تفرض ٩ريم لصفوفٍ فيها ثلاثُ أيقونات، فكانت الخانةُ تأخذ ١٤٤ بكسلاً
+   لتعرض ٤٩. والهدفُ اللمسيُّ باقٍ على الزرّ نفسه (`.act` ٢٫٢ريم). */
+.scroller--wide td.actions { min-inline-size: 0; }
 /* والسطرُ الخافت تحت القيمة يبقى سطراً ثانياً مقصوداً، لا لفّاً عارضاً. */
 .scroller--wide td small { display: block; }
+
+/* نصٌّ يُقَصُّ بثلاث نقاط ويبقى كاملاً في `title` — **لا يُحذف**. المالك
+   طلب «نفس الداتا المعروضة وعدد الأعمدة»، واسمُ المركبة وحدَه كان ٢٨١ بكسلاً
+   من ١٧٤٣ (قِيس على ٢٨٨ مركبةً مرحَّلة في `?which=rejected`). فالقصُّ يردّه
+   إلى سقفه، والقيمةُ تُقرأ بالمرور عليه — ولا يُقَصُّ في ملفّ التصدير ولا في
+   شاشة التفصيل، فهما ليسا شاشةً ضيّقة.
+
+   و`--clip` متغيّرٌ لأن السقفَ يختلف بالعمود، و**صنفٌ لا `style=` في السطر**:
+   السقفُ يضيق على الشاشات الأضيق (الكتلة تحته)، والسطرُ يغلب استعلامَ
+   الوسائط فلا يضيق شيء. */
+.cell-clip {
+  display: inline-block;
+  max-inline-size: var(--clip, 9rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.clip-name { --clip: 9rem; }
+.clip-model { --clip: 9rem; }
+.clip-buyer { --clip: 8rem; }
+.clip-aname { --clip: 6rem; }
+
+/* دون ١٥٣٦ بكسلاً يضيق الغلافُ نفسُه: ١٤٥٩ على منفذ ١٦٠٠ و١٢٩٩ على ١٤٤٠
+   (بالشريط مطويّاً في الحالين). فالسقوفُ والحشوةُ تنزل معه — قِيس على
+   `?which=rejected`: ١٣٧٥ في غلافٍ ١٢٩٩ قبل هذه الكتلة، و١٢٩٩ بعدها.
+
+   ولماذا بخطوةٍ واحدة لا بسُلَّم: قياسان اثنان لا يرسمان سُلَّماً، وخطوةٌ
+   مقيسةٌ أصدقُ من ثلاثٍ مُخمَّنة. */
+@media (max-width: 96rem) {
+  .scroller--wide th,
+  .scroller--wide td { padding-inline: 3px; }
+  .clip-name { --clip: 7rem; }
+  .clip-model { --clip: 7rem; }
+  .clip-buyer { --clip: 7rem; }
+  .clip-aname { --clip: 5rem; }
+}
+
+/* سطرٌ ثانٍ في خليّةٍ قائمة يحمل ما لا يستحقّ عموداً — «القرارات المنتهية»
+   تضع فيه القرارَ ووقتَه بعد أن حُذف عمودُ «القرار».
+
+   **كلمةٌ ملوّنةٌ لا لونٌ وحدَه**: صفٌّ يُميَّز بلونه فقط لا يُقرأ لمن لا
+   يميّز الأحمرَ من الأخضر، ولا يُنسَخ مع النصّ. واللونُ من النغمة نفسِها
+   التي تلوّن الحبّة (`tones.py`) فلا خريطةَ ثانية تفترق عنها.
+
+   وثمنُه صفرٌ: خليّةُ المزاد بجواره تحمل سطرين أصلاً فالصفُّ لا يعلو
+   (قِيس: ٦٤ بكسلاً قبل وبعد)، والسطرُ أقصرُ من اسم المركبة فوقه فالعمودُ
+   لا يتّسع. */
+.cell-note {
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+.cell-note[data-tone="ok"] { color: var(--ok); }
+.cell-note[data-tone="warn"] { color: var(--warn); }
+.cell-note[data-tone="bad"] { color: var(--danger); }
+.cell-note[data-tone="info"] { color: var(--info); }
+.cell-note[data-tone="money"] { color: var(--money); }
+.cell-note[data-tone="auction"] { color: var(--auction); }
 
 table {
   border-collapse: separate;
@@ -795,7 +869,17 @@ thead tr:first-child th:last-child { border-start-end-radius: var(--radius-lg); 
 tbody tr:last-child td:first-child { border-end-start-radius: var(--radius-lg); }
 tbody tr:last-child td:last-child { border-end-end-radius: var(--radius-lg); }
 th, td {
-  padding: .68rem .9rem;
+  /* الحشوةُ الأفقيّة متغيّرٌ لأنها **أكبرُ مشترٍ للعرض في اللوحة كلّها**:
+     سبعةَ عشرَ عموداً تدفع ثمنَها أربعاً وثلاثين مرّة. قِيس على «كتالوج
+     السيارات» بحساب المالك على منفذ ١٦٠٠: الجدولُ ١٥٥٧ في غلافٍ ١٢٢٨ (يفيض
+     ٣٢٩) — وخفضُها وحدَها إلى ٦ بكسل ردّه إلى ١٢٨٨، ومع لفّ `.mono` إلى
+     ١٢٢٨، أي صفرَ فيضٍ (٢٠٢٦-٠٩-١٤).
+
+     وثمنُها مذكور: الخلايا تتقارب، ولا حدودَ رأسيّةً بينها تفصلها — فالفصلُ
+     صار بالفراغ وحدَه. وذلك أرخصُ من تمريرٍ أفقيّ في كلّ شاشة، وأرخصُ من
+     خطٍّ أصغرَ لا يُقرأ (قِيس: الخطُّ الأصغر لم يُعطِ بكسلاً واحداً بعد
+     هذين العلاجين). */
+  padding: .68rem var(--cell-pad-x);
   border-block-end: 1px solid var(--line-soft);
   text-align: start;
   font-size: .88rem;
@@ -4344,6 +4428,27 @@ dialog.row-modal {
 
 /* السيارةُ المخفيّةُ عن العملاء: تُعتَّم قليلاً وتُوسَم بشريطٍ مائل، فيُعرَف
    في نظرةٍ أيُّها مطويٌّ عن القوائم — دون إخفائه عن الموظّف الذي يديره. */
+/* المركبةُ التي جاء الموظّفُ من أجلها من «بحث عن سيارة» (`?focus=`).
+   حدٌّ يبقى ووميضٌ ينطفئ: الوميضُ يقول «هنا» في اللحظة الأولى، والحدُّ يبقى
+   ليُجيب بعد ثانيتين حين يكون الموظّفُ قد رفع عينَه عن الشاشة ثمّ عاد.
+   ووميضٌ وحده — كما في v1 (`mv-focus-row`، ٢٫٦ ثانية ثمّ يُحذف الصنف) —
+   يترك من فاتته اللحظةُ أمام جدولٍ لا تعليمَ فيه.
+
+   و`prefers-reduced-motion` تُسقط الحركةَ وتُبقي الحدّ: التعليمُ معلومة، لا زينة. */
+.veh-card--focus {
+  outline: 2px solid var(--gold, #a88118);
+  outline-offset: -2px;
+  scroll-margin-block: 96px;  /* الترويسةُ لاصقةٌ بارتفاع ٥٨ — بلا هذا يقف الصفُّ تحتها */
+}
+.veh-card--focus { animation: veh-focus-flash 2.4s ease-in-out 1; }
+@keyframes veh-focus-flash {
+  0%, 100% { background: transparent; }
+  15%, 55% { background: color-mix(in srgb, var(--gold, #a88118) 14%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veh-card--focus { animation: none; }
+}
+
 .veh-card--hidden { opacity: .62; }
 .veh-card--hidden .veh-card__img::after {
   content: "مخفيّة";
@@ -4508,6 +4613,16 @@ dialog.row-modal {
 }
 .qe-card__title { font-weight: 800; font-size: .92rem; color: var(--ink); line-height: 1.4; min-inline-size: 0; overflow-wrap: anywhere; }
 .qe-card__sub { display: block; margin-block-start: .2rem; font-family: var(--mono, ui-monospace, monospace); font-size: .74rem; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
+/* سطرُ التعارض: يظهر حين يردّ الخادم ٤٠٩ «عُدِّل هذا الكارت من نافذةٍ أخرى»،
+   ويحمل ما صار إليه الحقل. لونُ الخطر لأنه رفضُ كتابة، وداخلَ الكارت لا في
+   توستٍ يختفي بعد ثانيتين — الموظّفُ يحتاج أن يقرأه وهو ينظر إلى الخانة. */
+.qe-card__clash {
+  margin: 0 0 .7rem; padding: .45rem .6rem; border-radius: var(--radius);
+  border: 1px solid var(--danger, #dc2626);
+  background: var(--danger-soft, rgb(220 38 38 / .07));
+  color: var(--ink); font-size: .78rem; font-weight: 700; line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 .qe-card__act { display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; }
 .qe-card__status { min-inline-size: 1.4rem; text-align: center; font-size: 1rem; }
 .qe-card__save {
@@ -4619,7 +4734,16 @@ dialog.row-modal {
 /* خليّةُ موعد المزاد: بدايةٌ ونهايةٌ سطرين. */
 .sched { display: flex; flex-direction: column; gap: .1rem; font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .muted { color: var(--muted); }
-.mono { font-family: var(--mono, ui-monospace, monospace); font-size: .82rem; }
+/* `overflow-wrap: anywhere` لا `break-word`: الثانيةُ تكسر عند الرسم ولا
+   تُنقِص **العرضَ الأدنى** للعمود، فالجدولُ يبقى عريضاً كما كان. والأولى
+   تُنقِصه، فيُصبح للمتصفّح أن يضغط عمودَ الشاصي حين يضيق الغلاف وحده.
+
+   ولماذا لا `max-width` بعددِ محارف: رقمُ اللوحة `.mono` أيضاً وهو ستّةُ
+   محارف — وسقفٌ ثابتٌ يكسره بلا سبب. وبهذه القاعدة لا يُكسر شيءٌ ما دام
+   المكان يتّسع؛ الشاصي (١٧ محرفاً، ١٦٣ بكسلاً وهو أعرضُ عمودٍ في الكتالوج)
+   هو أوّلُ ما يلتفّ لأنه أطولُ ما في الصفّ. وثمنُه: صفُّ الكتالوج يصير
+   سطرين حين يضيق العرض. */
+.mono { font-family: var(--mono, ui-monospace, monospace); font-size: .82rem; overflow-wrap: anywhere; }
 
 /* صفُّ فلاتر الكتالوج — شبكةٌ من حقولٍ معنونة (لصيقةٌ فوق كل حقل كـ v1)،
    وصفُّ الأزرار يمتدّ العرضَ كلَّه أسفلها. */

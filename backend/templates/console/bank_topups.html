@@ -1,10 +1,16 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-طلباتُ شحن التأمين بتحويلٍ بنكيّ — للقراءة فقط. اللوحةُ تعرض الطلباتِ وحالاتِها
-وإيصالاتِها؛ الاعتمادُ فعلُ أودو (قرار المالك ٢٠٢٦-٠٩-٠٨)، فلا زرَّ اعتمادٍ ولا
-رفضٍ هنا. الرفعُ لا يحرّك الدفتر: يُقيَّد الائتمانُ حين يؤكّد أودو عبر المسار
-الوارد.
+طابورُ الشحن البنكيّ — وهو «إدارة الطلبات» في قائمة v1.
+
+المطابقةُ أوّلاً ثم الاعتماد: التحويلُ البنكيّ لا يُخطِر أحداً، فالموظّف يفتح
+كشفَ حساب المنصّة ويبحث عن سطرٍ بمبلغٍ وتاريخٍ واسمِ مُرسِل، ثم يكتب هنا **ما
+وصل فعلاً** لا ما ادّعاه العميل. ولذلك خانةُ «المعتمَد» تُملأ بالمُدَّعى
+افتراضاً ويُغيَّرها من قرأ الكشف، وخانةُ السبب إجباريّةٌ حين يختلفان.
+
+والآيبانُ مقنَّعٌ بآخر أربعة حتى لمن يملك `users.view`: خمسون آيباناً كاملاً في
+مصدر الصفحة ليُقرأ واحدٌ هو نفسُه عطلُ `data-phone` الذي أُصلح في الكتالوج.
+والكشفُ زرٌّ يُضغط، وله قيدٌ في سجلّ التدقيق.
 {% endcomment %}
 {% block title %}طلبات الشحن البنكي{% endblock %}
 {% block heading %}طلبات الشحن البنكي{% endblock %}
@@ -40,10 +46,11 @@
       <thead>
         <tr>
           <th>المرجع</th>
-          <th>العميل</th>
-          <th>الجوال</th>
-          <th>المبلغ</th>
+          {% if seen.customer %}<th>العميل</th><th>الجوال</th>{% endif %}
+          <th>مُدَّعى</th>
+          <th>معتمَد</th>
           <th>الحالة</th>
+          <th>سند المطابقة</th>
           <th>الإيصال</th>
           <th>قُدِّم</th>
           <th></th>
@@ -53,10 +60,28 @@
         {% for row in page %}
           <tr>
             <td>{{ row.reference }}</td>
-            <td>{{ row.user.full_name }}</td>
-            <td>{{ row.user.phone|unlocalize }}</td>
+            {% if seen.customer %}
+              <td>{{ row.buyer_name }}</td>
+              <td>{{ row.buyer_phone|unlocalize }}</td>
+            {% endif %}
             <td class="money">{{ row.amount|unlocalize }}</td>
-            <td>{{ row.get_state_display }}</td>
+            <td class="money">
+              {% if row.amount_approved is not None %}
+                {{ row.amount_approved|unlocalize }}
+                {% if row.amount_approved != row.amount %}<span class="pill" data-tone="warn">يخالف المُدَّعى</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {{ row.get_state_display }}
+              {% if row.landed %}<br><small>{{ row.landed }}</small>{% endif %}
+            </td>
+            <td>
+              {% if row.sender_shown or row.bank_transfer_date or row.iban_shown %}
+                {{ row.sender_shown|default:"—" }}
+                · {{ row.bank_transfer_date|default:"—" }}
+                {% if row.iban_shown %}· <span dir="ltr">{{ row.iban_shown }}</span>{% endif %}
+              {% else %}—{% endif %}
+            </td>
             <td>
               {% if row.receipt %}
                 <a href="{{ row.receipt.url }}" target="_blank" rel="noopener">عرض ←</a>
@@ -65,8 +90,66 @@
             <td>{{ row.created_at }}</td>
             <td><a href="{% url 'console:money-customer' row.user.pk %}">دفتره ←</a></td>
           </tr>
+
+          {% if row.admin_note %}
+            <tr><td colspan="10"><small>ملاحظة المالية: {{ row.admin_note }}</small></td></tr>
+          {% endif %}
+
+          {% if seen.customer and row.bank_iban and not row.iban_revealed %}
+            <tr><td colspan="10">
+              {# الكشفُ فعلٌ يُقيَّد باسم فاعله — ولذلك زرٌّ لا رابط. #}
+              <form method="post" action="?{{ request.GET.urlencode }}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reveal">
+                <input type="hidden" name="topup" value="{{ row.pk }}">
+                <button type="submit">اكشف الآيبان كاملاً — ويُقيَّد باسمك</button>
+              </form>
+            </td></tr>
+          {% endif %}
+
+          {% if may_act and row.state == "submitted" %}
+            <tr><td colspan="10">
+              <details>
+                <summary>راجِع هذا الطلب</summary>
+                <form method="post" action="?{{ request.GET.urlencode }}" class="form-card">
+                  {% csrf_token %}
+                  <input type="hidden" name="topup" value="{{ row.pk }}">
+                  <input type="hidden" name="state" value="{{ state }}">
+                  <p>
+                    <label for="approved-{{ row.pk }}">المبلغ المعتمَد</label>
+                    <input id="approved-{{ row.pk }}" type="number" step="0.01" min="0.01"
+                           name="approved" value="{{ row.amount|unlocalize }}" required>
+                    <small>ما قرأتَه في كشف الحساب — لا ما كتبه العميل. والمُدَّعى {{ row.amount|unlocalize }}.</small>
+                  </p>
+                  <p>
+                    <label for="sender-{{ row.pk }}">اسم المُرسِل في الكشف</label>
+                    <input id="sender-{{ row.pk }}" type="text" name="sender" maxlength="120">
+                  </p>
+                  <p>
+                    <label for="tdate-{{ row.pk }}">تاريخ التحويل</label>
+                    <input id="tdate-{{ row.pk }}" type="date" name="transfer_date" max="{{ today|date:'Y-m-d' }}">
+                  </p>
+                  {% if seen.customer %}
+                    <p>
+                      <label for="iban-{{ row.pk }}">آيبان المُرسِل</label>
+                      <input id="iban-{{ row.pk }}" type="text" name="iban" maxlength="34" dir="ltr"
+                             placeholder="SA0000000000000000000000">
+                      <small>لتمييز الحساب في كشفٍ لاحق. يُعرَض بعدها مقنَّعاً، وكشفُه يُقيَّد.</small>
+                    </p>
+                  {% endif %}
+                  <p>
+                    <label for="note-{{ row.pk }}">السبب / الملاحظة</label>
+                    <textarea id="note-{{ row.pk }}" name="note" rows="2"></textarea>
+                    <small><strong>إجباريٌّ</strong> حين يخالف المعتمَدُ المُدَّعى، وحين تَرفض. ويقرؤه العميل.</small>
+                  </p>
+                  <button type="submit" name="action" value="approve">اعتمد بما وصل</button>
+                  <button type="submit" name="action" value="reject">ارفض</button>
+                </form>
+              </details>
+            </td></tr>
+          {% endif %}
         {% empty %}
-          <tr><td colspan="8" class="empty">لا طلباتِ شحنٍ بنكيّ مطابقة.</td></tr>
+          <tr><td colspan="10" class="empty">لا طلباتِ شحنٍ بنكيّ مطابقة.</td></tr>
         {% endfor %}
       </tbody>
     </table>

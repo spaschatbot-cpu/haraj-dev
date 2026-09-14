@@ -95,8 +95,14 @@ def apply(rows, params):
     q = _get(params, "q").strip()
     if q:
         match = search_q(q, "make", "model", "plate_number", "vin")
-        if q.isdigit():
-            match |= Q(lot_number=int(q))
+        # `q.isdigit()` كانت تقول «نعم» لـ`²` و`⑤` ثم يرفع `int` عليهما
+        # `ValueError` — أي **٥٠٠** على الشاشة لا نتيجةً فارغة (قِيس نظيرُه
+        # على `?q=²` في الكتالوج والبحث، ١٤ سبتمبر ٢٠٢٦). و`fold` تحسمها:
+        # تطوي `٠-٩` و`۰-۹` كما يفعل `foldArabicDigits` في v1، و`NFKC` تردّ
+        # `²` إلى `2`. فما بقي رقماً لاتينياً بعدها فهو رقم.
+        folded_q = fold(q)
+        if folded_q.isascii() and folded_q.isdigit():
+            match |= Q(lot_number=int(folded_q))
         rows = rows.filter(match)
 
     return _apply_text(rows, params)

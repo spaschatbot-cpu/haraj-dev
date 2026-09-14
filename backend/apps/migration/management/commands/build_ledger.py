@@ -86,6 +86,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
+from apps.bidding import settlement
 from apps.migration.dumpfile import read_table
 from apps.migration.management.commands.import_v1 import moment
 from apps.migration.models import LegacyRef
@@ -410,7 +411,19 @@ class Command(BaseCommand):
                         self.excess.append(
                             (invoice.number, draft["amount"], payable)
                         )
-                    services.record_payment(
+                    # البابُ الواحد نفسُه الذي يمرّ به أودو وملفُّ الشريك
+                    # وواجهةُ العميل — **ولا يحرّك هنا مركبةً واحدة**، وذلك
+                    # مقصود: الترحيلُ لا يُرسي، فمركباتُه كلُّها `draft`
+                    # (‏١١٬٩٥٥ منها يوم كُتب هذا) وجدولُ الانتقالات لا يعرف
+                    # `draft ⇦ paid`. فقفزُ ١١٬٤٩٤ فاتورةً مسدَّدةً إلى
+                    # مركباتٍ «مسدَّدة» يخترع تاريخاً لم يقع ويملأ طابورَ
+                    # الخروج بسيّاراتٍ لم تُرسَ على أحد.
+                    #
+                    # ويمرّ من الباب مع ذلك لا حوله: يومَ يُرحَّل نظامٌ فيه
+                    # ترسياتٌ حقيقيّة، تلحق المركبةُ بفاتورتها بلا سطرٍ
+                    # يُكتب هنا. والامتناعُ قرارُ آلة الحالات لا نسيانُ
+                    # مستدعٍ.
+                    settlement.record_vehicle_payment(
                         invoice=invoice,
                         amount=payable,
                         source="cash",

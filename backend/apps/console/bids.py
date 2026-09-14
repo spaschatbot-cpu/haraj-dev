@@ -27,7 +27,16 @@ from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 
 from .archive import _bid_state
-from .exports import export, wants_export
+from .exports import export_table, wants_export
+from .sensitive import (
+    CUSTOMER,
+    amounts_on,
+    cell_amount,
+    columns_for,
+    person_on,
+    shown_to,
+    sold,
+)
 from .views import console_page
 
 PAGE_SIZE = 50
@@ -82,22 +91,36 @@ def _rows(*, auction=None, search=""):
     return _searched(rows, search)
 
 
-def _export_headers():
-    return [
-        "المزاد", "اللوت", "المركبة", "السنة", "اللوحة", "الشاصي", "اللون",
-        "الحالة الفنية", "سعر الوقوف", "المزايد", "الجوال", "المبلغ",
-        "حالة المزايدة", "الوقت",
-    ]
+def _export_columns(seen):
+    """أعمدةُ ملفّ المزايدات — **والملفُّ يرث حارسَ الشاشة**. T901.
 
+    الملفُّ الواحد يخدم الشاشتين (الجاري، وكلّ السيارات) كما يخدمهما الجدول،
+    وكان ينزّل «المزايد» و«الجوال» و«المبلغ» لمن يملك `auctions.view` وحدَها —
+    أي أن من حُجب عنه الجوّالُ على الشاشة كان يأخذه في ملفٍّ بضغطةٍ واحدة.
 
-def _export_cell(row):
-    v = row.vehicle
-    return [
-        v.auction.number, v.lot_number, f"{v.make} {v.model}", v.year,
-        v.plate_number, v.vin, v.get_colour_display(), v.get_condition_display(),
-        v.reserve_price, row.bidder.full_name, row.bidder.phone, row.amount,
-        _bid_state(row), row.placed_at,
-    ]
+    وعمودُ «المبلغ» يبقى ويُحجَب **صفّاً صفّاً** لا عموداً كاملاً: انظر
+    :func:`~apps.console.sensitive.cell_amount` — الملفُّ يخلط مركبةً رست
+    وأخرى في مزادٍ مفتوح، وسعرُ الوقوف يبقى في الحالتين (سؤالُ تشغيلٍ لا مال).
+    """
+    return columns_for(
+        [
+            ("المزاد", lambda row: row.vehicle.auction.number, None),
+            ("اللوت", lambda row: row.vehicle.lot_number, None),
+            ("المركبة", lambda row: f"{row.vehicle.make} {row.vehicle.model}", None),
+            ("السنة", lambda row: row.vehicle.year, None),
+            ("اللوحة", lambda row: row.vehicle.plate_number, None),
+            ("الشاصي", lambda row: row.vehicle.vin, None),
+            ("اللون", lambda row: row.vehicle.get_colour_display(), None),
+            ("الحالة الفنية", lambda row: row.vehicle.get_condition_display(), None),
+            ("سعر الوقوف", lambda row: row.vehicle.reserve_price, None),
+            ("المزايد", lambda row: row.bidder.full_name, CUSTOMER),
+            ("الجوال", lambda row: row.bidder.phone, CUSTOMER),
+            ("المبلغ", lambda row: cell_amount(row, seen), None),
+            ("حالة المزايدة", lambda row: _bid_state(row), None),
+            ("الوقت", lambda row: row.placed_at, None),
+        ],
+        seen,
+    )
 
 
 @console_page("console:live-bids")
@@ -134,13 +157,22 @@ def live_bids(request):
         else Bid.objects.none()
     )
 
+    # جوّالُ المزايد خلف `users.view` هنا كما في كلّ جدولٍ آخر. ومبلغُه يبقى
+    # ظاهراً في المعتاد: مركباتُ مزادٍ **مفتوح** لم تَرسُ، ومزايدةٌ على مركبةٍ
+    # لم تَرسُ رقمُ سوقٍ لا مالُ أحد — و`cell_amount` تسأل المركبةَ لا الشاشة،
+    # فلو دخل الجدولَ صفٌّ لمركبةٍ رست حُجب مبلغُه وحدَه.
+    seen = shown_to(request.user)
+
     if wants_export(request):
-        return export(rows, name="مزايدات-المزاد-الجاري",
-                      headers=_export_headers(), cell=_export_cell)
+        return export_table(rows, name="مزايدات-المزاد-الجاري",
+                            columns=_export_columns(seen))
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    person_on(page.object_list, seen, field="bidder")
+    amounts_on(page.object_list, seen)
     return render(request, "console/live_bids.html", {
         "page": page, "q": search, "live": live, "late": late,
+        "show_money": seen.money, "show_customer": seen.customer,
         # روابطُ التصفّح تحمل البحث معها: «التالي» بدونه يعود بالجدول كلّه
         # والقارئُ يظنّ نفسه داخل نتيجته.
         "keep": f"q={search}&" if search else "",
@@ -163,16 +195,27 @@ def vehicle_bids(request):
     search = request.GET.get("q", "")
     rows = _rows(auction=auction, search=search)
 
+    # الشاشةُ `auctions.view`، وكانت تضع في **مصدرها** خمسين جوّالاً وأربعةً
+    # وخمسين مبلغاً في الصفحة الواحدة، وملفُّها أربعةَ عشرَ عموداً فيها
+    # «المزايد» و«الجوال». والقاعدةُ في `sensitive.py` لا هنا.
+    seen = shown_to(request.user)
+
     if wants_export(request):
-        return export(rows, name="مزايدات-السيارات",
-                      headers=_export_headers(), cell=_export_cell)
+        return export_table(rows, name="مزايدات-السيارات",
+                            columns=_export_columns(seen))
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    person_on(page.object_list, seen, field="bidder")
+    # والمبلغُ يُسأل عن **مركبته**: هذا الجدول يخلط المزادات، فصفٌّ لمركبةٍ
+    # رست تحته صفٌّ لمركبةٍ في مزادٍ جارٍ. والأوّلُ سعرُ رسوٍّ بغطاءِ كلمة
+    # «مزايدة»، والثاني رقمُ سوق.
+    amounts_on(page.object_list, seen)
     keep = "".join(
         f"{k}={v}&" for k, v in (("auction", number), ("q", search)) if v
     )
     return render(request, "console/vehicle_bids.html", {
         "page": page, "q": search, "auction": auction, "number": number, "keep": keep,
+        "show_money": seen.money, "show_customer": seen.customer,
         "auctions": Auction.objects.order_by("-starts_at").values(
             "number", "title"
         )[:200],
@@ -196,18 +239,43 @@ def vehicle_bid_list(request, pk: int):
     vehicle = get_object_or_404(
         Vehicle.objects.select_related("auction", "owner_company"), pk=pk
     )
-    rows = (
+    rows = list(
         Bid.objects.filter(vehicle=vehicle)
         .select_related("bidder")
         .order_by("-amount", "placed_at")
     )
+
+    # **أثقلُ تسريبٍ في الجولة**: مئةٌ وثمانيةَ عشرَ جوّالاً ومئةٌ وتسعةَ عشرَ
+    # مبلغاً لمركبةٍ واحدة، في مصدر قِطعةٍ تُفتح من زرٍّ في كارت الأرشيف —
+    # وهي `auctions.view` وحدَها. والقِطعةُ لا ترث حارسَ الصفحة التي تُحقَن
+    # فيها: `fetch` طلبٌ مستقلٌّ يمرّ بحارسه هو، فلو اكتُفي بحجب الجدول خلفها
+    # لبقي البابُ مفتوحاً بعنوانٍ يُكتب في شريط المتصفّح.
+    seen = shown_to(request.user)
+    person_on(rows, seen, field="bidder")
+    # و`vehicle=` لأن المركبةَ في اليد أصلاً: بدونها `bid.vehicle` استعلامٌ
+    # لكلّ صفٍّ من مئةٍ وتسعة عشر — و`select_related` هنا على المزايد وحده.
+    amounts_on(rows, seen, vehicle=vehicle)
+
+    # وأعلى مبلغٍ في الترويسة يُحجَب بالشرط نفسِه: على مركبةٍ رست **هو** سعرُ
+    # رسوّها بالهللة، فحجبُ مئةٍ وتسعةَ عشرَ صفّاً وإبقاؤه في سطرٍ فوقها ليس
+    # حجباً. ويُحسب على الصفوف المحمَّلة لا باستعلامِ تجميعٍ ثانٍ.
+    top = max((bid.amount for bid in rows), default=None)
+
     return render(
         request,
         "console/_vehicle_bid_list.html",
         {
             "vehicle": vehicle,
             "rows": rows,
-            "live": rows.filter(is_superseded=False, is_withdrawn=False).count(),
-            "top": rows.aggregate(top=Max("amount"))["top"],
+            "live": sum(
+                1 for bid in rows if not bid.is_superseded and not bid.is_withdrawn
+            ),
+            "top": None if not seen.money and sold(vehicle) else top,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
+            # ورايةٌ إلى جانب `top` لأن `None` هنا جوابان: «لا مزايدات على
+            # هذه المركبة» و«لا يحقُّ لك الرقم». والقالبُ يقول أيَّهما، فلا
+            # يُقرأ الحجبُ فراغاً في القاعدة.
+            "hide_top": not seen.money and sold(vehicle),
         },
     )

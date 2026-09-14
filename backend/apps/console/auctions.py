@@ -38,8 +38,9 @@ from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 
 from . import columns, icons, vehicle_bulk, vehicle_filters
+from .auction_quick import STAMP_FIELDS
 from .exports import export, wants_export
-from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
+from .forms import AuctionForm, AuctionIdentityForm, VehicleForm, row_stamp_of
 from .tones import tone_of, tone_of_phase, with_tones
 from .views import atomic_write, console_page, row_for_write
 
@@ -127,19 +128,104 @@ def parks(limit: int = 60) -> list[str]:
     return list(seen)
 
 
+def _require_sheet_export(request) -> None:
+    """ملفُّ المركبات يحتاج `auctions.import`، من أيّ زرٍّ طُلب.
+
+    شاشةُ المزاد محروسةٌ بـ`AUCTIONS_VIEW`، ووصفُها يقول صراحةً إنها **لا تعرض
+    سعر الوقوف** لأن «من يملك `auctions.view` دورٌ لا يرى أموال العملاء».
+    و`export_vehicles` يكتب عمود «سعر الوقوف» حين يملؤه صفّ — فكان زرُّ
+    التصدير على الشاشة نفسِها يُنزّل ما تُخفيه الشاشةُ عمداً.
+
+    وقِيس في ١٤ سبتمبر ٢٠٢٦ على قاعدة `haraj2_t307`: تصديرُ مزاد ٩٨٦٧ من
+    `console:auction-detail` أخرج عمود «سعر الوقوف» بقيمٍ ٢٥٠٠٠٫٠٠ و٣١٠٠٠٫٠٠
+    لعشر مركبات. والبابُ المخصَّص لنفس الملفّ (`console:vehicles-export`)
+    يشترط `AUCTIONS_IMPORT` — فكان لفعلٍ واحدٍ بابان، وأضعفُهما هو الحارس.
+    ودورا «المالية» و«الدعم» يحملان `AUCTIONS_VIEW` بلا `AUCTIONS_IMPORT`.
+    """
+    from django.core.exceptions import PermissionDenied
+
+    if not can(request.user, Capability.AUCTIONS_IMPORT):
+        raise PermissionDenied(
+            "تنزيل ملف المركبات يحتاج صلاحية «استيراد وتصدير المركبات»"
+        )
+
+
 def _page(request, queryset):
     """One page of ``queryset``, with the size bounded.
 
     `MAX_PAGE_SIZE` is shared with the customer API deliberately: `?limit=100000`
     is a table scan whoever asks for it, and an operator's session is not a
     reason to allow one.
+
+    **و`?focus=<pk>` يختار الصفحةَ التي فيها تلك المركبة**، لا الأولى. الرابطُ
+    يأتي من «بحث عن سيارة»: الموظّف يبحث عن لوحةٍ في اثنتي عشرةَ ألفَ مركبة، ثمّ
+    يريد أن يراها **في مكانها من مزادها** — الصفُّ الذي فوقها والذي تحتها جزءٌ
+    من الجواب.
+
+    وv1 يفعلها في المتصفّح (`manage_vehicles.php:1449`): ينقل الترقيمَ ثمّ يمرّر
+    ثمّ يُضيء. وترقيمُنا في الخادم، فالنقلةُ هنا — **وذلك أسلمُ لا أسهلُ فقط**:
+    صفحةُ v1 تحمل المركباتِ كلَّها ثمّ تُخفي، فالترقيمُ هناك زينةٌ فوق جدولٍ
+    كاملٍ نُقل على الشبكة.
+
+    **والموضعُ يُحسب في القائمة المرشَّحة نفسِها** التي سيراها، لا في الجدول
+    الخام: من يصل ومعه `?photos=without` يجب أن يقع على صفحتها في **تلك**
+    القائمة. وإن لم تكن المركبةُ فيها — رُشّحت خارجَها أو ليست في هذا المزاد —
+    فلا تُخترَع صفحة: تُعاد الأولى، **والقالبُ يقول إنها لم تُوجَد** بدل أن
+    يُحوّل الموظّفَ ويُريه جدولاً لا يفهم لماذا فُتح. وذلك عطلُ v1 الذي علّق
+    عليه كاتبُه بنفسه: «يبدو للمستخدم أن الرابط حوّله ولم يُظهر شيئاً».
+
+    و`?page=` الصريحةُ تغلب: من ضغط «التالي» بعد وصوله قرّر أين يقف.
     """
     try:
         size = min(int(request.GET.get("limit", PAGE_SIZE)), MAX_PAGE_SIZE)
     except (TypeError, ValueError):
         size = PAGE_SIZE
 
-    return Paginator(queryset, max(size, 1)).get_page(request.GET.get("page"))
+    size = max(size, 1)
+    paginator = Paginator(queryset, size)
+    number = request.GET.get("page")
+
+    if number is None:
+        number = _page_holding(paginator, queryset, size, request.GET.get("focus"))
+
+    return paginator.get_page(number)
+
+
+def _focus_on_page(page, focus) -> int | None:
+    """مفتاحُ المركبة المطلوبة **إن كانت في هذه الصفحة فعلاً**، وإلّا ``None``."""
+    if not focus:
+        return None
+    try:
+        wanted = int(focus)
+    except (TypeError, ValueError):
+        return None
+    return wanted if any(row.pk == wanted for row in page.object_list) else None
+
+
+def _focus_missing(page, focus) -> bool:
+    """هل طُلبت مركبةٌ بعينها ولم تُوجَد؟ — جملةٌ تُقال، لا صمت."""
+    return bool(focus) and _focus_on_page(page, focus) is None
+
+
+def _page_holding(paginator, queryset, size, focus) -> int | None:
+    """رقمُ الصفحة التي تحمل المركبةَ ``focus``، أو ``None`` إن لم تُوجَد.
+
+    الموضعُ يُقرأ بمفاتيح الصفحات وحدها (`values_list("pk")`) لا بالصفوف: جدولٌ
+    من اثني عشرَ ألفاً يُحمَّل كاملاً ليُعرَف موضعُ صفٍّ واحدٍ هو استعلامٌ ثمنُه
+    أعلى من الشاشة التي يخدمها.
+    """
+    if not focus:
+        return None
+    try:
+        wanted = int(focus)
+    except (TypeError, ValueError):
+        # مُعرّفٌ مشوَّه في الرابط ليس خطأً يستحقّ ٥٠٠ — الشاشةُ تُفتح على أوّلها.
+        return None
+
+    keys = list(queryset.values_list("pk", flat=True))
+    if wanted not in keys:
+        return None
+    return keys.index(wanted) // size + 1
 
 
 @console_page("console:auctions")
@@ -239,9 +325,24 @@ def auctions(request):
     # حفظٍ صحيح.
     for row in page.object_list:
         row.row_stamp = AuctionIdentityForm(instance=row).initial.get("row_stamp", "")
+        # وختمٌ لكلّ نافذةٍ من الأربع الباقية، على **أعمدتها هي**. كانت
+        # النوافذُ الأربع بلا ختمٍ إطلاقاً — قِيس على الشاشة: حقلُ
+        # `row_stamp` **واحدٌ في الصفحة كلِّها**، نافذةُ التعديل وحدها.
+        # والحسبةُ من `row_stamp_of` نفسِها التي تستعملها الاستمارة، فلا
+        # تعريفان لبصمةٍ واحدة.
+        for window, names in STAMP_FIELDS.items():
+            setattr(row, f"stamp_{window}", row_stamp_of(row, names))
     for row in page.object_list:
         row.phase_tone = tone_of_phase(row.phase)
-        # البادج بمفردات v1 الخمس، محسوباً من الحالة والساعة واللافتة.
+        # البادجُ خمسُ كلمات — **ثلاثٌ منها من v1 واثنتان من عندنا.**
+        #
+        # `soon` و`active` و`ended` مفرداتُ `auctions.status` في v1؛
+        # و`draft` و`cancelled` قراران لا يقولهما التقويم فلا مقابلَ لهما
+        # هناك. و`later` و`upcoming` — وهما من الخمس في v1 — ليستا هنا
+        # أصلاً: مكانُهما `Auction.showcase`، لأنهما لافتةُ عرضٍ لا حالة.
+        # وكان مكتوباً هنا «بمفردات v1 الخمس» وكأنها المفردات نفسُها —
+        # وليست كذلك، ولا العددُ يتطابق إلا بالمصادفة. و`badge_of` لا يقرأ
+        # اللافتةَ في سطرٍ واحد، فذكرُها هنا كان خطأً ثالثاً.
         row.badge = engine.badge_of(row)
         row.badge_label = engine.Badge(row.badge).label
         row.badge_tone = engine.BADGE_TONES.get(row.badge, "")
@@ -276,6 +377,10 @@ def auctions(request):
             # الأزرار تُرسَم لمن يملك الإدارة فقط — لا تُرسَم ثم تُرفض.
             "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
             "can_delete": can(request.user, Capability.AUCTIONS_DELETE),
+            # وزرُّ التصدير كذلك: الملفُّ محروسٌ بـ`AUCTIONS_IMPORT` الآن
+            # (`_require_sheet_export`)، ورسمُه لمن سيُرفض هو بعينه ما ينهى
+            # عنه السطرُ أعلاه.
+            "can_export": can(request.user, Capability.AUCTIONS_IMPORT),
             "showcases": Showcase.choices,
         },
     )
@@ -305,6 +410,8 @@ def auction_detail(request, pk: int):
     rows = vehicle_filters.apply(engine.vehicle_rows(auction), request.GET)
 
     if wants_export(request):
+        _require_sheet_export(request)
+
         from apps.auctions.importexport import export_vehicles
 
         from .exports import workbook_response
@@ -338,6 +445,15 @@ def auction_detail(request, pk: int):
         {
             "auction": auction,
             "page": page,
+            # **المركبةُ التي جاء الموظّفُ من أجلها** (`?focus=`)، مقروءةً من
+            # الصفحة المعروضة لا من الرابط: لو أُخذت من الرابط لأضاء القالبُ
+            # صفّاً قد لا يكون فيها — رُشّح خارجَها، أو ليس في هذا المزاد أصلاً
+            # — فيرى الموظّفُ جدولاً بلا تعليمٍ ولا يعرف لماذا فُتح.
+            #
+            # ولذلك ثلاثةُ حالاتٍ لا حالتان: جاء بـ`focus` ووُجد (يُضاء) · جاء
+            # بها ولم يُوجَد (**تُقال الجملة**) · لم يأتِ بها (لا شيء).
+            "focus_pk": _focus_on_page(page, request.GET.get("focus")),
+            "focus_missing": _focus_missing(page, request.GET.get("focus")),
             "filters": vehicle_filters.state(request.GET, auction),
             # تخصيصُ أعمدة الجدول — القائمةُ للمكوّن، والمخفيُّ للخلايا. T869
             "columns_layout": columns.layout_for(request.user, "auction_vehicles"),
@@ -353,12 +469,15 @@ def auction_detail(request, pk: int):
             "badge_label": engine.Badge(engine.badge_of(auction)).label,
             "badge_tone": engine.BADGE_TONES.get(engine.badge_of(auction), ""),
             "can_manage": can(request.user, Capability.AUCTIONS_MANAGE),
+            "can_export": can(request.user, Capability.AUCTIONS_IMPORT),
             # ختمُ HR-13 لنافذة التعديل هنا كما في القائمة: المالك أراد
             # التعديلَ نافذةً في **كلّ** شاشة، والنافذةُ بلا ختمٍ تكتب فوق
             # تعديل زميلٍ صامتةً.
             "row_stamp": AuctionIdentityForm(instance=auction).initial.get(
                 "row_stamp", ""
             ),
+            # وختمُ نافذة «الإنهاء الفوري» على هذه الصفحة — على أعمدتها هي.
+            "stamp_end_now": row_stamp_of(auction, STAMP_FIELDS["end_now"]),
             # الشريطُ المجمَّع: حالاتُه من سجلٍّ مغلق، ووجهاتُ النقل مزاداتٌ
             # **لم تبدأ** — نقلُ مركبةٍ إلى مزادٍ جارٍ يُدخلها في منتصف الشوط.
             "bulk_states": vehicle_bulk.BULK_STATES,
@@ -417,6 +536,9 @@ def vehicles(request):
     rows = rows.order_by("auction_id", "lot_number")
 
     if wants_export(request):
+        # الملفُّ نفسُه من بابٍ آخر، فالحارسُ نفسُه — انظر `_require_sheet_export`.
+        _require_sheet_export(request)
+
         # Delegated to phase 005's writer rather than given a second column
         # list here: the vehicle export is the *import's input* (T806), and a
         # second shape would produce a file that cannot be uploaded back.
@@ -450,11 +572,10 @@ def vehicles(request):
             "states": VehicleState.choices,
             "state": state,
             "q": search,
+            "can_export": can(request.user, Capability.AUCTIONS_IMPORT),
         },
     )
 
-
-@console_page("console:vehicle-detail")
 
 def _modal(request):
     """هل يُطلَب هذا العرضُ نافذةً؟ ولو نعم فأيُّ قالبِ أساسٍ يُستعمَل.
@@ -471,6 +592,7 @@ def _modal(request):
     return is_modal, "console/_modal_base.html" if is_modal else "console/base.html"
 
 
+@console_page("console:vehicle-detail")
 def vehicle_detail(request, pk: int):
     """One car: what it is, where it stands, and where it may go next.
 
@@ -642,7 +764,6 @@ VEHICLE_FIELDS = [
 ]
 
 
-@console_page("console:auction-new")
 def _absorb_selected(request, auction: Auction) -> int:
     """انقل السياراتِ المختارةَ من الكتالوج إلى مزادٍ وليد، وأعِد كم نُقل.
 
@@ -688,6 +809,17 @@ def _absorb_selected(request, auction: Auction) -> int:
     return moved
 
 
+# **الزخرفةُ فوق الدالّة التي تحرسها، لا فوق دالّةٍ مساعدةٍ دُسَّت بينهما.**
+#
+# سقط هذا الحارسُ في `bcb7aab` حين أُدرجت `_absorb_selected` بين
+# `@console_page("console:auction-new")` وبين `auction_new`، فحرست المساعِدةَ
+# وتُركت الشاشةُ عاريةً — لا قدرةً ولا `login_required`. وقِيس في ١٤ سبتمبر
+# ٢٠٢٦: طلبُ `POST` **بلا أيّ جلسة** أنشأ مزاد ٩٨٦٨ في القاعدة، وخرج الردُّ
+# ٥٠٠ لأن `audit.record` رفض `AnonymousUser` — فبقي المزادُ **بلا قيدِ تدقيقٍ
+# واحد**. والعطلُ لا يُرى بالعين: الصفحةُ تعمل تماماً لمن يملك الصلاحية.
+# وأرخصُ علامةٍ تكشفه أن `Cache-Control: no-store` الذي يكتبه `console_page`
+# كان غائباً عن هذا المسار وحده.
+@console_page("console:auction-new")
 def auction_new(request):
     """A new auction, born `draft`.
 
@@ -701,18 +833,26 @@ def auction_new(request):
         # الرقمُ يُخصَّص في `AuctionForm.save` (max+1). سباقُ منشئَين قد يقع على
         # الرقم نفسه فيرفضه القيدُ الفريد — نعيد المحاولة، وكلُّ محاولةٍ تُعيد
         # حساب الرقم. القيدُ هو الحارس، وهذا مجرّد لطفٍ يتفادى صفحةَ خطأ.
-        from django.db import IntegrityError
+        from django.db import IntegrityError, transaction
 
         auction = None
         if form.is_valid():
             for _attempt in range(6):
                 try:
-                    auction = _save(
-                        request,
-                        form,
-                        action="console.create_auction",
-                        fields=AUCTION_FIELDS,
-                    )
+                    # **الصفُّ وقيدُه معاً أو لا شيء.** كان الحفظُ خارج أيّ
+                    # معاملة، فإن سقط `audit.record` بعد `form.save` بقي مزادٌ
+                    # في القاعدة لا سطرَ يقول من أنشأه — وهو ما وقع فعلاً على
+                    # مزاد ٩٨٦٨. ومعاملةٌ لكلّ محاولة لا واحدةٌ حول الحلقة:
+                    # `IntegrityError` داخل معاملةٍ قائمة تُسمّمها، فتموت
+                    # المحاولةُ التالية بـ`TransactionManagementError` بدل أن
+                    # تُعيد حساب الرقم.
+                    with transaction.atomic():
+                        auction = _save(
+                            request,
+                            form,
+                            action="console.create_auction",
+                            fields=AUCTION_FIELDS,
+                        )
                     break
                 except IntegrityError:
                     form.instance.pk = None  # فشل الإدراج → أعِد الحساب والمحاولة

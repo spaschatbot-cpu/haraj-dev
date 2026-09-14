@@ -20,7 +20,9 @@ from . import (
     auctions,
     audit,
     bids,
+    bids_report,
     billing,
+    broadcast,
     bulk,
     catalog,
     customer_file,
@@ -29,7 +31,10 @@ from . import (
     health,
     importexport,
     inbox,
+    manual_payment,
     money,
+    news,
+    packages,
     partner_console,
     partner_payments,
     partners,
@@ -149,11 +154,15 @@ urlpatterns = [
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
     path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
+    # تقرير المزايدات — المزايدون مجمَّعين، بمسار v1 نفسِه (T832).
+    path("analytics/bids-report/", bids_report.bids_report, name="bids-report"),
     path("analytics/active/", analytics.active_auction, name="active-auction"),
     path("analytics/profit/", analytics.profit_report, name="profit-report"),
     path("owners/", analytics.owners_console, name="owners-console"),
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
+    # مسارٌ واحدٌ للشاشة كلِّها، كـ«شريط الأخبار» — و`op` يميّز الفعل. T921
+    path("finance/packages/", packages.packages, name="packages"),
     # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
     path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
     path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
@@ -300,6 +309,10 @@ urlpatterns = [
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),
     path("payments/", payments.payments, name="payments"),
+    # «إنشاء دفعة» — قيدٌ على فاتورةٍ بيد موظّف. صفحةٌ واحدة تبحث وتقيّد:
+    # البحثُ `GET` والقيدُ `POST` على المسار نفسه، فلا عنوانٌ ثانٍ يُفتح بلا
+    # فاتورةٍ في يده.
+    path("payments/create/", manual_payment.payment_create, name="payment-create"),
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
     path("money/<int:pk>/actions/", actions.actions, name="money-actions"),
@@ -320,6 +333,15 @@ urlpatterns = [
     ),
     path("health/", health.health, name="money-health"),
     path("notifications/", alerts.notifications, name="notifications"),
+    # «إرسال إشعار» — ثلاثُ خطواتٍ على مسارٍ واحد: `GET` يفتح الاستمارة،
+    # و`POST step=preview` يعدّ الجمهور ويقدّر الكلفة، و`POST step=send` ينفّذ
+    # برمز المعاينة. ومسارٌ واحد لأن الخطوات الثلاث شيءٌ واحدٌ لا يُدخَل من
+    # منتصفه: عنوانٌ للتنفيذ وحده هو عنوانٌ يُفتح بلا عدٍّ رآه أحد.
+    path("notifications/send/", broadcast.broadcast, name="broadcast"),
+    # مسارٌ واحدٌ للشاشة كلِّها: الإضافةُ والتعديلُ والإيقاف `POST` عليه
+    # يميّزها حقلُ `op`. ومسارٌ لكلّ فعلٍ كان يعني صفوفاً في `DETAIL_PAGES`
+    # لصفحاتٍ لا تُفتح — كلُّها تُعيد التوجيه. T921.
+    path("news/", news.news, name="news"),
     path("audit/", audit.audit, name="audit"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),

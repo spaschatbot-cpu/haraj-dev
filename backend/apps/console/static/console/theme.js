@@ -29,6 +29,9 @@
     accent: ["azure", "gold", "violet", "teal", "emerald", "amber", "rose"],
     sidebar: ["auto", "light", "dark", "gradient"],
     nav: ["full", "mini", "off"],
+    /* مفتاحٌ ثانٍ للشريط، تستعمله شاشاتُ الجداول العريضة وحدَها — انظر
+       `DEFAULTS.navWide` تحته. القيمُ نفسُها فلا فرعَ ثانياً في المنطق. */
+    navWide: ["full", "mini", "off"],
     motion: ["on", "off"]
   };
 
@@ -42,6 +45,17 @@
        ظهر في أول معاينة. و`auto` لا يكتب أي كتلةٍ فتبقى قيم المظهر نفسه. */
     sidebar: "auto",
     nav: "full",
+    /* **مطويٌّ افتراضاً على شاشتَي الجدول العريض** (`data-wide-table` على
+       `<html>`: «ما بعد البيع» و«القرارات المنتهية»). قِيس بمنفذ ١٦٠٠: الجدولُ
+       سبعةَ عشرَ عموداً، وبالشريط مفتوحاً يبقى فائضاً ٢٣٨ بكسلاً بعد كلّ ضغطٍ
+       ممكن في الورقة، وبطيّه يفيض صفراً — الشريطُ ٣٠٤ بكسلاً و٧٣٫٦ مطويّاً.
+
+       ولماذا مفتاحٌ مستقلٌّ لا `nav` نفسُه: لأن المالكَ يفتح الشريطَ على
+       الرئيسيّة ويريده مفتوحاً هناك. مفتاحٌ واحدٌ يعني أن فتحَه مرّةً في أيّ
+       شاشةٍ يُلغي الطيَّ في هاتين إلى الأبد — أو أن طيَّه هنا يطويه في
+       الثلاث والستّين. فصار لكلّ سياقٍ ذاكرتُه، واختيارُ الموظّف في السياق
+       الذي اختار فيه مُحترَمٌ وحدَه. */
+    navWide: "mini",
     motion: "on"
   };
 
@@ -76,6 +90,15 @@
     return chosen;
   }
 
+  /* أيُّ مفتاحٍ يحكم الشريطَ في هذه الصفحة. `data-wide-table` تصفُ **الشاشة**
+     لا النافذة: جدولُ سبعةَ عشرَ عموداً يحتاج المكانَ على كل عرض. وعلى الشاشة
+     الضيّقة لا معنى للفرق — الشريطُ هناك درجٌ يطفو فوق المحتوى ولا يأخذ منه
+     عرضاً، فيعود المفتاحُ العامّ. */
+  function navKey() {
+    var wide = root.hasAttribute("data-wide-table") && !(narrow && narrow.matches);
+    return wide ? "navWide" : "nav";
+  }
+
   function write() {
     try {
       window.localStorage.setItem(KEY, JSON.stringify(look));
@@ -104,7 +127,7 @@
     root.setAttribute("data-scheme", scheme);
     root.setAttribute("data-accent", look.accent);
     root.setAttribute("data-sidebar", look.sidebar);
-    root.setAttribute("data-nav", look.nav);
+    root.setAttribute("data-nav", look[navKey()]);
     root.setAttribute("data-motion", look.motion);
   }
 
@@ -145,7 +168,7 @@
         button.setAttribute("aria-pressed", on ? "true" : "false");
       }
       var toggle = document.querySelector("[data-nav-toggle]");
-      if (toggle) toggle.setAttribute("aria-expanded", look.nav === "full" ? "true" : "false");
+      if (toggle) toggle.setAttribute("aria-expanded", look[navKey()] === "full" ? "true" : "false");
     }
 
     function open(yes) {
@@ -174,7 +197,8 @@
            لحالةٍ «مطوية» فيه. (والاستعلام هو `narrow` أعلاه لا نسخةٌ ثانية:
            سلسلتان تفترقان يوم تتغيّر نقطة الانكسار.) */
         var small = narrow && narrow.matches;
-        set("nav", look.nav === "full" ? (small ? "off" : "mini") : "full");
+        var key = navKey();
+        set(key, look[key] === "full" ? (small ? "off" : "mini") : "full");
         return;
       }
 

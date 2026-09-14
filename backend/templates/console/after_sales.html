@@ -9,14 +9,35 @@
 `data-*`، وأيقونةُ الفاتورة تفتحها في `<dialog>` — والمتصفّح يحبس التركيز
 ويُغلق بـEscape ويُعتم الخلف بلا سطرِ جافاسكربت لكلٍّ منها.
 
-**وv1 يجلب النافذة من الخادم** (`fetch` لكل ضغطة على «عرض»). وهذه بيانات
-الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا صفحةُ خطأٍ داخل
-نافذة.
+**وv1 يفتح صفحةً أخرى.** كُتب هنا مرّةً أنه «يجلب النافذة بـ`fetch`»، وكُتب في
+الجافاسكربت أنه «`iframe` من `/invoice?inv=…`» — **ولا واحدةَ منهما صحيحة**،
+ولا وجود لذلك المسار أصلاً. المقروءُ في `D:\haraj 1\applicationtest`: زرُّ
+«عرض» في `admin3/bills/check.php:124` و`admin3/bills/invoices_list_ajax.php:181`
+وسمٌ `<a href="invoice_view.php?id=…" target="_blank">` — **تبويبٌ جديدٌ يفقد
+الموظّفُ معه صفحتَه ومرشّحاتِه**؛ و`admin3/view/index.php:94-109` وحدَه يحمّل
+`get_invoice_by_auction.php?id=` في نافذةٍ برحلةِ خادمٍ لكل ضغطة.
+
+وهذه بياناتُ الصفّ نفسِه، مرسومةٌ مرّةً — فلا رحلةَ شبكةٍ ولا انتظارَ ولا
+تبويبٌ يضيع فيه ما كان على الشاشة.
 
 **والصورةُ عمودٌ لأنه يُسأل عنه:** «السيارة البيضا اللي في مزاد ٥٠» جملةٌ
 تُقال في الهاتف، والصورةُ تُجيبها في نظرة. ومصدرُها غلافُ المركبة باستعلامٍ
 واحدٍ لكل الصفحة (`covers`) لا واحدٍ لكل صفّ.
 {% endcomment %}
+{% comment %} **الشاشةُ تطلب الشريطَ مطويّاً، لا عرضُ النافذة يفرضه.** قِيس
+   على ٢٨٨ مركبةً مرحَّلة بمنفذ ١٦٠٠: بالشريط مفتوحاً (غلاف ١٢٢٨) يبقى الجدولُ
+   فائضاً ٢٣٨ بكسلاً بعد كلّ ضغطٍ ممكن، وبالشريط مطويّاً (غلاف ١٤٥٩) يفيض
+   صفراً. فالرافعةُ الحاسمة هي الشريط، وعتبةُ عرضٍ لا تنفع: المالكُ يفتح
+   اللوحةَ على ١٦٠٠ وهي فوق أي عتبةٍ معقولة.
+
+   ولماذا لا تُطوى اللوحةُ كلُّها: اثنتان وستّون شاشةً تتّسع بالشريط مفتوحاً،
+   وطيُّها جميعاً يُخفي أسماءَ أربعةٍ وستّين مدخلاً بلا سبب.
+
+   **واختيارُ الموظّف مُحترَم**: `theme.js` يحفظ اختيارَ هذه الشاشات في مفتاحٍ
+   مستقلّ (`navWide`)، فمن فتح الشريطَ بيده هنا يجده مفتوحاً هنا كلّما عاد —
+   ولا يُصيب ذلك بقيّةَ اللوحة، ولا تُصيبها بقيّةُ اللوحة. {% endcomment %}
+{% block html_attrs %} data-wide-table{% endblock %}
+
 {% block title %}ما بعد البيع{% endblock %}
 {% block heading %}ما بعد البيع{% endblock %}
 
@@ -25,11 +46,21 @@
 {% endblock %}
 
 {% block content %}
+  {% comment %} هذا القالبُ **جدولُ شاشتين**: «ما بعد البيع» و«القرارات
+     المنتهية» (`ended_decisions.html` يرثه). وهو ما تطلبه وثيقةُ جرد v1 نصّاً
+     عن هاتين بعينهما: «شاشتان بجدولٍ واحد يفترقان بعمود — في v2 تُبنى واحدةً
+     بفلترٍ يُظهر العمود، لا شاشتين تُصانان معاً».
+
+     فالكتلُ الفارغة أدناه (`lede` · `extra_filter` · `col_*_first` ·
+     `col_*_last`) هي مواضعُ الفرق، وتبقى فارغةً في هذه الشاشة فلا تغيّر
+     مخرجَها بحرف. {% endcomment %}
+  {% block lede %}
   <p class="lede">
     كلُّ مركبةٍ رست في مزادٍ منتهٍ: من أخذها، وبكم، وأين وصلت فاتورتُها.
     و<strong>حالةُ الفاتورة محسوبةٌ من الدفعات المسجَّلة</strong> — وكلمةُ أودو
     بجوارها دليلاً لا حقيقة، واختلافُهما هو ما تُفتح الشاشة لتُريَه.
   </p>
+  {% endblock %}
 
   <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
@@ -69,6 +100,8 @@
         <option value="no"{% if settle == "no" %} selected{% endif %}>لم تُسدَّد من ملفّ</option>
       </select>
 
+      {% block extra_filter %}{% endblock %}
+
       <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
         {% for choice in row_choices %}
           <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
@@ -78,14 +111,17 @@
       <button type="submit" class="btn-primary">بحث</button>
 
       {% if filtered %}
-        <a href="{% url 'console:after-sales' %}" class="filters__reset">إلغاء الفلترة</a>
+        {% comment %} `reset_url` من العرض لا `{% url %}` هنا: القالبُ يخدم
+           شاشتين، ورابطٌ مكتوبٌ باسمٍ واحد كان سيُعيد موظّفَ «القرارات
+           المنتهية» إلى شاشةٍ أخرى عند إلغاء الفلترة. {% endcomment %}
+        <a href="{{ reset_url }}" class="filters__reset">إلغاء الفلترة</a>
       {% endif %}
     </div>
   </form>
 
   <div class="table-bar">
     <div class="table-bar__info">
-      <h2>المركبات المباعة <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
+      <h2>{% block table_title %}المركبات المباعة{% endblock %} <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span></h2>
     </div>
     <div class="table-bar__actions">
       <a href="{{ export_url }}" class="btn-sm" title="تصدير كلّ النتائج المطابقة">تصدير إكسل</a>
@@ -96,6 +132,7 @@
     <table>
       <thead>
         <tr>
+          {% block col_head_first %}{% endblock %}
           <th>الموقف</th>
           <th>المزاد</th>
           <th>المركبة</th>
@@ -111,27 +148,75 @@
           <th>الفاتورة</th>
           <th>حالة الفاتورة</th>
           <th>عرض</th>
+          {% block col_head_last %}{% endblock %}
         </tr>
       </thead>
       <tbody>
         {% for row in rows %}
           <tr>
-            <td class="count">{{ row.lot_number|unlocalize }}</td>
+            {% comment %} كتلةٌ داخل حلقة: تُرسَم لكلّ صفٍّ بسياقه، ويملؤها
+               القالبُ الوارث. وهي مكانُ عمودِ «المزايدون» في «القرارات
+               المنتهية» — آخراً كما في v1 (`aftersales/index.php:147`).
+
+               و`col_*_first` **فارغتان في الشاشتين اليوم**: كان فيهما عمودُ
+               «القرار»، وحُذف في ٢٠٢٦-٠٩-١٤ ليتّسع الجدولُ للشاشة، وصار
+               القرارُ سطراً في خليّة المركبة (`vehicle_note`). وتُركتا مكانَ
+               عمودٍ أوّلٍ يُضاف يوماً. {% endcomment %}
+            {% block col_cell_first %}{% endblock %}
+            {% comment %} «—» لا خليّةٌ فارغة حين لا لوت: v1 يكتب
+               `$r['lot_number'] ?: '—'` (`:160`)، وخليّةٌ خاليةٌ في عمودٍ رقميّ
+               تُقرأ «لم يُحمَّل» لا «لا رقمَ له». {% endcomment %}
+            <td class="count">{{ row.lot_number|default:"—"|unlocalize }}</td>
             <td>
               #{{ row.auction.number|unlocalize }}
-              <small class="empty">{{ row.auction.title }}</small>
+              {% comment %} `cell-clip` يقصّ بثلاث نقاط ويترك القيمةَ كاملةً
+                 في `title`: اسمُ المزاد يبلغ عشرين حرفاً فيدفع الجدولَ إلى
+                 التمرير، والرقمُ فوقه هو ما يُبحث به. {% endcomment %}
+              <small class="empty cell-clip clip-aname"
+                     title="{{ row.auction.title }}">{{ row.auction.title }}</small>
             </td>
             <td>
               {% comment %} المركبةُ نصٌّ لا رابط بطلب المالك — الضغطُ عليها
-                 لا يفتح صفحة. وأيقونةُ «فتح ملفّ المركبة» في عمود «عرض» تفعله
-                 صراحةً لمن أراد. {% endcomment %}
-              <span>{{ row.make }} {{ row.model }}</span>
+                 لا يفتح صفحة. وكان مكتوباً هنا أن «أيقونة فتح ملفّ المركبة في
+                 عمود عرض تفعله صراحةً»، **والأيقونةُ أُزيلت** بطلب المالك ولا
+                 وجود لها — فلا تُفتح صفحةُ مركبةٍ من هذه الشاشة أصلاً.
+              {% endcomment %}
+              {% comment %} **الصانعُ وحدَه، لا الصانعُ والطراز.** v1 يكتب هنا
+                 `vehicle_name ?: vehicle_brand` (`aftersales/index.php:161`)
+                 — **بلا طراز**، لأن الطرازَ عمودُه التالي. وكانت الخليّةُ
+                 تكتب `make model` فيظهر الطرازُ هنا ويغيب عن عموده، ويصير
+                 هذا أعرضَ عمودٍ في الجدول (٢٨١ بكسلاً من ١٧٤٣).
+
+                 و`cell-clip` تبقى شبكةَ أمانٍ لصانعٍ طويل الاسم: تقصّ بثلاث
+                 نقاط وتترك القيمةَ كاملةً في `title`، ولا تُقَصُّ في ملفّ
+                 التصدير ولا في شاشة التفصيل. {% endcomment %}
+              <span class="cell-clip clip-name"
+                    title="{{ row.make }}">{{ row.make|default:"—" }}</span>
               {% if row.is_marketing %}<span class="pill" data-tone="info">تسويق</span>{% endif %}
+              {% comment %} سطرٌ ثانٍ تحت الاسم، فارغٌ في هذه الشاشة. وهو
+                 موضعُ ما تحتاجه شاشةٌ وارثة ولا يستحقّ عموداً: خليّةُ المزاد
+                 بجواره تحمل سطرين أصلاً، فالسطرُ هنا **لا يزيد ارتفاعَ
+                 الصفّ**، ولا يزيد عرضَ العمود ما دام أقصرَ من الاسم فوقه.
+              {% endcomment %}
+              {% block vehicle_note %}{% endblock %}
             </td>
-            {% comment %} «الموديل» عمودٌ مستقلٌّ كما في v1، وهو سنةُ الصنع —
-               «موديل ٢٠٢١» في العُرف. وكان مدموجاً في «المركبة»، والمالك ردّه
-               عموداً على حِدَة التزاماً بترويسة v1. {% endcomment %}
-            <td class="count">{{ row.year|unlocalize }}</td>
+            {% comment %} **«الموديل» هو الطراز، والسنةُ سطرٌ خافتٌ تحته** —
+               كما في v1 حرفياً (`aftersales/index.php:162`):
+               `$modelTxt` ثم `<small>$yearTxt</small>` وحدَه إن اختلف عنه.
+
+               وكُتب هنا مرّةً أن «الموديل سنةُ الصنع — موديل ٢٠٢١ في العُرف»،
+               **وذلك خطأٌ قِيس على المصدر**: كانت الخليّةُ تطبع السنةَ وحدَها
+               فيغيب الطرازُ عن الشاشة كلِّها. والعُرفُ لا يُقدَّم على الترويسة
+               التي تُطابَق.
+
+               وشرطُ «إن اختلف» من v1 نفسِه: بياناتٌ مرحَّلةٌ كثيرةٌ تضع السنةَ
+               في حقل الطراز، فطباعتُهما معاً تُعطي «2021» فوق «2021». {% endcomment %}
+            <td>
+              <span class="cell-clip clip-model" title="{{ row.model }}">{{ row.model|default:"—" }}</span>
+              {% if row.year and row.year|stringformat:"s" != row.model %}
+                <small class="empty tnum">{{ row.year|unlocalize }}</small>
+              {% endif %}
+            </td>
             <td>
               {% comment %} `loading="lazy"` لأن خمسين صورةً في تحميلٍ واحد
                  تؤخّر الجدولَ نفسَه، والجدولُ هو الغرض. {% endcomment %}
@@ -146,27 +231,45 @@
             </td>
             <td><span class="tnum code-font">{{ row.plate_number|default:"—" }}</span></td>
             <td class="count">
-              {% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}<span class="empty">—</span>{% endif %}
+              {% comment %} `odometer_text` من `after_sales.decorate` —
+                 بفاصل آلافٍ كما في v1، وسببُه مكتوبٌ هناك. {% endcomment %}
+              {% if row.odometer_text %}<span class="tnum">{{ row.odometer_text }}</span>{% else %}<span class="empty">—</span>{% endif %}
             </td>
             <td>{{ row.get_colour_display|default:"—" }}</td>
             <td><span class="tnum code-font">{{ row.vin|default:"—" }}</span></td>
             <td><span class="tnum code-font">{{ row.claim_number|default:"—" }}</span></td>
             <td>
               {% comment %} اسمُ المشتري نصٌّ لا رابط — بطلب المالك: الضغطُ
-                 عليه لا يفتح صفحةً. ومن أراد ملفَّ المشتري فأيقونةُ «فتح ملفّ
-                 المشتري» في عمود «عرض» تفعله صراحةً. {% endcomment %}
-              {% if row.awarded_to %}
-                <span>{{ row.awarded_to.full_name }}</span>
-                <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
+                 عليه لا يفتح صفحةً. وكان مكتوباً هنا أن «أيقونة فتح ملفّ
+                 المشتري في عمود عرض تفعله»، **وقد أُزيلت** معها — فلا يُفتح
+                 ملفُّ مشترٍ من هذه الشاشة. {% endcomment %}
+              {% comment %} `buyer_name` و`buyer_phone` من `sensitive.prepare`
+                 لا `row.awarded_to` من العلاقة: حقلٌ يُقرأ من العلاقة في
+                 القالب لا يمرّ من حارسٍ، فيبقى بابٌ مفتوحٌ في شاشةٍ أُغلق في
+                 أختها. وهما فارغان لمن لا يملك `users.view`. {% endcomment %}
+              {% if row.buyer_name %}
+                {% comment %} كاسم المركبة: يُقَصُّ ويبقى كاملاً في `title`.
+                   والجوّالُ تحته لا يُقَصُّ — عشرةُ أرقامٍ بعرضٍ معلوم.
+                {% endcomment %}
+                <span class="cell-clip clip-buyer"
+                      title="{{ row.buyer_name }}">{{ row.buyer_name }}</span>
+                <small class="empty tnum">{{ row.buyer_phone|unlocalize }}</small>
+              {% elif row.awarded_to and not show_customer %}
+                <span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
               {% else %}
-                <span class="empty">—</span>
+                {% comment %} `buyer_blank` من `after_sales.decorate` لا «—»
+                   مكتوبةً هنا: في «القرارات المنتهية» يكون الصفُّ **مرفوضاً**،
+                   فخليّةٌ خاليةٌ تُقرأ «ناقصٌ يُلاحَق» والصحيحُ «لا مشتريَ لها
+                   بحكم القرار». وهي «—» حرفياً في هذه الشاشة. {% endcomment %}
+                <span class="empty">{{ row.buyer_blank|default:"—" }}</span>
               {% endif %}
             </td>
             <td class="count"><span class="tnum code-font">{{ row.pk|unlocalize }}</span></td>
             <td>
-              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك. وتفاصيلُها
-                 في سند الدفع (أيقونة «عرض»)، ومنه زرُّ «فتح الفاتورة» صراحةً.
-              {% endcomment %}
+              {% comment %} رقمُ الفاتورة نصٌّ لا رابط بطلب المالك، وتفاصيلُها
+                 في سند الدفع (أيقونة «عرض»). وكان مكتوباً أن في السند «زرَّ
+                 فتح الفاتورة» — **ولا زرَّ هناك**: لا تُفتح صفحةٌ من هذه
+                 الشاشة إلا السند نفسه. {% endcomment %}
               {% if row.invoice_number %}
                 <span class="tnum code-font">{{ row.invoice_number }}</span>
               {% else %}
@@ -175,9 +278,17 @@
             </td>
             <td>
               {% if row.invoice_number %}
-                <span class="pill" data-tone="{% if row.invoice_state == 'paid' %}ok{% elif row.invoice_state == 'cancelled' %}bad{% elif row.invoice_state == 'partial' %}warn{% else %}plain{% endif %}">{{ row.invoice_label }}</span>
+                {% comment %} النغمةُ من `tones.py` عبر `row.invoice_tone`، لا
+                   سلسلةَ `{% if %}` هنا: تلك كانت تعطي «مستحقة» رماديّاً
+                   محايداً بينما الخريطةُ الواحدة تقول `warn`، فتبدو فاتورةٌ
+                   لم يصلها ريالٌ أهدأَ من فاتورةٍ وصل نصفُها. {% endcomment %}
+                <span class="pill" data-tone="{{ row.invoice_tone }}">{{ row.invoice_label }}</span>
               {% else %}
-                <span class="empty">بلا فاتورة بعد</span>
+                {% comment %} كـ`buyer_blank` فوق: «بلا فاتورة بعد» في هذه
+                   الشاشة، و«مرفوضة — لا فاتورة» في القرارات المنتهية. و«بعدُ»
+                   تَعِد بفاتورةٍ قادمة، ومركبةٌ رفضها المالك لا تُفوتَر أبداً.
+                {% endcomment %}
+                <span class="empty">{{ row.invoice_blank|default:"بدون فاتورة" }}</span>
               {% endif %}
             </td>
             <td class="actions">
@@ -197,119 +308,85 @@
                         data-plate="{{ row.plate_number|default:'—' }}"
                         data-chassis="{{ row.vin|default:'—' }}"
                         data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
-                        data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
-                        data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
+                        {% comment %} **الحجبُ في الخادم لا في CSS.** كان الصفُّ
+                           يحمل جوّالَ المشتري ومبلغَ فاتورته ومسدَّدَها
+                           وباقيها في **مصدر الصفحة**، والشاشةُ `auctions.view`
+                           وحدَها — فتُقرأ في «عرض المصدر» وفي مشاركةِ شاشة.
+                           و`show_money`/`show_customer` من `sensitive.py`،
+                           والقيمُ نفسُها مُمحاةٌ من الصفّ في الخادم. {% endcomment %}
+                        {% if show_customer %}
+                        data-buyer="{% if row.buyer_name %}{{ row.buyer_name }}{% else %}—{% endif %}"
+                        data-phone="{% if row.buyer_phone %}{{ row.buyer_phone|unlocalize }}{% else %}—{% endif %}"
+                        {% endif %}
                         data-number="{{ row.invoice_number }}"
-                        data-href="{% url 'console:invoice-detail' row.invoice_pk %}"
+                        {% comment %} `data-href` كانت هنا برابط صفحة الفاتورة،
+                           **ولا عنصرَ في السند يقرؤها** — والجافاسكربت يبحث عن
+                           `[data-inv-href]` فلا يجده ويمضي. رابطٌ يُبنى لكل
+                           صفٍّ في كل تحميل ولا يُعرَض، وتعليقٌ يَعِد بزرٍّ لا
+                           وجود له. حُذف الاثنان؛ ويوم يُقرّر المالك فتحَ صفحة
+                           الفاتورة من هنا يُضاف الزرُّ ومعه رابطُه. {% endcomment %}
                         data-state="{{ row.invoice_label }}"
+                        data-tone="{{ row.invoice_tone }}"
                         data-source="{{ row.invoice_source_label }}"
                         data-odoo="{{ row.invoice_odoo|default:'—' }}"
                         data-odoo-url="{{ row.odoo_invoice_url }}"
+                        {% if show_money %}
                         data-amount="{{ row.invoice_amount|unlocalize }}"
                         data-paid="{{ row.invoice_paid|unlocalize }}"
                         data-residual="{{ row.invoice_residual|unlocalize }}"
-                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
-                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
+                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}"
+                        {% endif %}
+                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}">
                   {% include "console/_act_icon.html" with path=icon_invoice %}
                 </button>
               {% else %}
                 <span class="empty">—</span>
               {% endif %}
             </td>
+            {% block col_cell_last %}{% endblock %}
           </tr>
         {% empty %}
-          <tr><td colspan="15" class="empty">لا مركبات مباعة مطابقة لهذه المرشّحات.</td></tr>
+          <tr><td colspan="{{ colspan|default:15 }}" class="empty">{% block empty_note %}لا مركبات مباعة مطابقة لهذه المرشّحات.{% endblock %}</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
   <p class="table-footer__count">
-    {{ page.paginator.count|unlocalize }} مركبةً مباعة · صفحة
+    {{ page.paginator.count|unlocalize }} {% block count_noun %}مركبةً مباعة{% endblock %} · صفحة
     {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
   </p>
+  {% block footer_note %}{% endblock %}
 {% endblock %}
 
 {% block scripts %}
-  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا صفحةٌ في `iframe` كـv1.
+  {% comment %} سندُ دفعٍ منظّمٌ في نافذة — لا تبويبٌ آخرُ كـv1.
 
-     v1 يفتح `<iframe>` يحمّل صفحةً كاملة من `/invoice?inv=…` (مستند HTML كامل
-     + Bootstrap + رحلةُ خادم) لكل ضغطة. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً،
-     فالنافذةُ تُملأ من `data-*` بلا شبكة — أسرعُ وأبسط.
+     v1 يفتح `invoice_view.php?id=…` في `target="_blank"` (مستند HTML كامل +
+     Bootstrap + رحلةُ خادم) لكل ضغطة على «عرض»، فيخرج الموظّفُ من جدوله
+     ومرشّحاتِه. وكلُّ ما يعرضه موجودٌ في الصفّ أصلاً، فالنافذةُ تُملأ من
+     `data-*` بلا شبكة — أسرعُ، والجدولُ يبقى خلفها.
 
      **وبحقولنا نحن لا حقول v1.** سندُ v1 يعرض «قيمة المركبة» و«رسوم إدارية»
      مقسومتين، وفاتورتُنا تخزّن `amount` واحداً (الإجمالي) — فلا نخترع تقسيماً
      لا نملكه. ونعرض ما عندنا: الإجمالي والمسدَّد والباقي، والحالةَ **مشتقّةً
-     من الدفعات** لا كلمةَ أودو. {% endcomment %}
-  <dialog id="invoiceCard" class="modal voucher">
-    <div class="voucher__actions noprint">
-      <button type="button" class="btn-sm" data-inv-print>طباعة</button>
-      {% comment %} الفاتورةُ الضريبيّة في أودو — يُظهرها JS فقط حين للفاتورة
-         معرّفٌ هناك و`ODOO_BASE_URL` مضبوط. ففاتورةٌ محليّةٌ لم تُزامَن لا
-         فاتورةَ ضريبيّةَ لها، وفي التطوير يبقى مخفيّاً. {% endcomment %}
-      <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
-    </div>
+     من الدفعات** لا كلمةَ أودو.
 
-    {% comment %} جسمُ السند في `.voucher__doc` — منه يُنسَخ إلى منطقة الطباعة.
-       الطباعةُ لا تطبع النافذةَ نفسها: `<dialog open>` في «الطبقة العليا»
-       وطباعتُها bug في المتصفّح يظهر صفحةً فارغة. فتُنسَخ إلى عنصرٍ في التدفّق
-       العاديّ (`#voucherPrint`) ويُطبَع هو. {% endcomment %}
-    <div class="voucher__doc">
-      <header class="voucher__head">
-        <h2>سند دفع</h2>
-        <p class="voucher__num"><span data-inv-number></span></p>
-      </header>
+     **والسندُ مشترَكٌ الآن مع «كتالوج السيارات»** (`_invoice_voucher.html`):
+     كانت هنا نسخةٌ كاملةٌ منه وهناك نسخةٌ أخرى — سندٌ واحدٌ في قالبين. ووُحّدا
+     يومَ صار الحجبُ (`invoices.view` للمبلغ و`users.view` للجوّال) شرطاً داخل
+     السند: شرطان متشابهان في قالبين قاعدتان تتفارقان. و`sheet=1` يرسم سطرَ
+     «سُدِّدت من ملفّ شريك» — وهو لهذه الشاشة وحدَها، إذ لا مجموعةَ محسوبةً
+     في الكتالوج وسطرٌ يقول «—» دائماً يُقرأ «لا» ويكذب. {% endcomment %}
+  {% include "console/_invoice_voucher.html" with sheet=1 %}
 
-      <section class="voucher__grid">
-        <div class="voucher__block">
-          <h3>الأطراف</h3>
-          <dl class="record">
-            <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
-            <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
-          </dl>
-        </div>
-
-        <div class="voucher__block">
-          <h3>المركبة</h3>
-          <dl class="record">
-            <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
-            <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
-            <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
-            <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
-            <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
-            <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
-          </dl>
-        </div>
-      </section>
-
-      <section class="voucher__money">
-        <h3>المبلغ</h3>
-        <dl class="record">
-          <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
-          <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
-          <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
-          <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
-          <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
-          <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
-          <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
-          <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
-        </dl>
-      </section>
-
-      <p class="empty">
-        هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
-        أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA)
-        تصدر من إدارة الحسابات عبر أودو.
-      </p>
-    </div>
-
-    <div class="modal__buttons noprint">
-      <button type="button" data-close>إغلاق</button>
-    </div>
-  </dialog>
+  {% comment %} مكانٌ تملؤه الشاشةُ الوارثة بما تحتاجه من نوافذ — «القرارات
+     المنتهية» تضع فيه نافذةَ المحتوى لزرّ «المزايدون». وفارغٌ هنا: هذه
+     الشاشةُ لا عمودَ مزايدين فيها، ونافذةٌ تُحمَّل ولا تُفتح حِملٌ بلا سبب. {% endcomment %}
+  {% block modals %}{% endblock %}
 
   {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
      نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —
      وهو ما حدث. يُزاد الرقمُ مع كل تعديلٍ في الملفّ. {% endcomment %}
-  <script src="{% static 'console/after_sales.js' %}?v=3" defer></script>
+  <script src="{% static 'console/after_sales.js' %}?v=4" defer></script>
 {% endblock %}

@@ -1,0 +1,90 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+إنشاء دفعة — قيدُ سدادٍ نقديٍّ على فاتورةٍ غير مسدَّدة.
+
+v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا سبب (الـmemo آليٌّ
+وreadonly)، وبلا هويّة فاعلٍ ولا تدقيق، وبلا مفتاح تفرّدٍ حقيقيّ — فدفعتان
+جزئيّتان متطابقتان تمرّان — و`float` في المقارنة بهامشٍ يدويّ.
+
+وهنا: قدرةٌ خاصّة، وسببٌ إجباريّ، ومرجعٌ هو مفتاحُ التفرّد، و`Decimal`،
+وقيدٌ في `AuditLog` بالمبلغ والسبب.
+{% endcomment %}
+{% block title %}إنشاء دفعة{% endblock %}
+{% block heading %}إنشاء دفعة على فاتورة{% endblock %}
+
+{% block content %}
+  <p class="empty">
+    قيدُ سدادٍ <strong>نقداً أو تحويلاً بنكياً</strong> على فاتورةٍ غير مسدَّدة.
+    والسدادُ من رصيد العميل فعلٌ آخر بابُه «الخصم المباشر»، والبطاقةُ لا تُسدَّد
+    بها سيّارة — يرفضها الدفترُ نفسُه لا هذه الشاشة.
+  </p>
+
+  <form method="get">
+    <input type="search" name="q" value="{{ q }}"
+           placeholder="رقم الفاتورة أو اسم العميل أو جوّاله أو لوحة المركبة">
+    <button type="submit">بحث</button>
+  </form>
+
+  {% if not searched %}
+    <p class="empty">ابحث عن الفاتورة لعرضها وتقييد الدفعة عليها.</p>
+  {% elif not rows %}
+    <p class="empty">لا فاتورةَ غيرَ مسدَّدةٍ تطابق ما كتبت.</p>
+  {% else %}
+    {% for row in rows %}
+      <h2>
+        الفاتورة {{ row.invoice.number }}
+        <small>{{ row.name }}{% if row.phone %} · {{ row.phone|unlocalize }}{% endif %}</small>
+      </h2>
+
+      <div class="scroller">
+        <table>
+          <tbody>
+            <tr><th>إجمالي الفاتورة</th><td class="money">{{ row.invoice.amount|unlocalize }}</td></tr>
+            <tr><th>المسدَّد</th><td class="money">{{ row.invoice.amount_paid|unlocalize }}</td></tr>
+            <tr><th>الباقي</th><td class="money"><strong>{{ row.invoice.outstanding|unlocalize }}</strong></td></tr>
+            <tr><th>الحالة</th><td>{{ row.invoice.get_state_display }}</td></tr>
+            {% if row.invoice.vehicle %}
+              <tr>
+                <th>المركبة</th>
+                <td>لوت {{ row.invoice.vehicle.lot_number }} · {{ row.invoice.vehicle.plate_number }}</td>
+              </tr>
+            {% endif %}
+            {% if row.wallet %}
+              {% comment %} دفترُ التأمينات خلف `money.view` — يُعرَض لمن يملكها
+                 وحده، لأن سؤاله هنا «أله رصيدٌ يكفي بدل النقد؟». {% endcomment %}
+              <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
+              <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="invoice" value="{{ row.invoice.pk }}">
+        <input type="hidden" name="q" value="{{ q }}">
+        <p>
+          <label for="amount-{{ row.invoice.pk }}">المبلغ المقيَّد</label>
+          <input id="amount-{{ row.invoice.pk }}" type="number" step="0.01" min="0.01"
+                 max="{{ row.invoice.outstanding|unlocalize }}" name="amount" required>
+          <small>لا يتجاوز الباقي — والدفترُ يرفض الزائد، لا القالب.</small>
+        </p>
+        <p>
+          <label for="ref-{{ row.invoice.pk }}">مرجع الإيصال أو الحوالة</label>
+          <input id="ref-{{ row.invoice.pk }}" type="text" name="reference" required>
+          <small>مفتاحُ التفرُّد: المرجعُ نفسُه لا يُقيَّد مرّتين مهما ضُغط الزرّ.</small>
+        </p>
+        <p>
+          <label for="reason-{{ row.invoice.pk }}">سبب القيد</label>
+          <input id="reason-{{ row.invoice.pk }}" type="text" name="reason" required
+                 placeholder="حوّل نقداً في الفرع · تصحيح دفعةٍ نُسبت لفاتورةٍ أخرى">
+          <small>إجباريّ، ويدخل مذكّرةَ القيد وسجلَّ التدقيق. وقيدٌ بلا «لماذا» نصفُ قيد.</small>
+        </p>
+        <button type="submit">قيِّد الدفعة</button>
+      </form>
+
+      <p><a href="{% url 'console:invoice-detail' row.invoice.pk %}">تفاصيل هذه الفاتورة ←</a></p>
+    {% endfor %}
+  {% endif %}
+{% endblock %}

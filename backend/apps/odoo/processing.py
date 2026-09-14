@@ -21,6 +21,7 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction as db_transaction
 from django.utils import timezone
 
+from apps.bidding import settlement
 from apps.money import services
 from apps.money.models import (
     AccountKind,
@@ -306,7 +307,11 @@ def _settle_invoice_from_deposit(
 
     services.lock_for_invoice(user=user, invoice=invoice)
     payable = min(amount, invoice.outstanding)
-    services.record_payment(
+    # `settlement.record_vehicle_payment` لا `services.record_payment`: هذا
+    # أكثرُ أبواب الدفع طرقاً في الإنتاج (١١٬٤٩٤ فاتورةً مسدَّدةً في القاعدة
+    # المُرحَّلة أتت من هنا)، وكان يسدّد الفاتورةَ ويترك المركبةَ `invoiced`
+    # إلى الأبد — فلا تدخل طابورَ الخروج. البابُ الواحد ينقلها.
+    settlement.record_vehicle_payment(
         invoice=invoice,
         amount=payable,
         source="insurance",
@@ -378,10 +383,35 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
             "وقراراً بشرياً",
         )
 
+    parts = invoice.net_amount + invoice.admin_fee + invoice.tax_amount
+    if parts > Decimal("0.00") and amount != invoice.amount:
+        # **فاتورةٌ أصدرناها نحن، وأودو يقول لها مبلغاً آخر.** مجموعُ بنودها
+        # (صافٍ + رسمٌ إداريّ + ضريبة) **هو** إجماليُّها بقيدٍ في القاعدة
+        # (`invoice_parts_add_up_to_its_total`)، فكتابةُ إجماليٍّ لا يساويها
+        # ترمي `IntegrityError` — والرسالةُ تنتهي `failed`، أي **في طابور
+        # الإعادة**، فتُعاد كلَّ دقيقةٍ إلى الأبد على عملٍ لا يمكن أن ينجح.
+        # قِيس: رسالةُ `invoice.updated` على فاتورةٍ محلّيّةٍ برفع ألفِ ريال
+        # ⇦ `failed` بنصّ قيدٍ من القاعدة (١٤ سبتمبر ٢٠٢٦).
+        #
+        # و`ignored` لا `failed`: هذا **قرارٌ** لا عطلٌ عابر. المرآةُ تعكس ما
+        # عندهم؛ وما أصدرناه نحن مصدرُه هنا، وتعديلُ إجماليِّه يكون بقيدٍ
+        # عندنا لا برسالةٍ منهم. وفواتيرُ أودو نفسُها (بلا بنود) تُحدَّث كما
+        # كانت — الشرطُ على البنود لا على المصدر.
+        return Outcome(
+            InboundState.IGNORED,
+            f"الفاتورة {invoice.number} أصدرناها ببنودٍ مجموعُها {parts} "
+            f"وأودو يقول {amount} — إجماليُّ فاتورةٍ محلّيّةٍ لا يُكتب من الخارج",
+        )
+
     invoice.odoo_state_raw = raw_state
     invoice.amount = amount
     invoice.state = services.derive_invoice_state(invoice)
     invoice.save(update_fields=["odoo_state_raw", "amount", "state", "updated_at"])
+    # **رفعُ المبلغ يُخرج الفاتورةَ من «مسدَّدة» بلا إلغاءٍ ولا عكسِ دفعة**:
+    # فاتورةٌ سُدِّدت بعشرة آلاف ثمّ صحّحها أودو إلى اثني عشر تصير `partial`،
+    # والمركبةُ يجب أن تخرج من طابور الخروج معها. بابٌ عكسيٌّ حقيقيٌّ لا
+    # يمرّ بالإلغاء، ولذلك يُنادى الباب هنا أيضاً.
+    settlement.sync_vehicle_to_invoice(invoice)
     return Outcome(
         InboundState.PROCESSED,
         f"حُدّثت الفاتورة {invoice.number} (حالة أودو المحفوظة: {raw_state!r})",
@@ -716,6 +746,10 @@ def _handle_invoice_cancelled(message: InboundMessage) -> Outcome:
     invoice.odoo_state_raw = str(payload.get("state", ""))[:64]
     invoice.save(update_fields=["state", "odoo_state_raw", "updated_at"])
     services.release_invoice_holds(invoice)
+    # البابُ نفسُه. ولا ينقل شيئاً على فاتورةٍ مسدَّدة — الرفضُ فوق يمنع إلغاءَ
+    # ما سُدِّد عليه — لكنّه ينقلها لو رُفع ذلك الرفضُ يوماً بقرارٍ بشريّ، ولا
+    # يُنتظر من مَن يرفعه أن يتذكّر سيّارةً في طابور الخروج.
+    settlement.sync_vehicle_to_invoice(invoice)
     return Outcome(
         InboundState.PROCESSED,
         f"أُلغيت الفاتورة {invoice.number} بإلغاء أودو، وفُكّ ما رُهن عليها",

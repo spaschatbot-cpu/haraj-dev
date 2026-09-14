@@ -26,13 +26,52 @@
           <div class="arch-card__meta">
             {% if car.colour %}<span class="chip">{% include "console/_act_icon.html" with path=card_icons.colour %} {{ car.get_colour_display }}</span>{% endif %}
             {% if car.plate_number %}<span class="chip">{% include "console/_act_icon.html" with path=card_icons.plate %} {{ car.plate_number }}</span>{% endif %}
-            <span class="chip">{% include "console/_act_icon.html" with path=card_icons.winner %} {{ car.awarded_to.full_name|default:"بلا فائز" }}</span>
+            {% comment %} `buyer_name` من `sensitive.prepare` لا
+               `car.awarded_to` من العلاقة: حقلٌ يُقرأ من علاقةٍ في القالب لا
+               يمرّ بحارس، فيبقى بابٌ مفتوحٌ في شاشةٍ أُغلق في أختها. واسمُ
+               الفائز خلف `users.view` — والكارتُ خلف `auctions.view` وحدها.
+            {% endcomment %}
+            <span class="chip">{% include "console/_act_icon.html" with path=card_icons.winner %}
+              {% if car.buyer_name %}{{ car.buyer_name }}
+              {% elif car.awarded_to and not show_customer %}<span class="empty" title="اسمُ المشتري خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+              {% else %}بلا فائز{% endif %}</span>
           </div>
+          {% comment %} «الإجمالي» و«المتبقّي» كانا **يُحسبان ويُرميان**: العرضُ
+             يُعلّق `invoice_amount` و`invoice_paid` على كلّ صفّ ثم يُخرج
+             `invoice_residual` من `residual_of` — ولا سطرَ هنا يطبع واحداً
+             منها. وv1 يعرض `الإجمالي` (`inv_total`) في الكارت نفسِه
+             (`archive.php:324`)، فكان استعلامٌ يُدفع ثمنُه وحقلٌ في v1 لا يُرى.
+             و«المتبقّي» يُعرض حين يكون له معنىً فقط: صفرٌ تحت كلّ كارتٍ مسدَّدٍ
+             ضجيجٌ يُخفي الكارتَ الذي عليه باقٍ فعلاً (٣٠٢ فاتورةٍ جزئيّة). {% endcomment %}
+          {% comment %} **الحجبُ في الخادم لا في CSS.** كانت هذه الأرقامُ
+             الثلاثة في **مصدر الصفحة** لكلّ كارت، والقِطعةُ `auctions.view`
+             وحدَها — فتُقرأ في «عرض المصدر» وفي مشاركةِ شاشة. و`award_price`
+             و`invoice_amount` و`invoice_residual` مُمحاةٌ في الخادم
+             (`sensitive.prepare`)، و`show_money` هنا يمنع كتابةَ اللصيقة
+             فارغةً فوق خليّةٍ لا رقمَ فيها.
+
+             **ورقمُ الفاتورة يبقى**: «أفُوتِرت هذه المركبة؟» سؤالُ تشغيلٍ لا
+             سؤالُ مال، وv1 نفسُه يضع رقمَ الفاتورة وحدَه ثم يجلب مبلغَها عند
+             الضغط. فالمحجوبُ هو ما سمّاه المالك: المبلغُ والجوّال. {% endcomment %}
           <div class="arch-card__money">
-            <div><span class="arch-card__lbl">مبلغ المزايدة</span>
-              <strong class="money tnum">{{ car.awarded_price|default:"—"|unlocalize }} ر.س</strong></div>
+            {% if show_money %}
+              <div><span class="arch-card__lbl">مبلغ المزايدة</span>
+                <strong class="money tnum">{{ car.award_price|default:"—"|unlocalize }} ر.س</strong></div>
+            {% endif %}
             <div><span class="arch-card__lbl">رقم الفاتورة</span>
               <strong class="mono">{{ car.invoice_number|default:"—" }}</strong></div>
+            {% if car.invoice_number and show_money %}
+              <div><span class="arch-card__lbl">إجمالي الفاتورة</span>
+                <strong class="money tnum">{{ car.invoice_amount|default:"—"|unlocalize }} ر.س</strong></div>
+              {% if car.invoice_residual %}
+                <div><span class="arch-card__lbl">المتبقّي</span>
+                  <strong class="money tnum" data-tone="warn">{{ car.invoice_residual|unlocalize }} ر.س</strong></div>
+              {% endif %}
+            {% endif %}
+            {% if not show_money %}
+              <div><span class="arch-card__lbl">المبالغ</span>
+                <strong class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</strong></div>
+            {% endif %}
           </div>
           <div class="arch-card__actions">
             {% comment %} «عرض في Odoo» لكل سيارةٍ لها فاتورة — كـ v1: يربط

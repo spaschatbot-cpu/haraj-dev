@@ -26,16 +26,22 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   يشترط أن الشيء الوحيد الذي يُرسِل في الإطار هو الخروج، وهو محقّ.
 {% endcomment %}<!doctype html>
 {% load static %}
-<html lang="ar" dir="rtl">
+{% comment %} `html_attrs` مكانُ سمةٍ **يجب أن تُقرأ قبل أول رسم**: `theme.js`
+   حاجزٌ في `<head>` ويقرأ `data-wide-table` منها ليقرّر عرضَ الشريط الجانبي،
+   فسمةٌ تُضاف من جافاسكربت لاحقاً تعني شريطاً يُرى مفتوحاً ثم ينطوي أمام
+   العين. وهي فارغةٌ في اثنتين وستّين شاشةً من ثلاثٍ وستّين. {% endcomment %}
+<html lang="ar" dir="rtl"{% block html_attrs %}{% endblock %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=936">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=940">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
-  <script src="{% static 'console/theme.js' %}"></script>
+  {% comment %} `?v=` عليه كما على الورقة: كان بلا بصمةٍ، فبقي المتصفّحُ على
+     نسختِه القديمة بعد تعديلٍ في المنطق — وضاع قياسٌ كامل على ذلك. {% endcomment %}
+  <script src="{% static 'console/theme.js' %}?v=939"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>

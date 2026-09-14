@@ -30,10 +30,20 @@
       <tr><th>المزادات التي فيها مزايدة</th><td class="count">{{ shape.auctions|unlocalize }}</td></tr>
       <tr><th>المركبات التي زُويد عليها</th><td class="count">{{ shape.vehicles|unlocalize }}</td></tr>
       <tr><th>عدد المزايدين</th><td class="count">{{ shape.bidders|unlocalize }}</td></tr>
-      <tr><th>أعلى مزايدة</th><td class="money">{{ shape.highest|default:"—"|unlocalize }}</td></tr>
-      <tr><th>أقل مزايدة</th><td class="money">{{ shape.lowest|default:"—"|unlocalize }}</td></tr>
-      <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
-      <tr><th>إجمالي قيمة المزايدات</th><td class="money">{{ shape.value|unlocalize }}</td></tr>
+      {% comment %} الأربعةُ الماليّة تجميعٌ على **كلّ** المزايدات، وفيها
+         مزايداتُ المركبات المرساة — أي أن «أعلى مزايدة» قد تكون سعرَ رسوِّ
+         مركبةٍ بعينها. ولا شرطَ صفٍّ يفصلها كما يفصلها جدولُ المزايدات،
+         فتُحجَب كلُّها خلف «عرض الفواتير والمدفوعات» (`analytics.py`).
+         والأعدادُ فوقها وتحتها تبقى: القسمةُ هي سببُ فتح الشاشة. {% endcomment %}
+      {% if show_money %}
+        <tr><th>أعلى مزايدة</th><td class="money">{{ shape.highest|default:"—"|unlocalize }}</td></tr>
+        <tr><th>أقل مزايدة</th><td class="money">{{ shape.lowest|default:"—"|unlocalize }}</td></tr>
+        <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
+        <tr><th>إجمالي قيمة المزايدات</th><td class="money">{{ shape.value|unlocalize }}</td></tr>
+      {% else %}
+        <tr><th>أعلى مزايدة · أقل · متوسط · إجمالي القيمة</th>
+            <td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td></tr>
+      {% endif %}
     </tbody>
   </table>
 </div>
@@ -89,14 +99,28 @@
     <tbody>
       {% for row in top %}
         <tr>
-          <td><a href="{% url 'console:customer-detail' row.bidder__id %}">{{ row.bidder__full_name }}</a></td>
-          <td>{{ row.bidder__phone|unlocalize }}</td>
+          {% comment %} المفاتيحُ المحجوبة **غائبةٌ عن القاموس** لا مخفيّةٌ
+             هنا (`analytics._top_shown`). والرابطُ إلى ملفّ العميل يسقط مع
+             الاسم: صفحتُه `users.view` أصلاً، فرابطٌ إليها وعدٌ بـ`403`.
+             والاسمُ الفارغ لمن يملك الصلاحية يبقى فارغاً — أسماءُ المرحَّلين
+             فارغةٌ في القاعدة، و«محجوب» مكانَها كذبة. {% endcomment %}
+          <td>
+            {% if show_customer %}<a href="{% url 'console:customer-detail' row.bidder__id %}">{{ row.bidder__full_name }}</a>
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td>
+            {% if show_customer %}{{ row.bidder__phone|unlocalize }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
           <td class="count">{{ row.bids|unlocalize }}</td>
           {% comment %} عمود «المركبات» ليس في v1، وهو ما يجعل عمود المزايدات
              مقروءاً: `5,636` مزايدة على `12` مركبة شيء، وعلى `5,000` شيءٌ
              آخر — والرقم وحده لا يفرّق بينهما. {% endcomment %}
           <td class="count">{{ row.vehicles|unlocalize }}</td>
-          <td class="money">{{ row.value|unlocalize }}</td>
+          <td class="money">
+            {% if show_money %}{{ row.value|unlocalize }}
+            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="5" class="empty">لا مزايدات بعد.</td></tr>

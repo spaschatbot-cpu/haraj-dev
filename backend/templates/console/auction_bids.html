@@ -45,9 +45,24 @@ v1 يعرض القائمة الأخيرة وحدها، فيسأل الدعم «�
         <tr>
           <td><a href="{% url 'console:vehicle-detail' row.vehicle_id %}">{{ row.vehicle.make }} {{ row.vehicle.model }}</a></td>
           <td>{{ row.vehicle.plate_number|default:"—" }}</td>
-          <td><a href="{% url 'console:customer-detail' row.bidder_id %}">{{ row.bidder.full_name }}</a></td>
-          <td class="money">{{ row.bidder.phone }}</td>
-          <td class="money">{{ row.amount|unlocalize }}</td>
+          {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on` لا
+             `row.bidder` من العلاقة: الاسمُ والجوّالُ خلف `users.view`،
+             والمبلغُ خلف `invoices.view` — والشاشةُ `auctions.view` وحدَها.
+             والرابطُ إلى ملفّ العميل يسقط معهما: صفحتُه `users.view` أصلاً،
+             فرابطٌ إليها من هنا وعدٌ بـ`403`. {% endcomment %}
+          <td>
+            {% if row.buyer_name %}<a href="{% url 'console:customer-detail' row.bidder_id %}">{{ row.buyer_name }}</a>
+            {% elif show_customer %}<span class="empty">—</span>
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if show_customer %}{{ row.buyer_phone }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if show_money %}{{ row.amount|unlocalize }}
+            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.state_word }}</span></td>
           <td>{{ row.placed_at }}</td>
         </tr>

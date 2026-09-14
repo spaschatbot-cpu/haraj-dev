@@ -1,14 +1,33 @@
 {% comment %}
 نافذةُ «سند دفع» — تُملأ من `data-inv-*` على زرِّ الفاتورة بواسطة
 `after_sales.js`، وتُطبَع بنسخةٍ في التدفّق العاديّ (لا النافذةَ نفسها).
-مستخرَجةٌ لتُشارَك بين «ما بعد البيع» و«كتالوج السيارات». T885.
+
+**مستخرَجةٌ لتُشارَك بين «ما بعد البيع» و«كتالوج السيارات»** (T885) — وكانت
+مستخرَجةً للكتالوج وحدَه بينما «ما بعد البيع» تحمل نسخةً كاملةً في قالبها،
+فنسختان لسندٍ واحد. وُحّدتا في ١٤ سبتمبر ٢٠٢٦، لأن **الحجبَ يعيش في السند
+نفسِه**: قسمُ «الأطراف» خلف `users.view` وقسمُ «المبلغ» خلف `invoices.view`
+(`apps/console/sensitive.py`)، وشرطان متشابهان في قالبين هما بالضبط القاعدةُ
+التي تتفارق.
+
+و«سُدِّدت من ملفّ شريك» سطرٌ لا يرسمه إلا من يمرّر `sheet=1` — لا قيمةَ له في
+الكتالوج (لا مجموعةَ محسوبةً هناك)، وسطرٌ يقول «—» دائماً يُقرأ «لا» ويكذب.
+
+**والجافاسكربت لا يحتاج شرطاً**: `fill()` تملأ ما تجده (`if (slot)`)، فسطرٌ
+غيرُ مرسومٍ لا يُملأ ولا يُخطئ.
 {% endcomment %}
 <dialog id="invoiceCard" class="modal voucher">
   <div class="voucher__actions noprint">
     <button type="button" class="btn-sm" data-inv-print>طباعة</button>
+    {% comment %} الفاتورةُ الضريبيّة في أودو — يُظهرها JS فقط حين للفاتورة
+       معرّفٌ هناك و`ODOO_BASE_URL` مضبوط. ففاتورةٌ محليّةٌ لم تُزامَن لا
+       فاتورةَ ضريبيّةَ لها، وفي التطوير يبقى مخفيّاً. {% endcomment %}
     <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
   </div>
 
+  {% comment %} جسمُ السند في `.voucher__doc` — منه يُنسَخ إلى منطقة الطباعة.
+     الطباعةُ لا تطبع النافذةَ نفسها: `<dialog open>` في «الطبقة العليا»
+     وطباعتُها bug في المتصفّح يظهر صفحةً فارغة. فتُنسَخ إلى مستندٍ مستقلٍّ
+     ويُطبَع هو. {% endcomment %}
   <div class="voucher__doc">
     <header class="voucher__head">
       <h2>سند دفع</h2>
@@ -16,13 +35,15 @@
     </header>
 
     <section class="voucher__grid">
-      <div class="voucher__block">
-        <h3>الأطراف</h3>
-        <dl class="record">
-          <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
-          <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
-        </dl>
-      </div>
+      {% if show_customer %}
+        <div class="voucher__block">
+          <h3>الأطراف</h3>
+          <dl class="record">
+            <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
+            <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
+          </dl>
+        </div>
+      {% endif %}
 
       <div class="voucher__block">
         <h3>المركبة</h3>
@@ -38,21 +59,34 @@
     </section>
 
     <section class="voucher__money">
-      <h3>المبلغ</h3>
+      <h3>{% if show_money %}المبلغ{% else %}الفاتورة{% endif %}</h3>
       <dl class="record">
-        <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
-        <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
-        <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+        {% comment %} رقمُ الفاتورة وحالتُها ومصدرُها يبقيان بـ`auctions.view`:
+           «أفُوتِرت هذه المركبة؟» سؤالُ تشغيلٍ لا سؤالُ مال، وv1 نفسُه يضع رقمَ
+           الفاتورة وحدَه في الصفحة ثم يجلب المبلغَ عند الضغط. والمحجوبُ هو ما
+           سمّاه المالك: **المبلغُ والجوّال**. {% endcomment %}
+        {% if show_money %}
+          <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
+          <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
+          <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
+        {% endif %}
         <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
         <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
         <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
+        {% if sheet and show_money %}
+          <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
+        {% endif %}
         <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
       </dl>
     </section>
 
     <p class="empty">
       هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
-      أودو. والفاتورةُ الضريبيّة (ZATCA) تصدر من إدارة الحسابات عبر أودو.
+      أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA)
+      تصدر من إدارة الحسابات عبر أودو.
+      {% if not show_money %}
+        <br>والمبالغُ محجوبةٌ عن هذا الحساب — تُعرَض لمن يملك صلاحيةَ «عرض الفواتير والمدفوعات».
+      {% endif %}
     </p>
   </div>
 

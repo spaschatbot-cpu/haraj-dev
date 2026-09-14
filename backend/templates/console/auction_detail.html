@@ -48,10 +48,15 @@ somebody went looking for it.
       تعديل المزاد
     </button>
   {% endif %}
+{% comment %} الملفُّ يحمل «سعر الوقوف» حين يملؤه صفّ، والشاشةُ لا تعرضه —
+     فحارسُه `AUCTIONS_IMPORT` كحارس `console:vehicles-export`، والزرُّ لا
+     يُرسَم لمن سيُرَدّ. {% endcomment %}
+  {% if can_export %}
   <a href="{{ export_url }}" class="btn-secondary" title="تصدير مركبات المزاد إلى ملف إكسل">
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:15px;block-size:15px;vertical-align:middle;margin-inline-end:.3rem;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
     تصدير إكسل
   </a>
+  {% endif %}
   {% if can_manage %}
     {% comment %} رفعُ ملف سيارات لهذا المزاد — كـ v1: يختار الموظّفُ الملفَّ
        فيُرفَع فوراً، وتدخل الصفوفُ هذا المزاد (default_auction). صيغةُ الملف
@@ -259,11 +264,13 @@ somebody went looking for it.
          المعامل مرّتين. لا يغيّر النتيجة اليوم (جانغو يأخذ الأخيرة وهي نفسُها)،
          ويكسر يومَ يقرأ العرضُ `getlist` — وهو نوعُ العطل الذي لا يظهر إلا بعد
          التغيير الذي سبّبه. T868 {% endcomment %}
+      {% if can_export %}
       <a href="{{ export_url }}" class="btn-sm"
          title="تصدير ما يعرضه الجدول الآن إلى إكسل">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M12 3v11M7.5 10.5 12 15l4.5-4.5M4 20h16"/></svg>
         تصدير إكسل
       </a>
+      {% endif %}
     </div>
   </div>
 
@@ -280,9 +287,21 @@ somebody went looking for it.
      سيارة تحمل صورتَها وحالتَها وأزرارَها، لا صفَّ جدولٍ يُقرأ عرضاً. حُوِّل
      الجدولُ (بشريطه المجمَّع وفلاتر أعمدته وتخصيصها) إلى شبكة كروت بطلب المالك.
      T880 {% endcomment %}
+  {% comment %} الجملةُ حين يُطلَب صفٌّ ولا يُوجَد — ولا يُصمَت عنها. الرابطُ
+     من «بحث عن سيارة» يحمل `?focus=`، وقد تكون المركبةُ خارجَ المرشّحات
+     المفتوحة أو ليست في هذا المزاد أصلاً. وصمتُ الشاشة هنا هو عطلُ v1 الذي
+     علّق عليه كاتبُه: «يبدو للمستخدم أن الرابط حوّله ولم يُظهر شيئاً». {% endcomment %}
+  {% if focus_missing %}
+    <p class="notice notice--warn" role="status">
+      المركبةُ المطلوبة ليست ضمن ما يعرضه المرشّحُ الحاليّ في هذا المزاد.
+      <a href="?">اعرض الكلّ</a>
+    </p>
+  {% endif %}
+
   <div class="veh-grid">
     {% for car in page %}
-      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}">
+      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}{% if car.pk == focus_pk %} veh-card--focus{% endif %}"
+               {% if car.pk == focus_pk %}id="veh-focus" tabindex="-1"{% endif %}>
         {% comment %} صورةُ الكارت نفسُها زرُّ **صورة العرض** — كـ v1
            (`data-action="display-image"` في `manage.php`): الضغطُ يفتح منتقيَ
            ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض. والفارغةُ تقول
@@ -688,8 +707,13 @@ somebody went looking for it.
 
   {% if can_manage and auction.state == "live" %}
     <dialog id="endModal" class="modal">
-      <form method="post" data-action="{% url 'console:auction-end-now' 0 %}">
+      {% comment %} المسارُ مكتوبٌ في `action` لا في `data-action`: لا زرَّ
+         `data-open-end` على هذه الصفحة، فلا `openWith` يبني المسارَ من
+         `data-action` — والنموذجُ بلا `action` يُرسل إلى عنوان الصفحة
+         الحاليّة. ومعه ختمُ HR-13 على (الحالة · وقت النهاية). {% endcomment %}
+      <form method="post" action="{% url 'console:auction-end-now' auction.pk %}">
         {% csrf_token %}
+        <input type="hidden" name="row_stamp" value="{{ stamp_end_now }}">
         <h2>إنهاء فوري لمزاد <span data-number>{{ auction.number|unlocalize }}</span></h2>
         <p class="notice warning">
           تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
@@ -772,6 +796,26 @@ somebody went looking for it.
       });
       inp.addEventListener('change', go);
     });
+  })();
+  </script>
+  {% endif %}
+
+  {% if focus_pk %}
+  <script>
+  /* التمريرُ إلى المركبة التي جاء الموظّفُ من أجلها. الإضاءةُ والحدُّ في CSS
+     (`.veh-card--focus`) — والخادمُ هو من قرّر الصفحةَ والصفَّ، فلا يبقى
+     للمتصفّح إلا أن يُنزل العينَ عليه.
+
+     ولا `location.hash`: الجزءُ يبقى في شريط العنوان فيُعاد التمريرُ مع كلّ
+     تحديثٍ لصفحةٍ لم يعد الموظّفُ يبحث فيها عن شيء. */
+  (function () {
+    var card = document.getElementById('veh-focus');
+    if (!card) return;
+    var soft = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    card.scrollIntoView({ behavior: soft ? 'auto' : 'smooth', block: 'center' });
+    /* والتركيزُ بعده: من يتنقّل بلوحة المفاتيح يتابع من عند الصفّ لا من رأس
+       الصفحة — والتمريرُ وحده لا ينقل نقطةَ التنقّل. */
+    card.focus({ preventScroll: true });
   })();
   </script>
   {% endif %}
