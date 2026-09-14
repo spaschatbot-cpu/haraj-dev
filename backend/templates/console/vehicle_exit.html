@@ -184,11 +184,16 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                       <button type="submit" class="btn-danger-sm">تم رفع الحظر</button>
                     </form>
                   {% else %}
-                    <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
-                      {% csrf_token %}<input type="hidden" name="tab" value="follow">
-                      <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
-                      <button type="submit" class="btn-primary-sm">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد النقل</button>
-                    </form>
+                    {% comment %} زرٌّ يفتح نافذة، لا استمارةٌ في الخليّة: خانةُ
+                       ملفٍّ داخل الصفّ ارتفاعُها ٣٧px وحدَها، فترفع كلَّ صفٍّ
+                       في الجدول لأجل مرفقٍ اختياريٍّ يُرفَع مرّةً. وv1 يسأل عنه
+                       في نافذةِ تأكيدٍ للسبب نفسِه. {% endcomment %}
+                    <button type="button" class="ex-act ex-act--transfer"
+                            data-exit-transfer
+                            data-action="{% url 'console:exit-transfer' o.pk %}"
+                            data-car="{{ o.vehicle.make }} {{ o.vehicle.model }} {{ o.vehicle.plate_number }}">
+                      {% include "console/_act_icon.html" with path=confirm_icon %}
+                      <span>تأكيد النقل</span></button>
                   {% endif %}
                 </td>
               </tr>
@@ -290,6 +295,21 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
 
       <p class="modal__buttons">
         <button type="submit" class="btn-primary">حفظ وإرسال للبوابة</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── نافذةُ تأكيد نقل الملكية: إثباتٌ اختياريّ ثم أرشفة ──────────── #}
+  <dialog class="modal" data-exit-transfer-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-transfer-form>
+      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+      <h2>تأكيد نقل الملكية</h2>
+      <p class="muted" data-f="car"></p>
+      <p class="muted">سيُؤرشَف أمرُ الخروج ويُختَم بتاريخ النقل — ولا رجوعَ من الأرشيف بشاشة.</p>
+      <label>صورة إثبات النقل (اختياري)<input type="file" name="proof" accept="image/*,application/pdf"></label>
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">تم النقل</button>
         <button type="button" data-close>إلغاء</button>
       </p>
     </form>
@@ -404,6 +424,18 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       if (r) { var ri = pForm.querySelector('[name=exit_reason][value="' + r + '"]'); if (ri) ri.checked = true; }
       papersSync();
       pDlg.showModal();
+    });
+  });
+
+  // نافذةُ تأكيد النقل: وجهتُها من الزرّ، واسمُ السيارة في رأسها.
+  var tDlg = document.querySelector('[data-exit-transfer-dialog]');
+  var tForm = tDlg && tDlg.querySelector('[data-exit-transfer-form]');
+  document.querySelectorAll('[data-exit-transfer]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tForm.setAttribute('action', btn.getAttribute('data-action'));
+      tForm.reset();
+      tForm.querySelector('[data-f=car]').textContent = btn.getAttribute('data-car') || '';
+      tDlg.showModal();
     });
   });
 

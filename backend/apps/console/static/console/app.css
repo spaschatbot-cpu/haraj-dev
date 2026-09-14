@@ -4796,7 +4796,18 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-tab.is-on { color: var(--brand-dark); border-block-end-color: var(--brand-solid); }
 .ex-tab__n { display: inline-block; min-inline-size: 1.2rem; padding: 0 .35rem; margin-inline-start: .25rem; font-size: .72rem; background: var(--raised); border: 1px solid var(--line); border-radius: 999px; color: var(--ink-soft); }
 .ex-tab.is-on .ex-tab__n { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); }
-.ex-inline { display: flex; align-items: center; gap: .35rem; margin: 0; flex-wrap: wrap; }
+/* **نموذجٌ داخل خليّةِ جدول، فيُنزَع عنه رداءُ البطاقة صراحةً.** القاعدةُ
+   العامّة `form {…}` تعطي كلَّ `<form>` في اللوحة خلفيةً وحدّاً وظلاً وحشوةَ
+   ‏`1.2rem 1.4rem` و`margin-bottom: 1.25rem` — وهي بطاقةٌ صحيحةٌ لنموذجٍ في
+   صفحة، وكارثةٌ لزرٍّ في صفّ: `margin` وحده كان منزوعاً هنا، فبقيت الحشوةُ
+   والحدُّ فصار **كلُّ زرٍّ في الجدول داخل مربّعٍ، وارتفاعُ الصفّ ١٢٣px**.
+   وهذه ثالثُ مرّة: `.sign-out` رفع الشريطَ العلويَّ إلى ٩٨px للسبب نفسه،
+   و`.filters` قبله. من يكتب `<form>` في هذه اللوحة يرث البطاقةَ ما لم ينزعها. */
+.ex-inline {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  margin: 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+}
 .ex-inline input[type=file] { max-inline-size: 11rem; font-size: .76rem; }
 
 /* أزرارُ الإجراءات: أيقونةٌ ورسمةٌ ونصٌّ معاً، بأنميشن دخولٍ وتفاعلٍ عند المرور. */
@@ -4818,6 +4829,9 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-act--create { border-color: var(--brand); color: var(--brand-dark); }
 .ex-act--create:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
 .ex-act--papers:hover { border-color: var(--ok, #15803d); color: var(--ok, #15803d); background: var(--ok-soft, #dcfce7); }
+/* «تأكيد النقل» فعلُ اللسان الرئيسيّ — يُقرأ قبل غيره في الصفّ. */
+.ex-act--transfer { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.ex-act--transfer:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
 .ex-upload { display: inline; margin: 0; }
 
 /* مجموعاتُ الاختيار في نافذة الأوراق: نوعُ الخروج وسببُه.
@@ -4857,8 +4871,15 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* و«تأكيد النقل» في سطرٍ واحد: الخليّةُ ضيّقةٌ فيلتفّ النصُّ على سطرين ويصير
    الزرُّ أطولَ من صفّه. */
 .ex-row .ex-inline button { white-space: nowrap; }
-.ex-files { display: flex; flex-wrap: wrap; gap: .25rem; }
-.ex-note { display: flex; gap: .3rem; align-items: center; }
+/* المرفقاتُ الثلاثة في سطرٍ واحد: التفافُها يرفع الصفَّ ١٤px لأجل رابطٍ ثانٍ،
+   والعرضُ متاحٌ أفقياً في `.scroller`. */
+.ex-files { display: flex; flex-wrap: nowrap; gap: .25rem; }
+/* ونموذجُ الملاحظة مثلُه — انظر `.ex-inline` أعلاه. */
+.ex-note {
+  display: flex; gap: .3rem; align-items: center;
+  margin: 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+}
 .ex-note textarea {
   flex: 1; inline-size: 8rem; min-inline-size: 0; block-size: 1.9rem; resize: vertical;
   font: inherit; font-size: .78rem; padding: .3rem .4rem;
