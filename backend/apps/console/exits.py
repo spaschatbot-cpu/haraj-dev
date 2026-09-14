@@ -18,7 +18,10 @@ from __future__ import annotations
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.timezone import localtime
 
 from apps.auctions import exits as exit_services
 from apps.auctions.exits import ExitReason, ExitStage, ExitType, VehicleExit
@@ -185,6 +188,7 @@ def vehicle_exit(request):
                 "edit": path_of("pencil-line"),
                 "create": path_of("exit-door"),
                 "export": path_of("download"),
+                "camera": path_of("camera"),
             },
         },
     )
@@ -242,6 +246,61 @@ def exit_declaration(request, pk: int):
     )
 
 
+def exit_gate_lookup(request):
+    """بحثٌ بالباركود قبل التأكيد — نظيرُ `gate-lookup` في v1.
+
+    كانت البوّابةُ هنا خانةً واحدة: يُكتَب الرمزُ فيُؤكَّد الخروجُ فوراً. وذلك
+    **فعلٌ بلا قراءة**: الحارسُ لا يرى أيَّ سيارةٍ يُفرج عنها ولا لمن، ولا يُنبَّه
+    أن خروجَها أُكِّد أمس. وباركودٌ خاطئٌ ممسوحٌ في زحمة الساحة يُخرج سيارةً
+    أخرى، ولا رجوعَ من `warehouse_exit_at` بشاشة.
+
+    فالقراءةُ أولاً: ستُّ حقائقَ تُطابَق بالعين على الورقة التي بيد السائق
+    (السيارة · اللوحة · الموديل · اللوت · المستلِم · نوع الخروج)، ثم التأكيد.
+    """
+    if not _guard(request):
+        return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
+
+    code = (request.GET.get("code", "") or "").strip().upper()
+    if not code:
+        return JsonResponse({"ok": False, "message": "أدخل الباركود."})
+
+    order = (
+        VehicleExit.objects.select_related("vehicle")
+        .filter(barcode=code)
+        .first()
+    )
+    if order is None:
+        return JsonResponse({"ok": False, "message": f"باركود غير معروف: {code}"})
+
+    car = order.vehicle
+    # «خرجت سلفاً» من الطابع لا من المرحلة وحدها: الطابعُ هو ما يُكتب عند
+    # البوّابة، ومرحلةٌ تُغيَّر بيدٍ يوماً ما لا تُغيّر أن السيارة غادرت.
+    already = order.warehouse_exit_at is not None or order.stage in (
+        ExitStage.UNDER_TRANSFER,
+        ExitStage.ARCHIVED,
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "code": order.barcode,
+            "car": f"{car.make} {car.model}",
+            "plate": car.plate_number or "—",
+            "model": car.year,
+            "lot": car.lot_number,
+            "recipient": order.recipient_name or "—",
+            "exit_type": order.get_exit_type_display() or "لم يُحدَّد",
+            "stage": order.get_stage_display(),
+            "already": already,
+            "exited_at": (
+                localtime(order.warehouse_exit_at).strftime("%Y-%m-%d %H:%M")
+                if order.warehouse_exit_at
+                else ""
+            ),
+            "confirm_url": reverse("console:exit-gate"),
+        }
+    )
+
+
 def exit_gate(request):
     """البوابة: باركودٌ يُمسَح → يُؤكَّد خروجُ السيارة من الساحة."""
     if not _guard(request):
@@ -250,6 +309,17 @@ def exit_gate(request):
     order = VehicleExit.objects.select_related("vehicle").filter(barcode=code).first()
     if order is None:
         messages.error(request, f"لا أمرَ خروجٍ بالباركود «{code}».")
+        return redirect(_back(request))
+
+    # مركبةٌ خرجت سلفاً تُردّ برسالةٍ لا تُختَم مرّةً ثانية — كـ v1 (409). وبلا
+    # هذا الردّ يمسح الحارسُ الورقةَ نفسَها مرّتين فتعود المركبةُ من الأرشيف إلى
+    # طابور المتابعة، أو يُكتَب لها تاريخُ خروجٍ ثانٍ يُصفّر مؤقّتَ تأخّرها.
+    if order.warehouse_exit_at is not None:
+        messages.error(
+            request,
+            f"تم تأكيد خروج هذه المركبة مسبقاً — "
+            f"{localtime(order.warehouse_exit_at).strftime('%Y-%m-%d %H:%M')}.",
+        )
         return redirect(_back(request))
 
     exit_services.confirm_gate(order)

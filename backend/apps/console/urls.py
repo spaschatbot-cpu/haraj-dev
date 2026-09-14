@@ -192,6 +192,9 @@ urlpatterns = [
         exits.exit_declaration,
         name="exit-declaration",
     ),
+    # البحثُ قبل التأكيد: `GET` لأنه قراءةٌ لا كتابة — الحارسُ يقرأ ما بيده
+    # قبل أن يفتح البوّابة، والتأكيدُ وحده `POST`.
+    path("vehicle-exit/gate/lookup/", exits.exit_gate_lookup, name="exit-gate-lookup"),
     path("vehicle-exit/gate/", exits.exit_gate, name="exit-gate"),
     path("vehicle-exit/<int:pk>/transfer/", exits.exit_transfer, name="exit-transfer"),
     path("vehicle-exit/<int:pk>/lift-ban/", exits.exit_lift_ban, name="exit-lift-ban"),

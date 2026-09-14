@@ -71,6 +71,17 @@ ROWS = [
         ExitStage.UNDER_TRANSFER, ExitType.WITHOUT_TRANSFER, ExitReason.NO_PROBLEM,
         False, "لا ردّ من المشتري منذ أسبوعين.",
     ),
+    # صفّان قبل البوّابة — بلا تاريخ خروج، فهما ما تُجرَّب عليهما البوّابةُ
+    # نفسُها: واحدٌ أُنشئ ولم تُرفع أوراقُه، وواحدٌ رُفعت أوراقُه وينتظر المسح.
+    (
+        "09", "تويوتا", "لاندكروزر", 2024, None,
+        ExitStage.CREATED, "", "", False, "",
+    ),
+    (
+        "10", "إم جي", "RX8", 2023, None,
+        ExitStage.SENT_TO_GATE, ExitType.WITHOUT_TRANSFER, ExitReason.NO_PROBLEM,
+        False, "الأوراق مكتملة — بانتظار مسح الباركود على البوّابة.",
+    ),
     (
         "07", "لكزس", "LX 570", 2021, 40,
         ExitStage.ARCHIVED, ExitType.WITHOUT_TRANSFER, ExitReason.NO_PROBLEM,
@@ -139,7 +150,10 @@ class Command(BaseCommand):
             if Vehicle.objects.filter(vin=vin).exists():
                 continue
 
-            exited_at = now - timedelta(days=days)
+            # ‏`days=None` يعني «لم يخرج بعد»: لا تاريخَ خروجٍ ولا مؤقّت — وهو
+            # ما يجب أن يكون عليه صفٌّ قبل البوّابة، فالطابعُ يُكتب هناك وحده.
+            exited_at = None if days is None else now - timedelta(days=days)
+            awarded = (exited_at or now) - timedelta(days=5)
             vehicle = Vehicle.objects.create(
                 auction=auction,
                 lot_number=next_lot + i + 1,
@@ -149,10 +163,14 @@ class Command(BaseCommand):
                 vin=vin,
                 plate_number=f"ت ج ر {7100 + i}",
                 claim_number=f"CLM-2026-{4300 + i}",
-                state=VehicleState.RELEASED,
+                state=(
+                    VehicleState.PAID
+                    if exited_at is None
+                    else VehicleState.RELEASED
+                ),
                 awarded_to=buyer,
                 awarded_price=45000 + i * 1500,
-                awarded_at=exited_at - timedelta(days=5),
+                awarded_at=awarded,
             )
             VehicleExit.objects.create(
                 vehicle=vehicle,
@@ -170,9 +188,13 @@ class Command(BaseCommand):
                     if exit_type == ExitType.AFTER_TRANSFER
                     else exited_at + timedelta(days=7)
                 )
-                if stage == ExitStage.ARCHIVED
+                if stage == ExitStage.ARCHIVED and exited_at
                 else None,
-                ban_lifted_at=exited_at + timedelta(days=4) if ban_lifted else None,
+                ban_lifted_at=(
+                    exited_at + timedelta(days=4)
+                    if ban_lifted and exited_at
+                    else None
+                ),
                 notes=note,
             )
             made += 1

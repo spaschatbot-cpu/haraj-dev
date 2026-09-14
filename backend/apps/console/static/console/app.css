@@ -4890,6 +4890,24 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-gate { max-inline-size: 30rem; margin: 1rem auto; text-align: center; padding: 1.6rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
 .ex-gate h2 { margin: 0 0 .3rem; }
 .ex-gate__form { display: flex; gap: .5rem; margin-block-start: 1rem; }
+.ex-gate__scan { margin: .6rem 0 0; }
+.ex-gate__reader { margin: .8rem auto 0; max-inline-size: 26rem; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
+.ex-gate__reader video { inline-size: 100%; display: block; }
+.ex-gate__result { margin-block-start: 1rem; }
+/* الحقائقُ الستُّ شبكةً لا سطراً: الحارسُ يطابقها بالعين على ورقةٍ بيده،
+   والمطابقةُ أسرع في عمودين منها في جملةٍ واحدة طويلة. */
+.ex-gate__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .9rem; margin: 0; text-align: start; }
+.ex-gate__facts div { display: flex; gap: .4rem; align-items: baseline; border-block-end: 1px dashed var(--line); padding-block-end: .35rem; }
+.ex-gate__facts dt { color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+.ex-gate__facts dd { margin: 0; font-weight: 700; }
+.ex-gate__bad { margin: .8rem 0 0; padding: .55rem .7rem; border-radius: var(--radius); background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+/* ونموذجُ التأكيد ينزع بطاقةَ النماذج كـ`.ex-inline` — القاعدةُ العامّة
+   `form {…}` تُلبسها كلَّ `<form>` في اللوحة. */
+.ex-gate__confirm {
+  margin: 1rem 0 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none;
+}
+.ex-gate__confirm .btn-primary { inline-size: 100%; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
 .ex-gate__input { flex: 1 1 auto; padding: .7rem .9rem; font: inherit; font-size: 1.1rem; font-family: var(--mono, ui-monospace, monospace); letter-spacing: .1em; text-align: center; border: 2px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); text-transform: uppercase; }
 .ex-gate__input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
 

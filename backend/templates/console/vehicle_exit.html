@@ -341,12 +341,33 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
          اللوحةُ يحمل رسمَ البوّابة بالفعل، ورسمٌ ثانٍ في العنوان تحته مباشرةً
          تكرارٌ لا يضيف. ذيلُ T837. {% endcomment %}
       <h2>بوابة الخروج</h2>
-      <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) ثم اضغط تأكيد.</p>
-      <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__form">
-        {% csrf_token %}<input type="hidden" name="tab" value="gate">
-        <input type="text" name="barcode" placeholder="EX…" autocomplete="off" autofocus
+      <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) واضغط Enter — تُعرض بيانات المركبة للمطابقة قبل التأكيد.</p>
+
+      {% comment %} **بحثٌ ثم تأكيد، لا تأكيدٌ مباشر.** كانت الخانةُ تُرسِل إلى
+         `exit-gate` فوراً: الحارسُ يفتح البوّابةَ دون أن يرى أيَّ سيارةٍ يُفرج
+         عنها ولا لمن، وباركودٌ خاطئٌ يُخرج سيارةَ غيره ولا رجوعَ بشاشة. فصار
+         `GET` يقرأ ستَّ حقائقَ تُطابَق بالعين على ورقة السائق، والتأكيدُ
+         نموذجاً منفصلاً — وهو ترتيبُ v1 نفسُه (`gate-lookup` ثم
+         `gate-confirm`). {% endcomment %}
+      <div class="ex-gate__form">
+        <input type="text" id="gateCode" placeholder="HRJ-XXXXXXXXXX" autocomplete="off" autofocus
                inputmode="latin" class="ex-gate__input">
-        <button type="submit" class="btn-primary">تأكيد الخروج</button>
+        <button type="button" class="btn-primary" data-gate-lookup>بحث</button>
+      </div>
+      <p class="ex-gate__scan">
+        <button type="button" class="ex-act" data-gate-scan hidden>
+          {% include "console/_act_icon.html" with path=row_icons.camera %}
+          <span>مسح بالكاميرا</span></button>
+      </p>
+      <div id="gateReader" class="ex-gate__reader" hidden><video playsinline muted></video></div>
+      <div id="gateResult" class="ex-gate__result" aria-live="polite"></div>
+
+      {% comment %} نموذجُ التأكيد واحدٌ يُملأ من نتيجة البحث — لا نموذجَ يُبنى
+         بـ`innerHTML`، فرمزُ CSRF لا يُكتب في JS. {% endcomment %}
+      <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__confirm" hidden>
+        {% csrf_token %}<input type="hidden" name="tab" value="gate">
+        <input type="hidden" name="barcode" value="">
+        <button type="submit" class="btn-primary">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد الخروج من البوابة</button>
       </form>
     </div>
   </section>
@@ -438,6 +459,96 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       tDlg.showModal();
     });
   });
+
+  // ── البوّابة: باركود → بحث → مطابقةٌ بالعين → تأكيد ────────────────
+  var gCode = document.getElementById('gateCode');
+  var gBox = document.getElementById('gateResult');
+  var gForm = document.querySelector('.ex-gate__confirm');
+  var gLookupUrl = '{% url "console:exit-gate-lookup" %}';
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  function gateLookup() {
+    var code = (gCode.value || '').trim();
+    gForm.hidden = true;
+    if (!code) { gBox.innerHTML = ''; return; }
+    gBox.innerHTML = '<p class="muted">… جارٍ البحث</p>';
+    fetch(gLookupUrl + '?code=' + encodeURIComponent(code), { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { gBox.innerHTML = '<p class="ex-gate__bad">' + esc(j.message) + '</p>'; return; }
+        gBox.innerHTML =
+          '<dl class="ex-gate__facts">' +
+          '<div><dt>السيارة</dt><dd>' + esc(j.car) + '</dd></div>' +
+          '<div><dt>اللوحة</dt><dd>' + esc(j.plate) + '</dd></div>' +
+          '<div><dt>الموديل</dt><dd>' + esc(j.model) + '</dd></div>' +
+          '<div><dt>اللوت</dt><dd>' + esc(j.lot) + '</dd></div>' +
+          '<div><dt>المستلِم</dt><dd>' + esc(j.recipient) + '</dd></div>' +
+          '<div><dt>نوع الخروج</dt><dd>' + esc(j.exit_type) + '</dd></div>' +
+          '</dl>' +
+          (j.already
+            ? '<p class="ex-gate__bad">تم تأكيد خروج هذه المركبة مسبقاً — ' + esc(j.exited_at) + '</p>'
+            : '');
+        // الزرُّ يظهر لمن لم يخرج بعد فقط، ورمزُه من النموذج المبنيّ في القالب.
+        if (!j.already) { gForm.querySelector('[name=barcode]').value = j.code; gForm.hidden = false; }
+      })
+      .catch(function () { gBox.innerHTML = '<p class="ex-gate__bad">خطأ في الاتصال</p>'; });
+  }
+
+  var gBtn = document.querySelector('[data-gate-lookup]');
+  if (gBtn) { gBtn.addEventListener('click', gateLookup); }
+  if (gCode) {
+    // ‏Enter يبحث ولا يُرسل: قارئُ الباركود السلكيّ يكتب الرمزَ ثم يضغط Enter،
+    // فلو كانت الخانةُ في نموذجٍ لأكّد المسحُ الخروجَ بلا أن يرى الحارسُ شيئاً.
+    gCode.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); gateLookup(); }
+    });
+  }
+
+  // ── المسح بالكاميرا ────────────────────────────────────────────────
+  // ‏`BarcodeDetector` من المتصفّح، لا مكتبةٌ من CDN: v1 يُحمّل `html5-qrcode`
+  // من unpkg، وبوّابةُ ساحةٍ بلا إنترنتٍ لحظةَ الحاجة تبقى بلا كاميرا. والزرُّ
+  // مخفيٌّ حتى يثبت أن المتصفّح يدعمها — زرٌّ يُضغَط فلا يحدث شيء أسوأ من زرٍّ
+  // غائب. ومن لا كاميرا عنده يكتب الرمز، والقارئُ السلكيّ يكتبه نيابةً عنه.
+  var scanBtn = document.querySelector('[data-gate-scan]');
+  var reader = document.getElementById('gateReader');
+  var video = reader && reader.querySelector('video');
+  var stream = null, detector = null, timer = null;
+
+  if (scanBtn && 'BarcodeDetector' in window) { scanBtn.hidden = false; }
+
+  function stopScan() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    reader.hidden = true;
+    scanBtn.querySelector('span').textContent = 'مسح بالكاميرا';
+  }
+
+  if (scanBtn) {
+    scanBtn.addEventListener('click', function () {
+      if (stream) { stopScan(); return; }
+      detector = detector || new window.BarcodeDetector({
+        formats: ['code_128', 'code_39', 'qr_code', 'ean_13']
+      });
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then(function (s) {
+          stream = s; video.srcObject = s; video.play();
+          reader.hidden = false;
+          scanBtn.querySelector('span').textContent = 'إيقاف الكاميرا';
+          timer = setInterval(function () {
+            detector.detect(video).then(function (found) {
+              if (!found || !found.length) { return; }
+              gCode.value = found[0].rawValue;
+              stopScan();
+              gateLookup();
+            }).catch(function () {});
+          }, 400);
+        })
+        .catch(function () {
+          gBox.innerHTML = '<p class="ex-gate__bad">تعذّر فتح الكاميرا — تأكّد من السماح بها لهذا الموقع.</p>';
+        });
+    });
+  }
 
   // أزرارُ الإلغاء تُغلق نافذتَها.
   document.querySelectorAll('dialog [data-close]').forEach(function (b) {
