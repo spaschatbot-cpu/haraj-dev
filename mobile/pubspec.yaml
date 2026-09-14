@@ -82,6 +82,9 @@ flutter:
   # ٢٠٢٦ لهيدر الرئيسية.
   assets:
     - assets/images/hero_car.png
+    # شعارُ التطبيق — الأصلُ مربّعٌ على خلفيّةٍ داكنة، وهذا هو العلامةُ وحدها
+    # بيضاءَ على شفافيّة، فتقف على الهيدر الداكن بلا مربّعٍ حولها.
+    - assets/images/logo.png
 
   fonts:
     - family: IBMPlexSansArabic

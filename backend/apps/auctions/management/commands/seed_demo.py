@@ -98,6 +98,16 @@ class Command(BaseCommand):
     def add_arguments(self, parser) -> None:
         parser.add_argument("--images", type=int, default=3, help="صور لكل مركبة")
         parser.add_argument("--bidders", type=int, default=6, help="عدد المزايدين")
+        # **نافذةُ المزاد الجاري بالساعات.** الافتراضيُّ ستّ ساعات: مزادٌ
+        # يشبه الحقيقيَّ وينتهي كما ينتهي. ومن يفحص الشاشات يريده مفتوحاً بعد
+        # الغداء وبعد الغد — بستٍّ يجد «لا مزاد نشط الآن» ويظنّ العطلَ في
+        # التطبيق وهو في الساعة. `--live-hours 8760` يفتحه سنة.
+        parser.add_argument(
+            "--live-hours",
+            type=int,
+            default=6,
+            help="كم ساعةً يبقى المزاد الجاري مفتوحاً (الافتراضي ٦)",
+        )
 
     def handle(self, *args, **options) -> None:
         if not settings.DEBUG:
@@ -108,7 +118,7 @@ class Command(BaseCommand):
 
         bidders = self.customers(options["bidders"])
         self.staff_and_roles()
-        auctions = self.auctions()
+        auctions = self.auctions(options["live_hours"])
         self.vehicles(auctions)
         self.images(options["images"])
         # **مجموعتان لا واحدة.** الفائز في الدورة الكاملة تصير عليه فاتورة،
@@ -274,12 +284,12 @@ class Command(BaseCommand):
 
     # -- المزادات -----------------------------------------------------------
 
-    def auctions(self) -> dict[str, Auction]:
+    def auctions(self, live_hours: int = 6) -> dict[str, Auction]:
         """واحدٌ لكل طور، فتُرى التبويبات الثلاثة مملوءة."""
         now = timezone.now()
         wanted = {
             "soon": (1002, "مزاد الرياض — الأسبوع القادم", 3, 10, AuctionState.SCHEDULED),
-            "live": (1001, "مزاد الرياض — الجاري", -2, 6, AuctionState.LIVE),
+            "live": (1001, "مزاد الرياض — الجاري", -2, live_hours, AuctionState.LIVE),
             "ended": (1003, "مزاد جدة — المنتهي", -240, -216, AuctionState.ENDED),
         }
         found = {}
