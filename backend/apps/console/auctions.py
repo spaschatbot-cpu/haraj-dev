@@ -38,8 +38,9 @@ from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 
 from . import columns, icons, vehicle_bulk, vehicle_filters
+from .auction_quick import STAMP_FIELDS
 from .exports import export, wants_export
-from .forms import AuctionForm, AuctionIdentityForm, VehicleForm
+from .forms import AuctionForm, AuctionIdentityForm, VehicleForm, row_stamp_of
 from .tones import tone_of, tone_of_phase, with_tones
 from .views import atomic_write, console_page, row_for_write
 
@@ -261,6 +262,13 @@ def auctions(request):
     # حفظٍ صحيح.
     for row in page.object_list:
         row.row_stamp = AuctionIdentityForm(instance=row).initial.get("row_stamp", "")
+        # وختمٌ لكلّ نافذةٍ من الأربع الباقية، على **أعمدتها هي**. كانت
+        # النوافذُ الأربع بلا ختمٍ إطلاقاً — قِيس على الشاشة: حقلُ
+        # `row_stamp` **واحدٌ في الصفحة كلِّها**، نافذةُ التعديل وحدها.
+        # والحسبةُ من `row_stamp_of` نفسِها التي تستعملها الاستمارة، فلا
+        # تعريفان لبصمةٍ واحدة.
+        for window, names in STAMP_FIELDS.items():
+            setattr(row, f"stamp_{window}", row_stamp_of(row, names))
     for row in page.object_list:
         row.phase_tone = tone_of_phase(row.phase)
         # البادجُ خمسُ كلمات — **ثلاثٌ منها من v1 واثنتان من عندنا.**
@@ -396,6 +404,8 @@ def auction_detail(request, pk: int):
             "row_stamp": AuctionIdentityForm(instance=auction).initial.get(
                 "row_stamp", ""
             ),
+            # وختمُ نافذة «الإنهاء الفوري» على هذه الصفحة — على أعمدتها هي.
+            "stamp_end_now": row_stamp_of(auction, STAMP_FIELDS["end_now"]),
             # الشريطُ المجمَّع: حالاتُه من سجلٍّ مغلق، ووجهاتُ النقل مزاداتٌ
             # **لم تبدأ** — نقلُ مركبةٍ إلى مزادٍ جارٍ يُدخلها في منتصف الشوط.
             "bulk_states": vehicle_bulk.BULK_STATES,

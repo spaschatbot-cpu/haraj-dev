@@ -9,8 +9,10 @@
 فاتورةً ولا حساباً. فللسداد حقيقتان، ولا شيء يوفّق بينهما.
 
 **وهنا الملفّ مصدرُ استيرادٍ لا مصدرُ حقيقة.** كلُّ صفٍّ يُقيَّد دفعةً على
-فاتورة المركبة عبر `money.services.record_payment`، فيظهر في هذه الشاشة وفي
-حساب العميل وفي صحّة المال وفي صفحات الشريك — **رقمٌ واحد**.
+فاتورة المركبة عبر `bidding.settlement.record_vehicle_payment` — وهي
+`money.services.record_payment` ومعها نقلُ المركبة إلى «مسدَّدة» في المعاملة
+نفسِها — فيظهر في هذه الشاشة وفي حساب العميل وفي صحّة المال وفي صفحات الشريك
+وفي طابور الخروج — **رقمٌ واحد**.
 
 ثلاثة أشياء تتغيّر بذلك، وكلُّها كانت جملاً على الشاشة فصارت بناءً
 =================================================================
@@ -52,9 +54,9 @@ from django.shortcuts import redirect, render
 
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
+from apps.bidding import settlement
 from apps.core import audit
 from apps.core.sheets import Sheet, SheetError
-from apps.money import services as money
 from apps.money.models import Invoice, InvoicePaymentSource, PaymentSheet
 
 from .views import console_page
@@ -280,7 +282,12 @@ def _post_rows(rows: list[dict], digest: str, by) -> tuple[list, list[dict], Dec
         reference = f"sheet:{digest[:12]}:{row['line']}"
         try:
             with transaction.atomic():
-                txn = money.record_payment(
+                # `settlement.record_vehicle_payment` لا `money.record_payment`:
+                # الدفعةُ نفسُها، ومعها نقلُ المركبة إلى «مسدَّدة» فتدخل طابورَ
+                # الخروج. الدالّتان تُقيّدان الدفترَ بالمفتاح نفسِه، والفرقُ أن
+                # هذه تُلحق المركبةَ بفاتورتها في المعاملة ذاتها — وبدونها
+                # سُدِّد ملفُّ شريكٍ كاملاً وبقيت كلُّ سيّارةٍ فيه `invoiced`.
+                txn = settlement.record_vehicle_payment(
                     invoice=invoice,
                     amount=row["amount"],
                     source=InvoicePaymentSource.CASH,

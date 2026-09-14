@@ -15,12 +15,64 @@
 {% block content %}
   <p>اكتب في أي عمود — البحث يشمل كل المزادات ويُظهر المزاد الذي فيه السيارة.</p>
 
-  <form method="get">
-    <input type="search" name="plate" value="{{ plate }}" placeholder="رقم اللوحة">
-    <input type="search" name="vin" value="{{ vin }}" placeholder="رقم الشاسيه">
-    <input type="search" name="name" value="{{ name }}" placeholder="اسم السيارة">
-    <input type="number" name="lot" value="{{ lot }}" placeholder="رقم اللوت">
-    <button type="submit">بحث</button>
+  {% comment %} تسعُ خاناتٍ، كانت أربعاً. ثمانيةٌ في v1
+     (`AuctionController::vehicleSearchData`) وكان هنا منها ثلاثٌ فقط — فمن
+     يمسك رقمَ مطالبةٍ أو رقمَ صفٍّ نسخه من عمود `#` لا يجد به شيئاً، ويخرج من
+     الشاشة إلى شاشةٍ أخرى ليجيب سؤالاً واحداً. **واللونُ وحدَه لم يُضَف**:
+     `colour = unknown` في ١٢٬٩٨١ من ١٢٬٩٨١ صفّاً، فخانتُه تُجيب بصفرٍ دائماً
+     — وخانةٌ لا تُرجع شيئاً أبداً تُقرأ عطلاً في الشاشة لا فراغاً في البيانات.
+     والخاناتُ تتراكب `AND` كما في v1. {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="vsNumber">رقم الصف (#)</label>
+      <input id="vsNumber" type="search" inputmode="numeric" name="number" value="{{ number }}" placeholder="25964">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsName">تفاصيل المركبة</label>
+      <input id="vsName" type="search" name="name" value="{{ name }}" placeholder="اسم أو ماركة أو سنة">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsPlate">رقم اللوحة</label>
+      <input id="vsPlate" type="search" name="plate" value="{{ plate }}" placeholder="د ط ق 1265">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsVin">رقم الشاسيه</label>
+      <input id="vsVin" type="search" name="vin" value="{{ vin }}" placeholder="بحث…">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsClaim">رقم المطالبة</label>
+      <input id="vsClaim" type="search" name="claim" value="{{ claim }}" placeholder="بحث…">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsLot">رقم اللوت</label>
+      <input id="vsLot" type="search" inputmode="numeric" name="lot" value="{{ lot }}" placeholder="رقم">
+    </div>
+    <div class="cat-filters__field">
+      {% comment %} السعرُ مطابقةٌ تامّة لا `LIKE` على نصٍّ كـv1: من يكتب
+         `9500` هناك يأتيه `19500` و`95000` معاً. {% endcomment %}
+      <label for="vsPrice">سعر الوقوف (بالضبط)</label>
+      <input id="vsPrice" type="search" inputmode="decimal" name="price" value="{{ price }}" placeholder="9500">
+    </div>
+    <div class="cat-filters__field">
+      <label for="vsState">الحالة</label>
+      <select id="vsState" name="state">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}"{% if value == state %} selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="cat-filters__field">
+      {% comment %} `2026` سنةٌ و`2026-06` شهرٌ و`2026-06-14` يومٌ — مدىً على
+         العمود لا `CAST(... AS CHAR) LIKE` كـv1: ذاك يطابق الساعةَ `20:26`
+         أيضاً ويمنع استعمالَ الفهرس. {% endcomment %}
+      <label for="vsListed">تاريخ الإدراج</label>
+      <input id="vsListed" type="search" name="listed" value="{{ listed }}" placeholder="2026-06…">
+    </div>
+    <div class="cat-filters__actions">
+      <button type="submit" class="btn-primary">بحث</button>
+      <a href="{% url 'console:vehicle-search' %}" class="btn-ghost">مسح الخانات</a>
+    </div>
   </form>
 
   {% if page is None %}
@@ -34,6 +86,10 @@
           <th>تفاصيل المركبة</th>
           <th>رقم اللوحة</th>
           <th>رقم الشاسيه</th>
+          {% comment %} «رقم المطالبة» عمودٌ في ترويسة v1 استُبدل هنا بـ«اللوت»
+             بلا مبرّرٍ مكتوب — ووصفُ الشاشة في v1 يعدّه أحدَ محاورها الأربعة.
+             فعاد، واللوتُ باقٍ: هو مفتاحُ الموقف عندنا وله خانتُه. {% endcomment %}
+          <th>رقم المطالبة</th>
           <th>اللوت</th>
           <th>سعر الوقوف</th>
           <th>الحالة</th>
@@ -51,6 +107,7 @@
             </td>
             <td>{{ row.plate_number|default:"—" }}</td>
             <td>{{ row.vin|default:"—" }}</td>
+            <td class="tnum">{{ row.claim_number|default:"—" }}</td>
             <td class="count">{{ row.lot_number|unlocalize }}</td>
             <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
             <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
@@ -63,7 +120,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="9" class="empty">لا سيارة تطابق ما كتبت.</td></tr>
+          <tr><td colspan="10" class="empty">لا سيارة تطابق ما كتبت.</td></tr>
         {% endfor %}
       </tbody>
     </table>

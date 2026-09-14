@@ -32,6 +32,7 @@ from apps.auctions.visibility import visible_vehicles
 from apps.core import audit
 from apps.core.permissions import Capability, can
 
+from .exports import oversize, refuse
 from .views import console_page
 
 #: What one upload may carry. A file larger than this is a mistake — a
@@ -58,6 +59,18 @@ def export(request):
     state = request.GET.get("state")
     if state:
         rows = rows.filter(state=state)
+
+    # **وسقفُ الصفوف نفسُه** (`exports.MAX_ROWS`): `export_vehicles` تبني
+    # الصفوفَ كلَّها في الذاكرة قبل أن تكتب بايتاً — نفسُ كلفةِ تصدير الكتالوج
+    # (٥٬٠٠٠ صفٍّ ⇐ ٢٩٦٢ms · ١٢٬٩٩٣ ⇐ ٧٩٤٠ms، مقيسةً في ١٤ سبتمبر ٢٠٢٦).
+    #
+    # ولا يكسر ذلك «الملفُّ هو مُدخَلُ الاستيراد»: الدورةُ الكاملةُ تجري على
+    # مزادٍ واحد، وأكبرُ مزادٍ في القاعدة ٣٨٦ مركبة. السقفُ يصيب «صدّر كلَّ
+    # شيءٍ بلا مرشّح» وحدَها — ويردّ عليها صفحةً صريحةً تطلب ترشيحاً، لا ملفّاً
+    # مقصوصاً صامتاً يُرفَع بعد ذلك فيستورد ثلثَ ما كان.
+    count = oversize(rows)
+    if count:
+        return refuse(request, count)
 
     payload = export_vehicles(rows.order_by("auction_id", "lot_number"))
     stamp = timezone.now().strftime("%Y%m%d-%H%M")

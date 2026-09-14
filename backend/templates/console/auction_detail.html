@@ -695,8 +695,13 @@ somebody went looking for it.
 
   {% if can_manage and auction.state == "live" %}
     <dialog id="endModal" class="modal">
-      <form method="post" data-action="{% url 'console:auction-end-now' 0 %}">
+      {% comment %} المسارُ مكتوبٌ في `action` لا في `data-action`: لا زرَّ
+         `data-open-end` على هذه الصفحة، فلا `openWith` يبني المسارَ من
+         `data-action` — والنموذجُ بلا `action` يُرسل إلى عنوان الصفحة
+         الحاليّة. ومعه ختمُ HR-13 على (الحالة · وقت النهاية). {% endcomment %}
+      <form method="post" action="{% url 'console:auction-end-now' auction.pk %}">
         {% csrf_token %}
+        <input type="hidden" name="row_stamp" value="{{ stamp_end_now }}">
         <h2>إنهاء فوري لمزاد <span data-number>{{ auction.number|unlocalize }}</span></h2>
         <p class="notice warning">
           تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ التسويةُ تأمينات من لم يكسب وتُصدر فواتير الفائزين. <strong>لا رجعة بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.

@@ -71,8 +71,9 @@ from apps.money.models import Invoice, InvoiceSource, InvoiceState, Transaction
 #: التي تتابع خروجها.
 from .catalog import SOLD
 from .dashboard import Stat
-from .exports import export, wants_export
+from .exports import export_table, oversize, refuse, wants_export
 from .icons import path_of
+from .sensitive import CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import tone_of, with_tones
 from .views import console_page
 
@@ -243,7 +244,7 @@ def sold_rows(
     return rows
 
 
-def tallies(rows, sheet_ids: frozenset[int]) -> list[Stat]:
+def tallies(rows, sheet_ids: frozenset[int], *, money: bool = True) -> list[Stat]:
     """خمسةُ أرقامٍ عن **الصفوف المعروضة**، لا عن الجدول كلِّه.
 
     وذلك مقصود: من رشّح على مزادٍ بعينه يسأل عن ذلك المزاد، وبطاقةٌ تعدّ
@@ -268,6 +269,15 @@ def tallies(rows, sheet_ids: frozenset[int]) -> list[Stat]:
         ),
     )
     residual = counted["residual"] or ZERO
+    # **العددُ يبقى والمبلغُ يُحجَب.** «كم فاتورةً لم تكتمل» سؤالُ تشغيلٍ يجيبه
+    # عدٌّ، و«كم ريالاً باقياً» مبلغٌ — ومبلغٌ مجموعٌ على مئاتِ العملاء ليس
+    # أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة، بل أكثر. فالبطاقةُ تبقى وعددُها
+    # يبقى، ويسقط الرقمُ من تفصيلها لمن لا يملك `invoices.view`.
+    owing_detail = (
+        f"باقٍ عليها {residual:,.2f} ريالاً — محسوبٌ من الدفعات لا من كلمة أودو."
+        if money
+        else "محسوبٌ من الدفعات لا من كلمة أودو — والمبلغُ خلف صلاحية الفواتير."
+    )
     # يحترمُ كلَّ المرشّحات القائمة: عدُّ المطابقِ الذي هو أيضاً في المجموعة.
     settled_count = rows.filter(pk__in=sheet_ids).count() if sheet_ids else 0
 
@@ -289,7 +299,7 @@ def tallies(rows, sheet_ids: frozenset[int]) -> list[Stat]:
         Stat(
             label="لم يكتمل سدادها",
             value=f"{counted['owing']:,}",
-            detail=f"باقٍ عليها {residual:,.2f} ريالاً — محسوبٌ من الدفعات لا من كلمة أودو.",
+            detail=owing_detail,
             tone="alarm" if counted["owing"] else "plain",
             icon=CARD_ICONS["owing"],
         ),
@@ -358,59 +368,76 @@ def after_sales(request):
         sheet_ids=sheet_ids,
     )
 
+    seen = shown_to(request.user)
+
     if wants_export(request):
         # الملفُّ هو **كلُّ** المطابق لا الصفحةُ المعروضة — كما في v1 حرفياً:
         # «تصدير كل النتائج المطابقة للفلاتر (وليس الصفحة الحالية فقط)». ومن
         # يصدّر ليُطابق كشفاً بنكياً يأخذ صفحةً واحدة ويظنّها الكلّ.
-        return export(
+        #
+        # **وبسقفِ صفوفٍ صريح** (`exports.MAX_ROWS`): ملفٌّ مقصوصٌ صامتاً
+        # يُقرأ كاملاً ويُطابَق به كشفٌ بنكيّ ولا شيءَ فيه يقول إنّه ناقص.
+        count = oversize(rows)
+        if count:
+            return refuse(request, count)
+
+        # **والملفُّ يرث حارسَ الشاشة**: المشتري وجوّالُه خلف `users.view`،
+        # والمبالغُ خلف `invoices.view` — بالقاعدة نفسِها التي تحجبها في
+        # الصفحة (`sensitive.py`). ومن يفتح الشاشة كان يضغط «تصدير» فيأخذ في
+        # ملفٍّ واحدٍ ما لا يحقّ له في الصفحة.
+        #
+        # **و«سعر الترسية» حُذف**: لا عمودَ له على الشاشة ولا سطرَ في السند —
+        # وعمودٌ يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بابُ التسريب نفسُه. (قِيس
+        # في ملفٍّ منزَّل: `9500.00` للمركبة 25963 و`20000.00` للمركبة 25961.)
+        #
+        # **و«الإجمالي المستحق» أُضيف**: كان الملفُّ يحمل «المسدَّد» و«الباقي»
+        # بلا الرقم الذي يُقاسان عليه، فلا يُطابَق به شيء — وهو معروضٌ في
+        # السند على الشاشة.
+        return export_table(
             rows.iterator(chunk_size=500),
             name="ما-بعد-البيع",
-            headers=[
-                "الموقف",
-                "المزاد",
-                "اسم المزاد",
-                "المركبة",
-                "السنة",
-                "اللوحة",
-                "العداد",
-                "اللون",
-                "الشاصي",
-                "رقم المطالبة",
-                "المشتري",
-                "هاتف المشتري",
-                "معرّف المركبة",
-                "سعر الترسية",
-                "الفاتورة",
-                "حالتها — من الدفعات",
-                "المسدَّد",
-                "الباقي",
-                "كلمة أودو",
-                "تسويق",
-                "سُدِّدت من ملفّ شريك",
-            ],
-            cell=lambda row: [
-                row.lot_number,
-                row.auction.number,
-                row.auction.title,
-                f"{row.make} {row.model}",
-                row.year,
-                row.plate_number,
-                row.odometer_km,
-                row.get_colour_display(),
-                row.vin,
-                row.claim_number,
-                row.awarded_to.full_name if row.awarded_to else "",
-                row.awarded_to.phone if row.awarded_to else "",
-                row.pk,
-                row.awarded_price,
-                row.invoice_number,
-                state_label(row.invoice_state),
-                row.invoice_paid,
-                residual_of(row),
-                row.invoice_odoo,
-                "نعم" if row.is_marketing else "لا",
-                "نعم" if row.pk in sheet_ids else "لا",
-            ],
+            columns=columns_for(
+                [
+                    ("الموقف", lambda row: row.lot_number, None),
+                    ("المزاد", lambda row: row.auction.number, None),
+                    ("اسم المزاد", lambda row: row.auction.title, None),
+                    ("المركبة", lambda row: f"{row.make} {row.model}", None),
+                    ("السنة", lambda row: row.year, None),
+                    ("اللوحة", lambda row: row.plate_number, None),
+                    ("العداد", lambda row: row.odometer_km, None),
+                    ("اللون", lambda row: row.get_colour_display(), None),
+                    ("الشاصي", lambda row: row.vin, None),
+                    ("رقم المطالبة", lambda row: row.claim_number, None),
+                    (
+                        "المشتري",
+                        lambda row: row.awarded_to.full_name if row.awarded_to else "",
+                        CUSTOMER,
+                    ),
+                    (
+                        "هاتف المشتري",
+                        lambda row: row.awarded_to.phone if row.awarded_to else "",
+                        CUSTOMER,
+                    ),
+                    ("معرّف المركبة", lambda row: row.pk, None),
+                    ("الفاتورة", lambda row: row.invoice_number, None),
+                    (
+                        "حالتها — من الدفعات",
+                        lambda row: state_label(row.invoice_state),
+                        None,
+                    ),
+                    ("الإجمالي المستحق", lambda row: row.invoice_amount, MONEY),
+                    ("المسدَّد", lambda row: row.invoice_paid, MONEY),
+                    ("الباقي", lambda row: residual_of(row), MONEY),
+                    ("كلمة أودو", lambda row: row.invoice_odoo, None),
+                    ("تسويق", lambda row: "نعم" if row.is_marketing else "لا", None),
+                    (
+                        "سُدِّدت من ملفّ شريك",
+                        lambda row: "نعم" if row.pk in sheet_ids else "لا",
+                        MONEY,
+                    ),
+                ],
+                seen,
+            ),
         )
 
     size = page_size(request.GET.get("per_page", ""))
@@ -434,13 +461,21 @@ def after_sales(request):
         # العضويّةُ في المجموعة المحسوبة سلفاً — لا استعلامَ لكل صفّ.
         row.settled_by_sheet = row.pk in sheet_ids
 
+    # **المحجوبُ يُمحى هنا، بعد الحساب وقبل القالب.** كانت الشاشةُ تضع في مصدر
+    # الصفحة جوّالَ المشتري ومبلغَ فاتورته ومسدَّدَها وباقيها لكلّ صفّ، وهي
+    # `auctions.view` وحدَها. والقاعدةُ في `sensitive.py` — نفسُها التي يقرؤها
+    # «كتالوج السيارات»، فلا تُطبَّق في شاشةٍ وتُترك في أختها.
+    prepare(page.object_list, seen)
+
     return render(
         request,
         "console/after_sales.html",
         {
             "page": page,
             "rows": page.object_list,
-            "cards": tallies(rows, sheet_ids),
+            "cards": tallies(rows, sheet_ids, money=seen.money),
+            "show_money": seen.money,
+            "show_customer": seen.customer,
             "q": text,
             "auction": auction,
             "pay": pay,

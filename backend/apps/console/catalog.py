@@ -1,21 +1,27 @@
-"""كتالوج السيارات، والبحث عنها، والخروج. T830د.
+"""كتالوج السيارات، والبحث عنها. T830د.
 
-ثلاثُ شاشاتٍ من قسم «إدارة المزادات» في v1، وكلُّها استعلامٌ واحد على
-:class:`Vehicle` بمرشّحاتٍ مختلفة — ولذلك ملفٌّ واحد: الفرق بينها **سؤالٌ**
+شاشتان من قسم «إدارة المزادات» في v1، وكلتاهما استعلامٌ واحد على
+:class:`Vehicle` بمرشّحاتٍ مختلفة — ولذلك ملفٌّ واحد: الفرق بينهما **سؤالٌ**
 لا بنية.
 
 | الشاشة | السؤال الذي تُفتح لأجله |
 |---|---|
 | كتالوج السيارات | ما الذي عندنا، وبأي حال؟ |
 | بحث عن سيارة | أين هذه السيارة بعينها؟ |
-| الخروج ونقل الملكية | ما الذي بيع وسُدِّد ولم يخرج بعد؟ |
 
 و«ما بعد البيع» خرجت من هنا إلى `after_sales.py` (T869): صارت خمسَ مرشّحاتٍ
 وستّةَ عشرَ عموداً وبطاقاتٍ ونافذةَ فاتورةٍ وتصديراً — أي أنها لم تعد
 «الاستعلامَ نفسَه بسؤالٍ آخر»، وهو الشرطُ الذي جمع هذه الشاشات في ملفّ.
 
-خمسة أعطالٍ مقيسةٍ في v1 لا تُنقَل
-===================================
+**و«الخروج ونقل الملكية» خرجت إلى `exits.py`** مع موديل `VehicleExit`
+(`c3188e6`) — وبقيت هنا `vehicle_exit` **ميّتةً ستّةَ وأربعين سطراً** بلا
+مسارٍ ولا مستورِد، ومعها فقرةٌ في هذا الرأس تشرح شاشةً بـ«لسانين لا أربعة»
+بينما `exits.py` الحيُّ يفتتح بـ«أربعةُ ألسنة على شاشةٍ واحدة». **شرحان
+متناقضان لشاشةٍ واحدة، وأوّلُ من يقرأ الميّتَ يظنّه العقدَ الحاليّ** — فحُذف
+الاثنان في ١٤ سبتمبر ٢٠٢٦. وما يخصّ الخروجَ من أعطال v1 يُقرأ في `exits.py`.
+
+ثلاثة أعطالٍ مقيسةٍ في v1 لا تُنقَل
+====================================
 
 **١ — «رقم الموقف» يحمل مفتاحين من نظامين.** في الكتالوج `384` في صفٍّ
 و`AUC-1017-743` في آخر. وعمودٌ كهذا لا يُفرَز ولا يُبحث فيه برقمٍ فيجد نصفَه.
@@ -34,16 +40,6 @@
 عمودٍ يُكتب مرّةً عند الإدخال، فحوالةٌ في أودو كمسودّة تظهر «مدفوعة» — وأُخرجت
 سيارةٌ مقابلها. فحالة الفاتورة هنا **مشتقّةٌ من الدفعات المسجَّلة**، وكلمةُ
 أودو تُعرض بجوارها دليلاً لا حقيقة.
-
-**٤ — عمود المزاد يقول `0`.** في «الخروج ونقل الملكية» الخمسون صفّاً كلُّها
-`المزاد 0`، والسيارة خرجت من مزادٍ له رقم. وهذه أسوأ من عمودٍ بقيمةٍ واحدة
-صحيحة: **القيمة خاطئة**، والربط لم يُقرأ. وهنا رقمُ المزاد يأتي من
-`vehicle.auction.number` بمفتاحٍ أجنبي، فلا يكون صفراً.
-
-**٥ — «حالة الخروج: لم يُنشأ» في اثني عشر ألفاً.** أي أن الشاشة التي تُفتح
-لتُتابِع نقل الملكية لا تعرف عن نقلٍ واحد. وهنا الخروج **حالةٌ في المركبة**
-(`VehicleState.RELEASED`) تكتبها `auctions.services` وحدها، فما يُعرض هنا هو
-ما وقع فعلاً.
 
 عمودان كانا غائبين ثم صارا حقلين — والفقرةُ صُحّحت
 ====================================================
@@ -64,7 +60,9 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+import calendar
+from datetime import date
+from decimal import Decimal, InvalidOperation
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
@@ -79,8 +77,9 @@ from apps.core.permissions import Capability, can
 from apps.money.models import InvoiceSource
 
 from .dashboard import Stat
-from .exports import export, wants_export
+from .exports import export_table, oversize, refuse, wants_export
 from .icons import path_of
+from .sensitive import prepare, shown_to
 from .tones import with_tones
 from .vehicle_filters import keep
 from .views import console_page
@@ -95,12 +94,6 @@ SOLD = (
     VehicleState.PAID,
     VehicleState.RELEASED,
 )
-
-#: ما ينتظر خروجاً: بيع وسُدِّد ولم يخرج. و`AWARDED` و`INVOICED` خارجها عمداً
-#: — لا تُسلَّم سيارةٌ لم يصل مالُها، وشاشةٌ تعرضها في طابور الخروج تدعو إلى
-#: ذلك. (وv1 يعرض اثني عشر ألفاً كلُّها «لم يُنشأ»، بلا تمييزٍ بين ما سُدِّد
-#: وما لم يُسدَّد أصلاً.)
-AWAITING_EXIT = (VehicleState.PAID,)
 
 
 def _day(raw: str):
@@ -132,6 +125,77 @@ def _int(raw: str) -> int | None:
     """
     digits = fold(raw)
     return int(digits) if digits.isascii() and digits.isdigit() else None
+
+
+def _amount(raw: str) -> Decimal | None:
+    """مبلغٌ من نصّ المستخدم، أو ``None`` — بلا خطأ ٥٠٠.
+
+    و**مقارنةُ مساواةٍ لا `LIKE` على نصّ**: v1 يرشّح السعر بـ
+    `CAST(av.starting_price AS CHAR) LIKE '%9500%'`
+    (`AuctionController::vehicleSearchData`) — فمن يكتب `9500` يأتيه `19500`
+    و`95000` و`9500.00` معاً، ولا سبيل إلى أن يقول «هذا السعرُ بالضبط». ومن
+    يكتب سعراً في خانةِ سعرٍ يقصد سعراً. فالمطابقةُ هنا عدديّةٌ تامّة، والطيُّ
+    يسبقها فتُقبل `٩٥٠٠` العربية كما تُقبل `9500`.
+
+    **والفاصلةُ العشريّة تُفصَل قبل الطيّ**: `fold` تحذف `. - _ /` والمسافاتِ
+    كلَّها (وهو صوابُها في اللوحات: «د ط ق 1265» تجد «دطق1265»)، فطيُّ
+    `1000.00` كاملةً يعطي `100000` — أي **مئة ألفٍ مكان ألف**. فيُقسَم النصُّ
+    على النقطة أوّلاً ويُطوى كلُّ شقٍّ وحدَه؛ والمسافةُ داخل الشقّ تُطوى، فـ
+    `9 500` تُقرأ `9500` كما يقصد كاتبُها.
+    """
+    text = (raw or "").strip().replace(",", "")
+    if not text:
+        return None
+    parts = text.split(".")
+    if len(parts) > 2:
+        return None
+    folded = [fold(part) for part in parts]
+    if not all(part.isascii() and part.isdigit() for part in folded):
+        return None
+    try:
+        return Decimal(".".join(folded))
+    except (InvalidOperation, ValueError):
+        return None
+
+
+def _prefix_day(raw: str) -> tuple[date, date] | None:
+    """مدىً من يومٍ ناقص: `2026` سنةٌ، و`2026-06` شهرٌ، و`2026-06-14` يوم.
+
+    v1 يرشّح تاريخَ الإدراج بـ`CAST(av.created_at AS CHAR) LIKE '%2026-06%'`
+    وخانتُه مكتوبٌ فيها `2026-06…` حرفياً. **والنصُّ يطابق ما ليس تاريخاً**:
+    `LIKE '%2026%'` تجد الساعةَ `20:26` أيضاً، و`CAST` يمنع استعمالَ الفهرس
+    فيُمسح الجدولُ كلُّه. فهنا يُقرأ الناقصُ **مدىً على العمود نفسِه** — أرخصُ
+    على القاعدة، وأدقُّ في الجواب، وهو ما تعنيه الخانةُ أصلاً.
+
+    وما لا يشبه تاريخاً يُقرأ «لا مرشّح» لا خطأً: الخانةُ نصٌّ حرّ.
+
+    **والشرطاتُ تُفصَل قبل الطيّ**: `fold` تحذف `-` نفسَها (وهو صوابُها في
+    اللوحات والشواصي)، فطيُّ `2026-09` كاملةً يعطي `202609` — ستّةَ أرقامٍ لا
+    تُقرأ شهراً ولا سنة، فيسقط المرشّحُ صامتاً. فيُقسَم أوّلاً ويُطوى كلُّ
+    شقٍّ وحدَه، فتُقبل `٢٠٢٦-٠٩` العربية كما تُقبل `2026-09`.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return None
+    parts = [fold(part) for part in text.split("-")]
+    if not all(part.isascii() and part.isdigit() for part in parts):
+        return None
+    try:
+        if len(parts) == 1 and len(parts[0]) == 4:
+            year = int(parts[0])
+            return date(year, 1, 1), date(year, 12, 31)
+        if len(parts) == 2:
+            year, month = int(parts[0]), int(parts[1])
+            last = calendar.monthrange(year, month)[1]
+            return date(year, month, 1), date(year, month, last)
+        if len(parts) == 3:
+            day = date(int(parts[0]), int(parts[1]), int(parts[2]))
+            return day, day
+    except ValueError:
+        # `calendar.IllegalMonthError` وريثةُ `ValueError` — فشهرُ ١٣ وسنةُ صفر
+        # يقعان هنا معاً، ولا حاجة إلى فرعٍ ثانٍ يمسك أحدَهما.
+        return None
+    return None
 
 
 def _dated(rows, field: str, since: str, until: str):
@@ -243,51 +307,10 @@ def vehicle_catalog(request):
         auction_to=request.GET.get("auction_to", ""),
     )
 
-    if wants_export(request):
-        return export(
-            rows,
-            name="كتالوج-السيارات",
-            headers=[
-                "المعرّف",
-                "اللوت",
-                "المزاد",
-                "السيارة",
-                "السنة",
-                "العداد",
-                "الحالة الفنية",
-                "ناقل الحركة",
-                "الوقود",
-                "الشاصي",
-                "اللوحة",
-                "الصور",
-                "حالة المزاد",
-                "بداية المزاد",
-                "نهاية المزاد",
-                "حالة المركبة",
-                "سعر الوقوف",
-            ],
-            cell=lambda row: [
-                row.pk,
-                row.lot_number,
-                row.auction.number,
-                f"{row.make} {row.model}",
-                row.year,
-                row.odometer_km,
-                row.get_condition_display(),
-                row.get_transmission_display(),
-                row.get_fuel_type_display(),
-                row.vin,
-                row.plate_number,
-                row.image_count,
-                row.auction.get_state_display(),
-                row.auction.starts_at,
-                row.auction.ends_at,
-                row.get_state_display(),
-                row.reserve_price,
-            ],
-        )
-
-    # الفاتورةُ الكاملةُ للصفّ — تُعاد نافذةَ «سند دفع» كما في «ما بعد البيع».
+    # الفاتورةُ الكاملةُ للصفّ — تُعاد نافذةَ «سند دفع» كما في «ما بعد البيع»،
+    # و**قبل فرع التصدير** لأن عمود «الفاتورة» في الملفّ يقرأ `invoice_number`.
+    # و`COUNT` لا يدفع ثمنَها: جانغو يُسقط الاستعلاماتِ الفرعيّةَ غيرَ
+    # المستعملة من العدّ (قِيس: ٠٫٠٠٤ ثانيةٍ على اثني عشر ألفَ صفّ).
     # تُستعمَل مساعِداتُها نفسُها (استيرادٌ داخل الدالة تفادياً للدور: `after_sales`
     # يستورد `SOLD` من هنا). عمودُ الفاتورة وسندُه v1 نفسُهما.
     from .after_sales import (
@@ -309,6 +332,52 @@ def vehicle_catalog(request):
         invoice_odoo_id=latest_invoice_field("odoo_invoice_id"),
     )
 
+    if wants_export(request):
+        count = oversize(rows)
+        if count:
+            return refuse(request, count)
+        # **أعمدةُ الملفّ = أعمدةُ الشاشة، عموداً بعمود.** كانت ثلاثةٌ على
+        # الشاشة تسقط من الملفّ (اللون · شركة التأمين · الفاتورة) وأربعةٌ في
+        # الملفّ ليست على الشاشة (ناقل الحركة · الوقود · حالة المركبة · سعر
+        # الوقوف) — فمن يقارن الملفَّ بالشاشة يجد جدولين لا واحداً، والعمودُ
+        # الذي يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بعينه بابُ التسريب.
+        #
+        # وحُكم على الأربعة واحداً واحداً (١٤ سبتمبر ٢٠٢٦):
+        # * **ناقل الحركة** و**الوقود** حُذفا: مواصفتان تفصيليّتان مكانُهما
+        #   `vehicle-detail`، ولا عمودَ لهما في ترويسة v1 ولا عندنا.
+        # * **حالة المركبة** و**سعر الوقوف** صارا عمودين على الشاشة: كلاهما
+        #   معروضٌ أصلاً في «بحث عن سيارة» **بالقدرة نفسِها** (`auctions.view`)،
+        #   فإظهارُهما هنا لا يفتح ثقةً جديدة — ويجيبان سؤالَ الشاشة نفسَه
+        #   («ما عندنا وبأيّ حال») الذي كانت تجيبه نصفَ إجابةٍ بحالة المزاد
+        #   وحدها.
+        return export_table(
+            rows,
+            name="كتالوج-السيارات",
+            columns=[
+                ("المعرّف", lambda row: row.pk),
+                ("رقم الموقف", lambda row: row.lot_number),
+                ("المزاد", lambda row: row.auction.number),
+                ("السيارة", lambda row: f"{row.make} {row.model}"),
+                ("السنة", lambda row: row.year),
+                ("اللون", lambda row: row.get_colour_display()),
+                ("العداد", lambda row: row.odometer_km),
+                ("الحالة الفنية", lambda row: row.get_condition_display()),
+                ("شركة التأمين", lambda row: row.insurance_company),
+                ("الشاصي", lambda row: row.vin),
+                ("اللوحة", lambda row: row.plate_number),
+                ("الصور", lambda row: row.image_count),
+                ("حالة المزاد", lambda row: row.auction.get_state_display()),
+                ("بداية المزاد", lambda row: row.auction.starts_at),
+                ("نهاية المزاد", lambda row: row.auction.ends_at),
+                ("حالة المركبة", lambda row: row.get_state_display()),
+                ("سعر الوقوف", lambda row: row.reserve_price),
+                # رقمُ الفاتورة وحدَه — لا مبلغَها ولا مشتريها. عمودُ «الفاتورة»
+                # على الشاشة رقمٌ كذلك، وتفاصيلُه في السند خلف `invoices.view`
+                # و`users.view` (`sensitive.py`). ولا يُصدَّر ما لا يُعرَض.
+                ("الفاتورة", lambda row: row.invoice_number),
+            ],
+        )
+
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
     # اللصائقُ والمشتقّاتُ تُحسب هنا لا في القالب (قالبٌ يفكّ تعداداً مكانٌ
@@ -320,11 +389,21 @@ def vehicle_catalog(request):
         row.invoice_source_label = source_labels.get(row.invoice_source, "—")
         row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
 
+    # **المحجوبُ يُمحى هنا، بعد الحساب وقبل القالب.** كان كلُّ صفٍّ مفوتَر يحمل
+    # في مصدر الصفحة `data-phone="966…"` و`data-amount` و`data-paid`
+    # و`data-residual` — لا عند الضغط بل في HTML — والشاشةُ `auctions.view`
+    # وحدَها. والقاعدةُ واحدةٌ في `sensitive.py` تخدم هذه الشاشة و«ما بعد
+    # البيع» معاً، فلا تُطبَّق في واحدةٍ وتُترك في أختها.
+    seen = shown_to(request.user)
+    prepare(page.object_list, seen)
+
     return render(
         request,
         "console/vehicle_catalog.html",
         {
             "page": page,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
             "cards": _catalog_cards(catalogue_totals()),
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
@@ -359,8 +438,51 @@ def vehicle_catalog(request):
     )
 
 
-def found(*, plate: str = "", vin: str = "", name: str = "", lot: str = ""):
+def found(
+    *,
+    plate: str = "",
+    vin: str = "",
+    name: str = "",
+    lot: str = "",
+    number: str = "",
+    claim: str = "",
+    price: str = "",
+    state: str = "",
+    listed: str = "",
+):
     """بحثٌ **لكل عمودٍ على حدة**، كما في v1: صفُّ خاناتٍ تحت الرؤوس.
+
+    ثمانيةُ مرشّحاتٍ في v1، وكان هنا منها ثلاثة
+    ===========================================
+    مرجعُ v1: `AuctionController::vehicleSearchData:4090-4101` — ثمانيةُ فروعِ
+    `$where` بينها `AND`، وخانةٌ لكلٍّ تحت رأس عمودها في
+    `Views/Admin/auctions/vehicle_search.php:66-80`. وكان عندنا `plate`
+    و`chassis` و`details` (اسماً) وحدَها، وزيادةُ `lot`.
+
+    * `id` ← `av.id` صار `number` على `pk`. **أُضيف**: عمودُ `#` على الشاشة
+      هو `pk`، ومن ينسخ الرقمَ منها لم يكن يجد به شيئاً.
+    * `details` عند v1 خمسةُ أعمدة، منها **سنةُ الصنع**. **أُضيفت السنة**:
+      مُدخَلٌ من أربعة أرقامٍ يُقارَن بـ`year` أيضاً.
+    * `plate` و`chassis` كما كانا — مُطبَّعين (`search_q`).
+    * `claim` ← `claim_number LIKE`. **أُضيف ومعه عمودُه**؛ و`claim_number`
+      مفهرسٌ ومملوءٌ في ٩٦٠ صفّاً على `t307`، ووصفُ الشاشة في v1
+      (`AdminV2Sections.php:34`) يعدّه أحدَ محاورها الأربعة.
+    * `price` ← `CAST(starting_price AS CHAR) LIKE`. **أُضيف** على
+      `reserve_price` مساواةً لا `LIKE` (:func:`_amount`).
+    * `status` ← `LOWER(av.status)` من سبع. **أُضيف** على
+      :class:`VehicleState` بقائمةٍ بيضاء — وهو عمودُ «الحالة» المعروضُ أصلاً.
+    * `date` ← `CAST(created_at AS CHAR) LIKE`. **أُضيف** مدىً
+      (:func:`_prefix_day`).
+
+    **واللونُ وحدَه لم يُضَف، وهذه نتيجةٌ لا نقص**: `colour = unknown` في
+    **١٢٬٩٨٥ من ١٢٬٩٩٣** صفّاً على `haraj2_t307`. فخانةُ لونٍ تُرجع صفراً لكلّ
+    ما يُكتب فيها إلّا «غير معروف» — وخانةٌ تُجيب دائماً بلا نتيجة تُقرأ عطلاً
+    في الشاشة لا فراغاً في البيانات.
+
+    **ولا تطبيعَ عربيّاً على الشاصي الكامل ولا على الأرقام**: `search_q` تطبّع
+    اللوحةَ والاسمَ والمطالبةَ والشاصي — وهو صوابٌ فيها (لوحاتُ القاعدة مكتوبةٌ
+    «د ط ق 1265» بمسافات) — أمّا `pk` و`lot` و`price` و`state` فمعرّفاتٌ آليّةٌ
+    تُطابَق مطابقةً تامّة، لأن المقصودَ بها الدقّةُ لا التقريب.
 
     والفرق عن خانةٍ واحدة ليس ذوقاً: من يبحث بلوحةٍ يعرف أنها لوحة، وخانةٌ
     واحدة تطابق النصّ في ستّة أعمدة تُرجع له صفوفاً لا يفهم لماذا ظهرت.
@@ -374,18 +496,45 @@ def found(*, plate: str = "", vin: str = "", name: str = "", lot: str = ""):
     في v1 يفعل الصواب هنا: `ctype_digit` تسقط `abc` ثم `$where === []` فيردّ
     `rows: []` بحالة `empty` (`AuctionController::vehicleSearchData`).
     """
+    # خانةُ «تفاصيل المركبة» تُطابق الاسمَ والماركةَ والموديل — **وسنةَ الصنع**
+    # إن كان المكتوبُ أربعةَ أرقام، كما يفعل `details` في v1
+    # (`year_of_manufacture LIKE`). و`year` عددٌ صحيح، فلا `iregex` عليه:
+    # مطابقةٌ تامّة، ورقمٌ من أربعة أرقامٍ هو سنةٌ في هذا السياق.
+    named = search_q(name, "make", "model")
+    year = _int(name)
+    if named and year is not None and 1000 <= year <= 9999:
+        named |= Q(year=year)
+
     clauses = [
         clause
         for clause in (
             search_q(plate, "plate_number"),
             search_q(vin, "vin"),
-            search_q(name, "make", "model"),
+            named,
+            search_q(claim, "claim_number"),
         )
         if clause
     ]
-    number = _int(lot)
-    if number is not None:
-        clauses.append(Q(lot_number=number))
+
+    lot_number = _int(lot)
+    if lot_number is not None:
+        clauses.append(Q(lot_number=lot_number))
+
+    row_id = _int(number)
+    if row_id is not None:
+        clauses.append(Q(pk=row_id))
+
+    amount = _amount(price)
+    if amount is not None:
+        clauses.append(Q(reserve_price=amount))
+
+    state = (state or "").strip()
+    if state in VehicleState.values:
+        clauses.append(Q(state=state))
+
+    span = _prefix_day(listed)
+    if span is not None:
+        clauses.append(Q(created_at__date__gte=span[0], created_at__date__lte=span[1]))
 
     if not clauses:
         return None
@@ -408,6 +557,11 @@ def vehicle_search(request):
         vin=request.GET.get("vin", ""),
         name=request.GET.get("name", ""),
         lot=request.GET.get("lot", ""),
+        number=request.GET.get("number", ""),
+        claim=request.GET.get("claim", ""),
+        price=request.GET.get("price", ""),
+        state=request.GET.get("state", ""),
+        listed=request.GET.get("listed", ""),
     )
 
     page = None
@@ -424,57 +578,19 @@ def vehicle_search(request):
             "vin": request.GET.get("vin", ""),
             "name": request.GET.get("name", ""),
             "lot": request.GET.get("lot", ""),
+            "number": request.GET.get("number", ""),
+            "claim": request.GET.get("claim", ""),
+            "price": request.GET.get("price", ""),
+            "state": request.GET.get("state", ""),
+            "listed": request.GET.get("listed", ""),
+            # حالاتُ المركبة للقائمة المنسدلة — من التعداد لا مكتوبةً في
+            # القالب: قائمةٌ في قالبٍ هي مكانٌ ثانٍ للقاعدة، تتفارق عن
+            # القائمة البيضاء في :func:`found` أوّلَ ما تُضاف حالة.
+            "states": [
+                (value, VehicleState(value).label) for value in VehicleState.values
+            ],
             # الخاناتُ الأربع مسلسلةً لروابط الصفحات — والقالبُ لم يكن يرسم
             # روابطَ أصلاً: كان يكتب «صفحة ١ من ٢٦٠» ولا سبيل إلى الثانية.
             "keep": keep(request.GET),
-        },
-    )
-
-
-@console_page("console:vehicle-exit")
-def vehicle_exit(request):
-    """الخروج ونقل الملكية: ما سُدِّد ولم يخرج، وما خرج.
-
-    لسانان لا أربعة: v1 عنده «إنشاء الخروج» و«متابعة نقل الملكية» و«أرشيف
-    المنقولة» و«البوابة»، **وكلُّها تعرض الصفوف نفسها بحالة «لم يُنشأ»**.
-    فالتقسيم هناك أربع شاشاتٍ لحالةٍ واحدة لم تُسجَّل قطّ؛ وهنا الحالة تُقرأ
-    من المركبة، فاللسانان هما ما تحمله فعلاً.
-    """
-    which = request.GET.get("state", "awaiting")
-    states = AWAITING_EXIT if which != "released" else (VehicleState.RELEASED,)
-
-    rows = (
-        Vehicle.objects.filter(state__in=states)
-        .select_related("auction", "awarded_to")
-        .order_by("-awarded_at", "-id")
-    )
-
-    text = (request.GET.get("q", "") or "").strip()
-    if text:
-        matches = search_q(
-            text,
-            "plate_number",
-            "vin",
-            "make",
-            "model",
-            "awarded_to__full_name",
-            "awarded_to__phone",
-        )
-        if text.isdigit():
-            matches |= Q(auction__number=int(text))
-        rows = rows.filter(matches)
-
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
-
-    return render(
-        request,
-        "console/vehicle_exit.html",
-        {
-            "page": page,
-            "q": text,
-            "which": which,
-            "awaiting_count": Vehicle.objects.filter(state__in=AWAITING_EXIT).count(),
-            "released_count": Vehicle.objects.filter(state=VehicleState.RELEASED).count(),
         },
     )

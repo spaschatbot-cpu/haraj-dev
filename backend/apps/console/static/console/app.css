@@ -4504,6 +4504,16 @@ dialog.row-modal {
 }
 .qe-card__title { font-weight: 800; font-size: .92rem; color: var(--ink); line-height: 1.4; min-inline-size: 0; overflow-wrap: anywhere; }
 .qe-card__sub { display: block; margin-block-start: .2rem; font-family: var(--mono, ui-monospace, monospace); font-size: .74rem; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
+/* سطرُ التعارض: يظهر حين يردّ الخادم ٤٠٩ «عُدِّل هذا الكارت من نافذةٍ أخرى»،
+   ويحمل ما صار إليه الحقل. لونُ الخطر لأنه رفضُ كتابة، وداخلَ الكارت لا في
+   توستٍ يختفي بعد ثانيتين — الموظّفُ يحتاج أن يقرأه وهو ينظر إلى الخانة. */
+.qe-card__clash {
+  margin: 0 0 .7rem; padding: .45rem .6rem; border-radius: var(--radius);
+  border: 1px solid var(--danger, #dc2626);
+  background: var(--danger-soft, rgb(220 38 38 / .07));
+  color: var(--ink); font-size: .78rem; font-weight: 700; line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 .qe-card__act { display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; }
 .qe-card__status { min-inline-size: 1.4rem; text-align: center; font-size: 1rem; }
 .qe-card__save {

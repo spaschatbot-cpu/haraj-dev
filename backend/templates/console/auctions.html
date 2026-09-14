@@ -221,7 +221,8 @@ have to undo one in their head.
                         data-number="{{ auction.number|unlocalize }}"
                         data-badge="{{ auction.badge }}"
                         data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
-                        data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}">
+                        data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
+                        data-stampstate="{{ auction.stamp_showcase }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </button>
               {% endwith %}
@@ -271,7 +272,8 @@ have to undo one in their head.
                         data-pk="{{ auction.pk|unlocalize }}"
                         data-number="{{ auction.number|unlocalize }}"
                         data-deposit="{{ auction.deposit_required|unlocalize }}"
-                        data-fee="{{ auction.admin_fee|unlocalize }}">
+                        data-fee="{{ auction.admin_fee|unlocalize }}"
+                        data-stampfees="{{ auction.stamp_fees }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </button>
               {% endwith %}
@@ -282,7 +284,8 @@ have to undo one in their head.
                         data-number="{{ auction.number|unlocalize }}"
                         data-starts="{{ auction.starts_at|date:'Y-m-d\TH:i' }}"
                         data-ends="{{ auction.ends_at|date:'Y-m-d\TH:i' }}"
-                        data-sms="{{ auction.sms_reminder_at|date:'Y-m-d\TH:i' }}">
+                        data-sms="{{ auction.sms_reminder_at|date:'Y-m-d\TH:i' }}"
+                        data-stampsched="{{ auction.stamp_reschedule }}">
                   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                 </button>
               {% endwith %}
@@ -291,7 +294,8 @@ have to undo one in their head.
                   <button type="button" class="act act--danger" title="{{ icon.0 }}" aria-label="{{ icon.0 }}"
                           data-open-end
                           data-pk="{{ auction.pk|unlocalize }}"
-                          data-number="{{ auction.number|unlocalize }}">
+                          data-number="{{ auction.number|unlocalize }}"
+                          data-stampend="{{ auction.stamp_end_now }}">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icon.1 }}"/></svg>
                   </button>
                 {% endwith %}
@@ -380,6 +384,14 @@ have to undo one in their head.
     <form method="post" data-action="{% url 'console:auction-showcase' 0 %}">
       {% csrf_token %}
       <input type="hidden" name="back" value="list">
+      {% comment %}
+      ختمُ HR-13 — بصمةُ (الحالة · اللافتة · الموعدين) ساعةَ رُسمت القائمة.
+      كانت هذه النافذة بلا ختم، فمن فتحها ثم حفظ بعد دقيقتين كتب فوق نقلةٍ
+      أجراها زميلُه ولا شيء يقول ذلك. والأعمدةُ **هي التي تكتبها هذه النافذة
+      وحدها** (`STAMP_FIELDS["showcase"]`) — ختمٌ أوسعُ يرفض تعديلاً لا يدهس
+      أحداً، ورفضٌ بلا سببٍ يعلّم الموظّف أن يتجاهل الرفض.
+      {% endcomment %}
+      <input type="hidden" name="row_stamp" data-stampstate>
       <h2>حالة مزاد <span data-number></span></h2>
 
       <p>
@@ -413,7 +425,10 @@ have to undo one in their head.
       </p>
 
       <p>
-</p>
+        <label for="stReason">ملاحظة (اختياري)</label>
+        <input id="stReason" type="text" name="reason" maxlength="500"
+               placeholder="ملاحظةٌ تُحفظ في السجلّ — إن شئت">
+      </p>
       <p class="modal__buttons">
         <button type="submit">نفّذ</button>
         <button type="button" data-close>إلغاء</button>
@@ -425,6 +440,9 @@ have to undo one in their head.
     <form method="post" data-action="{% url 'console:auction-reschedule' 0 %}">
       {% csrf_token %}
       <input type="hidden" name="back" value="list">
+      {% comment %} ختمُ HR-13 على الموعدين والتذكير — الأعمدةُ الثلاثةُ التي
+         تكتبها هذه النافذة وحدها. {% endcomment %}
+      <input type="hidden" name="row_stamp" data-stampsched>
       <h2>إعادة جدولة مزاد <span data-number></span></h2>
 
       <p>
@@ -451,7 +469,10 @@ have to undo one in their head.
         </span>
       </p>
       <p>
-</p>
+        <label for="reReason">ملاحظة (اختياري)</label>
+        <input id="reReason" type="text" name="reason" maxlength="500"
+               placeholder="لماذا أُعيدت الجدولة — تُحفظ في السجلّ">
+      </p>
       <p class="modal__buttons">
         <button type="submit">احفظ</button>
         <button type="button" data-close>إلغاء</button>
@@ -463,6 +484,13 @@ have to undo one in their head.
     <form method="post" data-action="{% url 'console:auction-fees' 0 %}">
       {% csrf_token %}
       <input type="hidden" name="back" value="list">
+      {% comment %}
+      ختمُ HR-13 على التأمين والرسم. **وهذه أولى النوافذ به**: هي التي تكتب
+      مالاً، وكانت حقولُها أربعةً فقط (`csrf` · `back` · `admin_fee` ·
+      `deposit_required`) — بلا ختمٍ وبلا ملاحظة، فكلُّ قيدِ
+      `console.auction_fees` يُكتب بنوتةٍ فارغة وكلُّ حفظٍ ثانٍ يمحو الأوّل.
+      {% endcomment %}
+      <input type="hidden" name="row_stamp" data-stampfees>
       <h2>رسوم وتأمين مزاد <span data-number></span></h2>
 
       <p>
@@ -484,8 +512,16 @@ have to undo one in their head.
         ضريبة القيمة المضافة تُحسب بقاعدةٍ واحدة للمنصّة كلّها، ولا تُضبط
         لكل مزادٍ على حدة.
       </p>
+      {% comment %} والملاحظةُ هنا أوجبُ منها في غيرها: «كم كان التأمين قبل
+         اليوم ولماذا تغيّر؟» سؤالٌ يُسأل بعد شهور، والقيدُ يحمل القيمتين
+         ولا يحمل السبب. اختياريّةٌ كبقيّة اللوحة (`ReasonMixin` — أزال
+         المالك إلزامَها في T873)، لكنّها **موجودةٌ** بعد أن كانت تُقرأ في
+         الخادم ولا تُرسَم في الشاشة. {% endcomment %}
       <p>
-</p>
+        <label for="feeReason">ملاحظة (اختياري)</label>
+        <input id="feeReason" type="text" name="reason" maxlength="500"
+               placeholder="لماذا تغيّر المبلغ — تُحفظ في السجلّ">
+      </p>
       <p class="modal__buttons">
         <button type="submit">احفظ</button>
         <button type="button" data-close>إلغاء</button>
@@ -534,7 +570,10 @@ have to undo one in their head.
         <strong>الرسوم والتأمين</strong> — لكلٍّ نافذتُه وقواعدُه.
       </p>
       <p>
-</p>
+        <label for="edReason">ملاحظة (اختياري)</label>
+        <input id="edReason" type="text" name="reason" maxlength="500"
+               placeholder="ملاحظةٌ تُحفظ في السجلّ — إن شئت">
+      </p>
       <p class="modal__buttons">
         <button type="submit">احفظ</button>
         <button type="button" data-close>إلغاء</button>
@@ -553,8 +592,13 @@ have to undo one in their head.
         الصحيح حينها <strong>الإلغاء</strong>: يفكّ التأمينات ويُبطل الفواتير
         غير المدفوعة ثم ينقل الحالة، ويترك صفّاً يُسأل عنه.
       </p>
+      {% comment %} الملاحظةُ كانت تُقرأ في `auction_delete` ولا تُرسَل من هنا،
+         فينتهي كلُّ قيدِ حذفٍ بشَرطةٍ معلّقة: «حُذف مزاد 9868 «…» — ». {% endcomment %}
       <p>
-</p>
+        <label for="delReason">ملاحظة (اختياري)</label>
+        <input id="delReason" type="text" name="reason" maxlength="500"
+               placeholder="لماذا يُحذف — تُحفظ في السجلّ">
+      </p>
       <p class="modal__buttons">
         <button type="submit">احذف</button>
         <button type="button" data-close>تراجع</button>
@@ -566,6 +610,9 @@ have to undo one in their head.
     <form method="post" data-action="{% url 'console:auction-end-now' 0 %}">
       {% csrf_token %}
       <input type="hidden" name="back" value="list">
+      {% comment %} ختمُ HR-13 على (الحالة · وقت النهاية) — وهما ما تكتبه هذه
+         النافذة. وفعلٌ لا رجعةَ فيه أولى ما يُمنع من أن يقع مرّتين. {% endcomment %}
+      <input type="hidden" name="row_stamp" data-stampend>
       <h2>إنهاء فوري لمزاد <span data-number></span></h2>
       <p class="notice warning">
         تُقفَل المزايدة في هذه اللحظة ويُثبَّت وقت النهاية عليها. ثم تفكّ
@@ -573,7 +620,10 @@ have to undo one in their head.
         بضغطة</strong> — العودة تكون بإلغاء المزاد، وهو فعلٌ ماليّ آخر.
       </p>
       <p>
-</p>
+        <label for="endReason">ملاحظة (اختياري)</label>
+        <input id="endReason" type="text" name="reason" maxlength="500"
+               placeholder="لماذا أُنهي الآن — تُحفظ في السجلّ">
+      </p>
       <p class="modal__buttons">
         <button type="submit">أنهِ الآن</button>
         <button type="button" data-close>تراجع</button>

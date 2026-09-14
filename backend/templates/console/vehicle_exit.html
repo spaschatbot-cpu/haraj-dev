@@ -46,8 +46,21 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
               <td><strong>{{ car.make }} {{ car.model }}</strong></td>
               <td class="mono">{{ car.plate_number|default:"—" }}</td>
               <td>{{ car.year|unlocalize }}</td>
-              <td>{{ car.awarded_to.full_name|default:"—" }}</td>
-              <td class="mono">{{ car.awarded_to.phone|default:"—"|unlocalize }}</td>
+              {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on`
+                 لا `car.awarded_to` من العلاقة: حقلٌ يُقرأ من علاقةٍ في
+                 القالب لا يمرّ بحارس. واسمُ المشتري وجوّالُه خلف
+                 `users.view`، والشاشةُ `auctions.view` وحدَها — وكان عمودُ
+                 الجوّال كاملاً في **مصدر الصفحة**. {% endcomment %}
+              <td>
+                {% if car.buyer_name %}{{ car.buyer_name }}
+                {% elif car.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                {% else %}—{% endif %}
+              </td>
+              <td class="mono">
+                {% if car.buyer_phone %}{{ car.buyer_phone|unlocalize }}
+                {% elif car.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                {% else %}—{% endif %}
+              </td>
               <td>
                 {% if car.exit_order %}
                   <span class="pill" data-tone="{% if car.exit_order.stage == 'archived' %}ok{% elif car.exit_order.stage == 'under_transfer' %}warn{% else %}info{% endif %}">{{ car.exit_order.get_stage_display }}</span>
@@ -55,8 +68,15 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                   <span class="pill" data-tone="plain">لم يُنشأ</span>
                 {% endif %}
               </td>
+              {% comment %} **زرُّ «تعديل» كان يحمل في مصدر الصفحة اسمَ
+                 المستلِم ورقمَ هويّته وجوّالَه** (`data-name`/`data-id`/
+                 `data-phone`) لكلّ من يفتح الشاشة — وكلُّ أفعال هذه الشاشة
+                 خلف `auctions.manage` (`_guard`)، تردّ غيرَه بتحويلٍ صامت.
+                 فالزرُّ الذي لا يعمل ولا يُؤذن بمحتواه لا يُبنى أصلاً.
+                 {% endcomment %}
               <td class="actions actions--nowrap">
-                {% if car.exit_order %}
+                {% if not manage %}<span class="empty">—</span>
+                {% elif car.exit_order %}
                   {% comment %} ثلاثةُ أفعالٍ كـ v1، أيقونةٌ ونصٌّ معاً: الإقرار/
                      الباركود · رفع الموقّع · تعديل بيانات المستلِم. {% endcomment %}
                   <a class="ex-act" href="{% url 'console:exit-declaration' car.pk %}" target="_blank">
@@ -102,17 +122,27 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
-                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
-                <td class="mono">{{ o.vehicle.awarded_to.phone|default:"—"|unlocalize }}</td>
+                <td>
+                  {% if o.vehicle.buyer_name %}{{ o.vehicle.buyer_name }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="mono">
+                  {% if o.vehicle.buyer_phone %}{{ o.vehicle.buyer_phone|unlocalize }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
                 <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
                 <td class="count">{% if o.days_out is not None %}{{ o.days_out|unlocalize }} يوم{% else %}—{% endif %}</td>
                 <td><a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a></td>
                 <td class="actions actions--nowrap">
+                  {% if not manage %}<span class="empty">—</span>{% else %}
                   <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
                     {% csrf_token %}<input type="hidden" name="tab" value="follow">
                     <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
                     <button type="submit" class="btn-primary-sm">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد النقل</button>
                   </form>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}
@@ -136,7 +166,11 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
-                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
+                <td>
+                  {% if o.vehicle.buyer_name %}{{ o.vehicle.buyer_name }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
                 <td>{{ o.warehouse_exit_at|date:"Y-m-d"|default:"—" }}</td>
                 <td>{{ o.transfer_at|date:"Y-m-d"|default:"—" }}</td>
                 <td>
@@ -154,6 +188,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   </section>
 
   {# ── نافذةُ إنشاء أمر الخروج: بياناتُ المستلِم كـ v1 ─────────────── #}
+  {% if manage %}
   <dialog class="modal" data-exit-create-dialog>
     <form method="post" enctype="multipart/form-data" data-exit-create-form>
       {% csrf_token %}
@@ -187,6 +222,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       </p>
     </form>
   </dialog>
+  {% endif %}
 
   {# ── لسانُ البوابة ──────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="gate" hidden>

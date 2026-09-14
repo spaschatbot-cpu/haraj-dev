@@ -165,9 +165,15 @@
                  عليه لا يفتح صفحةً. وكان مكتوباً هنا أن «أيقونة فتح ملفّ
                  المشتري في عمود عرض تفعله»، **وقد أُزيلت** معها — فلا يُفتح
                  ملفُّ مشترٍ من هذه الشاشة. {% endcomment %}
-              {% if row.awarded_to %}
-                <span>{{ row.awarded_to.full_name }}</span>
-                <small class="empty tnum">{{ row.awarded_to.phone|unlocalize }}</small>
+              {% comment %} `buyer_name` و`buyer_phone` من `sensitive.prepare`
+                 لا `row.awarded_to` من العلاقة: حقلٌ يُقرأ من العلاقة في
+                 القالب لا يمرّ من حارسٍ، فيبقى بابٌ مفتوحٌ في شاشةٍ أُغلق في
+                 أختها. وهما فارغان لمن لا يملك `users.view`. {% endcomment %}
+              {% if row.buyer_name %}
+                <span>{{ row.buyer_name }}</span>
+                <small class="empty tnum">{{ row.buyer_phone|unlocalize }}</small>
+              {% elif row.awarded_to and not show_customer %}
+                <span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
               {% else %}
                 <span class="empty">—</span>
               {% endif %}
@@ -212,8 +218,16 @@
                         data-plate="{{ row.plate_number|default:'—' }}"
                         data-chassis="{{ row.vin|default:'—' }}"
                         data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
-                        data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
-                        data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
+                        {% comment %} **الحجبُ في الخادم لا في CSS.** كان الصفُّ
+                           يحمل جوّالَ المشتري ومبلغَ فاتورته ومسدَّدَها
+                           وباقيها في **مصدر الصفحة**، والشاشةُ `auctions.view`
+                           وحدَها — فتُقرأ في «عرض المصدر» وفي مشاركةِ شاشة.
+                           و`show_money`/`show_customer` من `sensitive.py`،
+                           والقيمُ نفسُها مُمحاةٌ من الصفّ في الخادم. {% endcomment %}
+                        {% if show_customer %}
+                        data-buyer="{% if row.buyer_name %}{{ row.buyer_name }}{% else %}—{% endif %}"
+                        data-phone="{% if row.buyer_phone %}{{ row.buyer_phone|unlocalize }}{% else %}—{% endif %}"
+                        {% endif %}
                         data-number="{{ row.invoice_number }}"
                         {% comment %} `data-href` كانت هنا برابط صفحة الفاتورة،
                            **ولا عنصرَ في السند يقرؤها** — والجافاسكربت يبحث عن
@@ -226,11 +240,13 @@
                         data-source="{{ row.invoice_source_label }}"
                         data-odoo="{{ row.invoice_odoo|default:'—' }}"
                         data-odoo-url="{{ row.odoo_invoice_url }}"
+                        {% if show_money %}
                         data-amount="{{ row.invoice_amount|unlocalize }}"
                         data-paid="{{ row.invoice_paid|unlocalize }}"
                         data-residual="{{ row.invoice_residual|unlocalize }}"
-                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
-                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}">
+                        data-sheet="{% if row.settled_by_sheet %}نعم{% else %}لا{% endif %}"
+                        {% endif %}
+                        data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}">
                   {% include "console/_act_icon.html" with path=icon_invoice %}
                 </button>
               {% else %}
@@ -262,73 +278,15 @@
      **وبحقولنا نحن لا حقول v1.** سندُ v1 يعرض «قيمة المركبة» و«رسوم إدارية»
      مقسومتين، وفاتورتُنا تخزّن `amount` واحداً (الإجمالي) — فلا نخترع تقسيماً
      لا نملكه. ونعرض ما عندنا: الإجمالي والمسدَّد والباقي، والحالةَ **مشتقّةً
-     من الدفعات** لا كلمةَ أودو. {% endcomment %}
-  <dialog id="invoiceCard" class="modal voucher">
-    <div class="voucher__actions noprint">
-      <button type="button" class="btn-sm" data-inv-print>طباعة</button>
-      {% comment %} الفاتورةُ الضريبيّة في أودو — يُظهرها JS فقط حين للفاتورة
-         معرّفٌ هناك و`ODOO_BASE_URL` مضبوط. ففاتورةٌ محليّةٌ لم تُزامَن لا
-         فاتورةَ ضريبيّةَ لها، وفي التطوير يبقى مخفيّاً. {% endcomment %}
-      <a class="btn-sm" data-inv-odoo-url target="_blank" rel="noopener" hidden>الفاتورة الضريبيّة (أودو)</a>
-    </div>
+     من الدفعات** لا كلمةَ أودو.
 
-    {% comment %} جسمُ السند في `.voucher__doc` — منه يُنسَخ إلى منطقة الطباعة.
-       الطباعةُ لا تطبع النافذةَ نفسها: `<dialog open>` في «الطبقة العليا»
-       وطباعتُها bug في المتصفّح يظهر صفحةً فارغة. فتُنسَخ إلى عنصرٍ في التدفّق
-       العاديّ (`#voucherPrint`) ويُطبَع هو. {% endcomment %}
-    <div class="voucher__doc">
-      <header class="voucher__head">
-        <h2>سند دفع</h2>
-        <p class="voucher__num"><span data-inv-number></span></p>
-      </header>
-
-      <section class="voucher__grid">
-        <div class="voucher__block">
-          <h3>الأطراف</h3>
-          <dl class="record">
-            <div class="record__pair"><dt>المشتري</dt><dd><span data-inv-buyer></span></dd></div>
-            <div class="record__pair"><dt>الجوال</dt><dd class="tnum"><span data-inv-phone></span></dd></div>
-          </dl>
-        </div>
-
-        <div class="voucher__block">
-          <h3>المركبة</h3>
-          <dl class="record">
-            <div class="record__pair"><dt>المركبة</dt><dd><span data-inv-vehicle></span></dd></div>
-            <div class="record__pair"><dt>الموقف</dt><dd class="tnum"><span data-inv-lot></span></dd></div>
-            <div class="record__pair"><dt>المزاد</dt><dd class="tnum">#<span data-inv-auction></span></dd></div>
-            <div class="record__pair"><dt>اللوحة</dt><dd class="tnum"><span data-inv-plate></span></dd></div>
-            <div class="record__pair"><dt>الشاصي</dt><dd class="tnum"><span data-inv-chassis></span></dd></div>
-            <div class="record__pair"><dt>العداد</dt><dd class="tnum"><span data-inv-mileage></span></dd></div>
-          </dl>
-        </div>
-      </section>
-
-      <section class="voucher__money">
-        <h3>المبلغ</h3>
-        <dl class="record">
-          <div class="record__pair"><dt>الإجمالي المستحق</dt><dd class="money tnum voucher__total"><span data-inv-amount></span> ر.س</dd></div>
-          <div class="record__pair"><dt>المسدَّد</dt><dd class="money tnum"><span data-inv-paid></span> ر.س</dd></div>
-          <div class="record__pair"><dt>الباقي</dt><dd class="money tnum"><span data-inv-residual></span> ر.س</dd></div>
-          <div class="record__pair"><dt>حالة السداد — من الدفعات</dt><dd><span class="pill" data-inv-state-pill><span data-inv-state></span></span></dd></div>
-          <div class="record__pair"><dt>مصدر الفاتورة</dt><dd><span data-inv-source></span></dd></div>
-          <div class="record__pair"><dt>كلمة أودو</dt><dd><span data-inv-odoo></span></dd></div>
-          <div class="record__pair"><dt>سُدِّدت من ملفّ شريك</dt><dd><span data-inv-sheet></span></dd></div>
-          <div class="record__pair"><dt>تاريخ الإصدار</dt><dd class="tnum"><span data-inv-date></span></dd></div>
-        </dl>
-      </section>
-
-      <p class="empty">
-        هذا سندٌ داخليّ. «حالة السداد» محسوبةٌ من الدفعات المسجَّلة لا من كلمة
-        أودو — واختلافُهما هو ما تُفتح لتُريَه. والفاتورةُ الضريبيّة (ZATCA)
-        تصدر من إدارة الحسابات عبر أودو.
-      </p>
-    </div>
-
-    <div class="modal__buttons noprint">
-      <button type="button" data-close>إغلاق</button>
-    </div>
-  </dialog>
+     **والسندُ مشترَكٌ الآن مع «كتالوج السيارات»** (`_invoice_voucher.html`):
+     كانت هنا نسخةٌ كاملةٌ منه وهناك نسخةٌ أخرى — سندٌ واحدٌ في قالبين. ووُحّدا
+     يومَ صار الحجبُ (`invoices.view` للمبلغ و`users.view` للجوّال) شرطاً داخل
+     السند: شرطان متشابهان في قالبين قاعدتان تتفارقان. و`sheet=1` يرسم سطرَ
+     «سُدِّدت من ملفّ شريك» — وهو لهذه الشاشة وحدَها، إذ لا مجموعةَ محسوبةً
+     في الكتالوج وسطرٌ يقول «—» دائماً يُقرأ «لا» ويكذب. {% endcomment %}
+  {% include "console/_invoice_voucher.html" with sheet=1 %}
 
   {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
      نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —

@@ -28,6 +28,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.models import Auction, Vehicle
+from apps.bidding import settlement
 from apps.core import jsonio, ratelimit
 from apps.core.exceptions import envelope
 from apps.core.net import client_ip
@@ -516,7 +517,13 @@ class InvoicePayView(APIView):
         form = InvoicePaySerializer(data=request.data)
         form.is_valid(raise_exception=True)
 
-        txn = services.pay_invoice_from_balance(
+        # `settlement.pay_vehicle_invoice_from_balance` لا
+        # `services.pay_invoice_from_balance`: السدادُ نفسُه، ومعه نقلُ المركبة
+        # إلى «مسدَّدة». بابٌ من خمسةٍ للدفع، والقاعدةُ في موضعٍ واحدٍ خلفها
+        # كلِّها (`bidding/settlement.py:sync_vehicle_to_invoice`) — فعميلٌ
+        # يضغط «ادفع» من تطبيقه يُدخل سيّارته طابورَ الخروج كما يفعل أودو
+        # وملفُّ الشريك، لا أقلّ.
+        txn = settlement.pay_vehicle_invoice_from_balance(
             user=request.user, invoice=invoice, method=form.validated_data["method"]
         )
         invoice.refresh_from_db()

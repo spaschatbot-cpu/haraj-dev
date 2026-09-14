@@ -28,8 +28,9 @@ from apps.core import audit
 from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 
-from .exports import export, wants_export
+from .exports import export_table, wants_export
 from .icons import path_of
+from .sensitive import CUSTOMER, columns_for, person_on, shown_to
 from .views import console_page
 
 PAGE_SIZE = 30
@@ -70,25 +71,43 @@ def vehicle_exit(request):
             match |= Q(auction__number=int(q))
         create_rows = create_rows.filter(match)
 
+    seen = shown_to(request.user)
+
     if wants_export(request):
-        return export(
+        # **والملفُّ يرث حارسَ الشاشة**: المشتري وجوّالُه خلف `users.view`
+        # بالقاعدة نفسِها التي تحجبهما في الجدول (`sensitive.py`). ومن يفتح
+        # الشاشة كان يضغط «تصدير Excel» فيأخذ في ملفٍّ واحدٍ عمودَ الجوّال
+        # كاملاً — وعمودٌ يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بابُ التسريب
+        # نفسُه من الخلف.
+        return export_table(
             create_rows,
             name="الخروج-ونقل-الملكية",
-            headers=[
-                "المزاد", "السيارة", "اللوحة", "الموديل",
-                "المشتري", "الجوال", "حالة الخروج",
-            ],
-            cell=lambda c: [
-                c.auction.number,
-                f"{c.make} {c.model}",
-                c.plate_number,
-                c.year,
-                c.awarded_to.full_name if c.awarded_to else "",
-                c.awarded_to.phone if c.awarded_to else "",
-                c.exit_order.get_stage_display()
-                if hasattr(c, "exit_order") and c.exit_order
-                else "لم يُنشأ",
-            ],
+            columns=columns_for(
+                [
+                    ("المزاد", lambda c: c.auction.number, None),
+                    ("السيارة", lambda c: f"{c.make} {c.model}", None),
+                    ("اللوحة", lambda c: c.plate_number, None),
+                    ("الموديل", lambda c: c.year, None),
+                    (
+                        "المشتري",
+                        lambda c: c.awarded_to.full_name if c.awarded_to else "",
+                        CUSTOMER,
+                    ),
+                    (
+                        "الجوال",
+                        lambda c: c.awarded_to.phone if c.awarded_to else "",
+                        CUSTOMER,
+                    ),
+                    (
+                        "حالة الخروج",
+                        lambda c: c.exit_order.get_stage_display()
+                        if hasattr(c, "exit_order") and c.exit_order
+                        else "لم يُنشأ",
+                        None,
+                    ),
+                ],
+                seen,
+            ),
         )
 
     page = Paginator(create_rows, PAGE_SIZE).get_page(request.GET.get("page"))
@@ -102,6 +121,25 @@ def vehicle_exit(request):
     )
     archive = list(orders.filter(stage=ExitStage.ARCHIVED).order_by("-transfer_at"))
 
+    # **المحجوبُ يُمحى هنا، قبل القالب.** كانت الألسنةُ الثلاثةُ تضع اسمَ
+    # المشتري وجوّالَه في **مصدر الصفحة** لكلّ صفّ، والشاشةُ `auctions.view`
+    # وحدَها — وهي البياناتُ نفسُها التي أُغلقت في الكتالوج و«ما بعد البيع».
+    # والقاعدةُ واحدةٌ في `sensitive.py`.
+    #
+    # ولسانا المتابعة والأرشيف صفوفُهما `VehicleExit` لا `Vehicle`، والشخصُ
+    # على مركبتها — فتُمرَّر المركباتُ أنفسُها، ويقرأ القالبُ
+    # `o.vehicle.buyer_phone`. لا حارسٌ ثانٍ لشكلِ صفٍّ ثانٍ.
+    person_on(page.object_list, seen)
+    person_on([order.vehicle for order in follow], seen)
+    person_on([order.vehicle for order in archive], seen)
+
+    # ومن لا يملك `auctions.manage` لا يُبنى له زرُّ كتابة: `_guard` تردّ كلَّ
+    # أفعال هذه الشاشة إليه بتحويلٍ صامت، **وزرُّ «تعديل» كان يحمل في مصدر
+    # الصفحة اسمَ المستلِم ورقمَ هويّته وجوّالَه** في `data-*` لمن لا يملك
+    # الفعلَ أصلاً. فالزرُّ الذي لا يعمل ليس عموداً يُحجَب محتواه — هو زرٌّ
+    # لا يُكتب.
+    manage = _guard(request)
+
     return render(
         request,
         "console/vehicle_exit.html",
@@ -110,6 +148,8 @@ def vehicle_exit(request):
             "q": q,
             "follow": follow,
             "archive": archive,
+            "show_customer": seen.customer,
+            "manage": manage,
             "export_url": f"?export=xlsx&q={q}",
             "counts": {
                 "create": Vehicle.objects.filter(

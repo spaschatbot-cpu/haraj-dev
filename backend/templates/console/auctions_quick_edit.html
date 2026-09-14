@@ -37,6 +37,20 @@
    و`0` موضعٌ يُستبدَل، لأن `{% templatetag openblock %} url {% templatetag closeblock %}` تحتاج رقماً تبنيه به. {% endcomment %}
 <div class="qe" data-auction="{{ auction.number|unlocalize }}" data-csrf="{{ csrf_token }}"
      data-save-url="{% url 'console:vehicle-quick-update' 0 %}">
+  {% if auction_is_closed %}
+    {% comment %}
+    لافتةٌ لا منع. المالك: لا يُمنع تعديلُ عدّادٍ في مزادٍ منتهٍ، لأن المنع
+    يمنع تصحيحَ قراءةٍ اكتُشف خطؤها متأخّراً — وv1 لا يمنع. لكنّ شاشةَ
+    الاختيار تعرض كلَّ المزادات بلا استثناء، فيدخل الموظّفُ مزاداً مُرحَّلاً
+    وهو يحسبه جارياً. فتُقال الحالةُ هنا قبل الكتابة، وتُكتب في قيد التدقيق
+    بعدها.
+    {% endcomment %}
+    <p class="notice warning">
+      هذا المزاد <strong>{{ auction_state_label }}</strong> — وقد تكون سياراتُه
+      مُفوتَرةً ومُسلَّمة. التعديلُ مسموحٌ (لتصحيح قراءةٍ اكتُشف خطؤها متأخّراً)،
+      و<strong>يُسجَّل في سجلّ التدقيق أنه وقع بعد انتهاء المزاد</strong>.
+    </p>
+  {% endif %}
   <div class="qe__bar">
     <p class="qe__hint">عدّل رقم الموقف والعدّاد والمواصفات مباشرةً. الحفظُ تلقائيّ — كلُّ تعديلٍ يُسجَّل وحده، والعلامةُ جوار الاسم توضّح الحالة.</p>
     <div class="qe__tools">
@@ -193,10 +207,48 @@
     return h + '</div>';
   }
 
+  // ── ختمُ HR-13 لكلّ كارت، وما يُقال حين يُرفض ──────────────────────────
+  //
+  // الختمُ **للكارت لا للصفحة**: الشاشة تحفظ كارتاً كارتاً بـ`fetch`، فختمٌ
+  // واحدٌ للصفحة كان سيبطل عند أوّل حفظٍ ناجح فيُرفض كلُّ ما بعده.
+  //
+  // و`BASE` نسخةُ ما بُني منه الكارت. حين يردّ الخادم ٤٠٩ يُرسل `fresh` —
+  // الصفَّ كما هو الآن — فيُقارَن بها ويُسمّى **ما تغيّر بالضبط**: «عداد
+  // المسافة: 120000 ← 5». ولا يُعاد تحميل الجدول ولا يُمسّ كارتٌ آخر.
+  var QE_KEYS = ['lot', 'odo', 'pt', 'ft', 'cond', 'runs', 'key'];
+  var QE_LABELS = {
+    lot: 'رقم الموقف', odo: 'عداد المسافة', pt: 'نوع اللوحة',
+    ft: 'الوقود', cond: 'حالة المركبة', runs: 'حالة المحرك', key: 'المفتاح'
+  };
+  var QE_CHOICE_OF = { pt: 'plate_type', ft: 'fuel_type', cond: 'condition' };
+  var BASE = {};
+  DATA.forEach(function (r) { BASE[r.id] = r; });
+
+  // التعداداتُ تُعرض بلصيقتها العربية لا بقيمتها المخزَّنة: «شحن» لا `transfer`.
+  function shown(k, v) {
+    var s = String(v == null ? '' : v);
+    var group = CH[QE_CHOICE_OF[k]];
+    if (group) {
+      for (var i = 0; i < group.length; i++) if (group[i][0] === s) return group[i][1];
+    }
+    return s === '' ? '—' : s;
+  }
+
+  function clashText(was, now) {
+    var parts = [];
+    QE_KEYS.forEach(function (k) {
+      var a = String(was && was[k] != null ? was[k] : '');
+      var b = String(now[k] != null ? now[k] : '');
+      if (a !== b) parts.push(QE_LABELS[k] + ': ' + shown(k, a) + ' ← ' + shown(k, b));
+    });
+    return parts.join(' · ');
+  }
+
   function cardHtml(r) {
     var vid = r.id;
     var sub = esc(r.plate || '—') + (r.vin ? ' · ' + esc(r.vin) : '') + (r.claim ? ' · مطالبة ' + esc(r.claim) : '');
-    return '<article class="qe-card" data-vid="' + vid + '" data-search="' + esc(r.s) + '">' +
+    return '<article class="qe-card" data-vid="' + vid + '" data-search="' + esc(r.s) + '"' +
+      ' data-stamp="' + esc(r.stamp || '') + '">' +
       '<header class="qe-card__head">' +
         '<div class="qe-card__title">' + esc(r.name || ('سيارة #' + vid)) +
           '<span class="qe-card__sub">' + sub + '</span></div>' +
@@ -207,10 +259,18 @@
             svg('save', 17) +
           '</button></div>' +
       '</header>' +
+      // سطرُ التعارض: يظهر حين يردّ الخادم ٤٠٩، ويحمل ما صار إليه الحقل.
+      '<p class="qe-card__clash" data-clash hidden></p>' +
       '<div class="qe-field"><span class="qe-label">رقم الموقف</span>' +
         '<input type="number" min="1" data-field="lot_number" value="' + esc(r.lot) + '"></div>' +
       '<div class="qe-field"><span class="qe-label">عداد المسافة (كم)</span>' +
-        '<input type="number" min="0" data-field="odometer_km" value="' + esc(r.odo) + '" placeholder="لم يُقَس">' +
+        // النائبُ يقول الحقيقةَ في الحالتين. كان «لم يُقَس» دائماً — فيقرؤه من
+        // محا رقماً قائماً وعداً بأن الفراغ سيُسجَّل «لم يُقَس»، **والخادم
+        // يتخطّى الفارغ** (قاعدة v1، وسببُها أن الحفظ تلقائيٌّ بعد ٩٠٠ مللي:
+        // مسحُ الخانة لإعادة كتابتها كان يمحو قياسَ الساحة بلا سؤال). فالكودُ
+        // هو الصواب، والنصُّ هو الذي كان يكذب — وصار يقول للحالتين ما يقع.
+        '<input type="number" min="0" data-field="odometer_km" value="' + esc(r.odo) + '"' +
+          ' placeholder="' + (String(r.odo) === '' ? 'لم يُقَس' : 'اتركه فارغاً فلا يتغيّر') + '">' +
         '<label class="qe-photo" title="صوّر العدّاد"><input type="file" accept="image/*" capture="environment" data-field="meter_image" hidden>' +
           '<span class="qe-photo__lbl">' + svg('camera', 14) + ' صورة العدّاد</span>' +
           '<span class="qe-photo__prev" hidden></span></label></div>' +
@@ -373,7 +433,11 @@
   //   * الرسالةُ تقول «حُفظ ٠ وفشل ٣٨٦».
   // ولا شيء فشل؛ لم يكن ثمّة ما يُحفَظ. وشاشةٌ تقول للموظّف إن ٣٨٦ سيارةً فشلت
   // وهي سليمة تُعلّمه أن يتجاهل علامةَ الخطأ — فحين تفشل واحدةٌ حقاً لا يراها.
-  function saveCard(card, silent, unloading) {
+  // ويُضاف إليها `ack`: إعادةُ الإرسال بعد أن أكّد الموظّف نقصانَ العدّاد.
+  // والقاعدةُ التي تقرّر «هذا نقصان» تعيش في الخادم وحده — الجافاسكربت لا
+  // يحسبها ولا ينسخها: يسأل، فيُردّ عليه ٤٢٢ بـ`code: odometer_down` ورسالةٍ
+  // فيها الرقمان، فيعرضها كما هي. قاعدةٌ واحدةٌ في مكانٍ واحد.
+  function saveCard(card, silent, unloading, ack) {
     var vid = card.dataset.vid;
     var lot = card.querySelector('[data-field=lot_number]').value.trim();
     var odo = card.querySelector('[data-field=odometer_km]').value.trim();
@@ -386,6 +450,9 @@
     // المزادُ مع كلّ حفظ: الخادمُ يرفض المركبةَ التي ليست فيه — شرطُ v1
     // (`findAuctionVehicle($auctionId, $vehicleId)`).
     fd.append('auction', auction);
+    // ختمُ الصفّ ساعةَ بُني الكارت — يعود مع كل حفظ، ويتجدّد من ردّ النجاح.
+    fd.append('row_stamp', card.dataset.stamp || '');
+    if (ack) fd.append('odometer_down_ack', '1');
     fd.append('lot_number', lot);
     fd.append('odometer_km', odo);
     ['plate_type', 'fuel_type', 'condition', 'runs_status', 'key_status'].forEach(function (f) {
@@ -416,6 +483,35 @@
           toast('عطلٌ في الخادم (' + res.s + ') — لم يُحفَظ. أعِد المحاولة.', 'err');
           return 'failed';
         }
+        // ٤٠٩ «عُدِّل من نافذةٍ أخرى» — **الكارتُ وحده يُعلَّم**، ويُقال ما
+        // صار إليه الحقل، وبقيّةُ الجدول لا تُمسّ ولا تُعاد الصفحة. والختمُ
+        // يتجدّد فيصير الحفظُ الثاني — وهو ضغطةٌ ثانيةٌ مقصودة — نافذاً على
+        // القيمة الجديدة. وذلك هو «أعِد الفتح وطبّق تعديلك» بلا إعادة فتح.
+        if (!d.ok && res.s === 409 && d.code === 'stale' && d.fresh) {
+          var clash = card.querySelector('[data-clash]');
+          var what = clashText(BASE[+vid], d.fresh);
+          BASE[+vid] = d.fresh;
+          card.dataset.stamp = d.fresh.stamp || '';
+          setMark(status, 'err');
+          if (clash) {
+            clash.textContent = d.message + (what ? ' ' + what : '') +
+              ' — راجِع، ثم احفظ مرّةً أخرى لتطبيق تعديلك على القيمة الجديدة.';
+            clash.hidden = false;
+          }
+          toast(d.message + (what ? ' ' + what : ''), 'err');
+          return 'failed';
+        }
+        // نقصانُ العدّاد: تحذيرٌ يُؤكَّد لا منع. الخادم يرفض أوّلاً ويقول
+        // الرقمين، والموظّفُ يؤكّد فيُعاد الإرسال بعلمٍ **في الطلب** — ويُكتب
+        // في القيد أنه نقصانٌ مؤكَّد. و«تصحيحُ خطأِ إدخالٍ سابق» هو بالضبط
+        // ما يجعل المنعَ خطأ.
+        if (!d.ok && res.s === 422 && d.code === 'odometer_down' && !ack) {
+          if (unloading) { setMark(status, 'err'); return 'failed'; }
+          if (window.confirm(d.message)) return saveCard(card, silent, false, true);
+          if (status) { status.innerHTML = ''; status.removeAttribute('role'); status.removeAttribute('aria-label'); }
+          toast('لم يُحفَظ — لم يُؤكَّد نقصان العدّاد.', 'warn');
+          return 'failed';
+        }
         // «لا تغيير» ليست فشلاً: لم يكن ثمّة ما يُكتب.
         if (!d.ok && res.s === 422 && d.message === 'لا تغيير.') {
           if (status) { status.innerHTML = ''; status.removeAttribute('role'); status.removeAttribute('aria-label'); }
@@ -424,6 +520,23 @@
         }
         if (d && d.ok) {
           var gotImage = file && d.image_id;
+          // الختمُ يتجدّد من الردّ: الكارتُ نفسُه يُحفظ مرّاتٍ متتالية (حفظٌ
+          // تلقائيٌّ بعد كل سكون)، وختمٌ ثابتٌ كان سيجعل الحفظ الثاني يُرفض
+          // بحجّة أن الأوّل — حفظَ الموظّف نفسِه — دهسه.
+          if (d.row_stamp) card.dataset.stamp = d.row_stamp;
+          var was = BASE[+vid];
+          if (was) {
+            was.lot = lot === '' ? was.lot : +lot;
+            if (odo !== '') was.odo = +odo;
+            ['plate_type', 'fuel_type', 'condition', 'runs_status', 'key_status']
+              .forEach(function (f, ix) {
+                var v = chipValue(card, f);
+                if (v) was[['pt', 'ft', 'cond', 'runs', 'key'][ix]] = v;
+              });
+            was.stamp = d.row_stamp || was.stamp;
+          }
+          var clashOk = card.querySelector('[data-clash]');
+          if (clashOk) { clashOk.hidden = true; clashOk.textContent = ''; }
           setMark(status, gotImage ? 'saved_img' : 'ok');
           card.classList.add('qe-card--saved');
           if (file && fileInput) { fileInput.value = ''; }

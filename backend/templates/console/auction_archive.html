@@ -17,6 +17,18 @@
   <section class="board-stats board-stats--compact" aria-label="أرقام الأرشيف">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
+  {% comment %}
+  البطاقتان بأساسين — تناقضٌ موروثٌ من v1 حرفياً، وحكمُ المالك ألّا يُغيَّر
+  رقمٌ يقرؤه: يُسمَّى كلٌّ بأساسه، ويُقال لماذا لا يتساويان. ولا حسابَ أُعيد.
+  {% endcomment %}
+  {# السطرُ يشرح فرقَ رقمين — فلا يُبنى أصلاً لمن حُجب عنه الرقمان. #}
+  {% if show_money %}
+  <p class="hint">
+    <strong>البطاقتان لا تتساويان، وهذا صحيح:</strong> «المبيعات» سعرُ المطرقة
+    وحده (جمعُ أسعار الرسو)، و«المحصّل» و«المتبقّي» من الفواتير — وكلُّ فاتورةٍ
+    سعرٌ + رسمٌ إداريّ + ضريبة. فالثاني أكبرُ من الأوّل بحكم تكوينه لا بخطأ.
+  </p>
+  {% endif %}
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
@@ -43,7 +55,10 @@
         <th>اسم المزاد</th>
         <th>تاريخ الانتهاء</th>
         <th>عدد المركبات</th>
-        <th>إجمالي المبيعات (ر.س)</th>
+        {% comment %} عمودُ المبيعات مبلغٌ — يُحجَب عمّن لا يملك «عرض الفواتير
+           والمدفوعات»، والعمودُ نفسُه يسقط من رأس الجدول فلا يبقى عنوانٌ فوق
+           خلايا فارغة. وعددُ المركبات يبقى: عددٌ لا مبلغ. {% endcomment %}
+        {% if show_money %}<th>إجمالي المبيعات (ر.س)</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -62,13 +77,13 @@
           <td><strong>{{ row.title }}</strong></td>
           <td>{{ row.ends_at|date:"Y-m-d H:i" }}</td>
           <td class="count">{{ row.vehicle_count|unlocalize }}</td>
-          <td class="money tnum">{{ row.sold_total|default:"0.00"|unlocalize }}</td>
+          {% if show_money %}<td class="money tnum">{{ row.sold_total|default:"0.00"|unlocalize }}</td>{% endif %}
         </tr>
         {% if row.vehicle_count %}
-          <tr class="arch-panel" hidden><td colspan="5"><div class="arch-panel__inner" data-arch-panel></div></td></tr>
+          <tr class="arch-panel" hidden><td colspan="{% if show_money %}5{% else %}4{% endif %}"><div class="arch-panel__inner" data-arch-panel></div></td></tr>
         {% endif %}
       {% empty %}
-        <tr><td colspan="5" class="empty">لا مزادات منتهية مطابقة.</td></tr>
+        <tr><td colspan="{% if show_money %}5{% else %}4{% endif %}" class="empty">لا مزادات منتهية مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
