@@ -76,6 +76,66 @@ def vehicle_exit(request):
 
     seen = shown_to(request.user)
 
+    # لسانا المتابعة والأرشيف: أوامرُ الخروج بحسب مرحلتها.
+    orders = VehicleExit.objects.select_related(
+        "vehicle", "vehicle__auction", "vehicle__awarded_to"
+    )
+    follow_rows = orders.filter(stage=ExitStage.UNDER_TRANSFER).order_by(
+        "warehouse_exit_at"
+    )
+    archive_rows = orders.filter(stage=ExitStage.ARCHIVED).order_by("-transfer_at")
+
+    # **تصديرُ المرحلة كاملةً، لا ما تركه الفلتر.** شريطُ الفلترة في هذين
+    # اللسانين يُخفي صفوفاً في المتصفّح ولا يحذفها، فملفٌّ يتبع الشاشةَ يُسلّم
+    # جزءاً من الجواب بصمت — وهي حجّةُ v1 نفسُها (`scope=transfer|archive`).
+    scope = (request.GET.get("scope", "") or "").strip()
+    if wants_export(request) and scope in ("follow", "archive"):
+        stage_rows = follow_rows if scope == "follow" else archive_rows
+        return export_table(
+            stage_rows,
+            name="متابعة-نقل-الملكية" if scope == "follow" else "أرشيف-المنقولة",
+            columns=columns_for(
+                [
+                    ("السيارة", lambda o: f"{o.vehicle.make} {o.vehicle.model}", None),
+                    ("اللوحة", lambda o: o.vehicle.plate_number, None),
+                    ("رقم المطالبة", lambda o: o.vehicle.claim_number, None),
+                    ("الموديل", lambda o: o.vehicle.year, None),
+                    (
+                        "المشتري",
+                        lambda o: o.vehicle.awarded_to.full_name
+                        if o.vehicle.awarded_to
+                        else "",
+                        CUSTOMER,
+                    ),
+                    (
+                        "الجوال",
+                        lambda o: o.vehicle.awarded_to.phone
+                        if o.vehicle.awarded_to
+                        else "",
+                        CUSTOMER,
+                    ),
+                    ("الغرض / الحالة", lambda o: o.purpose[0], None),
+                    (
+                        "تاريخ الخروج",
+                        lambda o: localtime(o.warehouse_exit_at).strftime("%Y-%m-%d %H:%M")
+                        if o.warehouse_exit_at
+                        else "",
+                        None,
+                    ),
+                    (
+                        "تاريخ النقل",
+                        lambda o: localtime(o.transfer_at).strftime("%Y-%m-%d %H:%M")
+                        if o.transfer_at
+                        else "",
+                        None,
+                    ),
+                    ("المؤقّت", lambda o: o.timer[0], None),
+                    ("ملاحظات المتابعة", lambda o: o.notes, None),
+                ],
+                seen,
+            ),
+        )
+
     if wants_export(request):
         # **والملفُّ يرث حارسَ الشاشة**: المشتري وجوّالُه خلف `users.view`
         # بالقاعدة نفسِها التي تحجبهما في الجدول (`sensitive.py`). ومن يفتح
@@ -115,14 +175,8 @@ def vehicle_exit(request):
 
     page = Paginator(create_rows, PAGE_SIZE).get_page(request.GET.get("page"))
 
-    # لسانا المتابعة والأرشيف: أوامرُ الخروج بحسب مرحلتها.
-    orders = VehicleExit.objects.select_related(
-        "vehicle", "vehicle__auction", "vehicle__awarded_to"
-    )
-    follow = list(
-        orders.filter(stage=ExitStage.UNDER_TRANSFER).order_by("warehouse_exit_at")
-    )
-    archive = list(orders.filter(stage=ExitStage.ARCHIVED).order_by("-transfer_at"))
+    follow = list(follow_rows)
+    archive = list(archive_rows)
 
     # **المحجوبُ يُمحى هنا، قبل القالب.** كانت الألسنةُ الثلاثةُ تضع اسمَ
     # المشتري وجوّالَه في **مصدر الصفحة** لكلّ صفّ، والشاشةُ `auctions.view`

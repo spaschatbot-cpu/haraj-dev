@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 الخروج ونقل الملكية — دورةُ حياةٍ كاملة، نظيرُ v1: أربعةُ ألسنة (إنشاء ·
 متابعة · أرشيف · بوابة). الكتابةُ عبر `apps.auctions.exits` وحدها، وكلُّ فعلٍ
@@ -126,6 +126,22 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ المتابعة ──────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="follow" hidden>
     {% if follow %}
+      {% comment %} شريطُ الفلترة في المتصفّح لا بطلبٍ جديد: الصفوفُ كلُّها في
+         الصفحة أصلاً (المرحلةُ لا الجدول)، وطلبُ خادمٍ لكلّ حرفٍ يُكتب في خانةِ
+         بحثٍ فوق جدولٍ حاضرٍ إنفاقٌ بلا مقابل. والتصديرُ بالمقابل خادميٌّ
+         و**للمرحلة كاملةً** لا لما تركه الفلتر. {% endcomment %}
+      <div class="ex-filter" data-filter="follow">
+        <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال · الملاحظة" aria-label="بحث في المتابعة">
+        <span class="muted">تاريخ الخروج من</span>
+        <input type="date" class="ex-filter__from" aria-label="من تاريخ">
+        <span class="muted">إلى</span>
+        <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
+        <button type="button" class="btn-sm ex-filter__clear">مسح</button>
+        <a href="?export=xlsx&amp;scope=follow" class="ex-act" title="تصدير كل صفوف هذه المرحلة، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — متابعة نقل الملكية ({{ counts.follow|unlocalize }})</span></a>
+        <span class="ex-filter__n muted" hidden></span>
+      </div>
       <div class="scroller">
         <table>
           <thead><tr><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>الغرض / الحالة</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>ملاحظات المتابعة</th><th>إجراءات</th></tr></thead>
@@ -133,7 +149,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
             {% for o in follow %}
               {% comment %} لونُ الصفّ من درجة التأخّر، ومن الحظر قبلها: صفٌّ
                  محظورٌ يُقرأ قبل أن يُقرأ مؤقّتُه، لأن متابعتَه شيءٌ آخر. {% endcomment %}
-              <tr class="ex-row" data-late="{{ o.timer.2|unlocalize }}"{% if o.is_banned %} data-ban="1"{% endif %}>
+              <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}" data-late="{{ o.timer.2|unlocalize }}"{% if o.is_banned %} data-ban="1"{% endif %}>
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
@@ -209,12 +225,24 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ الأرشيف ───────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="archive" hidden>
     {% if archive %}
+      <div class="ex-filter" data-filter="archive">
+        <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال" aria-label="بحث في الأرشيف">
+        <span class="muted">تاريخ الخروج من</span>
+        <input type="date" class="ex-filter__from" aria-label="من تاريخ">
+        <span class="muted">إلى</span>
+        <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
+        <button type="button" class="btn-sm ex-filter__clear">مسح</button>
+        <a href="?export=xlsx&amp;scope=archive" class="ex-act" title="تصدير الأرشيف كاملاً، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — الأرشيف ({{ counts.archive|unlocalize }})</span></a>
+        <span class="ex-filter__n muted" hidden></span>
+      </div>
       <div class="scroller">
         <table>
           <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
           <tbody>
             {% for o in archive %}
-              <tr>
+              <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}">
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
@@ -359,7 +387,10 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
           {% include "console/_act_icon.html" with path=row_icons.camera %}
           <span>مسح بالكاميرا</span></button>
       </p>
+      {% comment %} حاويتان: الأولى لفيديو `BarcodeDetector`، والثانية تملؤها
+         `html5-qrcode` بفيديوها. لا تظهران معاً. {% endcomment %}
       <div id="gateReader" class="ex-gate__reader" hidden><video playsinline muted></video></div>
+      <div id="gateReaderLib" class="ex-gate__reader" hidden></div>
       <div id="gateResult" class="ex-gate__result" aria-live="polite"></div>
 
       {% comment %} نموذجُ التأكيد واحدٌ يُملأ من نتيجة البحث — لا نموذجَ يُبنى
@@ -374,6 +405,9 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
 {% endblock %}
 
 {% block scripts %}
+{% comment %} نسخةٌ محليّة لا CDN — `static/console/vendor/README.md` يقول لماذا،
+   وهي بديلُ `BarcodeDetector` حيث لا يوجد (كروم ويندوز). {% endcomment %}
+<script src="{% static 'console/vendor/html5-qrcode.min.js' %}" defer></script>
 <script>
 (function () {
   var tabs = [].slice.call(document.querySelectorAll('.ex-tab'));
@@ -460,6 +494,43 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
     });
   });
 
+  // ── شريطُ الفلترة في لساني المتابعة والأرشيف ───────────────────────
+  // إخفاءٌ لا حذف: الصفوفُ تبقى في الصفحة (ولذلك يُصدَّر الخادمُ المرحلةَ
+  // كاملةً لا ما بقي على الشاشة). والمقارنةُ نصّيّةٌ على `YYYY-MM-DD` —
+  // الصيغةُ تترتّب أبجديّاً كما تترتّب زمنيّاً، فلا حاجةَ إلى `Date`.
+  document.querySelectorAll('.ex-filter').forEach(function (bar) {
+    var pane = bar.closest('.ex-pane');
+    var rows = [].slice.call(pane.querySelectorAll('tbody .ex-row'));
+    var q = bar.querySelector('.ex-filter__q');
+    var from = bar.querySelector('.ex-filter__from');
+    var to = bar.querySelector('.ex-filter__to');
+    var note = bar.querySelector('.ex-filter__n');
+
+    function apply() {
+      var text = (q.value || '').trim().toLowerCase();
+      var f = from.value, t = to.value, shown = 0;
+      rows.forEach(function (row) {
+        var d = row.getAttribute('data-date') || '';
+        var ok = (!text || row.innerText.toLowerCase().indexOf(text) !== -1)
+          && (!f || (d && d >= f))
+          && (!t || (d && d <= t));
+        row.hidden = !ok;
+        if (ok) { shown++; }
+      });
+      var filtered = text || f || t;
+      note.hidden = !filtered;
+      note.textContent = filtered ? ('ظاهر ' + shown + ' من ' + rows.length) : '';
+    }
+
+    [q, from, to].forEach(function (el) {
+      el.addEventListener('input', apply);
+      el.addEventListener('change', apply);
+    });
+    bar.querySelector('.ex-filter__clear').addEventListener('click', function () {
+      q.value = ''; from.value = ''; to.value = ''; apply();
+    });
+  });
+
   // ── البوّابة: باركود → بحث → مطابقةٌ بالعين → تأكيد ────────────────
   var gCode = document.getElementById('gateCode');
   var gBox = document.getElementById('gateResult');
@@ -506,47 +577,85 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   }
 
   // ── المسح بالكاميرا ────────────────────────────────────────────────
-  // ‏`BarcodeDetector` من المتصفّح، لا مكتبةٌ من CDN: v1 يُحمّل `html5-qrcode`
-  // من unpkg، وبوّابةُ ساحةٍ بلا إنترنتٍ لحظةَ الحاجة تبقى بلا كاميرا. والزرُّ
-  // مخفيٌّ حتى يثبت أن المتصفّح يدعمها — زرٌّ يُضغَط فلا يحدث شيء أسوأ من زرٍّ
-  // غائب. ومن لا كاميرا عنده يكتب الرمز، والقارئُ السلكيّ يكتبه نيابةً عنه.
+  // طريقان، والأولُ بلا تحميل: `BarcodeDetector` المدمج إن وُجد، وإلّا
+  // `html5-qrcode` **من `static/console/vendor/`** لا من CDN (انظر README
+  // هناك: بوّابةُ ساحةٍ بلا إنترنتٍ لحظةَ الحاجة تبقى بلا كاميرا).
+  //
+  // وكان الزرُّ مشروطاً بـ`BarcodeDetector` وحده، **وهو غيرُ موجودٍ على كروم
+  // ويندوز** — فاختفى على الجهاز الذي تُجرَّب عليه اللوحة. فصار الزرُّ يظهر
+  // متى وُجدت كاميرا، ويختار الطريقَ عند الضغط.
   var scanBtn = document.querySelector('[data-gate-scan]');
   var reader = document.getElementById('gateReader');
+  var readerLib = document.getElementById('gateReaderLib');
   var video = reader && reader.querySelector('video');
-  var stream = null, detector = null, timer = null;
+  var stream = null, detector = null, timer = null, libScanner = null;
 
-  if (scanBtn && 'BarcodeDetector' in window) { scanBtn.hidden = false; }
+  if (scanBtn && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    scanBtn.hidden = false;
+  }
+
+  function scanLabel(on) {
+    scanBtn.querySelector('span').textContent = on ? 'إيقاف الكاميرا' : 'مسح بالكاميرا';
+  }
 
   function stopScan() {
     if (timer) { clearInterval(timer); timer = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
-    reader.hidden = true;
-    scanBtn.querySelector('span').textContent = 'مسح بالكاميرا';
+    if (libScanner) {
+      var s = libScanner; libScanner = null;
+      try { s.stop().then(function () { s.clear(); }).catch(function () {}); } catch (e) {}
+    }
+    reader.hidden = true; readerLib.hidden = true;
+    scanLabel(false);
+  }
+
+  function scanning() { return !!(stream || libScanner); }
+
+  function found(code) { gCode.value = code; stopScan(); gateLookup(); }
+
+  function startNative() {
+    detector = detector || new window.BarcodeDetector({
+      formats: ['code_128', 'code_39', 'qr_code', 'ean_13']
+    });
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(function (s) {
+        stream = s; video.srcObject = s; video.play();
+        reader.hidden = false; scanLabel(true);
+        timer = setInterval(function () {
+          detector.detect(video).then(function (hits) {
+            if (hits && hits.length) { found(hits[0].rawValue); }
+          }).catch(function () {});
+        }, 400);
+      });
+  }
+
+  function startLibrary() {
+    if (typeof Html5Qrcode === 'undefined') {
+      gBox.innerHTML = '<p class="ex-gate__bad">مكتبة الكاميرا لم تُحمَّل — اكتب الباركود يدوياً.</p>';
+      return Promise.resolve();
+    }
+    readerLib.hidden = false; scanLabel(true);
+    libScanner = new Html5Qrcode('gateReaderLib');
+    var fmts = (typeof Html5QrcodeSupportedFormats !== 'undefined') ? [
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.QR_CODE
+    ] : undefined;
+    return libScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 300, height: 150 }, formatsToSupport: fmts },
+      function (text) { found(text); },
+      function () {}
+    );
   }
 
   if (scanBtn) {
     scanBtn.addEventListener('click', function () {
-      if (stream) { stopScan(); return; }
-      detector = detector || new window.BarcodeDetector({
-        formats: ['code_128', 'code_39', 'qr_code', 'ean_13']
+      if (scanning()) { stopScan(); return; }
+      var start = ('BarcodeDetector' in window) ? startNative : startLibrary;
+      start().catch(function () {
+        stopScan();
+        gBox.innerHTML = '<p class="ex-gate__bad">تعذّر فتح الكاميرا — تأكّد من السماح بها لهذا الموقع.</p>';
       });
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-        .then(function (s) {
-          stream = s; video.srcObject = s; video.play();
-          reader.hidden = false;
-          scanBtn.querySelector('span').textContent = 'إيقاف الكاميرا';
-          timer = setInterval(function () {
-            detector.detect(video).then(function (found) {
-              if (!found || !found.length) { return; }
-              gCode.value = found[0].rawValue;
-              stopScan();
-              gateLookup();
-            }).catch(function () {});
-          }, 400);
-        })
-        .catch(function () {
-          gBox.innerHTML = '<p class="ex-gate__bad">تعذّر فتح الكاميرا — تأكّد من السماح بها لهذا الموقع.</p>';
-        });
     });
   }
 
