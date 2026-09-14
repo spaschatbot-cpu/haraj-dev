@@ -4843,11 +4843,26 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-row[data-late="2"] > td { background: color-mix(in srgb, var(--danger) 9%, transparent); }
 .ex-row[data-late="3"] > td { background: color-mix(in srgb, var(--danger) 16%, transparent); }
 .ex-row[data-ban] > td { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+/* اثنا عشرَ عموداً في عرضٍ واحد: بلا `nowrap` يلتفّ رقمُ الجوّال على أربعة
+   أسطرَ ورقمُ المطالبة على سطرين، فيصير الصفُّ الواحد كتلةً بارتفاع خمسة صفوف
+   ولا يُقرأ الجدولُ مسحاً بالعين. الالتفافُ يُمنع، والفائضُ يُمرَّر أفقياً في
+   `.scroller` — وهو ما يفعله جدولُ v1 حرفيّاً. */
+.ex-row > td { white-space: nowrap; }
+/* والخليّتان الوحيدتان اللتان تُستثنَيان هما اللتان تحملان نموذجاً — ومعهما
+   `flex-wrap` يُطفأ: صفٌّ واحدٌ بارتفاع خمسة أسطرَ يقتل الجدولَ نفسَه الذي
+   مُنع الالتفافُ لأجله. */
+.ex-row > td:has(.ex-note), .ex-row > td:has(.ex-inline) { white-space: normal; }
+.ex-row .ex-inline { flex-wrap: nowrap; }
+.ex-row .ex-inline input[type=file] { max-inline-size: 7.5rem; font-size: .7rem; }
+/* و«تأكيد النقل» في سطرٍ واحد: الخليّةُ ضيّقةٌ فيلتفّ النصُّ على سطرين ويصير
+   الزرُّ أطولَ من صفّه. */
+.ex-row .ex-inline button { white-space: nowrap; }
 .ex-files { display: flex; flex-wrap: wrap; gap: .25rem; }
-.ex-note { display: flex; gap: .3rem; align-items: flex-start; min-inline-size: 11rem; }
+.ex-note { display: flex; gap: .3rem; align-items: center; }
 .ex-note textarea {
-  flex: 1; min-inline-size: 7rem; resize: vertical; font: inherit; font-size: .78rem;
-  padding: .3rem .4rem; border: 1px solid var(--line); border-radius: var(--radius);
+  flex: 1; inline-size: 8rem; min-inline-size: 0; block-size: 1.9rem; resize: vertical;
+  font: inherit; font-size: .78rem; padding: .3rem .4rem;
+  border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--panel); color: var(--ink);
 }
 
