@@ -174,9 +174,11 @@
 
     {% if board.trend %}
       <section class="figure" aria-label="المزايدات في سبعة أيام">
+        {% comment %} سطرُ «العمود الأطول هو أعلى يوم» حُذف: صار يومُ الذروة
+           **مُعلَّماً** في الرسم ومكتوباً في سطر المقدار، فالجملةُ تشرح ما
+           لم يعد يحتاج شرحاً. {% endcomment %}
         <header class="figure__head">
           <h2>المزايدات — سبعة أيام</h2>
-          <span class="figure__note">العمود الأطول هو أعلى يوم</span>
         </header>
         {% comment %} سطرُ مقدارٍ فوق الرسم: الرسمُ يقول **الشكل**، وهذا
            يقول **المقدار**. وسبعةُ أعمدةٍ بلا مجموعٍ فوقها تُقرأ نسباً بلا
@@ -195,7 +197,11 @@
         </p>
         <ol class="spark"{% if trend_is_empty %} aria-hidden="true"{% endif %}>
           {% for day, count, height in board.trend %}
-            <li class="spark__day">
+            {% comment %} يومُ الذروة يُعلَّم بالمقارنة مع `trend_peak`
+               المحسوب في `dashboard.py`. ويومان متعادلان في القمّة
+               يُعلَّمان معاً — وهو الصواب: كلاهما أعلى يوم، وتمييزُ أحدهما
+               بترتيبه في القائمة اختيارٌ لا يقوله شيء. {% endcomment %}
+            <li class="spark__day{% if board.trend_peak and count and count == board.trend_peak.1 %} spark__day--top{% endif %}">
               <span class="spark__count">{{ count }}</span>
               <span class="spark__bar" style="block-size: {{ height }}%"></span>
               <span class="spark__label">{{ day }}</span>
