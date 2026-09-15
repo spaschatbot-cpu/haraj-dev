@@ -91,7 +91,7 @@
 
   <div class="table-footer">
     <div class="table-footer__count">
-      {{ page.paginator.count|unlocalize }} مزاداً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+      <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مزاداً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
     </div>
   </div>
 

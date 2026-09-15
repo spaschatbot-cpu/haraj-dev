@@ -242,7 +242,9 @@ body {
   transition: background-color .2s ease, color .2s ease;
   background: var(--ground);
   color: var(--ink);
-  font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  /* «Cairo» أولاً — خطُّ لوحة v1 نفسِه — والنظامُ خلفه: ورقةُ الخطوط تُحمَّل
+     قبل هذه في `base.html`، وإن تعذّر ملفٌّ منها لا تصير الصفحةُ بلا خطّ. */
+  font-family: "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
   line-height: 1.7;
 }
 
@@ -719,8 +721,17 @@ form[method="get"] input, form[method="get"] select {
   min-inline-size: 9rem;
   padding-block: .45rem;
 }
-/* حقل البحث يأخذ ما بقي: هو المدخل الأول، والقوائم المنسدلة بعرض محتواها. */
-form[method="get"] input[type="search"] { flex: 1 1 14rem; min-inline-size: 12rem; }
+/* حقل البحث يأخذ ما بقي: هو المدخل الأول، والقوائم المنسدلة بعرض محتواها.
+ *
+ * **و`>` لا نزولاً في الشجرة.** `flex-basis` لا يعني عرضاً ولا ارتفاعاً بل
+ * «المحور الرئيسيَّ لأبيه» — فحقلٌ ملفوفٌ في عمودٍ (لصيقةٌ فوقه) يقرأ
+ * `14rem` **ارتفاعاً** فيصير 224px طولاً. وقع ذلك مرّتين: في شريط الفلاتر
+ * حين لُفّت حقولُه بلصائق، وفي «كتالوج السيارات» حيث حقولُه ملفوفةٌ أصلاً
+ * في `.cat-filters__field` — وهناك بقي العطلُ ظاهراً حتى رآه المالك.
+ *
+ * والقاعدةُ كُتبت لحقلٍ **ابنٍ مباشرٍ** لصفٍّ أفقيّ، فحُدّت بذلك. */
+form[method="get"] > input[type="search"],
+form[method="get"] > .filters__main > input[type="search"] { flex: 1 1 14rem; min-inline-size: 12rem; }
 form[method="get"] button { margin: 0; padding-inline: 1.1rem; }
 form[method="get"] label { display: none; }
 /* الفاصل قبل الزرّ: يفصل «ماذا تبحث» عن «ابحث» بلا كلمة. */
@@ -5173,3 +5184,4348 @@ tr.ex-row[hidden] { display: none !important; }
   text-align: start; border-radius: 0;
 }
 .linkish:hover { text-decoration: underline; background: none; }
+
+
+/* ===========================================================================
+   رئيسيةُ اللوحة — الطبقة الثانية: رأسٌ، وعناوينُ كتل، وبطاقةٌ ذاتُ هرم
+   ---------------------------------------------------------------------------
+   كانت الصفحة ثلاثَ كتلٍ متساوية الوزن: فقرةٌ خضراء بعرض الشاشة، ثم شبكةُ
+   بطاقاتٍ، ثم رسمان. فلا شيء فيها يُقرأ أولاً — والعين تبدأ من أعلى اليمين
+   فتقع على جملةٍ تقول «كل شيء بخير» بحجمٍ يفوق ما تقوله.
+
+   ثلاثة تغييرات، كلٌّ منها يجيب سؤالاً:
+
+   * **الرأس** — «لمن هذه اللوحة، ومتى، وهل الدفتر متّزن». كتلةٌ واحدة تُقرأ
+     في ثانية، والحكمُ فيها حبّةٌ لا فقرة.
+   * **عناوين الكتل** — «ما يحتاج نظراً» و«أرقام المنصّة» و«الصورة العامّة».
+     بلا هذه كانت بطاقةُ الإنذار تقع في نفس الشبكة البصرية مع عدّاد
+     المستخدمين، فتُقرأ رقماً من الأرقام لا إنذاراً.
+   * **هرمٌ داخل البطاقة** — الرقم أثقل وأكبر، والعنوان فوقه خافتٌ صغير،
+     والتذييل يقع في قاع البطاقة لا حيث انتهى النصّ. بطاقاتٌ متفاوتةُ الطول
+     في صفٍّ واحد كانت تجعل التذييلات سلّماً.
+
+   ولا لونَ جديد ولا خطَّ جديد: كل قيمةٍ هنا من `:root`، فالمظهر الداكن
+   والألوان السبعة تتبع بلا كتلةٍ ثانية تُصان.
+   ======================================================================== */
+
+/* ---- عنوانُ الكتلة ------------------------------------------------------ */
+
+/* عنوانٌ صغيرٌ وخطٌّ يمتدّ منه إلى آخر السطر: يفصل الكتل بلا أن يأخذ سطراً
+   بحجم عنوانٍ ثانٍ ينافس `<h1>` الصفحة. */
+.board-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: 0 0 .75rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--muted);
+}
+
+.board-eyebrow::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--line);
+}
+
+.board-eyebrow--alarm { color: var(--danger); }
+.board-eyebrow--alarm::after { background: var(--danger-line); }
+
+/* العدّاد حبّةٌ صغيرة بجوار الاسم — «٣» بعد «ما يحتاج نظراً» أسرع من عدّ
+   البطاقات بالعين. */
+.board-eyebrow__count {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 1.35rem;
+  block-size: 1.35rem;
+  padding-inline: .35rem;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- هرمُ البطاقة ------------------------------------------------------- */
+
+/* القاع مستوٍ في الصفّ كلّه: التذييل يُدفَع إلى أسفل البطاقة بـ`auto`، فلا
+   تصير التذييلاتُ سلّماً حين تختلف أطوالُ سطور الشرح. */
+.stat { padding: 1.15rem 1.25rem 1rem; gap: .35rem; }
+
+.stat__label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* الرقم هو الرسالة: أكبر وأثقل، وخاناتُه مستقيمة فلا يرقص عرضُه بين قيمتين. */
+.stat__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__detail { margin-block-start: .15rem; }
+
+
+
+/* الشريطُ العلويّ يُرى دائماً لا عند المرور وحده: هو التصنيف نفسه، وتصنيفٌ
+   لا يظهر إلا تحت الفأرة لا يُقرأ على شاشةٍ لمسيّة أصلاً. ويثخن عند المرور. */
+.stat::before { opacity: .85; block-size: 3px; transition: opacity .18s ease, block-size .18s ease; }
+a.stat:hover::before, a.stat:focus-visible::before { opacity: 1; block-size: 4px; }
+
+/* ---- الرسوم ------------------------------------------------------------- */
+
+/* اللوحتان بارتفاعٍ واحد في الصفّ: رسمان بقاعين مختلفين يتركان درجةً بيضاء
+   تحت أقصرهما تُقرأ فراغاً لا تسويةً. */
+.board-figures { align-items: stretch; }
+.figure { padding: 1.25rem 1.35rem; }
+.figure__head { margin-block-end: 1.1rem; }
+.figure h2 { font-size: .95rem; }
+
+/* رابطُ اللوحة يُقرأ فعلاً لا جملة: حبّةٌ خفيفة بلون الأساسي. */
+.figure__action {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .28rem .6rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background .18s ease;
+}
+.figure__action:hover { background: color-mix(in srgb, var(--brand) 18%, var(--panel)); text-decoration: none; }
+.figure__action span[aria-hidden] { transition: transform .18s ease; }
+.figure__action:hover span[aria-hidden] { transform: translateX(-3px); }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  /* الرأس عمودٌ واحد، والحكم تحته لا بجانبه — حبّةٌ بنصٍّ كامل بجوار اسمٍ
+     طويل تقصّ أحدهما. */
+  .stat__value { font-size: 1.7rem; }
+}
+
+/* من طلب تقليل الحركة: النبضةُ تسكن، والرأس يظهر بلا صعود. أداةُ عملٍ لا عرض. */
+@media (prefers-reduced-motion: reduce) {
+}
+
+/* لوحةٌ بلا بيانات تقول ذلك بجملة، والرسمُ الفارغ يبقى تحتها خافتاً ليُفهم
+   أن المحور موجودٌ وأن الصفر صفرٌ حقيقي — لا أن الرسم لم يُحمَّل. */
+.figure__empty {
+  margin: 0 0 .6rem;
+  padding: .55rem .8rem;
+  border-radius: var(--radius);
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: .8rem;
+}
+.figure__empty + .spark { opacity: .45; }
+
+
+/* ===========================================================================
+   بطاقةُ الرقم — على هيئة لوحة v1 التي أقرّها المالك
+   ---------------------------------------------------------------------------
+   الشكلُ المرجعي: `haraj1.com.sa/application/admin_v2` — بطاقةٌ بيضاء، عليها
+   **شريطٌ مصمتٌ بعرضها كاملاً في أعلاها**، ورمزٌ في مربّعٍ مستديرٍ على حافة
+   البداية، وحبّةُ سياقٍ على مقابلها، ثم عنوانٌ خافتٌ صغير فرقمٌ كبير فسطرُ
+   شرح.
+
+   وما كان هنا قبلها حمل التصنيفَ **مرّتين**: حافةٌ بعرض ٣px على الجانب،
+   وشريطٌ متدرّجٌ في الأعلى لا يظهر إلا تحت الفأرة. فالبطاقة تُقرأ مؤطَّرةً من
+   جهتين، والتدرّجُ يبهت قبل أن ينتهي عرضُ البطاقة فيُقرأ خطأً في الطباعة لا
+   تصنيفاً.
+
+   فهنا: **إشارةٌ واحدة، مصمتة، في مكانٍ واحد** — الشريط الأعلى. والحافة
+   الجانبية تُلغى، والحدُّ يستوي على الجهات الأربع.
+
+   وخلفيةُ التنبيه تُلغى معها. كانت البطاقةُ الحمراء تلوّن خلفيتها «لأنها وحدها
+   تريد أن تُقرأ أولاً» — وذلك كان صحيحاً يوم كانت تقع في شبكةٍ واحدة مع عدّاد
+   المستخدمين. وقد صار للإنذار كتلةٌ وحده بعنوانٍ أحمر وعدّاد، فاللونُ الثالث
+   على الخلفية وزنٌ بلا قول، ويُخرج البطاقةَ من هيئة أخواتها لا غير.
+   ======================================================================== */
+
+/* ---- الهيئة ------------------------------------------------------------- */
+
+.stat {
+  /* حدٌّ واحدٌ على الجهات الأربع: التصنيفُ في الشريط الأعلى وحده. */
+  border: 1px solid var(--line);
+  border-inline-start-width: 1px;
+  border-inline-start-color: var(--line);
+  padding: 1.35rem 1.3rem 1.1rem;
+  gap: .4rem;
+}
+
+/* الشريط الأعلى: مصمتٌ بعرض البطاقة، ظاهرٌ دائماً. أربعةُ بكسلات لا ثلاثة —
+   ثلاثةٌ تحت زوايا `1rem` تُقرأ خيطاً لا شريطاً. */
+.stat::before {
+  block-size: 4px;
+  opacity: 1;
+  background: var(--brand);
+  transition: block-size .18s ease;
+}
+a.stat:hover::before, a.stat:focus-visible::before { block-size: 5px; opacity: 1; }
+
+.stat--money::before   { background: var(--money); }
+.stat--auction::before { background: var(--auction); }
+.stat--people::before  { background: var(--people); }
+.stat--ok::before      { background: var(--ok); }
+.stat--brand::before   { background: var(--brand); }
+.stat--warn::before    { background: var(--warn); }
+.stat--alarm::before   { background: var(--danger); }
+
+/* التنبيهُ بطاقةٌ بيضاء كأخواتها — الشريطُ والرقمُ وعنوانُ الكتلة تقول ما
+   تقوله، والخلفيةُ الملوّنة صارت وزناً رابعاً بلا قولٍ رابع. */
+.stat--warn, .stat--alarm { background: var(--panel); }
+.stat--alarm { border-color: var(--danger-line); }
+.stat--warn  { border-color: var(--warn-line); }
+
+/* ---- الصفّ العلوي ------------------------------------------------------- */
+
+.stat__top { margin-block-end: .5rem; }
+
+/* المربّعُ أكبرُ وأكثرُ استدارة — هو أول ما تجده العينُ في البطاقة، وثِقَلُه
+   يجب أن يوازن الرقمَ تحته. */
+.stat__icon {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: .62rem;
+  border-radius: 13px;
+}
+.stat--warn .stat__icon  { background: var(--warn-soft);   color: var(--warn); }
+.stat--alarm .stat__icon { background: var(--danger-soft); color: var(--danger); }
+
+/* حبّةُ السياق: أكبرُ حشوةً قليلاً لتقع في وزن المربّع المقابل لها. */
+.delta { padding: .28rem .6rem; font-size: .73rem; }
+
+/* ---- النصّ -------------------------------------------------------------- */
+
+.stat__label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+
+/* الرقم هو الرسالة. `700` لا `650`: الوزنُ الوسيط على شاشةٍ باهتة يُقرأ
+   عادياً، والفرقُ بينه وبين العنوان فوقه هو ما يجعل البطاقة تُقرأ في لمحة. */
+.stat__value {
+  font-size: 2.15rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  margin-block: .1rem .15rem;
+}
+
+.stat__detail { font-size: .76rem; line-height: 1.6; color: var(--muted); }
+
+/* ---- التذييل ------------------------------------------------------------ */
+
+/* لوحةُ v1 بلا تذييل — وبطاقتُها ليست رابطاً أصلاً. وهذه بطاقةٌ **كلُّها**
+   رابط، فالتذييل يقول **إلى أين** قبل النقر؛ حذفُه يترك بطاقةً تُفتح ولا
+   يُعرف على ماذا. فيبقى، خلف خطٍّ رفيع وبوزنٍ خافت — سطرُ وجهةٍ لا زرّ. */
+
+/* ---- الخطّ المصغَّر ------------------------------------------------------ */
+
+/* يقع فوق التذييل لا ملتصقاً بالرقم: هو سياقُ الرقم لا زخرفتُه. */
+.stat__spark { margin-block-start: .35rem; }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .stat { padding: 1.15rem 1.1rem 1rem; }
+  .stat__value { font-size: 1.85rem; }
+  .stat__icon { inline-size: 2.5rem; block-size: 2.5rem; padding: .56rem; }
+}
+
+/* حبّةُ الوحدة: تقع حيث تقع المقارنة، وبوزنها نفسه — فالصفّ العلويّ في كل
+   بطاقةٍ صارت له كتلتان، رمزٌ وحبّة، لا رمزٌ وفراغ. ومحايدةُ اللون عمداً:
+   المقارنةُ تلوّن لأنها تقول اتجاهاً، والوحدةُ لا تقول شيئاً يُلوَّن. */
+.stat__unit {
+  display: inline-flex;
+  align-items: center;
+  padding: .28rem .6rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: .73rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stat--money .stat__unit   { background: var(--money-soft);   color: var(--money); }
+.stat--auction .stat__unit { background: var(--auction-soft); color: var(--auction); }
+.stat--people .stat__unit  { background: var(--people-soft);  color: var(--people); }
+.stat--warn .stat__unit    { background: var(--warn-soft);    color: var(--warn); }
+.stat--alarm .stat__unit   { background: var(--danger-soft);  color: var(--danger); }
+
+
+/* ===========================================================================
+   رأسُ الرئيسية — لافتةٌ لا سطر
+   ---------------------------------------------------------------------------
+   في لوحة v1 التي أرسلها المالك: عنوانٌ كبيرٌ في مربّع رمزٍ ذهبيّ، وتحته سطرُ
+   ترحيبٍ باسم صاحب الجلسة ودوره، وجملةٌ تقول ما تلخّصه الصفحة. وكان الرأسُ هنا
+   عنواناً صغيراً في حافة الشاشة لا يفرّق عن رأس أي قائمة — فالصفحةُ تبدأ بلا
+   شيءٍ يقول «هذه هي اللوحة».
+
+   ولا رأسان: كتلةُ `.hero` التي وُضعت قبل هذه أُلغيت، وما كان فيها انتقل
+   **داخل** رأس الإطار عبر `{% block actions %}`. عنوانٌ فوق عنوانٍ مرّةً
+   واحدة كافٍ ليُقرأ أحدُهما زخرفةً.
+
+   والتخصيصُ بـ`.board` على `<main>` لا بنسخ الإطار: رأسُ القوائم يبقى سطراً
+   وأفعاله كما هو في ستٍّ وتسعين شاشة، وهذه وحدها لافتة.
+   ======================================================================== */
+
+/* **بلا بطاقةٍ خلفه** — أمرُ المالك: «شيل المربع وخلى الكلام على الصفحة
+   مباشرة». وكان لوحاً أبيضَ بتدرّجٍ وحدٍّ وظلٍّ وشريطٍ جانبي، أي **أربع**
+   إشاراتٍ تقول «هذا صندوق» فوق نصٍّ لا يحتاج صندوقاً: الرأسُ ليس بطاقةً
+   تُفتح ولا رقماً يُصنَّف، وإطارُه يجعله يقاسم البطاقاتِ تحته لغتَها
+   البصرية ثم يخسر — هو أعرضُ منها وأقلُّ امتلاءً.
+
+   فما بقي هو ما يقوله الرأسُ فعلاً: كتلةُ الرمز، والعنوان، وسطرُ الترحيب.
+   والفصلُ عمّا تحته بالمسافة وحدها. */
+.board .page {
+  display: block;
+  padding: .35rem 0 0;
+  margin-block-end: 1.9rem;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  animation: rise .34s ease both;
+}
+
+/* ---- العنوان ------------------------------------------------------------ */
+
+.board .page h1 {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin: 0;
+  font-size: 1.62rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  border: 0;
+  padding: 0;
+}
+
+/* مربّعُ الرمز: هو ما يجعل الرأسَ لافتةً لا سطراً — كتلةٌ ملوّنةٌ تقع عليها
+   العين قبل أن تقرأ حرفاً. وبلون الأساسي المصمت لأنه يحمل رسماً أبيض. */
+.board .page__crest, .board-crest {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: 14px;
+  background: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 32%, transparent);
+}
+
+/* ---- سطرُ الترحيب ------------------------------------------------------- */
+
+/* منطقةُ الأفعال في الإطار تحمل هنا **نصّاً** لا أزراراً: فتُصفَّر هندستُها
+   الأفقية وتصير عموداً تحت العنوان. ولو تُركت صفّاً لالتفّت الجملةُ بجوار
+   العنوان وقُصّت. */
+.board .page__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .55rem;
+  margin-block-start: .95rem;
+  padding-inline-start: 3.8rem;   /* بمحاذاة النصّ لا بمحاذاة المربّع */
+}
+
+.board-hello {
+  margin: 0;
+  font-size: .95rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.board-hello strong { font-weight: 700; color: var(--ink); }
+.board-hello__say { color: var(--muted); }
+
+/* حبّةُ الدور: اسمٌ عربيٌّ من `ConsoleRole.label` لا الـslug اللاتيني. */
+.board-role {
+  display: inline-block;
+  padding: .12rem .55rem;
+  margin-inline: .2rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .75rem;
+  font-weight: 700;
+  vertical-align: .05em;
+}
+
+/* ---- الحكم -------------------------------------------------------------- */
+
+.board-verdict {
+  margin: .15rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .85rem;
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.board-verdict--ok    { color: var(--ok);     background: var(--ok-soft);     border-color: var(--ok-line); }
+.board-verdict--alarm { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-line); }
+
+/* نقطةٌ تنبض — إشارةُ «الآن» وحدها، والنصّ بجوارها يقول العدد والسبب. */
+.board-pulse {
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: hero-pulse 2s ease-in-out infinite;
+}
+
+/* زرُّ الرجوع لا مكان له هنا: الرئيسية لا شيء فوقها، والقاعدة مكتوبةٌ في
+   `base.html` — وهذا يحرسها لو عاد صفُّها إلى السجلّ يوماً. */
+.board .page__back { display: none; }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .board .page { padding: .25rem 0 0; }
+  .board .page h1 { font-size: 1.3rem; gap: .6rem; }
+  .board .page__crest, .board-crest { inline-size: 2.5rem; block-size: 2.5rem; border-radius: 12px; }
+  .board .page__crest svg, .board-crest svg { width: 22px; height: 22px; }
+  /* الحشوةُ تُلغى: عمودٌ مزاحٌ بـ3.8rem على شاشةٍ بعرض 24rem يبقى له الثلث. */
+  .board .page__actions { padding-inline-start: 0; }
+  .board-hello { font-size: .88rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board .page { animation: none; }
+  .board-pulse { animation: none; }
+}
+
+/* إطارُ النبضة. كان مع كتلة `.hero` المحذوفة، فبقي اسمُه في `.board-pulse`
+   بلا تعريف — وحركةٌ بلا إطارٍ لا تُخطئ، تسكت فحسب. */
+@keyframes hero-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.78); }
+}
+
+
+/* ===========================================================================
+   البطاقة: عنوانٌ بجوار الرمز، وتذييلٌ بقرصِ سهم
+   ---------------------------------------------------------------------------
+   أمرُ المالك: «خلى العناوين جنب الأيقونة مش تحتها وبخط بولد»، و«خلى افتح
+   دي بشكل أفضل».
+
+   وكانت البطاقة تُقرأ **ثلاثة** أسطر: صفٌّ فيه رمزٌ وحبّة وبينهما فراغ، ثم
+   عنوانٌ خافتٌ صغير، ثم الرقم. فالفراغ بجوار الرمز لا يحمل شيئاً، والعنوان
+   — وهو الذي يقول ما هذا الرقم أصلاً — أخفُّ ما في البطاقة وزناً.
+
+   فصارت سطرين: **«ما هذا»** (رمزٌ وعنوانٌ غليظ، وحبّةُ الوحدة على المقابل)،
+   ثم **«كم هو»** (الرقم). والتذييلُ سطرُ وجهةٍ بقرصٍ فيه سهم.
+   ======================================================================== */
+
+/* ---- «ما هذا» ----------------------------------------------------------- */
+
+/* الرمزُ والعنوانُ مجموعةٌ واحدة، و`min-inline-size: 0` عليها لأن `flex` لا
+   يسمح لابنه بالانكماش تحت عرض محتواه بدونها — فعنوانٌ طويل كان يدفع حبّة
+   الوحدة خارج البطاقة بدل أن يلتفّ. */
+.stat__ident {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  min-inline-size: 0;
+}
+
+.stat__top { align-items: flex-start; gap: .6rem; margin-block-end: .55rem; }
+
+/* العنوان: غليظٌ وبلون الحبر لا خافتاً — هو الذي يقول ما يعدّه الرقم.
+   وسطران كحدٍّ أقصى ثم قصٌّ بنقاط: «التحكم في صفحات المستخدمين» في بطاقةٍ
+   بعرض ١٥rem يأخذ ثلاثة أسطر ويدفع الرقمَ خارج ارتفاع الصفّ. */
+.stat__label {
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  letter-spacing: -.005em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* الرمزُ لا ينكمش مع العنوان بجواره. */
+.stat__icon { flex: none; }
+
+/* الحبّة تبقى في أعلى الصفّ حين يلتفّ العنوان سطرين — لا تنزل إلى منتصفه. */
+.stat__top > .delta, .stat__top > .stat__unit { flex: none; margin-block-start: .15rem; }
+
+/* الرقمُ صار وحده في سطره، فلا حاجة لهامشٍ يفصله عن عنوانٍ لم يعد فوقه. */
+.stat__value { margin-block: 0 .2rem; }
+
+/* ---- التذييل ------------------------------------------------------------ */
+
+.stat__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-block-start: auto;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--line-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.stat__action-text { transition: color .18s ease; }
+
+/* القرص: خلفيةٌ خافتة وسهمٌ فيها، يمتلئ بلون البطاقة عند المرور. هدفٌ بصريٌّ
+   لا زرّ — البطاقة كلّها هي الرابط، وهذا يقول ذلك في لمحة. */
+.stat__go {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+  border-radius: 50%;
+  background: var(--line-soft);
+  color: var(--muted);
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+a.stat:hover .stat__action-text, a.stat:focus-visible .stat__action-text { color: var(--ink); }
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go {
+  background: var(--brand-solid);
+  color: #fff;
+  transform: translateX(-2px);
+}
+a.stat--money:hover .stat__go,   a.stat--money:focus-visible .stat__go   { background: var(--money); }
+a.stat--auction:hover .stat__go, a.stat--auction:focus-visible .stat__go { background: var(--auction); }
+a.stat--people:hover .stat__go,  a.stat--people:focus-visible .stat__go  { background: var(--people); }
+a.stat--warn:hover .stat__go,    a.stat--warn:focus-visible .stat__go    { background: var(--warn); }
+a.stat--alarm:hover .stat__go,   a.stat--alarm:focus-visible .stat__go   { background: var(--danger); }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .stat__label { font-size: .88rem; }
+  .stat__ident { gap: .55rem; }
+}
+
+
+/* ===========================================================================
+   البطاقة: الشريطُ جانبيّ، والنصُّ على عمودٍ واحد
+   ---------------------------------------------------------------------------
+   أمرُ المالك: «خلى الكلام منظم أكتر جوّه المربعات»، و«خلى الاستروك جانبي».
+
+   والأول كشف عطلاً لا ذوقاً: **الرقم كان مُحاذى إلى يسار البطاقة** وكلُّ ما
+   حوله إلى يمينها. السببُ سطرٌ في القاعدة القديمة —
+
+       .stat__value { direction: ltr; text-align: start; }
+
+   و`direction: ltr` تقلب معنى `start` إلى **اليسار**. فكان «70,000.00» يقف
+   على حافةٍ والعنوانُ وسطرُ الشرح على الحافة المقابلة، والعينُ تقفز بينهما في
+   كل بطاقة. و`direction: ltr` نفسها صحيحةٌ وتبقى — بدونها يتكسّر ترتيب
+   الفاصلة والنقطة في المبلغ — والإصلاحُ في المحاذاة وحدها: `end` داخل صندوقٍ
+   `ltr` هي اليمين، أي حافةُ بداية البطاقة في صفحةٍ RTL.
+
+   والثاني: الشريطُ عاد إلى الحافة الجانبية. وُضع في الأعلى على هيئة لوحة v1،
+   وقرّر المالك الجانب — وهو أوضحُ في شبكةٍ من البطاقات على أي حال: أربعُ
+   حوافٍّ ملوّنةٍ رأسية تُقرأ عموداً واحداً، وأربعةُ شرائطَ أفقية تُقرأ سقوفاً
+   منفصلة.
+   ======================================================================== */
+
+/* ---- الشريط: جانبيٌّ لا علويّ ------------------------------------------- */
+
+/* الشريطُ العلويّ يُلغى — `inset-block: 0` مع `inline-size` يقلبه إلى عمودٍ
+   على حافة البداية، والحافةُ منطقيّةٌ لا يمنى فتنقلب مع الاتجاه. */
+.stat::before {
+  inset-block: 0;
+  inset-inline-start: 0;
+  inset-inline-end: auto;
+  inline-size: 4px;
+  block-size: auto;
+  opacity: 1;
+  transition: inline-size .18s ease;
+}
+a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-size: auto; }
+
+/* حشوةٌ أوسعُ على حافة الشريط: نصٌّ يلامس شريطاً ملوّناً يُقرأ ملتصقاً به. */
+.stat { padding-inline-start: 1.5rem; }
+
+/* ---- النصّ: عمودٌ واحد، حافّتُه حافّةُ البطاقة -------------------------- */
+
+/* **الإصلاح**: `end` داخل صندوقٍ `ltr` هي اليمين — أي حافةُ البداية في صفحةٍ
+   RTL. فالرقمُ يقف الآن تحت العنوان تماماً لا على الحافة المقابلة له. */
+.stat__value { text-align: end; }
+
+/* سطرُ الشرح يُقصّ بعد سطرين: بطاقةٌ شرحُها ثلاثةُ أسطر ترفع الصفَّ كلّه
+   لأجلها، فتصير خمسُ بطاقاتٍ فارغةً من الأسفل لأجل واحدة. والنصُّ كاملاً في
+   `title` لمن أراده. */
+.stat__detail {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: .77rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* إيقاعٌ واحد لكل البطاقات: عنوانٌ، فراغٌ، رقمٌ، فراغٌ أصغر، شرحٌ، ثم تذييل.
+   و`gap` على البطاقة كان يوزّع المسافة بالتساوي بين أشياءَ غيرِ متساوية
+   الوزن، فتساوى ما بين الرقم وشرحه وما بين العنوان والرقم. */
+.stat { gap: 0; }
+.stat__value { margin-block: .25rem .3rem; }
+
+/* ---- الحبّة والرمز ------------------------------------------------------ */
+
+/* الحبّةُ تحاذي منتصفَ الرمز لا أعلاه: صفٌّ فيه مربّعٌ بـ2.75rem وحبّةٌ
+   بـ1.5rem، ومحاذاتُهما من الأعلى تترك الحبّة معلّقةً بلا ما يسندها. */
+.stat__top { align-items: center; }
+.stat__top > .delta, .stat__top > .stat__unit { margin-block-start: 0; }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .stat { padding-inline-start: 1.3rem; }
+}
+
+/* ===========================================================================
+   البطاقة: الرقمُ قُصاد العنوان
+   ---------------------------------------------------------------------------
+   أمرُ المالك. وكانت البطاقة تُقرأ سطرين — اسمٌ في سطر وعددُه في الذي تحته —
+   فتنزل العينُ بينهما، وفي شبكةٍ من ثماني بطاقاتٍ تنزل ثماني مرّات. صارت
+   سطراً واحداً: «ما هذا» على حافة البداية، و«كم هو» على مقابلها.
+   ======================================================================== */
+
+/* الكتلةُ المقابلة: رقمٌ وتحته حبّتُه. `flex: none` فلا تنكمش أمام عنوانٍ
+   طويل — العنوانُ هو الذي يُقصّ (سطران بـ`line-clamp`)، لأن نصفَ رقمٍ لا
+   يُقرأ ونصفَ اسمٍ يُقرأ. */
+.stat__figure {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  /* في صفحةٍ RTL هذه هي الحافة اليسرى — أي نهايةُ البطاقة. */
+  align-items: flex-end;
+  gap: .35rem;
+}
+
+/* الصفُّ يتوسّط: عنوانٌ من سطرين ورقمٌ من سطر يجب أن يتقابلا في منتصفهما، لا
+   أن يتعلّق الرقمُ بأعلى العنوان. */
+.stat__top { align-items: center; margin-block-end: .7rem; }
+
+/* أصغرُ من 2.15rem لأنه صار يقاسم السطرَ مع العنوان والرمز — و«70,000.00»
+   بـ2.15rem في بطاقةٍ بعرض 20rem لا يترك للاسم مكاناً. و`nowrap` لأن رقماً
+   يلتفّ سطرين ليس رقماً. */
+.stat__value {
+  font-size: 1.7rem;
+  line-height: 1.1;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* الحبّةُ تحت الرقم، محاذيةً لحافته لا لحافة البطاقة. */
+.stat__figure .delta, .stat__figure .stat__unit { align-self: flex-end; }
+
+/* سطرُ الشرح يمتدّ تحت الاثنين، لا تحت العنوان وحده. */
+.stat__detail { margin-block-start: 0; }
+
+/* الخطُّ المصغَّر تحت الشرح: صار الرقمُ في الصفّ العلوي، فلا شيء فوق الخطّ
+   يفسّره إن بقي ملتصقاً بأعلى البطاقة. */
+.stat__spark { margin-block-start: .5rem; }
+
+@media (max-width: 40rem) {
+  .stat__value { font-size: 1.5rem; }
+}
+
+/* الرأسُ بلا صندوق: العنوانُ يكبر قليلاً لأنه لم يعد يستعير حضورَه من لوحٍ
+   تحته، والفصلُ عمّا يليه بالمسافة لا بحدّ — خطٌّ هنا وخطُّ «أرقام المنصّة»
+   بعده بسطرين يصيران خطّين متجاورين بلا شيءٍ بينهما. */
+.board .page h1 { font-size: 1.75rem; }
+.board .page__actions { padding-inline-start: 3.95rem; margin-block-start: .25rem; }
+
+@media (max-width: 40rem) {
+  .board .page h1 { font-size: 1.35rem; }
+}
+
+/* محاذاةُ سطر الترحيب تحت **نصّ** العنوان لا تحت مربّع الرمز: الإزاحة
+   محسوبةٌ من مقاس المربّع وفجوته لا مكتوبةً بالتقريب — كانت `3.95rem` رقماً
+   مقدَّراً بالعين، ويكفي أن يتغيّر المربّعُ نصفَ ريم ليفترق السطران. */
+.board { --crest: 3rem; --crest-gap: .8rem; }
+.board .page__crest, .board .page__crest, .board-crest { inline-size: var(--crest); block-size: var(--crest); }
+.board .page h1 { gap: var(--crest-gap); }
+.board .page__actions { padding-inline-start: calc(var(--crest) + var(--crest-gap)); }
+
+@media (max-width: 40rem) {
+  .board { --crest: 2.5rem; --crest-gap: .6rem; }
+  /* على الضيّق تُلغى الإزاحة: عمودٌ مزاحٌ بـ3.1rem على شاشةٍ بعرض 24rem
+     يبقى له الثلثان. */
+  .board .page__actions { padding-inline-start: 0; }
+}
+
+/* العنوانُ ومربّعُه أصغر — أمرُ المالك. كان 1.75rem ومربّعاً بـ3rem، وذلك
+   حجمُ رأسٍ داخل لوحٍ يسنده؛ ولمّا زال اللوحُ صار الاثنان يصرخان على أرضيةٍ
+   عارية. و1.45rem تبقى أكبرَ من `main h1` العامّ (1.5rem؟ لا — أصغر بقليل)
+   بقدرِ ما يميّز الرئيسية، لا بقدرِ ما ينافس ما تحتها.
+
+   والإزاحةُ تحت العنوان تتبع وحدَها: `--crest` يدخل في `calc` الذي يحاذي
+   سطرَ الترحيب، فتصغيرُ المربّع يحرّك السطرَ معه بلا رقمٍ ثانٍ يُعدَّل. */
+.board { --crest: 2.45rem; --crest-gap: .7rem; }
+.board .page h1 { font-size: 1.45rem; }
+.board .page__crest, .board .page__crest, .board-crest { border-radius: 12px; }
+.board .page__crest svg, .board-crest svg { width: 21px; height: 21px; }
+
+@media (max-width: 40rem) {
+  .board { --crest: 2.1rem; --crest-gap: .55rem; }
+  .board .page h1 { font-size: 1.2rem; }
+  .board .page__crest svg, .board-crest svg { width: 18px; height: 18px; }
+}
+
+/* ===========================================================================
+   رأسُ الرئيسية على هيئة v1: متوسّطٌ، وتحته خطٌّ
+   ---------------------------------------------------------------------------
+   «ونفس الشكل». وفي مرجعهم: العنوانُ ومربّعُه في وسط الصفحة، وسطرُ الترحيب
+   متوسّطٌ تحته، ثم خطٌّ رفيع يفصل الرأسَ عن الأرقام.
+
+   والتوسيطُ هنا يلغي حسابَ الإزاحة الذي كان يحاذي سطرَ الترحيب تحت نصّ
+   العنوان — لا حاجة إليه حين يتوسّط الاثنان على محورٍ واحد. فيُصفَّر، ويبقى
+   `--crest` مستعملاً في مقاس المربّع وحده.
+   ======================================================================== */
+
+.board .page { text-align: center; }
+.board .page h1 { justify-content: center; }
+
+.board .page__actions {
+  padding-inline-start: 0;
+  align-items: center;
+  /* الخطُّ الفاصل من مرجعهم: يفصل الرأسَ عمّا تحته بلا مسافةٍ واسعة. وعنوانُ
+     «أرقام المنصّة» بعده له خطُّه الممتدّ من اسمه، والاثنان لا يتجاوران —
+     بينهما كتلةُ الترحيب وهامشُها. */
+  padding-block-end: 1.15rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.board-hello { text-align: center; }
+
+/* حبّةُ الإنذار تتوسّط مع ما فوقها. */
+.board-verdict { align-self: center; }
+
+@media (max-width: 40rem) {
+  .board .page__actions { padding-block-end: .9rem; }
+}
+
+/* ===========================================================================
+   أرضيةُ اللوحة — شبكةُ نقطٍ خافتة، وتوهّجٌ في الزاوية
+   ---------------------------------------------------------------------------
+   «ضيف في خلفية الصفحة زي نقط أو أي حاجة تخلي فيه حركة مش سادة كده».
+
+   والحركةُ هنا **نسيجٌ لا حركةٌ فعلية**: هذه شاشةُ عملٍ يُقرأ فيها رقمُ مالٍ
+   ويُضغط زرٌّ لا يُتراجَع عنه، وشيءٌ يتحرّك خلف ذلك يسرق الانتباهَ من الرقم
+   كلَّ مرّة. والورقةُ نفسها تقول في رأس كتلة اللوحة: «لا شيء يتحرّك بعد أن
+   يستقرّ». فالأرضيةُ ساكنةٌ وفيها ما يُرى:
+
+   * **شبكةُ نقط** — `radial-gradient` مكرَّرة، نقطةٌ بقطر 1px كل 22px. بلون
+     الحبر مخفَّفاً بـ`color-mix` لا بقيمةٍ مكتوبة، فتتبع المظهرَ الداكن بلا
+     كتلةٍ ثانية: نقطةٌ داكنةٌ على أرضيةٍ فاتحة، وفاتحةٌ على داكنة.
+   * **توهّجان** بلون الأساسي عند الحافتين العلويّتين — كبيران وخافتان
+     جداً، يكسران استواءَ اللون الواحد على شاشةٍ عريضة.
+
+   وكلُّه على `main` وحده: الشريطُ الجانبي والشريطُ العلويّ لهما ألوانُهما،
+   ونقطةٌ خلف قائمةٍ من أربعةٍ وستّين سطراً ضجيجٌ لا نسيج. و`background-attachment`
+   متروكٌ افتراضياً — الثابتُ عند التمرير يجعل النقاطَ تسبح تحت المحتوى، وهو
+   بعينه ما يسرق الانتباه.
+   ======================================================================== */
+
+main {
+  position: relative;
+  background-image:
+    /* توهّجٌ عند حافة البداية العليا */
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 11%, transparent) 0%, transparent 62%),
+    /* وآخرُ أبردُ عند المقابلة */
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 7%, transparent) 0%, transparent 60%),
+    /* شبكةُ النقط */
+    radial-gradient(circle at 1px 1px,
+      color-mix(in srgb, var(--ink) 7%, transparent) 1.15px, transparent 0);
+  background-size: auto, auto, 22px 22px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* البطاقاتُ واللوحاتُ تبقى مصمتةً فوق النسيج: نقطةٌ تُرى خلف رقمٍ ماليّ
+   تجعله يُقرأ على ورقٍ مبقّع. وهي `--panel` أصلاً — هذا يحرس ذلك صراحةً. */
+.stat, .figure { background-color: var(--panel); }
+
+/* المظهرُ الداكن: النقطةُ تُرفع قليلاً لأن `--ink` فيه فاتحٌ أصلاً، ومزجُه
+   بـ14٪ يختفي على أرضيةٍ سوداء. */
+[data-scheme="dark"] main {
+  background-image:
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 14%, transparent) 0%, transparent 62%),
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 9%, transparent) 0%, transparent 60%),
+    radial-gradient(circle at 1px 1px,
+      color-mix(in srgb, var(--ink) 11%, transparent) 1.15px, transparent 0);
+  background-size: auto, auto, 22px 22px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* الرمزُ أصغر — ومسارُه صار أعمدةً، فسُمكُ الخطّ يُضبط في الورقة لا في
+   القالب: `stroke-width` هناك قيمةٌ واحدة لكل المقاسات. */
+.board { --crest: 2.1rem; --crest-gap: .6rem; }
+.board .page__crest, .board .page__crest, .board-crest { border-radius: 11px; }
+.board .page__crest svg, .board-crest svg { width: 18px; height: 18px; }
+
+@media (max-width: 40rem) {
+  .board { --crest: 1.9rem; --crest-gap: .5rem; }
+  .board .page__crest svg, .board-crest svg { width: 16px; height: 16px; }
+  /* النقاطُ تتباعد على الضيّق: شبكةٌ بـ22px على شاشةٍ بعرض 24rem تُقرأ
+     ضجيجاً لا نسيجاً. */
+  main, [data-scheme="dark"] main { background-size: auto, auto, 28px 28px; }
+}
+
+/* ===========================================================================
+   الرأسُ إلى حافة البداية، والنقطُ أشفّ
+   ---------------------------------------------------------------------------
+   «خلى ده في اليمين، وزوّد شفافية النقط أكتر».
+
+   والتوسيطُ كان قد وُضع على هيئة لوحة v1، فيُرَدّ: العنوانُ ومربّعُه على
+   حافة البداية — يمينُ الصفحة في RTL — وسطرُ الترحيب تحته محاذياً **نصَّ**
+   العنوان لا المربّع.
+
+   والإزاحةُ محسوبةٌ من `--crest` وفجوته لا مكتوبةً بالتقريب: القاعدةُ نفسُها
+   التي جعلت تصغيرَ المربّع مرّتين لا يحتاج تعديلَ رقمٍ ثانٍ.
+
+   والنقطُ خُفّفت من 19٪ إلى 11٪ في الفاتح، ومن 26٪ إلى 16٪ في الداكن —
+   في موضعها من كتلة الأرضية أعلاه، لا بقاعدةٍ ثانيةٍ تنسخ التدرّجَ كلَّه
+   لتغيّر رقماً فيه.
+   ======================================================================== */
+
+.board .page { text-align: start; }
+.board .page h1 { justify-content: flex-start; }
+.board-hello { text-align: start; }
+.board-verdict { align-self: flex-start; }
+.board .page__actions {
+  align-items: flex-start;
+  padding-inline-start: calc(var(--crest) + var(--crest-gap));
+}
+
+@media (max-width: 40rem) {
+  /* الإزاحةُ تُلغى على الضيّق: عمودٌ مزاحٌ بـ2.4rem على شاشةٍ بعرض 24rem
+     يبقى له أقلُّ من ثلاثة أرباعه. */
+  .board .page__actions { padding-inline-start: 0; }
+}
+
+/* ===========================================================================
+   سطرُ الشرح، وزرُّ الوجهة
+   ---------------------------------------------------------------------------
+   «خلى الكلام اللي تحت العناوين في المربعات شكله احترافي أكتر، والزرّ اللي
+   تحت شكله أفضل».
+
+   ---- سطرُ الشرح -------------------------------------------------------
+   كان `.76rem` رمادياً بسطرٍ قدره 1.6، وثلاثةُ عيوبٍ فيه لا واحد:
+
+   * **أرقامُه لا تستقيم.** «بقيمة 126,000.00 ريال» رقمٌ لاتينيٌّ داخل جملةٍ
+     عربية، وبلا `tabular-nums` تختلف عروضُ خاناته فيهتزّ السطرُ بين بطاقةٍ
+     وأخرى.
+   * **يتيمٌ في آخره.** جملةٌ من تسع كلماتٍ في بطاقةٍ بعرض 17rem تترك كلمةً
+     واحدةً في السطر الثاني. و`text-wrap: pretty` يوازن السطرين فلا تبقى
+     كلمةٌ وحدها — ومن لا يدعمه يرى ما كان يراه، لا أقلّ.
+   * **ملتصقٌ بالرقم فوقه.** فراغٌ قدرُه `.15rem` بين رقمٍ بـ1.7rem وسطرِ
+     شرحه يجعلهما كتلةً واحدة.
+
+   ---- الزرّ -------------------------------------------------------------
+   كان نصّاً على حافةٍ وقرصاً على مقابلها يفصل بينهما خطٌّ فوقهما: **ثلاثةُ
+   عناصرَ لفعلٍ واحد**، وبينها فراغٌ بعرض البطاقة يقطع الجملةَ عن سهمها.
+
+   صار **حبّةً واحدة** تحمل الكلمةَ والسهمَ معاً، بحجم محتواها على حافة
+   البداية — تُقرأ زرّاً لأنها بشكل زرّ، وتتلوّن بلون البطاقة عند المرور.
+   والخطُّ الفاصلُ فوقها حُذف: الحبّةُ تفصل نفسَها بشكلها.
+   ======================================================================== */
+
+.stat__detail {
+  margin-block-start: .4rem;
+  font-size: .78rem;
+  line-height: 1.65;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.stat__action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  inline-size: auto;
+  margin-block-start: auto;
+  margin-block-end: 0;
+  padding: .42rem .8rem;
+  padding-block-start: .42rem;
+  border-block-start: 0;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--ink-soft);
+  font-size: .75rem;
+  font-weight: 600;
+  transition: background .18s ease, color .18s ease;
+}
+
+/* فُسحةٌ فوق الحبّة تفصلها عن الشرح — على البطاقة لا على الحبّة، فتبقى
+   الحبّةُ ملتصقةً بقاع البطاقة حين يقصُر الشرح. */
+.stat__action { margin-block-start: auto; }
+.stat__detail + .stat__action, .stat__spark + .stat__action { margin-block-start: .9rem; }
+.board-stats .stat__action, .board-alarms .stat__action { margin-block-start: auto; }
+
+/* السهمُ داخل الحبّة: رسمٌ لا قرص. */
+.stat__go {
+  inline-size: auto;
+  block-size: auto;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  transition: transform .18s ease;
+}
+.stat__go svg { width: 12px; height: 12px; stroke-width: 2.6; }
+
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
+
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action   { background: var(--money-soft);   color: var(--money); }
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action { background: var(--auction-soft); color: var(--auction); }
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action  { background: var(--people-soft);  color: var(--people); }
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action    { background: var(--warn-soft);    color: var(--warn); }
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action   { background: var(--danger-soft);  color: var(--danger); }
+
+/* في التنبيه والتحذير خلفيةُ البطاقة ملوّنةٌ أصلاً، فحبّةٌ بـ`--line-soft`
+   فوقها تُقرأ رقعةً رماديّة. تأخذ لونَ البطاقة مخفَّفاً. */
+.stat--alarm .stat__action { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger); }
+.stat--warn .stat__action  { background: color-mix(in srgb, var(--warn) 11%, transparent);  color: var(--warn); }
+
+/* ===========================================================================
+   زرُّ الوجهة في وسط البطاقة
+   ---------------------------------------------------------------------------
+   «خلى افتح ده في نص المربع».
+
+   وكان على حافة البداية تحت سطر الشرح، فيقع على المحور نفسِه الذي يقف عليه
+   العنوانُ والشرح — ثلاثةُ أشياءَ على خطٍّ واحد، أوسطُها فعلٌ والآخران خبر،
+   ولا شيء يفرزه منهما إلا لونُ خلفيته. والتوسيطُ يفرزه بموضعه: كلُّ ما
+   فوقه يبدأ من حافةٍ واحدة، وهو وحده في المنتصف.
+
+   وثلاثُ لمساتٍ تجعله يُقرأ زرّاً لا حبّة:
+
+   * **حدٌّ شفّافٌ يتلوّن** عند المرور. الحدُّ على الزرّ ليس كالحدّ على
+     البطاقة: البطاقةُ سطحٌ يُرى بذاته، والزرُّ شيءٌ يُضغط ويجب أن يُعرف
+     طرفُه قبل أن تصله اليد.
+   * **حشوةٌ أوسع** (`.5rem` × `1.05rem`): هدفُ لمسٍ بارتفاع 30px أصغرُ من
+     أن يُصاب بإصبع، والزيادةُ ترفعه إلى 34.
+   * **انتقالٌ على الحدّ واللون معاً**، فلا يقفز أحدُهما قبل الآخر.
+   ======================================================================== */
+
+.stat__action {
+  align-self: center;
+  padding: .5rem 1.05rem;
+  border: 1px solid transparent;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action {
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+}
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action   { border-color: color-mix(in srgb, var(--money) 32%, transparent); }
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action { border-color: color-mix(in srgb, var(--auction) 32%, transparent); }
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action  { border-color: color-mix(in srgb, var(--people) 32%, transparent); }
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action    { border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action   { border-color: color-mix(in srgb, var(--danger) 34%, transparent); }
+
+/* ===========================================================================
+   الزرّ: خطٌّ فاصلٌ فوقه، ولونُ شريط بطاقته، وزاويةٌ لا قوس
+   ---------------------------------------------------------------------------
+   «ضيف قبله خط شفاف زي ما كان موجود، وخلى كل زر بلون الاستروك، وغيّر الشكل
+   البيضاوي لشكل احترافي أكتر».
+
+   **وغلافان لا واحد.** الخارجيُّ (`.stat__action`) يحمل الخطَّ الفاصل فيمتدّ
+   بعرض البطاقة، والداخليُّ (`.stat__btn`) يحمل الزرَّ فيأخذ حجمَ محتواه
+   ويتوسّط. وبواحدٍ كان لا بدّ من خسارة أحدهما: خطٌّ بعرض الزرّ لا يفصل
+   شيئاً، وزرٌّ بعرض البطاقة شريطٌ لا زرّ.
+
+   **واللون لون الشريط.** كان الزرُّ رمادياً يتلوّن عند المرور وحده، فالبطاقةُ
+   تحمل تصنيفَها في شريطها وفي رقمها ورمزها — ثم يقع في قاعها شيءٌ رماديٌّ لا
+   ينتمي. والآن يحمله هو أيضاً: خلفيةٌ من درجة التصنيف الخفيفة ونصٌّ بدرجته
+   الغامقة، ثم **يمتلئ مصمتاً بالأبيض فوقه** عند المرور — فالتلوينُ يقول
+   «هذا من هذه البطاقة»، والامتلاءُ يقول «وهو يُضغط».
+
+   **والزاوية 10px لا قوس.** الحبّةُ الكاملة (`999px`) شكلُ **وسمٍ** — وهي
+   شكلُ حبّة الوحدة وحبّة المقارنة في أعلى البطاقة نفسِها. فزرٌّ بالشكل
+   نفسِه يُقرأ وسماً ثالثاً لا فعلاً، والزاويةُ الأليَن تفرزه عنهما.
+   ======================================================================== */
+
+/* ---- الغلاف: الخطّ الفاصل وحده ------------------------------------------ */
+
+.stat__action {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  inline-size: auto;
+  margin-block-start: auto;
+  padding: .95rem 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: none;
+}
+.stat--alarm .stat__action { background: none; border-block-start-color: color-mix(in srgb, var(--danger) 18%, transparent); }
+.stat--warn .stat__action  { background: none; border-block-start-color: color-mix(in srgb, var(--warn) 20%, transparent); }
+
+/* ---- الزرّ ------------------------------------------------------------- */
+
+.stat__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem 1.05rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: .75rem;
+  font-weight: 600;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.stat--money .stat__btn   { background: var(--money-soft);   color: var(--money); }
+.stat--auction .stat__btn { background: var(--auction-soft); color: var(--auction); }
+.stat--people .stat__btn  { background: var(--people-soft);  color: var(--people); }
+.stat--ok .stat__btn      { background: var(--ok-soft);      color: var(--ok); }
+.stat--warn .stat__btn    { background: var(--warn-soft);    color: var(--warn); }
+.stat--alarm .stat__btn   { background: var(--danger-soft);  color: var(--danger); }
+
+/* المرور: يمتلئ مصمتاً والنصُّ أبيض. والأبيضُ على هذه الدرجات كلِّها فوق
+   4.5:1 — هي درجاتُ `--money`/`--auction`/`--people`/`--warn`/`--danger`
+   نفسُها التي تُكتب بالأبيض فوقها في الحبّات والشارات. */
+a.stat:hover .stat__btn, a.stat:focus-visible .stat__btn { background: var(--brand-solid); color: #fff; }
+a.stat--money:hover .stat__btn,   a.stat--money:focus-visible .stat__btn   { background: var(--money);   color: #fff; }
+a.stat--auction:hover .stat__btn, a.stat--auction:focus-visible .stat__btn { background: var(--auction); color: #fff; }
+a.stat--people:hover .stat__btn,  a.stat--people:focus-visible .stat__btn  { background: var(--people);  color: #fff; }
+a.stat--ok:hover .stat__btn,      a.stat--ok:focus-visible .stat__btn      { background: var(--ok);      color: #fff; }
+a.stat--warn:hover .stat__btn,    a.stat--warn:focus-visible .stat__btn    { background: var(--warn);    color: #fff; }
+a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { background: var(--danger);  color: #fff; }
+
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
+
+/* ===========================================================================
+   التحويم: تغييرٌ واحدٌ لا أربعة
+   ---------------------------------------------------------------------------
+   «خلى لما أقف عليهم يكون الشكل أبسط وأفضل».
+
+   وكان الوقوفُ على بطاقةٍ يُحدث **أربعةَ** أشياءٍ معاً: تقفز البطاقة 3px،
+   ويثخن ظلُّها، ويمتلئ زرُّها مصمتاً، **ويُصبغ الغلافُ حولَ الزرّ برقعةٍ
+   ملوّنة**. والرقعةُ عطلٌ لا اختيار: قاعدةُ `a.stat:hover .stat__action`
+   من طبقةٍ سابقة، حين كان `.stat__action` هو الزرَّ نفسَه؛ ثم انقسم إلى
+   غلافٍ وزرّ، فبقيت الصبغةُ على الغلاف تحت الزرّ وحولَه.
+
+   فصار التحويمُ **شيئاً واحداً**: الزرُّ يمتلئ. وهو الشيءُ الذي يُضغط،
+   وهو وحده الذي يجب أن يقول إنه يُضغط.
+
+   والقفزةُ حُذفت: ثماني بطاقاتٍ ترتفع تحت المؤشّر وهو يمرّ عليها إيقاعٌ
+   مكسور، والارتفاعُ يزيح ما تحت البطاقة بصرياً في شبكةٍ من صفّين.
+   ======================================================================== */
+
+/* الغلافُ لا يُصبَغ — لا في السكون ولا في التحويم. هو خطٌّ فاصلٌ وحده. */
+.stat__action,
+a.stat:hover .stat__action,
+a.stat:focus-visible .stat__action,
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action,
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action,
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action,
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action,
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action {
+  background: none;
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 0;
+  color: inherit;
+  padding-inline: 0;
+}
+
+/* البطاقةُ تسكن: حدٌّ أغمقُ قليلاً وظلٌّ أخفّ، بلا ارتفاع. */
+a.stat:hover, a.stat:focus-visible {
+  transform: none;
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  box-shadow: 0 2px 10px rgb(23 32 51 / .06);
+}
+
+/* ===========================================================================
+   البطاقةُ أضيقُ وأقصر
+   ---------------------------------------------------------------------------
+   «صغّر طول وعرض المربعات شويه».
+
+   **والعرضُ لا يُكتب، يُكتب حدُّه الأدنى.** الشبكةُ `auto-fit` تقرّر بعدد ما
+   يتّسع، فتصغيرُ الحدّ الأدنى من 15.5rem إلى 13.2rem يزيد عموداً على العرض
+   الذي يعمل عليه المالك — والبطاقةُ تضيق لأن الثلاثةَ تقتسم ما كان بين
+   اثنتين، لا لأن رقماً أُملي عليها.
+
+   **والطولُ يُقصَّر من ستّة مواضع لا من واحد.** بطاقةٌ أقصرُ بحشوةٍ وحدها
+   تصير نصّاً محشوراً في إطار؛ فنُقص من كلِّ ما بين أسطرها بنسبةٍ واحدة:
+   الحشوة، ومربّع الرمز، والرقم، وما بين الصفّ العلويّ وما تحته، وما بين
+   الشرح والزرّ، وحشوةُ الزرّ نفسِه. فالإيقاعُ يبقى كما هو، مصغَّراً.
+   ======================================================================== */
+
+/* **والعرضُ نزل إلى 15rem لا إلى 13.2.** جُرّب 13.2 أوّلاً فأعطى ثلاثةَ
+   أعمدةٍ على شاشة المالك — وبطاقةً بعرض 217px. وذلك أضيقُ ممّا يحتمله
+   ترتيبُ «الرقم قُصاد العنوان»: «70,000.00» بـ1.5rem يأخذ 95px، والرمزُ
+   وفجوتُه 48، فلا يبقى للاسم إلا 37 — و«إجمالي التأمين» انقصّ في منتصف
+   كلمتيه. فالحدُّ الأدنى العمليُّ لهذا الترتيب نحو 15rem، وما دونه يكسره.
+
+   والتصغيرُ يقع حيث يتّسع: على الشاشات العريضة ينزل الحدُّ من 17rem إلى
+   15.5rem، فتزيد الأعمدةُ وتضيق البطاقات — وعلى شاشة المالك يبقى عمودان
+   وتقصُر البطاقةُ وحدَها. */
+.board-alarms, .board-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: .7rem;
+}
+@media (min-width: 96rem) {
+  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr)); }
+}
+
+.stat { padding: 1.05rem 1.1rem .9rem; padding-inline-start: 1.25rem; }
+
+.stat__icon { inline-size: 2.3rem; block-size: 2.3rem; padding: .52rem; border-radius: 11px; }
+.stat__top { margin-block-end: .5rem; }
+.stat__label { font-size: .85rem; }
+.stat__value { font-size: 1.5rem; }
+.stat__unit, .delta { padding-block: .22rem; font-size: .7rem; }
+
+.stat__detail { margin-block-start: .3rem; font-size: .74rem; line-height: 1.55; }
+.stat__spark { margin-block-start: .35rem; }
+
+.stat__action { padding-block-start: .7rem; }
+.stat__btn { padding: .42rem .85rem; font-size: .72rem; border-radius: 9px; }
+
+@media (max-width: 40rem) {
+  .stat { padding: .95rem 1rem .85rem; padding-inline-start: 1.15rem; }
+  .stat__value { font-size: 1.35rem; }
+}
+
+/* ===========================================================================
+   الرسمُ داخل البطاقة: مساحةٌ وخطٌّ ونقطةُ اليوم — وبطاقتُه أعرض
+   ---------------------------------------------------------------------------
+   «خلى مربع مزايدات مرفوضة أعرض وفيه رسم بياني احترافي أكتر، وخلى كلمة افتح
+   بخط بولد عشان تكون واضحة».
+
+   **والعرضُ قاعدةٌ لا استثناء**: كلُّ بطاقةٍ تحمل رسماً تأخذ عمودين. رسمٌ
+   بعرض بطاقةٍ عادية سبعةُ أعمدةٍ في 150px — أي ٢١px للعمود الواحد، وهو عرضٌ
+   لا يُقرأ منه شكل. وبطاقتان تحملان رسماً اليوم («مزايدات مرفوضة» و«المزايدات»)،
+   فالقاعدةُ تشملهما معاً بدل أن تُسمّى إحداهما بالاسم وتُنسى الأخرى.
+
+   **والرسمُ ثلاثُ طبقات** بدل خطٍّ واحد:
+
+   * **مساحةٌ** تحت الخطّ تُقرأ حجماً قبل أن يُتتبَّع الخطّ.
+   * **خطٌّ** فوقها يقول الاتجاه.
+   * **نقطةٌ** على طرفه تقول «هنا اليوم» بلا تتبّعٍ إلى الطرف.
+
+   والنقطةُ عنصرُ HTML فوق الرسم لا `<circle>` داخله: الرسمُ يُمطّ أفقياً
+   (`preserveAspectRatio="none"`) فتتحوّل كلُّ دائرةٍ فيه إلى قطعٍ ناقص.
+   ======================================================================== */
+
+@media (min-width: 48rem) {
+  .board-stats .stat--chart, .board-alarms .stat--chart { grid-column: span 2; }
+}
+
+.stat__chart {
+  position: relative;
+  display: block;
+  margin-block-start: .45rem;
+  block-size: 3.1rem;
+}
+
+.stat__spark {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.stat__spark polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* السُّمكُ لا يُمطّ مع الرسم: بلا هذا يصير الخطُّ شعرةً على بطاقةٍ عريضة
+     وحبلاً على ضيّقة، لأن المطَّ الأفقيَّ يقسم سُمكَه. */
+  vector-effect: non-scaling-stroke;
+}
+.stat__spark-area {
+  fill: color-mix(in srgb, currentColor 13%, transparent);
+  stroke: none;
+}
+
+.stat__spark-dot {
+  position: absolute;
+  inline-size: .45rem;
+  block-size: .45rem;
+  margin: -.225rem 0 0 -.225rem;   /* مركزُها على النقطة لا ركنُها */
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
+.stat--money .stat__chart   { color: var(--money); }
+.stat--auction .stat__chart { color: var(--auction); }
+.stat--people .stat__chart  { color: var(--people); }
+.stat--warn .stat__chart    { color: var(--warn); }
+.stat--alarm .stat__chart   { color: var(--danger); }
+.stat--ok .stat__chart      { color: var(--ok); }
+.stat__chart                { color: var(--brand-dark); }
+
+/* حلقةُ النقطة تأخذ لونَ البطاقة المصبوغة لا الأبيضَ المصمت. */
+.stat--warn .stat__spark-dot  { box-shadow: 0 0 0 2px var(--warn-soft); }
+.stat--alarm .stat__spark-dot { box-shadow: 0 0 0 2px var(--danger-soft); }
+
+/* ---- «افتح» غليظة ------------------------------------------------------- */
+
+/* 700 لا 600: الزرُّ كلمتان في حبّةٍ صغيرة، ووزنٌ وسيطٌ فيها يُقرأ نصّاً
+   عادياً بخلفيةٍ ملوّنة لا فعلاً. */
+.stat__btn { font-weight: 700; }
+
+/* الرسمُ بعد سطر الشرح لا قبله (رُتِّب في القالب): الشرحُ يقول ما يعدّه
+   الرقم، والرسمُ يقول كيف تحرّك — فتُقرأ الجملةُ ثم يُرى شكلُها. وكان فوقه
+   فوقعت الجملةُ على المساحة المظلَّلة وصارت تُقرأ فوق تظليل.
+
+   وفُسحةٌ تحته تفصله عن خطّ الزرّ، وارتفاعٌ أكبرُ في البطاقة العريضة: رسمٌ
+   بعرض ٦٥٠px وارتفاع ٥٠ خطٌّ مستوٍ تقريباً مهما تحرّكت بياناتُه. */
+.stat__chart { margin-block: .55rem .15rem; }
+.stat--chart .stat__chart { block-size: 3.8rem; }
+
+/* ===========================================================================
+   شبكةُ الرسوم: صفٌّ من بطاقتين
+   ---------------------------------------------------------------------------
+   «طلّع كارت المستخدمين للأعلى وخلى كارت المزايدات ومزايدات مرفوضة في صف».
+
+   وكان الأمران عطلاً واحداً: البطاقةُ ذاتُ الرسم تأخذ **عمودين** ليُقرأ
+   شكلُها، وبطاقتان كذلك في شبكةٍ من **ثلاثة** أعمدة لا تجتمعان — تأخذ
+   الأولى عمودين، فتنزل الثانيةُ وحدها وتبقى في الصفّ فجوة، ويُدفع
+   «المستخدمون» بعدهما إلى أسفل.
+
+   فصارتا في شبكةٍ وحدَهما بعمودين: الرسمان في صفّ، والبطاقاتُ العادية تملأ
+   صفوفَها فيصعد «المستخدمون» من تلقاء نفسه. ولم يُنقل شيءٌ بيده ولا رُتّبت
+   قائمةٌ بالاسم — الترتيبُ نتيجةُ الفرز، فبطاقةٌ ذاتُ رسمٍ تُضاف غداً تقع
+   في مكانها بلا تعديل.
+
+   و`22rem` حدّاً أدنى: أضيقُ منه يعيد الرسمَ إلى العرض الذي لا يُقرأ منه
+   شكل، وعندها ينزل إلى عمودٍ واحد — بطاقةٌ عريضةٌ فوق أخرى أصدقُ من
+   بطاقتين ضيّقتين برسمين مسحوقين.
+   ======================================================================== */
+
+.board-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  gap: .7rem;
+  margin-block-end: 1.4rem;
+}
+
+/* المدُّ إلى عمودين لم يعد له معنى: البطاقةُ في شبكتها الخاصّة أصلاً. */
+@media (min-width: 48rem) {
+  .board-stats .stat--chart, .board-alarms .stat--chart { grid-column: auto; }
+}
+
+/* الحدُّ الأدنى 16.5rem لا 15: الخمسةَ عشرَ أعطت **أربعةَ** أعمدةٍ على شاشة
+   المالك (1366px) وبطاقةً بعرض 250px، فانقصّ «إجمالي التأمين» في منتصف
+   كلمتيه — وهو العطلُ نفسُه الذي ظهر عند 13.2rem وصُحّح إلى 15، ثم عاد عند
+   عرضٍ أكبر لأن العمودَ الرابع ظهر.
+
+   والقاعدةُ التي خرجت من المحاولتين: ترتيبُ «الرقم قُصاد العنوان» يحتاج
+   **16.5rem على الأقل**. «70,000.00» بـ1.5rem يأخذ 95px، والرمزُ وفجوتُه
+   48، والحشوةُ 38 — فما دون 264px لا يترك للاسم عرضاً يُقرأ. */
+.board-alarms, .board-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(16.5rem, 100%), 1fr));
+}
+@media (min-width: 96rem) {
+  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
+}
+
+/* ===========================================================================
+   الزرُّ ممتلئٌ دائماً — لا عند التحويم وحده
+   ---------------------------------------------------------------------------
+   «خلى شكل الأربع كروت زي ما هو من غير ما أقف عليه، بس خفّف درجة لونهم
+   شويه، وخلى كلمة افتح بلون أبيض».
+
+   وكان الزرُّ حبّةً خفيفةً بنصٍّ ملوّن، تمتلئ مصمتةً بالأبيض عند التحويم
+   وحده — فالشكلُ الذي أراده المالك لا يراه إلا وهو واقفٌ على البطاقة، وهو
+   على شاشةٍ لمسيّةٍ لا يراه أصلاً.
+
+   **و٨٨٪ لا أقلّ.** «خفّف الدرجة» له حدٌّ يقطعه: النصُّ أبيضُ فوقه، وكلُّ
+   درجةٍ تُخفَّف تقرّب نسبةَ التباين من الأرضية. قيست خمسُ نسبٍ على الدرجات
+   الخمس قبل الاختيار:
+
+       الدرجة        100%   92%   88%   84%   80%
+       بنفسجي        6.57  5.49  4.98  4.57  4.19
+       فيروزي        5.91  4.98  4.63  4.26  3.91
+       كهرماني       5.93  5.01  4.58  4.23  3.89
+       أحمر          6.57  5.78  5.41  5.02  4.64
+       أخضر          6.10  5.18  4.75  4.35  3.99
+
+   فـ٨٨٪ أفتحُ مزيجٍ يبقى فيه أضعفُها (الكهرماني، 4.58) فوق الحدّ 4.5.
+   و٨٤٪ يُسقط ثلاثاً من خمس.
+
+   **واللونُ الأساسي يبقى مصمتاً بلا تخفيف**: `--brand-solid` معرَّفٌ في رأس
+   الورقة بأنه «خلفيةٌ يُكتب فوقها بالأبيض — الزرّ، الحدّ 4.5»، أي أنه
+   **معايَرٌ على الحدّ نفسِه** في الألوان السبعة كلِّها. وتخفيفُه يُسقطه
+   تحته في بعضها، ولا سبيل إلى قياس السبعة من هنا.
+   ======================================================================== */
+
+.stat__btn {
+  background: var(--brand-solid);
+  color: #fff;
+}
+.stat--money .stat__btn   { background: color-mix(in srgb, var(--money) 88%, #fff);   color: #fff; }
+.stat--auction .stat__btn { background: color-mix(in srgb, var(--auction) 88%, #fff); color: #fff; }
+.stat--people .stat__btn  { background: color-mix(in srgb, var(--people) 88%, #fff);  color: #fff; }
+.stat--ok .stat__btn      { background: color-mix(in srgb, var(--ok) 88%, #fff);      color: #fff; }
+.stat--warn .stat__btn    { background: color-mix(in srgb, var(--warn) 88%, #fff);    color: #fff; }
+.stat--alarm .stat__btn   { background: color-mix(in srgb, var(--danger) 88%, #fff);  color: #fff; }
+
+/* التحويمُ يعمّق بدل أن يملأ: الامتلاءُ صار الحالةَ الساكنة، فبقي للتحويم
+   أن يقول «هذه هي» بدرجةٍ أغمق — تغييرٌ واحدٌ صغير لا قلبٌ كامل. */
+a.stat:hover .stat__btn, a.stat:focus-visible .stat__btn { background: var(--brand-solid); color: #fff; }
+a.stat--money:hover .stat__btn,   a.stat--money:focus-visible .stat__btn   { background: var(--money);   color: #fff; }
+a.stat--auction:hover .stat__btn, a.stat--auction:focus-visible .stat__btn { background: var(--auction); color: #fff; }
+a.stat--people:hover .stat__btn,  a.stat--people:focus-visible .stat__btn  { background: var(--people);  color: #fff; }
+a.stat--ok:hover .stat__btn,      a.stat--ok:focus-visible .stat__btn      { background: var(--ok);      color: #fff; }
+a.stat--warn:hover .stat__btn,    a.stat--warn:focus-visible .stat__btn    { background: var(--warn);    color: #fff; }
+a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { background: var(--danger);  color: #fff; }
+
+/* ===========================================================================
+   أربعةُ أعمدةٍ على الشاشة العريضة — وشبكةُ أمانٍ للعنوان الطويل
+   ---------------------------------------------------------------------------
+   «خلى الأربعة دول في نفس السطر».
+
+   وكان `auto-fit` بحدٍّ أدنى 16.5rem يعطي **ثلاثة** أعمدةٍ على 1366px، فتنزل
+   البطاقةُ الرابعة وحدها. والحدُّ 16.5 لم يُختر ذوقاً: هو أضيقُ عرضٍ يتّسع
+   فيه ترتيبُ «الرقم قُصاد العنوان» لأطول اسمٍ مع أعرض رقم («إجمالي التأمين»
+   و«70,000.00») — وما دونه كان الاسمُ يُقصّ في منتصف كلمته.
+
+   فالحلُّ ليس خفضَ الحدّ وحدَه، بل **رفعَ سببِه**:
+
+   * **الصفُّ العلويُّ يلتفّ** حين لا يتّسع (`flex-wrap`). فالرقمُ ينزل تحت
+     العنوان في البطاقة الضيّقة بدل أن يُقصَّ الاسم. تراجعٌ مرتّبٌ لا كسر:
+     من يرى بطاقةً ضيّقة يرى سطرين مقروءين، لا سطراً واحداً ناقصاً.
+   * **وأربعةُ أعمدةٍ صريحةٌ فوق 78rem** لا `auto-fit`. العددُ هنا قرارٌ
+     («أربعتها في سطر») لا نتيجةَ حساب، وكتابتُه رقماً أصدقُ من تعييرِ حدٍّ
+     أدنى حتى يصادف أن يعطيَه.
+   ======================================================================== */
+
+/* الاسمُ يأخذ ما يحتاج ثم يلتفّ الرقمُ تحته. و`flex: 1 1 55%` لا `auto`:
+   بـ`auto` يبقى الاسمُ على سطره ويُقصّ لأن الالتفافَ لا يقع إلا إذا طلب
+   أحدُ العنصرين عرضاً أكبر من أساسه. */
+.stat__top { flex-wrap: wrap; row-gap: .15rem; }
+.stat__ident { flex: 1 1 55%; }
+.stat__figure { flex: 0 1 auto; }
+
+@media (min-width: 78rem) {
+  .board-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+/* ===========================================================================
+   الرسمُ منحنىً، والزرُّ أخفُّ درجةً — كلٌّ إلى حدِّه هو
+   ---------------------------------------------------------------------------
+   «خفّف درجة لون أزرار افتح قليلاً، وغيّر شكل الرسم البياني لشكل احترافي
+   أكتر».
+
+   ---- الزرّ -------------------------------------------------------------
+   كان تخفيفاً واحداً (٨٨٪) على الدرجات كلّها، وذلك يترك كلَّ درجةٍ عند
+   نسبةٍ مختلفة من الحدّ: الأحمرُ عند 5.41 والكهرمانيُّ عند 4.58 — أي أن
+   الأحمر كان يحتمل تخفيفاً أكبرَ بكثير ولم يُعطَه.
+
+   فصار **لكلِّ درجةٍ حدُّها هي**، محسوباً بالبحث عن أفتح مزيجٍ يبقى عنده
+   الأبيضُ فوق 4.55:
+
+       بنفسجي  84%  →  4.57        أحمر    80%  →  4.64
+       فيروزي  88%  →  4.63        أخضر    87%  →  4.61
+       كهرماني 88%  →  4.58
+
+   ---- الرسم --------------------------------------------------------------
+   كان سبعَ نقاطٍ موصولةٍ بمستقيمات — أي سبعَ زوايا حادّةٍ في 50px من
+   الارتفاع، وهو أول ما يميّز رسماً مرتجلاً من رسمِ لوحةٍ مصنوعة. صار
+   منحنىً (Catmull-Rom، في `dashboard.py`) يمرّ بكل نقطةٍ بالضبط.
+
+   والخطُّ أثخنُ قليلاً، والمساحةُ أوضح، والنقطةُ أكبرُ بحلقةٍ حولها: ثلاثةٌ
+   تجعل الرسمَ يُقرأ من بعيد بدل أن يُتحرّى.
+   ======================================================================== */
+
+/* ---- الزرّ: كلُّ درجةٍ إلى حدّها --------------------------------------- */
+
+.stat--money .stat__btn   { background: color-mix(in srgb, var(--money) 84%, #fff); }
+.stat--auction .stat__btn { background: color-mix(in srgb, var(--auction) 88%, #fff); }
+.stat--people .stat__btn  { background: color-mix(in srgb, var(--people) 88%, #fff); }
+.stat--ok .stat__btn      { background: color-mix(in srgb, var(--ok) 87%, #fff); }
+.stat--warn .stat__btn    { background: color-mix(in srgb, var(--warn) 88%, #fff); }
+.stat--alarm .stat__btn   { background: color-mix(in srgb, var(--danger) 80%, #fff); }
+
+/* ---- الرسم -------------------------------------------------------------- */
+
+.stat__spark-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* السُّمكُ لا يُمطّ مع الرسم: بلا هذا يصير الخطُّ شعرةً على بطاقةٍ عريضة
+     وحبلاً على ضيّقة، لأن المطَّ الأفقيَّ يقسم سُمكَه. */
+  vector-effect: non-scaling-stroke;
+}
+.stat__spark-area { fill: color-mix(in srgb, currentColor 16%, transparent); stroke: none; }
+
+.stat__spark-dot {
+  inline-size: .55rem;
+  block-size: .55rem;
+  margin: -.275rem 0 0 -.275rem;
+  box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent);
+}
+.stat--warn .stat__spark-dot,
+.stat--alarm .stat__spark-dot {
+  box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+/* ===========================================================================
+   سطرُ الشرح وسطرُ المقارنة: أوضحُ لوناً وأثقلُ وزناً
+   ---------------------------------------------------------------------------
+   «خلى الكلام ده واضح وعريض أكتر» — «أقل 100% عن الأسبوع الماضي» و«0 خلال
+   ٢٤ ساعة».
+
+   وكان السطران بلون `--muted` ووزنٍ عادي ومقاسٍ `.72`–`.74rem`. و`--muted`
+   على البطاقة البيضاء نسبتُه **5.42** — فوق حدّ النصّ الصغير (4.5) بهامشٍ
+   ضيّق، وهو أضعفُ من أن يُقرأ في ضوء نهارٍ على شاشةٍ باهتة. و`--ink-soft`
+   يعطي **8.57** على البطاقة نفسِها، و7.9 على بطاقة التحذير المصبوغة.
+
+   فالتغييرُ ثلاثةٌ معاً — لونٌ أغمق، ووزنٌ 500 و600، ومقاسٌ أكبرُ قليلاً —
+   لأن أيّاً منها وحدَه لا يكفي: نصٌّ أغمقُ بوزنٍ رفيعٍ يبقى رفيعاً، ووزنٌ
+   أثقلُ بلونٍ باهتٍ يبقى باهتاً.
+
+   ولا يمسّ هذا **رتبةَ** السطرين: العنوانُ 700 على لون الحبر، والرقمُ 700
+   بلون تصنيفه — وهما فوق هذين بدرجتين لا بدرجةٍ واحدة كما كان قبل أن
+   يُخفَّف اللون في الأصل.
+   ======================================================================== */
+
+.stat__detail {
+  font-size: .81rem;
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.stat__delta-note {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+/* والشاشاتُ السبعُ التي تستعمل البطاقة المضغوطة تأخذ اللونَ نفسَه: العلّةُ
+   واحدةٌ فيها — سطرُ شرحٍ بـ`--muted` — ولو تُرك لصار في اللوحة سطران
+   بوضوحين مختلفين لسببٍ لا أحدَ يعرفه. والمقاسُ يبقى مضغوطاً كما هو. */
+.board-stats--compact .stat__detail { color: var(--ink-soft); font-weight: 500; }
+
+/* ===========================================================================
+   خطُّ الرأس يُحذف، وسطرُ الشرح يصغُر في البطاقات الأربع وحدها
+   ---------------------------------------------------------------------------
+   «شيل الخط تحت الهيدر اللي قبل أرقام المنصة»، و«صغّر الكلام اللي تحت
+   العنوان في الأربع مربعات اللي في الأعلى فقط».
+
+   **الخطّ** وُضع يوم كان الرأسُ متوسّطاً على هيئة لوحة v1 — يفصل لافتةً
+   متوسّطةً عمّا تحتها. ثم رُدّ الرأسُ إلى حافة البداية وبقي الخطُّ، فصار
+   خطّاً بعرض الصفحة فوق عنوان «أرقام المنصّة» الذي له خطُّه الممتدُّ من
+   اسمه — خطّان متوازيان بينهما سطرٌ واحد.
+
+   **والتصغيرُ في `board-stats` وحدها**: بطاقاتُ الرسم في شبكتها الخاصّة
+   (`board-charts`) فتبقى على المقاس الأكبر — وهي أعرضُ وأطول، وسطرُ شرحٍ
+   صغيرٌ فيها يسبح في فراغها. واللونُ والوزنُ اللذان رُفعا في الخطوة السابقة
+   يبقيان: المطلوبُ مقاسٌ أصغر لا وضوحٌ أقلّ.
+   ======================================================================== */
+
+.board .page__actions { padding-block-end: 0; border-block-end: 0; }
+
+.board-stats .stat__detail { font-size: .75rem; line-height: 1.55; }
+
+/* ===========================================================================
+   «الصورة العامّة»: سطرُ تعريفٍ، ولوحتان مرتَّبتان
+   ---------------------------------------------------------------------------
+   «خلى الصورة العامة وما تحتها بشكل احترافي أكتر، وضيف سطر كلام تحت الصورة
+   العامة».
+
+   **السطر** يقول ما تجيبه اللوحتان. وعنوانُ الكتلة كلمتان لا تقولان ما
+   الفرقَ بينه وبين «أرقام المنصّة» فوقه — وكلتاهما أرقامٌ عن المنصّة.
+   والفرقُ أن تلك **عدّادات** وهذه **توزيعٌ وحركة**.
+
+   **واللوحتان** كانتا صندوقين بعنوانٍ عائمٍ فوق محتوىً بلا فاصل، وبحشوةٍ
+   واحدةٍ من كل جهة — فرأسُ اللوحة يُقرأ سطراً من المحتوى لا رأساً له. فصار:
+
+   * **خطٌّ تحت الرأس** يفصله عمّا يشرحه، وحشوةٌ أوسعُ حوله.
+   * **الدائرةُ أكبرُ وحلقتُها أثخن**، ورقمُها في مركزها أثقلُ وزناً — هي
+     الرقمُ الوحيدُ في اللوحة، وكانت بوزن سطرٍ عادي.
+   * **مفتاحُ الدائرة** صفوفٌ أعلى، والحبّةُ فيه دائرةٌ لا مربّعٌ مستدير:
+     الدائرةُ تقول «هذه قطعةٌ من تلك الدائرة»، والمربّعُ يقول «وسمٌ آخر».
+   * **أعمدةُ الحركة** برؤوسٍ مستديرة وقاعدةٍ مرسومة، وأرقامُها فوقها
+     بخاناتٍ مستقيمة.
+   ======================================================================== */
+
+.board-lede {
+  margin: -.35rem 0 1rem;
+  font-size: .82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-inline-size: 52rem;
+}
+
+/* ---- اللوح ------------------------------------------------------------- */
+
+.figure { padding: 1.35rem 1.45rem 1.5rem; }
+
+.figure__head {
+  padding-block-end: .85rem;
+  margin-block-end: 1.15rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.figure h2 { font-size: 1rem; font-weight: 700; }
+
+/* ---- الدائرة ------------------------------------------------------------ */
+
+.wheel { gap: 1.6rem; }
+.wheel__disc { inline-size: 8.5rem; block-size: 8.5rem; }
+/* الثقبُ أضيقُ نسبةً: حلقةٌ أثخنُ تُقرأ قطاعاتُها المتقاربة، وثقبٌ يكفي رقماً. */
+.wheel__hole { inline-size: 5.3rem; block-size: 5.3rem; }
+.wheel__hole strong { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.wheel__hole span { font-size: .72rem; font-weight: 600; }
+
+.wheel__item { padding-block: .55rem; gap: .6rem; }
+/* دائرةٌ لا مربّعٌ مستدير: الحبّةُ هنا **قطعةٌ من الدائرة** المجاورة، لا
+   وسمٌ ثالثٌ بجوار حبّات الوحدة والمقارنة في البطاقات فوقها. */
+.wheel__dot { inline-size: .62rem; block-size: .62rem; border-radius: 50%; }
+.wheel__name { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+.wheel__count { font-size: .95rem; color: var(--ink); }
+.wheel__share { font-size: .78rem; font-weight: 600; }
+
+/* ---- أعمدة الحركة ------------------------------------------------------- */
+
+.spark { padding-block-end: .2rem; border-block-end: 1px solid var(--line-soft); }
+.spark__bar {
+  border-start-start-radius: 5px;
+  border-start-end-radius: 5px;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+.spark__count { font-size: .76rem; font-weight: 700; color: var(--ink-soft); }
+.spark__label { font-size: .7rem; font-weight: 500; margin-block-start: .45rem; }
+
+/* ===========================================================================
+   عناوينُ الكتل: كحليّةٌ غامقة — و«الصورة العامّة» تنزل قليلاً
+   ---------------------------------------------------------------------------
+   «نزّل الصورة العامة لتحت شويه وغمّقها بلون كحلي».
+
+   **والكحليُّ مشتقٌّ لا مكتوب**: `color-mix` بين `--ink` وأزرقٍ صريح بنسبة
+   ٨٠٪ إلى ٢٠٪. وذلك لأن `--ink` **ينقلب** في المظهر الداكن (من `#172033`
+   إلى لونٍ فاتح)، فقيمةٌ كحليّةٌ مكتوبةٌ بيدٍ تصير نصّاً غامقاً على أرضيةٍ
+   سوداء لا يُقرأ. والمزيجُ يتبع الانقلاب.
+
+   وقيس على أرضية الصفحة قبل الاعتماد: `#182b55`، تباينُه **12.81** — وكان
+   `--muted` عند **5.01**. أي أن العنوان صار يُقرأ قبل ما تحته لا معه.
+
+   **والعناوينُ الثلاثةُ معاً** لا «الصورة العامّة» وحدها: هي عنصرٌ واحدٌ
+   مكرَّر، وواحدٌ كحليٌّ بين رماديَّين يُقرأ خطأً في الطباعة لا قصداً.
+   وعنوانُ الإنذار يبقى أحمر — لونُه معناه حالةٌ لا رتبة.
+
+   **والنزول** على «الصورة العامّة» وحدها (`#head-figures`): هي الكتلةُ
+   الوحيدةُ التي يسبقها **رسمان** لا بطاقات، والفصلُ عن كتلةِ رسومٍ يحتاج
+   فراغاً أوسعَ من الفصل عن صفٍّ من الأرقام.
+   ======================================================================== */
+
+.board-eyebrow {
+  color: color-mix(in srgb, var(--ink) 80%, #1a56db);
+  font-size: .82rem;
+}
+.board-eyebrow::after { background: var(--line); }
+.board-eyebrow--alarm { color: var(--danger); }
+
+#head-figures { margin-block-start: 2.3rem; }
+.board-lede { color: var(--ink-soft); }
+
+/* ===========================================================================
+   عطلٌ في المظهر الداكن: أبيضُ على درجاتٍ فاتحة
+   ---------------------------------------------------------------------------
+   زرُّ الوجهة يُملأ بدرجة تصنيف بطاقته **مخفَّفةً بالأبيض** ونصُّه أبيض.
+   وذلك حُسب على الفاتح حيث الدرجاتُ غامقة (`--money: #6d4aa8`). لكنّ المظهرَ
+   الداكن **يقلب الدرجات إلى فاتحة** (`--money: #c4a9f2`) — فصار الزرُّ
+   لوحةً باستيل ونصُّه أبيض. القياس:
+
+       بنفسجي  #cdb7f4   أبيضٌ عليه 1.80    غامقٌ عليه 10.25
+       فيروزي  #6dd1d6              1.79              10.30
+       كهرماني #f2c97a              1.57              11.77
+       أحمر    #fdb4ae              1.71              10.81
+       أخضر    #77d9b0              1.70              10.83
+
+   أي أن النصَّ كان عند خُمس الحدّ تقريباً — يُرى بياضاً على لونٍ فاتح لا
+   كلمةً. ولم يظهر في اللقطات لأن كل مراجعةٍ للزرّ جرت على المظهر الفاتح؛
+   ظهر حين صُوّر الداكنُ لسببٍ آخر.
+
+   والإصلاح مقلوبُ القاعدة لا استثناءٌ منها: **الدرجةُ لا تُخفَّف** هنا (هي
+   فاتحةٌ أصلاً، وتخفيفُها يزيد الطين بلّة)، **والنصُّ يأخذ لونَ الأرضية**
+   الداكنة. فيبقى المعنى واحداً في المظهرين: خلفيةٌ بلون التصنيف ونصٌّ يناقضها.
+   ======================================================================== */
+
+[data-scheme="dark"] .stat--money .stat__btn   { background: var(--money);   color: var(--ground); }
+[data-scheme="dark"] .stat--auction .stat__btn { background: var(--auction); color: var(--ground); }
+[data-scheme="dark"] .stat--people .stat__btn  { background: var(--people);  color: var(--ground); }
+[data-scheme="dark"] .stat--ok .stat__btn      { background: var(--ok);      color: var(--ground); }
+[data-scheme="dark"] .stat--warn .stat__btn    { background: var(--warn);    color: var(--ground); }
+[data-scheme="dark"] .stat--alarm .stat__btn   { background: var(--danger);  color: var(--ground); }
+
+/* والتحويمُ يُفتّح بدل أن يُغمّق — الاتجاهُ ينقلب مع المظهر كما تنقلب الدرجة. */
+[data-scheme="dark"] a.stat--money:hover .stat__btn,   [data-scheme="dark"] a.stat--money:focus-visible .stat__btn   { background: color-mix(in srgb, var(--money) 78%, #fff);   color: var(--ground); }
+[data-scheme="dark"] a.stat--auction:hover .stat__btn, [data-scheme="dark"] a.stat--auction:focus-visible .stat__btn { background: color-mix(in srgb, var(--auction) 78%, #fff); color: var(--ground); }
+[data-scheme="dark"] a.stat--people:hover .stat__btn,  [data-scheme="dark"] a.stat--people:focus-visible .stat__btn  { background: color-mix(in srgb, var(--people) 78%, #fff);  color: var(--ground); }
+[data-scheme="dark"] a.stat--ok:hover .stat__btn,      [data-scheme="dark"] a.stat--ok:focus-visible .stat__btn      { background: color-mix(in srgb, var(--ok) 78%, #fff);      color: var(--ground); }
+[data-scheme="dark"] a.stat--warn:hover .stat__btn,    [data-scheme="dark"] a.stat--warn:focus-visible .stat__btn    { background: color-mix(in srgb, var(--warn) 78%, #fff);    color: var(--ground); }
+[data-scheme="dark"] a.stat--alarm:hover .stat__btn,   [data-scheme="dark"] a.stat--alarm:focus-visible .stat__btn   { background: color-mix(in srgb, var(--danger) 78%, #fff);  color: var(--ground); }
+
+/* ===========================================================================
+   «حالات المزادات» في سطرٍ وحدَه — دائرةٌ ومفتاحٌ بأشرطة
+   ---------------------------------------------------------------------------
+   «خلى مربع حالة المزاد في سطر لوحده وصمّمه بشكل احترافي أكتر».
+
+   واللوحتان كانتا تقتسمان السطر، فلكلٍّ نصفُ العرض — ومفتاحُ الدائرة في
+   نصفٍ يبقى أربعةَ أعمدةٍ مضغوطة. وفي السطر الكامل يتّسع لما يجعله يُقرأ
+   فعلاً: **شريطُ نسبةٍ في كلّ صفّ**.
+
+   والشريطُ ليس زينةً فوق الرقم: الدائرةُ تقول «أيّها أكبر» في لمحة، لكنها
+   **تعجز حين يتقارب قطاعان** — زاويتان بينهما خمسُ درجاتٍ لا تُميَّزان
+   بالعين. والأشرطةُ مقارنةٌ مستقيمةٌ لا تحتاج تقديرَ زاوية، فتكمل ما تعجز
+   عنه الدائرة بدل أن تكرّره.
+
+   والصفُّ صار **شبكةً بأعمدةٍ ثابتة** لا صفَّ `flex`: بلا ذلك يتغيّر موضعُ
+   الرقم والنسبة بين صفٍّ وصفّ بحسب طول الاسم، فلا يستقيم عمودٌ يُقرأ نزولاً.
+   ======================================================================== */
+
+/* كلُّ لوحةٍ في سطرها: الأولى دائرةٌ ومفتاح، والثانيةُ سبعةُ أعمدة — ولا
+   شيء يربح من وقوفهما جنباً إلى جنب. */
+.board-figures { grid-template-columns: 1fr; }
+
+.wheel { gap: 2.2rem; flex-wrap: nowrap; align-items: center; }
+.wheel__disc { flex: none; }
+.wheel__key { flex: 1 1 auto; min-inline-size: 0; }
+
+/* أربعةُ أعمدة: حبّةٌ واسمٌ يمتدّ، فعددٌ، فشريطٌ يأخذ ما بقي، فنسبة. */
+.wheel__item {
+  display: grid;
+  grid-template-columns: auto minmax(6rem, max-content) 2.5rem minmax(4rem, 1fr) 3rem;
+  align-items: center;
+  gap: .75rem;
+  padding-block: .7rem;
+}
+
+.wheel__count { text-align: start; }
+.wheel__share { min-inline-size: 0; }
+
+.wheel__track {
+  block-size: .4rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.wheel__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  background: var(--line);
+}
+/* بترتيب `WHEEL` في `dashboard.py` — القائمةُ نفسُها التي تلوّن الحبّات
+   والقطاعات، فلا يفترق شريطٌ عن حبّته. */
+.wheel__fill[data-slice="0"] { background: #1a9aa1; }
+.wheel__fill[data-slice="1"] { background: #4aa5df; }
+.wheel__fill[data-slice="2"] { background: #8c6ad6; }
+.wheel__fill[data-slice="3"] { background: #c9891a; }
+.wheel__fill[data-slice="4"] { background: #21a06a; }
+.wheel__fill[data-slice="5"] { background: #e05a4c; }
+
+/* الشاشةُ الضيّقة: الشريطُ يُطوى ويبقى الرقمُ والنسبة — عمودٌ بعرض 4rem
+   لشريطٍ ليس شريطاً. والدائرةُ تنزل فوق المفتاح. */
+@media (max-width: 52rem) {
+  .wheel { flex-wrap: wrap; gap: 1.2rem; }
+  .wheel__item { grid-template-columns: auto 1fr 2.5rem 3rem; }
+  .wheel__track { display: none; }
+}
+
+/* ===========================================================================
+   «حالات المزادات»: دائرةٌ ولوحاتُ حالة
+   ---------------------------------------------------------------------------
+   «غيّر تصميم مربع حالات المزاد لتصميم احترافي جداً».
+
+   وكان المفتاحُ **قائمةَ صفوفٍ** — سطرٌ تحت سطر، كلٌّ منها حبّةٌ واسمٌ وعددٌ
+   وشريطٌ ونسبة. وقائمةٌ من سطرين في لوحةٍ بعرض الشاشة تترك ثلثَي ارتفاعها
+   فارغاً، والعددُ — وهو ما تُفتح اللوحةُ لأجله — يقع بين نصّين بحجم النصّ
+   نفسِه فلا يُقرأ رقماً.
+
+   فصار كلُّ حالةٍ **لوحةَ حالةٍ** قائمةً بذاتها، وفيها ثلاثة أسطرٍ برتبٍ
+   ثلاث: اسمٌ ونسبةٌ فوق، ثم **العدد كبيراً**، ثم شريطُ نسبته. والشبكةُ
+   `auto-fit` فتملأ العرضَ مهما كان عددُ الحالات — وهو من ثنتين إلى ستّ
+   بحسب ما في الدفتر، فلا رقمَ أعمدةٍ يُكتب بيدٍ ويصير خطأً عند الحالة
+   السابعة.
+
+   واللوحُ يحمل **حدّاً علوياً بلون حالته**، وهو اللون نفسُه في القطاع
+   والحبّة والشريط — أربعةُ مواضعَ من قائمةٍ واحدة (`WHEEL` في
+   `dashboard.py`)، فلا يفترق واحدٌ منها عن البقية.
+
+   والدائرةُ يكتب ثقبُها «إجمالي المزادات» لا «مزاد»: كلمةٌ واحدةٌ تحت رقمٍ
+   في وسط دائرةٍ لا تقول أهو مجموعُ القطاعات أم أكبرُها.
+   ======================================================================== */
+
+.wheel { gap: 2rem; align-items: center; }
+
+/* الدائرةُ تُحاط بحلقةٍ خافتةٍ تفصلها عن اللوح — قطاعٌ فاتحٌ على سطحٍ أبيض
+   ينتهي في الهواء بلا حافّة. */
+.wheel__disc {
+  box-shadow: 0 0 0 1px var(--line-soft), 0 8px 22px rgb(23 32 51 / .07);
+}
+.wheel__hole {
+  inline-size: 5.6rem;
+  block-size: 5.6rem;
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+.wheel__hole strong { font-size: 2.1rem; }
+.wheel__hole span { font-size: .66rem; line-height: 1.3; text-align: center; }
+
+/* ---- لوحاتُ الحالة ------------------------------------------------------ */
+
+.wheel__key {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: .7rem;
+}
+
+.wheel__item {
+  display: block;
+  padding: .85rem .95rem .9rem;
+  border: 1px solid var(--line);
+  border-block-start-width: 3px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.wheel__item:last-child { border-block-end: 1px solid var(--line); }
+
+.wheel__item[data-slice], .wheel__item { border-block-start-color: var(--line); }
+.wheel__item:nth-child(1) { border-block-start-color: #1a9aa1; }
+.wheel__item:nth-child(2) { border-block-start-color: #4aa5df; }
+.wheel__item:nth-child(3) { border-block-start-color: #8c6ad6; }
+.wheel__item:nth-child(4) { border-block-start-color: #c9891a; }
+.wheel__item:nth-child(5) { border-block-start-color: #21a06a; }
+.wheel__item:nth-child(6) { border-block-start-color: #e05a4c; }
+
+.wheel__head {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin-block-end: .35rem;
+}
+.wheel__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wheel__share {
+  flex: none;
+  font-size: .74rem;
+  font-weight: 700;
+  color: var(--muted);
+  min-inline-size: 0;
+  text-align: end;
+}
+
+.wheel__count {
+  display: block;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-block-end: .55rem;
+}
+
+.wheel__track { display: block; block-size: .3rem; }
+
+@media (max-width: 52rem) {
+  .wheel__track { display: block; }
+  .wheel { flex-wrap: wrap; }
+}
+
+/* ===========================================================================
+   «حالات المزادات»: شريطٌ مكدَّسٌ بدل الدائرة
+   ---------------------------------------------------------------------------
+   «غيّر لتصميم أفضل».
+
+   والدائرةُ حُذفت لا زُخرفت. **الدائرةُ شكلٌ مربَّع**: تأخذ من الارتفاع بقدر
+   ما تأخذ من العرض، وفي لوحةٍ صارت بعرض الشاشة تترك أربعةَ أخماس العرض
+   لغيرها — فيُحشى المتبقّي بلوحاتٍ تكبر لتملأ فراغاً لا لتقول شيئاً. وهذا
+   ما كانت اللوحةُ تفعله في محاولتين.
+
+   والشريطُ المكدَّس يستعمل **العرض** — وهو البُعدُ الذي عند اللوحة منه
+   فائض. وأصدقُ أيضاً: مقارنةُ طولين مستقيمين أدقُّ من مقارنة زاويتين،
+   وقطاعان بينهما خمسُ درجاتٍ في دائرةٍ لا يُميَّزان.
+
+   وثلاثةُ أسطرٍ برتبٍ ثلاث: الإجماليُّ فوق، ثم الشريطُ، ثم مفتاحٌ صفٌّ
+   واحدٌ يحمل الاسمَ والعددَ والنسبة.
+   ======================================================================== */
+
+.dist { display: block; }
+
+/* ---- الإجمالي ----------------------------------------------------------- */
+
+.dist__total {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 0 0 .9rem;
+}
+.dist__total strong {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dist__total span { font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+/* ---- الشريط ------------------------------------------------------------- */
+
+.dist__bar {
+  display: flex;
+  block-size: 1.1rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+/* فاصلٌ بلون اللوح بين القطع: قطعتان بلونين متقاربين بلا فاصلٍ تُقرآن
+   قطعةً واحدة. و`border` لا `gap`: الفجوةُ تُضاف إلى مجموع النسب فيفيض
+   الشريطُ عن مئةٍ، والحدُّ يُقتطع من عرض القطعة نفسِها. */
+.dist__seg { flex: none; min-inline-size: 2px; box-sizing: border-box; }
+.dist__seg + .dist__seg { border-inline-start: 2px solid var(--panel); }
+
+.dist__seg[data-slice="0"] { background: #1a9aa1; }
+.dist__seg[data-slice="1"] { background: #4aa5df; }
+.dist__seg[data-slice="2"] { background: #8c6ad6; }
+.dist__seg[data-slice="3"] { background: #c9891a; }
+.dist__seg[data-slice="4"] { background: #21a06a; }
+.dist__seg[data-slice="5"] { background: #e05a4c; }
+
+/* ---- المفتاح ------------------------------------------------------------ */
+
+.dist__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.9rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.dist__item { display: flex; align-items: center; gap: .5rem; }
+
+.dist__dot { inline-size: .62rem; block-size: .62rem; border-radius: 50%; background: var(--line); }
+.dist__dot[data-slice="0"] { background: #1a9aa1; }
+.dist__dot[data-slice="1"] { background: #4aa5df; }
+.dist__dot[data-slice="2"] { background: #8c6ad6; }
+.dist__dot[data-slice="3"] { background: #c9891a; }
+.dist__dot[data-slice="4"] { background: #21a06a; }
+.dist__dot[data-slice="5"] { background: #e05a4c; }
+
+.dist__name { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+.dist__count { font-size: .95rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dist__share {
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding-inline-start: .15rem;
+}
+
+/* ===========================================================================
+   «حالات المزادات»: صفٌّ لكلّ حالة، وشريطٌ بعرض اللوحة
+   ---------------------------------------------------------------------------
+   الشكلُ الخامس على هذه اللوحة، واختير بعد أن سُئل المالك فقال «أيّ الأفضل
+   شكلاً». والسببُ واحدٌ يجمع فشلَ الأربعة قبله: **اللوحةُ صارت بعرض الصفحة**،
+   فما لا يستعمل العرضَ يترك فراغاً يُحشى بما لا يقول شيئاً.
+
+   * **الدائرة** شكلٌ مربَّع: تأخذ من الارتفاع بقدر العرض، فتترك أربعةَ
+     أخماسه.
+   * **الشريطُ المكدَّس** يستعمل العرضَ لكنه يضغط الحالات كلَّها في خطٍّ
+     واحد، فتُقرأ قطعةً بجوار قطعة لا حالةً لها اسمٌ ورقم.
+   * **والصفُّ الواحد لكلّ حالة** يستعمل العرضَ **ويُبقي لكلٍّ اسمَها
+     ورقمَها**. ومقارنةُ طولين مستقيمين متجاورين أدقُّ مقارنةٍ بصريةٍ يقدر
+     عليها الإنسان — أدقُّ من الزوايا ومن المساحات.
+
+   ولا حدودَ بين الصفوف: الشريطُ نفسُه يفصل، وخطٌّ فوق شريطٍ خطّان.
+   ======================================================================== */
+
+.dist__rows { display: grid; gap: 1.15rem; margin: 0; padding: 0; list-style: none; }
+
+.dist__row { display: block; }
+
+.dist__line {
+  display: flex;
+  align-items: baseline;
+  gap: .55rem;
+  margin-block-end: .5rem;
+}
+
+.dist__dot {
+  flex: none;
+  inline-size: .55rem;
+  block-size: .55rem;
+  border-radius: 50%;
+  background: var(--line);
+  align-self: center;
+}
+
+/* الاسمُ يأخذ ما بقي فيُدفع العددُ والنسبةُ إلى الحافة المقابلة — فيستقيم
+   عمودُ الأرقام نزولاً مهما اختلفت أطوالُ الأسماء. */
+.dist__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.dist__count {
+  flex: none;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dist__share {
+  flex: none;
+  min-inline-size: 3rem;
+  text-align: end;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dist__track {
+  display: block;
+  block-size: .55rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.dist__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  /* حدٌّ أدنى يُرى: حالةٌ بنسبة ١٪ شريطُها بعرض ٦px على لوحةٍ بعرض ٩٠٠،
+     وذلك خيطٌ لا شريط — والقارئُ يظنّ الحالةَ صفراً وهي ليست كذلك. */
+  min-inline-size: .55rem;
+  background: var(--line);
+}
+
+.dist__fill[data-slice="0"], .dist__dot[data-slice="0"] { background: #1a9aa1; }
+.dist__fill[data-slice="1"], .dist__dot[data-slice="1"] { background: #4aa5df; }
+.dist__fill[data-slice="2"], .dist__dot[data-slice="2"] { background: #8c6ad6; }
+.dist__fill[data-slice="3"], .dist__dot[data-slice="3"] { background: #c9891a; }
+.dist__fill[data-slice="4"], .dist__dot[data-slice="4"] { background: #21a06a; }
+.dist__fill[data-slice="5"], .dist__dot[data-slice="5"] { background: #e05a4c; }
+
+/* ===========================================================================
+   «حالات المزادات»: حلقةٌ لكلّ حالة
+   ---------------------------------------------------------------------------
+   اختارها المالكُ من أربعة أشكالٍ رُسمت له بخطّ اللوحة وألوانها، بعد ستّ
+   محاولاتٍ لم تُرضِه — والسؤالُ بعد السادسة كان أرخصَ من سابعة.
+
+   **والحلقةُ هنا ليست قطاعاً من دائرةٍ واحدة.** كلُّ حالةٍ حلقتُها كاملةٌ
+   تُملأ بنسبتها من الإجمالي. والفرقُ ليس شكلياً: قطاعٌ في دائرةٍ مشتركة
+   يُقارَن بجيرانه ولا يُقرأ وحدَه، وحلقةٌ ممتلئةٌ بنسبتها تُقرأ وحدَها
+   («ثمانون بالمئة») ثم تُقارَن. وهذا ما تسأله اللوحةُ فعلاً: «كم منها
+   منتهٍ؟» لا «أيّهما أكبر؟».
+
+   والرقمُ في وسط حلقته لا تحتها: هو ما تُفتح اللوحةُ لأجله.
+   ======================================================================== */
+
+.rings {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1.2rem 2.6rem;
+  margin: 0;
+  padding: .3rem 0 .2rem;
+  list-style: none;
+}
+
+.rings__one { text-align: center; inline-size: 6.6rem; }
+
+/* `conic-gradient` بحدٍّ حادٍّ لا متدرّج: النسبةُ تنتهي عند رقمها بالضبط،
+   وتدرّجٌ عندها يجعل الحدَّ يُقرأ «نحو الثمانين» لا «ثمانين». وما بقي بلون
+   المسار الخافت لا شفّافاً — الشفّافُ على لوحٍ أبيض يجعل الحلقةَ قوساً
+   معلّقاً لا حلقةً ناقصة. */
+.rings__ring {
+  display: grid;
+  place-items: center;
+  inline-size: 6.6rem;
+  block-size: 6.6rem;
+  border-radius: 50%;
+  margin-inline: auto;
+  background:
+    conic-gradient(var(--slice, var(--line)) 0 var(--share),
+                   var(--line-soft) var(--share) 100%);
+}
+
+.rings__hole {
+  display: grid;
+  place-items: center;
+  inline-size: 4.75rem;
+  block-size: 4.75rem;
+  border-radius: 50%;
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.rings__name {
+  display: block;
+  margin-block-start: .65rem;
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.rings__share {
+  display: block;
+  margin-block-start: .1rem;
+  font-size: .76rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* بترتيب `WHEEL` في `dashboard.py` — القائمةُ نفسُها في كل موضعٍ يُلوَّن. */
+.rings__ring[data-slice="0"] { --slice: #1a9aa1; }
+.rings__ring[data-slice="1"] { --slice: #4aa5df; }
+.rings__ring[data-slice="2"] { --slice: #8c6ad6; }
+.rings__ring[data-slice="3"] { --slice: #c9891a; }
+.rings__ring[data-slice="4"] { --slice: #21a06a; }
+.rings__ring[data-slice="5"] { --slice: #e05a4c; }
+
+@media (max-width: 40rem) {
+  .rings { gap: 1rem 1.6rem; }
+  .rings__one, .rings__ring { inline-size: 5.4rem; }
+  .rings__ring { block-size: 5.4rem; }
+  .rings__hole { inline-size: 3.9rem; block-size: 3.9rem; font-size: 1.2rem; }
+}
+
+/* ===========================================================================
+   لوحُ الحالات: كلامٌ على حافة البداية، وحلقاتٌ على مقابلها
+   ---------------------------------------------------------------------------
+   «خلى الدايرتين في الشمال وضيف كلام وخطوط في اليمين عشان حاسّه المربع فاضي».
+
+   واللوحُ كان حلقتين متوسّطتين في عرضٍ يتّسع لستّ، فثلثاه فراغ. والكلامُ
+   هنا **مشتقٌّ من الأرقام نفسِها لا حشوٌ يُكتب**: الإجماليُّ، وأكثرُ
+   الحالات، وعددُ الحالات المرصودة، ومن أين يُقرأ العمود. وسطرٌ يملأ فراغاً
+   ولا يقول شيئاً أسوأُ من الفراغ.
+
+   و«الحالة الأكثر» تُحسب بـ`max` في `dashboard.py` لا بحلقةٍ في القالب:
+   المقارنةُ قاعدةٌ، والقالبُ مكانٌ لا يُختبَر.
+
+   والحلقاتُ لا تنكمش (`flex: none`) والكلامُ يأخذ ما بقي: حلقةٌ تضيق تحت
+   ستّ حالاتٍ تصير قرصاً، والنصُّ يلتفّ ولا يضيع.
+   ======================================================================== */
+
+.states {
+  display: flex;
+  align-items: center;
+  gap: 2rem 2.4rem;
+  flex-wrap: wrap;
+}
+
+.states__brief { flex: 1 1 15rem; min-inline-size: 0; }
+.states .rings { flex: 0 1 auto; justify-content: flex-end; padding: 0; }
+
+/* ---- الإجمالي ----------------------------------------------------------- */
+
+.states__lead {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 0 0 1rem;
+}
+.states__lead strong {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.states__lead span { font-size: .84rem; font-weight: 600; color: var(--muted); }
+
+/* ---- الأسطر والخطوط ----------------------------------------------------- */
+
+
+/* ===========================================================================
+   كتلةُ التعريف: شبكةُ خانات لا قائمةَ سطورٍ عريضة
+   ---------------------------------------------------------------------------
+   «خلى الكلام بشكل احترافي أكتر ومنظّم».
+
+   وكان كلُّ سطرٍ يمدّ اسمَه على حافةٍ وقيمتَه على مقابلها، وبينهما فراغٌ من
+   أربعمئة بكسل — فتُقرأ القيمةُ ولا يُعرف لأيّ اسمٍ هي إلا بعودةٍ بالعين
+   عبر الفراغ. وهو عيبُ كل قائمةِ `dt`/`dd` تُمدّ على عرضٍ واسع.
+
+   والخانةُ تضع **الاسمَ فوق قيمته**، فتُقرآن معاً بلا عبورٍ ولا خطٍّ يقود
+   العين. والشبكةُ عمودان يلتفّان إلى واحدٍ عند الضيق.
+
+   ورتبتان لا ثلاث: اسمٌ خافتٌ صغير، وقيمةٌ بلون الحبر. والفصلُ بخطٍّ واحدٍ
+   فوق كلّ صفٍّ — لا إطارَ حول كل خانة: أربعةُ صناديقَ داخل صندوقٍ داخل لوحٍ
+   ثلاثُ طبقاتٍ من الحدود على شيءٍ واحد.
+   ======================================================================== */
+
+.brief {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1.6rem;
+  margin: 0;
+}
+
+.brief__cell {
+  padding-block: .7rem;
+  border-block-start: 1px solid var(--line-soft);
+  min-inline-size: 0;
+}
+/* الخانةُ العريضةُ تمتدّ على العمودين: قيمتُها جملةٌ لا رقم. */
+.brief__cell--wide { grid-column: 1 / -1; }
+
+.brief dt {
+  font-size: .73rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-block-end: .2rem;
+}
+.brief dd {
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+/* قيمةُ «المصدر» جملةٌ تُقرأ لا رقمٌ يُلمح: أخفُّ وزناً وأصغرُ مقاساً. */
+.brief__cell--wide dd { font-size: .8rem; font-weight: 500; color: var(--ink-soft); }
+.brief dd b { font-weight: 700; color: var(--ink); padding-inline-start: .2rem; }
+
+@media (max-width: 40rem) {
+  .brief { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ===========================================================================
+   لونٌ في كتلة التعريف، وزرُّ اللوحة يُقرأ زرّاً
+   ---------------------------------------------------------------------------
+   «دخّل ألوان في المربع مع الكلام، وخلى دايرة القائمة بشكل احترافي أكتر».
+
+   **واللونُ يحمل معنىً لا يُرشّ.** القيمةُ في «الحالة الأكثر» تأخذ **لون
+   حلقتها**، ورتبتُها محسوبةٌ في `dashboard.py` وتُكتب في `data-slice` —
+   فالعينُ تربط السطرَ بحلقته بلا أن تقرأ الاسمَ مرّتين. وبدون الرتبة كان
+   اللونُ يُبحث عنه بمقارنة الاسم بالأسماء في حلقةٍ داخل القالب.
+
+   والخاناتُ صارت أسطحاً خفيفةً ملوّنةً بدل خطوطٍ فوقها: خطٌّ يفصل، وسطحٌ
+   **يجمع** — والخانةُ اسمٌ وقيمةٌ يجب أن يُقرآ كتلةً واحدة.
+
+   **وزرُّ اللوحة** كان حبّةً خفيفةً بنصٍّ ملوّن، وزرُّ البطاقة تحته ممتلئٌ
+   بنصٍّ أبيض — زرّان بلغتين في صفحةٍ واحدة. فصار على اللغة نفسِها: ممتلئٌ،
+   زاويتُه 10px لا قوسٌ كامل، ونصُّه أبيضُ بـ700.
+   ======================================================================== */
+
+/* ---- الخانات ------------------------------------------------------------ */
+
+.brief { gap: .55rem; }
+
+.brief__cell {
+  padding: .7rem .85rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.brief dd { display: flex; align-items: center; gap: .4rem; }
+
+/* حبّةٌ صغيرةٌ بلون الحالة قبل اسمها — الرابطُ البصريُّ بالحلقة. */
+.brief__dot {
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.brief dd[data-slice="0"] { color: #1a9aa1; }
+.brief dd[data-slice="1"] { color: #4aa5df; }
+.brief dd[data-slice="2"] { color: #8c6ad6; }
+.brief dd[data-slice="3"] { color: #c9891a; }
+.brief dd[data-slice="4"] { color: #21a06a; }
+.brief dd[data-slice="5"] { color: #e05a4c; }
+.brief dd[data-slice] b { color: inherit; }
+
+/* خانةُ العدد بلون الأساسي وسطحُها مصبوغٌ به مخفَّفاً. */
+.brief__cell--brand { background: var(--brand-soft); }
+.brief__cell--brand dd { color: var(--brand-dark); }
+
+.brief__cell--wide { background: none; padding-inline: 0; padding-block-end: 0; }
+.brief__cell--wide dt { color: var(--muted); }
+
+/* ---- زرُّ اللوحة -------------------------------------------------------- */
+
+.figure__action {
+  padding: .45rem .95rem;
+  border-radius: 10px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-weight: 700;
+  font-size: .76rem;
+  box-shadow: none;
+}
+.figure__action:hover {
+  background: color-mix(in srgb, var(--brand-solid) 85%, #000);
+  color: #fff;
+  text-decoration: none;
+}
+[data-scheme="dark"] .figure__action { background: var(--brand-solid); color: #fff; }
+
+/* ===========================================================================
+   عطلٌ في القراءة: ألوانُ القطاعات نصّاً
+   ---------------------------------------------------------------------------
+   القيمةُ في «الحالة الأكثر» أُعطيت لونَ حلقتها في الخطوة السابقة. وقيست
+   الألوانُ الستّة نصّاً على سطح الخانة (`--raised` = `#f7f9fd`) فرسبت
+   **كلُّها**:
+
+       #1a9aa1 → 3.22    #4aa5df → 2.57    #8c6ad6 → 3.87
+       #c9891a → 2.82    #21a06a → 3.16    #e05a4c → 3.47
+
+   والحدُّ 4.5. وهي ألوانُ **تعبئة** لا ألوانُ حروف: قُرِّرت لقطاعٍ في دائرةٍ
+   وحبّةٍ في مفتاح — والفِلّةُ الملوّنةُ تحتاج 3:1 والنصُّ 4.5، فما يصلح
+   للأولى لا يصلح للثاني، وهو فرقٌ يُنسى لأن اللون واحد.
+
+   فلكلٍّ **نظيرٌ غامقٌ للنصّ**، محسوبٌ بالبحث عن أغمق مزيجٍ يبلغ 4.6:
+
+       0  81٪  #157d82 → 4.65      3  75٪  #976714 → 4.67
+       1  72٪  #3577a1 → 4.63      4  80٪  #1a8055 → 4.67
+       2  90٪  #7e5fc1 → 4.64      5  85٪  #be4c41 → 4.63
+
+   **والحبّةُ تبقى باللون الأصلي**: هي زخرفةٌ (`aria-hidden`) وتُقرأ رابطاً
+   بصرياً بالحلقة، ولونُها يجب أن يطابق الحلقةَ لا أن يقاربها.
+   ======================================================================== */
+
+.brief dd[data-slice="0"] { color: #157d82; }
+.brief dd[data-slice="1"] { color: #3577a1; }
+.brief dd[data-slice="2"] { color: #7e5fc1; }
+.brief dd[data-slice="3"] { color: #976714; }
+.brief dd[data-slice="4"] { color: #1a8055; }
+.brief dd[data-slice="5"] { color: #be4c41; }
+
+.brief dd[data-slice="0"] .brief__dot { background: #1a9aa1; }
+.brief dd[data-slice="1"] .brief__dot { background: #4aa5df; }
+.brief dd[data-slice="2"] .brief__dot { background: #8c6ad6; }
+.brief dd[data-slice="3"] .brief__dot { background: #c9891a; }
+.brief dd[data-slice="4"] .brief__dot { background: #21a06a; }
+.brief dd[data-slice="5"] .brief__dot { background: #e05a4c; }
+
+/* ===========================================================================
+   الإجماليُّ كحليّ، ولوحُ «المزايدات — سبعة أيام» يُقرأ
+   ---------------------------------------------------------------------------
+   «خلى خمسة دي بلون كحلي، وخلى مربع المزايدات بشكل احترافي أكتر».
+
+   والكحليُّ هو المزيجُ نفسُه المستعمل في عناوين الكتل — `--ink` مع أزرقٍ
+   صريح — لا قيمةٌ ثانيةٌ تُكتب: قيمتان لكحليٍّ واحدٍ تفترقان عند أوّل تعديل.
+
+   ---- لوحُ المزايدات ----------------------------------------------------
+   كان رأساً، ثم صندوقاً رمادياً يقول «لا مزايدة»، ثم سبعةَ أعمدةٍ صفرية في
+   فراغٍ بارتفاع 180px. وثلاثةُ عيوب:
+
+   * **لا مقدارَ فوق الرسم.** سبعةُ أعمدةٍ بلا مجموع تُقرأ نسباً بلا مقام،
+     و«العمود الأطول هو أعلى يوم» تقول كيف يُقرأ الرسمُ ولا تقول كم.
+   * **الصفرُ يُعرَض عطلاً.** صندوقٌ رماديٌّ يطفو فوق الرسم يُقرأ رسالةَ
+     خطأ؛ والصفرُ **قيمةٌ** — أسبوعٌ بلا مزايدةٍ خبرٌ يُقال في السطر.
+   * **لا مسطرةَ للأعمدة.** عمودٌ في فراغٍ أبيض لا يُقاس إلا برقمه، فالرسمُ
+     زينةٌ فوق أرقامٍ لا رسمٌ يُقرأ.
+
+   فصار: سطرُ مقدارٍ فيه المجموعُ وأعلى يوم، ثم أعمدةٌ على **خطوطٍ أفقيةٍ
+   خافتة** تقيسها، ثم القاعدة.
+   ======================================================================== */
+
+.states__lead strong { color: color-mix(in srgb, var(--ink) 80%, #1a56db); }
+
+/* ---- سطرُ المقدار ------------------------------------------------------- */
+
+.trend__lead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .4rem .75rem;
+  margin: 0 0 1.1rem;
+}
+.trend__lead > strong {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ink) 80%, #1a56db);
+  font-variant-numeric: tabular-nums;
+}
+.trend__lead > span { font-size: .84rem; font-weight: 600; color: var(--muted); }
+
+.trend__peak {
+  margin-inline-start: auto;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: var(--auction-soft);
+  color: var(--auction);
+  font-size: .76rem !important;
+  font-weight: 700 !important;
+}
+.trend__peak b { font-weight: 800; font-variant-numeric: tabular-nums; }
+/* «لا مزايدة» ليست ذروةً: حبّةٌ محايدةٌ لا فيروزيّة. */
+.trend__peak--none { background: var(--line-soft); color: var(--muted) !important; }
+
+/* ---- مسطرةُ الأعمدة ----------------------------------------------------- */
+
+/* أربعةُ خطوطٍ أفقيةٍ خافتة خلف الأعمدة — مسطرةٌ تقيسها. ومرسومةٌ خلفيةً
+   لا عناصر: سبعةُ `<span>`ات لخطوطٍ لا تقول شيئاً لقارئ الشاشة. */
+.spark {
+  position: relative;
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent calc(25% - 1px),
+    var(--line) calc(25% - 1px),
+    var(--line) 25%
+  );
+  background-position: 0 -1px;
+  padding-block-start: .4rem;
+  border-block-end: 1px solid var(--line);
+}
+.spark__bar { position: relative; z-index: 1; }
+
+/* الصندوقُ الرمادي حُذف: الخبرُ انتقل إلى سطر المقدار. */
+.figure__empty { display: none; }
+.figure__empty + .spark { opacity: 1; }
+
+/* خطوطُ المسطرة بـ`--line` لا `--line-soft`: الثاني (#eef2f8) على لوحٍ أبيض
+   فرقُه عن الأرضية أربعُ درجاتٍ من 255 — يُرسم ولا يُرى، وهو أسوأُ من ألّا
+   يُرسم لأنه يُصان بلا أن يعمل. */
+.spark { background-position: 0 -1px; }
+
+/* ===========================================================================
+   رسمُ سبعة أيام: أعمدةٌ هادئة، والذروةُ وحدها غامقة
+   ---------------------------------------------------------------------------
+   اختاره المالكُ من أربعة أشكالٍ رُسمت له ببياناتٍ حقيقية — أعمدةٌ بمسطرة،
+   ومنحنىً بمساحة، وصفوفٌ أفقية، وهذا.
+
+   **والعمودُ شكلُ اليوم الصادق**: سبعةُ أيامٍ قيمٌ منفصلة، والمنحنى يوحي
+   باتّصالٍ بينها — أنّ العددَ مرّ بقيمةٍ ما بين ليلتين، وهو ما لا يحدث.
+
+   **والذروةُ تُعلَّم بدل أن تُشرَح.** كانت في الرأس جملةٌ تقول «العمود
+   الأطول هو أعلى يوم» — أي شرحُ كيفيةِ قراءة الرسم. وتعليمُ اليوم نفسِه
+   يغني عنها: العينُ تجده قبل أن تقرأ رقماً.
+
+   وبقيّةُ الأعمدة بلونٍ مخفَّف لا رماديّ: الرماديُّ يقول «معطَّل»، والمخفَّفُ
+   يقول «من العائلة نفسِها وأقلّ».
+   ======================================================================== */
+
+.spark { gap: .6rem; background-image: none; border-block-end: 1px solid var(--line); }
+
+.spark__bar {
+  background: color-mix(in srgb, var(--auction) 30%, #fff);
+  border-radius: 8px 8px 0 0;
+  /* حدٌّ أدنى يُرى: يومٌ بمزايدةٍ واحدةٍ من خمس عشرة ارتفاعُه 6px، وذلك خطٌّ
+     لا عمود — والقارئُ يظنّه صفراً وهو ليس كذلك. وصفرٌ حقيقيٌّ يبقى صفراً:
+     القاعدةُ في `_trend` تعطيه `0` لا `2`. */
+  min-block-size: .35rem;
+}
+.spark__day--top .spark__bar { background: var(--auction); }
+
+.spark__count { color: var(--muted); font-weight: 700; }
+.spark__day--top .spark__count { color: var(--auction); font-weight: 800; }
+.spark__day--top .spark__label { color: var(--auction); font-weight: 700; }
+
+[data-scheme="dark"] .spark__bar { background: color-mix(in srgb, var(--auction) 34%, var(--panel)); }
+[data-scheme="dark"] .spark__day--top .spark__bar { background: var(--auction); }
+
+/* ===========================================================================
+   أسبوعٌ بلا مزايدة: جوابٌ لا فراغ
+   ---------------------------------------------------------------------------
+   «خلى الشكل أفضل عشان حاسّه المربع فاضي».
+
+   **والمربعُ كان فارغاً لأن البيانات فارغة**، لا لأن التصميم ناقص. قيس
+   الدفتر: سبعَ عشرةَ مزايدةً كلُّها في ٦ سبتمبر — قبل تسعة أيام، أي خارج
+   النافذة بيومين. فسبعةُ أصفارٍ صحيحة.
+
+   وكان الأسبوعُ الفارغ يُرسم سبعةَ أعمدةٍ بارتفاع صفرٍ في لوحٍ بارتفاع
+   9.5rem: فراغٌ يشغل مساحةَ رسمٍ ولا يقول ما يقوله الرسم.
+
+   **والأسبوعُ الفارغ سؤالٌ لا خبر**: «هل توقّفت المنصّة أم أن النافذة
+   ضيّقة؟». فصار مكانَ الرسم جوابٌ — متى كانت آخر مزايدةٍ وكم مضى عليها،
+   وبابٌ إلى قائمتها. وذلك يملأ اللوحَ **بما يُقرأ** لا بما يُملأ به.
+   ======================================================================== */
+
+.trend-none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  text-align: center;
+  padding: 2rem 1rem 1.9rem;
+  border-radius: 14px;
+  background: var(--raised);
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.trend-none > svg { color: color-mix(in srgb, var(--auction) 55%, var(--muted)); margin-block-end: .2rem; }
+
+.trend-none__say {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.trend-none__last {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.trend-none__last b {
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-none__go {
+  margin-block-start: .85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem 1.05rem;
+  border-radius: 10px;
+  background: var(--auction);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .18s ease;
+}
+.trend-none__go:hover { background: color-mix(in srgb, var(--auction) 85%, #000); color: #fff; text-decoration: none; }
+[data-scheme="dark"] .trend-none__go { background: var(--auction); color: var(--ground); }
+
+/* ===========================================================================
+   الشريط العلويّ: رسومٌ لا محارف، وفواصلُ تُرتِّب ما فيه
+   ---------------------------------------------------------------------------
+   «خلى الخط الأبيض اللي في الهيدر احترافي أكتر هو والأيقونات كمان».
+
+   **والأيقونتان كانتا محرفين نصّيين** — `☰` و`◐`. وشكلُ المحرف يتبع الخطَّ
+   المثبَّت على الجهاز لا الورقةَ: سُمكُه ومقاسُه ومحاذاتُه تختلف بين جهازٍ
+   وجهاز، وقد تسقط إلى خطٍّ احتياطيٍّ فتصير شكلاً ثالثاً. وهما يقعان في ورقةٍ
+   كلُّ رمزٍ فيها `<svg>` بسُمكٍ واحد — فيُقرآن دخيلين ولو أُحسن مقاسُهما.
+
+   فصارا رسمين بالسُّمك نفسِه، يرثان `currentColor` فيتلوّنان مع زرّهما.
+
+   **والشريطُ نفسُه** كان صفّاً من خمسة أشياء بفجوةٍ متساوية: مفتاحُ الطيّ،
+   وشارةُ البيئة، والاسم، والمظهر، والخروج — لا شيء يقول أيُّها من أيّ. فصار
+   بينهما **فاصلٌ رأسيّ**: أدواتُ الإطار في طرف، وصاحبُ الجلسة وخروجُه في
+   الطرف المقابل.
+
+   وارتفاعُه ثابتٌ بـ`--topbar-h` كما كان — الرأسُ اللاصقُ للجداول يقرأ
+   القيمةَ نفسَها، وتغييرُها هنا وحدَها يُزيح كلَّ رأسِ جدولٍ في اللوحة.
+   ======================================================================== */
+
+.topbar {
+  padding-inline: 1.2rem;
+  gap: .45rem;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border-bottom-color: var(--line-soft);
+  box-shadow: 0 1px 2px rgb(23 32 51 / .03);
+}
+
+/* ---- أزرارُ الرسوم ------------------------------------------------------- */
+
+.icon-btn {
+  inline-size: 2.3rem;
+  block-size: 2.3rem;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.icon-btn:hover { background: var(--raised); color: var(--ink); border-color: var(--line); }
+.icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.icon-btn svg { display: block; }
+
+/* ---- فاصلٌ يفرز أدواتِ الإطار عن صاحب الجلسة ---------------------------- */
+
+.user { margin-inline-start: auto; }
+.user::before {
+  content: "";
+  inline-size: 1px;
+  block-size: 1.4rem;
+  background: var(--line);
+  margin-inline-end: .85rem;
+  flex: none;
+}
+
+.user__mark {
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 800;
+}
+.user { font-weight: 700; color: var(--ink); }
+
+/* ---- الخروج ------------------------------------------------------------- */
+
+.sign-out button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .85rem;
+  border-radius: 9px;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .78rem;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+/* الخروجُ يحمرّ عند المرور لا في السكون: هو فعلٌ لا رجعة فيه في هذه الجلسة،
+   ولونٌ دائمٌ يجعله يصرخ في كل صفحةٍ بلا أن يكون مطلوباً. */
+.sign-out button:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+.sign-out button svg { flex: none; }
+
+/* ===========================================================================
+   زرُّ الخروج أحمرُ في السكون
+   ---------------------------------------------------------------------------
+   «خلى زر تسجيل خروج لونه أحمر وشكله أفضل».
+
+   وكان يحمرّ عند المرور وحده — بحجّة أن لوناً دائماً يجعله يصرخ. وقرّر
+   المالكُ الأحمرَ الدائم، وهو محقٌّ في موضعه: الخروجُ آخرُ شيءٍ في الشريط،
+   وليس زرّاً يُخطئه أحدٌ في طريقه إلى غيره — والأحمرُ عليه يقول «هذا يُنهي
+   جلستك» قبل أن يُقرأ نصُّه.
+
+   **ودرجتان لا واحدة**: خلفيةٌ حمراءُ خفيفةٌ ونصٌّ أحمرُ غامق في السكون، ثم
+   **يمتلئ مصمتاً والنصُّ أبيض** عند المرور. فالسكونُ يقول «انتبه» والمرورُ
+   يقول «وأنت الآن عليه».
+
+   وقيست الحالتان في المظهرين قبل الاعتماد:
+
+       فاتح  — نصٌّ على خلفيةٍ خفيفة 5.75    ·  أبيضُ على المصمت 6.57
+       داكن  — نصٌّ على خلفيةٍ خفيفة 8.72    ·  أرضيةٌ على المصمت 9.47
+
+   وفي الداكن **النصُّ لونُ الأرضية لا الأبيض**: `--danger` هناك فاتحٌ
+   (`#fca19a`)، والأبيضُ عليه 1.75 — خُمسُ الحدّ. وهي العلّةُ نفسُها التي
+   وقعت في أزرار البطاقات وصُحّحت بالقلب نفسِه.
+   ======================================================================== */
+
+.sign-out button {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger);
+  font-weight: 700;
+}
+.sign-out button:hover,
+.sign-out button:focus-visible {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.sign-out button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* الداكن: الدرجةُ فاتحةٌ فينقلب النصُّ إلى لون الأرضية. */
+[data-scheme="dark"] .sign-out button:hover,
+[data-scheme="dark"] .sign-out button:focus-visible { color: var(--ground); }
+
+/* ===========================================================================
+   تنظيفُ الشريط العلويّ
+   ---------------------------------------------------------------------------
+   «امسح كلمة development ونظّف الهيدر والأيقونات اللي فيه».
+
+   وشارةُ البيئة أُخفيت في `development` وحدها لا حُذفت — السببُ في القالب.
+
+   وبقيَ الشريطُ بعدها: مفتاحُ الطيّ، ثم فراغ، ثم صاحبُ الجلسة ومظهرُه
+   وخروجُه. وثلاثةُ ضبطٍ تجعله يُقرأ شريطاً لا صفَّ أزرار:
+
+   * **ارتفاعٌ ثابت** (`--topbar-h`) لا يتبع أطولَ ما فيه: بلا ذلك يتغيّر
+     ارتفاعُ الشريط بين صفحةٍ فيها الشارةُ وصفحةٍ بلا شارة، ويقفز معه كلُّ
+     ما تحته — والرأسُ اللاصقُ للجداول يقرأ هذه القيمةَ نفسَها.
+   * **الأزرارُ الثلاثةُ بمقاسٍ واحد** (2.3rem): مفتاحُ الطيّ والمظهرُ
+     والخروجُ — وكان الخروجُ أقصرَ منهما بربع، فيبدو الصفُّ غيرَ مستوٍ.
+   * **الفاصلُ يقع قبل صاحب الجلسة** لا بين كل شيئين: فاصلٌ واحدٌ يفرز
+     مجموعتين، وفاصلان يفرزان ثلاثاً فيصير الشريطُ شبكةً.
+   ======================================================================== */
+
+.topbar { min-block-size: var(--topbar-h); padding-block: 0; }
+
+.icon-btn, .sign-out button { block-size: 2.3rem; }
+.sign-out button { padding-inline: .9rem; }
+
+/* الفراغُ الذي كانت الشارةُ تشغله يُطوى: `margin-inline-start: auto` على
+   كتلة المستخدم يدفعها إلى الطرف المقابل سواءٌ وُجدت الشارةُ أم لا. */
+.topbar > .env-badge { margin-inline-end: auto; }
+
+/* الشارةُ حين تظهر (الإنتاج وما ليس `development`) أثقلُ وزناً: هي تحذيرٌ
+   لا وسمٌ محايد. */
+.env-badge { font-weight: 700; letter-spacing: .01em; }
+
+/* ===========================================================================
+   شاشاتُ القوائم: الرأس، والبطاقاتُ المضغوطة، وشريطُ الفلاتر
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «إدارة المستخدمين»، وما تحته
+   يقع على كل شاشةٍ لها رأسٌ ووصفٌ وبطاقاتٌ وفلاتر، وهي أكثرُ شاشات اللوحة.
+
+   * **سطرُ الوصف** كان مضبوطاً بـ`style=` في القالب — `-.4rem` في القاعدة
+     و`.6rem` في الشاشة، أي قيمتان لمسافةٍ واحدة. صار في الورقة وحدها.
+   * **خمسُ بطاقاتٍ في صفٍّ لا أربعٌ وواحدة**: الحدُّ الأدنى 12.5rem يعطي
+     أربعةَ أعمدةٍ على شاشة المالك، فتنزل الخامسةُ وحدها وتترك صفّاً بربع
+     امتلاء. و11.5rem يعطي خمسةً في العرض نفسِه.
+   * **حقولُ الفلاتر بارتفاعٍ واحد**: `input` و`select` و`button` كلٌّ منها
+     يُحسب ارتفاعُه من حشوته وخطّه، فيفترق الثلاثةُ ببكسلاتٍ تُرى في صفّ.
+     وارتفاعٌ مصرَّحٌ به يجعل الصفَّ مستقيماً.
+   ======================================================================== */
+
+/* ---- سطرُ الوصف --------------------------------------------------------- */
+
+.lede { margin-block: .1rem 1.15rem; font-size: .88rem; color: var(--ink-soft); }
+
+/* ---- البطاقاتُ المضغوطة ------------------------------------------------- */
+
+.board-stats--compact {
+  grid-template-columns: repeat(auto-fit, minmax(min(11.5rem, 100%), 1fr));
+  gap: .7rem;
+}
+/* بلا حدٍّ أدنى للارتفاع: بطاقةٌ لها زرٌّ وأخرى بلا زرٍّ تتساويان بالتمدّد
+   في الشبكة (`align-items: stretch` الافتراضي)، والحدُّ الأدنى يضيف فراغاً
+   تحت البطاقات القصيرة في الصفوف التي لا زرَّ في أيٍّ منها. */
+.board-stats--compact .stat { min-block-size: 0; padding: .85rem 1rem .8rem; }
+.board-stats--compact .stat__value { font-size: 1.5rem; }
+
+
+/* ===========================================================================
+   رأسُ الشاشة: الرجوعُ في صفّ الأفعال، وزرُّ التصدير يُقرأ زرّاً
+   ---------------------------------------------------------------------------
+   «شيل كلمة الرئيسية اللي فوق العنوان، وصغّر الكلام تحت العنوان شويه، وخلى
+   زر تصدير شكله احترافي».
+
+   **وزرُّ الرجوع لم يُحذف.** القاعدةُ المكتوبة في T864 أنه يحمل اسمَ ما
+   يعود إليه فيُقرأ قبل النقر — «← المزادات» لا سهمٌ لا يُعرف إلى أين، لأن
+   `history.back()` يعود إلى **الطلب** السابق لا الشاشة. فبقي الاسمُ وتغيّر
+   موضعُه: كان سطراً قائماً بذاته يعلو العنوان، فأولُ ما يُقرأ في الشاشة
+   اسمُ شاشةٍ **أخرى**. صار في الطرف المقابل على السطر نفسِه.
+
+   **وأزرارُ الرأس صنفان لا واحد**: الرجوعُ **هادئ** (بلا خلفيةٍ حتى يُمَرَّ
+   عليه) لأنه طريقُ خروجٍ لا فعل، والتصديرُ **محدَّدٌ بحدّ** لأنه فعلٌ يُنتج
+   ملفّاً. وكانا شكلاً واحداً، فيتنافسان على انتباهٍ واحد.
+   ======================================================================== */
+
+/* ---- سطرُ الوصف أصغر ---------------------------------------------------- */
+
+.lede { font-size: .82rem; line-height: 1.75; }
+
+/* ---- الرأس -------------------------------------------------------------- */
+
+.page { align-items: center; gap: .75rem 1rem; }
+.page__actions { gap: .5rem; }
+
+/* ---- زرُّ الرجوع: هادئ ---------------------------------------------------- */
+
+.page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .42rem .75rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.page__back:hover {
+  background: var(--raised);
+  border-color: var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.page__back svg { flex: none; }
+
+/* ---- زرُّ التصدير وأخواته: فعلٌ محدَّد ------------------------------------ */
+
+.page__actions a:not(.page__back) {
+  padding: .5rem 1.05rem;
+  border-radius: 9px;
+  border-color: var(--field-border);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: .79rem;
+  font-weight: 700;
+}
+.page__actions a:not(.page__back):hover {
+  background: var(--brand-soft);
+  border-color: var(--brand-solid);
+  color: var(--brand-dark);
+}
+
+/* ===========================================================================
+   سطرُ الوصف يرتفع، وزرُّ التصدير يحمل رمزَه ولونَه
+   ---------------------------------------------------------------------------
+   «قلّل ده شويه وارفعه قليلاً فوق، وخلى زر تصدير إكسيل بشكل ولون أفضل».
+
+   **والرمزُ في الورقة لا في القوالب.** رابطُ التصدير مكتوبٌ في **أربعةٍ
+   وعشرين** قالباً، وإضافةُ `<svg>` إلى كلٍّ منها أربعةٌ وعشرون تعديلاً
+   ونسيانُ واحدٍ منها هو الشاشةُ التي تبدو مكسورة — وهي العلّةُ التي كُتبت
+   في رأس «طبقة العرض» ولأجلها صارت القاعدةُ **محدِّداتِ عناصرَ لا أصنافاً
+   تُكتب في القالب**.
+
+   والرمزُ `mask` لا `background-image`: القناعُ يأخذ لونَه من
+   `background: currentColor`، فيتحوّل مع النصّ إلى الأبيض عند المرور.
+   وصورةٌ خلفيةً تبقى بلونها المخبوز فيها ولا تتبع شيئاً.
+   ======================================================================== */
+
+.lede { margin-block-start: -.35rem; }
+
+.page__actions a:not(.page__back) {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+  color: var(--brand-dark);
+}
+.page__actions a:not(.page__back)::before {
+  content: "";
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+.page__actions a:not(.page__back):hover {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+}
+[data-scheme="dark"] .page__actions a:not(.page__back):hover { color: #fff; }
+
+/* ورقةٌ تنزل من صندوقٍ — رمزُ «احفظ ملفاً»، لا جدولٌ ولا حرفُ X. */
+:root {
+  --icon-export: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><path d='M7 10l5 5 5-5'/><path d='M12 15V3'/></svg>");
+}
+
+/* ===========================================================================
+   سطرُ الوصف يلتصق بعنوانه، وزرُّ التصدير يمتلئ
+   ---------------------------------------------------------------------------
+   «ارفع تحت العنوان شويه، وخلى زر تصدير واضح».
+
+   **والمسافةُ كانت في مكانين**: `margin-block-end: 1.1rem` على رأس الصفحة
+   و`margin-block-start` سالبٌ على السطر يسحبه إليها. ورفعُه أكثرَ بزيادة
+   السالب يجعل الرقمين يتنازعان — فالرأسُ هو الذي قلّ هامشُه حين يتبعه سطرُ
+   وصف، والسطرُ يبدأ من الصفر.
+
+   و`:has()` لا صنفٌ يُكتب في القالب: القوالبُ أربعةٌ وعشرون، وصنفٌ منسيٌّ
+   في واحدٍ منها هو الشاشةُ التي تبدو مكسورة.
+
+   **والزرُّ يمتلئ في السكون.** كان خلفيةً مخفَّفةً ونصّاً ملوّناً يمتلئ عند
+   المرور — وهو شكلُ زرٍّ **ثانوي**، والتصديرُ هو الفعلُ الوحيد في رأس هذه
+   الشاشات. فصار ممتلئاً بلون الأساسي ونصُّه أبيض، وهو الزوجُ المعايَرُ في
+   رأس الورقة على حدّ 4.5 في الألوان السبعة.
+   ======================================================================== */
+
+.page:has(+ .lede) { margin-block-end: .35rem; }
+.lede { margin-block-start: 0; }
+
+.page__actions a:not(.page__back) {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(23 32 51 / .06);
+}
+.page__actions a:not(.page__back):hover {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  border-color: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+}
+
+/* ===========================================================================
+   خطٌّ يفصل رأسَ الشاشة عمّا تحته
+   ---------------------------------------------------------------------------
+   «ضيف خط شفاف فوق المربعات يفصل بين العنوان وبينهم».
+
+   **والخطُّ على ما يلي السطرَ لا على السطر نفسِه.** `.lede` محدودٌ بـ`62ch`
+   — وهو مقياسُ قراءةٍ مقصود، فسطرٌ أطولُ من ذلك تتعب العينُ في العودة إلى
+   أوّله — فحدٌّ سفليٌّ عليه يرسم خطّاً بطول النصّ لا بعرض الشاشة، ويقف حيث
+   انتهت الجملةُ وكأنه خطأٌ في الرسم.
+
+   و`.lede + *` يضع الخطَّ على أوّل ما يليه مهما كان: شبكةَ بطاقاتٍ في شاشة،
+   وشريطَ فلاترٍ في أخرى، وجدولاً في ثالثة. فلا يُكتب صنفٌ في أربعةٍ وعشرين
+   قالباً ولا يُنسى في واحدٍ منها.
+
+   و`--line-soft` لا `--line`: هو فاصلُ **إيقاعٍ** لا حدُّ صندوق — يقول «هنا
+   ينتهي التعريفُ ويبدأ العمل»، ولا ينبغي أن يُقرأ قبل ما يفصله.
+   ======================================================================== */
+
+.lede { margin-block-end: 0; }
+.lede + * {
+  /* `--line` لا `--line-soft`: الأرضيةُ `#f4f6fb` والثاني `#eef2f8` — أي
+     أنه **أفتحُ من الأرضية**، فيُرسم خطٌّ أبيضُ على رمادي لا فاصلٌ يُرى.
+     و`--line` (`#e2e8f1`) أغمقُ منها فيُقرأ خطّاً. وهي العلّةُ نفسُها التي
+     وقعت في مسطرة رسم السبعة أيام. */
+  border-block-start: 1px solid var(--line);
+  padding-block-start: 1.2rem;
+  margin-block-start: 1.1rem;
+}
+
+/* ===========================================================================
+   البطاقةُ المضغوطة: تُختصر، وترتفع عن أرضيتها
+   ---------------------------------------------------------------------------
+   «ضيف شادو للمربعات وقصّر طولها وخلى شكلها احترافي أكتر».
+
+   **وطولُها لم يأتِ من حشوةٍ بل من ثقبٍ في وسطها.** كانت
+   `justify-content: space-between`، فالمحتوى يُدفع إلى الطرفين ويبقى
+   الفراغُ **بينهما** — وبطاقةٌ في الصفّ لها زرٌّ تجعل الصفَّ كلَّه بارتفاعها
+   (`align-items: stretch`)، فيتّسع الثقبُ في الأربع الأخريات.
+
+   فالمحتوى يُرصّ إلى الأعلى (`flex-start`)، والفراغُ ينزل إلى القاع حيث لا
+   يُقرأ ثقباً. وهذا وحدَه يقصّر البطاقةَ المرئيّة قبل أن تُمَسّ حشوة.
+
+   ومعه: حشوةٌ أضيق، ورمزٌ أصغر، ورقمٌ أصغر — والمجموع 166px ← 132.
+
+   **والظلُّ يفصل البطاقةَ عن أرضيةٍ لها نسيج.** شبكةُ النقط تمرّ خلفها،
+   وحدٌّ رفيعٌ وحدَه يجعلها تبدو مرسومةً على الورق لا موضوعةً عليه. وظلّان:
+   قريبٌ يحدّها، وبعيدٌ واسعٌ يعطيها ارتفاعاً.
+   ======================================================================== */
+
+.board-stats--compact .stat {
+  justify-content: flex-start;
+  gap: .15rem;
+  padding: .8rem .95rem .75rem;
+  border-radius: 12px;
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 4px 14px rgb(23 32 51 / .055);
+}
+a.stat:hover, a.stat:focus-visible { box-shadow: 0 2px 4px rgb(23 32 51 / .06), 0 8px 22px rgb(23 32 51 / .09); }
+
+[data-scheme="dark"] .board-stats--compact .stat {
+  box-shadow: inset 0 0 0 1px var(--line);
+  background-color: color-mix(in srgb, var(--panel) 94%, #fff);
+}
+
+.board-stats--compact .stat__top { margin-block-end: .25rem; }
+.board-stats--compact .stat__icon { inline-size: 2rem; block-size: 2rem; padding: .42rem; border-radius: 8px; }
+.board-stats--compact .stat__label { font-size: .78rem; }
+.board-stats--compact .stat__value { font-size: 1.35rem; }
+.board-stats--compact .stat__detail { margin-block-start: .35rem; font-size: .71rem; line-height: 1.45; }
+
+/* التذييلُ يتبع محتواه لا قاعَ البطاقة: `auto` في شاشة اللوحة يسوّي تذييلات
+   صفٍّ من ثمانٍ، وهنا يفتح ثقباً في أربعٍ لأجل واحدة. */
+.board-stats--compact .stat__action {
+  margin-block-start: .55rem;
+  padding-block-start: .55rem;
+}
+.board-stats--compact .stat__btn { padding: .35rem .75rem; font-size: .7rem; border-radius: 8px; }
+
+/* الطولُ في الصفّ يحدّده **أطولُ بطاقةٍ فيه**، وهي ذاتُ الزرّ — فالتقليمُ
+   يقع عليها لا على الأربع الأخريات. وكتلةُ الزرّ كانت: هامشٌ .55 + خطٌّ +
+   حشوةٌ .55 + زرٌّ بحشوةٍ .35×2 — أربعةُ مقاديرَ لشيءٍ واحد. */
+.board-stats--compact .stat__action {
+  margin-block-start: .4rem;
+  padding-block-start: .4rem;
+}
+.board-stats--compact .stat__btn { padding: .3rem .7rem; }
+.board-stats--compact .stat__detail { line-height: 1.4; }
+.board-stats--compact .stat { padding-block: .75rem .7rem; }
+
+/* ===========================================================================
+   عنوانُ البطاقة: ثمانمئةٍ لا ستّمئة
+   ---------------------------------------------------------------------------
+   «خلى العناوين بولد بشكل احترافي وواضح».
+
+   وكان `600` بمقاس `12.48px` — ووزنُ 600 في «Cairo» يقع بين العاديّ والغليظ
+   فيُقرأ **عادياً مُثخَّناً** لا عنواناً، خصوصاً عند هذا المقاس الصغير.
+   و«Cairo» خطٌّ متغيّرٌ مداه 400–800، أي أن 700 و800 **موجودان فعلاً** في
+   الملفّ ولا يُصطنعان بتغليظٍ يرسمه المتصفّح.
+
+   فصار 800 — أقصى ما في الملفّ — ومقاسُه `.84rem`. والفرقُ عن الرقم بجواره
+   يبقى قائماً: الرقمُ 1.35rem بلون تصنيفه، والعنوانُ .84rem بلون الحبر —
+   يفترقان بالمقاس واللون لا بالوزن وحده.
+   ======================================================================== */
+
+.stat__label { font-weight: 800; color: var(--ink); }
+/* الوزنُ على المحدِّد نفسِه لا على `.stat__label` وحده: القاعدةُ المضغوطة
+   `.board-stats--compact .stat__label` نوعيّتُها (0,2,0) وتغلب (0,1,0)،
+   فكتابةُ الوزن هناك وحدَه تُغيّر المقاسَ ولا تُغيّر الوزن — وقد وقع. */
+.board-stats--compact .stat__label { font-size: .84rem; font-weight: 800; letter-spacing: -.005em; }
+
+/* ===========================================================================
+   شريطٌ واحدٌ لا شريطان، وحقلُ البحث يقول إنه بحث
+   ---------------------------------------------------------------------------
+   «مربع حسابات محظورة في الاستروك الجانبي لونين ذهبي وبني — خلي بني بس،
+   وخلى مربع اللي فيه البحث بشكل احترافي أكتر».
+
+   **والشريطان عطلٌ من تراكم قاعدتين**، لا اختيار:
+
+   * `.stat` يرسم شريطَه في `::before` — عرضُه 4px بلون التصنيف.
+   * و`.stat--warn` يلوّن **حدَّه كلَّه** بـ`--warn-line` (`#ecd9ac` ذهبيّ
+     فاتح) ليُقرأ التنبيهُ بلا تحويم، ومن ذلك الحدُّ على حافة البداية —
+     وعرضُه هناك 3px في البطاقة المضغوطة.
+
+   فوقع الذهبيُّ الفاتح ملاصقاً للبنّيّ الغامق: شريطٌ من لونين، وكلٌّ منهما
+   كُتب لسببٍ صحيحٍ وحده.
+
+   والإصلاح: **حافةُ البداية بلا حدٍّ أصلاً** — `::before` هو الشريط، وحدَه،
+   في كل بطاقة. والحدُّ الملوَّن يبقى على الجهات الثلاث الأخرى فيؤدّي وظيفته.
+   ======================================================================== */
+
+.stat { border-inline-start-width: 0; }
+.board-stats--compact .stat { border-inline-start-width: 0; }
+.stat::before { inline-size: 4px; }
+
+
+
+
+
+
+/* ===========================================================================
+   حقولُ الفلترة: حدٌّ أخفّ، وسهمٌ داخلَ الحقل بلونٍ يخصّه
+   ---------------------------------------------------------------------------
+   «خفّف الاستروك حول المربعات وخلى شكلها أفضل، والأسهم بلون مختلف وجوّه
+   المربع مش لازقة».
+
+   **والحدُّ لا يُخفَّف إلى ما يشاء.** `--field-border` معرَّفٌ في رأس الورقة
+   بأنه مكوّنُ واجهةٍ حدُّه ٣:١ (معيار 1.4.11): «حقلٌ حدُّه لا يُرى يجعل
+   النموذجَ مساحةً بيضاء لا يُعرف أين يُكتب فيها، وأول من يفقده من يقرأ على
+   شاشةٍ باهتة أو في ضوء نهار».
+
+   وقيس قبل التخفيف: الحاليُّ `#78899f` عند **3.57**، و`--line` الذي يبدو
+   البديلَ الطبيعيَّ عند **1.23** — أي ثلث الحدّ. وأفتحُ مزيجٍ يمرّ هو 91٪
+   عند 3.10، وذلك هامشٌ من خمسِ مئةٍ من الدرجة. فاختير **94٪** (`#818fa4`،
+   3.25): أخفُّ ممّا كان، وفوق الحدّ بهامشٍ يحتمل تدوير المتصفّح.
+
+   **والسهمُ كان سهمَ المتصفّح**: شكلُه ومقاسُه ولونُه من النظام لا من
+   الورقة، ويلتصق بحافة الحقل لأن المتصفّح لا يترك له حشوة. فصار رسماً
+   واحداً في كل منصّة، بلون الأساسي لا بأسود النظام، وبينه وبين الحافة
+   `.85rem`.
+   ======================================================================== */
+
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: color-mix(in srgb, var(--field-border) 94%, #fff);
+  border-radius: 10px;
+}
+.filters__main input[type="search"]:hover,
+.filters__main select:hover { border-color: var(--field-border); }
+
+.filters__main select {
+  appearance: none;
+  -webkit-appearance: none;
+  /* حشوةٌ تفصل السهمَ عن الحافة ومن النصّ عنه. */
+  padding-inline: .9rem 2.3rem;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d6fa3' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: left .85rem center;
+  background-size: 13px 13px;
+}
+
+/* الرسمُ خلفيةٌ لا يرثُ `currentColor`، فلونُه مكتوبٌ فيه. وهو درجةٌ من
+   عائلة الأزرق لا الأساسيَّ المتغيّر: الأخيرُ يصير كهرمانياً أو وردياً
+   باختيار المالك، وسهمُ قائمةٍ وردية يُقرأ زينةً لا أداة. */
+
+/* ===========================================================================
+   حدُّ الحقل أخفّ — وما اشتراه ذلك
+   ---------------------------------------------------------------------------
+   «خفّف درجة لون الاستروك لشكل احترافي». وقد قيل مرّتين، فنُفِّذ.
+
+   **والثمنُ يُقال لا يُخفى**: `--field-border` حدُّه ٣:١ بمعيار 1.4.11، وأيُّ
+   درجةٍ أفتحَ من 94٪ تنزل تحته:
+
+       94%  #8090a5  3.26  يمرّ        72%  #9eaaba  2.36  دون
+       85%  #8c9bad  2.84  دون         66%  #a6b1c0  2.17  دون
+
+   فالمختارُ 72٪ (`#9eaaba`، **2.36**) — أخفُّ بوضوحٍ، ودون الحدّ.
+
+   **وثلاثةٌ تُعوّض ما فُقد**، فالحقلُ يبقى موجوداً للعين لا للمقياس وحده:
+
+   * **سطحٌ أفتحُ من اللوح** (`--raised`) يملأ الحقلَ فيُعرَف بمساحته لا
+     بخطّه — وهو ما يفعله الحدُّ أصلاً.
+   * **الحدُّ الكاملُ يعود عند المرور**: من يقصد الحقلَ يراه بـ3.57.
+   * **وإطارُ التركيز لم يُمَسّ**: من يتنقّل بلوحة المفاتيح يرى `--focus`
+     بسُمك 2px وحلقةً حوله — وتلك هي الحالةُ التي يُفقد فيها الأثرُ فعلاً.
+   ======================================================================== */
+
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: color-mix(in srgb, var(--field-border) 72%, #fff);
+  background-color: var(--raised);
+}
+.filters__main input[type="search"]:hover,
+.filters__main select:hover {
+  border-color: var(--field-border);
+  background-color: var(--panel);
+}
+.filters__main input[type="search"]:focus,
+.filters__main select:focus {
+  background-color: var(--panel);
+  border-color: var(--focus);
+}
+
+/* ===========================================================================
+   الحدُّ أخفُّ مرّةً ثالثة، والسهمُ أغلظُ وأوضح
+   ---------------------------------------------------------------------------
+   «خفّف لون استروك مربع البحث واللي جنبه، وخلى الأسهم بولد وواضحة».
+
+   وقيست خمسُ درجاتٍ أخرى أسفلَ ما وصلنا إليه:
+
+       72%  #9eaaba  2.36   (الحاليّ)      42%  #c6cdd7  1.60
+       60%  #aeb8c5  2.01                 35%  #d0d6dd  1.46
+       50%  #bcc4cf  1.76                 28%  #d9dee4  1.35
+
+   فالمختارُ **50٪** (`#bcc4cf`، **1.76**). وأدنى من ذلك يصير الحدُّ خيطاً
+   يُساوي حدَّ الجدول المجاور، فتذوب الحقولُ في اللوح.
+
+   **وما يعوّض الحدَّ يشتدّ كلّما خفّ**، فالثلاثةُ التي كُتبت في الخطوة
+   السابقة تصير هي التي تُعرّف الحقل: سطحُه الأفتح، والحدُّ الكاملُ عند
+   المرور، وإطارُ التركيز.
+
+   **والسهمُ**: سُمكُه 2.4 ← **3.1**، ومقاسُه 13px ← **15**. وهو رسمُ
+   `background-image` لا نصّ — فـ«bold» فيه سُمكُ خطٍّ لا وزنُ محرف.
+   ولونُه يبقى `#1d6fa3`: قيس على سطح الحقل الجديد فكان **5.17**، والحدُّ 3.
+   ======================================================================== */
+
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: color-mix(in srgb, var(--field-border) 50%, #fff);
+}
+
+.filters__main select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231d6fa3' stroke-width='3.1' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9.5l6 6 6-6'/></svg>");
+  background-size: 15px 15px;
+  padding-inline-end: 2.45rem;
+}
+
+/* الحدُّ أخفُّ مرّةً رابعة — 50٪ ← **35٪** (`#d0d6dd`، 1.46 على اللوح).
+   وهو أقربُ إلى `--line` (1.23) منه إلى ما بدأ به (3.57).
+
+   وعنده يقف الحدُّ عن كونه حدّاً: ما دون ذلك يساوي حدَّ الجدول المجاور،
+   فلا يُعرف أين ينتهي الحقلُ وتبدأ القائمةُ التي تليه. والذي يحمل الحقلَ
+   الآن هو **سطحُه** لا خطُّه — ولذلك رُفع السطحُ درجةً معه (`--raised`
+   مخلوطٌ بالأرضية) ليبقى الفرقُ بينه وبين اللوح مرئياً بعد أن خفّ الخطّ. */
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: color-mix(in srgb, var(--field-border) 35%, #fff);
+  background-color: color-mix(in srgb, var(--raised) 55%, var(--ground));
+}
+
+/* ===========================================================================
+   لوحُ الفلاتر يرتفع عن أرضيته
+   ---------------------------------------------------------------------------
+   «ضيف شادو للمربع اللي فيه مربع البحث».
+
+   وكان عليه `--shadow` — ظلُّ اللوحة العامّ، كُتب يوم كانت الأرضيةُ لوناً
+   مسطّحاً. وقد صار للصفحة **نسيجٌ** (شبكةُ النقط)، والنسيجُ يبتلع الظلَّ
+   الخفيف: النقطُ تمرّ تحت حافة اللوح فلا يُرى أين ينتهي.
+
+   فظلّان كالبطاقات: **قريبٌ** يحدّ اللوحَ عن النقط، و**بعيدٌ واسع** يعطيه
+   ارتفاعاً. وحدُّه يخفّ معهما — لوحٌ له ظلٌّ وحدٌّ ظاهرٌ يُقرأ مرسوماً
+   ومرفوعاً معاً، وهو تناقض.
+
+   وفي الداكن حدٌّ لا ظلّ: الظلُّ الأسودُ على أرضيةٍ سوداء لا يُرى، وهي
+   القاعدةُ نفسُها في البطاقات واللوحات.
+   ======================================================================== */
+
+/* **والمحدِّد `form.filters` لا `.filters`.**
+
+   كُتبت أوّلاً `.filters` فلم تعمل: شريطُ الفلاتر `<form method="get">`،
+   وفي الورقة قاعدةٌ قديمة `form[method="get"] { box-shadow: none }`
+   نوعيّتُها **(0,1,1)** وتغلب `.filters` **(0,1,0)** مهما تأخّرت في الملفّ.
+
+   وكُشف ذلك بقياسٍ غريب: `<div class="filters">` يُصنع في الصفحة يأخذ الظلَّ،
+   و`<form class="filters">` نفسُه لا يأخذه — فالفرقُ في الوسم لا في الصنف،
+   وذلك لا يقع إلا من محدِّدٍ يذكر الوسم. */
+form.filters {
+  border-color: var(--line-soft);
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 6px 20px rgb(23 32 51 / .07);
+}
+[data-scheme="dark"] form.filters {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+/* ===========================================================================
+   شريطُ الجدول: عنوانٌ برتبته، وعدٌّ يُقرأ عدّاً، وزرٌّ يقابله
+   ---------------------------------------------------------------------------
+   «قائمة المستخدمين ١٤ — خلي شكلها احترافي أكتر هي وزر تصدير اللي قصادها».
+
+   وكان العنوانُ مضبوطاً بـ`style=` في القالب (`1.1rem`، `800`، `--ink`)،
+   وحاويةُ الأفعال كذلك. وسبعةُ قوالبَ تحمل الشريطَ نفسَه، فالضبطُ بيدٍ في
+   كلٍّ منها سبعةُ أماكنَ للقاعدة الواحدة — وواحدٌ منها يُنسى فيبدو مكسوراً.
+   نُقلت إلى الورقة.
+
+   * **العنوانُ** يأخذ رتبةَ ما تحته لا رتبةَ `<h1>`: هو اسمُ جدولٍ في صفحة،
+     لا اسمُ الصفحة.
+   * **العدُّ حبّةٌ محايدةٌ لا زرقاء**: كان بلون الأساسي فيُقرأ **رابطاً**
+     يُنقر — وهو عددٌ لا يُنقر. والرقمُ فيه بخاناتٍ مستقيمة.
+   * **وزرُّ التصدير يقابله** برسمِ الورقة النازلة نفسِه الذي في رأس الصفحة
+     (`--icon-export`)، فالفعلُ الواحد شكلٌ واحدٌ أينما وقع — وهو **ثانويٌّ
+     هنا**: زرُّ الرأس يصدّر كلَّ ما طابق المرشِّحات، وهذا يصدّر الصفحةَ
+     المعروضة، فلا يصحّ أن يتساويا في الوزن.
+   ======================================================================== */
+
+.table-bar { margin-block-end: .85rem; }
+
+.table-bar__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+
+.table-bar__actions { display: flex; align-items: center; gap: .5rem; }
+
+/* العدّ: حبّةٌ محايدة. */
+.table-bar__title .pill--filter {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: .74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: .12rem .5rem;
+}
+
+/* زرُّ تصدير الصفحة — ثانويّ، وبرسم زرِّ الرأس نفسِه. */
+.table-bar__actions .btn-sm {
+  padding: .42rem .8rem;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--field-border) 45%, #fff);
+  font-weight: 700;
+}
+.table-bar__actions .btn-sm::before {
+  content: "";
+  inline-size: 13px;
+  block-size: 13px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+.table-bar__actions .btn-sm:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* ===========================================================================
+   الجدول: رأسٌ يُقرأ رأساً، وصفوفٌ لها إيقاع
+   ---------------------------------------------------------------------------
+   «خلى الجدول وعناوينه شكله احترافي أكتر».
+
+   * **رأسُ الجدول كان بمقاس المحتوى ووزنه تقريباً** (`.88rem`)، فيُقرأ صفّاً
+     أوّلَ لا رأساً. صار أصغرَ وأثقلَ وأخفَّ لوناً وبتباعدٍ بين حروفه — وهي
+     الصفاتُ التي تقول «هذا تصنيفٌ لا بيان» في كل جدولٍ مطبوع.
+   * **وخطُّه السفليُّ مصمتٌ لا خافت**: هو الحدُّ بين التصنيف والبيان، وأثقلُ
+     من الخطوط التي تفصل صفّاً عن صفّ.
+   * **والصفوفُ تتنفّس**: حشوةٌ رأسيّةٌ أوسع، ومحاذاةٌ إلى الوسط لا إلى
+     الأعلى — خليّةٌ فيها سطرٌ واحد بجوار خليّةٍ فيها سطران كانت تتعلّق
+     بالسقف فيُقرأ الصفُّ مائلاً.
+   * **والمرورُ يلوّن الصفَّ كلَّه** بلونٍ أخفَّ من `--raised`: الأخيرُ هو
+     لونُ رأس الجدول نفسِه، فصفٌّ تحت المؤشّر كان يصير بلون الرأس.
+   ======================================================================== */
+
+thead th, tr:first-child th {
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .012em;
+  color: var(--muted);
+  padding-block: .8rem;
+  border-block-end: 1px solid var(--line);
+}
+
+th, td { vertical-align: middle; padding-block: .78rem; }
+
+td { color: var(--ink-soft); }
+td strong, td b { color: var(--ink); }
+
+tbody tr:hover, tr:hover td {
+  background: color-mix(in srgb, var(--raised) 55%, var(--panel));
+}
+
+/* عمودُ المعرّف: رقمٌ يُقارَن نزولاً، فخاناتُه مستقيمةٌ ولونُه خافت. */
+td:first-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* أزرارُ الصفّ تتقارب: ثلاثةُ رسومٍ بينها فجوةٌ واسعة تُقرأ ثلاثةَ أعمدة. */
+.row-actions { gap: .3rem; }
+
+/* ===========================================================================
+   الجدول: لوحٌ يطفو، ورأسٌ بلا رقعةٍ رمادية
+   ---------------------------------------------------------------------------
+   «مفيش حاجة اتغيرت».
+
+   وقد تغيّرت — لكن ما تغيّر كان **صقلاً يُقاس ولا يُرى**: وزنُ الرأس 700 ←
+   800، وتباعدُ حروفه .03 ← .012، وحشوةٌ رأسيّةٌ بـ1.5px، ومحاذاةٌ إلى الوسط.
+   وذلك يُحسّن القراءةَ ولا يُغيّر **هيئة** الجدول، والمطلوبُ هيئة.
+
+   فتغييران يُريان:
+
+   * **رأسٌ بلا رقعةٍ رمادية.** كان `--raised` يملؤه، فيُقرأ الجدولُ صندوقاً
+     فيه شريطٌ ملوّنٌ في أعلاه. والرأسُ الحديثُ يُعرَف **بخطٍّ تحته** لا
+     بخلفيةٍ وراءه — فالخطُّ يثخن إلى 2px بلون الحبر مخفَّفاً، والخلفيةُ
+     تصير بلون اللوح.
+
+     **وتبقى الخلفيةُ مصمتةً لا شفّافة**: الرأسُ `position: sticky`، وشفّافُه
+     يُظهر الصفوفَ تمرّ تحته عند التمرير.
+
+   * **لوحٌ بلا حدٍّ وبظلّ**، كالبطاقات وشريط الفلاتر: حدٌّ رفيعٌ حول جدولٍ
+     فوق أرضيةٍ لها نسيجٌ يجعله يبدو مرسوماً عليها لا موضوعاً فوقها.
+   ======================================================================== */
+
+table {
+  border: 0;
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 6px 20px rgb(23 32 51 / .07);
+}
+[data-scheme="dark"] table { box-shadow: inset 0 0 0 1px var(--line); }
+
+thead th, tr:first-child th {
+  background: var(--panel);
+  border-block-end: 2px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  padding-block: .9rem;
+}
+
+/* خطوطُ الصفوف أخفُّ: صارت أكثرَ ظهوراً حين زال الحدُّ الخارجيُّ وابيضّ
+   الرأس، فتُقرأ شبكةً لا فواصل. */
+th, td { border-block-end: 1px solid color-mix(in srgb, var(--line) 62%, transparent); }
+
+/* رأسُ الجدول يعود إلى خلفيته الرمادية (`--raised`) بأمر المالك — والخطُّ
+   الثخينُ تحته يبقى: الرقعةُ تفصله عمّا تحته، والخطُّ يحدُّ الفصل. وكان
+   قبل هذه الخطوة يحمل أحدَهما بلا الآخر مرّتين — رقعةً بخطٍّ رفيع، ثم
+   خطّاً ثخيناً بلا رقعة. */
+thead th, tr:first-child th { background: var(--raised); }
+
+/* ===========================================================================
+   شريطٌ في أعلى الجدول
+   ---------------------------------------------------------------------------
+   «ضيف استروك في الجدول من الأعلى».
+
+   وهو اللغةُ نفسُها التي على البطاقات: شريطٌ ملوّنٌ يقول «هذه كتلةٌ قائمةٌ
+   بذاتها». والجدولُ صار لوحاً بلا حدٍّ في خطوةٍ سابقة، فبقي بلا شيءٍ يبدأه.
+
+   **والشريطُ على خلايا الرأس لا على `<table>`**: الجدولُ `border-collapse:
+   separate` ولا `overflow: hidden` عليه (لأنها تُبطل `position: sticky`
+   على الرأس — مكتوبٌ في موضعه)، فحدٌّ على الجدول نفسِه يمرّ **خلف** الزوايا
+   المدوَّرة التي تُرسم على الخلايا الطرفية، فيبرز مستقيماً من قوسين.
+   وحدٌّ على الخلايا يتبع استدارتَها.
+
+   ولونُه `--brand` فيتبع اختيارَ المالك كما تتبعه البطاقات.
+   ======================================================================== */
+
+thead th, tr:first-child th {
+  border-block-start: 3px solid var(--brand);
+}
+
+/* الشريطُ أرقُّ وأخفُّ لوناً: 3px ← **2px**، و`--brand` مصمتاً ← مخفَّفاً
+   بـ55٪. وهو حدُّ لوحٍ لا حدُّ بطاقة: البطاقةُ عرضُها 16rem فشريطُها يُقرأ
+   في لمحة، والجدولُ يمتدّ بعرض الصفحة — فالشريطُ نفسُه عليه يصير خطّاً
+   بطول ألف بكسل، ويثقل بقدر ما يطول. */
+thead th, tr:first-child th {
+  border-block-start-width: 2px;
+  border-block-start-color: color-mix(in srgb, var(--brand) 55%, transparent);
+}
+
+/* ===========================================================================
+   رأسُ الجدول أغمق، والحبّاتُ وأزرارُ الصفّ تُنقَّح
+   ---------------------------------------------------------------------------
+   «غمّق العناوين شويه، وخلى مربعات النوع وشركة بشكل احترافي أكتر،
+   وإجراءات».
+
+   * **الرأسُ** كان `--muted` (5.01 على رقعته الرمادية) — يُقرأ ولا يُمسَح.
+     صار `--ink-soft` (7.6): عناوينُ أعمدةٍ تُقرأ **مرّةً** ثم تُحفظ مواضعُها،
+     فيجب أن تُلتقط من النظرة الأولى.
+
+   * **الحبّةُ** كانت خلفيةً ملوّنةً بلا حدّ، فتبدو **رقعةً** لا وسماً —
+     وحافّةُ اللون تذوب في خلفية الصفّ حين تتقاربان. فصار لها حدٌّ **مشتقٌّ
+     من لونها هي** (`currentColor` بـ22٪): وسمُ «نشط» أخضرُ الحدّ، و«محظور»
+     أحمرُه، بلا قاعدةٍ لكلّ حالةٍ على حدة. وزاويتُها 7px لا قوسٌ كامل —
+     القوسُ شكلُ الحبّات في البطاقات فوق، وهذه بيانٌ في جدولٍ لا وسمٌ في لوح.
+
+   * **أزرارُ الصفّ** تتقارب وتصغُر (2.2rem ← 2rem، والفجوة .3 ← .25)، وحدُّها
+     في السكون يخفّ: أربعةُ مربّعاتٍ بحدٍّ كامل في كلِّ صفٍّ من خمسة وعشرين
+     تُقرأ **عموداً خامساً من الشبكة** لا أفعالاً. ويعود الحدُّ كاملاً عند
+     المرور، فمن يقصدها يراها.
+   ======================================================================== */
+
+thead th, tr:first-child th { color: var(--ink-soft); }
+
+.pill {
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  padding: .2rem .55rem;
+  font-size: .73rem;
+  font-weight: 700;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-actions { gap: .25rem; }
+.row-actions a {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+  color: var(--muted);
+}
+.row-actions a:hover { border-color: var(--brand); color: var(--brand-dark); }
+.row-actions .row-icon { inline-size: .95rem; block-size: .95rem; }
+
+/* ===========================================================================
+   أزرارُ الصفّ: `.act` لا `.row-actions a`
+   ---------------------------------------------------------------------------
+   القاعدةُ كُتبت أوّلاً على `.row-actions a` فلم تمسّ شيئاً في هذه الشاشة:
+   جداولُ اللوحة تستعمل **صنفين مختلفين** لأزرار الصفّ — `.row-actions a`
+   في بعضها و`.act` في ستّة قوالبَ منها هذه. وكُشف بالنظر في القالب بعد أن
+   ظهر أن شيئاً لم يتغيّر، لا بالقياس.
+
+   * **الحذفُ لا يحمر في السكون.** كان حدُّه ولونُه أحمرين دائماً، فخمسةٌ
+     وعشرون صفّاً فيها خمسةٌ وعشرون زرّاً أحمر — والأحمرُ الذي يُرى في كل
+     سطرٍ يتوقّف عن كونه تحذيراً. فيحمرّ عند المرور وحدَه، وله شاشتُه التي
+     تسأل وترفض على أي حال.
+   * **وحدُّ السكون يخفّ للأربعة**: أربعةُ مربّعاتٍ بحدٍّ كامل في كل صفٍّ
+     تُقرأ عموداً خامساً من الشبكة لا أفعالاً.
+   * **والقفزةُ تُلغى** (`translateY(-1px)` ودورانُ الرسم): زرٌّ يقفز ويدور
+     تحت المؤشّر في جدولٍ يُمسح بالعين صفّاً صفّاً حركةٌ تلاحق اليد.
+   ======================================================================== */
+
+.act {
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+  color: var(--muted);
+  margin: 0;
+}
+.act:hover { transform: none; border-color: var(--brand); }
+.act:hover svg { transform: none; }
+
+.act--danger, .act--del { border-color: color-mix(in srgb, var(--line) 70%, transparent); color: var(--muted); }
+.act--danger:hover, .act--del:hover { border-color: var(--danger); color: var(--danger); }
+
+.actions .act { animation: none; }
+.actions { text-align: center; }
+.actions .row-actions, .actions > div { justify-content: center; gap: .25rem; }
+
+/* ===========================================================================
+   رمزُ الشاشة في رأسها، والنقطُ أخفّ
+   ---------------------------------------------------------------------------
+   «ضيف أيقونة جنب الهيدر إدارة المستخدمين، وخفّف لون نقط الخلفية قليلاً».
+
+   **والرمزُ من السجلّ لا من القالب.** `navigation.icon_for` تعطي رسمَ
+   الشاشة نفسَه الذي يرسم سطرَها في الشريط الجانبي، فرأسُ الشاشة وسطرُها في
+   القائمة يقولان الشيءَ نفسَه — ورمزان مختلفان لشاشةٍ واحدة يجعلان المرءَ
+   يظنّهما شاشتين. وهو في الإطار مرّةً واحدة، لا يُكتب في ستٍّ وتسعين قالباً.
+
+   **ورمزُ الرئيسية كان مكتوباً بيده** في `dashboard.html` — ثلاثةُ أعمدةٍ
+   رُسمت هناك — فحُذف: صار يأتي من السجلّ كغيره، والرئيسيةُ صفٌّ في `PAGES`
+   لها رسمُها.
+
+   والنقطُ: 11٪ ← **7٪** في الفاتح، و16٪ ← **11٪** في الداكن.
+   ======================================================================== */
+
+/* رمزُ الشاشة في رأس القوائم: مربّعٌ خفيفٌ لا مصمت — الرأسُ هنا سطرٌ فيه
+   عنوانٌ وأفعال، لا لافتةٌ كرأس الرئيسية، ومربّعٌ مصمتٌ فيه يزن أكثرَ من
+   الاسم بجواره. */
+.page__crest {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 2.15rem;
+  block-size: 2.15rem;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+.page__crest svg { width: 18px; height: 18px; }
+
+main h1 { display: flex; align-items: center; gap: .6rem; }
+
+/* ===========================================================================
+   ذيلُ الجدول: قطعةٌ منه لا صندوقٌ تحته
+   ---------------------------------------------------------------------------
+   «خلى المربع الأبيض اللي فيه 14 حساب ده بشكل احترافي».
+
+   **وكان صندوقاً مستقلاً بحكم قاعدتين تعارضتا.** الذيلُ كُتب ليلتحم بالجدول:
+   `border-block-start: 0` وزاويتان سفليّتان مدوَّرتان وهامشٌ سالبٌ
+   بـ`-.4rem`. وذلك يعمل ما دام الجدولُ بحدٍّ وهامشُه `.4rem`.
+
+   ثم تغيّر شيئان: الجدولُ صار **بلا حدٍّ وبظلّين**، وغلافُه `.scroller`
+   يحمل هامشاً سفلياً قدرُه `1.2rem`. فانفصل الذيلُ بثمانية بكسلات، وبقي
+   حدُّه الكاملُ يرسم صندوقاً حول شيءٍ يفترض أنه نصفُ صندوق.
+
+   فالهامشُ السالبُ صار `-1.2rem` — قيمةَ هامش الغلاف نفسَها لا رقماً
+   يُقارب — والحدودُ الجانبيةُ والسفليّةُ حُذفت، وبقي **خطٌّ علويٌّ واحد**
+   يفصله عن آخر صفّ. وظلُّه ظلُّ الجدول نفسُه فيبدوان قطعةً واحدة.
+
+   **وسطرُ العدّ يصير أوضح**: الرقمُ فيه هو الجواب («كم صفّاً طابق؟»)،
+   وكان بلون `--muted` كبقيّة الجملة.
+   ======================================================================== */
+
+.table-footer, .scroller + p, table + p {
+  margin-block-start: -1.2rem;
+  padding: .75rem 1.1rem;
+  border: 0;
+  border-block-start: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  font-size: .8rem;
+  font-weight: 600;
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 6px 20px rgb(23 32 51 / .07);
+}
+[data-scheme="dark"] .table-footer,
+[data-scheme="dark"] .scroller + p,
+[data-scheme="dark"] table + p { box-shadow: inset 0 0 0 1px var(--line); border-block-start-color: var(--line); }
+
+/* أزرارُ الصفحات تُقرأ أزراراً: الحاليةُ محدَّدةٌ لا رقمٌ عائم. */
+.pagination__current {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 1.85rem;
+  block-size: 1.85rem;
+  padding-inline: .4rem;
+  border-radius: 8px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pagination a {
+  display: inline-flex;
+  align-items: center;
+  block-size: 1.85rem;
+  padding-inline: .8rem;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.pagination a:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+
+/* ===========================================================================
+   سطرُ العدّ: الأرقامُ فيه هي الجواب
+   ---------------------------------------------------------------------------
+   «خلى شكله احترافي أكتر».
+
+   وكان جملةً واحدةً بلونٍ واحد: «14 حساباً · صفحة 1 من 1». والأرقامُ الثلاثةُ
+   فيها هي **الجواب** — كم طابق، وأين أنا، وكم بقي — والكلماتُ بينها نحوٌ
+   يربطها. فمساواتُها في اللون والوزن تجعل العينَ تقرأ الجملةَ كاملةً لتلتقط
+   ثلاثةَ أرقام.
+
+   فصارت الأرقامُ بلون الحبر وبوزن 800، والكلامُ بينها خافتاً. والفاصلُ
+   نقطةٌ **مرسومةٌ لا محرفاً**: `·` في خطٍّ عربيٍّ يقع في ارتفاعٍ يختلف عن
+   نظيره في اللاتيني، فيبدو معلّقاً بين سطرين.
+
+   والتحويلُ آليٌّ على سبعة مواضع في سبعة قوالب — لا يُكتب بيدٍ فيُنسى في
+   واحد.
+   ======================================================================== */
+
+.table-footer .tf__n, .scroller + p .tf__n, table + p .tf__n {
+  color: var(--ink);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.tf__sep {
+  display: inline-block;
+  inline-size: .3rem;
+  block-size: .3rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--muted) 55%, transparent);
+  margin-inline: .6rem;
+  vertical-align: .1em;
+}
+
+.table-footer, .scroller + p, table + p { color: var(--muted); font-weight: 600; }
+
+/* حشوةُ الذيل الأفقيّةُ تساوي حشوةَ خليّة الجدول (`.9rem`)، فيستقيم أوّلُ
+   حرفٍ فيه مع أوّل حرفٍ في العمود الأوّل. وكانت `1.1rem` — فرقٌ قدرُه
+   `.2rem`، قيس في الصفحة المرسومة: حافّةُ نصّ الخليّة 1002.8 وحافّةُ نصّ
+   الذيل 999.6، أي 3.2px. وذلك لا يُرى وحدَه، لكنه يُرى حين يقع تحت عمودٍ
+   من خمسةٍ وعشرين صفّاً كلُّها مستقيمة. */
+.table-footer, .scroller + p, table + p { padding-inline: .9rem; }
+
+/* الذيلُ ينزل قليلاً عن الجدول — بأمر المالك. والهامشُ السالبُ كان `-1.2rem`
+   وهو قيمةُ هامش `.scroller` بالضبط، فيلتحم الاثنان بلا فاصل. صار `-.85rem`
+   فيبقى بينهما نحوُ ستّة بكسلات: يُقرآن قطعتين متجاورتين لا قطعةً واحدة،
+   ويبقى الذيلُ أقربَ إلى جدوله منه إلى ما بعده.
+
+   والخطُّ العلويُّ يُحذف معه: خطٌّ يفصل ما بينه وبين ما فوقه فراغٌ أصلاً
+   فاصلٌ ثانٍ بلا شيءٍ يفصله. */
+.table-footer, .scroller + p, table + p {
+  margin-block-start: -.85rem;
+  border-block-start: 0;
+  border-radius: var(--radius-lg);
+}
+[data-scheme="dark"] .table-footer,
+[data-scheme="dark"] .scroller + p,
+[data-scheme="dark"] table + p { border-block-start: 0; }
+
+/* ===========================================================================
+   حالةُ الفراغ: كتلةٌ تقول ما يُفعل، لا فقرةٌ في وسط بياض
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «تقرير مزايدات مستخدم»، وهي
+   شاشةٌ **تبدأ فارغةً بطبيعتها**: لا تقريرَ قبل أن تُسأل عن أحد.
+
+   وكانت تعرض فقرةً عاريةً بلونٍ خافت في وسط صفحةٍ بيضاء، فتُقرأ «لا شيء
+   هنا» لا «اسأل عن أحد». وثلاثُ حالاتٍ لها النصُّ نفسُه شكلاً: لا بحثَ بعد،
+   وبحثٌ يطابق كثيرين، وبحثٌ لا يطابق أحداً — وكلٌّ منها يطلب فعلاً مختلفاً.
+
+   فصارت كتلةً: رسمٌ، وسطرٌ يقول **ما يُفعل**، وسطرٌ يقول **كيف**. ورسمُ
+   العدسة للبحث الذي لم يقع، ورسمُ التنبيه للبحث الذي أصاب كثيرين.
+   ======================================================================== */
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  text-align: center;
+  padding: 3rem 1.5rem 3.2rem;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px dashed color-mix(in srgb, var(--line) 85%, var(--muted));
+  color: var(--muted);
+}
+.blank > svg { color: color-mix(in srgb, var(--brand) 45%, var(--muted)); margin-block-end: .4rem; }
+.blank__say { margin: 0; font-size: 1rem; font-weight: 700; color: var(--ink-soft); }
+.blank__hint { margin: 0; font-size: .82rem; font-weight: 500; color: var(--muted); max-inline-size: 42ch; }
+
+/* التنبيهُ نبرةٌ لا شكلٌ ثانٍ: الحدُّ والرسمُ يأخذان لونَه، والباقي كما هو. */
+.blank--warn { border-color: var(--warn-line); background: color-mix(in srgb, var(--warn-soft) 45%, var(--panel)); }
+.blank--warn > svg { color: var(--warn); }
+.blank--warn .blank__say { color: var(--warn); }
+
+/* ===========================================================================
+   سطرُ الوصف يحاذي نصَّ العنوان، وما بعده ينزل
+   ---------------------------------------------------------------------------
+   «نزّل مربع البحث لتحت شويه، وخلى الكلام اللي تحت الهيدر يجي شمال شويه».
+
+   **والإزاحةُ محسوبةٌ من مقاس الرمز لا مكتوبة.** صار لرأس كل شاشةٍ رمزٌ في
+   مربّع، فالعنوانُ يبدأ بعد المربّع وفجوته — وسطرُ الوصف تحته كان يبدأ من
+   حافة الصفحة، فيسبق العنوانَ بـ44px ويُقرأ الاثنان غيرَ مستقيمين.
+
+   والمقاسان صارا رمزين (`--page-crest` و`--page-crest-gap`) يقرؤهما المربّعُ
+   والفجوةُ والإزاحةُ معاً — فتصغيرُ الرمز يوماً يحرّك السطرَ معه بلا رقمٍ
+   ثانٍ يُعدَّل. وهي القاعدةُ نفسُها التي جعلت تصغيرَ رمز الرئيسية مرّتين لا
+   يحتاج تعديلاً.
+
+   وما يلي السطرَ ينزل: `1.2rem` ← `1.5rem` فوق الخطّ الفاصل.
+   ======================================================================== */
+
+:root { --page-crest: 2.15rem; --page-crest-gap: .6rem; }
+
+main h1 { gap: var(--page-crest-gap); }
+.page__crest { inline-size: var(--page-crest); block-size: var(--page-crest); }
+
+.lede { padding-inline-start: calc(var(--page-crest) + var(--page-crest-gap)); }
+.lede + * { padding-block-start: 1.5rem; }
+
+@media (max-width: 40rem) {
+  /* الإزاحةُ تُلغى على الضيّق: 2.75rem من شاشةٍ بعرض 24rem عُشرُها. */
+  .lede { padding-inline-start: 0; }
+}
+
+/* الفراغُ تحت الخطّ الفاصل يزيد: `1.5rem` ← `1.9rem`. وهو على `.lede + *`
+   فيقع في كل شاشةٍ لها سطرُ وصف — والزيادةُ محسوبةٌ بذلك: ستُّ بكسلاتٍ
+   ونصف تُقرأ تنفّساً في هذه الشاشة ولا تُقرأ فجوةً في شاشةٍ تحتها شبكةُ
+   بطاقات. */
+.lede + * { padding-block-start: 1.9rem; }
+
+/* **والفراغُ لم يقع قطّ حيث كُتب.** `.lede + *` نوعيّتُها (0,1,0)، ونماذجُ
+   البحث تحمل `form[method="get"] { margin: 0 0 1rem }` بنوعيّة (0,1,1) —
+   فتغلبها وتُصفّر الهامشَ العلويّ. قيس فكان الفراغُ بين سطر الوصف والنموذج
+   **صفراً**، بعد أربع زياداتٍ كُتبت عليه.
+
+   فالفراغُ انتقل إلى `.lede` نفسِه (هامشٌ سفليّ، لا ينازعه شيء)، وبقي على
+   `.lede + *` ما لا يُنازَع فيه: الخطُّ وحشوتُه. وأُضيف محدِّدٌ يكافئ القاعدةَ
+   القديمة نوعيّةً لنماذج البحث وحدها. */
+.lede { margin-block-end: 1.25rem; }
+.lede + *,
+.lede + form[method="get"] {
+  margin-block-start: 0;
+  padding-block-start: 1.4rem;
+  border-block-start: 1px solid var(--line);
+}
+
+/* ===========================================================================
+   أفعالُ الرأس: فعلٌ أوّلٌ واحد، ورمزٌ لمن يستحقّه
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «قائمة المزادات»، وفيها
+   **أربعةُ أفعالٍ في الرأس**، وهي أكثرُ شاشةٍ في اللوحة فعلاً.
+
+   **وعطلان، كلاهما من قاعدةٍ كُتبت لشاشةٍ فيها فعلٌ واحد:**
+
+   * **رمزُ التصدير على الأربعة.** القاعدةُ كانت
+     `.page__actions a:not(.page__back)::before` — أي «كلُّ رابطٍ في صفّ
+     الأفعال»، وذلك صحيحٌ في شاشةٍ فعلُها التصديرُ وحده. وفي هذه الشاشة يحمل
+     «+ مزاد جديد» و«بحث عن سيارة» و«عمليات مجمعة» رسمَ ورقةٍ نازلةٍ من
+     صندوق — أي أنها **تقول إنها تُصدّر ملفّاً** وهي لا تفعل.
+
+     فصار الرمزُ على `a[href*="export"]` وحدَه: الشرطُ على **ما يفعله
+     الرابط** لا على موضعه.
+
+   * **أربعةٌ ممتلئةٌ بلون الأساسي تتنافس.** والرأسُ فيه فعلٌ أوّلٌ واحد
+     («+ مزاد جديد»، وهو الوحيد الذي يحمل `btn-primary` في القالب)، والباقي
+     طرقٌ إلى شاشاتٍ أخرى. فالممتلئُ له وحدَه، والبقيّةُ محدَّدةٌ بحدّ.
+   ======================================================================== */
+
+.page__actions a:not(.page__back)::before { content: none; }
+
+.page__actions a[href*="export"]::before {
+  content: "";
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+
+/* الثانويّ: سطحُ اللوح وحدٌّ ونصٌّ بلون الحبر. */
+.page__actions a:not(.page__back):not(.btn-primary) {
+  background: var(--panel);
+  border-color: color-mix(in srgb, var(--field-border) 55%, #fff);
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+.page__actions a:not(.page__back):not(.btn-primary):hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* **والفعلُ الوحيد في الرأس أوّليٌّ ولو لم يحمل `btn-primary`.**
+
+   جعلُ ما ليس `btn-primary` ثانوياً صحيحٌ في شاشةٍ فيها أربعةُ أفعال، وخطأٌ
+   في شاشةٍ فيها فعلٌ واحد: «تصدير إلى إكسل» في «إدارة المستخدمين» هو كلُّ
+   ما في الرأس، وقد طُلب صراحةً أن يكون واضحاً — فثانويّتُه تنقض ذلك.
+
+   و`:only-child` يفرّق بينهما بلا صنفٍ يُكتب في القالب: فعلٌ وحدَه لا ينافسه
+   شيء، فلا معنى لتخفيفه. */
+.page__actions a:only-child:not(.page__back) {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(23 32 51 / .06);
+}
+.page__actions a:only-child:not(.page__back):hover {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  border-color: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+}
+
+/* أفعالُ الرأس تنزل قليلاً عن خطّ العنوان — بأمر المالك. والرأسُ صفٌّ
+   متوسّطٌ رأسياً، فالأزرارُ تقع على منتصف حرف العنوان؛ ونزولُها قليلاً
+   يجعل العنوانَ يُقرأ أوّلاً وهما بعده.
+
+   و`main:not(.board)` تستثني الرئيسية: رأسُها لافتةٌ عمودية، و`page__actions`
+   فيها تحمل **سطرَ الترحيب** لا أزراراً — وهامشٌ عليها هناك يزيح نصّاً لا
+   يُزاح. */
+main:not(.board) .page__actions { margin-block-start: .45rem; }
+
+/* ===========================================================================
+   حقلُ البحث يملأ ما بقي — سقفُ النماذج لا يسري عليه
+   ---------------------------------------------------------------------------
+   «خلى المربعات موزّعة في مربع البحث بشكل أفضل عشان باين فاضي من الآخر».
+
+   **والفراغُ من سقفٍ لا من توزيع.** `input, select, textarea` في قاعدة
+   النماذج العامّة تحمل `max-width: 26rem` — وهو صوابٌ هناك: حقلُ نصٍّ أعرضُ
+   من ذلك في استمارةٍ عمودية يجعل العينَ تقطع مسافةً بين آخر الحرف وأوّل
+   السطر التالي.
+
+   لكنّ حقلَ البحث في شريطٍ أفقيٍّ ليس حقلَ استمارة: وظيفتُه أن يأخذ ما بقي
+   بعد القوائم والزرّ. فوقف عند 416px بينما الشريطُ 951 — قيس فكان المستعملُ
+   762، أي **189px فارغةٌ في الطرف**، وهي التي رآها المالك.
+
+   فالسقفُ يُلغى لحقول البحث في نماذج `get` وحدها، ويبقى على ما سواها.
+   ======================================================================== */
+
+form[method="get"] input[type="search"],
+.filters__main input[type="search"] { max-inline-size: none; }
+form[method="get"] > input[type="search"],
+.filters__main > input[type="search"] { flex: 1 1 14rem; }
+
+/* ===========================================================================
+   عمودُ التحكّم: شبكةٌ من الأزرار لا كومة
+   ---------------------------------------------------------------------------
+   «خلى تحكم وأيقوناتها بشكل احترافي أكتر».
+
+   وفي هذا العمود **ستّةُ أفعالٍ أو سبعة** في الصفّ الواحد — أكثرُ خليّةٍ في
+   اللوحة عملاً. وكانت أزرارُها عناصرَ سطريّةً يلفّها المتصفّح كما يلفّ
+   الكلمات: صفٌّ فيه أربعةٌ وآخرُ فيه ثلاثة، وثالثٌ فيه واحد — بلا محاذاةٍ
+   بين صفٍّ وصفّ، فتُقرأ كومةً.
+
+   فصارت الخليّةُ **شبكةً بثلاثة أعمدة**: كلُّ زرٍّ في خانته، والصفوفُ
+   تستقيم رأسياً مهما اختلف عددُ الأفعال بين صفٍّ وصفّ (وهو يختلف: زرُّ
+   الحذف لا يظهر لمن لا يملكه، وزرُّ المراجعة لا يظهر إن لم يكن ثمّ ما
+   يُراجَع). وثلاثةٌ لا أربعة: العمودُ يضيق فيُقرأ كتلةً واحدةً لا شريطاً.
+
+   والأزرارُ أصغرُ قليلاً هنا (1.85rem) — ستّةُ مربّعاتٍ بـ2rem في خليّةٍ
+   واحدة تجعل الصفَّ أطولَ من سطرين.
+   ======================================================================== */
+
+td.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1.85rem);
+  gap: .28rem;
+  justify-content: center;
+  align-content: center;
+}
+
+td.actions .act {
+  inline-size: 1.85rem;
+  block-size: 1.85rem;
+  border-radius: 7px;
+}
+td.actions .act svg { inline-size: .9rem; block-size: .9rem; }
+
+/* زرُّ المراجعة يحمل عدداً فيمتدّ على الخانات الثلاث: رقمٌ في مربّعٍ
+   بـ1.85rem يُقصّ. */
+td.actions .act--review { grid-column: 1 / -1; inline-size: auto; }
+
+/* ===========================================================================
+   عمودا «التفعيل» و«الصور»: نسبةٌ تُقرأ نسبةً
+   ---------------------------------------------------------------------------
+   «خلى التفعيل والصور أفضل».
+
+   **والشريطُ كان يبدو كتلةً خضراء لا مقياساً.** مسارُه `--line-soft`
+   (`#eef2f8`) على خليّةٍ بيضاء — فرقُ ستِّ درجاتٍ من 255، أي أنه **يُرسم
+   ولا يُرى**؛ فلا يظهر إلا الجزءُ الممتلئ، ومقياسٌ بلا مقامٍ ليس مقياساً.
+   صار المسارُ `--line` وارتفاعُه 5px بدل 4.
+
+   **والرقمان صارا معاً**: «٢ / ٢» تُقرأ نسبةً في لمحة، و«٢» فوق «متاحة من ٢»
+   تجعل العينَ تجمعهما من سطرين. والمقامُ أخفُّ لوناً ووزناً: هو السياقُ لا
+   الجواب.
+
+   **ولونُ الشريط لم يُمَسّ**: شريطُ الصور يصير كهرمانياً حين تنقص صورة
+   (`bar--warn` يضعه القالبُ بشرطٍ على البيانات)، وشريطُ التفعيل أخضرُ
+   دائماً. وتلوينُ الثاني بالحالة يحتاج شرطاً في القالب لا قاعدةً في الورقة
+   — والورقةُ لا تقارن قيمتين.
+   ======================================================================== */
+
+.bar {
+  block-size: .32rem;
+  background: var(--line);
+  max-inline-size: 6.5rem;
+}
+
+.metric__n { display: flex; align-items: baseline; gap: .22rem; }
+.metric__of {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.metric__label { font-size: .74rem; font-weight: 600; }
+.metric__note { font-size: .72rem; font-weight: 600; }
+
+/* ===========================================================================
+   صقلُ عمود التحكّم — داخل الشبكة التي اختارها المالك
+   ---------------------------------------------------------------------------
+   رُسمت له أربعةُ أشكال (الشبكة، وصفٌّ بلا حدود، وثلاثةٌ و«⋯»، وزرُّ
+   «إجراءات» واحد) فاختار الشبكةَ كما هي. فالتخطيطُ لا يُمَسّ، والصقلُ داخلَه:
+
+   * **سُمكُ الرسم يزيد إلى 2** بعد أن صغُر الزرُّ إلى 1.85rem والرسمُ إلى
+     0.9rem: خطٌّ بسُمك 1.7 على رسمٍ بهذا المقاس يصير شعرةً، والرسومُ الثمانيةُ
+     تُقرأ متشابهةً لأن ما يفرّقها تفاصيلُ لا تُرى.
+   * **الحدُّ يظهر عند المرور ولا يبرز في السكون**: ثمانيةُ مربّعاتٍ محدَّدةٍ
+     في خليّةٍ واحدة تُقرأ شبكةً ثانيةً داخل الجدول.
+   * **وخانةُ الزرّ تُضاء كلُّها** عند المرور بلون فعلِه — فالهدفُ 1.85rem
+     كاملاً لا الرسمُ في وسطه.
+   ======================================================================== */
+
+td.actions .act svg { stroke-width: 2; }
+td.actions .act {
+  border-color: transparent;
+  background: var(--raised);
+}
+td.actions .act:hover,
+td.actions .act:focus-visible {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+td.actions .act--danger:hover,
+td.actions .act--del:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ===========================================================================
+   كروتُ اختيار المزاد: البطاقةُ هي الزرّ
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر».
+
+   **والبطاقةُ كلُّها `<a>` أصلاً** — مكتوبٌ في رأس قالبها أن ذلك مقصود:
+   «الكارتُ هدفُ لمسٍ أكبر». ثم يقع في قاعها **زرٌّ ممتلئٌ بعرضها** يقول
+   «فتح إدارة + سيارات» — أي هدفُ لمسٍ ثانٍ داخل الأوّل، يفعل ما يفعله.
+   وخمسةُ كروتٍ في شبكةٍ تعني خمسةَ أزرارٍ زرقاءَ ممتلئةٍ تصرخ بالقوّة نفسِها،
+   فلا يُعرف أيُّها المقصود — وكلُّها المقصود.
+
+   فصار التذييلُ **سطرَ وجهةٍ** خلف خطٍّ رفيع: يقول إلى أين تذهب البطاقةُ إن
+   نُقرت، ويتلوّن معها عند المرور. وهي لغةُ بطاقات الأرقام في الرئيسية نفسُها.
+
+   **والبطاقةُ ترتفع عند المرور** بحدٍّ وظلّ — فالهدفُ كلُّه يستجيب لا جزءٌ
+   منه.
+
+   والوسومُ الثلاثةُ (العددُ والبدءُ والانتهاء) تصير سطراً واحداً بفواصل:
+   ثلاثُ حبّاتٍ في بطاقةٍ بعرض 17rem تلتفّ سطرين وتُقرأ ثلاثةَ أشياءَ
+   منفصلة، وهي **بيانٌ واحد**: متى وكم.
+   ======================================================================== */
+
+.pick-card { gap: .5rem; }
+.pick-card:hover {
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  box-shadow: 0 2px 4px rgb(23 32 51 / .06), 0 10px 26px rgb(23 32 51 / .09);
+  transform: none;
+}
+
+.pick-card__id { font-size: .74rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pick-card__title { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.4; margin: 0; }
+
+/* سطرٌ واحدٌ بفواصلَ لا ثلاثُ حبّات. */
+.pick-card__meta { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); line-height: 1.7; }
+.pick-card__meta .chip {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: normal;
+}
+.pick-card__meta .chip + .chip::before {
+  content: "·";
+  margin-inline: .45rem;
+  color: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.pick-card__meta .chip--count { color: var(--ink); font-weight: 800; }
+
+/* التذييلُ سطرُ وجهةٍ لا زرٌّ ثانٍ. */
+.pick-card__cta {
+  margin-block-start: auto;
+  padding: .7rem 0 0;
+  border-block-start: 1px solid var(--line-soft);
+  background: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: start;
+  border-radius: 0;
+  transition: color .15s ease;
+}
+.pick-card:hover .pick-card__cta { color: var(--brand-dark); }
+.pick-card__cta span[aria-hidden] { transition: transform .15s ease; display: inline-block; }
+.pick-card:hover .pick-card__cta span[aria-hidden] { transform: translateX(-3px); }
+.pick-card__cta--off { background: none; color: var(--muted); }
+
+/* سطرُ الوجهة في الكارت أزرقُ في السكون — بأمر المالك. وكان رماديّاً يزرقّ
+   عند المرور، فلا يُقرأ طريقاً إلا وقد وُقف عليه؛ وعلى شاشةٍ لمسيّةٍ لا
+   يزرقّ أبداً.
+
+   ولونُه `--brand-dark` لا `--brand`: الأوّلُ معرَّفٌ في رأس الورقة نصّاً
+   ملوّناً على البطاقة بحدّ 4.5، والثاني لِما ليس نصّاً (حدٌّ وإطارٌ وتدرّج)
+   بحدّ 3 — وهو يرسب نصّاً. والفرقُ بينهما هو بعينه ما كُتبا لأجله. */
+.pick-card__cta { color: var(--brand-dark); }
+.pick-card:hover .pick-card__cta { color: var(--brand-solid); text-decoration: underline; text-underline-offset: .25em; }
+
+/* سطرُ الوجهة يصير زرّاً أزرقَ متوسّطاً بنصٍّ أبيض — بأمر المالك.
+
+   وبحجم محتواه لا بعرض البطاقة: خمسةُ كروتٍ في شبكةٍ تعني خمسةَ أزرارٍ،
+   وزرٌّ يمتدّ من حافةٍ إلى حافة يصرخ بقدر عرضه. والخطُّ الرفيعُ فوقه يبقى
+   فاصلاً بينه وبين بيان البطاقة. */
+.pick-card__cta {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin-block-start: auto;
+  padding: .5rem 1.05rem;
+  border-radius: 9px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 700;
+  text-align: center;
+  transition: background .15s ease;
+}
+/* والخطُّ الفاصلُ ينتقل إلى **سطر البيان** فوقه: حدٌّ على زرٍّ بحجم محتواه
+   يرسم خطّاً بطول الزرّ لا بعرض البطاقة، وزائفٌ مُزاحٌ بـ`transform` رقمٌ
+   يُقدَّر بالعين ويفترق عن موضعه عند أوّل تغييرٍ في الحشوة — جُرّب فلم
+   يظهر. والحدُّ على ما فوقه يصيب دائماً. */
+.pick-card__cta { border-block-start: 0; }
+.pick-card__meta {
+  padding-block-end: .85rem;
+  border-block-end: 1px solid var(--line-soft);
+  margin-block-end: .2rem;
+}
+.pick-card { padding-block-end: 1.15rem; }
+
+.pick-card:hover .pick-card__cta,
+.pick-card:focus-visible .pick-card__cta {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+  text-decoration: none;
+}
+.pick-card__cta--off { background: var(--line-soft); color: var(--muted); }
+
+/* ===========================================================================
+   لوحةُ الفلاتر: ظلٌّ، ورأسٌ، وحقولٌ محفورة
+   ---------------------------------------------------------------------------
+   «ضيف شادو لمربع الفلترة وخلى تصميمه احترافي أكتر».
+
+   **الظلّ**: `form.cat-filters` لا `.cat-filters` — قاعدةُ `form[method="get"]`
+   العامّة فيها `box-shadow: none` بتخصيصِ (٠،١،١)، والصنفُ وحده (٠،١،٠)
+   يخسرُها صامتاً. هذا الفخُّ ابتلع أربعَ محاولاتٍ في هذه الجلسة.
+
+   **ورأسٌ للّوحة**: كانت تبدأ باللصائق مباشرةً، فتُقرأ امتداداً للبطاقات
+   فوقها لا كتلةً لها وظيفة. فسطرٌ في أعلاها يقول «تصفية النتائج» وتحته خطّ —
+   والنصُّ في `::before` لا في القالب لأن اللوحة استمارةٌ واحدةٌ في شاشةٍ
+   واحدة، وصفٌّ في القالب لأجل كلمتين يُلزم كلَّ من نسخها بنسخهما.
+
+   **والحقولُ محفورة**: كانت بيضاءَ داخل لوحةٍ بيضاء، فلا يُرى منها إلا حدٌّ
+   بلون `--line`. فصارت بأرضيّة الصفحة (`--ground`) — الحقلُ يُقرأ فجوةً في
+   اللوحة، وهي إشارةُ «اكتب هنا» بلا حاجةٍ إلى حدٍّ غليظ. وعند التركيز يعود
+   أبيضَ مع الحلقة: الحقلُ النشط يرتفع، والباقي يهدأ.
+   ======================================================================== */
+
+form.cat-filters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .9rem 1rem;
+  align-items: end;
+  padding: 1.15rem 1.25rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* رأسُ اللوحة. */
+form.cat-filters::before {
+  content: "تصفية النتائج";
+  grid-column: 1 / -1;
+  padding-block-end: .85rem;
+  border-block-end: 1px solid var(--line);
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: -.005em;
+}
+
+.cat-filters__field { display: flex; flex-direction: column; gap: .35rem; min-inline-size: 0; }
+form.cat-filters .cat-filters__field label {
+  margin: 0;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.cat-filters__field input,
+.cat-filters__field select {
+  inline-size: 100%;
+  max-inline-size: none;
+  block-size: 2.7rem;
+  padding-inline: .8rem;
+  background: var(--ground);
+  border-color: var(--line);
+  border-radius: var(--radius);
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.cat-filters__field input:hover,
+.cat-filters__field select:hover { border-color: color-mix(in srgb, var(--brand) 38%, var(--line)); }
+.cat-filters__field input:focus,
+.cat-filters__field select:focus { background: var(--panel); border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+
+/* رمزُ نتقويم المتصفّح أسودُ مصمتٌ افتراضاً فيسحب العين إلى أربع نقاطٍ لا
+   تقول شيئاً. يخفت حتى يُلمس. */
+.cat-filters__field input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: .45;
+  cursor: pointer;
+  transition: opacity .16s ease;
+}
+.cat-filters__field input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.cat-filters__field input[type="date"]:focus::-webkit-calendar-picker-indicator { opacity: .9; }
+
+/* قاعُ الاستمارة: خطٌّ فوقه فيُقرأ خاتمةً لا حقلاً سابعاً، و«مسح الفلاتر»
+   على الحافة المقابلة — فعلٌ مضادٌّ لا يقف بجوار الفعل الأساسي. */
+.cat-filters__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-block-start: .15rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
+/* `form[method="get"] button[type="submit"] { margin-inline-start: auto }`
+   (سطر ٧٢٣) يُصيب زرَّ التطبيق أيضاً، فيقتسم الزرّان الفراغَ ويقف الأساسيُّ
+   في **منتصف** السطر — قيس: هامشٌ 364.75px على كلٍّ منهما. يُبطَل هنا،
+   ويُدفع «مسح الفلاتر» وحدَه إلى الحافة المقابلة. */
+/* أمرُ المالك: «خلّي مربّعي تطبيق الفلاتر وحذف في النصّ واعرض». فالزرّان
+   في منتصف قاعِ اللوحة وبعرضٍ أدنى واحدٍ لكليهما — لا زرٌّ على حافةٍ وآخرُ
+   على مقابلها. و«مسح الفلاتر» صار زرّاً محدوداً بحقٍّ لا رابطاً مسطوراً:
+   في المنتصف بجوار زرٍّ مصمتٍ يُقرأ الرابطُ المسطور نصّاً هارباً. */
+form.cat-filters .cat-filters__actions { justify-content: center; gap: .75rem; }
+form.cat-filters .cat-filters__actions > button[type="submit"] { margin-inline-start: 0; }
+form.cat-filters .cat-filters__actions > .btn-primary,
+form.cat-filters .cat-filters__actions > .btn-ghost {
+  flex: 0 0 auto;
+  min-inline-size: 11rem;
+  block-size: 2.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* حقلُ البحث وحالةُ المزاد يملآن الصفَّ الأول (عمودان لكلٍّ)، والتواريخُ
+   الأربعةُ صفٌّ تامٌّ تحتهما — لا صفٌّ ناقصٌ بخانتين فارغتين كما كان. */
+.cat-filters__field:nth-of-type(1),
+.cat-filters__field:nth-of-type(2) { grid-column: span 2; }
+@media (max-width: 68rem) {
+  .cat-filters__field:nth-of-type(1),
+  .cat-filters__field:nth-of-type(2) { grid-column: span 1; }
+}
+
+@media (max-width: 68rem) { form.cat-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40rem) { form.cat-filters { grid-template-columns: minmax(0, 1fr); } }
+
+/* «مسح الفلاتر» بحدٍّ وأرضيّة: `.btn-ghost` هنا بلا حدٍّ ولا خلفيّة، فبجوار
+   زرٍّ مصمتٍ في المنتصف يُقرأ نصّاً سائباً لا زرّاً مساوياً. */
+form.cat-filters .cat-filters__actions > .btn-ghost {
+  background: var(--panel);
+  /* أمرُ المالك: «غمّق الاستروك قليلاً وخلّي لونه أزرق». حدٌّ بلون الأساسيّ
+     مخلوطاً بالخطّ — أغمقُ من `--line` وأخفُّ من الأساسيّ المصمت، فيُقرأ
+     زرّاً ثانويّاً من عائلة الأساسيِّ لا منافساً له. */
+  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
+  color: var(--brand-dark);
+}
+form.cat-filters .cat-filters__actions > .btn-ghost:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* ===========================================================================
+   شريطُ أدوات الكتالوج — رأسُ الجدول لا سطرٌ سائب
+   ---------------------------------------------------------------------------
+   كان: فقرةً رماديّةً في الهواء، وثلاثةَ أزرارٍ بهيئةٍ **واحدة** بجوارها.
+   وثلاثةُ أزرارٍ متساوية تعني أن لا فرقَ بين «إنشاء مزاد» و«تحديث البيانات» —
+   والأولُ يُنشئ كياناً، والأخيرُ يُعيد تحميل الصفحة.
+
+   فصار: لوحةً بيضاء تعلو الجدولَ مباشرةً فتُقرأ رأساً له، وفيها **درجتان**:
+   زرٌّ مصمتٌ واحدٌ للفعل الذي يُنشئ، واثنان محدَّدان بحدٍّ لما يُبدّل العرض.
+   ولكلٍّ رمزُه — ثلاثةُ نصوصٍ عربيّةٍ متقاربةِ الطول تُقرأ كتلةً واحدة، والرمزُ
+   هو ما يفرزها قبل القراءة.
+   ======================================================================== */
+
+.cat-toolbar {
+  align-items: center;
+  gap: .9rem 1rem;
+  margin: 0 0 .9rem;
+  padding: .8rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+/* النصُّ بشرطةٍ ملوّنةٍ على حافته: يميّزه عن الأزرار في سطرٍ واحدٍ معها،
+   ويمنعه أن يُقرأ تذييلَ ما قبله. */
+.cat-toolbar__meta {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--ink-soft);
+  font-size: .84rem;
+  line-height: 1.55;
+}
+.cat-toolbar__meta::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 1.7em;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+.cat-toolbar__actions { gap: .45rem; }
+
+.cat-toolbar__actions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  block-size: 2.45rem;
+  padding-inline: .95rem;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* الدرجةُ الثانية: حدٌّ وأرضيّةٌ بيضاء. لا لونَ مصمتٌ إلا لفعلٍ يُنشئ. */
+.cat-toolbar__actions > .btn-ghost {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.cat-toolbar__actions > .btn-ghost:hover {
+  background: var(--ground);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  color: var(--ink);
+}
+
+/* الرموز: قناعٌ لا صورة، فترث `currentColor` وتنقلب مع المظهر والحالة. */
+.cat-toolbar__actions > button::before {
+  content: "";
+  flex: none;
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  background: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat;
+  mask: var(--ico) center / contain no-repeat;
+}
+.cat-toolbar__actions > [data-select-create] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>');
+}
+.cat-toolbar__actions > [data-select-all] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>');
+}
+.cat-toolbar__actions > button[onclick] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>');
+}
+
+@media (max-width: 52rem) {
+  .cat-toolbar__actions { inline-size: 100%; }
+  .cat-toolbar__actions > button { flex: 1 1 auto; justify-content: center; }
+}
+
+/* ===========================================================================
+   جدولُ الكتالوج — صفٌّ يُقرأ في سطر
+   ---------------------------------------------------------------------------
+   «خلّي البيانات وتصميمها اللي في الجدول بشكل احترافي».
+
+   العطلُ الأول بنيويٌّ لا لونيّ: الغلافُ كان `.scroller` عارياً، فالجدولُ
+   يُضغَط في عرض الشاشة وستّةَ عشرَ عموداً تتقاسمه — «غير محدد» تلفُّ سطرين،
+   واسمُ السيارة ثلاثة، فيقارب ارتفاعُ الصفّ 100px ولا يُرى إلا أربعةُ صفوف.
+   `scroller--wide` (المكتوبة أصلاً لما بعد البيع) تمنع اللفَّ وتُمرّر أفقياً.
+   وثمنُها صريح: من يقرأ آخرَ الأعمدة يمرّر.
+
+   والباقي فرزُ الأنواع: السيارةُ اسمٌ غليظٌ وسنةٌ خافتة، والأرقامُ بخاناتٍ
+   مستقيمة، والشاصي والّلوحة أحاديّةُ العرض أصغرُ وأخفتُ (سلسلةُ 17 محرفاً
+   لا تُقرأ، تُطابَق — فوزنُها البصريُّ يجب أن يكون أقلَّ ما يمكن)، والشرطةُ
+   «—» تخفت حتى لا تُقرأ قيمةً، والصورُ حبّةٌ برمز آلة تصوير لا محرفُ إيموجي
+   يختلف رسمُه من نظامٍ إلى نظام.
+   ======================================================================== */
+
+/* رأسٌ أوضح: حبرٌ أغمقُ من `--muted` — سطرُ العناوين يُقرأ في جدولٍ بستّةَ
+   عشرَ عموداً قبل أن تُقرأ خانةٌ واحدة. */
+.cat-table thead th {
+  color: var(--ink-soft);
+  font-size: .73rem;
+  font-weight: 800;
+  background: var(--raised);
+}
+
+.cat-table td { vertical-align: middle; padding-block: .6rem; }
+
+/* السيارة: الاسمُ سطرٌ والسنةُ تحته بوزنٍ خافت. */
+.cat-table td strong { font-weight: 700; color: var(--ink); }
+.cat-table td small { font-size: .72rem; color: var(--muted); margin-block-start: .1rem; }
+
+/* السلاسلُ الأحاديّة: أصغرُ وأخفت، ولا تُحاذى كالنصّ. */
+.cat-table td.mono { font-size: .76rem; color: var(--ink-soft); letter-spacing: -.01em; }
+
+.cat-table td.count { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* موعدُ المزاد: بدايةٌ فوق ونهايةٌ تحتها خافتة، بخاناتٍ مستقيمة. */
+.cat-table td.sched { font-variant-numeric: tabular-nums; font-size: .78rem; line-height: 1.5; }
+.cat-table td.sched > span { display: block; }
+.cat-table td.sched > .muted { font-size: .74rem; }
+
+/* الشرطةُ «—»: قيمةٌ غائبةٌ لا قيمةٌ مكتوبة. */
+.cat-nil { color: var(--line); font-weight: 700; }
+
+/* حبّةُ الصور: رمزٌ ورقمٌ في إطارٍ خفيف — هدفُ نقرٍ يُرى أنه هدف. */
+.cat-table .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .2rem .5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.cat-table .link-btn:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+/* خانةُ التحديد تضيق: عمودٌ بحشوةٍ كاملةٍ لمربّعٍ بـ1rem يسرق عرضاً من
+   ستّةَ عشرَ عموداً تتنازعه. */
+.cat-table th:first-child, .cat-table td:first-child { padding-inline: .7rem; width: 1%; }
+
+/* الصفُّ المحدَّد يُرى محدَّداً: أرضيّةٌ خفيفةٌ بلون الأساسيّ. بلا هذا يكون
+   الدليلُ الوحيدُ على التحديد علامةً بـ1rem في طرف صفٍّ عرضُه 92rem. */
+.cat-table tbody tr:has(.row-select:checked) { background: var(--brand-soft); }
+
+/* ===========================================================================
+   الشريط الجانبي كحليٌّ بكتابةٍ بيضاء — هو الافتراضي الآن
+   ---------------------------------------------------------------------------
+   «خلّي السايدبار لونه كحلي والكتابة أبيض».
+
+   وهذا **يبدّل الافتراضيّ** لا يضيف خياراً: `:root` كان يعطي شريطاً أبيضَ
+   (#ffffff/#172033)، فتُكتب هنا قيمُه كحليّةً بتخصيصٍ مساوٍ وترتيبٍ لاحق.
+
+   والكحليُّ #10294f لا الفحميُّ #131926 الموجودُ في خيار «داكن»: الأولُ لونٌ
+   يُرى، والثاني رماديٌّ شبهُ أسود. وهما خياران مختلفان ويبقيان كذلك.
+
+   والقيمُ الستّ تُكتب **كلُّها** معاً — لا `--side` وحدَها: خلفيّةٌ كحليّةٌ
+   مع `--side-accent` الذي هو `--a700` الغامق تجعل القسمَ الحالي — وهو السطرُ
+   الوحيد الذي يقول «أنت هنا» — أقلَّ سطرٍ يُقرأ في القائمة. وهذا عطلٌ وقع
+   هنا من قبلُ وكُتب في تعليق `--side-accent` أعلاه.
+
+   وخيارُ «فاتح» في درج المظهر يبقى يعمل: كان معرَّفاً للمظهر الداكن وحده —
+   لأن الفاتحَ كان يرثه من `:root` — والآن صار له صفٌّ مستقلّ.
+
+   ثم أُغمِق مرّةً ثانيةً بأمر المالك: #10294f ← #0b1e3d. والتباينات عليه:
+   الأبيض 16.57، والخافت #a8bcdb 8.59، واللون الأساسي #7fd0ff 9.76 — وكانت
+   14.46 و7.49 و8.52 على الأوّل.
+   ======================================================================== */
+
+:root {
+  --side: #0b1e3d;
+  --side-ink: #ffffff;
+  --side-dim: #a8bcdb;
+  --side-line: #1c3054;
+  --side-hover: rgb(255 255 255 / .09);
+  --side-accent: #7fd0ff;
+}
+
+/* «فاتح» في درج المظهر: صفٌّ مستقلٌّ بعد أن صار الافتراضيُّ كحليّاً. */
+:root[data-sidebar="light"] {
+  --side: #ffffff;
+  --side-ink: #172033;
+  --side-dim: #5a6b85;
+  --side-line: #e2e8f1;
+  --side-hover: var(--a050);
+  --side-accent: var(--a700);
+}
+
+/* المتدرّجُ يتبع الكحليَّ لا الفحميّ. */
+:root[data-sidebar="gradient"] .sidebar {
+  background: linear-gradient(170deg, #12305e 0%, #081831 62%);
+}
+
+.nav a, .nav__soon, .nav-out button { font-weight: 700; }
+.nav a.active { font-weight: 800; }
+.nav-sec { font-weight: 800; }
+
+/* أسماءُ الأقسام أعرض: 0.89rem → 0.96rem، وعناوينُ المجموعات 0.68 → 0.74،
+   والرمزُ معها 1.15 → 1.25rem لئلا يصغر بجوار نصٍّ كبر. وعرضُ الشريط يزيد
+   1rem: النصُّ الأكبر في عرضٍ ثابتٍ يقصّ «تقرير مزايدات مستخدم» — وهو أطولُ
+   سطرٍ في القائمة. */
+.nav a, .nav__soon, .nav-out button { font-size: .96rem; letter-spacing: -.005em; }
+.nav-sec { font-size: .74rem; letter-spacing: .04em; }
+.nav__icon { inline-size: 1.25rem; block-size: 1.25rem; }
+:root { --sidebar-w: 20rem; }
+
+/* عناوينُ المجموعات أعرض: 0.74 → 0.84rem، والتباعدُ بين الحروف ينزل إلى
+   0.02em — التباعدُ الواسع يُصغّر الحرفَ بصريّاً وإن كبر قياسُه، وهو مكتوبٌ
+   لعناوينَ لاتينيّةٍ صغيرة لا لعربيّةٍ متّصلة. وهامشٌ أعلى أوسعُ معه: عنوانٌ
+   كبر ولم يبتعد عمّا قبله يُقرأ تذييلاً للقسم السابق لا رأساً للتالي. */
+.nav-sec { font-size: .84rem; letter-spacing: .02em; margin-block-start: 1.35rem; }
+
+/* ===========================================================================
+   الشريط الكحليّ — صقلٌ بعد تبديل اللون
+   ---------------------------------------------------------------------------
+   «خلّي شكله احترافي أكتر». والقيمُ التي كانت تُرسم على أبيضَ صارت تُرسم على
+   كحليٍّ غامق، وثلاثةٌ منها لم تعد تعمل هناك:
+
+   ١) **شريطُ التمرير** رماديُّ النظام: شقٌّ فاتحٌ بعرض الشريط كلِّه على أرضيّةٍ
+      كحليّة. صار من ألوان الشريط نفسه.
+
+   ٢) **القسمُ الحالي** خلفيّتُه `--side-hover` وهي بياضٌ بشفافيّة 9% — ونفسُها
+      خلفيّةُ التحويم. فالسطرُ الذي أنت فيه والسطرُ الذي تحت الفأرة سواء.
+      صارت أغمقَ وأزرقَ منها، ومعها حدٌّ رفيعٌ يحيطها.
+
+   ٣) **الهويّةُ** كانت تعوم فوق القائمة بلا ما يفصلها. وخطٌّ تحتها هو أرخصُ
+      ما يفصل.
+
+   ولا تُعاد هيئةُ 7398bc0 المرفوضة: لا هويّةٌ لاصقة، ولا خطوطٌ مع عناوين
+   الأقسام، ولا خروجٌ يُدفع إلى القاع، ولا إزاحةٌ عند التحويم.
+   ======================================================================== */
+
+/* شريطُ التمرير: من لون الشريط لا من لون النظام. */
+.sidebar { scrollbar-color: #2b4472 transparent; }
+.sidebar::-webkit-scrollbar { inline-size: 8px; }
+.sidebar::-webkit-scrollbar-thumb { background: #2b4472; border-radius: 99px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+
+/* خطٌّ يفصل الهويّة عن القائمة. */
+.brand { border-block-end: 1px solid var(--side-line); border-radius: 0; padding-block-end: .85rem; margin-bottom: .9rem; }
+
+/* التحويمُ يخفّ، والحاليُّ يثقل — فيفترقان. */
+.nav a:hover { background: rgb(255 255 255 / .06); }
+.nav a.active {
+  background: rgb(127 208 255 / .13);
+  box-shadow: inset 0 0 0 1px rgb(127 208 255 / .22);
+}
+
+/* الرموزُ أوضحُ على الكحليّ: 0.62 كانت مكتوبةً لخطٍّ داكنٍ على أبيض. */
+.nav__icon { opacity: .72; }
+.nav a.active .nav__icon { opacity: 1; }

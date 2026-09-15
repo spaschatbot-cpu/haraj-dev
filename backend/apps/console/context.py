@@ -13,7 +13,7 @@ from django.utils.functional import SimpleLazyObject
 
 from .exports import PARAM
 from .icons import path_of
-from .navigation import back_for, sidebar_for
+from .navigation import back_for, icon_for, sidebar_for
 from .sensitive import shown_to
 
 
@@ -69,7 +69,18 @@ def navigation(request) -> dict:
         # هي الشاشة التي يعلق فيها الموظّف. والحسابُ رخيص — مسحُ سجلٍّ ثابتٍ
         # في الذاكرة، بلا استعلام.
         "back_to": _back_to(request),
+        # رسمُ الشاشة الحالية لرأسها — من السجلّ نفسِه الذي يرسم سطرَها في
+        # الشريط، فلا يفترقان.
+        "page_icon": _page_icon(request),
     }
+
+
+def _page_icon(request) -> str:
+    """رسمُ الشاشة الحالية، أو الفراغ لما ليس شاشةً في السجلّ."""
+    match = getattr(request, "resolver_match", None)
+    if match is None or not match.view_name:
+        return ""
+    return icon_for(match.view_name)
 
 
 def _back_to(request):

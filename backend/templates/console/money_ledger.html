@@ -50,6 +50,6 @@ registered buries the four people the operator could have meant.
     </table>
   </div>
 
-    <p>{{ page.paginator.count }} عميل · صفحة {{ page.number }} من {{ page.paginator.num_pages }}</p>
+    <p><b class="tf__n">{{ page.paginator.count }}</b> عميل<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b></p>
   {% endif %}
 {% endblock %}

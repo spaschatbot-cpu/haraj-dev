@@ -85,5 +85,5 @@
   </table>
 </div>
 
-  <p>{{ page.paginator.count|unlocalize }} مستخدماً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مستخدماً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
 {% endblock %}

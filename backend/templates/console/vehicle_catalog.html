@@ -23,7 +23,22 @@
 
 {% block title %}كتالوج السيارات{% endblock %}
 {% block heading %}كتالوج السيارات{% endblock %}
-{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
+{% comment %} «إضافة سيارة يدويًا» في رأس الشاشة مع بقيّة أفعالها.
+
+   كانت في صفٍّ وحدَها بين البطاقات وشريط الفلاتر — «موضعُها في v1» كما كُتب
+   هنا. وذلك صحيحٌ في لوحةٍ لا رأسَ لها؛ وقد صار لكل شاشةٍ في هذه اللوحة
+   صفُّ أفعالٍ في رأسها، فزرٌّ يقع خارجه يُقرأ عائماً لا منتمياً — ويفصل
+   البطاقاتِ عن الفلاتر بسطرٍ لا علاقة له بهما. {% endcomment %}
+{% block actions %}
+  {% comment %} `can_manage` حارسٌ جاء من `main` مع صفِّ الإضافة الذي كان تحت
+     البطاقات: النموذجُ خلف الزرّ يطلب `auctions.manage`، فزرٌّ يفتح نافذةً
+     محتواها صفحةُ ٤٠٣ ليس زرّاً. وقد انتقل الزرُّ إلى الرأس هنا، فانتقل
+     الحارسُ معه — وإسقاطُه في الدمج كان سيُعيد العطل. {% endcomment %}
+  {% if can_manage %}
+    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">{% include "console/_act_icon.html" with path=plus_icon %} إضافة سيارة يدويًا</button>
+  {% endif %}
+  <a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
   <p class="lede">كلُّ مركبةٍ عندنا بمواصفاتها وصورها ومزادها وفاتورتها — بفلاتر الحالة والتواريخ الأربعة.</p>
@@ -31,15 +46,6 @@
   <section class="board-stats board-stats--compact" aria-label="أرقام الكتالوج">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
-
-  {% comment %} «إضافة سيارة يدويًا» أعلى الشاشة تحت البطاقات — موضعُها في v1.
-     ولمن يملك `auctions.manage` وحده: النموذجُ خلفها `auctions.manage`، فزرٌّ
-     يفتح نافذةً محتواها صفحةُ ٤٠٣ ليس زرّاً. {% endcomment %}
-  {% if can_manage %}
-    <div class="cat-add-row">
-      <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">{% include "console/_act_icon.html" with path=plus_icon %} إضافة سيارة يدويًا</button>
-    </div>
-  {% endif %}
 
   {% comment %} صفُّ الفلاتر — لصائقُ v1 الكاملة فوق كل حقل: يُعرَف أيُّ تاريخٍ
      يُطلب قبل ملئه، لا placeholder يختفي عند الكتابة. {% endcomment %}
@@ -96,7 +102,11 @@
     <p class="cat-toolbar__meta">تُعرَض السيارات مرتّبةً بالأحدث، ولكلّ صفٍّ موعدُ بداية مزاده ونهايتُه.</p>
   </div>
 
-  <div class="scroller">
+  {% comment %} ستّةَ عشرَ عموداً في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفُّ —
+     «غير محدد» سطرين، واسمُ السيارة ثلاثة — فارتفاعُ الصفّ يقارب 100px ولا
+     يُرى في الشاشة إلا أربعةُ صفوف. `scroller--wide` تمنع اللفَّ وتُمرّر
+     أفقياً، كما في «ما بعد البيع». {% endcomment %}
+  <div class="scroller scroller--wide cat-table">
     <table>
     <thead>
       <tr>
@@ -237,7 +247,7 @@
 
   <div class="table-footer">
     <div class="table-footer__count">
-      {{ page.paginator.count|unlocalize }} مركبةً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+      <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مركبةً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
     </div>
     {% comment %} `keep` هو الفلاترُ كلُّها مسلسلةً بلا `page` (من
        `vehicle_filters.keep`). وكان هنا `?q={{ q }}&page=` مبنيّاً باليد،
