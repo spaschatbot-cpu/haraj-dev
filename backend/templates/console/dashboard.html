@@ -107,7 +107,7 @@
                role="img" aria-label="توزيع حالات المزادات — التفصيل في القائمة المجاورة">
             <span class="wheel__hole">
               <strong>{{ board.auction_total }}</strong>
-              <span>مزاد</span>
+              <span>إجمالي المزادات</span>
             </span>
           </div>
           <ul class="wheel__key">
@@ -120,13 +120,15 @@
                  و`aria-hidden` على الشريط: الرقمُ والنسبةُ مكتوبان بجواره
                  في الصفّ نفسِه، وشريطٌ يُقرأ مرّةً ثانيةً ضجيج. {% endcomment %}
               <li class="wheel__item">
-                <span class="wheel__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
-                <span class="wheel__name">{{ label }}</span>
-                <span class="wheel__count">{{ count }}</span>
+                <span class="wheel__head">
+                  <span class="wheel__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
+                  <span class="wheel__name">{{ label }}</span>
+                  <span class="wheel__share">{{ share }}%</span>
+                </span>
+                <strong class="wheel__count">{{ count }}</strong>
                 <span class="wheel__track" aria-hidden="true">
                   <span class="wheel__fill" data-slice="{{ forloop.counter0 }}" style="inline-size: {{ share }}%"></span>
                 </span>
-                <span class="wheel__share">{{ share }}%</span>
               </li>
             {% endfor %}
           </ul>

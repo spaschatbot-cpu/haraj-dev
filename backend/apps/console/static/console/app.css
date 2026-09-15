@@ -6536,3 +6536,110 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   .wheel__item { grid-template-columns: auto 1fr 2.5rem 3rem; }
   .wheel__track { display: none; }
 }
+
+/* ===========================================================================
+   «حالات المزادات»: دائرةٌ ولوحاتُ حالة
+   ---------------------------------------------------------------------------
+   «غيّر تصميم مربع حالات المزاد لتصميم احترافي جداً».
+
+   وكان المفتاحُ **قائمةَ صفوفٍ** — سطرٌ تحت سطر، كلٌّ منها حبّةٌ واسمٌ وعددٌ
+   وشريطٌ ونسبة. وقائمةٌ من سطرين في لوحةٍ بعرض الشاشة تترك ثلثَي ارتفاعها
+   فارغاً، والعددُ — وهو ما تُفتح اللوحةُ لأجله — يقع بين نصّين بحجم النصّ
+   نفسِه فلا يُقرأ رقماً.
+
+   فصار كلُّ حالةٍ **لوحةَ حالةٍ** قائمةً بذاتها، وفيها ثلاثة أسطرٍ برتبٍ
+   ثلاث: اسمٌ ونسبةٌ فوق، ثم **العدد كبيراً**، ثم شريطُ نسبته. والشبكةُ
+   `auto-fit` فتملأ العرضَ مهما كان عددُ الحالات — وهو من ثنتين إلى ستّ
+   بحسب ما في الدفتر، فلا رقمَ أعمدةٍ يُكتب بيدٍ ويصير خطأً عند الحالة
+   السابعة.
+
+   واللوحُ يحمل **حدّاً علوياً بلون حالته**، وهو اللون نفسُه في القطاع
+   والحبّة والشريط — أربعةُ مواضعَ من قائمةٍ واحدة (`WHEEL` في
+   `dashboard.py`)، فلا يفترق واحدٌ منها عن البقية.
+
+   والدائرةُ يكتب ثقبُها «إجمالي المزادات» لا «مزاد»: كلمةٌ واحدةٌ تحت رقمٍ
+   في وسط دائرةٍ لا تقول أهو مجموعُ القطاعات أم أكبرُها.
+   ======================================================================== */
+
+.wheel { gap: 2rem; align-items: center; }
+
+/* الدائرةُ تُحاط بحلقةٍ خافتةٍ تفصلها عن اللوح — قطاعٌ فاتحٌ على سطحٍ أبيض
+   ينتهي في الهواء بلا حافّة. */
+.wheel__disc {
+  box-shadow: 0 0 0 1px var(--line-soft), 0 8px 22px rgb(23 32 51 / .07);
+}
+.wheel__hole {
+  inline-size: 5.6rem;
+  block-size: 5.6rem;
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+.wheel__hole strong { font-size: 2.1rem; }
+.wheel__hole span { font-size: .66rem; line-height: 1.3; text-align: center; }
+
+/* ---- لوحاتُ الحالة ------------------------------------------------------ */
+
+.wheel__key {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr));
+  gap: .7rem;
+}
+
+.wheel__item {
+  display: block;
+  padding: .85rem .95rem .9rem;
+  border: 1px solid var(--line);
+  border-block-start-width: 3px;
+  border-radius: 12px;
+  background: var(--panel);
+}
+.wheel__item:last-child { border-block-end: 1px solid var(--line); }
+
+.wheel__item[data-slice], .wheel__item { border-block-start-color: var(--line); }
+.wheel__item:nth-child(1) { border-block-start-color: #1a9aa1; }
+.wheel__item:nth-child(2) { border-block-start-color: #4aa5df; }
+.wheel__item:nth-child(3) { border-block-start-color: #8c6ad6; }
+.wheel__item:nth-child(4) { border-block-start-color: #c9891a; }
+.wheel__item:nth-child(5) { border-block-start-color: #21a06a; }
+.wheel__item:nth-child(6) { border-block-start-color: #e05a4c; }
+
+.wheel__head {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  margin-block-end: .35rem;
+}
+.wheel__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wheel__share {
+  flex: none;
+  font-size: .74rem;
+  font-weight: 700;
+  color: var(--muted);
+  min-inline-size: 0;
+  text-align: end;
+}
+
+.wheel__count {
+  display: block;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  margin-block-end: .55rem;
+}
+
+.wheel__track { display: block; block-size: .3rem; }
+
+@media (max-width: 52rem) {
+  .wheel__track { display: block; }
+  .wheel { flex-wrap: wrap; }
+}
