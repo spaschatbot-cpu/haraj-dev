@@ -5938,3 +5938,55 @@ a.stat:hover, a.stat:focus-visible {
   border-color: color-mix(in srgb, var(--ink) 20%, transparent);
   box-shadow: 0 2px 10px rgb(23 32 51 / .06);
 }
+
+/* ===========================================================================
+   البطاقةُ أضيقُ وأقصر
+   ---------------------------------------------------------------------------
+   «صغّر طول وعرض المربعات شويه».
+
+   **والعرضُ لا يُكتب، يُكتب حدُّه الأدنى.** الشبكةُ `auto-fit` تقرّر بعدد ما
+   يتّسع، فتصغيرُ الحدّ الأدنى من 15.5rem إلى 13.2rem يزيد عموداً على العرض
+   الذي يعمل عليه المالك — والبطاقةُ تضيق لأن الثلاثةَ تقتسم ما كان بين
+   اثنتين، لا لأن رقماً أُملي عليها.
+
+   **والطولُ يُقصَّر من ستّة مواضع لا من واحد.** بطاقةٌ أقصرُ بحشوةٍ وحدها
+   تصير نصّاً محشوراً في إطار؛ فنُقص من كلِّ ما بين أسطرها بنسبةٍ واحدة:
+   الحشوة، ومربّع الرمز، والرقم، وما بين الصفّ العلويّ وما تحته، وما بين
+   الشرح والزرّ، وحشوةُ الزرّ نفسِه. فالإيقاعُ يبقى كما هو، مصغَّراً.
+   ======================================================================== */
+
+/* **والعرضُ نزل إلى 15rem لا إلى 13.2.** جُرّب 13.2 أوّلاً فأعطى ثلاثةَ
+   أعمدةٍ على شاشة المالك — وبطاقةً بعرض 217px. وذلك أضيقُ ممّا يحتمله
+   ترتيبُ «الرقم قُصاد العنوان»: «70,000.00» بـ1.5rem يأخذ 95px، والرمزُ
+   وفجوتُه 48، فلا يبقى للاسم إلا 37 — و«إجمالي التأمين» انقصّ في منتصف
+   كلمتيه. فالحدُّ الأدنى العمليُّ لهذا الترتيب نحو 15rem، وما دونه يكسره.
+
+   والتصغيرُ يقع حيث يتّسع: على الشاشات العريضة ينزل الحدُّ من 17rem إلى
+   15.5rem، فتزيد الأعمدةُ وتضيق البطاقات — وعلى شاشة المالك يبقى عمودان
+   وتقصُر البطاقةُ وحدَها. */
+.board-alarms, .board-stats {
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+  gap: .7rem;
+}
+@media (min-width: 96rem) {
+  .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(min(15.5rem, 100%), 1fr)); }
+}
+
+.stat { padding: 1.05rem 1.1rem .9rem; padding-inline-start: 1.25rem; }
+
+.stat__icon { inline-size: 2.3rem; block-size: 2.3rem; padding: .52rem; border-radius: 11px; }
+.stat__top { margin-block-end: .5rem; }
+.stat__label { font-size: .85rem; }
+.stat__value { font-size: 1.5rem; }
+.stat__unit, .delta { padding-block: .22rem; font-size: .7rem; }
+
+.stat__detail { margin-block-start: .3rem; font-size: .74rem; line-height: 1.55; }
+.stat__spark { margin-block-start: .35rem; }
+
+.stat__action { padding-block-start: .7rem; }
+.stat__btn { padding: .42rem .85rem; font-size: .72rem; border-radius: 9px; }
+
+@media (max-width: 40rem) {
+  .stat { padding: .95rem 1rem .85rem; padding-inline-start: 1.15rem; }
+  .stat__value { font-size: 1.35rem; }
+}
