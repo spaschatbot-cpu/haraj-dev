@@ -4859,3 +4859,257 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
   text-align: start; border-radius: 0;
 }
 .linkish:hover { text-decoration: underline; background: none; }
+
+
+/* ===========================================================================
+   رئيسيةُ اللوحة — الطبقة الثانية: رأسٌ، وعناوينُ كتل، وبطاقةٌ ذاتُ هرم
+   ---------------------------------------------------------------------------
+   كانت الصفحة ثلاثَ كتلٍ متساوية الوزن: فقرةٌ خضراء بعرض الشاشة، ثم شبكةُ
+   بطاقاتٍ، ثم رسمان. فلا شيء فيها يُقرأ أولاً — والعين تبدأ من أعلى اليمين
+   فتقع على جملةٍ تقول «كل شيء بخير» بحجمٍ يفوق ما تقوله.
+
+   ثلاثة تغييرات، كلٌّ منها يجيب سؤالاً:
+
+   * **الرأس** — «لمن هذه اللوحة، ومتى، وهل الدفتر متّزن». كتلةٌ واحدة تُقرأ
+     في ثانية، والحكمُ فيها حبّةٌ لا فقرة.
+   * **عناوين الكتل** — «ما يحتاج نظراً» و«أرقام المنصّة» و«الصورة العامّة».
+     بلا هذه كانت بطاقةُ الإنذار تقع في نفس الشبكة البصرية مع عدّاد
+     المستخدمين، فتُقرأ رقماً من الأرقام لا إنذاراً.
+   * **هرمٌ داخل البطاقة** — الرقم أثقل وأكبر، والعنوان فوقه خافتٌ صغير،
+     والتذييل يقع في قاع البطاقة لا حيث انتهى النصّ. بطاقاتٌ متفاوتةُ الطول
+     في صفٍّ واحد كانت تجعل التذييلات سلّماً.
+
+   ولا لونَ جديد ولا خطَّ جديد: كل قيمةٍ هنا من `:root`، فالمظهر الداكن
+   والألوان السبعة تتبع بلا كتلةٍ ثانية تُصان.
+   ======================================================================== */
+
+/* ---- الرأس -------------------------------------------------------------- */
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.35rem;
+  margin-block-end: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  /* تدرّجٌ خافتٌ من اللون الأساسي لا لونٌ مصمت: الرأس يجب أن يُميَّز عن
+     الأرضية دون أن ينافس البطاقات تحته على الانتباه. و`color-mix` لا قيمةٌ
+     مكتوبة، فيتبع اختيارَ المالك للّون الأساسي ويتبع المظهر الداكن معاً. */
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--brand) 9%, var(--panel)) 0%,
+      var(--panel) 62%);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  animation: rise .34s ease both;
+}
+
+/* شريطٌ رفيع على حافة البداية — الحافة المنطقية لا اليمنى، فتنقلب مع الاتجاه. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 3px;
+  background: linear-gradient(180deg, var(--brand), color-mix(in srgb, var(--brand) 20%, transparent));
+}
+
+.hero__say { display: flex; flex-direction: column; gap: .3rem; min-inline-size: 0; }
+
+.hero__greet {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  line-height: 1.4;
+}
+.hero__greet strong { font-weight: 700; color: var(--ink); }
+
+.hero__date {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* الحكم: حبّةٌ تحمل نصّاً ولوناً معاً — من لا يميّز الأخضر من الأحمر يقرأ
+   الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. */
+.hero__verdict {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .85rem;
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.hero__verdict--ok {
+  color: var(--ok);
+  background: var(--ok-soft);
+  border-color: var(--ok-line);
+}
+.hero__verdict--alarm {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+}
+
+/* نقطةٌ تنبض — إشارةُ «الآن» وحدها؛ والنصّ بجوارها يقول العدد والسبب.
+   وتُطفأ مع بقيّة الحركة لمن طلب ذلك، في الكتلة أسفل الورقة. */
+.hero__pulse {
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: hero-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hero-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.78); }
+}
+
+/* ---- عنوانُ الكتلة ------------------------------------------------------ */
+
+/* عنوانٌ صغيرٌ وخطٌّ يمتدّ منه إلى آخر السطر: يفصل الكتل بلا أن يأخذ سطراً
+   بحجم عنوانٍ ثانٍ ينافس `<h1>` الصفحة. */
+.board-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin: 0 0 .75rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  color: var(--muted);
+}
+
+.board-eyebrow::after {
+  content: "";
+  flex: 1;
+  block-size: 1px;
+  background: var(--line);
+}
+
+.board-eyebrow--alarm { color: var(--danger); }
+.board-eyebrow--alarm::after { background: var(--danger-line); }
+
+/* العدّاد حبّةٌ صغيرة بجوار الاسم — «٣» بعد «ما يحتاج نظراً» أسرع من عدّ
+   البطاقات بالعين. */
+.board-eyebrow__count {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 1.35rem;
+  block-size: 1.35rem;
+  padding-inline: .35rem;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- هرمُ البطاقة ------------------------------------------------------- */
+
+/* القاع مستوٍ في الصفّ كلّه: التذييل يُدفَع إلى أسفل البطاقة بـ`auto`، فلا
+   تصير التذييلاتُ سلّماً حين تختلف أطوالُ سطور الشرح. */
+.stat { padding: 1.15rem 1.25rem 1rem; gap: .35rem; }
+
+.stat__label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* الرقم هو الرسالة: أكبر وأثقل، وخاناتُه مستقيمة فلا يرقص عرضُه بين قيمتين. */
+.stat__value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat__detail { margin-block-start: .15rem; }
+
+.stat__action {
+  margin-block-start: auto;
+  padding-block-start: .7rem;
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+
+/* السهم يتقدّم عند المرور — حركةٌ تقول «هذه بابٌ» بمقدار 3px، لا أكثر. */
+.stat__action span[aria-hidden] { transition: transform .18s ease; }
+a.stat:hover .stat__action span[aria-hidden],
+a.stat:focus-visible .stat__action span[aria-hidden] { transform: translateX(-3px); }
+
+/* الشريطُ العلويّ يُرى دائماً لا عند المرور وحده: هو التصنيف نفسه، وتصنيفٌ
+   لا يظهر إلا تحت الفأرة لا يُقرأ على شاشةٍ لمسيّة أصلاً. ويثخن عند المرور. */
+.stat::before { opacity: .85; block-size: 3px; transition: opacity .18s ease, block-size .18s ease; }
+a.stat:hover::before, a.stat:focus-visible::before { opacity: 1; block-size: 4px; }
+
+/* ---- الرسوم ------------------------------------------------------------- */
+
+/* اللوحتان بارتفاعٍ واحد في الصفّ: رسمان بقاعين مختلفين يتركان درجةً بيضاء
+   تحت أقصرهما تُقرأ فراغاً لا تسويةً. */
+.board-figures { align-items: stretch; }
+.figure { padding: 1.25rem 1.35rem; }
+.figure__head { margin-block-end: 1.1rem; }
+.figure h2 { font-size: .95rem; }
+
+/* رابطُ اللوحة يُقرأ فعلاً لا جملة: حبّةٌ خفيفة بلون الأساسي. */
+.figure__action {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .28rem .6rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background .18s ease;
+}
+.figure__action:hover { background: color-mix(in srgb, var(--brand) 18%, var(--panel)); text-decoration: none; }
+.figure__action span[aria-hidden] { transition: transform .18s ease; }
+.figure__action:hover span[aria-hidden] { transform: translateX(-3px); }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  /* الرأس عمودٌ واحد، والحكم تحته لا بجانبه — حبّةٌ بنصٍّ كامل بجوار اسمٍ
+     طويل تقصّ أحدهما. */
+  .hero { flex-direction: column; align-items: flex-start; padding: 1rem 1.1rem; }
+  .hero__greet { font-size: 1.02rem; }
+  .hero__verdict { white-space: normal; }
+  .stat__value { font-size: 1.7rem; }
+}
+
+/* من طلب تقليل الحركة: النبضةُ تسكن، والرأس يظهر بلا صعود. أداةُ عملٍ لا عرض. */
+@media (prefers-reduced-motion: reduce) {
+  .hero { animation: none; }
+  .hero__pulse { animation: none; }
+}
+
+/* لوحةٌ بلا بيانات تقول ذلك بجملة، والرسمُ الفارغ يبقى تحتها خافتاً ليُفهم
+   أن المحور موجودٌ وأن الصفر صفرٌ حقيقي — لا أن الرسم لم يُحمَّل. */
+.figure__empty {
+  margin: 0 0 .6rem;
+  padding: .55rem .8rem;
+  border-radius: var(--radius);
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: .8rem;
+}
+.figure__empty + .spark { opacity: .45; }

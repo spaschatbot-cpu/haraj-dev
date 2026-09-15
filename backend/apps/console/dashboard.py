@@ -472,10 +472,58 @@ def _trend() -> list[tuple[str, int, int]]:
     ]
 
 
+#: أسماءُ أيام الأسبوع وشهورِه بالعربية، بترتيب `date.weekday()` و`date.month`.
+#:
+#: مكتوبةٌ هنا لا متروكةٌ لـ`{% now %}`: مرشّحاتُ التاريخ في جانغو تُعرِّب
+#: الأسماء من ملفّات اللغة، وهي تتبع `LANGUAGE_CODE` — فصفحةٌ تُخدَم قبل أن
+#: تُترجَم تكتب «Monday» في وسط سطرٍ عربي. سطرٌ واحد يقول التاريخ لا يستحق
+#: تبعيّةً تنكسر بإعداد.
+_WEEKDAYS = (
+    "الاثنين", "الثلاثاء", "الأربعاء", "الخميس",
+    "الجمعة", "السبت", "الأحد",
+)
+_MONTHS = (
+    "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
+    "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
+)
+
+
+def _today_words() -> str:
+    """تاريخُ اليوم جملةً عربية — «الاثنين ١٥ سبتمبر ٢٠٢٦»."""
+    now = timezone.localtime()
+    return f"{_WEEKDAYS[now.weekday()]} {now.day} {_MONTHS[now.month - 1]} {now.year}"
+
+
+def _greeting() -> str:
+    """تحيّةٌ تتبع ساعةَ الخادم.
+
+    ثلاثُ فتراتٍ لا اثنتان: «مساء الخير» للثامنة صباحاً خطأٌ يلاحظه أولُ من
+    يفتح اللوحة في دوامه.
+    """
+    hour = timezone.localtime().hour
+    if hour < 12:
+        return "صباح الخير"
+    if hour < 17:
+        return "طاب يومك"
+    return "مساء الخير"
+
+
 @console_page("console:home")
 def dashboard(request):
+    board = board_for(request.user)
     return render(
         request,
         "console/dashboard.html",
-        {"board": board_for(request.user)},
+        {
+            "board": board,
+            # الرأسُ يقول لمن هي اللوحة ومتى قُرئت. كان أعلى الصفحة عنواناً
+            # وحده فوق فقرةٍ خضراء، فبدأت اللوحة بلا مرساة تُقرأ قبل الأرقام.
+            "greeting": _greeting(),
+            "today_words": _today_words(),
+            # عددُ ما يحتاج نظراً — يُقرأ في الرأس قبل النزول إلى البطاقات.
+            "alarm_count": len(board.alarms),
+            # أسبوعٌ بلا مزايدةٍ واحدة: الرسم يخرج سبعةَ أعمدةٍ بارتفاع صفر،
+            # أي لوحةً بيضاء تُقرأ «الرسم معطّل». الجملةُ تُقال فوقه.
+            "trend_is_empty": not any(n for _, n, _ in board.trend),
+        },
     )

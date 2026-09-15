@@ -3,21 +3,64 @@
 {% block heading %}لوحة التحليلات{% endblock %}
 
 {% block content %}
+  {% comment %}
+    رأسُ اللوحة: لمن هي، ومتى قُرئت، وهل الدفتر متّزن — في كتلةٍ واحدة.
+
+    كان أعلى الصفحة عنواناً عارياً تحته فقرةٌ خضراء بعرض الشاشة، فبدأت اللوحة
+    بلا مرساةٍ تُقرأ قبل الأرقام، وحملت الفقرةُ الخضراء وزناً بصرياً يفوق ما
+    تقوله. وهنا: الاسم والتاريخ في جهة، والحكم حبّةً في الأخرى.
+  {% endcomment %}
+  <section class="hero" aria-label="حالة اللوحة">
+    <div class="hero__say">
+      <p class="hero__greet">
+        {{ greeting }}{% if request.user.full_name %}، <strong>{{ request.user.full_name }}</strong>{% endif %}
+      </p>
+      <p class="hero__date">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+        {{ today_words }}
+      </p>
+    </div>
+
+    {% comment %} الحكم حبّةٌ واحدة: نصٌّ ولونٌ معاً، فمن لا يميّز اللون يقرأ
+       الجملة نفسها. والعدد في الحبّة لأن «ثلاثُ ملاحظات» غيرُ «ملاحظة». {% endcomment %}
+    {% if board.alarms %}
+      <p class="hero__verdict hero__verdict--alarm">
+        <span class="hero__pulse" aria-hidden="true"></span>
+        {{ alarm_count }} {% if alarm_count == 1 %}أمرٌ يحتاج نظراً{% else %}أمورٌ تحتاج نظراً{% endif %}
+      </p>
+    {% elif board.is_clean %}
+      <p class="hero__verdict hero__verdict--ok">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
+        الدفتر متّزن، ولا شيء معلّق بلا صاحب
+      </p>
+    {% endif %}
+  </section>
+
   {% comment %} الصحّة أولاً. رقمٌ كبير فوق دفترٍ لا يتّزن ليس معلومة. {% endcomment %}
   {% if board.alarms %}
-    <section class="board-alarms" aria-label="ما يحتاج نظراً الآن">
+    {% comment %} عنوانُ الكتلة يفصل «ما يحتاج نظراً» عن «كم عندنا»: كانت
+       البطاقتان تقعان في شبكةٍ واحدة متصلة، فتُقرأ بطاقةُ الإنذار رقماً من
+       أرقام المنصّة. {% endcomment %}
+    <h2 class="board-eyebrow board-eyebrow--alarm" id="head-alarms">
+      <span>ما يحتاج نظراً الآن</span>
+      <span class="board-eyebrow__count">{{ alarm_count }}</span>
+    </h2>
+    <section class="board-alarms" aria-labelledby="head-alarms">
       {% for stat in board.alarms %}{% include "console/_stat.html" %}{% endfor %}
     </section>
-  {% elif board.is_clean %}
-    <p class="notice success">الدفتر متّزن، ولا شيء معلّق بلا صاحب.</p>
   {% endif %}
 
   {% if board.stats %}
-    <section class="board-stats" aria-label="أرقام المنصّة">
+    <h2 class="board-eyebrow" id="head-stats"><span>أرقام المنصّة</span></h2>
+    <section class="board-stats" aria-labelledby="head-stats">
       {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
     </section>
   {% else %}
     <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
+  {% endif %}
+
+  {% if board.auction_states or board.trend %}
+    <h2 class="board-eyebrow" id="head-figures"><span>الصورة العامّة</span></h2>
   {% endif %}
 
   <div class="board-figures">
@@ -25,7 +68,7 @@
       <section class="figure" aria-label="توزيع حالات المزادات">
         <header class="figure__head">
           <h2>حالات المزادات</h2>
-          <a class="figure__action" href="{% url 'console:auctions' %}">القائمة</a>
+          <a class="figure__action" href="{% url 'console:auctions' %}">القائمة <span aria-hidden="true">←</span></a>
         </header>
         {% comment %} دائرةٌ ومفتاحٌ بأرقام. القطاعان المتقاربان لا يُقرآن من
            الدائرة وحدها — والمفتاح بجوارها يحمل العدد والنسبة، فالرسم يقول
@@ -58,7 +101,12 @@
           <h2>المزايدات — سبعة أيام</h2>
           <span class="figure__note">العمود الأطول هو أعلى يوم</span>
         </header>
-        <ol class="spark">
+        {% comment %} أسبوعٌ بلا مزايدة يُقال نصّاً لا يُترك لوحةً بيضاء: سبعةُ
+           أعمدةٍ بارتفاع صفر تُقرأ «الرسم معطّل» لا «لا شيء حدث». {% endcomment %}
+        {% if trend_is_empty %}
+          <p class="figure__empty">لا مزايدة في السبعة أيام الماضية.</p>
+        {% endif %}
+        <ol class="spark"{% if trend_is_empty %} aria-hidden="true"{% endif %}>
           {% for day, count, height in board.trend %}
             <li class="spark__day">
               <span class="spark__count">{{ count }}</span>
