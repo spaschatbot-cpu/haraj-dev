@@ -14,25 +14,47 @@
 {% block heading %}تقرير مزايدات مستخدم{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="search" name="phone" value="{{ phone }}" placeholder="بحث برقم الجوال">
-    <input type="search" name="name" value="{{ name }}" placeholder="أو بالاسم">
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ التعريف فوق الاستمارة لا تحتها: هو يقول **ما تفعله
+     الشاشة**، ومن يقرؤه بعد أن ملأ الحقلين قرأه بعد أن احتاجه. وكان تحتها
+     في حالة الفراغ وحدَها، فيختفي حين يظهر تقرير. {% endcomment %}
+  <p class="lede">
+    تقريرُ مزايدات شخصٍ واحد: كم زايد، وفي كم مزاد، وبكم — وما فاز به.
+  </p>
+
+  <form method="get" class="filters">
+    <div class="filters__main">
+      <input type="search" name="phone" value="{{ phone }}" placeholder="بحث برقم الجوال" aria-label="رقم الجوال">
+      <input type="search" name="name" value="{{ name }}" placeholder="أو بالاسم" aria-label="الاسم">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
+  {% comment %} حالاتُ الفراغ الثلاث كتلةٌ واحدةٌ بثلاثة نصوص، لا فقرةٌ
+     عاريةٌ في وسط صفحةٍ فارغة. ونصوصُها منقولةٌ بمعناها من v1 — وهي إحسانٌ
+     فيها: شاشةٌ تفتح على «إجمالي ٠» قبل أن تُسأل تقول للقارئ إن المستخدم
+     بلا مزايدات، وهي لم تُسأل عن أحدٍ بعد. {% endcomment %}
   {% if not report %}
-    <p class="empty">ابحث برقم الجوال أو الاسم لعرض تقرير المزايدات.</p>
+    <div class="blank">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <p class="blank__say">ابحث عن مستخدم لعرض تقريره</p>
+      <p class="blank__hint">الجوّالُ مفتاحٌ فريد فيصيب من أوّل مرّة، والاسمُ قد يتكرّر.</p>
+    </div>
 
   {% elif report.ambiguous %}
     {% comment %} لا يُختار الأول صامتاً: تقريرٌ لشخصٍ آخر يحمل اسماً مشابهاً
        أسوأ من لا تقرير — يُقرأ صحيحاً ويُتصرَّف فيه. {% endcomment %}
-    <p class="empty">
-      {{ report.count|unlocalize }} مستخدماً يطابق ما كتبت. ضيّق البحث —
-      الجوّال مفتاحٌ فريد والاسم يتكرّر.
-    </p>
+    <div class="blank blank--warn">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <p class="blank__say">{{ report.count|unlocalize }} مستخدماً يطابق ما كتبت</p>
+      <p class="blank__hint">ضيّق البحث — الجوّال مفتاحٌ فريد والاسم يتكرّر.</p>
+    </div>
 
   {% elif not report.person %}
-    <p class="empty">لا مستخدم يطابق ما كتبت.</p>
+    <div class="blank">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6M8.5 11h5"/></svg>
+      <p class="blank__say">لا مستخدم يطابق ما كتبت</p>
+      <p class="blank__hint">راجع الرقم أو جرّب جزءاً من الاسم.</p>
+    </div>
 
   {% else %}
     <h2>

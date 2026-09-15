@@ -8389,3 +8389,39 @@ main h1 { display: flex; align-items: center; gap: .6rem; }
 [data-scheme="dark"] .table-footer,
 [data-scheme="dark"] .scroller + p,
 [data-scheme="dark"] table + p { border-block-start: 0; }
+
+/* ===========================================================================
+   حالةُ الفراغ: كتلةٌ تقول ما يُفعل، لا فقرةٌ في وسط بياض
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «تقرير مزايدات مستخدم»، وهي
+   شاشةٌ **تبدأ فارغةً بطبيعتها**: لا تقريرَ قبل أن تُسأل عن أحد.
+
+   وكانت تعرض فقرةً عاريةً بلونٍ خافت في وسط صفحةٍ بيضاء، فتُقرأ «لا شيء
+   هنا» لا «اسأل عن أحد». وثلاثُ حالاتٍ لها النصُّ نفسُه شكلاً: لا بحثَ بعد،
+   وبحثٌ يطابق كثيرين، وبحثٌ لا يطابق أحداً — وكلٌّ منها يطلب فعلاً مختلفاً.
+
+   فصارت كتلةً: رسمٌ، وسطرٌ يقول **ما يُفعل**، وسطرٌ يقول **كيف**. ورسمُ
+   العدسة للبحث الذي لم يقع، ورسمُ التنبيه للبحث الذي أصاب كثيرين.
+   ======================================================================== */
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .3rem;
+  text-align: center;
+  padding: 3rem 1.5rem 3.2rem;
+  border-radius: 16px;
+  background: var(--panel);
+  border: 1px dashed color-mix(in srgb, var(--line) 85%, var(--muted));
+  color: var(--muted);
+}
+.blank > svg { color: color-mix(in srgb, var(--brand) 45%, var(--muted)); margin-block-end: .4rem; }
+.blank__say { margin: 0; font-size: 1rem; font-weight: 700; color: var(--ink-soft); }
+.blank__hint { margin: 0; font-size: .82rem; font-weight: 500; color: var(--muted); max-inline-size: 42ch; }
+
+/* التنبيهُ نبرةٌ لا شكلٌ ثانٍ: الحدُّ والرسمُ يأخذان لونَه، والباقي كما هو. */
+.blank--warn { border-color: var(--warn-line); background: color-mix(in srgb, var(--warn-soft) 45%, var(--panel)); }
+.blank--warn > svg { color: var(--warn); }
+.blank--warn .blank__say { color: var(--warn); }
