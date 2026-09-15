@@ -7311,3 +7311,90 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 }
 .trend-none__go:hover { background: color-mix(in srgb, var(--auction) 85%, #000); color: #fff; text-decoration: none; }
 [data-scheme="dark"] .trend-none__go { background: var(--auction); color: var(--ground); }
+
+/* ===========================================================================
+   الشريط العلويّ: رسومٌ لا محارف، وفواصلُ تُرتِّب ما فيه
+   ---------------------------------------------------------------------------
+   «خلى الخط الأبيض اللي في الهيدر احترافي أكتر هو والأيقونات كمان».
+
+   **والأيقونتان كانتا محرفين نصّيين** — `☰` و`◐`. وشكلُ المحرف يتبع الخطَّ
+   المثبَّت على الجهاز لا الورقةَ: سُمكُه ومقاسُه ومحاذاتُه تختلف بين جهازٍ
+   وجهاز، وقد تسقط إلى خطٍّ احتياطيٍّ فتصير شكلاً ثالثاً. وهما يقعان في ورقةٍ
+   كلُّ رمزٍ فيها `<svg>` بسُمكٍ واحد — فيُقرآن دخيلين ولو أُحسن مقاسُهما.
+
+   فصارا رسمين بالسُّمك نفسِه، يرثان `currentColor` فيتلوّنان مع زرّهما.
+
+   **والشريطُ نفسُه** كان صفّاً من خمسة أشياء بفجوةٍ متساوية: مفتاحُ الطيّ،
+   وشارةُ البيئة، والاسم، والمظهر، والخروج — لا شيء يقول أيُّها من أيّ. فصار
+   بينهما **فاصلٌ رأسيّ**: أدواتُ الإطار في طرف، وصاحبُ الجلسة وخروجُه في
+   الطرف المقابل.
+
+   وارتفاعُه ثابتٌ بـ`--topbar-h` كما كان — الرأسُ اللاصقُ للجداول يقرأ
+   القيمةَ نفسَها، وتغييرُها هنا وحدَها يُزيح كلَّ رأسِ جدولٍ في اللوحة.
+   ======================================================================== */
+
+.topbar {
+  padding-inline: 1.2rem;
+  gap: .45rem;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  border-bottom-color: var(--line-soft);
+  box-shadow: 0 1px 2px rgb(23 32 51 / .03);
+}
+
+/* ---- أزرارُ الرسوم ------------------------------------------------------- */
+
+.icon-btn {
+  inline-size: 2.3rem;
+  block-size: 2.3rem;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+.icon-btn:hover { background: var(--raised); color: var(--ink); border-color: var(--line); }
+.icon-btn:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.icon-btn svg { display: block; }
+
+/* ---- فاصلٌ يفرز أدواتِ الإطار عن صاحب الجلسة ---------------------------- */
+
+.user { margin-inline-start: auto; }
+.user::before {
+  content: "";
+  inline-size: 1px;
+  block-size: 1.4rem;
+  background: var(--line);
+  margin-inline-end: .85rem;
+  flex: none;
+}
+
+.user__mark {
+  inline-size: 2rem;
+  block-size: 2rem;
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 800;
+}
+.user { font-weight: 700; color: var(--ink); }
+
+/* ---- الخروج ------------------------------------------------------------- */
+
+.sign-out button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .45rem .85rem;
+  border-radius: 9px;
+  border-color: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .78rem;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+/* الخروجُ يحمرّ عند المرور لا في السكون: هو فعلٌ لا رجعة فيه في هذه الجلسة،
+   ولونٌ دائمٌ يجعله يصرخ في كل صفحةٍ بلا أن يكون مطلوباً. */
+.sign-out button:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+.sign-out button svg { flex: none; }
