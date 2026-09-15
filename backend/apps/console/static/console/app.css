@@ -240,9 +240,9 @@ body {
   transition: background-color .2s ease, color .2s ease;
   background: var(--ground);
   color: var(--ink);
-  /* «بلكس عربي» أولاً، والنظامُ خلفه: ورقةُ الخطوط تُحمَّل قبل هذه في
-     `base.html`، وإن تعذّر ملفٌّ منها لا تصير الصفحةُ بلا خطّ. */
-  font-family: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  /* «Cairo» أولاً — خطُّ لوحة v1 نفسِه — والنظامُ خلفه: ورقةُ الخطوط تُحمَّل
+     قبل هذه في `base.html`، وإن تعذّر ملفٌّ منها لا تصير الصفحةُ بلا خطّ. */
+  font-family: "Cairo", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
   line-height: 1.7;
 }
 
@@ -5560,4 +5560,37 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
   .board { --crest: 2.1rem; --crest-gap: .55rem; }
   .board .page h1 { font-size: 1.2rem; }
   .board-crest svg { width: 18px; height: 18px; }
+}
+
+/* ===========================================================================
+   رأسُ الرئيسية على هيئة v1: متوسّطٌ، وتحته خطٌّ
+   ---------------------------------------------------------------------------
+   «ونفس الشكل». وفي مرجعهم: العنوانُ ومربّعُه في وسط الصفحة، وسطرُ الترحيب
+   متوسّطٌ تحته، ثم خطٌّ رفيع يفصل الرأسَ عن الأرقام.
+
+   والتوسيطُ هنا يلغي حسابَ الإزاحة الذي كان يحاذي سطرَ الترحيب تحت نصّ
+   العنوان — لا حاجة إليه حين يتوسّط الاثنان على محورٍ واحد. فيُصفَّر، ويبقى
+   `--crest` مستعملاً في مقاس المربّع وحده.
+   ======================================================================== */
+
+.board .page { text-align: center; }
+.board .page h1 { justify-content: center; }
+
+.board .page__actions {
+  padding-inline-start: 0;
+  align-items: center;
+  /* الخطُّ الفاصل من مرجعهم: يفصل الرأسَ عمّا تحته بلا مسافةٍ واسعة. وعنوانُ
+     «أرقام المنصّة» بعده له خطُّه الممتدّ من اسمه، والاثنان لا يتجاوران —
+     بينهما كتلةُ الترحيب وهامشُها. */
+  padding-block-end: 1.15rem;
+  border-block-end: 1px solid var(--line);
+}
+
+.board-hello { text-align: center; }
+
+/* حبّةُ الإنذار تتوسّط مع ما فوقها. */
+.board-verdict { align-self: center; }
+
+@media (max-width: 40rem) {
+  .board .page__actions { padding-block-end: .9rem; }
 }
