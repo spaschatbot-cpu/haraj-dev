@@ -42,6 +42,16 @@ PAGE_SIZE = 30
 EXITABLE = (VehicleState.PAID, VehicleState.RELEASED)
 
 
+def _stamp(moment) -> str:
+    """وقتٌ للتصدير، والفراغُ فراغاً.
+
+    مكتوبةٌ مرّةً لأن الصيغةَ كانت منسوخةً في أربعة مواضع — وأحدُها تجاوز
+    حدَّ السطر بحرفٍ واحد فأسقط `ruff` على `main`. وصيغةٌ منسوخةٌ تتفارق:
+    يُصلَح عمودٌ ويبقى أخوه.
+    """
+    return localtime(moment).strftime("%Y-%m-%d %H:%M") if moment else ""
+
+
 def _guard(request):
     """صلاحيةُ إدارة المزادات تحرس الكتابة. عرضٌ بلا صلاحيةٍ يُردّ."""
     return request.user.is_authenticated and can(
@@ -117,16 +127,12 @@ def vehicle_exit(request):
                     ("الغرض / الحالة", lambda o: o.purpose[0], None),
                     (
                         "تاريخ الخروج",
-                        lambda o: localtime(o.warehouse_exit_at).strftime("%Y-%m-%d %H:%M")
-                        if o.warehouse_exit_at
-                        else "",
+                        lambda o: _stamp(o.warehouse_exit_at),
                         None,
                     ),
                     (
                         "تاريخ النقل",
-                        lambda o: localtime(o.transfer_at).strftime("%Y-%m-%d %H:%M")
-                        if o.transfer_at
-                        else "",
+                        lambda o: _stamp(o.transfer_at),
                         None,
                     ),
                     ("المؤقّت", lambda o: o.timer[0], None),

@@ -182,7 +182,10 @@ class Stat:
             c2x, c2y = p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6
             lo, hi = min(p1[1], p2[1]), max(p1[1], p2[1])
             c1y, c2y = min(max(c1y, lo), hi), min(max(c2y, lo), hi)
-            out.append(f"C {c1x:.1f} {c1y:.1f} {c2x:.1f} {c2y:.1f} {p2[0]:.1f} {p2[1]:.1f}")
+            out.append(
+                f"C {c1x:.1f} {c1y:.1f} {c2x:.1f} {c2y:.1f} "
+                f"{p2[0]:.1f} {p2[1]:.1f}"
+            )
         return " ".join(out)
 
     @property
@@ -464,7 +467,11 @@ def board_for(user) -> Board:
             # الاستعلامُ هنا وحده: أسبوعٌ فيه مزايداتٌ لا يحتاج جوابَ «متى
             # كانت الأخيرة»، ودفعُ ثمنِ صفٍّ مرتَّبٍ في كل فتحةٍ للصفحة بلا
             # شاشةٍ تعرضه هو ما تمنعه المادة ٢-١.
-            last = Bid.objects.order_by("-placed_at").values_list("placed_at", flat=True).first()
+            last = (
+                Bid.objects.order_by("-placed_at")
+                .values_list("placed_at", flat=True)
+                .first()
+            )
             if last:
                 local = timezone.localtime(last)
                 ago = (timezone.localtime().date() - local.date()).days
@@ -638,7 +645,10 @@ def _role_label(user) -> str:
 
     # دورٌ مصنوعٌ في الجدول. و`first()` لا `get()`: دورٌ حُذف وبقي اسمُه في
     # العمود يترك الحبّة غائبةً، ولا يكسر الصفحة.
-    return ConsoleRole.objects.filter(slug=slug).values_list("label", flat=True).first() or ""
+    return (
+        ConsoleRole.objects.filter(slug=slug).values_list("label", flat=True).first()
+        or ""
+    )
 
 
 @console_page("console:home")
