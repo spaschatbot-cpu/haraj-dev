@@ -8945,3 +8945,97 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   border-color: var(--brand);
   color: var(--brand-dark);
 }
+
+/* ===========================================================================
+   شريطُ أدوات الكتالوج — رأسُ الجدول لا سطرٌ سائب
+   ---------------------------------------------------------------------------
+   كان: فقرةً رماديّةً في الهواء، وثلاثةَ أزرارٍ بهيئةٍ **واحدة** بجوارها.
+   وثلاثةُ أزرارٍ متساوية تعني أن لا فرقَ بين «إنشاء مزاد» و«تحديث البيانات» —
+   والأولُ يُنشئ كياناً، والأخيرُ يُعيد تحميل الصفحة.
+
+   فصار: لوحةً بيضاء تعلو الجدولَ مباشرةً فتُقرأ رأساً له، وفيها **درجتان**:
+   زرٌّ مصمتٌ واحدٌ للفعل الذي يُنشئ، واثنان محدَّدان بحدٍّ لما يُبدّل العرض.
+   ولكلٍّ رمزُه — ثلاثةُ نصوصٍ عربيّةٍ متقاربةِ الطول تُقرأ كتلةً واحدة، والرمزُ
+   هو ما يفرزها قبل القراءة.
+   ======================================================================== */
+
+.cat-toolbar {
+  align-items: center;
+  gap: .9rem 1rem;
+  margin: 0 0 .9rem;
+  padding: .8rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+/* النصُّ بشرطةٍ ملوّنةٍ على حافته: يميّزه عن الأزرار في سطرٍ واحدٍ معها،
+   ويمنعه أن يُقرأ تذييلَ ما قبله. */
+.cat-toolbar__meta {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  color: var(--ink-soft);
+  font-size: .84rem;
+  line-height: 1.55;
+}
+.cat-toolbar__meta::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 1.7em;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+.cat-toolbar__actions { gap: .45rem; }
+
+.cat-toolbar__actions > button {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  block-size: 2.45rem;
+  padding-inline: .95rem;
+  border-radius: var(--radius);
+  font-size: .82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* الدرجةُ الثانية: حدٌّ وأرضيّةٌ بيضاء. لا لونَ مصمتٌ إلا لفعلٍ يُنشئ. */
+.cat-toolbar__actions > .btn-ghost {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+.cat-toolbar__actions > .btn-ghost:hover {
+  background: var(--ground);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  color: var(--ink);
+}
+
+/* الرموز: قناعٌ لا صورة، فترث `currentColor` وتنقلب مع المظهر والحالة. */
+.cat-toolbar__actions > button::before {
+  content: "";
+  flex: none;
+  inline-size: 1.05rem;
+  block-size: 1.05rem;
+  background: currentColor;
+  -webkit-mask: var(--ico) center / contain no-repeat;
+  mask: var(--ico) center / contain no-repeat;
+}
+.cat-toolbar__actions > [data-select-create] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>');
+}
+.cat-toolbar__actions > [data-select-all] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>');
+}
+.cat-toolbar__actions > button[onclick] {
+  --ico: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>');
+}
+
+@media (max-width: 52rem) {
+  .cat-toolbar__actions { inline-size: 100%; }
+  .cat-toolbar__actions > button { flex: 1 1 auto; justify-content: center; }
+}

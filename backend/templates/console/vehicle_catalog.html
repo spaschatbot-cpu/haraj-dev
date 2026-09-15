@@ -72,9 +72,12 @@
   {% comment %} شريطُ الأدوات — نظيرُ v1: نصُّ التجميع، وأزرارُ الإضافة والتحديث
      والتحديد وإنشاء مزادٍ من المحدد. {% endcomment %}
   <div class="cat-toolbar">
-    <p class="cat-toolbar__meta">تُعرَض السيارات مرتّبةً بالأحدث، ولكلّ صفٍّ موعدُ بداية مزاده ونهايتُه. حدِّد سياراتٍ لإنشاء مزادٍ منها.</p>
+    {% comment %} السطرُ كان ثلاثَ جملٍ في فقرةٍ واحدة: الترتيبُ، ومحتوى
+       عمودين، وأمرٌ بالتحديد. والأولان يقولهما الجدولُ نفسُه — رأسُه وأعمدتُه
+       — والثالثُ وحدَه معلومةٌ لا تُرى: أن التحديدَ يصنع مزاداً. فبقي هو. {% endcomment %}
+    <p class="cat-toolbar__meta">حدِّد سياراتٍ من الجدول لإنشاء مزادٍ منها — المعروضُ مرتَّبٌ بالأحدث.</p>
     <div class="cat-toolbar__actions">
-      <button type="button" class="btn-ghost" data-select-create>إنشاء مزاد من المحدد</button>
+      <button type="button" class="btn-primary" data-select-create>إنشاء مزاد من المحدد</button>
       <button type="button" class="btn-ghost" data-select-all>تحديد / إلغاء الكل</button>
       <button type="button" class="btn-ghost" onclick="location.reload()">تحديث البيانات</button>
     </div>
