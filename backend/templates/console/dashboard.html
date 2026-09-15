@@ -1,23 +1,83 @@
 {% extends "console/base.html" %}
 
-{% block heading %}لوحة التحليلات{% endblock %}
+{% comment %}
+  رأسُ هذه الشاشة **لافتةٌ** لا سطر — وهو الفرق الذي طلبه المالك بعد أن أرسل
+  لوحة v1: هناك عنوانٌ كبير في مربّع رمزٍ، وتحته سطرُ ترحيبٍ يقول لمن اللوحة
+  وما تلخّصه. وهنا كان عنواناً صغيراً في حافة الشاشة لا يفرّق عن رأس أي قائمة.
+
+  ولا رأسان: الترحيبُ والتاريخُ والحكم كلُّها **داخل** رأس الإطار عبر
+  `{% block actions %}`، لا في كتلةٍ ثانية تحته. وكتلةُ `.hero` المنفصلة
+  التي سبقت هذه أُلغيت لهذا بعينه — كانت تضع عنواناً فوق عنوان.
+{% endcomment %}
+
+{% block main_class %}board{% endblock %}
+
+{% block heading %}لوحة التحليلات والإحصائيات{% endblock %}
+
+{% block actions %}
+  <p class="board-hello">
+    مرحباً{% if request.user.full_name %}، <strong>{{ request.user.full_name }}</strong>{% endif %}{% if role_label %}
+    <span class="board-role">{{ role_label }}</span>{% endif %}
+    <span class="board-hello__say">— ملخّصٌ شاملٌ لحركة المنصّة والمزادات والمال.</span>
+  </p>
+
+  {% comment %} الحكم حين يكون **إنذاراً** فقط. أمر المالك بحذف سطر التاريخ
+     وحبّة «الدفتر متّزن» — والسكوتُ عند السلامة صحيح: لافتةٌ تقول «كل شيء
+     بخير» كل يوم تُقرأ مرّةً ثم تصير جزءاً من الخلفية، فحين تتحوّل حمراء لا
+     يلاحظها أحد. أما الإنذارُ فيبقى: حذفُه يحذف معلومةً لم تُطلب إزالتها،
+     وهو كتلةٌ كاملةٌ تحته بعنوانٍ أحمر وعدّاد على أي حال. {% endcomment %}
+  {% if board.alarms %}
+    <p class="board-verdict board-verdict--alarm">
+      <span class="board-pulse" aria-hidden="true"></span>
+      {{ alarm_count }} {% if alarm_count == 1 %}أمرٌ يحتاج نظراً{% else %}أمورٌ تحتاج نظراً{% endif %}
+    </p>
+  {% endif %}
+{% endblock %}
 
 {% block content %}
+
+
   {% comment %} الصحّة أولاً. رقمٌ كبير فوق دفترٍ لا يتّزن ليس معلومة. {% endcomment %}
   {% if board.alarms %}
-    <section class="board-alarms" aria-label="ما يحتاج نظراً الآن">
+    {% comment %} عنوانُ الكتلة يفصل «ما يحتاج نظراً» عن «كم عندنا»: كانت
+       البطاقتان تقعان في شبكةٍ واحدة متصلة، فتُقرأ بطاقةُ الإنذار رقماً من
+       أرقام المنصّة. {% endcomment %}
+    <h2 class="board-eyebrow board-eyebrow--alarm" id="head-alarms">
+      <span>ما يحتاج نظراً الآن</span>
+      <span class="board-eyebrow__count">{{ alarm_count }}</span>
+    </h2>
+    <section class="board-alarms" aria-labelledby="head-alarms">
       {% for stat in board.alarms %}{% include "console/_stat.html" %}{% endfor %}
     </section>
-  {% elif board.is_clean %}
-    <p class="notice success">الدفتر متّزن، ولا شيء معلّق بلا صاحب.</p>
   {% endif %}
 
   {% if board.stats %}
-    <section class="board-stats" aria-label="أرقام المنصّة">
+    <h2 class="board-eyebrow" id="head-stats"><span>أرقام المنصّة</span></h2>
+    <section class="board-stats" aria-labelledby="head-stats">
       {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
     </section>
+    {% if board.charts %}
+      {% comment %} شبكةٌ ثانيةٌ بعمودين للبطاقات ذات الرسم — لا عنوانَ لها:
+         هي من «أرقام المنصّة» نفسِها، وعنوانٌ ثانٍ فوق صفٍّ واحد يقطع الكتلة
+         بلا أن يقول شيئاً جديداً. وفصلُها عن الشبكة الأولى في `dashboard.py`
+         لا هنا — القالبُ لا يفرز بيانات. {% endcomment %}
+      <section class="board-charts" aria-labelledby="head-stats">
+        {% for stat in board.charts %}{% include "console/_stat.html" %}{% endfor %}
+      </section>
+    {% endif %}
   {% else %}
     <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
+  {% endif %}
+
+  {% if board.auction_states or board.trend %}
+    <h2 class="board-eyebrow" id="head-figures"><span>الصورة العامّة</span></h2>
+    {% comment %} سطرٌ يقول ما تجيبه اللوحتان تحته. وعنوانُ الكتلة كلمتان
+       («الصورة العامّة») لا تقولان ما الفرقَ بينه وبين «أرقام المنصّة»
+       فوقه — وكلتا الكتلتين أرقامٌ عن المنصّة. الفرقُ أن تلك **عدّادات**
+       وهذه **توزيعٌ وحركة**، وهو ما يقوله السطر. {% endcomment %}
+    <p class="board-lede">
+      توزيعُ حالات المزادات وحركةُ المزايدات في سبعة أيام — لمحةٌ قبل النزول إلى القوائم.
+    </p>
   {% endif %}
 
   <div class="board-figures">
@@ -25,28 +85,76 @@
       <section class="figure" aria-label="توزيع حالات المزادات">
         <header class="figure__head">
           <h2>حالات المزادات</h2>
-          <a class="figure__action" href="{% url 'console:auctions' %}">القائمة</a>
+          <a class="figure__action" href="{% url 'console:auctions' %}">القائمة <span aria-hidden="true">←</span></a>
         </header>
         {% comment %} دائرةٌ ومفتاحٌ بأرقام. القطاعان المتقاربان لا يُقرآن من
            الدائرة وحدها — والمفتاح بجوارها يحمل العدد والنسبة، فالرسم يقول
            «أيّها أكبر» والمفتاح يقول «كم». {% endcomment %}
-        <div class="wheel">
-          <div class="wheel__disc" style="background: {{ board.auction_wheel }}"
-               role="img" aria-label="توزيع حالات المزادات — التفصيل في القائمة المجاورة">
-            <span class="wheel__hole">
+        {% comment %} **حلقةٌ لكلّ حالة.** اختارها المالكُ من أربعة أشكالٍ
+           رُسمت له بخطّ اللوحة وألوانها بعد ستّ محاولاتٍ لم تُرضِه.
+
+           والحلقةُ هنا **ليست قطاعاً من دائرةٍ واحدة**: كلُّ حالةٍ حلقتُها
+           كاملةٌ تُملأ بنسبتها من الإجمالي. والفرقُ ليس شكلياً — قطاعٌ في
+           دائرةٍ مشتركة يُقارَن بجيرانه ولا يُقرأ وحدَه، وحلقةٌ ممتلئةٌ
+           بنسبتها تُقرأ وحدَها («ثمانون بالمئة») ثم تُقارَن.
+
+           والرقمُ في وسط حلقته لا تحتها: هو ما تُفتح اللوحةُ لأجله. {% endcomment %}
+        {% comment %} عمودان: الكلامُ على حافة البداية والحلقاتُ على
+           مقابلها — أمرُ المالك، وهو يملأ لوحاً كان نصفُه فارغاً. والكلامُ
+           **مشتقٌّ من الأرقام نفسِها** لا حشوٌ يُكتب: الإجماليُّ، وأكثرُ
+           الحالات (`max` في `dashboard.py` لا حلقةٌ في القالب)، وعددُ
+           الحالات المرصودة، ومن أين تُقرأ. {% endcomment %}
+        <div class="states">
+          <div class="states__brief">
+            <p class="states__lead">
               <strong>{{ board.auction_total }}</strong>
-              <span>مزاد</span>
-            </span>
+              <span>مزاد في الدفتر</span>
+            </p>
+
+            {% comment %} شبكةُ خانات، لا قائمةَ سطورٍ عريضة. وكان كلُّ
+               سطرٍ يمدّ اسمَه على حافةٍ وقيمتَه على مقابلها بفراغٍ من أربعمئة
+               بكسل بينهما — فتُقرأ القيمةُ ولا يُعرف لأيّ اسمٍ هي إلا بعودةٍ
+               بالعين. والخانةُ تضع الاسمَ فوق قيمته فتُقرآن معاً. {% endcomment %}
+            <dl class="brief">
+              <div class="brief__cell brief__cell--brand">
+                <dt>حالات مرصودة</dt>
+                <dd>{{ board.auction_states|length }}</dd>
+              </div>
+              {% if board.auction_top %}
+                <div class="brief__cell">
+                  <dt>الحالة الأكثر</dt>
+                  {% comment %} القيمةُ بلون حلقتها — `data-slice` من الرتبة
+                     المحسوبة في `dashboard.py`. فالعينُ تربط السطرَ بحلقته
+                     بلا أن تقرأ الاسمَ مرّتين. {% endcomment %}
+                  <dd data-slice="{{ board.auction_top.2 }}">
+                    <span class="brief__dot" aria-hidden="true"></span>{{ board.auction_top.0 }} <b>{{ board.auction_top.1 }}</b>
+                  </dd>
+                </div>
+              {% endif %}
+              <div class="brief__cell brief__cell--wide">
+                <dt>المصدر</dt>
+                <dd>عمودُ الحالة في جدول المزادات — يُقرأ عند فتح الصفحة</dd>
+              </div>
+            </dl>
           </div>
-          <ul class="wheel__key">
-            {% for label, count, share in board.auction_states %}
-              <li class="wheel__item">
-                <span class="wheel__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
-                <span class="wheel__name">{{ label }}</span>
-                <span class="wheel__count">{{ count }}</span>
-                <span class="wheel__share">{{ share }}%</span>
-              </li>
-            {% endfor %}
+
+          <ul class="rings">
+          {% for label, count, share in board.auction_states %}
+            <li class="rings__one">
+              {% comment %} `conic-gradient` بحدٍّ حادٍّ لا متدرّج: النسبةُ
+                 تنتهي عند رقمها بالضبط، وتدرّجٌ عندها يجعل الحدَّ يُقرأ
+                 «نحو الثمانين» لا «ثمانين». وما بقي بلون المسار الخافت
+                 لا شفّافاً — الشفّافُ على لوحٍ أبيض يجعل الحلقةَ قوساً
+                 معلّقاً لا حلقةً ناقصة. {% endcomment %}
+              <span class="rings__ring" data-slice="{{ forloop.counter0 }}"
+                    style="--share: {{ share }}%"
+                    role="img" aria-label="{{ label }} — {{ count }} من {{ board.auction_total }}، {{ share }}%">
+                <span class="rings__hole">{{ count }}</span>
+              </span>
+              <span class="rings__name">{{ label }}</span>
+              <span class="rings__share">{{ share }}%</span>
+            </li>
+          {% endfor %}
           </ul>
         </div>
       </section>
@@ -54,19 +162,59 @@
 
     {% if board.trend %}
       <section class="figure" aria-label="المزايدات في سبعة أيام">
+        {% comment %} سطرُ «العمود الأطول هو أعلى يوم» حُذف: صار يومُ الذروة
+           **مُعلَّماً** في الرسم ومكتوباً في سطر المقدار، فالجملةُ تشرح ما
+           لم يعد يحتاج شرحاً. {% endcomment %}
         <header class="figure__head">
           <h2>المزايدات — سبعة أيام</h2>
-          <span class="figure__note">العمود الأطول هو أعلى يوم</span>
         </header>
-        <ol class="spark">
-          {% for day, count, height in board.trend %}
-            <li class="spark__day">
-              <span class="spark__count">{{ count }}</span>
-              <span class="spark__bar" style="block-size: {{ height }}%"></span>
-              <span class="spark__label">{{ day }}</span>
-            </li>
-          {% endfor %}
-        </ol>
+        {% comment %} سطرُ مقدارٍ فوق الرسم: الرسمُ يقول **الشكل**، وهذا
+           يقول **المقدار**. وسبعةُ أعمدةٍ بلا مجموعٍ فوقها تُقرأ نسباً بلا
+           مقام — «أعلى يومٍ» أعلى من ماذا؟
+
+           وأسبوعٌ بلا مزايدةٍ يُقال في السطر نفسِه لا في صندوقٍ رماديٍّ
+           يطفو فوق الرسم: الصفرُ **قيمةٌ** لا عطل. {% endcomment %}
+        {% if board.trend_total %}
+          <p class="trend__lead">
+            <strong>{{ board.trend_total }}</strong>
+            <span>مزايدة في سبعة أيام</span>
+            <span class="trend__peak">أعلى يوم <b>{{ board.trend_peak.0 }}</b> بـ<b>{{ board.trend_peak.1 }}</b></span>
+          </p>
+
+          <ol class="spark">
+            {% for day, count, height in board.trend %}
+              {% comment %} يومُ الذروة يُعلَّم بالمقارنة مع `trend_peak`
+                 المحسوب في `dashboard.py`. ويومان متعادلان في القمّة
+                 يُعلَّمان معاً — وهو الصواب: كلاهما أعلى يوم. {% endcomment %}
+              <li class="spark__day{% if count == board.trend_peak.1 %} spark__day--top{% endif %}">
+                <span class="spark__count">{{ count }}</span>
+                <span class="spark__bar" style="block-size: {{ height }}%"></span>
+                <span class="spark__label">{{ day }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          {% comment %} **لا رسمَ فوق سبعة أصفار.** كان الأسبوعُ الفارغ يُرسم
+             سبعةَ أعمدةٍ بارتفاع صفرٍ في لوحٍ بارتفاع 9.5rem — فراغٌ يشغل
+             مساحةَ رسمٍ ولا يقول ما يقوله الرسم.
+
+             والأسبوعُ الفارغ **سؤالٌ لا خبر**: «هل توقّفت المنصّة أم أن
+             النافذة ضيّقة؟». فالجوابُ هنا: متى كانت آخر مزايدةٍ وكم مضى
+             عليها، وبابٌ إلى قائمتها. {% endcomment %}
+          <div class="trend-none">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h10"/></svg>
+            <p class="trend-none__say">لا مزايدة في السبعة أيام الماضية.</p>
+            {% if board.trend_last %}
+              <p class="trend-none__last">
+                آخرُ مزايدةٍ في الدفتر يوم <b>{{ board.trend_last.0 }}</b> —
+                قبل <b>{{ board.trend_last.1 }}</b> يوماً.
+              </p>
+            {% else %}
+              <p class="trend-none__last">ولا مزايدةَ في الدفتر أصلاً.</p>
+            {% endif %}
+            <a class="trend-none__go" href="{% url 'console:live-bids' %}">افتح المزايدات <span aria-hidden="true">←</span></a>
+          </div>
+        {% endif %}
       </section>
     {% endif %}
   </div>

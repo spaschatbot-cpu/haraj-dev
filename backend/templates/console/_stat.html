@@ -5,38 +5,88 @@
   والبطاقة كلها رابطٌ حين يكون لها فعل، لا رابطٌ في تذييلها وحده: هدفُ لمسٍ
   بعرض البطاقة أسهل من هدفٍ بعرض كلمتين، والتذييل يبقى ليقول **إلى أين**.
 {% endcomment %}
-{% if stat.href %}<a class="stat stat--{{ stat.tone }}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}">{% endif %}
+{% comment %} `stat--chart` لبطاقةٍ تحمل رسماً: تأخذ عمودين في الشبكة على
+   الشاشات التي تتّسع لذلك. رسمٌ بعرض بطاقةٍ عادية سبعةُ أعمدةٍ في 150px —
+   أي ٢١px للعمود الواحد، وهو عرضٌ لا يُقرأ منه شكل. {% endcomment %}
+{% if stat.href %}<a class="stat stat--{{ stat.tone }}{% if stat.spark_points %} stat--chart{% endif %}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}{% if stat.spark_points %} stat--chart{% endif %}">{% endif %}
   <div class="stat__top">
-    {% comment %} الرسم نفسه الذي يحمله سطرُ الشريط الذي تفتحه هذه البطاقة —
-       من `apps/console/icons.py` عبر `Stat.icon_path`. `<svg>` مضمَّنٌ لا
-       ملفٌّ يُطلب، ويرث `currentColor` فيتلوّن مع نبرة البطاقة. {% endcomment %}
-    {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
-    {% if stat.delta %}
-      {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
-         الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
-      <span class="delta delta--{{ stat.delta.direction }}">
-        <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
-      </span>
-    {% endif %}
+    {% comment %} الرمزُ والعنوان **مجموعةٌ واحدة** على سطرٍ واحد، لا رمزٌ في
+       صفٍّ وعنوانٌ في الصفّ الذي تحته. أمرَ بذلك المالك، وهو أصحّ: البطاقةُ
+       تُقرأ الآن سطرين — «ما هذا» ثم «كم هو» — لا ثلاثة، والفراغُ الذي كان
+       بجوار الرمز صار يحمل اسمَ البطاقة.
+
+       والرسم نفسه الذي يحمله سطرُ الشريط الذي تفتحه هذه البطاقة — من
+       `apps/console/icons.py` عبر `Stat.icon_path`. `<svg>` مضمَّنٌ لا ملفٌّ
+       يُطلب، ويرث `currentColor` فيتلوّن مع نبرة البطاقة. {% endcomment %}
+    <span class="stat__ident">
+      {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
+      <span class="stat__label">{{ stat.label }}</span>
+    </span>
+    {% comment %} **الرقم قُصاد العنوان** لا تحته — أمرُ المالك. فالبطاقة
+       صارت تُقرأ في سطرٍ واحد: «ما هذا» على حافة البداية و«كم هو» على
+       مقابلها، وما تحتهما شرحٌ لا رقم. وكانت العينُ تنزل سطراً بين الاسم
+       وعدده، وفي شبكةٍ من ثماني بطاقاتٍ تنزل ثماني مرّات.
+
+       والحبّةُ — وحدةً أو مقارنة — تحت الرقم لا بجواره: هي وصفٌ له، وصفٌّ
+       يحمل ثلاثةَ أشياء يجعل الرقمَ واحداً منها لا أكبرَها. {% endcomment %}
+    <span class="stat__figure">
+      <strong class="stat__value">{{ stat.value }}</strong>
+      {% if stat.delta %}
+        {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
+           الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
+        <span class="delta delta--{{ stat.delta.direction }}">
+          <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
+        </span>
+      {% elif stat.unit %}
+        {% comment %} وحدةُ ما يعدّه الرقم. و`aria-hidden` لأن قارئ الشاشة
+           يقرأ الوحدة في سطر الشرح كاملةً مع سياقها، وكلمةٌ عائمةٌ تحت الرقم
+           تقطع الجملة عليه. {% endcomment %}
+        <span class="stat__unit" aria-hidden="true">{{ stat.unit }}</span>
+      {% endif %}
+    </span>
   </div>
 
-  <span class="stat__label">{{ stat.label }}</span>
-  <strong class="stat__value">{{ stat.value }}</strong>
-
   {% if stat.delta %}<span class="stat__delta-note">{{ stat.delta.word }} {{ stat.delta.percent }}% {{ stat.delta.note }}</span>{% endif %}
+
+
+  {% comment %} `title` يحمل السطر كاملاً: القصُّ بسطرين يحفظ إيقاع الصفّ،
+     ولا يجوز أن يحذف — والوقوفُ على النصّ يُظهر ما قُصّ. {% endcomment %}
+  <span class="stat__detail" title="{{ stat.detail }}">{{ stat.detail }}</span>
 
   {% if stat.spark_points %}
     {% comment %} شكلٌ لا رقم — والرقم مكتوبٌ فوقه. `aria-hidden` لأن قارئ
        الشاشة قرأ القيمة والدلتا بالفعل، وسلسلةُ إحداثياتٍ ضجيج. {% endcomment %}
-    <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
-         role="presentation" aria-hidden="true" focusable="false">
-      <polyline points="{{ stat.spark_points }}" />
-    </svg>
+    {% comment %} ثلاثُ طبقاتٍ لا خطٌّ واحد: مساحةٌ تحته تُقرأ حجماً،
+       والخطُّ فوقها يُقرأ اتجاهاً، ونقطةٌ على طرفه تقول «هنا اليوم».
+       و`preserveAspectRatio="none"` يمطّ المحور الأفقيَّ وحده — والنقطةُ
+       تُرسم في طبقةٍ ثانيةٍ بصندوقها لأن المطَّ يحوّل الدائرةَ إلى قطعٍ
+       ناقص. {% endcomment %}
+    <span class="stat__chart">
+      <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
+           role="presentation" aria-hidden="true" focusable="false">
+        <path class="stat__spark-area" d="{{ stat.spark_area }}" />
+        <path class="stat__spark-line" d="{{ stat.spark_curve }}" />
+      </svg>
+      <span class="stat__spark-dot" aria-hidden="true"
+            style="left: {{ stat.spark_last_x }}%; top: {{ stat.spark_last_y }}%"></span>
+    </span>
   {% endif %}
 
-  <span class="stat__detail">{{ stat.detail }}</span>
-
   {% if stat.action %}
-    <span class="stat__action">{{ stat.action }} <span aria-hidden="true">←</span></span>
+    {% comment %} الوجهةُ في جهة، والسهمُ في قرصه على مقابلها — لا كلمتان
+       وسهمٌ ملتصقٌ بهما يُقرآن جملةً ناقصة. والقرصُ يمتلئ بلون البطاقة عند
+       المرور، فيقول «هذه بابٌ» قبل أن تُقرأ الكلمة. {% endcomment %}
+    {% comment %} غلافان لا واحد: الخارجيُّ يحمل **الخطَّ الفاصل** فيمتدّ
+       بعرض البطاقة، والداخليُّ يحمل **الزرَّ** فيأخذ حجمَ محتواه ويتوسّط.
+       وبواحدٍ كان لا بدّ من اختيار أحدهما: خطٌّ بعرض الزرّ لا يفصل، وزرٌّ
+       بعرض البطاقة شريطٌ لا زرّ. {% endcomment %}
+    <span class="stat__action">
+      <span class="stat__btn">
+        <span class="stat__action-text">{{ stat.action }}</span>
+        <span class="stat__go" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+        </span>
+      </span>
+    </span>
   {% endif %}
 {% if stat.href %}</a>{% else %}</div>{% endif %}

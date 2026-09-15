@@ -11,8 +11,11 @@
 {% endblock %}
 
 {% block content %}
-  <p class="lede" style="margin-block-start: .6rem; margin-block-end: 1rem;">
-    حسابات الأفراد والشركات: بيانات الهوية والتواصل، حالة التفعيل، والأرصدة المستحقة في الدفتر المالي.
+  {% comment %} المسافاتُ في الورقة لا في `style=`: سطرُ الوصف موجودٌ في
+     شاشاتٍ كثيرة، وضبطُه بيدٍ في كلٍّ منها يعني قيمةً مختلفةً في كلٍّ منها
+     — وهو ما كان: `-.4rem` في القاعدة و`.6rem` هنا. {% endcomment %}
+  <p class="lede">
+    حسابات الأفراد والشركات: الهوية والتواصل، حالة التفعيل، والأرصدة في الدفتر.
   </p>
 
   <section class="board-stats board-stats--compact" aria-label="أرقام الشاشة">
@@ -54,11 +57,11 @@
 
   <div class="table-bar">
     <div class="table-bar__info">
-      <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
+      <h2 class="table-bar__title">
         قائمة المستخدمين <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
       </h2>
     </div>
-    <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
+    <div class="table-bar__actions">
       <a href="{{ export_url }}" class="btn-sm" title="تصدير نتائج الصفحة إلى ملف إكسل">تصدير إكسل</a>
     </div>
   </div>
@@ -121,7 +124,7 @@
             <td>
               <span class="money tnum" style="font-weight: 700; color: var(--ink);">{{ customer.wallet_total|unlocalize }} ر.س</span>
             </td>
-            <td class="actions" style="text-align: center; justify-content: center;">
+            <td class="actions">
               <a href="{% url 'console:customer-detail' customer.pk %}" class="act" title="عرض ملف العميل والحركات" aria-label="عرض ملف العميل والحركات">
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="inline-size:16px;block-size:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><path d="{{ icon_open }}"/></svg>
               </a>
@@ -149,7 +152,7 @@
 
   <div class="table-footer">
     <span>
-      {{ page.paginator.count|unlocalize }} حساباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+      <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> حساباً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
     </span>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المستخدمين">

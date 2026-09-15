@@ -249,11 +249,11 @@ somebody went looking for it.
 
   <div class="table-bar">
     <div class="table-bar__info">
-      <h2 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--ink);">
+      <h2 class="table-bar__title">
         السيارات <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
       </h2>
     </div>
-    <div class="table-bar__actions" style="display: flex; gap: .5rem; align-items: center;">
+    <div class="table-bar__actions">
       <a href="{% url 'console:vehicle-search' %}" class="btn-sm">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.4-4.4"/></svg>
         بحث في المركبات
@@ -682,7 +682,7 @@ somebody went looking for it.
 
   <div class="table-footer">
     <div class="table-footer__count">
-      {{ page.paginator.count|unlocalize }} مركبة · صفحة {{ page.number }} من {{ page.paginator.num_pages }}
+      <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مركبة<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b>
     </div>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المركبات">

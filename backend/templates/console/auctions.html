@@ -6,8 +6,8 @@ A thousands separator or a localised decimal comma is a display transformation
 on a money value, and an operator comparing this screen to the ledger must not
 have to undo one in their head.
 {% endcomment %}
-{% block title %}المزادات{% endblock %}
-{% block heading %}المزادات{% endblock %}
+{% block title %}إدارة المزادات{% endblock %}
+{% block heading %}إدارة المزادات{% endblock %}
 {% block actions %}
   <a href="{% url 'console:auction-new' %}" class="btn-primary">+ مزاد جديد</a>
   <a href="{% url 'console:vehicle-search' %}">بحث عن سيارة</a>
@@ -16,6 +16,10 @@ have to undo one in their head.
 {% endblock %}
 
 {% block content %}
+  <p class="lede">
+    وقتُ كلِّ مزادٍ وحالتُه وما فيه، وما يحتاج تدخّلاً.
+  </p>
+
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
      filter that is on the screen. `export_url` is this very request with one
      parameter added, built in `apps.console.context` — so the filter comes
@@ -62,8 +66,14 @@ have to undo one in their head.
   </form>
 
   <div class="table-bar">
+    {% comment %} عنوانٌ للجدول وعدٌّ في حبّته، كما في بقيّة القوائم —
+       والعددُ العاري الذي كان هنا («5 مزاداً») لا يقول **عددَ ماذا** إلا
+       بكلمةٍ واحدة، ولا شيء يفصل الجدولَ عن شريط الفلاتر فوقه. {% endcomment %}
     <div class="table-bar__info">
-      <span>{{ page.paginator.count|unlocalize }} مزاداً</span>
+      <h2 class="table-bar__title">
+        قائمة المزادات
+        <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+      </h2>
       {% if q or state or id_exact or park_exact %}
         <span class="pill pill--filter">مفلترة</span>
       {% endif %}
@@ -162,22 +172,21 @@ have to undo one in their head.
           </td>
           <td data-col="ready">
             <div class="metric">
-              <b class="metric__n">{{ auction.summary.offered|unlocalize }}</b>
-              <span class="metric__label">متاحة من {{ auction.summary.cars|unlocalize }}</span>
-              <span class="bar" role="img"
-                    aria-label="{{ auction.summary.offered|unlocalize }} متاحة من {{ auction.summary.cars|unlocalize }}">
-                <i style="inline-size: {% widthratio auction.summary.offered auction.summary.cars 100 %}%"></i>
-              </span>
+              {% comment %} الرقمان معاً في سطر: «٢ من ٢» تُقرأ نسبةً في
+                 لمحة، و«٢» فوق «متاحة من ٢» تجعل العينَ تجمعهما. {% endcomment %}
+              {% comment %} الرقمُ وحدَه — أمرُ المالك. والشريطُ حُذف لا
+                 أُخفي: رسمٌ يُرسم ولا يُنظر إليه يبقى في الصفحة يُحسب
+                 ويُصان. واسمُ العمود («التفعيل») يقول ما يعدّه الرقم،
+                 و`aria-label` كان على الشريط فانتقل معناه إلى النصّ نفسِه
+                 — «٢ / ٢» يقرؤها قارئُ الشاشة كما تُرى. {% endcomment %}
+              <b class="metric__n">{{ auction.summary.offered|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
             </div>
           </td>
           <td data-col="images">
             <div class="metric">
-              <b class="metric__n">{{ auction.summary.cars_with_images|unlocalize }}</b>
-              <span class="metric__label">لها صور من {{ auction.summary.cars|unlocalize }}</span>
-              <span class="bar {% if auction.summary.images_missing %}bar--warn{% endif %}" role="img"
-                    aria-label="{{ auction.summary.cars_with_images|unlocalize }} سيارة لها صور من {{ auction.summary.cars|unlocalize }}، وإجمالي {{ auction.summary.images|unlocalize }} صورة">
-                <i style="inline-size: {% widthratio auction.summary.cars_with_images auction.summary.cars 100 %}%"></i>
-              </span>
+              <b class="metric__n">{{ auction.summary.cars_with_images|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
+              {% comment %} «كم صورة» رقمٌ آخر لا وصفاً، فيبقى: النسبةُ تقول
+                 كم مركبةً لها صور، وهذا يقول كم صورةً في المزاد كلِّه. {% endcomment %}
               <span class="metric__note">{{ auction.summary.images|unlocalize }} صورة</span>
             </div>
           </td>
@@ -340,7 +349,7 @@ have to undo one in their head.
 
   <div class="table-footer">
     <div class="table-footer__count">
-      {{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}
+      <b class="tf__n">{{ page.paginator.count }}</b> مزاداً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b>
     </div>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المزادات">

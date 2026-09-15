@@ -35,7 +35,11 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}لوحة حراج{% endblock %} — {{ environment }}</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=940">
+  {% comment %} ورقةُ الخطوط قبل الورقة الرئيسية، ومنفصلةٌ عنها: هي ثابتةٌ
+     لا تتغيّر مع كل صقلٍ في الشكل، فكاشُها لا يُكسَر معه — و٢٥٧ ك.ب تُحمَّل
+     مرّةً واحدة لا مع كل رقمٍ جديد في `?v=`. {% endcomment %}
+  <link rel="stylesheet" href="{% static 'console/fonts.css' %}?v=2">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1059">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
@@ -113,15 +117,30 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
       <header class="topbar">
         {% comment %} زرٌّ لا رابط: لا وجهة له، وحالتُه تُقرأ من `aria-expanded`
            الذي يكتبه `theme.js`. {% endcomment %}
+        {% comment %} رسمٌ لا حرف. كان `☰` و`◐` محرفين نصّيين: شكلُهما يتبع
+           الخطَّ المثبَّت على الجهاز لا الورقةَ، فيختلف سُمكُهما ومحاذاتُهما
+           بين جهازٍ وجهاز — ويقعان في ورقةٍ كلُّ رمزٍ فيها `<svg>` بسُمكٍ
+           واحد. و`currentColor` يجعلهما يتلوّنان مع الزرّ. {% endcomment %}
         <button type="button" class="icon-btn" data-nav-toggle aria-expanded="true"
                 aria-label="طيّ الشريط الجانبي أو فتحه">
-          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ nav_toggle_icon }}"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
 
-        {% comment %} Article 5-6: every screen says which environment it is, so nobody
-           performs an irreversible action on production thinking it is staging.
-           Production shouts red; the rest whisper. {% endcomment %}
-        <span class="env-badge" data-env="{{ environment }}">{{ environment }}</span>
+        {% comment %} المادة ٥-٦: كلُّ شاشةٍ تقول في أيّ بيئةٍ هي، فلا يُنفَّذ
+           فعلٌ لا رجعة فيه على الإنتاج ظنّاً أنه تجربة.
+
+           **وتُخفى في `development` وحدها**، بأمر المالك بحذفها. والحذفُ
+           الكاملُ يُلغي المادة؛ وإخفاؤها هنا لا يُلغيها: الخطرُ الذي كُتبت
+           لأجله هو «فعلٌ على الإنتاج ظنّاً أنه غيرُه»، ومن يفتح الصفحة على
+           جهازه في `development` لا يقع فيه — أما `production` و`staging`
+           وأيُّ اسمٍ آخر فالشارةُ باقيةٌ عليها.
+
+           والشرطُ على القيمة لا على الإعداد: `ENVIRONMENT_NAME` في
+           `prod.py` يُقرأ من البيئة وقد يُسمّى `staging`، فإخفاءُ ما ليس
+           `development` وحدَه يبقيه ظاهراً مهما سُمّي. {% endcomment %}
+        {% if environment != "development" %}
+          <span class="env-badge" data-env="{{ environment }}">{{ environment }}</span>
+        {% endif %}
 
         {% comment %} `request` is absent when a template is rendered from its source string
            in tests — and a filter argument (`default:request.user`) is the one
@@ -134,7 +153,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         {% endif %}
 
         <button type="button" class="icon-btn" data-themer-open aria-label="المظهر والألوان">
-          <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ themer_icon }}"/></svg>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor" stroke="none"/></svg>
         </button>
 
         {% comment %} A form and not a link: `LogoutView` refuses GET since Django 5.0, and a
@@ -143,12 +162,18 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         {% if request.user.is_authenticated %}
           <form class="sign-out" method="post" action="{% url 'console:sign-out' %}">
             {% csrf_token %}
-            <button type="submit">خروج</button>
+            <button type="submit">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+              خروج
+            </button>
           </form>
         {% endif %}
       </header>
 
-      <main>
+      {% comment %} صنفٌ على `<main>` يُملأ من الصفحة: رأسُ الرئيسية لافتةٌ
+         بعرض الشاشة، ورأسُ القوائم سطرٌ وأفعاله. وبلا هذا الخطّاف كان
+         التخصيص يعني نسخَ الإطار كلّه في قالبٍ ثانٍ. {% endcomment %}
+      <main class="{% block main_class %}{% endblock %}">
         {% if messages %}
           {% for message in messages %}
             <p class="notice{% if message.tags %} {{ message.tags }}{% endif %}">{{ message }}</p>
@@ -171,15 +196,39 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         وهنا يحمل الزرُّ **اسمَ** ما يعود إليه، فيُقرأ قبل النقر: «→ المزادات»
         لا سهمٌ لا يُعرف إلى أين. والرئيسيةُ وحدها بلا زرّ — لا شيء فوقها.
         {% endcomment %}
+        {% comment %} زرُّ الرجوع انتقل من **فوق العنوان** إلى صفّ الأفعال،
+           بأمر المالك: «شيل كلمة الرئيسية اللي فوق العنوان». وكان سطراً
+           قائماً بذاته يعلو الاسمَ، فأولُ ما يُقرأ في الشاشة اسمُ شاشةٍ
+           أخرى.
+
+           **ولم يُحذف ولم يصر سهماً بلا اسم**: القاعدة المكتوبة في T864 أن
+           الزرَّ يحمل اسمَ ما يعود إليه فيُقرأ قبل النقر — «← المزادات» لا
+           سهمٌ لا يُعرف إلى أين. فبقي الاسمُ، وتغيّر موضعُه فقط: صار في
+           الطرف المقابل للعنوان على السطر نفسِه. {% endcomment %}
         <header class="page">
+          {% comment %} رمزُ الشاشة بجوار اسمها — من السجلّ نفسِه الذي يرسم
+             سطرَها في الشريط الجانبي (`navigation.icon_for`)، فلا يفترقان.
+             ورمزان مختلفان لشاشةٍ واحدة يجعلان المرءَ يظنّهما شاشتين.
+
+             وهنا في الإطار مرّةً واحدة لا في ستٍّ وتسعين شاشة. {% endcomment %}
           <h1>
-            {% if back_to %}
-              <a class="page__back" href="{% url back_to.url_name %}"
-                 title="رجوع إلى {{ back_to.label }}">← {{ back_to.label }}</a>
+            {% if page_icon %}
+              <span class="page__crest" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="{{ page_icon }}"/></svg>
+              </span>
             {% endif %}
             {% block heading %}{% endblock %}
           </h1>
-          <div class="page__actions">{% block actions %}{% endblock %}</div>
+          <div class="page__actions">
+            {% if back_to %}
+              <a class="page__back" href="{% url back_to.url_name %}"
+                 title="رجوع إلى {{ back_to.label }}">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+                {{ back_to.label }}
+              </a>
+            {% endif %}
+            {% block actions %}{% endblock %}
+          </div>
         </header>
         {% block content %}{% endblock %}
       </main>
