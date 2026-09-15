@@ -5821,3 +5821,78 @@ a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action
 a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action  { border-color: color-mix(in srgb, var(--people) 32%, transparent); }
 a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action    { border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
 a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action   { border-color: color-mix(in srgb, var(--danger) 34%, transparent); }
+
+/* ===========================================================================
+   الزرّ: خطٌّ فاصلٌ فوقه، ولونُ شريط بطاقته، وزاويةٌ لا قوس
+   ---------------------------------------------------------------------------
+   «ضيف قبله خط شفاف زي ما كان موجود، وخلى كل زر بلون الاستروك، وغيّر الشكل
+   البيضاوي لشكل احترافي أكتر».
+
+   **وغلافان لا واحد.** الخارجيُّ (`.stat__action`) يحمل الخطَّ الفاصل فيمتدّ
+   بعرض البطاقة، والداخليُّ (`.stat__btn`) يحمل الزرَّ فيأخذ حجمَ محتواه
+   ويتوسّط. وبواحدٍ كان لا بدّ من خسارة أحدهما: خطٌّ بعرض الزرّ لا يفصل
+   شيئاً، وزرٌّ بعرض البطاقة شريطٌ لا زرّ.
+
+   **واللون لون الشريط.** كان الزرُّ رمادياً يتلوّن عند المرور وحده، فالبطاقةُ
+   تحمل تصنيفَها في شريطها وفي رقمها ورمزها — ثم يقع في قاعها شيءٌ رماديٌّ لا
+   ينتمي. والآن يحمله هو أيضاً: خلفيةٌ من درجة التصنيف الخفيفة ونصٌّ بدرجته
+   الغامقة، ثم **يمتلئ مصمتاً بالأبيض فوقه** عند المرور — فالتلوينُ يقول
+   «هذا من هذه البطاقة»، والامتلاءُ يقول «وهو يُضغط».
+
+   **والزاوية 10px لا قوس.** الحبّةُ الكاملة (`999px`) شكلُ **وسمٍ** — وهي
+   شكلُ حبّة الوحدة وحبّة المقارنة في أعلى البطاقة نفسِها. فزرٌّ بالشكل
+   نفسِه يُقرأ وسماً ثالثاً لا فعلاً، والزاويةُ الأليَن تفرزه عنهما.
+   ======================================================================== */
+
+/* ---- الغلاف: الخطّ الفاصل وحده ------------------------------------------ */
+
+.stat__action {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  inline-size: auto;
+  margin-block-start: auto;
+  padding: .95rem 0 0;
+  border: 0;
+  border-block-start: 1px solid var(--line-soft);
+  border-radius: 0;
+  background: none;
+}
+.stat--alarm .stat__action { background: none; border-block-start-color: color-mix(in srgb, var(--danger) 18%, transparent); }
+.stat--warn .stat__action  { background: none; border-block-start-color: color-mix(in srgb, var(--warn) 20%, transparent); }
+
+/* ---- الزرّ ------------------------------------------------------------- */
+
+.stat__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem 1.05rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: .75rem;
+  font-weight: 600;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.stat--money .stat__btn   { background: var(--money-soft);   color: var(--money); }
+.stat--auction .stat__btn { background: var(--auction-soft); color: var(--auction); }
+.stat--people .stat__btn  { background: var(--people-soft);  color: var(--people); }
+.stat--ok .stat__btn      { background: var(--ok-soft);      color: var(--ok); }
+.stat--warn .stat__btn    { background: var(--warn-soft);    color: var(--warn); }
+.stat--alarm .stat__btn   { background: var(--danger-soft);  color: var(--danger); }
+
+/* المرور: يمتلئ مصمتاً والنصُّ أبيض. والأبيضُ على هذه الدرجات كلِّها فوق
+   4.5:1 — هي درجاتُ `--money`/`--auction`/`--people`/`--warn`/`--danger`
+   نفسُها التي تُكتب بالأبيض فوقها في الحبّات والشارات. */
+a.stat:hover .stat__btn, a.stat:focus-visible .stat__btn { background: var(--brand-solid); color: #fff; }
+a.stat--money:hover .stat__btn,   a.stat--money:focus-visible .stat__btn   { background: var(--money);   color: #fff; }
+a.stat--auction:hover .stat__btn, a.stat--auction:focus-visible .stat__btn { background: var(--auction); color: #fff; }
+a.stat--people:hover .stat__btn,  a.stat--people:focus-visible .stat__btn  { background: var(--people);  color: #fff; }
+a.stat--ok:hover .stat__btn,      a.stat--ok:focus-visible .stat__btn      { background: var(--ok);      color: #fff; }
+a.stat--warn:hover .stat__btn,    a.stat--warn:focus-visible .stat__btn    { background: var(--warn);    color: #fff; }
+a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { background: var(--danger);  color: #fff; }
+
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
