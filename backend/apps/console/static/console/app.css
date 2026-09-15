@@ -5696,3 +5696,92 @@ main {
      يبقى له أقلُّ من ثلاثة أرباعه. */
   .board .page__actions { padding-inline-start: 0; }
 }
+
+/* ===========================================================================
+   سطرُ الشرح، وزرُّ الوجهة
+   ---------------------------------------------------------------------------
+   «خلى الكلام اللي تحت العناوين في المربعات شكله احترافي أكتر، والزرّ اللي
+   تحت شكله أفضل».
+
+   ---- سطرُ الشرح -------------------------------------------------------
+   كان `.76rem` رمادياً بسطرٍ قدره 1.6، وثلاثةُ عيوبٍ فيه لا واحد:
+
+   * **أرقامُه لا تستقيم.** «بقيمة 126,000.00 ريال» رقمٌ لاتينيٌّ داخل جملةٍ
+     عربية، وبلا `tabular-nums` تختلف عروضُ خاناته فيهتزّ السطرُ بين بطاقةٍ
+     وأخرى.
+   * **يتيمٌ في آخره.** جملةٌ من تسع كلماتٍ في بطاقةٍ بعرض 17rem تترك كلمةً
+     واحدةً في السطر الثاني. و`text-wrap: pretty` يوازن السطرين فلا تبقى
+     كلمةٌ وحدها — ومن لا يدعمه يرى ما كان يراه، لا أقلّ.
+   * **ملتصقٌ بالرقم فوقه.** فراغٌ قدرُه `.15rem` بين رقمٍ بـ1.7rem وسطرِ
+     شرحه يجعلهما كتلةً واحدة.
+
+   ---- الزرّ -------------------------------------------------------------
+   كان نصّاً على حافةٍ وقرصاً على مقابلها يفصل بينهما خطٌّ فوقهما: **ثلاثةُ
+   عناصرَ لفعلٍ واحد**، وبينها فراغٌ بعرض البطاقة يقطع الجملةَ عن سهمها.
+
+   صار **حبّةً واحدة** تحمل الكلمةَ والسهمَ معاً، بحجم محتواها على حافة
+   البداية — تُقرأ زرّاً لأنها بشكل زرّ، وتتلوّن بلون البطاقة عند المرور.
+   والخطُّ الفاصلُ فوقها حُذف: الحبّةُ تفصل نفسَها بشكلها.
+   ======================================================================== */
+
+.stat__detail {
+  margin-block-start: .4rem;
+  font-size: .78rem;
+  line-height: 1.65;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.stat__action {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  inline-size: auto;
+  margin-block-start: auto;
+  margin-block-end: 0;
+  padding: .42rem .8rem;
+  padding-block-start: .42rem;
+  border-block-start: 0;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--ink-soft);
+  font-size: .75rem;
+  font-weight: 600;
+  transition: background .18s ease, color .18s ease;
+}
+
+/* فُسحةٌ فوق الحبّة تفصلها عن الشرح — على البطاقة لا على الحبّة، فتبقى
+   الحبّةُ ملتصقةً بقاع البطاقة حين يقصُر الشرح. */
+.stat__action { margin-block-start: auto; }
+.stat__detail + .stat__action, .stat__spark + .stat__action { margin-block-start: .9rem; }
+.board-stats .stat__action, .board-alarms .stat__action { margin-block-start: auto; }
+
+/* السهمُ داخل الحبّة: رسمٌ لا قرص. */
+.stat__go {
+  inline-size: auto;
+  block-size: auto;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  transition: transform .18s ease;
+}
+.stat__go svg { width: 12px; height: 12px; stroke-width: 2.6; }
+
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
+
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action   { background: var(--money-soft);   color: var(--money); }
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action { background: var(--auction-soft); color: var(--auction); }
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action  { background: var(--people-soft);  color: var(--people); }
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action    { background: var(--warn-soft);    color: var(--warn); }
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action   { background: var(--danger-soft);  color: var(--danger); }
+
+/* في التنبيه والتحذير خلفيةُ البطاقة ملوّنةٌ أصلاً، فحبّةٌ بـ`--line-soft`
+   فوقها تُقرأ رقعةً رماديّة. تأخذ لونَ البطاقة مخفَّفاً. */
+.stat--alarm .stat__action { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger); }
+.stat--warn .stat__action  { background: color-mix(in srgb, var(--warn) 11%, transparent);  color: var(--warn); }
