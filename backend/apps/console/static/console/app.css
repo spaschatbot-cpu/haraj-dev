@@ -7910,3 +7910,16 @@ a.stat:hover, a.stat:focus-visible { box-shadow: 0 2px 4px rgb(23 32 51 / .06), 
   background-size: 15px 15px;
   padding-inline-end: 2.45rem;
 }
+
+/* الحدُّ أخفُّ مرّةً رابعة — 50٪ ← **35٪** (`#d0d6dd`، 1.46 على اللوح).
+   وهو أقربُ إلى `--line` (1.23) منه إلى ما بدأ به (3.57).
+
+   وعنده يقف الحدُّ عن كونه حدّاً: ما دون ذلك يساوي حدَّ الجدول المجاور،
+   فلا يُعرف أين ينتهي الحقلُ وتبدأ القائمةُ التي تليه. والذي يحمل الحقلَ
+   الآن هو **سطحُه** لا خطُّه — ولذلك رُفع السطحُ درجةً معه (`--raised`
+   مخلوطٌ بالأرضية) ليبقى الفرقُ بينه وبين اللوح مرئياً بعد أن خفّ الخطّ. */
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: color-mix(in srgb, var(--field-border) 35%, #fff);
+  background-color: color-mix(in srgb, var(--raised) 55%, var(--ground));
+}
