@@ -8373,3 +8373,19 @@ main h1 { display: flex; align-items: center; gap: .6rem; }
    الذيل 999.6، أي 3.2px. وذلك لا يُرى وحدَه، لكنه يُرى حين يقع تحت عمودٍ
    من خمسةٍ وعشرين صفّاً كلُّها مستقيمة. */
 .table-footer, .scroller + p, table + p { padding-inline: .9rem; }
+
+/* الذيلُ ينزل قليلاً عن الجدول — بأمر المالك. والهامشُ السالبُ كان `-1.2rem`
+   وهو قيمةُ هامش `.scroller` بالضبط، فيلتحم الاثنان بلا فاصل. صار `-.85rem`
+   فيبقى بينهما نحوُ ستّة بكسلات: يُقرآن قطعتين متجاورتين لا قطعةً واحدة،
+   ويبقى الذيلُ أقربَ إلى جدوله منه إلى ما بعده.
+
+   والخطُّ العلويُّ يُحذف معه: خطٌّ يفصل ما بينه وبين ما فوقه فراغٌ أصلاً
+   فاصلٌ ثانٍ بلا شيءٍ يفصله. */
+.table-footer, .scroller + p, table + p {
+  margin-block-start: -.85rem;
+  border-block-start: 0;
+  border-radius: var(--radius-lg);
+}
+[data-scheme="dark"] .table-footer,
+[data-scheme="dark"] .scroller + p,
+[data-scheme="dark"] table + p { border-block-start: 0; }
