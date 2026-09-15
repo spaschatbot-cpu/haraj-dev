@@ -66,8 +66,14 @@ have to undo one in their head.
   </form>
 
   <div class="table-bar">
+    {% comment %} عنوانٌ للجدول وعدٌّ في حبّته، كما في بقيّة القوائم —
+       والعددُ العاري الذي كان هنا («5 مزاداً») لا يقول **عددَ ماذا** إلا
+       بكلمةٍ واحدة، ولا شيء يفصل الجدولَ عن شريط الفلاتر فوقه. {% endcomment %}
     <div class="table-bar__info">
-      <span>{{ page.paginator.count|unlocalize }} مزاداً</span>
+      <h2 class="table-bar__title">
+        قائمة المزادات
+        <span class="pill pill--filter">{{ page.paginator.count|unlocalize }}</span>
+      </h2>
       {% if q or state or id_exact or park_exact %}
         <span class="pill pill--filter">مفلترة</span>
       {% endif %}
