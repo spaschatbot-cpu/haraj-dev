@@ -706,8 +706,17 @@ form[method="get"] input, form[method="get"] select {
   min-inline-size: 9rem;
   padding-block: .45rem;
 }
-/* حقل البحث يأخذ ما بقي: هو المدخل الأول، والقوائم المنسدلة بعرض محتواها. */
-form[method="get"] input[type="search"] { flex: 1 1 14rem; min-inline-size: 12rem; }
+/* حقل البحث يأخذ ما بقي: هو المدخل الأول، والقوائم المنسدلة بعرض محتواها.
+ *
+ * **و`>` لا نزولاً في الشجرة.** `flex-basis` لا يعني عرضاً ولا ارتفاعاً بل
+ * «المحور الرئيسيَّ لأبيه» — فحقلٌ ملفوفٌ في عمودٍ (لصيقةٌ فوقه) يقرأ
+ * `14rem` **ارتفاعاً** فيصير 224px طولاً. وقع ذلك مرّتين: في شريط الفلاتر
+ * حين لُفّت حقولُه بلصائق، وفي «كتالوج السيارات» حيث حقولُه ملفوفةٌ أصلاً
+ * في `.cat-filters__field` — وهناك بقي العطلُ ظاهراً حتى رآه المالك.
+ *
+ * والقاعدةُ كُتبت لحقلٍ **ابنٍ مباشرٍ** لصفٍّ أفقيّ، فحُدّت بذلك. */
+form[method="get"] > input[type="search"],
+form[method="get"] > .filters__main > input[type="search"] { flex: 1 1 14rem; min-inline-size: 12rem; }
 form[method="get"] button { margin: 0; padding-inline: 1.1rem; }
 form[method="get"] label { display: none; }
 /* الفاصل قبل الزرّ: يفصل «ماذا تبحث» عن «ابحث» بلا كلمة. */
@@ -8572,10 +8581,9 @@ main:not(.board) .page__actions { margin-block-start: .45rem; }
    ======================================================================== */
 
 form[method="get"] input[type="search"],
-.filters__main input[type="search"] {
-  max-inline-size: none;
-  flex: 1 1 14rem;
-}
+.filters__main input[type="search"] { max-inline-size: none; }
+form[method="get"] > input[type="search"],
+.filters__main > input[type="search"] { flex: 1 1 14rem; }
 
 /* ===========================================================================
    عمودُ التحكّم: شبكةٌ من الأزرار لا كومة
