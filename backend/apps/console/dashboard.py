@@ -41,7 +41,7 @@ from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid, BidRefusal
-from apps.core.permissions import Capability, can
+from apps.core.permissions import Capability, Role, can
 from apps.money.models import (
     UNPAID_INVOICE_STATES,
     Account,
@@ -530,6 +530,29 @@ def _greeting() -> str:
     return "مساء الخير"
 
 
+def _role_label(user) -> str:
+    """اسمُ دور اللوحة عربياً، أو الفراغ لمن لا دور مسجَّلاً له.
+
+    **مصدران بترتيبٍ مقصود**: التعدادُ في الشيفرة أولاً، ثم الجدول. الأدوارُ
+    الأربعة الأولى (`owner` · `operations` · `finance` · `support`) تسبق
+    الجدول ولا صفَّ لها فيه — وقراءةُ الجدول وحده كانت تترك الحبّةَ فارغةً
+    لأربعةٍ من كلّ ستّة، ومنهم المالك نفسه.
+
+    والـslug لا يُعرض أبداً: «operations» ليست كلمةً يقرأها من يفتح اللوحة.
+    """
+    slug = getattr(user, "console_role", "")
+    if not slug:
+        return ""
+    label = dict(Role.choices).get(slug)
+    if label:
+        return label
+    from apps.accounts.models import ConsoleRole
+
+    # دورٌ مصنوعٌ في الجدول. و`first()` لا `get()`: دورٌ حُذف وبقي اسمُه في
+    # العمود يترك الحبّة غائبةً، ولا يكسر الصفحة.
+    return ConsoleRole.objects.filter(slug=slug).values_list("label", flat=True).first() or ""
+
+
 @console_page("console:home")
 def dashboard(request):
     board = board_for(request.user)
@@ -542,6 +565,12 @@ def dashboard(request):
             # وحده فوق فقرةٍ خضراء، فبدأت اللوحة بلا مرساة تُقرأ قبل الأرقام.
             "greeting": _greeting(),
             "today_words": _today_words(),
+            # اسمُ الدور عربياً لحبّةٍ بجوار الاسم. `console_role` عمودُ slug
+            # لاتينيّ يدخل العناوين، و**لا يُعرض** — «ops» ليست كلمةً يقرأها
+            # من يفتح اللوحة. والاستعلامُ واحدٌ ومحروسٌ بـ`first()`: دورٌ
+            # حُذف من الجدول وبقي اسمُه في العمود يترك الحبّة غائبةً لا
+            # يكسر الصفحة.
+            "role_label": _role_label(request.user),
             # عددُ ما يحتاج نظراً — يُقرأ في الرأس قبل النزول إلى البطاقات.
             "alarm_count": len(board.alarms),
             # أسبوعٌ بلا مزايدةٍ واحدة: الرسم يخرج سبعةَ أعمدةٍ بارتفاع صفر،

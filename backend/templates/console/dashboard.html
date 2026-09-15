@@ -1,40 +1,53 @@
 {% extends "console/base.html" %}
 
-{% block heading %}لوحة التحليلات{% endblock %}
+{% comment %}
+  رأسُ هذه الشاشة **لافتةٌ** لا سطر — وهو الفرق الذي طلبه المالك بعد أن أرسل
+  لوحة v1: هناك عنوانٌ كبير في مربّع رمزٍ، وتحته سطرُ ترحيبٍ يقول لمن اللوحة
+  وما تلخّصه. وهنا كان عنواناً صغيراً في حافة الشاشة لا يفرّق عن رأس أي قائمة.
+
+  ولا رأسان: الترحيبُ والتاريخُ والحكم كلُّها **داخل** رأس الإطار عبر
+  `{% block actions %}`، لا في كتلةٍ ثانية تحته. وكتلةُ `.hero` المنفصلة
+  التي سبقت هذه أُلغيت لهذا بعينه — كانت تضع عنواناً فوق عنوان.
+{% endcomment %}
+
+{% block main_class %}board{% endblock %}
+
+{% block heading %}
+  <span class="board-crest" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+  </span>
+  لوحة التحليلات والإحصائيات
+{% endblock %}
+
+{% block actions %}
+  <p class="board-hello">
+    مرحباً{% if request.user.full_name %}، <strong>{{ request.user.full_name }}</strong>{% endif %}{% if role_label %}
+    <span class="board-role">{{ role_label }}</span>{% endif %}
+    <span class="board-hello__say">— ملخّصٌ شاملٌ لحركة المنصّة والمزادات والمال.</span>
+  </p>
+
+  <p class="board-when">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+    {{ today_words }}
+  </p>
+
+  {% comment %} الحكم حبّةٌ واحدة: نصٌّ ولونٌ معاً، فمن لا يميّز اللون يقرأ
+     الجملة نفسها. والعدد في الحبّة لأن «ثلاثُ ملاحظات» غيرُ «ملاحظة». {% endcomment %}
+  {% if board.alarms %}
+    <p class="board-verdict board-verdict--alarm">
+      <span class="board-pulse" aria-hidden="true"></span>
+      {{ alarm_count }} {% if alarm_count == 1 %}أمرٌ يحتاج نظراً{% else %}أمورٌ تحتاج نظراً{% endif %}
+    </p>
+  {% elif board.is_clean %}
+    <p class="board-verdict board-verdict--ok">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
+      الدفتر متّزن، ولا شيء معلّق بلا صاحب
+    </p>
+  {% endif %}
+{% endblock %}
 
 {% block content %}
-  {% comment %}
-    رأسُ اللوحة: لمن هي، ومتى قُرئت، وهل الدفتر متّزن — في كتلةٍ واحدة.
 
-    كان أعلى الصفحة عنواناً عارياً تحته فقرةٌ خضراء بعرض الشاشة، فبدأت اللوحة
-    بلا مرساةٍ تُقرأ قبل الأرقام، وحملت الفقرةُ الخضراء وزناً بصرياً يفوق ما
-    تقوله. وهنا: الاسم والتاريخ في جهة، والحكم حبّةً في الأخرى.
-  {% endcomment %}
-  <section class="hero" aria-label="حالة اللوحة">
-    <div class="hero__say">
-      <p class="hero__greet">
-        {{ greeting }}{% if request.user.full_name %}، <strong>{{ request.user.full_name }}</strong>{% endif %}
-      </p>
-      <p class="hero__date">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
-        {{ today_words }}
-      </p>
-    </div>
-
-    {% comment %} الحكم حبّةٌ واحدة: نصٌّ ولونٌ معاً، فمن لا يميّز اللون يقرأ
-       الجملة نفسها. والعدد في الحبّة لأن «ثلاثُ ملاحظات» غيرُ «ملاحظة». {% endcomment %}
-    {% if board.alarms %}
-      <p class="hero__verdict hero__verdict--alarm">
-        <span class="hero__pulse" aria-hidden="true"></span>
-        {{ alarm_count }} {% if alarm_count == 1 %}أمرٌ يحتاج نظراً{% else %}أمورٌ تحتاج نظراً{% endif %}
-      </p>
-    {% elif board.is_clean %}
-      <p class="hero__verdict hero__verdict--ok">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
-        الدفتر متّزن، ولا شيء معلّق بلا صاحب
-      </p>
-    {% endif %}
-  </section>
 
   {% comment %} الصحّة أولاً. رقمٌ كبير فوق دفترٍ لا يتّزن ليس معلومة. {% endcomment %}
   {% if board.alarms %}

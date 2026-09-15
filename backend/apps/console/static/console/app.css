@@ -4883,102 +4883,6 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
    والألوان السبعة تتبع بلا كتلةٍ ثانية تُصان.
    ======================================================================== */
 
-/* ---- الرأس -------------------------------------------------------------- */
-
-.hero {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.15rem 1.35rem;
-  margin-block-end: 1.5rem;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  /* تدرّجٌ خافتٌ من اللون الأساسي لا لونٌ مصمت: الرأس يجب أن يُميَّز عن
-     الأرضية دون أن ينافس البطاقات تحته على الانتباه. و`color-mix` لا قيمةٌ
-     مكتوبة، فيتبع اختيارَ المالك للّون الأساسي ويتبع المظهر الداكن معاً. */
-  background:
-    linear-gradient(135deg,
-      color-mix(in srgb, var(--brand) 9%, var(--panel)) 0%,
-      var(--panel) 62%);
-  box-shadow: var(--shadow);
-  position: relative;
-  overflow: hidden;
-  animation: rise .34s ease both;
-}
-
-/* شريطٌ رفيع على حافة البداية — الحافة المنطقية لا اليمنى، فتنقلب مع الاتجاه. */
-.hero::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline-start: 0;
-  inline-size: 3px;
-  background: linear-gradient(180deg, var(--brand), color-mix(in srgb, var(--brand) 20%, transparent));
-}
-
-.hero__say { display: flex; flex-direction: column; gap: .3rem; min-inline-size: 0; }
-
-.hero__greet {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 500;
-  color: var(--ink-soft);
-  line-height: 1.4;
-}
-.hero__greet strong { font-weight: 700; color: var(--ink); }
-
-.hero__date {
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: .4rem;
-  font-size: .78rem;
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-/* الحكم: حبّةٌ تحمل نصّاً ولوناً معاً — من لا يميّز الأخضر من الأحمر يقرأ
-   الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. */
-.hero__verdict {
-  margin: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  padding: .5rem .85rem;
-  border-radius: 999px;
-  font-size: .82rem;
-  font-weight: 600;
-  border: 1px solid transparent;
-  white-space: nowrap;
-}
-.hero__verdict--ok {
-  color: var(--ok);
-  background: var(--ok-soft);
-  border-color: var(--ok-line);
-}
-.hero__verdict--alarm {
-  color: var(--danger);
-  background: var(--danger-soft);
-  border-color: var(--danger-line);
-}
-
-/* نقطةٌ تنبض — إشارةُ «الآن» وحدها؛ والنصّ بجوارها يقول العدد والسبب.
-   وتُطفأ مع بقيّة الحركة لمن طلب ذلك، في الكتلة أسفل الورقة. */
-.hero__pulse {
-  inline-size: .5rem;
-  block-size: .5rem;
-  border-radius: 50%;
-  background: currentColor;
-  animation: hero-pulse 2s ease-in-out infinite;
-}
-
-@keyframes hero-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: .45; transform: scale(.78); }
-}
-
 /* ---- عنوانُ الكتلة ------------------------------------------------------ */
 
 /* عنوانٌ صغيرٌ وخطٌّ يمتدّ منه إلى آخر السطر: يفصل الكتل بلا أن يأخذ سطراً
@@ -5090,16 +4994,11 @@ a.stat:hover::before, a.stat:focus-visible::before { opacity: 1; block-size: 4px
 @media (max-width: 40rem) {
   /* الرأس عمودٌ واحد، والحكم تحته لا بجانبه — حبّةٌ بنصٍّ كامل بجوار اسمٍ
      طويل تقصّ أحدهما. */
-  .hero { flex-direction: column; align-items: flex-start; padding: 1rem 1.1rem; }
-  .hero__greet { font-size: 1.02rem; }
-  .hero__verdict { white-space: normal; }
   .stat__value { font-size: 1.7rem; }
 }
 
 /* من طلب تقليل الحركة: النبضةُ تسكن، والرأس يظهر بلا صعود. أداةُ عملٍ لا عرض. */
 @media (prefers-reduced-motion: reduce) {
-  .hero { animation: none; }
-  .hero__pulse { animation: none; }
 }
 
 /* لوحةٌ بلا بيانات تقول ذلك بجملة، والرسمُ الفارغ يبقى تحتها خافتاً ليُفهم
@@ -5257,3 +5156,175 @@ a.stat--warn:hover .stat__action  { color: var(--warn); }
 .stat--people .stat__unit  { background: var(--people-soft);  color: var(--people); }
 .stat--warn .stat__unit    { background: var(--warn-soft);    color: var(--warn); }
 .stat--alarm .stat__unit   { background: var(--danger-soft);  color: var(--danger); }
+
+
+/* ===========================================================================
+   رأسُ الرئيسية — لافتةٌ لا سطر
+   ---------------------------------------------------------------------------
+   في لوحة v1 التي أرسلها المالك: عنوانٌ كبيرٌ في مربّع رمزٍ ذهبيّ، وتحته سطرُ
+   ترحيبٍ باسم صاحب الجلسة ودوره، وجملةٌ تقول ما تلخّصه الصفحة. وكان الرأسُ هنا
+   عنواناً صغيراً في حافة الشاشة لا يفرّق عن رأس أي قائمة — فالصفحةُ تبدأ بلا
+   شيءٍ يقول «هذه هي اللوحة».
+
+   ولا رأسان: كتلةُ `.hero` التي وُضعت قبل هذه أُلغيت، وما كان فيها انتقل
+   **داخل** رأس الإطار عبر `{% block actions %}`. عنوانٌ فوق عنوانٍ مرّةً
+   واحدة كافٍ ليُقرأ أحدُهما زخرفةً.
+
+   والتخصيصُ بـ`.board` على `<main>` لا بنسخ الإطار: رأسُ القوائم يبقى سطراً
+   وأفعاله كما هو في ستٍّ وتسعين شاشة، وهذه وحدها لافتة.
+   ======================================================================== */
+
+.board .page {
+  display: block;
+  padding: 1.9rem 1.8rem 1.6rem;
+  margin-block-end: 1.6rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  /* تدرّجٌ من اللون الأساسي لا لونٌ مصمت — يتبع اختيار المالك والمظهر معاً. */
+  background:
+    linear-gradient(135deg,
+      color-mix(in srgb, var(--brand) 13%, var(--panel)) 0%,
+      var(--panel) 58%);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+  animation: rise .34s ease both;
+}
+
+/* شريطٌ على حافة البداية — منطقيّةٌ لا يمنى، فتنقلب مع الاتجاه. */
+.board .page::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: linear-gradient(180deg, var(--brand), color-mix(in srgb, var(--brand) 18%, transparent));
+}
+
+/* ---- العنوان ------------------------------------------------------------ */
+
+.board .page h1 {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  margin: 0;
+  font-size: 1.62rem;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  border: 0;
+  padding: 0;
+}
+
+/* مربّعُ الرمز: هو ما يجعل الرأسَ لافتةً لا سطراً — كتلةٌ ملوّنةٌ تقع عليها
+   العين قبل أن تقرأ حرفاً. وبلون الأساسي المصمت لأنه يحمل رسماً أبيض. */
+.board-crest {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: 14px;
+  background: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 32%, transparent);
+}
+
+/* ---- سطرُ الترحيب ------------------------------------------------------- */
+
+/* منطقةُ الأفعال في الإطار تحمل هنا **نصّاً** لا أزراراً: فتُصفَّر هندستُها
+   الأفقية وتصير عموداً تحت العنوان. ولو تُركت صفّاً لالتفّت الجملةُ بجوار
+   العنوان وقُصّت. */
+.board .page__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .55rem;
+  margin-block-start: .95rem;
+  padding-inline-start: 3.8rem;   /* بمحاذاة النصّ لا بمحاذاة المربّع */
+}
+
+.board-hello {
+  margin: 0;
+  font-size: .95rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+}
+.board-hello strong { font-weight: 700; color: var(--ink); }
+.board-hello__say { color: var(--muted); }
+
+/* حبّةُ الدور: اسمٌ عربيٌّ من `ConsoleRole.label` لا الـslug اللاتيني. */
+.board-role {
+  display: inline-block;
+  padding: .12rem .55rem;
+  margin-inline: .2rem;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .75rem;
+  font-weight: 700;
+  vertical-align: .05em;
+}
+
+.board-when {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .78rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- الحكم -------------------------------------------------------------- */
+
+.board-verdict {
+  margin: .15rem 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .85rem;
+  border-radius: 999px;
+  font-size: .82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.board-verdict--ok    { color: var(--ok);     background: var(--ok-soft);     border-color: var(--ok-line); }
+.board-verdict--alarm { color: var(--danger); background: var(--danger-soft); border-color: var(--danger-line); }
+
+/* نقطةٌ تنبض — إشارةُ «الآن» وحدها، والنصّ بجوارها يقول العدد والسبب. */
+.board-pulse {
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  animation: hero-pulse 2s ease-in-out infinite;
+}
+
+/* زرُّ الرجوع لا مكان له هنا: الرئيسية لا شيء فوقها، والقاعدة مكتوبةٌ في
+   `base.html` — وهذا يحرسها لو عاد صفُّها إلى السجلّ يوماً. */
+.board .page__back { display: none; }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .board .page { padding: 1.4rem 1.2rem 1.2rem; }
+  .board .page h1 { font-size: 1.3rem; gap: .6rem; }
+  .board-crest { inline-size: 2.5rem; block-size: 2.5rem; border-radius: 12px; }
+  .board-crest svg { width: 22px; height: 22px; }
+  /* الحشوةُ تُلغى: عمودٌ مزاحٌ بـ3.8rem على شاشةٍ بعرض 24rem يبقى له الثلث. */
+  .board .page__actions { padding-inline-start: 0; }
+  .board-hello { font-size: .88rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board .page { animation: none; }
+  .board-pulse { animation: none; }
+}
+
+/* إطارُ النبضة. كان مع كتلة `.hero` المحذوفة، فبقي اسمُه في `.board-pulse`
+   بلا تعريف — وحركةٌ بلا إطارٍ لا تُخطئ، تسكت فحسب. */
+@keyframes hero-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: .45; transform: scale(.78); }
+}
