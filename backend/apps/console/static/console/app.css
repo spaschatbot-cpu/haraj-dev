@@ -7604,3 +7604,50 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   border-color: var(--brand-solid);
   color: var(--brand-dark);
 }
+
+/* ===========================================================================
+   سطرُ الوصف يرتفع، وزرُّ التصدير يحمل رمزَه ولونَه
+   ---------------------------------------------------------------------------
+   «قلّل ده شويه وارفعه قليلاً فوق، وخلى زر تصدير إكسيل بشكل ولون أفضل».
+
+   **والرمزُ في الورقة لا في القوالب.** رابطُ التصدير مكتوبٌ في **أربعةٍ
+   وعشرين** قالباً، وإضافةُ `<svg>` إلى كلٍّ منها أربعةٌ وعشرون تعديلاً
+   ونسيانُ واحدٍ منها هو الشاشةُ التي تبدو مكسورة — وهي العلّةُ التي كُتبت
+   في رأس «طبقة العرض» ولأجلها صارت القاعدةُ **محدِّداتِ عناصرَ لا أصنافاً
+   تُكتب في القالب**.
+
+   والرمزُ `mask` لا `background-image`: القناعُ يأخذ لونَه من
+   `background: currentColor`، فيتحوّل مع النصّ إلى الأبيض عند المرور.
+   وصورةٌ خلفيةً تبقى بلونها المخبوز فيها ولا تتبع شيئاً.
+   ======================================================================== */
+
+.lede { margin-block-start: -.35rem; }
+
+.page__actions a:not(.page__back) {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+  color: var(--brand-dark);
+}
+.page__actions a:not(.page__back)::before {
+  content: "";
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+.page__actions a:not(.page__back):hover {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+}
+[data-scheme="dark"] .page__actions a:not(.page__back):hover { color: #fff; }
+
+/* ورقةٌ تنزل من صندوقٍ — رمزُ «احفظ ملفاً»، لا جدولٌ ولا حرفُ X. */
+:root {
+  --icon-export: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><path d='M7 10l5 5 5-5'/><path d='M12 15V3'/></svg>");
+}
