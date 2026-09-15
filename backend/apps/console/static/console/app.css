@@ -5594,3 +5594,73 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
 @media (max-width: 40rem) {
   .board .page__actions { padding-block-end: .9rem; }
 }
+
+/* ===========================================================================
+   أرضيةُ اللوحة — شبكةُ نقطٍ خافتة، وتوهّجٌ في الزاوية
+   ---------------------------------------------------------------------------
+   «ضيف في خلفية الصفحة زي نقط أو أي حاجة تخلي فيه حركة مش سادة كده».
+
+   والحركةُ هنا **نسيجٌ لا حركةٌ فعلية**: هذه شاشةُ عملٍ يُقرأ فيها رقمُ مالٍ
+   ويُضغط زرٌّ لا يُتراجَع عنه، وشيءٌ يتحرّك خلف ذلك يسرق الانتباهَ من الرقم
+   كلَّ مرّة. والورقةُ نفسها تقول في رأس كتلة اللوحة: «لا شيء يتحرّك بعد أن
+   يستقرّ». فالأرضيةُ ساكنةٌ وفيها ما يُرى:
+
+   * **شبكةُ نقط** — `radial-gradient` مكرَّرة، نقطةٌ بقطر 1px كل 22px. بلون
+     الحبر مخفَّفاً بـ`color-mix` لا بقيمةٍ مكتوبة، فتتبع المظهرَ الداكن بلا
+     كتلةٍ ثانية: نقطةٌ داكنةٌ على أرضيةٍ فاتحة، وفاتحةٌ على داكنة.
+   * **توهّجان** بلون الأساسي عند الحافتين العلويّتين — كبيران وخافتان
+     جداً، يكسران استواءَ اللون الواحد على شاشةٍ عريضة.
+
+   وكلُّه على `main` وحده: الشريطُ الجانبي والشريطُ العلويّ لهما ألوانُهما،
+   ونقطةٌ خلف قائمةٍ من أربعةٍ وستّين سطراً ضجيجٌ لا نسيج. و`background-attachment`
+   متروكٌ افتراضياً — الثابتُ عند التمرير يجعل النقاطَ تسبح تحت المحتوى، وهو
+   بعينه ما يسرق الانتباه.
+   ======================================================================== */
+
+main {
+  position: relative;
+  background-image:
+    /* توهّجٌ عند حافة البداية العليا */
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 11%, transparent) 0%, transparent 62%),
+    /* وآخرُ أبردُ عند المقابلة */
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 7%, transparent) 0%, transparent 60%),
+    /* شبكةُ النقط */
+    radial-gradient(circle at 1px 1px,
+      color-mix(in srgb, var(--ink) 19%, transparent) 1.15px, transparent 0);
+  background-size: auto, auto, 22px 22px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* البطاقاتُ واللوحاتُ تبقى مصمتةً فوق النسيج: نقطةٌ تُرى خلف رقمٍ ماليّ
+   تجعله يُقرأ على ورقٍ مبقّع. وهي `--panel` أصلاً — هذا يحرس ذلك صراحةً. */
+.stat, .figure { background-color: var(--panel); }
+
+/* المظهرُ الداكن: النقطةُ تُرفع قليلاً لأن `--ink` فيه فاتحٌ أصلاً، ومزجُه
+   بـ14٪ يختفي على أرضيةٍ سوداء. */
+[data-scheme="dark"] main {
+  background-image:
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 14%, transparent) 0%, transparent 62%),
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 9%, transparent) 0%, transparent 60%),
+    radial-gradient(circle at 1px 1px,
+      color-mix(in srgb, var(--ink) 26%, transparent) 1.15px, transparent 0);
+  background-size: auto, auto, 22px 22px;
+  background-repeat: no-repeat, no-repeat, repeat;
+}
+
+/* الرمزُ أصغر — ومسارُه صار أعمدةً، فسُمكُ الخطّ يُضبط في الورقة لا في
+   القالب: `stroke-width` هناك قيمةٌ واحدة لكل المقاسات. */
+.board { --crest: 2.1rem; --crest-gap: .6rem; }
+.board-crest { border-radius: 11px; }
+.board-crest svg { width: 18px; height: 18px; }
+
+@media (max-width: 40rem) {
+  .board { --crest: 1.9rem; --crest-gap: .5rem; }
+  .board-crest svg { width: 16px; height: 16px; }
+  /* النقاطُ تتباعد على الضيّق: شبكةٌ بـ22px على شاشةٍ بعرض 24rem تُقرأ
+     ضجيجاً لا نسيجاً. */
+  main, [data-scheme="dark"] main { background-size: auto, auto, 28px 28px; }
+}

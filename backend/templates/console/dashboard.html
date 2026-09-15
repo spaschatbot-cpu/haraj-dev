@@ -13,8 +13,15 @@
 {% block main_class %}board{% endblock %}
 
 {% block heading %}
+  {% comment %} أعمدةٌ صاعدةٌ بأطرافٍ مستديرة، لا مسارُ خطٍّ في محور.
+     والمسارُ في مربّعٍ بـ2.1rem يُرسَم بـ18px، وخطٌّ ينكسر مرّتين عند هذا
+     المقاس يصير لطخةً لا شكلاً — بينما ثلاثةُ أعمدةٍ تبقى ثلاثةَ أعمدة.
+     و`stroke-linecap: round` يجعل كلَّ عمودٍ خطاً واحداً بطرفين مستديرين،
+     فلا مستطيلاتٍ تُرسم ولا حدودَ داخلية. {% endcomment %}
   <span class="board-crest" aria-hidden="true">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" focusable="false">
+      <path d="M7 17v-4"/><path d="M12 17V8"/><path d="M17 17v-6"/>
+    </svg>
   </span>
   لوحة التحليلات والإحصائيات
 {% endblock %}
