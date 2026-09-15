@@ -8477,3 +8477,70 @@ main h1 { gap: var(--page-crest-gap); }
   padding-block-start: 1.4rem;
   border-block-start: 1px solid var(--line);
 }
+
+/* ===========================================================================
+   أفعالُ الرأس: فعلٌ أوّلٌ واحد، ورمزٌ لمن يستحقّه
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «قائمة المزادات»، وفيها
+   **أربعةُ أفعالٍ في الرأس**، وهي أكثرُ شاشةٍ في اللوحة فعلاً.
+
+   **وعطلان، كلاهما من قاعدةٍ كُتبت لشاشةٍ فيها فعلٌ واحد:**
+
+   * **رمزُ التصدير على الأربعة.** القاعدةُ كانت
+     `.page__actions a:not(.page__back)::before` — أي «كلُّ رابطٍ في صفّ
+     الأفعال»، وذلك صحيحٌ في شاشةٍ فعلُها التصديرُ وحده. وفي هذه الشاشة يحمل
+     «+ مزاد جديد» و«بحث عن سيارة» و«عمليات مجمعة» رسمَ ورقةٍ نازلةٍ من
+     صندوق — أي أنها **تقول إنها تُصدّر ملفّاً** وهي لا تفعل.
+
+     فصار الرمزُ على `a[href*="export"]` وحدَه: الشرطُ على **ما يفعله
+     الرابط** لا على موضعه.
+
+   * **أربعةٌ ممتلئةٌ بلون الأساسي تتنافس.** والرأسُ فيه فعلٌ أوّلٌ واحد
+     («+ مزاد جديد»، وهو الوحيد الذي يحمل `btn-primary` في القالب)، والباقي
+     طرقٌ إلى شاشاتٍ أخرى. فالممتلئُ له وحدَه، والبقيّةُ محدَّدةٌ بحدّ.
+   ======================================================================== */
+
+.page__actions a:not(.page__back)::before { content: none; }
+
+.page__actions a[href*="export"]::before {
+  content: "";
+  inline-size: 15px;
+  block-size: 15px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+
+/* الثانويّ: سطحُ اللوح وحدٌّ ونصٌّ بلون الحبر. */
+.page__actions a:not(.page__back):not(.btn-primary) {
+  background: var(--panel);
+  border-color: color-mix(in srgb, var(--field-border) 55%, #fff);
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+.page__actions a:not(.page__back):not(.btn-primary):hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+/* **والفعلُ الوحيد في الرأس أوّليٌّ ولو لم يحمل `btn-primary`.**
+
+   جعلُ ما ليس `btn-primary` ثانوياً صحيحٌ في شاشةٍ فيها أربعةُ أفعال، وخطأٌ
+   في شاشةٍ فيها فعلٌ واحد: «تصدير إلى إكسل» في «إدارة المستخدمين» هو كلُّ
+   ما في الرأس، وقد طُلب صراحةً أن يكون واضحاً — فثانويّتُه تنقض ذلك.
+
+   و`:only-child` يفرّق بينهما بلا صنفٍ يُكتب في القالب: فعلٌ وحدَه لا ينافسه
+   شيء، فلا معنى لتخفيفه. */
+.page__actions a:only-child:not(.page__back) {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(23 32 51 / .06);
+}
+.page__actions a:only-child:not(.page__back):hover {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  border-color: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+}
