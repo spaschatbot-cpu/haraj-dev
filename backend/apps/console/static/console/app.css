@@ -8682,3 +8682,72 @@ td.actions .act--del:hover {
   border-color: var(--danger);
   color: var(--danger);
 }
+
+/* ===========================================================================
+   كروتُ اختيار المزاد: البطاقةُ هي الزرّ
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر».
+
+   **والبطاقةُ كلُّها `<a>` أصلاً** — مكتوبٌ في رأس قالبها أن ذلك مقصود:
+   «الكارتُ هدفُ لمسٍ أكبر». ثم يقع في قاعها **زرٌّ ممتلئٌ بعرضها** يقول
+   «فتح إدارة + سيارات» — أي هدفُ لمسٍ ثانٍ داخل الأوّل، يفعل ما يفعله.
+   وخمسةُ كروتٍ في شبكةٍ تعني خمسةَ أزرارٍ زرقاءَ ممتلئةٍ تصرخ بالقوّة نفسِها،
+   فلا يُعرف أيُّها المقصود — وكلُّها المقصود.
+
+   فصار التذييلُ **سطرَ وجهةٍ** خلف خطٍّ رفيع: يقول إلى أين تذهب البطاقةُ إن
+   نُقرت، ويتلوّن معها عند المرور. وهي لغةُ بطاقات الأرقام في الرئيسية نفسُها.
+
+   **والبطاقةُ ترتفع عند المرور** بحدٍّ وظلّ — فالهدفُ كلُّه يستجيب لا جزءٌ
+   منه.
+
+   والوسومُ الثلاثةُ (العددُ والبدءُ والانتهاء) تصير سطراً واحداً بفواصل:
+   ثلاثُ حبّاتٍ في بطاقةٍ بعرض 17rem تلتفّ سطرين وتُقرأ ثلاثةَ أشياءَ
+   منفصلة، وهي **بيانٌ واحد**: متى وكم.
+   ======================================================================== */
+
+.pick-card { gap: .5rem; }
+.pick-card:hover {
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  box-shadow: 0 2px 4px rgb(23 32 51 / .06), 0 10px 26px rgb(23 32 51 / .09);
+  transform: none;
+}
+
+.pick-card__id { font-size: .74rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pick-card__title { font-size: 1rem; font-weight: 800; color: var(--ink); line-height: 1.4; margin: 0; }
+
+/* سطرٌ واحدٌ بفواصلَ لا ثلاثُ حبّات. */
+.pick-card__meta { display: block; font-size: .78rem; font-weight: 600; color: var(--muted); line-height: 1.7; }
+.pick-card__meta .chip {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 0;
+  font-size: inherit;
+  color: inherit;
+  white-space: normal;
+}
+.pick-card__meta .chip + .chip::before {
+  content: "·";
+  margin-inline: .45rem;
+  color: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+.pick-card__meta .chip--count { color: var(--ink); font-weight: 800; }
+
+/* التذييلُ سطرُ وجهةٍ لا زرٌّ ثانٍ. */
+.pick-card__cta {
+  margin-block-start: auto;
+  padding: .7rem 0 0;
+  border-block-start: 1px solid var(--line-soft);
+  background: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 700;
+  text-align: start;
+  border-radius: 0;
+  transition: color .15s ease;
+}
+.pick-card:hover .pick-card__cta { color: var(--brand-dark); }
+.pick-card__cta span[aria-hidden] { transition: transform .15s ease; display: inline-block; }
+.pick-card:hover .pick-card__cta span[aria-hidden] { transform: translateX(-3px); }
+.pick-card__cta--off { background: none; color: var(--muted); }
