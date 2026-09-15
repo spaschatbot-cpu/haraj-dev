@@ -7123,3 +7123,87 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 .brief dd[data-slice="3"] .brief__dot { background: #c9891a; }
 .brief dd[data-slice="4"] .brief__dot { background: #21a06a; }
 .brief dd[data-slice="5"] .brief__dot { background: #e05a4c; }
+
+/* ===========================================================================
+   الإجماليُّ كحليّ، ولوحُ «المزايدات — سبعة أيام» يُقرأ
+   ---------------------------------------------------------------------------
+   «خلى خمسة دي بلون كحلي، وخلى مربع المزايدات بشكل احترافي أكتر».
+
+   والكحليُّ هو المزيجُ نفسُه المستعمل في عناوين الكتل — `--ink` مع أزرقٍ
+   صريح — لا قيمةٌ ثانيةٌ تُكتب: قيمتان لكحليٍّ واحدٍ تفترقان عند أوّل تعديل.
+
+   ---- لوحُ المزايدات ----------------------------------------------------
+   كان رأساً، ثم صندوقاً رمادياً يقول «لا مزايدة»، ثم سبعةَ أعمدةٍ صفرية في
+   فراغٍ بارتفاع 180px. وثلاثةُ عيوب:
+
+   * **لا مقدارَ فوق الرسم.** سبعةُ أعمدةٍ بلا مجموع تُقرأ نسباً بلا مقام،
+     و«العمود الأطول هو أعلى يوم» تقول كيف يُقرأ الرسمُ ولا تقول كم.
+   * **الصفرُ يُعرَض عطلاً.** صندوقٌ رماديٌّ يطفو فوق الرسم يُقرأ رسالةَ
+     خطأ؛ والصفرُ **قيمةٌ** — أسبوعٌ بلا مزايدةٍ خبرٌ يُقال في السطر.
+   * **لا مسطرةَ للأعمدة.** عمودٌ في فراغٍ أبيض لا يُقاس إلا برقمه، فالرسمُ
+     زينةٌ فوق أرقامٍ لا رسمٌ يُقرأ.
+
+   فصار: سطرُ مقدارٍ فيه المجموعُ وأعلى يوم، ثم أعمدةٌ على **خطوطٍ أفقيةٍ
+   خافتة** تقيسها، ثم القاعدة.
+   ======================================================================== */
+
+.states__lead strong { color: color-mix(in srgb, var(--ink) 80%, #1a56db); }
+
+/* ---- سطرُ المقدار ------------------------------------------------------- */
+
+.trend__lead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .4rem .75rem;
+  margin: 0 0 1.1rem;
+}
+.trend__lead > strong {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: color-mix(in srgb, var(--ink) 80%, #1a56db);
+  font-variant-numeric: tabular-nums;
+}
+.trend__lead > span { font-size: .84rem; font-weight: 600; color: var(--muted); }
+
+.trend__peak {
+  margin-inline-start: auto;
+  padding: .3rem .7rem;
+  border-radius: 999px;
+  background: var(--auction-soft);
+  color: var(--auction);
+  font-size: .76rem !important;
+  font-weight: 700 !important;
+}
+.trend__peak b { font-weight: 800; font-variant-numeric: tabular-nums; }
+/* «لا مزايدة» ليست ذروةً: حبّةٌ محايدةٌ لا فيروزيّة. */
+.trend__peak--none { background: var(--line-soft); color: var(--muted) !important; }
+
+/* ---- مسطرةُ الأعمدة ----------------------------------------------------- */
+
+/* أربعةُ خطوطٍ أفقيةٍ خافتة خلف الأعمدة — مسطرةٌ تقيسها. ومرسومةٌ خلفيةً
+   لا عناصر: سبعةُ `<span>`ات لخطوطٍ لا تقول شيئاً لقارئ الشاشة. */
+.spark {
+  position: relative;
+  background-image: repeating-linear-gradient(
+    to top,
+    transparent 0,
+    transparent calc(25% - 1px),
+    var(--line) calc(25% - 1px),
+    var(--line) 25%
+  );
+  background-position: 0 -1px;
+  padding-block-start: .4rem;
+  border-block-end: 1px solid var(--line);
+}
+.spark__bar { position: relative; z-index: 1; }
+
+/* الصندوقُ الرمادي حُذف: الخبرُ انتقل إلى سطر المقدار. */
+.figure__empty { display: none; }
+.figure__empty + .spark { opacity: 1; }
+
+/* خطوطُ المسطرة بـ`--line` لا `--line-soft`: الثاني (#eef2f8) على لوحٍ أبيض
+   فرقُه عن الأرضية أربعُ درجاتٍ من 255 — يُرسم ولا يُرى، وهو أسوأُ من ألّا
+   يُرسم لأنه يُصان بلا أن يعمل. */
+.spark { background-position: 0 -1px; }

@@ -249,6 +249,12 @@ class Board:
     auction_wheel: str = ""
     auction_total: int = 0
     trend: list[tuple[str, int, int]] = field(default_factory=list)
+    #: مجموعُ مزايدات الأسبوع، وأعلى يومٍ فيه — مشتقّان من `trend` نفسِها.
+    #:
+    #: يقولان ما لا يقوله الرسمُ وحدَه: الرسمُ يقول **الشكل**، وهذان يقولان
+    #: **المقدار**. وسبعةُ أعمدةٍ بلا مجموعٍ فوقها تُقرأ نسباً بلا مقام.
+    trend_total: int = 0
+    trend_peak: tuple[str, int] | None = None
 
 
 def _money(amount: Decimal) -> str:
@@ -445,6 +451,10 @@ def board_for(user) -> Board:
             label, count, _ = board.auction_states[index]
             board.auction_top = (label, count, index)
         board.trend = _trend()
+        board.trend_total = sum(n for _, n, _ in board.trend)
+        if board.trend_total:
+            top = max(board.trend, key=lambda row: row[1])
+            board.trend_peak = (top[0], top[1])
 
     # ---- الناس -----------------------------------------------------------
     if sees_users:

@@ -178,11 +178,21 @@
           <h2>المزايدات — سبعة أيام</h2>
           <span class="figure__note">العمود الأطول هو أعلى يوم</span>
         </header>
-        {% comment %} أسبوعٌ بلا مزايدة يُقال نصّاً لا يُترك لوحةً بيضاء: سبعةُ
-           أعمدةٍ بارتفاع صفر تُقرأ «الرسم معطّل» لا «لا شيء حدث». {% endcomment %}
-        {% if trend_is_empty %}
-          <p class="figure__empty">لا مزايدة في السبعة أيام الماضية.</p>
-        {% endif %}
+        {% comment %} سطرُ مقدارٍ فوق الرسم: الرسمُ يقول **الشكل**، وهذا
+           يقول **المقدار**. وسبعةُ أعمدةٍ بلا مجموعٍ فوقها تُقرأ نسباً بلا
+           مقام — «أعلى يومٍ» أعلى من ماذا؟
+
+           وأسبوعٌ بلا مزايدةٍ يُقال في السطر نفسِه لا في صندوقٍ رماديٍّ
+           يطفو فوق الرسم: الصفرُ **قيمةٌ** لا عطل. {% endcomment %}
+        <p class="trend__lead">
+          <strong>{{ board.trend_total }}</strong>
+          <span>مزايدة في سبعة أيام</span>
+          {% if board.trend_peak %}
+            <span class="trend__peak">أعلى يوم <b>{{ board.trend_peak.0 }}</b> بـ<b>{{ board.trend_peak.1 }}</b></span>
+          {% else %}
+            <span class="trend__peak trend__peak--none">لا مزايدة في المدّة كلّها</span>
+          {% endif %}
+        </p>
         <ol class="spark"{% if trend_is_empty %} aria-hidden="true"{% endif %}>
           {% for day, count, height in board.trend %}
             <li class="spark__day">
