@@ -5628,7 +5628,7 @@ main {
       color-mix(in srgb, var(--auction) 7%, transparent) 0%, transparent 60%),
     /* شبكةُ النقط */
     radial-gradient(circle at 1px 1px,
-      color-mix(in srgb, var(--ink) 19%, transparent) 1.15px, transparent 0);
+      color-mix(in srgb, var(--ink) 11%, transparent) 1.15px, transparent 0);
   background-size: auto, auto, 22px 22px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
@@ -5646,7 +5646,7 @@ main {
     radial-gradient(48rem 22rem at 6% 2%,
       color-mix(in srgb, var(--auction) 9%, transparent) 0%, transparent 60%),
     radial-gradient(circle at 1px 1px,
-      color-mix(in srgb, var(--ink) 26%, transparent) 1.15px, transparent 0);
+      color-mix(in srgb, var(--ink) 16%, transparent) 1.15px, transparent 0);
   background-size: auto, auto, 22px 22px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
@@ -5663,4 +5663,36 @@ main {
   /* النقاطُ تتباعد على الضيّق: شبكةٌ بـ22px على شاشةٍ بعرض 24rem تُقرأ
      ضجيجاً لا نسيجاً. */
   main, [data-scheme="dark"] main { background-size: auto, auto, 28px 28px; }
+}
+
+/* ===========================================================================
+   الرأسُ إلى حافة البداية، والنقطُ أشفّ
+   ---------------------------------------------------------------------------
+   «خلى ده في اليمين، وزوّد شفافية النقط أكتر».
+
+   والتوسيطُ كان قد وُضع على هيئة لوحة v1، فيُرَدّ: العنوانُ ومربّعُه على
+   حافة البداية — يمينُ الصفحة في RTL — وسطرُ الترحيب تحته محاذياً **نصَّ**
+   العنوان لا المربّع.
+
+   والإزاحةُ محسوبةٌ من `--crest` وفجوته لا مكتوبةً بالتقريب: القاعدةُ نفسُها
+   التي جعلت تصغيرَ المربّع مرّتين لا يحتاج تعديلَ رقمٍ ثانٍ.
+
+   والنقطُ خُفّفت من 19٪ إلى 11٪ في الفاتح، ومن 26٪ إلى 16٪ في الداكن —
+   في موضعها من كتلة الأرضية أعلاه، لا بقاعدةٍ ثانيةٍ تنسخ التدرّجَ كلَّه
+   لتغيّر رقماً فيه.
+   ======================================================================== */
+
+.board .page { text-align: start; }
+.board .page h1 { justify-content: flex-start; }
+.board-hello { text-align: start; }
+.board-verdict { align-self: flex-start; }
+.board .page__actions {
+  align-items: flex-start;
+  padding-inline-start: calc(var(--crest) + var(--crest-gap));
+}
+
+@media (max-width: 40rem) {
+  /* الإزاحةُ تُلغى على الضيّق: عمودٌ مزاحٌ بـ2.4rem على شاشةٍ بعرض 24rem
+     يبقى له أقلُّ من ثلاثة أرباعه. */
+  .board .page__actions { padding-inline-start: 0; }
 }
