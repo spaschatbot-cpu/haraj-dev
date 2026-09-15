@@ -4884,6 +4884,21 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
    وثلاثتُها تصنع الفراغ: الوسطُ وحده يترك هامشين بدل هامشٍ واحد.
    والعمودُ الأوّل (السيارة) يبقى إلى البداية: اسمٌ عربيٌّ متغيّرُ الطول
    يُقرأ من حافّةٍ ثابتة. */
+/* **وخليّةُ الأفعال هنا ليست شبكةَ الأيقونات.** القاعدةُ العامّة صارت
+   `td.actions { display: grid; grid-template-columns: repeat(3, 1.85rem) }`
+   — وهي صحيحةٌ لأزرار `.act`: مربّعاتٌ بأيقونةٍ بلا نصّ، تستقيم رأسياً بين
+   الصفوف. وأزرارُ هذه الشاشة `.ex-act`: **أيقونةٌ ونصٌّ معاً كـ v1**
+   («الإقرار/الباركود» · «رفع الموقّع» · «تعديل»). فحُشرت في خانةِ ١٫٨٥rem
+   فصار عرضُ الزرّ ٣٠px ونصُّه يطفح خارجه **ويركب على الزرّ المجاور** — وهو
+   ما رآه المالك كلاماً فوق كلام. قِيس: `cellW 144` و`.ex-act` ٣٠px ونصُّها
+   «الإقرار/الباركود».
+   فتُستثنى خلايا هذه الشاشة وحدها، وتبقى الشبكةُ لكلّ اللوحة. */
+.ex-pane td.actions {
+  display: flex; flex-wrap: wrap; gap: .3rem;
+  justify-content: center; align-items: center;
+  grid-template-columns: none;
+}
+
 .ex-pane th, .ex-pane td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
 .ex-pane thead th { font-size: .74rem; }
 .ex-pane tbody td:first-child, .ex-pane thead th:first-child { text-align: start; }
