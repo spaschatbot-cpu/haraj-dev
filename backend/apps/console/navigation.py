@@ -1157,6 +1157,19 @@ def back_for(url_name: str) -> Page | None:
     return None
 
 
+def icon_for(url_name: str) -> str:
+    """مسارُ رسم الشاشة، أو الفراغ لما ليس شاشةً في السجلّ.
+
+    الرسمُ نفسُه الذي يحمله سطرُ الشريط الجانبي، فرأسُ الشاشة وسطرُها في
+    القائمة يقولان الشيءَ نفسَه — ورمزان مختلفان لشاشةٍ واحدة يجعلان المرءَ
+    يظنّهما شاشتين.
+    """
+    for page in (*PAGES, *DETAIL_PAGES):
+        if page.url_name == url_name:
+            return page.icon_path
+    return ""
+
+
 def capability_for(url_name: str) -> str | None:
     """Which capability guards ``url_name``, or None when it is not a page here.
 

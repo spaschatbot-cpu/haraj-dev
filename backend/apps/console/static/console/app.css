@@ -5188,7 +5188,7 @@ a.stat:hover::before, a.stat:focus-visible::before { block-size: 5px; opacity: 1
 
 /* مربّعُ الرمز: هو ما يجعل الرأسَ لافتةً لا سطراً — كتلةٌ ملوّنةٌ تقع عليها
    العين قبل أن تقرأ حرفاً. وبلون الأساسي المصمت لأنه يحمل رسماً أبيض. */
-.board-crest {
+.board .page__crest, .board-crest {
   flex: none;
   display: grid;
   place-items: center;
@@ -5270,8 +5270,8 @@ a.stat:hover::before, a.stat:focus-visible::before { block-size: 5px; opacity: 1
 @media (max-width: 40rem) {
   .board .page { padding: .25rem 0 0; }
   .board .page h1 { font-size: 1.3rem; gap: .6rem; }
-  .board-crest { inline-size: 2.5rem; block-size: 2.5rem; border-radius: 12px; }
-  .board-crest svg { width: 22px; height: 22px; }
+  .board .page__crest, .board-crest { inline-size: 2.5rem; block-size: 2.5rem; border-radius: 12px; }
+  .board .page__crest svg, .board-crest svg { width: 22px; height: 22px; }
   /* الحشوةُ تُلغى: عمودٌ مزاحٌ بـ3.8rem على شاشةٍ بعرض 24rem يبقى له الثلث. */
   .board .page__actions { padding-inline-start: 0; }
   .board-hello { font-size: .88rem; }
@@ -5533,7 +5533,7 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
    محسوبةٌ من مقاس المربّع وفجوته لا مكتوبةً بالتقريب — كانت `3.95rem` رقماً
    مقدَّراً بالعين، ويكفي أن يتغيّر المربّعُ نصفَ ريم ليفترق السطران. */
 .board { --crest: 3rem; --crest-gap: .8rem; }
-.board-crest { inline-size: var(--crest); block-size: var(--crest); }
+.board .page__crest, .board .page__crest, .board-crest { inline-size: var(--crest); block-size: var(--crest); }
 .board .page h1 { gap: var(--crest-gap); }
 .board .page__actions { padding-inline-start: calc(var(--crest) + var(--crest-gap)); }
 
@@ -5553,13 +5553,13 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
    سطرَ الترحيب، فتصغيرُ المربّع يحرّك السطرَ معه بلا رقمٍ ثانٍ يُعدَّل. */
 .board { --crest: 2.45rem; --crest-gap: .7rem; }
 .board .page h1 { font-size: 1.45rem; }
-.board-crest { border-radius: 12px; }
-.board-crest svg { width: 21px; height: 21px; }
+.board .page__crest, .board .page__crest, .board-crest { border-radius: 12px; }
+.board .page__crest svg, .board-crest svg { width: 21px; height: 21px; }
 
 @media (max-width: 40rem) {
   .board { --crest: 2.1rem; --crest-gap: .55rem; }
   .board .page h1 { font-size: 1.2rem; }
-  .board-crest svg { width: 18px; height: 18px; }
+  .board .page__crest svg, .board-crest svg { width: 18px; height: 18px; }
 }
 
 /* ===========================================================================
@@ -5628,7 +5628,7 @@ main {
       color-mix(in srgb, var(--auction) 7%, transparent) 0%, transparent 60%),
     /* شبكةُ النقط */
     radial-gradient(circle at 1px 1px,
-      color-mix(in srgb, var(--ink) 11%, transparent) 1.15px, transparent 0);
+      color-mix(in srgb, var(--ink) 7%, transparent) 1.15px, transparent 0);
   background-size: auto, auto, 22px 22px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
@@ -5646,7 +5646,7 @@ main {
     radial-gradient(48rem 22rem at 6% 2%,
       color-mix(in srgb, var(--auction) 9%, transparent) 0%, transparent 60%),
     radial-gradient(circle at 1px 1px,
-      color-mix(in srgb, var(--ink) 16%, transparent) 1.15px, transparent 0);
+      color-mix(in srgb, var(--ink) 11%, transparent) 1.15px, transparent 0);
   background-size: auto, auto, 22px 22px;
   background-repeat: no-repeat, no-repeat, repeat;
 }
@@ -5654,12 +5654,12 @@ main {
 /* الرمزُ أصغر — ومسارُه صار أعمدةً، فسُمكُ الخطّ يُضبط في الورقة لا في
    القالب: `stroke-width` هناك قيمةٌ واحدة لكل المقاسات. */
 .board { --crest: 2.1rem; --crest-gap: .6rem; }
-.board-crest { border-radius: 11px; }
-.board-crest svg { width: 18px; height: 18px; }
+.board .page__crest, .board .page__crest, .board-crest { border-radius: 11px; }
+.board .page__crest svg, .board-crest svg { width: 18px; height: 18px; }
 
 @media (max-width: 40rem) {
   .board { --crest: 1.9rem; --crest-gap: .5rem; }
-  .board-crest svg { width: 16px; height: 16px; }
+  .board .page__crest svg, .board-crest svg { width: 16px; height: 16px; }
   /* النقاطُ تتباعد على الضيّق: شبكةٌ بـ22px على شاشةٍ بعرض 24rem تُقرأ
      ضجيجاً لا نسيجاً. */
   main, [data-scheme="dark"] main { background-size: auto, auto, 28px 28px; }
@@ -8225,3 +8225,37 @@ thead th, tr:first-child th { color: var(--ink-soft); }
 .actions .act { animation: none; }
 .actions { text-align: center; }
 .actions .row-actions, .actions > div { justify-content: center; gap: .25rem; }
+
+/* ===========================================================================
+   رمزُ الشاشة في رأسها، والنقطُ أخفّ
+   ---------------------------------------------------------------------------
+   «ضيف أيقونة جنب الهيدر إدارة المستخدمين، وخفّف لون نقط الخلفية قليلاً».
+
+   **والرمزُ من السجلّ لا من القالب.** `navigation.icon_for` تعطي رسمَ
+   الشاشة نفسَه الذي يرسم سطرَها في الشريط الجانبي، فرأسُ الشاشة وسطرُها في
+   القائمة يقولان الشيءَ نفسَه — ورمزان مختلفان لشاشةٍ واحدة يجعلان المرءَ
+   يظنّهما شاشتين. وهو في الإطار مرّةً واحدة، لا يُكتب في ستٍّ وتسعين قالباً.
+
+   **ورمزُ الرئيسية كان مكتوباً بيده** في `dashboard.html` — ثلاثةُ أعمدةٍ
+   رُسمت هناك — فحُذف: صار يأتي من السجلّ كغيره، والرئيسيةُ صفٌّ في `PAGES`
+   لها رسمُها.
+
+   والنقطُ: 11٪ ← **7٪** في الفاتح، و16٪ ← **11٪** في الداكن.
+   ======================================================================== */
+
+/* رمزُ الشاشة في رأس القوائم: مربّعٌ خفيفٌ لا مصمت — الرأسُ هنا سطرٌ فيه
+   عنوانٌ وأفعال، لا لافتةٌ كرأس الرئيسية، ومربّعٌ مصمتٌ فيه يزن أكثرَ من
+   الاسم بجواره. */
+.page__crest {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 2.15rem;
+  block-size: 2.15rem;
+  border-radius: 10px;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+.page__crest svg { width: 18px; height: 18px; }
+
+main h1 { display: flex; align-items: center; gap: .6rem; }
