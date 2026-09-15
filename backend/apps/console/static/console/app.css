@@ -7796,3 +7796,51 @@ a.stat:hover, a.stat:focus-visible { box-shadow: 0 2px 4px rgb(23 32 51 / .06), 
    `.board-stats--compact .stat__label` نوعيّتُها (0,2,0) وتغلب (0,1,0)،
    فكتابةُ الوزن هناك وحدَه تُغيّر المقاسَ ولا تُغيّر الوزن — وقد وقع. */
 .board-stats--compact .stat__label { font-size: .84rem; font-weight: 800; letter-spacing: -.005em; }
+
+/* ===========================================================================
+   شريطٌ واحدٌ لا شريطان، وحقلُ البحث يقول إنه بحث
+   ---------------------------------------------------------------------------
+   «مربع حسابات محظورة في الاستروك الجانبي لونين ذهبي وبني — خلي بني بس،
+   وخلى مربع اللي فيه البحث بشكل احترافي أكتر».
+
+   **والشريطان عطلٌ من تراكم قاعدتين**، لا اختيار:
+
+   * `.stat` يرسم شريطَه في `::before` — عرضُه 4px بلون التصنيف.
+   * و`.stat--warn` يلوّن **حدَّه كلَّه** بـ`--warn-line` (`#ecd9ac` ذهبيّ
+     فاتح) ليُقرأ التنبيهُ بلا تحويم، ومن ذلك الحدُّ على حافة البداية —
+     وعرضُه هناك 3px في البطاقة المضغوطة.
+
+   فوقع الذهبيُّ الفاتح ملاصقاً للبنّيّ الغامق: شريطٌ من لونين، وكلٌّ منهما
+   كُتب لسببٍ صحيحٍ وحده.
+
+   والإصلاح: **حافةُ البداية بلا حدٍّ أصلاً** — `::before` هو الشريط، وحدَه،
+   في كل بطاقة. والحدُّ الملوَّن يبقى على الجهات الثلاث الأخرى فيؤدّي وظيفته.
+   ======================================================================== */
+
+.stat { border-inline-start-width: 0; }
+.board-stats--compact .stat { border-inline-start-width: 0; }
+.stat::before { inline-size: 4px; }
+
+/* ---- حقلُ البحث -------------------------------------------------------- */
+
+/* رسمُ عدسةٍ داخل الحقل. و`background-image` لا `::before`: `<input>` عنصرٌ
+   مُستبدَلٌ لا أبناءَ له ولا زائفَ يُرسم فيه — وهي القاعدةُ التي تُنسى
+   فيُكتب `::before` ولا يظهر شيءٌ ولا يُخطئ شيء. */
+.filters__main input[type="search"] {
+  padding-inline-start: 2.4rem;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a6b85' stroke-width='2' stroke-linecap='round'><circle cx='11' cy='11' r='7'/><path d='M20 20l-3.5-3.5'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right .8rem center;
+  background-size: 16px 16px;
+}
+/* في RTL يقع الرسمُ على اليمين — وهو حيث يبدأ النصّ. والقاعدةُ أعلاه تكتب
+   `right` صراحةً لأن `background-position` لا يفهم الحافاتِ المنطقية. */
+
+.filters__main input[type="search"]::placeholder { color: var(--muted); opacity: 1; }
+
+/* شريطُ الفلاتر يرتفع عن أرضيته كما ترتفع البطاقات: هو لوحٌ فوق نسيج. */
+.filters {
+  border-color: var(--line);
+  box-shadow: 0 1px 2px rgb(23 32 51 / .05), 0 4px 14px rgb(23 32 51 / .05);
+}
+[data-scheme="dark"] .filters { box-shadow: inset 0 0 0 1px var(--line); }
