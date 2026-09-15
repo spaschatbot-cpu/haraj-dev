@@ -200,7 +200,13 @@ export default async function VehiclePage({ params }: Params) {
           المزادات
         </Link>
         {" · "}
-        <Link href={`/auctions/${vehicle.auction_number}`} className="hover:underline">
+        {/* ‏المعرّفُ في الرابط، والرقمُ في النصّ — وهما شيئان مختلفان.
+            كان الاثنان `auction_number`، فكانت كلُّ مركبةٍ تربط إلى ٤٠٤:
+            الممرُّ `/auctions/[id]` يسأل `/api/v1/auctions/{id}/` بالمفتاح،
+            ورقمُ المزاد رقمٌ معروضٌ للناس لا مفتاحٌ في القاعدة. قِيس على
+            مركبة 25970 (مزادُها رقمُه 992833 ومفتاحُه 61): الرابطُ بالرقم
+            يردّ 404 وبالمفتاح 200. */}
+        <Link href={`/auctions/${vehicle.auction_id}`} className="hover:underline">
           مزاد {count(vehicle.auction_number)}
         </Link>
       </nav>
