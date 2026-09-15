@@ -102,41 +102,33 @@
         {% comment %} دائرةٌ ومفتاحٌ بأرقام. القطاعان المتقاربان لا يُقرآن من
            الدائرة وحدها — والمفتاح بجوارها يحمل العدد والنسبة، فالرسم يقول
            «أيّها أكبر» والمفتاح يقول «كم». {% endcomment %}
-        {% comment %} **صفٌّ لكلّ حالة، وشريطٌ بعرض اللوحة تحته.**
+        {% comment %} **حلقةٌ لكلّ حالة.** اختارها المالكُ من أربعة أشكالٍ
+           رُسمت له بخطّ اللوحة وألوانها بعد ستّ محاولاتٍ لم تُرضِه.
 
-           اختير هذا بعد أربع محاولاتٍ على هذه اللوحة، وسببُه واحد: اللوحةُ
-           صارت بعرض الصفحة، والشريطُ الأفقيُّ وحده هو ما يستعمل ذلك العرض.
-           الدائرةُ شكلٌ مربَّعٌ يترك أربعةَ أخماس العرض، والشريطُ المكدَّس
-           يستعمله لكنه يضغط الحالات كلَّها في خطٍّ واحدٍ فتُقرأ قطعةً
-           بجوار قطعة لا حالةً لها اسمٌ ورقم.
+           والحلقةُ هنا **ليست قطاعاً من دائرةٍ واحدة**: كلُّ حالةٍ حلقتُها
+           كاملةٌ تُملأ بنسبتها من الإجمالي. والفرقُ ليس شكلياً — قطاعٌ في
+           دائرةٍ مشتركة يُقارَن بجيرانه ولا يُقرأ وحدَه، وحلقةٌ ممتلئةٌ
+           بنسبتها تُقرأ وحدَها («ثمانون بالمئة») ثم تُقارَن.
 
-           وهنا لكلّ حالةٍ سطرُها: اسمُها وعددُها ونسبتُها في صفّ، وطولُها
-           تحته. ومقارنةُ طولين مستقيمين متجاورين أدقُّ مقارنةٍ بصريةٍ
-           يقدر عليها الإنسان — أدقُّ من الزوايا ومن المساحات. {% endcomment %}
-        <div class="dist">
-          <p class="dist__total">
-            <strong>{{ board.auction_total }}</strong>
-            <span>مزاد في الدفتر</span>
-          </p>
-
-          <ul class="dist__rows">
-            {% for label, count, share in board.auction_states %}
-              <li class="dist__row">
-                <span class="dist__line">
-                  <span class="dist__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
-                  <span class="dist__name">{{ label }}</span>
-                  <strong class="dist__count">{{ count }}</strong>
-                  <span class="dist__share">{{ share }}%</span>
-                </span>
-                {% comment %} `aria-hidden`: العددُ والنسبةُ مكتوبان فوقه في
-                   السطر نفسِه، وشريطٌ يُقرأ مرّةً ثانيةً ضجيج. {% endcomment %}
-                <span class="dist__track" aria-hidden="true">
-                  <span class="dist__fill" data-slice="{{ forloop.counter0 }}" style="inline-size: {{ share }}%"></span>
-                </span>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
+           والرقمُ في وسط حلقته لا تحتها: هو ما تُفتح اللوحةُ لأجله. {% endcomment %}
+        <ul class="rings">
+          {% for label, count, share in board.auction_states %}
+            <li class="rings__one">
+              {% comment %} `conic-gradient` بحدٍّ حادٍّ لا متدرّج: النسبةُ
+                 تنتهي عند رقمها بالضبط، وتدرّجٌ عندها يجعل الحدَّ يُقرأ
+                 «نحو الثمانين» لا «ثمانين». وما بقي بلون المسار الخافت
+                 لا شفّافاً — الشفّافُ على لوحٍ أبيض يجعل الحلقةَ قوساً
+                 معلّقاً لا حلقةً ناقصة. {% endcomment %}
+              <span class="rings__ring" data-slice="{{ forloop.counter0 }}"
+                    style="--share: {{ share }}%"
+                    role="img" aria-label="{{ label }} — {{ count }} من {{ board.auction_total }}، {{ share }}%">
+                <span class="rings__hole">{{ count }}</span>
+              </span>
+              <span class="rings__name">{{ label }}</span>
+              <span class="rings__share">{{ share }}%</span>
+            </li>
+          {% endfor %}
+        </ul>
       </section>
     {% endif %}
 
