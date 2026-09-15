@@ -8259,3 +8259,74 @@ thead th, tr:first-child th { color: var(--ink-soft); }
 .page__crest svg { width: 18px; height: 18px; }
 
 main h1 { display: flex; align-items: center; gap: .6rem; }
+
+/* ===========================================================================
+   ذيلُ الجدول: قطعةٌ منه لا صندوقٌ تحته
+   ---------------------------------------------------------------------------
+   «خلى المربع الأبيض اللي فيه 14 حساب ده بشكل احترافي».
+
+   **وكان صندوقاً مستقلاً بحكم قاعدتين تعارضتا.** الذيلُ كُتب ليلتحم بالجدول:
+   `border-block-start: 0` وزاويتان سفليّتان مدوَّرتان وهامشٌ سالبٌ
+   بـ`-.4rem`. وذلك يعمل ما دام الجدولُ بحدٍّ وهامشُه `.4rem`.
+
+   ثم تغيّر شيئان: الجدولُ صار **بلا حدٍّ وبظلّين**، وغلافُه `.scroller`
+   يحمل هامشاً سفلياً قدرُه `1.2rem`. فانفصل الذيلُ بثمانية بكسلات، وبقي
+   حدُّه الكاملُ يرسم صندوقاً حول شيءٍ يفترض أنه نصفُ صندوق.
+
+   فالهامشُ السالبُ صار `-1.2rem` — قيمةَ هامش الغلاف نفسَها لا رقماً
+   يُقارب — والحدودُ الجانبيةُ والسفليّةُ حُذفت، وبقي **خطٌّ علويٌّ واحد**
+   يفصله عن آخر صفّ. وظلُّه ظلُّ الجدول نفسُه فيبدوان قطعةً واحدة.
+
+   **وسطرُ العدّ يصير أوضح**: الرقمُ فيه هو الجواب («كم صفّاً طابق؟»)،
+   وكان بلون `--muted` كبقيّة الجملة.
+   ======================================================================== */
+
+.table-footer, .scroller + p, table + p {
+  margin-block-start: -1.2rem;
+  padding: .75rem 1.1rem;
+  border: 0;
+  border-block-start: 1px solid var(--line-soft);
+  color: var(--ink-soft);
+  font-size: .8rem;
+  font-weight: 600;
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 6px 20px rgb(23 32 51 / .07);
+}
+[data-scheme="dark"] .table-footer,
+[data-scheme="dark"] .scroller + p,
+[data-scheme="dark"] table + p { box-shadow: inset 0 0 0 1px var(--line); border-block-start-color: var(--line); }
+
+/* أزرارُ الصفحات تُقرأ أزراراً: الحاليةُ محدَّدةٌ لا رقمٌ عائم. */
+.pagination__current {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 1.85rem;
+  block-size: 1.85rem;
+  padding-inline: .4rem;
+  border-radius: 8px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.pagination a {
+  display: inline-flex;
+  align-items: center;
+  block-size: 1.85rem;
+  padding-inline: .8rem;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: .78rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.pagination a:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  text-decoration: none;
+}
