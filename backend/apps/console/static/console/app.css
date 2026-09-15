@@ -6643,3 +6643,94 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   .wheel__track { display: block; }
   .wheel { flex-wrap: wrap; }
 }
+
+/* ===========================================================================
+   «حالات المزادات»: شريطٌ مكدَّسٌ بدل الدائرة
+   ---------------------------------------------------------------------------
+   «غيّر لتصميم أفضل».
+
+   والدائرةُ حُذفت لا زُخرفت. **الدائرةُ شكلٌ مربَّع**: تأخذ من الارتفاع بقدر
+   ما تأخذ من العرض، وفي لوحةٍ صارت بعرض الشاشة تترك أربعةَ أخماس العرض
+   لغيرها — فيُحشى المتبقّي بلوحاتٍ تكبر لتملأ فراغاً لا لتقول شيئاً. وهذا
+   ما كانت اللوحةُ تفعله في محاولتين.
+
+   والشريطُ المكدَّس يستعمل **العرض** — وهو البُعدُ الذي عند اللوحة منه
+   فائض. وأصدقُ أيضاً: مقارنةُ طولين مستقيمين أدقُّ من مقارنة زاويتين،
+   وقطاعان بينهما خمسُ درجاتٍ في دائرةٍ لا يُميَّزان.
+
+   وثلاثةُ أسطرٍ برتبٍ ثلاث: الإجماليُّ فوق، ثم الشريطُ، ثم مفتاحٌ صفٌّ
+   واحدٌ يحمل الاسمَ والعددَ والنسبة.
+   ======================================================================== */
+
+.dist { display: block; }
+
+/* ---- الإجمالي ----------------------------------------------------------- */
+
+.dist__total {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 0 0 .9rem;
+}
+.dist__total strong {
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dist__total span { font-size: .82rem; font-weight: 600; color: var(--muted); }
+
+/* ---- الشريط ------------------------------------------------------------- */
+
+.dist__bar {
+  display: flex;
+  block-size: 1.1rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--line-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+/* فاصلٌ بلون اللوح بين القطع: قطعتان بلونين متقاربين بلا فاصلٍ تُقرآن
+   قطعةً واحدة. و`border` لا `gap`: الفجوةُ تُضاف إلى مجموع النسب فيفيض
+   الشريطُ عن مئةٍ، والحدُّ يُقتطع من عرض القطعة نفسِها. */
+.dist__seg { flex: none; min-inline-size: 2px; box-sizing: border-box; }
+.dist__seg + .dist__seg { border-inline-start: 2px solid var(--panel); }
+
+.dist__seg[data-slice="0"] { background: #1a9aa1; }
+.dist__seg[data-slice="1"] { background: #4aa5df; }
+.dist__seg[data-slice="2"] { background: #8c6ad6; }
+.dist__seg[data-slice="3"] { background: #c9891a; }
+.dist__seg[data-slice="4"] { background: #21a06a; }
+.dist__seg[data-slice="5"] { background: #e05a4c; }
+
+/* ---- المفتاح ------------------------------------------------------------ */
+
+.dist__key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1.9rem;
+  margin: 1.1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.dist__item { display: flex; align-items: center; gap: .5rem; }
+
+.dist__dot { inline-size: .62rem; block-size: .62rem; border-radius: 50%; background: var(--line); }
+.dist__dot[data-slice="0"] { background: #1a9aa1; }
+.dist__dot[data-slice="1"] { background: #4aa5df; }
+.dist__dot[data-slice="2"] { background: #8c6ad6; }
+.dist__dot[data-slice="3"] { background: #c9891a; }
+.dist__dot[data-slice="4"] { background: #21a06a; }
+.dist__dot[data-slice="5"] { background: #e05a4c; }
+
+.dist__name { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+.dist__count { font-size: .95rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.dist__share {
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  padding-inline-start: .15rem;
+}
