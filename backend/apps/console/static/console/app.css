@@ -8899,8 +8899,24 @@ form.cat-filters .cat-filters__field label {
    (سطر ٧٢٣) يُصيب زرَّ التطبيق أيضاً، فيقتسم الزرّان الفراغَ ويقف الأساسيُّ
    في **منتصف** السطر — قيس: هامشٌ 364.75px على كلٍّ منهما. يُبطَل هنا،
    ويُدفع «مسح الفلاتر» وحدَه إلى الحافة المقابلة. */
+/* أمرُ المالك: «خلّي مربّعي تطبيق الفلاتر وحذف في النصّ واعرض». فالزرّان
+   في منتصف قاعِ اللوحة وبعرضٍ أدنى واحدٍ لكليهما — لا زرٌّ على حافةٍ وآخرُ
+   على مقابلها. و«مسح الفلاتر» صار زرّاً محدوداً بحقٍّ لا رابطاً مسطوراً:
+   في المنتصف بجوار زرٍّ مصمتٍ يُقرأ الرابطُ المسطور نصّاً هارباً. */
+form.cat-filters .cat-filters__actions { justify-content: center; gap: .75rem; }
 form.cat-filters .cat-filters__actions > button[type="submit"] { margin-inline-start: 0; }
-.cat-filters__actions > .btn-ghost { margin-inline-start: auto; }
+form.cat-filters .cat-filters__actions > .btn-primary,
+form.cat-filters .cat-filters__actions > .btn-ghost {
+  flex: 0 0 auto;
+  min-inline-size: 11rem;
+  block-size: 2.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  font-weight: 800;
+  text-decoration: none;
+}
 
 /* حقلُ البحث وحالةُ المزاد يملآن الصفَّ الأول (عمودان لكلٍّ)، والتواريخُ
    الأربعةُ صفٌّ تامٌّ تحتهما — لا صفٌّ ناقصٌ بخانتين فارغتين كما كان. */
@@ -8913,3 +8929,16 @@ form.cat-filters .cat-filters__actions > button[type="submit"] { margin-inline-s
 
 @media (max-width: 68rem) { form.cat-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 40rem) { form.cat-filters { grid-template-columns: minmax(0, 1fr); } }
+
+/* «مسح الفلاتر» بحدٍّ وأرضيّة: `.btn-ghost` هنا بلا حدٍّ ولا خلفيّة، فبجوار
+   زرٍّ مصمتٍ في المنتصف يُقرأ نصّاً سائباً لا زرّاً مساوياً. */
+form.cat-filters .cat-filters__actions > .btn-ghost {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+}
+form.cat-filters .cat-filters__actions > .btn-ghost:hover {
+  background: var(--ground);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  color: var(--ink);
+}
