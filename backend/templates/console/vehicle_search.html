@@ -13,18 +13,33 @@
 {% block heading %}بحث عن سيارة{% endblock %}
 
 {% block content %}
-  <p>اكتب في أي عمود — البحث يشمل كل المزادات ويُظهر المزاد الذي فيه السيارة.</p>
+  {% comment %} سطرُ الوصف بصنفه كسائر الشاشات: كان `<p>` عارياً فيرث مقاسَ
+     النصّ العامّ ولونَه، ويقع فوق الاستمارة بلا المسافة التي تفصل رأسَ الشاشة
+     عن عملها. {% endcomment %}
+  <p class="lede">اكتب في أي عمود — البحث يشمل كل المزادات ويُظهر المزاد الذي فيه السيارة.</p>
 
-  <form method="get">
-    <input type="search" name="plate" value="{{ plate }}" placeholder="رقم اللوحة">
-    <input type="search" name="vin" value="{{ vin }}" placeholder="رقم الشاسيه">
-    <input type="search" name="name" value="{{ name }}" placeholder="اسم السيارة">
-    <input type="number" name="lot" value="{{ lot }}" placeholder="رقم اللوت">
-    <button type="submit">بحث</button>
+  {% comment %} أربعةُ حقولٍ وزرّ: شريطُ فلاترٍ كبقيّة الشاشات، لا نموذجٌ
+     عارٍ تلفّه المتصفّحُ كما يلفّ الكلمات — فيقع الزرُّ وحدَه في سطرٍ
+     ثانٍ. {% endcomment %}
+  <form method="get" class="filters">
+    <div class="filters__main">
+      <input type="search" name="plate" value="{{ plate }}" placeholder="رقم اللوحة" aria-label="رقم اللوحة">
+      <input type="search" name="vin" value="{{ vin }}" placeholder="رقم الشاسيه" aria-label="رقم الشاسيه">
+      <input type="search" name="name" value="{{ name }}" placeholder="اسم السيارة" aria-label="اسم السيارة">
+      <input type="number" name="lot" value="{{ lot }}" placeholder="رقم اللوت" aria-label="رقم اللوت">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   {% if page is None %}
-    <p class="empty">اكتب في أي حقل للبحث…</p>
+    {% comment %} الشاشةُ تبدأ فارغةً عمداً: لا تفتح على ثلاثةَ عشرَ ألفَ
+       مركبة، والسببُ في رأس الملفّ. فحالةُ الفراغ تقول **ما يُفعل** لا
+       «لا شيء هنا». {% endcomment %}
+    <div class="blank">
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <p class="blank__say">اكتب في أي حقلٍ للبحث</p>
+      <p class="blank__hint">اللوحةُ والشاسيه يصيبان مركبةً بعينها؛ والاسمُ واللوت قد يُرجعان أكثر من صفّ.</p>
+    </div>
   {% else %}
     <div class="scroller">
       <table>
