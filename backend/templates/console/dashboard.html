@@ -112,10 +112,20 @@
           </div>
           <ul class="wheel__key">
             {% for label, count, share in board.auction_states %}
+              {% comment %} شريطُ نسبةٍ في كلّ صفّ — والدائرةُ تقول «أيّها
+                 أكبر» في لمحة، والأشرطةُ تقول «بكم» بمقارنةٍ مستقيمةٍ لا
+                 تحتاج تقديرَ زاوية. وهو ما تعجز عنه الدائرةُ وحدها حين
+                 يتقارب قطاعان.
+
+                 و`aria-hidden` على الشريط: الرقمُ والنسبةُ مكتوبان بجواره
+                 في الصفّ نفسِه، وشريطٌ يُقرأ مرّةً ثانيةً ضجيج. {% endcomment %}
               <li class="wheel__item">
                 <span class="wheel__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
                 <span class="wheel__name">{{ label }}</span>
                 <span class="wheel__count">{{ count }}</span>
+                <span class="wheel__track" aria-hidden="true">
+                  <span class="wheel__fill" data-slice="{{ forloop.counter0 }}" style="inline-size: {{ share }}%"></span>
+                </span>
                 <span class="wheel__share">{{ share }}%</span>
               </li>
             {% endfor %}

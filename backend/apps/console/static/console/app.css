@@ -6469,3 +6469,70 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 [data-scheme="dark"] a.stat--ok:hover .stat__btn,      [data-scheme="dark"] a.stat--ok:focus-visible .stat__btn      { background: color-mix(in srgb, var(--ok) 78%, #fff);      color: var(--ground); }
 [data-scheme="dark"] a.stat--warn:hover .stat__btn,    [data-scheme="dark"] a.stat--warn:focus-visible .stat__btn    { background: color-mix(in srgb, var(--warn) 78%, #fff);    color: var(--ground); }
 [data-scheme="dark"] a.stat--alarm:hover .stat__btn,   [data-scheme="dark"] a.stat--alarm:focus-visible .stat__btn   { background: color-mix(in srgb, var(--danger) 78%, #fff);  color: var(--ground); }
+
+/* ===========================================================================
+   «حالات المزادات» في سطرٍ وحدَه — دائرةٌ ومفتاحٌ بأشرطة
+   ---------------------------------------------------------------------------
+   «خلى مربع حالة المزاد في سطر لوحده وصمّمه بشكل احترافي أكتر».
+
+   واللوحتان كانتا تقتسمان السطر، فلكلٍّ نصفُ العرض — ومفتاحُ الدائرة في
+   نصفٍ يبقى أربعةَ أعمدةٍ مضغوطة. وفي السطر الكامل يتّسع لما يجعله يُقرأ
+   فعلاً: **شريطُ نسبةٍ في كلّ صفّ**.
+
+   والشريطُ ليس زينةً فوق الرقم: الدائرةُ تقول «أيّها أكبر» في لمحة، لكنها
+   **تعجز حين يتقارب قطاعان** — زاويتان بينهما خمسُ درجاتٍ لا تُميَّزان
+   بالعين. والأشرطةُ مقارنةٌ مستقيمةٌ لا تحتاج تقديرَ زاوية، فتكمل ما تعجز
+   عنه الدائرة بدل أن تكرّره.
+
+   والصفُّ صار **شبكةً بأعمدةٍ ثابتة** لا صفَّ `flex`: بلا ذلك يتغيّر موضعُ
+   الرقم والنسبة بين صفٍّ وصفّ بحسب طول الاسم، فلا يستقيم عمودٌ يُقرأ نزولاً.
+   ======================================================================== */
+
+/* كلُّ لوحةٍ في سطرها: الأولى دائرةٌ ومفتاح، والثانيةُ سبعةُ أعمدة — ولا
+   شيء يربح من وقوفهما جنباً إلى جنب. */
+.board-figures { grid-template-columns: 1fr; }
+
+.wheel { gap: 2.2rem; flex-wrap: nowrap; align-items: center; }
+.wheel__disc { flex: none; }
+.wheel__key { flex: 1 1 auto; min-inline-size: 0; }
+
+/* أربعةُ أعمدة: حبّةٌ واسمٌ يمتدّ، فعددٌ، فشريطٌ يأخذ ما بقي، فنسبة. */
+.wheel__item {
+  display: grid;
+  grid-template-columns: auto minmax(6rem, max-content) 2.5rem minmax(4rem, 1fr) 3rem;
+  align-items: center;
+  gap: .75rem;
+  padding-block: .7rem;
+}
+
+.wheel__count { text-align: start; }
+.wheel__share { min-inline-size: 0; }
+
+.wheel__track {
+  block-size: .4rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.wheel__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  background: var(--line);
+}
+/* بترتيب `WHEEL` في `dashboard.py` — القائمةُ نفسُها التي تلوّن الحبّات
+   والقطاعات، فلا يفترق شريطٌ عن حبّته. */
+.wheel__fill[data-slice="0"] { background: #1a9aa1; }
+.wheel__fill[data-slice="1"] { background: #4aa5df; }
+.wheel__fill[data-slice="2"] { background: #8c6ad6; }
+.wheel__fill[data-slice="3"] { background: #c9891a; }
+.wheel__fill[data-slice="4"] { background: #21a06a; }
+.wheel__fill[data-slice="5"] { background: #e05a4c; }
+
+/* الشاشةُ الضيّقة: الشريطُ يُطوى ويبقى الرقمُ والنسبة — عمودٌ بعرض 4rem
+   لشريطٍ ليس شريطاً. والدائرةُ تنزل فوق المفتاح. */
+@media (max-width: 52rem) {
+  .wheel { flex-wrap: wrap; gap: 1.2rem; }
+  .wheel__item { grid-template-columns: auto 1fr 2.5rem 3rem; }
+  .wheel__track { display: none; }
+}
