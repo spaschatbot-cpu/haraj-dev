@@ -7,10 +7,18 @@
 {% endcomment %}
 {% if stat.href %}<a class="stat stat--{{ stat.tone }}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}">{% endif %}
   <div class="stat__top">
-    {% comment %} الرسم نفسه الذي يحمله سطرُ الشريط الذي تفتحه هذه البطاقة —
-       من `apps/console/icons.py` عبر `Stat.icon_path`. `<svg>` مضمَّنٌ لا
-       ملفٌّ يُطلب، ويرث `currentColor` فيتلوّن مع نبرة البطاقة. {% endcomment %}
-    {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
+    {% comment %} الرمزُ والعنوان **مجموعةٌ واحدة** على سطرٍ واحد، لا رمزٌ في
+       صفٍّ وعنوانٌ في الصفّ الذي تحته. أمرَ بذلك المالك، وهو أصحّ: البطاقةُ
+       تُقرأ الآن سطرين — «ما هذا» ثم «كم هو» — لا ثلاثة، والفراغُ الذي كان
+       بجوار الرمز صار يحمل اسمَ البطاقة.
+
+       والرسم نفسه الذي يحمله سطرُ الشريط الذي تفتحه هذه البطاقة — من
+       `apps/console/icons.py` عبر `Stat.icon_path`. `<svg>` مضمَّنٌ لا ملفٌّ
+       يُطلب، ويرث `currentColor` فيتلوّن مع نبرة البطاقة. {% endcomment %}
+    <span class="stat__ident">
+      {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
+      <span class="stat__label">{{ stat.label }}</span>
+    </span>
     {% if stat.delta %}
       {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
          الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
@@ -26,7 +34,6 @@
     {% endif %}
   </div>
 
-  <span class="stat__label">{{ stat.label }}</span>
   <strong class="stat__value">{{ stat.value }}</strong>
 
   {% if stat.delta %}<span class="stat__delta-note">{{ stat.delta.word }} {{ stat.delta.percent }}% {{ stat.delta.note }}</span>{% endif %}
@@ -43,6 +50,14 @@
   <span class="stat__detail">{{ stat.detail }}</span>
 
   {% if stat.action %}
-    <span class="stat__action">{{ stat.action }} <span aria-hidden="true">←</span></span>
+    {% comment %} الوجهةُ في جهة، والسهمُ في قرصه على مقابلها — لا كلمتان
+       وسهمٌ ملتصقٌ بهما يُقرآن جملةً ناقصة. والقرصُ يمتلئ بلون البطاقة عند
+       المرور، فيقول «هذه بابٌ» قبل أن تُقرأ الكلمة. {% endcomment %}
+    <span class="stat__action">
+      <span class="stat__action-text">{{ stat.action }}</span>
+      <span class="stat__go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </span>
+    </span>
   {% endif %}
 {% if stat.href %}</a>{% else %}</div>{% endif %}

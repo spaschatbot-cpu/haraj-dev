@@ -4946,18 +4946,7 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 
 .stat__detail { margin-block-start: .15rem; }
 
-.stat__action {
-  margin-block-start: auto;
-  padding-block-start: .7rem;
-  display: flex;
-  align-items: center;
-  gap: .3rem;
-}
 
-/* السهم يتقدّم عند المرور — حركةٌ تقول «هذه بابٌ» بمقدار 3px، لا أكثر. */
-.stat__action span[aria-hidden] { transition: transform .18s ease; }
-a.stat:hover .stat__action span[aria-hidden],
-a.stat:focus-visible .stat__action span[aria-hidden] { transform: translateX(-3px); }
 
 /* الشريطُ العلويّ يُرى دائماً لا عند المرور وحده: هو التصنيف نفسه، وتصنيفٌ
    لا يظهر إلا تحت الفأرة لا يُقرأ على شاشةٍ لمسيّة أصلاً. ويثخن عند المرور. */
@@ -5110,19 +5099,6 @@ a.stat:hover::before, a.stat:focus-visible::before { block-size: 5px; opacity: 1
 /* لوحةُ v1 بلا تذييل — وبطاقتُها ليست رابطاً أصلاً. وهذه بطاقةٌ **كلُّها**
    رابط، فالتذييل يقول **إلى أين** قبل النقر؛ حذفُه يترك بطاقةً تُفتح ولا
    يُعرف على ماذا. فيبقى، خلف خطٍّ رفيع وبوزنٍ خافت — سطرُ وجهةٍ لا زرّ. */
-.stat__action {
-  margin-block-start: auto;
-  padding-block-start: .8rem;
-  border-block-start: 1px solid var(--line-soft);
-  font-size: .76rem;
-  font-weight: 600;
-  color: var(--muted);
-  transition: color .18s ease;
-}
-a.stat:hover .stat__action, a.stat:focus-visible .stat__action { color: var(--brand-dark); }
-.stat--alarm .stat__action, .stat--warn .stat__action { color: var(--ink-soft); }
-a.stat--alarm:hover .stat__action { color: var(--danger); }
-a.stat--warn:hover .stat__action  { color: var(--warn); }
 
 /* ---- الخطّ المصغَّر ------------------------------------------------------ */
 
@@ -5317,4 +5293,107 @@ a.stat--warn:hover .stat__action  { color: var(--warn); }
 @keyframes hero-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%      { opacity: .45; transform: scale(.78); }
+}
+
+
+/* ===========================================================================
+   البطاقة: عنوانٌ بجوار الرمز، وتذييلٌ بقرصِ سهم
+   ---------------------------------------------------------------------------
+   أمرُ المالك: «خلى العناوين جنب الأيقونة مش تحتها وبخط بولد»، و«خلى افتح
+   دي بشكل أفضل».
+
+   وكانت البطاقة تُقرأ **ثلاثة** أسطر: صفٌّ فيه رمزٌ وحبّة وبينهما فراغ، ثم
+   عنوانٌ خافتٌ صغير، ثم الرقم. فالفراغ بجوار الرمز لا يحمل شيئاً، والعنوان
+   — وهو الذي يقول ما هذا الرقم أصلاً — أخفُّ ما في البطاقة وزناً.
+
+   فصارت سطرين: **«ما هذا»** (رمزٌ وعنوانٌ غليظ، وحبّةُ الوحدة على المقابل)،
+   ثم **«كم هو»** (الرقم). والتذييلُ سطرُ وجهةٍ بقرصٍ فيه سهم.
+   ======================================================================== */
+
+/* ---- «ما هذا» ----------------------------------------------------------- */
+
+/* الرمزُ والعنوانُ مجموعةٌ واحدة، و`min-inline-size: 0` عليها لأن `flex` لا
+   يسمح لابنه بالانكماش تحت عرض محتواه بدونها — فعنوانٌ طويل كان يدفع حبّة
+   الوحدة خارج البطاقة بدل أن يلتفّ. */
+.stat__ident {
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+  min-inline-size: 0;
+}
+
+.stat__top { align-items: flex-start; gap: .6rem; margin-block-end: .55rem; }
+
+/* العنوان: غليظٌ وبلون الحبر لا خافتاً — هو الذي يقول ما يعدّه الرقم.
+   وسطران كحدٍّ أقصى ثم قصٌّ بنقاط: «التحكم في صفحات المستخدمين» في بطاقةٍ
+   بعرض ١٥rem يأخذ ثلاثة أسطر ويدفع الرقمَ خارج ارتفاع الصفّ. */
+.stat__label {
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.35;
+  letter-spacing: -.005em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* الرمزُ لا ينكمش مع العنوان بجواره. */
+.stat__icon { flex: none; }
+
+/* الحبّة تبقى في أعلى الصفّ حين يلتفّ العنوان سطرين — لا تنزل إلى منتصفه. */
+.stat__top > .delta, .stat__top > .stat__unit { flex: none; margin-block-start: .15rem; }
+
+/* الرقمُ صار وحده في سطره، فلا حاجة لهامشٍ يفصله عن عنوانٍ لم يعد فوقه. */
+.stat__value { margin-block: 0 .2rem; }
+
+/* ---- التذييل ------------------------------------------------------------ */
+
+.stat__action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  margin-block-start: auto;
+  padding-block-start: .75rem;
+  border-block-start: 1px solid var(--line-soft);
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.stat__action-text { transition: color .18s ease; }
+
+/* القرص: خلفيةٌ خافتة وسهمٌ فيها، يمتلئ بلون البطاقة عند المرور. هدفٌ بصريٌّ
+   لا زرّ — البطاقة كلّها هي الرابط، وهذا يقول ذلك في لمحة. */
+.stat__go {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+  border-radius: 50%;
+  background: var(--line-soft);
+  color: var(--muted);
+  transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+a.stat:hover .stat__action-text, a.stat:focus-visible .stat__action-text { color: var(--ink); }
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go {
+  background: var(--brand-solid);
+  color: #fff;
+  transform: translateX(-2px);
+}
+a.stat--money:hover .stat__go,   a.stat--money:focus-visible .stat__go   { background: var(--money); }
+a.stat--auction:hover .stat__go, a.stat--auction:focus-visible .stat__go { background: var(--auction); }
+a.stat--people:hover .stat__go,  a.stat--people:focus-visible .stat__go  { background: var(--people); }
+a.stat--warn:hover .stat__go,    a.stat--warn:focus-visible .stat__go    { background: var(--warn); }
+a.stat--alarm:hover .stat__go,   a.stat--alarm:focus-visible .stat__go   { background: var(--danger); }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .stat__label { font-size: .88rem; }
+  .stat__ident { gap: .55rem; }
 }
