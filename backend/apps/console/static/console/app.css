@@ -8137,3 +8137,12 @@ thead th, tr:first-child th { background: var(--raised); }
 thead th, tr:first-child th {
   border-block-start: 3px solid var(--brand);
 }
+
+/* الشريطُ أرقُّ وأخفُّ لوناً: 3px ← **2px**، و`--brand` مصمتاً ← مخفَّفاً
+   بـ55٪. وهو حدُّ لوحٍ لا حدُّ بطاقة: البطاقةُ عرضُها 16rem فشريطُها يُقرأ
+   في لمحة، والجدولُ يمتدّ بعرض الصفحة — فالشريطُ نفسُه عليه يصير خطّاً
+   بطول ألف بكسل، ويثقل بقدر ما يطول. */
+thead th, tr:first-child th {
+  border-block-start-width: 2px;
+  border-block-start-color: color-mix(in srgb, var(--brand) 55%, transparent);
+}
