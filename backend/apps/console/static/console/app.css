@@ -7472,3 +7472,68 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 /* الشارةُ حين تظهر (الإنتاج وما ليس `development`) أثقلُ وزناً: هي تحذيرٌ
    لا وسمٌ محايد. */
 .env-badge { font-weight: 700; letter-spacing: .01em; }
+
+/* ===========================================================================
+   شاشاتُ القوائم: الرأس، والبطاقاتُ المضغوطة، وشريطُ الفلاتر
+   ---------------------------------------------------------------------------
+   «خلى الصفحة دي بشكل احترافي أكتر» — قيلت في «إدارة المستخدمين»، وما تحته
+   يقع على كل شاشةٍ لها رأسٌ ووصفٌ وبطاقاتٌ وفلاتر، وهي أكثرُ شاشات اللوحة.
+
+   * **سطرُ الوصف** كان مضبوطاً بـ`style=` في القالب — `-.4rem` في القاعدة
+     و`.6rem` في الشاشة، أي قيمتان لمسافةٍ واحدة. صار في الورقة وحدها.
+   * **خمسُ بطاقاتٍ في صفٍّ لا أربعٌ وواحدة**: الحدُّ الأدنى 12.5rem يعطي
+     أربعةَ أعمدةٍ على شاشة المالك، فتنزل الخامسةُ وحدها وتترك صفّاً بربع
+     امتلاء. و11.5rem يعطي خمسةً في العرض نفسِه.
+   * **حقولُ الفلاتر بارتفاعٍ واحد**: `input` و`select` و`button` كلٌّ منها
+     يُحسب ارتفاعُه من حشوته وخطّه، فيفترق الثلاثةُ ببكسلاتٍ تُرى في صفّ.
+     وارتفاعٌ مصرَّحٌ به يجعل الصفَّ مستقيماً.
+   ======================================================================== */
+
+/* ---- سطرُ الوصف --------------------------------------------------------- */
+
+.lede { margin-block: .1rem 1.15rem; font-size: .88rem; color: var(--ink-soft); }
+
+/* ---- البطاقاتُ المضغوطة ------------------------------------------------- */
+
+.board-stats--compact {
+  grid-template-columns: repeat(auto-fit, minmax(min(11.5rem, 100%), 1fr));
+  gap: .7rem;
+}
+/* بلا حدٍّ أدنى للارتفاع: بطاقةٌ لها زرٌّ وأخرى بلا زرٍّ تتساويان بالتمدّد
+   في الشبكة (`align-items: stretch` الافتراضي)، والحدُّ الأدنى يضيف فراغاً
+   تحت البطاقات القصيرة في الصفوف التي لا زرَّ في أيٍّ منها. */
+.board-stats--compact .stat { min-block-size: 0; padding: .85rem 1rem .8rem; }
+.board-stats--compact .stat__value { font-size: 1.5rem; }
+
+/* ---- شريطُ الفلاتر ------------------------------------------------------ */
+
+.filters { padding: .8rem .9rem; border-radius: 14px; }
+
+.filters__main input[type="search"],
+.filters__main select,
+.filters__main button[type="submit"] {
+  block-size: 2.5rem;
+  border-radius: 9px;
+}
+.filters__main input[type="search"],
+.filters__main select {
+  border-color: var(--line);
+  background: var(--raised);
+  font-size: .85rem;
+  transition: border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.filters__main input[type="search"]:hover,
+.filters__main select:hover { border-color: var(--field-border); }
+.filters__main input[type="search"]:focus,
+.filters__main select:focus {
+  background: var(--panel);
+  border-color: var(--brand-solid);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.filters__main button[type="submit"] {
+  padding-inline: 1.4rem;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: .82rem;
+}
