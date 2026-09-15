@@ -4829,7 +4829,14 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
   background: var(--panel); color: var(--ink-soft); font: inherit; font-size: .78rem; font-weight: 700;
   text-decoration: none; white-space: nowrap;
   transition: border-color .15s ease, background .15s ease, color .15s ease, transform .12s ease;
-  animation: exActIn .32s ease both;
+  /* **ولا أنميشنَ دخولٍ هنا.** كان `exActIn` يبدأ من `opacity: 0` و
+     `scale(.92)` و`translateY(4px)`. وثلاثةُ ألسنةٍ من أربعةٍ تُبنى `hidden`،
+     والمتصفّحُ **يوقف** أنميشن ما لا يُعرَض — فتبقى الأزرار عند اللقطة
+     الأولى: مُصغَّرةً ومُزاحةً، أو **غيرَ مرئيّةٍ أصلاً** (`opacity: 0`)،
+     ما دامت الصفحةُ في تبويبٍ خلفيّ. قِيس الاثنان على الشاشة: `matrix(0.92,
+     0, 0, 0.92, 0, 4)` مع `both`، و`opacity: 0` مع `forwards`.
+     وزرٌّ يختفي ثمنٌ لا تساويه حركةُ ثلث ثانية. وحركةُ المرور (`transition`)
+     باقيةٌ: لا لقطةَ أولى لها تتجمّد عندها. */
 }
 .ex-act svg { inline-size: 1rem; block-size: 1rem; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
 .ex-act:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); transform: translateY(-1px); }
@@ -4855,10 +4862,7 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-choice__opt { display: flex !important; align-items: center; gap: .45rem; margin-block-end: .3rem; font-weight: 600; cursor: pointer; }
 .ex-choice__opt:last-child { margin-block-end: 0; }
 .ex-choice__opt input { inline-size: auto; margin: 0; accent-color: var(--brand-solid, currentColor); }
-.actions--nowrap .ex-act:nth-child(2) { animation-delay: .05s; }
-.actions--nowrap .ex-act:nth-child(3) { animation-delay: .1s; }
-@keyframes exActIn { from { opacity: 0; transform: translateY(4px) scale(.92); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .ex-act { animation: none !important; } .ex-act, .ex-act svg { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { .ex-act, .ex-act svg { transition: none !important; } }
 
 /* ---- لسانُ متابعة نقل الملكية -------------------------------------------
    الصفُّ يُلوَّن بدرجة تأخّره، والمحظورُ يسبق التأخّر: `data-ban` بعد `data-late`
@@ -4872,12 +4876,27 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
    أسطرَ ورقمُ المطالبة على سطرين، فيصير الصفُّ الواحد كتلةً بارتفاع خمسة صفوف
    ولا يُقرأ الجدولُ مسحاً بالعين. الالتفافُ يُمنع، والفائضُ يُمرَّر أفقياً في
    `.scroller` — وهو ما يفعله جدولُ v1 حرفيّاً. */
-/* شريطُ فلترة المرحلة: بحثٌ ومدى تاريخٍ ومسحٌ وتصدير، في سطرٍ يلتفّ على الضيّق. */
+/* **جدولُ هذه الشاشة أضيقُ حقلاً من كلّ جداول اللوحة: اثنا عشر عموداً.**
+   والحشوةُ الأفقيّة العامّة `--cell-pad-x: .45rem` (٧٫٢px) كافيةٌ لجدولٍ من
+   ستّة أعمدة، وعند اثني عشر يلتصق آخرُ كلمةٍ في عمودٍ بأوّل كلمةٍ في الذي
+   يليه — فتُقرأ الجملتان جملةً واحدة. قاله المالك: «الكلام داخل في بعضه».
+   وv1 يعطيها `padding: 8px 10px` و`font-size: 13px` **ووسطاً** لا بدايةً،
+   وثلاثتُها تصنع الفراغ: الوسطُ وحده يترك هامشين بدل هامشٍ واحد.
+   والعمودُ الأوّل (السيارة) يبقى إلى البداية: اسمٌ عربيٌّ متغيّرُ الطول
+   يُقرأ من حافّةٍ ثابتة. */
+.ex-pane th, .ex-pane td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
+.ex-pane thead th { font-size: .74rem; }
+.ex-pane tbody td:first-child, .ex-pane thead th:first-child { text-align: start; }
+
+/* شريطُ فلترة المرحلة. **والتصديرُ ليس فيه**: سطرٌ فوقه وحده كما في v1 — سبعةُ
+   عناصرَ في صفٍّ واحد تركت ٥٧px فراغاً من ١٢١٢، فبدا الصفُّ مرصوصاً وضاقت
+   كلمةُ «إلى» إلى ١٦px بين خانتَي تاريخ. */
 .ex-filter { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: 0 0 .7rem; }
-.ex-filter__q { min-inline-size: 18rem; flex: 1 1 18rem; }
+.ex-filter__q { max-inline-size: 21rem; flex: 1 1 16rem; }
 .ex-filter input[type=date] { inline-size: 9.5rem; }
-.ex-filter .muted { font-size: .78rem; }
+.ex-filter .muted { font-size: .78rem; white-space: nowrap; }
 .ex-filter__n { margin-inline-start: auto; font-weight: 700; }
+.ex-export { display: flex; margin: 0 0 .5rem; }
 /* صفٌّ يُخفيه الفلتر: `[hidden]` على `<tr>` تغلبه قاعدةُ `display: table-row`
    في ورقة المتصفّح، فلا يختفي بلا هذا السطر — وهو عطلُ `.modal [hidden]` نفسُه
    في موضعٍ آخر. */

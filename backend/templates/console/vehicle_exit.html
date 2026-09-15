@@ -130,6 +130,11 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
          الصفحة أصلاً (المرحلةُ لا الجدول)، وطلبُ خادمٍ لكلّ حرفٍ يُكتب في خانةِ
          بحثٍ فوق جدولٍ حاضرٍ إنفاقٌ بلا مقابل. والتصديرُ بالمقابل خادميٌّ
          و**للمرحلة كاملةً** لا لما تركه الفلتر. {% endcomment %}
+      <p class="ex-export">
+        <a href="?export=xlsx&amp;scope=follow" class="ex-act" title="تصدير كل صفوف هذه المرحلة، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — متابعة نقل الملكية ({{ counts.follow|unlocalize }})</span></a>
+      </p>
       <div class="ex-filter" data-filter="follow">
         <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال · الملاحظة" aria-label="بحث في المتابعة">
         <span class="muted">تاريخ الخروج من</span>
@@ -137,9 +142,6 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
         <span class="muted">إلى</span>
         <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
         <button type="button" class="btn-sm ex-filter__clear">مسح</button>
-        <a href="?export=xlsx&amp;scope=follow" class="ex-act" title="تصدير كل صفوف هذه المرحلة، بغضّ النظر عن الفلاتر المعروضة">
-          {% include "console/_act_icon.html" with path=row_icons.export %}
-          <span>تصدير Excel — متابعة نقل الملكية ({{ counts.follow|unlocalize }})</span></a>
         <span class="ex-filter__n muted" hidden></span>
       </div>
       <div class="scroller">
@@ -225,6 +227,11 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ الأرشيف ───────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="archive" hidden>
     {% if archive %}
+      <p class="ex-export">
+        <a href="?export=xlsx&amp;scope=archive" class="ex-act" title="تصدير الأرشيف كاملاً، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — الأرشيف ({{ counts.archive|unlocalize }})</span></a>
+      </p>
       <div class="ex-filter" data-filter="archive">
         <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال" aria-label="بحث في الأرشيف">
         <span class="muted">تاريخ الخروج من</span>
@@ -232,9 +239,6 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
         <span class="muted">إلى</span>
         <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
         <button type="button" class="btn-sm ex-filter__clear">مسح</button>
-        <a href="?export=xlsx&amp;scope=archive" class="ex-act" title="تصدير الأرشيف كاملاً، بغضّ النظر عن الفلاتر المعروضة">
-          {% include "console/_act_icon.html" with path=row_icons.export %}
-          <span>تصدير Excel — الأرشيف ({{ counts.archive|unlocalize }})</span></a>
         <span class="ex-filter__n muted" hidden></span>
       </div>
       <div class="scroller">
