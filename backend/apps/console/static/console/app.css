@@ -6958,28 +6958,57 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 
 /* ---- الأسطر والخطوط ----------------------------------------------------- */
 
-.brief { margin: 0; }
-.brief__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-block: .62rem;
-  border-block-start: 1px solid var(--line-soft);
-}
-.brief__row:last-child { border-block-end: 1px solid var(--line-soft); }
 
-.brief dt { font-size: .8rem; font-weight: 600; color: var(--muted); }
+/* ===========================================================================
+   كتلةُ التعريف: شبكةُ خانات لا قائمةَ سطورٍ عريضة
+   ---------------------------------------------------------------------------
+   «خلى الكلام بشكل احترافي أكتر ومنظّم».
+
+   وكان كلُّ سطرٍ يمدّ اسمَه على حافةٍ وقيمتَه على مقابلها، وبينهما فراغٌ من
+   أربعمئة بكسل — فتُقرأ القيمةُ ولا يُعرف لأيّ اسمٍ هي إلا بعودةٍ بالعين
+   عبر الفراغ. وهو عيبُ كل قائمةِ `dt`/`dd` تُمدّ على عرضٍ واسع.
+
+   والخانةُ تضع **الاسمَ فوق قيمته**، فتُقرآن معاً بلا عبورٍ ولا خطٍّ يقود
+   العين. والشبكةُ عمودان يلتفّان إلى واحدٍ عند الضيق.
+
+   ورتبتان لا ثلاث: اسمٌ خافتٌ صغير، وقيمةٌ بلون الحبر. والفصلُ بخطٍّ واحدٍ
+   فوق كلّ صفٍّ — لا إطارَ حول كل خانة: أربعةُ صناديقَ داخل صندوقٍ داخل لوحٍ
+   ثلاثُ طبقاتٍ من الحدود على شيءٍ واحد.
+   ======================================================================== */
+
+.brief {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 1.6rem;
+  margin: 0;
+}
+
+.brief__cell {
+  padding-block: .7rem;
+  border-block-start: 1px solid var(--line-soft);
+  min-inline-size: 0;
+}
+/* الخانةُ العريضةُ تمتدّ على العمودين: قيمتُها جملةٌ لا رقم. */
+.brief__cell--wide { grid-column: 1 / -1; }
+
+.brief dt {
+  font-size: .73rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-block-end: .2rem;
+}
 .brief dd {
   margin: 0;
-  font-size: .82rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  text-align: end;
-}
-.brief dd b {
+  font-size: .9rem;
   font-weight: 700;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
-  padding-inline-start: .25rem;
+  line-height: 1.5;
+}
+/* قيمةُ «المصدر» جملةٌ تُقرأ لا رقمٌ يُلمح: أخفُّ وزناً وأصغرُ مقاساً. */
+.brief__cell--wide dd { font-size: .8rem; font-weight: 500; color: var(--ink-soft); }
+.brief dd b { font-weight: 700; color: var(--ink); padding-inline-start: .2rem; }
+
+@media (max-width: 40rem) {
+  .brief { grid-template-columns: minmax(0, 1fr); }
 }
