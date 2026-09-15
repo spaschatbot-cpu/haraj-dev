@@ -8146,3 +8146,82 @@ thead th, tr:first-child th {
   border-block-start-width: 2px;
   border-block-start-color: color-mix(in srgb, var(--brand) 55%, transparent);
 }
+
+/* ===========================================================================
+   رأسُ الجدول أغمق، والحبّاتُ وأزرارُ الصفّ تُنقَّح
+   ---------------------------------------------------------------------------
+   «غمّق العناوين شويه، وخلى مربعات النوع وشركة بشكل احترافي أكتر،
+   وإجراءات».
+
+   * **الرأسُ** كان `--muted` (5.01 على رقعته الرمادية) — يُقرأ ولا يُمسَح.
+     صار `--ink-soft` (7.6): عناوينُ أعمدةٍ تُقرأ **مرّةً** ثم تُحفظ مواضعُها،
+     فيجب أن تُلتقط من النظرة الأولى.
+
+   * **الحبّةُ** كانت خلفيةً ملوّنةً بلا حدّ، فتبدو **رقعةً** لا وسماً —
+     وحافّةُ اللون تذوب في خلفية الصفّ حين تتقاربان. فصار لها حدٌّ **مشتقٌّ
+     من لونها هي** (`currentColor` بـ22٪): وسمُ «نشط» أخضرُ الحدّ، و«محظور»
+     أحمرُه، بلا قاعدةٍ لكلّ حالةٍ على حدة. وزاويتُها 7px لا قوسٌ كامل —
+     القوسُ شكلُ الحبّات في البطاقات فوق، وهذه بيانٌ في جدولٍ لا وسمٌ في لوح.
+
+   * **أزرارُ الصفّ** تتقارب وتصغُر (2.2rem ← 2rem، والفجوة .3 ← .25)، وحدُّها
+     في السكون يخفّ: أربعةُ مربّعاتٍ بحدٍّ كامل في كلِّ صفٍّ من خمسة وعشرين
+     تُقرأ **عموداً خامساً من الشبكة** لا أفعالاً. ويعود الحدُّ كاملاً عند
+     المرور، فمن يقصدها يراها.
+   ======================================================================== */
+
+thead th, tr:first-child th { color: var(--ink-soft); }
+
+.pill {
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  padding: .2rem .55rem;
+  font-size: .73rem;
+  font-weight: 700;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-actions { gap: .25rem; }
+.row-actions a {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+  color: var(--muted);
+}
+.row-actions a:hover { border-color: var(--brand); color: var(--brand-dark); }
+.row-actions .row-icon { inline-size: .95rem; block-size: .95rem; }
+
+/* ===========================================================================
+   أزرارُ الصفّ: `.act` لا `.row-actions a`
+   ---------------------------------------------------------------------------
+   القاعدةُ كُتبت أوّلاً على `.row-actions a` فلم تمسّ شيئاً في هذه الشاشة:
+   جداولُ اللوحة تستعمل **صنفين مختلفين** لأزرار الصفّ — `.row-actions a`
+   في بعضها و`.act` في ستّة قوالبَ منها هذه. وكُشف بالنظر في القالب بعد أن
+   ظهر أن شيئاً لم يتغيّر، لا بالقياس.
+
+   * **الحذفُ لا يحمر في السكون.** كان حدُّه ولونُه أحمرين دائماً، فخمسةٌ
+     وعشرون صفّاً فيها خمسةٌ وعشرون زرّاً أحمر — والأحمرُ الذي يُرى في كل
+     سطرٍ يتوقّف عن كونه تحذيراً. فيحمرّ عند المرور وحدَه، وله شاشتُه التي
+     تسأل وترفض على أي حال.
+   * **وحدُّ السكون يخفّ للأربعة**: أربعةُ مربّعاتٍ بحدٍّ كامل في كل صفٍّ
+     تُقرأ عموداً خامساً من الشبكة لا أفعالاً.
+   * **والقفزةُ تُلغى** (`translateY(-1px)` ودورانُ الرسم): زرٌّ يقفز ويدور
+     تحت المؤشّر في جدولٍ يُمسح بالعين صفّاً صفّاً حركةٌ تلاحق اليد.
+   ======================================================================== */
+
+.act {
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--line) 70%, transparent);
+  color: var(--muted);
+  margin: 0;
+}
+.act:hover { transform: none; border-color: var(--brand); }
+.act:hover svg { transform: none; }
+
+.act--danger, .act--del { border-color: color-mix(in srgb, var(--line) 70%, transparent); color: var(--muted); }
+.act--danger:hover, .act--del:hover { border-color: var(--danger); color: var(--danger); }
+
+.actions .act { animation: none; }
+.actions { text-align: center; }
+.actions .row-actions, .actions > div { justify-content: center; gap: .25rem; }
