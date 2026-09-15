@@ -5861,3 +5861,69 @@ a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-
 
 .stat--alarm { border-color: var(--danger-line); }
 .stat--warn  { border-color: var(--warn-line); }
+
+/* ===========================================================================
+   البطاقة — لوحٌ يطفو، بلا حدّ
+   ---------------------------------------------------------------------------
+   «غيّر شكل المربعات لشكل أبسط وأشيك».
+
+   وما بقي من الزخرفة بعد التجريد السابق كان **الحدّ** — خطٌّ رماديٌّ يرسم
+   مربّعاً حول كل بطاقة، فالشبكةُ تُقرأ ثمانيةَ مربّعاتٍ مرسومة قبل أن تُقرأ
+   ثمانيةَ أرقام. وقد صار للصفحة أرضيةٌ لها نسيجٌ (شبكةُ الخطوط المتلاشية)،
+   وسطحٌ أبيضُ عليها يُعرَف **بأنه أبيض** لا بخطٍّ يحدّه.
+
+   فحُذف الحدّ، وحلّ محلّه ظلٌّ مزدوج: واحدٌ قريبٌ يفصل السطحَ عن الأرضية،
+   وآخرُ بعيدٌ واسعٌ يعطيه ارتفاعاً. والاستدارةُ 18px بدل 14 — سطحٌ يطفو بلا
+   حدٍّ يحتاج زاويةً أليَن ليُقرأ سطحاً لا قصاصةً.
+
+   **وفي المظهر الداكن حدٌّ لا ظلّ**: ظلٌّ أسودُ على أرضيةٍ سوداء لا يُرى،
+   فاللوحُ هناك يُعرَف بخطٍّ رفيع وبكونه أفتحَ من أرضيته. وهذه ليست توليفةً
+   ثانية تُصان — هي القاعدةُ نفسُها بقيمتين.
+   ======================================================================== */
+
+.stat {
+  border: 0;
+  border-radius: 18px;
+  padding: 1.35rem 1.4rem 1.25rem;
+  box-shadow:
+    0 1px 2px rgb(23 32 51 / .05),
+    0 10px 26px rgb(23 32 51 / .055);
+}
+
+a.stat:hover, a.stat:focus-visible {
+  box-shadow:
+    0 2px 4px rgb(23 32 51 / .06),
+    0 16px 38px rgb(23 32 51 / .10);
+}
+
+/* الحدُّ الملوّن للتنبيه يبقى — هو الشيءُ الوحيد الذي يُحمَل على الحدّ،
+   ولذلك صار يُقرأ حين يظهر بدل أن يضيع بين ثمانية حدود. */
+.stat--alarm { box-shadow: 0 1px 2px rgb(23 32 51 / .05), 0 10px 26px rgb(23 32 51 / .055), inset 0 0 0 1px var(--danger-line); }
+.stat--warn  { box-shadow: 0 1px 2px rgb(23 32 51 / .05), 0 10px 26px rgb(23 32 51 / .055), inset 0 0 0 1px var(--warn-line); }
+
+/* الداكن: حدٌّ رفيعٌ ولوحٌ أفتحُ من أرضيته — الظلُّ هناك لا يُرى. */
+[data-scheme="dark"] .stat {
+  background-color: color-mix(in srgb, var(--panel) 93%, #fff);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+[data-scheme="dark"] a.stat:hover, [data-scheme="dark"] a.stat:focus-visible {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 28%, transparent);
+}
+[data-scheme="dark"] .stat--alarm { box-shadow: inset 0 0 0 1px var(--danger-line); }
+[data-scheme="dark"] .stat--warn  { box-shadow: inset 0 0 0 1px var(--warn-line); }
+
+/* اللوحاتُ السفلى تتبع اللوحَ نفسَه: رسمان بحدٍّ تحت ثماني بطاقاتٍ بلا حدّ
+   يقولان إنهما من صفحةٍ أخرى. */
+.figure {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgb(23 32 51 / .05), 0 10px 26px rgb(23 32 51 / .055);
+}
+[data-scheme="dark"] .figure {
+  background-color: color-mix(in srgb, var(--panel) 93%, #fff);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* فُسحةٌ أوسعُ بين الألواح: سطحٌ بلا حدٍّ يحتاج فراغاً حوله ليُعرَف طرفُه. */
+.board-alarms, .board-stats { gap: 1.05rem; }
+.board-figures { gap: 1.05rem; }
