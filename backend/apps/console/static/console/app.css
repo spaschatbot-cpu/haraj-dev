@@ -7243,3 +7243,71 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 
 [data-scheme="dark"] .spark__bar { background: color-mix(in srgb, var(--auction) 34%, var(--panel)); }
 [data-scheme="dark"] .spark__day--top .spark__bar { background: var(--auction); }
+
+/* ===========================================================================
+   أسبوعٌ بلا مزايدة: جوابٌ لا فراغ
+   ---------------------------------------------------------------------------
+   «خلى الشكل أفضل عشان حاسّه المربع فاضي».
+
+   **والمربعُ كان فارغاً لأن البيانات فارغة**، لا لأن التصميم ناقص. قيس
+   الدفتر: سبعَ عشرةَ مزايدةً كلُّها في ٦ سبتمبر — قبل تسعة أيام، أي خارج
+   النافذة بيومين. فسبعةُ أصفارٍ صحيحة.
+
+   وكان الأسبوعُ الفارغ يُرسم سبعةَ أعمدةٍ بارتفاع صفرٍ في لوحٍ بارتفاع
+   9.5rem: فراغٌ يشغل مساحةَ رسمٍ ولا يقول ما يقوله الرسم.
+
+   **والأسبوعُ الفارغ سؤالٌ لا خبر**: «هل توقّفت المنصّة أم أن النافذة
+   ضيّقة؟». فصار مكانَ الرسم جوابٌ — متى كانت آخر مزايدةٍ وكم مضى عليها،
+   وبابٌ إلى قائمتها. وذلك يملأ اللوحَ **بما يُقرأ** لا بما يُملأ به.
+   ======================================================================== */
+
+.trend-none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  text-align: center;
+  padding: 2rem 1rem 1.9rem;
+  border-radius: 14px;
+  background: var(--raised);
+  border: 1px dashed var(--line);
+  color: var(--muted);
+}
+
+.trend-none > svg { color: color-mix(in srgb, var(--auction) 55%, var(--muted)); margin-block-end: .2rem; }
+
+.trend-none__say {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+.trend-none__last {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.trend-none__last b {
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.trend-none__go {
+  margin-block-start: .85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .5rem 1.05rem;
+  border-radius: 10px;
+  background: var(--auction);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .18s ease;
+}
+.trend-none__go:hover { background: color-mix(in srgb, var(--auction) 85%, #000); color: #fff; text-decoration: none; }
+[data-scheme="dark"] .trend-none__go { background: var(--auction); color: var(--ground); }

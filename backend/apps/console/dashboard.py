@@ -255,6 +255,11 @@ class Board:
     #: **المقدار**. وسبعةُ أعمدةٍ بلا مجموعٍ فوقها تُقرأ نسباً بلا مقام.
     trend_total: int = 0
     trend_peak: tuple[str, int] | None = None
+    #: آخرُ مزايدةٍ في الدفتر و«قبل كم يوماً»، **حين يكون الأسبوع فارغاً**.
+    #:
+    #: أسبوعٌ بلا مزايدةٍ سؤالٌ لا خبر: «هل توقّفت المنصّة أم أن النافذة
+    #: ضيّقة؟». والجوابُ سطرٌ واحد، وهو أنفعُ من رسمٍ بسبعة أصفار.
+    trend_last: tuple[str, int] | None = None
 
 
 def _money(amount: Decimal) -> str:
@@ -455,6 +460,15 @@ def board_for(user) -> Board:
         if board.trend_total:
             top = max(board.trend, key=lambda row: row[1])
             board.trend_peak = (top[0], top[1])
+        else:
+            # الاستعلامُ هنا وحده: أسبوعٌ فيه مزايداتٌ لا يحتاج جوابَ «متى
+            # كانت الأخيرة»، ودفعُ ثمنِ صفٍّ مرتَّبٍ في كل فتحةٍ للصفحة بلا
+            # شاشةٍ تعرضه هو ما تمنعه المادة ٢-١.
+            last = Bid.objects.order_by("-placed_at").values_list("placed_at", flat=True).first()
+            if last:
+                local = timezone.localtime(last)
+                ago = (timezone.localtime().date() - local.date()).days
+                board.trend_last = (local.strftime("%Y-%m-%d"), ago)
 
     # ---- الناس -----------------------------------------------------------
     if sees_users:

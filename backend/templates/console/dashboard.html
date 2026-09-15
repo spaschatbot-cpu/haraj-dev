@@ -186,28 +186,47 @@
 
            وأسبوعٌ بلا مزايدةٍ يُقال في السطر نفسِه لا في صندوقٍ رماديٍّ
            يطفو فوق الرسم: الصفرُ **قيمةٌ** لا عطل. {% endcomment %}
-        <p class="trend__lead">
-          <strong>{{ board.trend_total }}</strong>
-          <span>مزايدة في سبعة أيام</span>
-          {% if board.trend_peak %}
+        {% if board.trend_total %}
+          <p class="trend__lead">
+            <strong>{{ board.trend_total }}</strong>
+            <span>مزايدة في سبعة أيام</span>
             <span class="trend__peak">أعلى يوم <b>{{ board.trend_peak.0 }}</b> بـ<b>{{ board.trend_peak.1 }}</b></span>
-          {% else %}
-            <span class="trend__peak trend__peak--none">لا مزايدة في المدّة كلّها</span>
-          {% endif %}
-        </p>
-        <ol class="spark"{% if trend_is_empty %} aria-hidden="true"{% endif %}>
-          {% for day, count, height in board.trend %}
-            {% comment %} يومُ الذروة يُعلَّم بالمقارنة مع `trend_peak`
-               المحسوب في `dashboard.py`. ويومان متعادلان في القمّة
-               يُعلَّمان معاً — وهو الصواب: كلاهما أعلى يوم، وتمييزُ أحدهما
-               بترتيبه في القائمة اختيارٌ لا يقوله شيء. {% endcomment %}
-            <li class="spark__day{% if board.trend_peak and count and count == board.trend_peak.1 %} spark__day--top{% endif %}">
-              <span class="spark__count">{{ count }}</span>
-              <span class="spark__bar" style="block-size: {{ height }}%"></span>
-              <span class="spark__label">{{ day }}</span>
-            </li>
-          {% endfor %}
-        </ol>
+          </p>
+
+          <ol class="spark">
+            {% for day, count, height in board.trend %}
+              {% comment %} يومُ الذروة يُعلَّم بالمقارنة مع `trend_peak`
+                 المحسوب في `dashboard.py`. ويومان متعادلان في القمّة
+                 يُعلَّمان معاً — وهو الصواب: كلاهما أعلى يوم. {% endcomment %}
+              <li class="spark__day{% if count == board.trend_peak.1 %} spark__day--top{% endif %}">
+                <span class="spark__count">{{ count }}</span>
+                <span class="spark__bar" style="block-size: {{ height }}%"></span>
+                <span class="spark__label">{{ day }}</span>
+              </li>
+            {% endfor %}
+          </ol>
+        {% else %}
+          {% comment %} **لا رسمَ فوق سبعة أصفار.** كان الأسبوعُ الفارغ يُرسم
+             سبعةَ أعمدةٍ بارتفاع صفرٍ في لوحٍ بارتفاع 9.5rem — فراغٌ يشغل
+             مساحةَ رسمٍ ولا يقول ما يقوله الرسم.
+
+             والأسبوعُ الفارغ **سؤالٌ لا خبر**: «هل توقّفت المنصّة أم أن
+             النافذة ضيّقة؟». فالجوابُ هنا: متى كانت آخر مزايدةٍ وكم مضى
+             عليها، وبابٌ إلى قائمتها. {% endcomment %}
+          <div class="trend-none">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 16h10"/></svg>
+            <p class="trend-none__say">لا مزايدة في السبعة أيام الماضية.</p>
+            {% if board.trend_last %}
+              <p class="trend-none__last">
+                آخرُ مزايدةٍ في الدفتر يوم <b>{{ board.trend_last.0 }}</b> —
+                قبل <b>{{ board.trend_last.1 }}</b> يوماً.
+              </p>
+            {% else %}
+              <p class="trend-none__last">ولا مزايدةَ في الدفتر أصلاً.</p>
+            {% endif %}
+            <a class="trend-none__go" href="{% url 'console:live-bids' %}">افتح المزايدات <span aria-hidden="true">←</span></a>
+          </div>
+        {% endif %}
       </section>
     {% endif %}
   </div>
