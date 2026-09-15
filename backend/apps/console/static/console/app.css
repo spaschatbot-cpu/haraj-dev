@@ -5785,3 +5785,39 @@ a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action  
    فوقها تُقرأ رقعةً رماديّة. تأخذ لونَ البطاقة مخفَّفاً. */
 .stat--alarm .stat__action { background: color-mix(in srgb, var(--danger) 9%, transparent); color: var(--danger); }
 .stat--warn .stat__action  { background: color-mix(in srgb, var(--warn) 11%, transparent);  color: var(--warn); }
+
+/* ===========================================================================
+   زرُّ الوجهة في وسط البطاقة
+   ---------------------------------------------------------------------------
+   «خلى افتح ده في نص المربع».
+
+   وكان على حافة البداية تحت سطر الشرح، فيقع على المحور نفسِه الذي يقف عليه
+   العنوانُ والشرح — ثلاثةُ أشياءَ على خطٍّ واحد، أوسطُها فعلٌ والآخران خبر،
+   ولا شيء يفرزه منهما إلا لونُ خلفيته. والتوسيطُ يفرزه بموضعه: كلُّ ما
+   فوقه يبدأ من حافةٍ واحدة، وهو وحده في المنتصف.
+
+   وثلاثُ لمساتٍ تجعله يُقرأ زرّاً لا حبّة:
+
+   * **حدٌّ شفّافٌ يتلوّن** عند المرور. الحدُّ على الزرّ ليس كالحدّ على
+     البطاقة: البطاقةُ سطحٌ يُرى بذاته، والزرُّ شيءٌ يُضغط ويجب أن يُعرف
+     طرفُه قبل أن تصله اليد.
+   * **حشوةٌ أوسع** (`.5rem` × `1.05rem`): هدفُ لمسٍ بارتفاع 30px أصغرُ من
+     أن يُصاب بإصبع، والزيادةُ ترفعه إلى 34.
+   * **انتقالٌ على الحدّ واللون معاً**، فلا يقفز أحدُهما قبل الآخر.
+   ======================================================================== */
+
+.stat__action {
+  align-self: center;
+  padding: .5rem 1.05rem;
+  border: 1px solid transparent;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action {
+  border-color: color-mix(in srgb, var(--brand) 32%, transparent);
+}
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action   { border-color: color-mix(in srgb, var(--money) 32%, transparent); }
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action { border-color: color-mix(in srgb, var(--auction) 32%, transparent); }
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action  { border-color: color-mix(in srgb, var(--people) 32%, transparent); }
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action    { border-color: color-mix(in srgb, var(--warn) 34%, transparent); }
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action   { border-color: color-mix(in srgb, var(--danger) 34%, transparent); }
