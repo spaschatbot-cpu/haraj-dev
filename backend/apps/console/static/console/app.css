@@ -6127,3 +6127,54 @@ a.stat:hover, a.stat:focus-visible {
 @media (min-width: 96rem) {
   .board-alarms, .board-stats { grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); }
 }
+
+/* ===========================================================================
+   الزرُّ ممتلئٌ دائماً — لا عند التحويم وحده
+   ---------------------------------------------------------------------------
+   «خلى شكل الأربع كروت زي ما هو من غير ما أقف عليه، بس خفّف درجة لونهم
+   شويه، وخلى كلمة افتح بلون أبيض».
+
+   وكان الزرُّ حبّةً خفيفةً بنصٍّ ملوّن، تمتلئ مصمتةً بالأبيض عند التحويم
+   وحده — فالشكلُ الذي أراده المالك لا يراه إلا وهو واقفٌ على البطاقة، وهو
+   على شاشةٍ لمسيّةٍ لا يراه أصلاً.
+
+   **و٨٨٪ لا أقلّ.** «خفّف الدرجة» له حدٌّ يقطعه: النصُّ أبيضُ فوقه، وكلُّ
+   درجةٍ تُخفَّف تقرّب نسبةَ التباين من الأرضية. قيست خمسُ نسبٍ على الدرجات
+   الخمس قبل الاختيار:
+
+       الدرجة        100%   92%   88%   84%   80%
+       بنفسجي        6.57  5.49  4.98  4.57  4.19
+       فيروزي        5.91  4.98  4.63  4.26  3.91
+       كهرماني       5.93  5.01  4.58  4.23  3.89
+       أحمر          6.57  5.78  5.41  5.02  4.64
+       أخضر          6.10  5.18  4.75  4.35  3.99
+
+   فـ٨٨٪ أفتحُ مزيجٍ يبقى فيه أضعفُها (الكهرماني، 4.58) فوق الحدّ 4.5.
+   و٨٤٪ يُسقط ثلاثاً من خمس.
+
+   **واللونُ الأساسي يبقى مصمتاً بلا تخفيف**: `--brand-solid` معرَّفٌ في رأس
+   الورقة بأنه «خلفيةٌ يُكتب فوقها بالأبيض — الزرّ، الحدّ 4.5»، أي أنه
+   **معايَرٌ على الحدّ نفسِه** في الألوان السبعة كلِّها. وتخفيفُه يُسقطه
+   تحته في بعضها، ولا سبيل إلى قياس السبعة من هنا.
+   ======================================================================== */
+
+.stat__btn {
+  background: var(--brand-solid);
+  color: #fff;
+}
+.stat--money .stat__btn   { background: color-mix(in srgb, var(--money) 88%, #fff);   color: #fff; }
+.stat--auction .stat__btn { background: color-mix(in srgb, var(--auction) 88%, #fff); color: #fff; }
+.stat--people .stat__btn  { background: color-mix(in srgb, var(--people) 88%, #fff);  color: #fff; }
+.stat--ok .stat__btn      { background: color-mix(in srgb, var(--ok) 88%, #fff);      color: #fff; }
+.stat--warn .stat__btn    { background: color-mix(in srgb, var(--warn) 88%, #fff);    color: #fff; }
+.stat--alarm .stat__btn   { background: color-mix(in srgb, var(--danger) 88%, #fff);  color: #fff; }
+
+/* التحويمُ يعمّق بدل أن يملأ: الامتلاءُ صار الحالةَ الساكنة، فبقي للتحويم
+   أن يقول «هذه هي» بدرجةٍ أغمق — تغييرٌ واحدٌ صغير لا قلبٌ كامل. */
+a.stat:hover .stat__btn, a.stat:focus-visible .stat__btn { background: var(--brand-solid); color: #fff; }
+a.stat--money:hover .stat__btn,   a.stat--money:focus-visible .stat__btn   { background: var(--money);   color: #fff; }
+a.stat--auction:hover .stat__btn, a.stat--auction:focus-visible .stat__btn { background: var(--auction); color: #fff; }
+a.stat--people:hover .stat__btn,  a.stat--people:focus-visible .stat__btn  { background: var(--people);  color: #fff; }
+a.stat--ok:hover .stat__btn,      a.stat--ok:focus-visible .stat__btn      { background: var(--ok);      color: #fff; }
+a.stat--warn:hover .stat__btn,    a.stat--warn:focus-visible .stat__btn    { background: var(--warn);    color: #fff; }
+a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { background: var(--danger);  color: #fff; }
