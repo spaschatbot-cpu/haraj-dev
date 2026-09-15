@@ -7012,3 +7012,114 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 @media (max-width: 40rem) {
   .brief { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ===========================================================================
+   لونٌ في كتلة التعريف، وزرُّ اللوحة يُقرأ زرّاً
+   ---------------------------------------------------------------------------
+   «دخّل ألوان في المربع مع الكلام، وخلى دايرة القائمة بشكل احترافي أكتر».
+
+   **واللونُ يحمل معنىً لا يُرشّ.** القيمةُ في «الحالة الأكثر» تأخذ **لون
+   حلقتها**، ورتبتُها محسوبةٌ في `dashboard.py` وتُكتب في `data-slice` —
+   فالعينُ تربط السطرَ بحلقته بلا أن تقرأ الاسمَ مرّتين. وبدون الرتبة كان
+   اللونُ يُبحث عنه بمقارنة الاسم بالأسماء في حلقةٍ داخل القالب.
+
+   والخاناتُ صارت أسطحاً خفيفةً ملوّنةً بدل خطوطٍ فوقها: خطٌّ يفصل، وسطحٌ
+   **يجمع** — والخانةُ اسمٌ وقيمةٌ يجب أن يُقرآ كتلةً واحدة.
+
+   **وزرُّ اللوحة** كان حبّةً خفيفةً بنصٍّ ملوّن، وزرُّ البطاقة تحته ممتلئٌ
+   بنصٍّ أبيض — زرّان بلغتين في صفحةٍ واحدة. فصار على اللغة نفسِها: ممتلئٌ،
+   زاويتُه 10px لا قوسٌ كامل، ونصُّه أبيضُ بـ700.
+   ======================================================================== */
+
+/* ---- الخانات ------------------------------------------------------------ */
+
+.brief { gap: .55rem; }
+
+.brief__cell {
+  padding: .7rem .85rem;
+  border: 0;
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.brief dd { display: flex; align-items: center; gap: .4rem; }
+
+/* حبّةٌ صغيرةٌ بلون الحالة قبل اسمها — الرابطُ البصريُّ بالحلقة. */
+.brief__dot {
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+
+.brief dd[data-slice="0"] { color: #1a9aa1; }
+.brief dd[data-slice="1"] { color: #4aa5df; }
+.brief dd[data-slice="2"] { color: #8c6ad6; }
+.brief dd[data-slice="3"] { color: #c9891a; }
+.brief dd[data-slice="4"] { color: #21a06a; }
+.brief dd[data-slice="5"] { color: #e05a4c; }
+.brief dd[data-slice] b { color: inherit; }
+
+/* خانةُ العدد بلون الأساسي وسطحُها مصبوغٌ به مخفَّفاً. */
+.brief__cell--brand { background: var(--brand-soft); }
+.brief__cell--brand dd { color: var(--brand-dark); }
+
+.brief__cell--wide { background: none; padding-inline: 0; padding-block-end: 0; }
+.brief__cell--wide dt { color: var(--muted); }
+
+/* ---- زرُّ اللوحة -------------------------------------------------------- */
+
+.figure__action {
+  padding: .45rem .95rem;
+  border-radius: 10px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-weight: 700;
+  font-size: .76rem;
+  box-shadow: none;
+}
+.figure__action:hover {
+  background: color-mix(in srgb, var(--brand-solid) 85%, #000);
+  color: #fff;
+  text-decoration: none;
+}
+[data-scheme="dark"] .figure__action { background: var(--brand-solid); color: #fff; }
+
+/* ===========================================================================
+   عطلٌ في القراءة: ألوانُ القطاعات نصّاً
+   ---------------------------------------------------------------------------
+   القيمةُ في «الحالة الأكثر» أُعطيت لونَ حلقتها في الخطوة السابقة. وقيست
+   الألوانُ الستّة نصّاً على سطح الخانة (`--raised` = `#f7f9fd`) فرسبت
+   **كلُّها**:
+
+       #1a9aa1 → 3.22    #4aa5df → 2.57    #8c6ad6 → 3.87
+       #c9891a → 2.82    #21a06a → 3.16    #e05a4c → 3.47
+
+   والحدُّ 4.5. وهي ألوانُ **تعبئة** لا ألوانُ حروف: قُرِّرت لقطاعٍ في دائرةٍ
+   وحبّةٍ في مفتاح — والفِلّةُ الملوّنةُ تحتاج 3:1 والنصُّ 4.5، فما يصلح
+   للأولى لا يصلح للثاني، وهو فرقٌ يُنسى لأن اللون واحد.
+
+   فلكلٍّ **نظيرٌ غامقٌ للنصّ**، محسوبٌ بالبحث عن أغمق مزيجٍ يبلغ 4.6:
+
+       0  81٪  #157d82 → 4.65      3  75٪  #976714 → 4.67
+       1  72٪  #3577a1 → 4.63      4  80٪  #1a8055 → 4.67
+       2  90٪  #7e5fc1 → 4.64      5  85٪  #be4c41 → 4.63
+
+   **والحبّةُ تبقى باللون الأصلي**: هي زخرفةٌ (`aria-hidden`) وتُقرأ رابطاً
+   بصرياً بالحلقة، ولونُها يجب أن يطابق الحلقةَ لا أن يقاربها.
+   ======================================================================== */
+
+.brief dd[data-slice="0"] { color: #157d82; }
+.brief dd[data-slice="1"] { color: #3577a1; }
+.brief dd[data-slice="2"] { color: #7e5fc1; }
+.brief dd[data-slice="3"] { color: #976714; }
+.brief dd[data-slice="4"] { color: #1a8055; }
+.brief dd[data-slice="5"] { color: #be4c41; }
+
+.brief dd[data-slice="0"] .brief__dot { background: #1a9aa1; }
+.brief dd[data-slice="1"] .brief__dot { background: #4aa5df; }
+.brief dd[data-slice="2"] .brief__dot { background: #8c6ad6; }
+.brief dd[data-slice="3"] .brief__dot { background: #c9891a; }
+.brief dd[data-slice="4"] .brief__dot { background: #21a06a; }
+.brief dd[data-slice="5"] .brief__dot { background: #e05a4c; }

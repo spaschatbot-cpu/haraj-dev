@@ -128,14 +128,19 @@
                بكسل بينهما — فتُقرأ القيمةُ ولا يُعرف لأيّ اسمٍ هي إلا بعودةٍ
                بالعين. والخانةُ تضع الاسمَ فوق قيمته فتُقرآن معاً. {% endcomment %}
             <dl class="brief">
-              <div class="brief__cell">
+              <div class="brief__cell brief__cell--brand">
                 <dt>حالات مرصودة</dt>
                 <dd>{{ board.auction_states|length }}</dd>
               </div>
               {% if board.auction_top %}
                 <div class="brief__cell">
                   <dt>الحالة الأكثر</dt>
-                  <dd>{{ board.auction_top.0 }} <b>{{ board.auction_top.1 }}</b></dd>
+                  {% comment %} القيمةُ بلون حلقتها — `data-slice` من الرتبة
+                     المحسوبة في `dashboard.py`. فالعينُ تربط السطرَ بحلقته
+                     بلا أن تقرأ الاسمَ مرّتين. {% endcomment %}
+                  <dd data-slice="{{ board.auction_top.2 }}">
+                    <span class="brief__dot" aria-hidden="true"></span>{{ board.auction_top.0 }} <b>{{ board.auction_top.1 }}</b>
+                  </dd>
                 </div>
               {% endif %}
               <div class="brief__cell brief__cell--wide">
