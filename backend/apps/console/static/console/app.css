@@ -9110,99 +9110,25 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 .cat-table tbody tr:has(.row-select:checked) { background: var(--brand-soft); }
 
 /* ===========================================================================
-   الشريط الجانبي — هويّةٌ ثابتة، وأقسامٌ مفصولة، وخروجٌ في القاع
+   خطُّ الشريط الجانبي: غليظٌ وبكحليٍّ غامق
    ---------------------------------------------------------------------------
-   «خلّي السايدبار بشكل احترافي أكتر».
+   «خلّي الخطّ بولد ولونه أزرق غامق».
 
-   أربعةُ أشياءٍ كانت تنقصه:
+   كان `--side-ink` هو #172033 — حبرٌ رماديٌّ مزرقّ بوزن 400. فصار كحليّاً
+   غامقاً (#0f2c52) بوزن 600، والقسمُ الحالي 800. والغامقُ لا الفاتح: الشريطُ
+   أرضيّتُه بيضاء، والأزرقُ الفاتح عليها يهبط بالتباين إلى ما دون 4.5:1 —
+   وهذا 12.0:1 بالحساب.
 
-   ١) **الهويّة تمرّ**. «لوحة حراج» كانت تُمرَّر مع القائمة، فيصير الشريطُ
-      اثني عشرَ سطراً بلا رأس. صارت لاصقةً في الأعلى بأرضيّة الشريط وخطٍّ
-      تحتها — لا تُغادر مهما نزلت القائمة.
-
-   ٢) **عناوينُ الأقسام كلماتٌ في الهواء**. ثلاثةُ عناوينَ بين اثني عشرَ سطراً
-      متقاربةً في الحجم لا تفصل شيئاً. صار لكلٍّ خطٌّ يمتدّ من آخر كلمته إلى
-      حافة الشريط — القسمُ يُرى قبل أن يُقرأ.
-
-   ٣) **الخروج في وسط القائمة**. كان يقع حيث انتهت الصفحاتُ، فيتحرّك مكانُه
-      كلّما أُضيفت شاشة. صار مدفوعاً إلى قاع الشريط: مكانٌ واحدٌ لا يتغيّر،
-      وبُعدٌ عن آخر صفحةٍ يمنع الضغطَ عليه سهواً.
-
-   ٤) **القسمُ الحالي يُعرَف بالخلفيّة وحدها**. صارت الخلفيّةُ بلونٍ من عائلة
-      الأساسيّ ورمزُه بكامل عتمته — الشريطُ على الحافة كان الإشارةَ الوحيدة.
+   واللونُ مكتوبٌ للمظهر الفاتح وحده: في الداكن الأرضيّةُ #131926، وكحليٌّ
+   غامقٌ عليها لا يُقرأ أصلاً.
    ======================================================================== */
 
-.sidebar {
-  padding-block-start: 0;
-  /* شريطُ التمرير لا يشقّ الحافة: رفيعٌ بلونٍ من الشريط نفسه. */
-  scrollbar-color: var(--side-line) transparent;
+:root:not([data-scheme="dark"]),
+/* والشريطُ الفاتحُ داخل مظهرٍ داكن أرضيّتُه بيضاءُ أيضاً، فيأخذ الكحليَّ نفسه. */
+:root[data-scheme="dark"][data-sidebar="light"] {
+  --side-ink: #0f2c52;
 }
 
-/* ---- الهويّة: لاصقةٌ في الأعلى ------------------------------------------ */
-
-.brand {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  margin: 0 -.8rem 1rem;
-  padding: 1.05rem 1.15rem;
-  background: var(--side);
-  border-block-end: 1px solid var(--side-line);
-  border-radius: 0;
-}
-:root[data-sidebar="gradient"] .brand { background: var(--a700); }
-.brand__mark { border-radius: .8rem; box-shadow: 0 5px 14px var(--ring), inset 0 1px 0 rgb(255 255 255 / .22); }
-.brand strong { font-weight: 800; letter-spacing: -.01em; }
-:root[data-nav="mini"] .brand { margin-inline: -.55rem; padding-inline: .55rem; }
-
-/* ---- عنوانُ القسم: كلمةٌ وخطّ ------------------------------------------- */
-
-.nav-sec {
-  display: flex;
-  align-items: center;
-  gap: .55rem;
-  margin: 1.25rem .55rem .4rem;
-  font-size: .66rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-}
-.nav-sec::after {
-  content: "";
-  flex: 1;
-  block-size: 1px;
-  background: var(--side-line);
-}
-/* في المطويّ يبقى العنوانُ خطّاً كما كان — و`::after` تُلغى لئلا يُرسم خطّان. */
-:root[data-nav="mini"] .nav-sec { display: block; }
-:root[data-nav="mini"] .nav-sec::after { content: none; }
-
-/* ---- الصفوف ------------------------------------------------------------- */
-
-.nav a, .nav__soon, .nav-out button {
-  padding: .54rem .65rem;
-  border-radius: .6rem;
-}
-.nav a { transition: background .15s ease, color .15s ease, padding-inline-start .15s ease; }
-/* إزاحةٌ صغيرةٌ عند المرور: حركةٌ تقول «هذا هدفُ نقر» بلا لونٍ إضافي. */
-.nav a:hover { padding-inline-start: .95rem; }
-.nav a:hover .nav__icon { opacity: 1; }
-
-.nav a.active {
-  background: color-mix(in srgb, var(--side-accent) 12%, transparent);
-  font-weight: 800;
-}
-.nav a.active:hover { padding-inline-start: .65rem; }
-.nav a.active::before { inline-size: 3.5px; inset-block: .28rem; }
-
-/* ---- الخروج في القاع ---------------------------------------------------- */
-
-/* `.nav` عمودٌ بارتفاعٍ لا يقلّ عن بقيّة الشريط، وعنوانُ «الخروج» يُدفع
-   بـ`auto` إلى قاعه — فموضعُه لا يتغيّر بإضافة شاشةٍ إلى القائمة. */
-.nav { display: flex; flex-direction: column; min-block-size: calc(100vh - 8.5rem); }
-.nav > .nav-sec:has(+ .nav-out) {
-  margin-block-start: auto;
-  padding-block-start: .9rem;
-}
-.nav-out button { color: var(--side-dim); }
-.nav-out button:hover { color: var(--danger); background: var(--danger-soft); }
-.nav-out button:hover .nav__icon { opacity: 1; }
+.nav a, .nav__soon, .nav-out button { font-weight: 600; }
+.nav a.active { font-weight: 800; }
+.nav-sec { font-weight: 800; }
