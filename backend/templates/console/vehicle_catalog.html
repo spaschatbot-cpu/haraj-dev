@@ -12,7 +12,16 @@
 {% endcomment %}
 {% block title %}كتالوج السيارات{% endblock %}
 {% block heading %}كتالوج السيارات{% endblock %}
-{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
+{% comment %} «إضافة سيارة يدويًا» في رأس الشاشة مع بقيّة أفعالها.
+
+   كانت في صفٍّ وحدَها بين البطاقات وشريط الفلاتر — «موضعُها في v1» كما كُتب
+   هنا. وذلك صحيحٌ في لوحةٍ لا رأسَ لها؛ وقد صار لكل شاشةٍ في هذه اللوحة
+   صفُّ أفعالٍ في رأسها، فزرٌّ يقع خارجه يُقرأ عائماً لا منتمياً — ويفصل
+   البطاقاتِ عن الفلاتر بسطرٍ لا علاقة له بهما. {% endcomment %}
+{% block actions %}
+  <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">+ إضافة سيارة يدويًا</button>
+  <a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
   <p class="lede">كلُّ مركبةٍ عندنا بمواصفاتها وصورها ومزادها وفاتورتها — بفلاتر الحالة والتواريخ الأربعة.</p>
@@ -20,11 +29,6 @@
   <section class="board-stats board-stats--compact" aria-label="أرقام الكتالوج">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
-
-  {% comment %} «إضافة سيارة يدويًا» أعلى الشاشة تحت البطاقات — موضعُها في v1. {% endcomment %}
-  <div class="cat-add-row">
-    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">➕ إضافة سيارة يدويًا</button>
-  </div>
 
   {% comment %} صفُّ الفلاتر — لصائقُ v1 الكاملة فوق كل حقل: يُعرَف أيُّ تاريخٍ
      يُطلب قبل ملئه، لا placeholder يختفي عند الكتابة. {% endcomment %}

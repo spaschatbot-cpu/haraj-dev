@@ -8809,3 +8809,107 @@ td.actions .act--del:hover {
   text-decoration: none;
 }
 .pick-card__cta--off { background: var(--line-soft); color: var(--muted); }
+
+/* ===========================================================================
+   لوحةُ الفلاتر: ظلٌّ، ورأسٌ، وحقولٌ محفورة
+   ---------------------------------------------------------------------------
+   «ضيف شادو لمربع الفلترة وخلى تصميمه احترافي أكتر».
+
+   **الظلّ**: `form.cat-filters` لا `.cat-filters` — قاعدةُ `form[method="get"]`
+   العامّة فيها `box-shadow: none` بتخصيصِ (٠،١،١)، والصنفُ وحده (٠،١،٠)
+   يخسرُها صامتاً. هذا الفخُّ ابتلع أربعَ محاولاتٍ في هذه الجلسة.
+
+   **ورأسٌ للّوحة**: كانت تبدأ باللصائق مباشرةً، فتُقرأ امتداداً للبطاقات
+   فوقها لا كتلةً لها وظيفة. فسطرٌ في أعلاها يقول «تصفية النتائج» وتحته خطّ —
+   والنصُّ في `::before` لا في القالب لأن اللوحة استمارةٌ واحدةٌ في شاشةٍ
+   واحدة، وصفٌّ في القالب لأجل كلمتين يُلزم كلَّ من نسخها بنسخهما.
+
+   **والحقولُ محفورة**: كانت بيضاءَ داخل لوحةٍ بيضاء، فلا يُرى منها إلا حدٌّ
+   بلون `--line`. فصارت بأرضيّة الصفحة (`--ground`) — الحقلُ يُقرأ فجوةً في
+   اللوحة، وهي إشارةُ «اكتب هنا» بلا حاجةٍ إلى حدٍّ غليظ. وعند التركيز يعود
+   أبيضَ مع الحلقة: الحقلُ النشط يرتفع، والباقي يهدأ.
+   ======================================================================== */
+
+form.cat-filters {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .9rem 1rem;
+  align-items: end;
+  padding: 1.15rem 1.25rem 1.25rem;
+  box-shadow: var(--shadow);
+}
+
+/* رأسُ اللوحة. */
+form.cat-filters::before {
+  content: "تصفية النتائج";
+  grid-column: 1 / -1;
+  padding-block-end: .85rem;
+  border-block-end: 1px solid var(--line);
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  letter-spacing: -.005em;
+}
+
+.cat-filters__field { display: flex; flex-direction: column; gap: .35rem; min-inline-size: 0; }
+form.cat-filters .cat-filters__field label {
+  margin: 0;
+  font-size: .75rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.cat-filters__field input,
+.cat-filters__field select {
+  inline-size: 100%;
+  max-inline-size: none;
+  block-size: 2.7rem;
+  padding-inline: .8rem;
+  background: var(--ground);
+  border-color: var(--line);
+  border-radius: var(--radius);
+  transition: background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.cat-filters__field input:hover,
+.cat-filters__field select:hover { border-color: color-mix(in srgb, var(--brand) 38%, var(--line)); }
+.cat-filters__field input:focus,
+.cat-filters__field select:focus { background: var(--panel); border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
+
+/* رمزُ نتقويم المتصفّح أسودُ مصمتٌ افتراضاً فيسحب العين إلى أربع نقاطٍ لا
+   تقول شيئاً. يخفت حتى يُلمس. */
+.cat-filters__field input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: .45;
+  cursor: pointer;
+  transition: opacity .16s ease;
+}
+.cat-filters__field input[type="date"]:hover::-webkit-calendar-picker-indicator,
+.cat-filters__field input[type="date"]:focus::-webkit-calendar-picker-indicator { opacity: .9; }
+
+/* قاعُ الاستمارة: خطٌّ فوقه فيُقرأ خاتمةً لا حقلاً سابعاً، و«مسح الفلاتر»
+   على الحافة المقابلة — فعلٌ مضادٌّ لا يقف بجوار الفعل الأساسي. */
+.cat-filters__actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  margin-block-start: .15rem;
+  padding-block-start: 1rem;
+  border-block-start: 1px solid var(--line);
+}
+/* `form[method="get"] button[type="submit"] { margin-inline-start: auto }`
+   (سطر ٧٢٣) يُصيب زرَّ التطبيق أيضاً، فيقتسم الزرّان الفراغَ ويقف الأساسيُّ
+   في **منتصف** السطر — قيس: هامشٌ 364.75px على كلٍّ منهما. يُبطَل هنا،
+   ويُدفع «مسح الفلاتر» وحدَه إلى الحافة المقابلة. */
+form.cat-filters .cat-filters__actions > button[type="submit"] { margin-inline-start: 0; }
+.cat-filters__actions > .btn-ghost { margin-inline-start: auto; }
+
+/* حقلُ البحث وحالةُ المزاد يملآن الصفَّ الأول (عمودان لكلٍّ)، والتواريخُ
+   الأربعةُ صفٌّ تامٌّ تحتهما — لا صفٌّ ناقصٌ بخانتين فارغتين كما كان. */
+.cat-filters__field:nth-of-type(1),
+.cat-filters__field:nth-of-type(2) { grid-column: span 2; }
+@media (max-width: 68rem) {
+  .cat-filters__field:nth-of-type(1),
+  .cat-filters__field:nth-of-type(2) { grid-column: span 1; }
+}
+
+@media (max-width: 68rem) { form.cat-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40rem) { form.cat-filters { grid-template-columns: minmax(0, 1fr); } }
