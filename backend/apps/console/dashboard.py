@@ -237,6 +237,11 @@ class Board:
     #: تحلّ الأمرين معاً: الرسمان في صفٍّ، والعاديةُ تملأ صفوفَها.
     charts: list[Stat] = field(default_factory=list)
     auction_states: list[tuple[str, int, int]] = field(default_factory=list)
+    #: أكثرُ الحالات عدداً — `(الاسم، العدد)` أو `None` حين لا مزاد.
+    #:
+    #: مشتقٌّ هنا لا في القالب: `max` بمفتاحٍ ليس مما تفعله لغةُ القوالب،
+    #: ومحاولةُ إيجادها بحلقةٍ ومقارنةٍ فيها قاعدةٌ في مكانٍ لا يُختبَر.
+    auction_top: tuple[str, int] | None = None
     auction_wheel: str = ""
     auction_total: int = 0
     trend: list[tuple[str, int, int]] = field(default_factory=list)
@@ -428,6 +433,9 @@ def board_for(user) -> Board:
         board.auction_states = _auction_states()
         board.auction_wheel = _wheel(board.auction_states)
         board.auction_total = sum(n for _, n, _ in board.auction_states)
+        if board.auction_states:
+            top = max(board.auction_states, key=lambda row: row[1])
+            board.auction_top = (top[0], top[1])
         board.trend = _trend()
 
     # ---- الناس -----------------------------------------------------------

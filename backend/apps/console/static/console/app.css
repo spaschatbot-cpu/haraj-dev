@@ -6911,3 +6911,75 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   .rings__ring { block-size: 5.4rem; }
   .rings__hole { inline-size: 3.9rem; block-size: 3.9rem; font-size: 1.2rem; }
 }
+
+/* ===========================================================================
+   لوحُ الحالات: كلامٌ على حافة البداية، وحلقاتٌ على مقابلها
+   ---------------------------------------------------------------------------
+   «خلى الدايرتين في الشمال وضيف كلام وخطوط في اليمين عشان حاسّه المربع فاضي».
+
+   واللوحُ كان حلقتين متوسّطتين في عرضٍ يتّسع لستّ، فثلثاه فراغ. والكلامُ
+   هنا **مشتقٌّ من الأرقام نفسِها لا حشوٌ يُكتب**: الإجماليُّ، وأكثرُ
+   الحالات، وعددُ الحالات المرصودة، ومن أين يُقرأ العمود. وسطرٌ يملأ فراغاً
+   ولا يقول شيئاً أسوأُ من الفراغ.
+
+   و«الحالة الأكثر» تُحسب بـ`max` في `dashboard.py` لا بحلقةٍ في القالب:
+   المقارنةُ قاعدةٌ، والقالبُ مكانٌ لا يُختبَر.
+
+   والحلقاتُ لا تنكمش (`flex: none`) والكلامُ يأخذ ما بقي: حلقةٌ تضيق تحت
+   ستّ حالاتٍ تصير قرصاً، والنصُّ يلتفّ ولا يضيع.
+   ======================================================================== */
+
+.states {
+  display: flex;
+  align-items: center;
+  gap: 2rem 2.4rem;
+  flex-wrap: wrap;
+}
+
+.states__brief { flex: 1 1 15rem; min-inline-size: 0; }
+.states .rings { flex: 0 1 auto; justify-content: flex-end; padding: 0; }
+
+/* ---- الإجمالي ----------------------------------------------------------- */
+
+.states__lead {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 0 0 1rem;
+}
+.states__lead strong {
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.states__lead span { font-size: .84rem; font-weight: 600; color: var(--muted); }
+
+/* ---- الأسطر والخطوط ----------------------------------------------------- */
+
+.brief { margin: 0; }
+.brief__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: .62rem;
+  border-block-start: 1px solid var(--line-soft);
+}
+.brief__row:last-child { border-block-end: 1px solid var(--line-soft); }
+
+.brief dt { font-size: .8rem; font-weight: 600; color: var(--muted); }
+.brief dd {
+  margin: 0;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-align: end;
+}
+.brief dd b {
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  padding-inline-start: .25rem;
+}
