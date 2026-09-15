@@ -8751,3 +8751,13 @@ td.actions .act--del:hover {
 .pick-card__cta span[aria-hidden] { transition: transform .15s ease; display: inline-block; }
 .pick-card:hover .pick-card__cta span[aria-hidden] { transform: translateX(-3px); }
 .pick-card__cta--off { background: none; color: var(--muted); }
+
+/* سطرُ الوجهة في الكارت أزرقُ في السكون — بأمر المالك. وكان رماديّاً يزرقّ
+   عند المرور، فلا يُقرأ طريقاً إلا وقد وُقف عليه؛ وعلى شاشةٍ لمسيّةٍ لا
+   يزرقّ أبداً.
+
+   ولونُه `--brand-dark` لا `--brand`: الأوّلُ معرَّفٌ في رأس الورقة نصّاً
+   ملوّناً على البطاقة بحدّ 4.5، والثاني لِما ليس نصّاً (حدٌّ وإطارٌ وتدرّج)
+   بحدّ 3 — وهو يرسب نصّاً. والفرقُ بينهما هو بعينه ما كُتبا لأجله. */
+.pick-card__cta { color: var(--brand-dark); }
+.pick-card:hover .pick-card__cta { color: var(--brand-solid); text-decoration: underline; text-underline-offset: .25em; }
