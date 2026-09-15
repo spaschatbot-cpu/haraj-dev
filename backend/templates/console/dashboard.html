@@ -26,22 +26,15 @@
     <span class="board-hello__say">— ملخّصٌ شاملٌ لحركة المنصّة والمزادات والمال.</span>
   </p>
 
-  <p class="board-when">
-    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
-    {{ today_words }}
-  </p>
-
-  {% comment %} الحكم حبّةٌ واحدة: نصٌّ ولونٌ معاً، فمن لا يميّز اللون يقرأ
-     الجملة نفسها. والعدد في الحبّة لأن «ثلاثُ ملاحظات» غيرُ «ملاحظة». {% endcomment %}
+  {% comment %} الحكم حين يكون **إنذاراً** فقط. أمر المالك بحذف سطر التاريخ
+     وحبّة «الدفتر متّزن» — والسكوتُ عند السلامة صحيح: لافتةٌ تقول «كل شيء
+     بخير» كل يوم تُقرأ مرّةً ثم تصير جزءاً من الخلفية، فحين تتحوّل حمراء لا
+     يلاحظها أحد. أما الإنذارُ فيبقى: حذفُه يحذف معلومةً لم تُطلب إزالتها،
+     وهو كتلةٌ كاملةٌ تحته بعنوانٍ أحمر وعدّاد على أي حال. {% endcomment %}
   {% if board.alarms %}
     <p class="board-verdict board-verdict--alarm">
       <span class="board-pulse" aria-hidden="true"></span>
       {{ alarm_count }} {% if alarm_count == 1 %}أمرٌ يحتاج نظراً{% else %}أمورٌ تحتاج نظراً{% endif %}
-    </p>
-  {% elif board.is_clean %}
-    <p class="board-verdict board-verdict--ok">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6 9 17l-5-5"/></svg>
-      الدفتر متّزن، ولا شيء معلّق بلا صاحب
     </p>
   {% endif %}
 {% endblock %}
