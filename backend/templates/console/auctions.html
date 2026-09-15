@@ -174,22 +174,19 @@ have to undo one in their head.
             <div class="metric">
               {% comment %} الرقمان معاً في سطر: «٢ من ٢» تُقرأ نسبةً في
                  لمحة، و«٢» فوق «متاحة من ٢» تجعل العينَ تجمعهما. {% endcomment %}
+              {% comment %} الرقمُ وحدَه — أمرُ المالك. والشريطُ حُذف لا
+                 أُخفي: رسمٌ يُرسم ولا يُنظر إليه يبقى في الصفحة يُحسب
+                 ويُصان. واسمُ العمود («التفعيل») يقول ما يعدّه الرقم،
+                 و`aria-label` كان على الشريط فانتقل معناه إلى النصّ نفسِه
+                 — «٢ / ٢» يقرؤها قارئُ الشاشة كما تُرى. {% endcomment %}
               <b class="metric__n">{{ auction.summary.offered|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
-              <span class="metric__label">متاحة للمزايدة</span>
-              <span class="bar" role="img"
-                    aria-label="{{ auction.summary.offered|unlocalize }} متاحة من {{ auction.summary.cars|unlocalize }}">
-                <i style="inline-size: {% widthratio auction.summary.offered auction.summary.cars 100 %}%"></i>
-              </span>
             </div>
           </td>
           <td data-col="images">
             <div class="metric">
               <b class="metric__n">{{ auction.summary.cars_with_images|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
-              <span class="metric__label">لها صور</span>
-              <span class="bar {% if auction.summary.images_missing %}bar--warn{% endif %}" role="img"
-                    aria-label="{{ auction.summary.cars_with_images|unlocalize }} سيارة لها صور من {{ auction.summary.cars|unlocalize }}، وإجمالي {{ auction.summary.images|unlocalize }} صورة">
-                <i style="inline-size: {% widthratio auction.summary.cars_with_images auction.summary.cars 100 %}%"></i>
-              </span>
+              {% comment %} «كم صورة» رقمٌ آخر لا وصفاً، فيبقى: النسبةُ تقول
+                 كم مركبةً لها صور، وهذا يقول كم صورةً في المزاد كلِّه. {% endcomment %}
               <span class="metric__note">{{ auction.summary.images|unlocalize }} صورة</span>
             </div>
           </td>
