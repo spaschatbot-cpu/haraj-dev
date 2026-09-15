@@ -5,7 +5,10 @@
   والبطاقة كلها رابطٌ حين يكون لها فعل، لا رابطٌ في تذييلها وحده: هدفُ لمسٍ
   بعرض البطاقة أسهل من هدفٍ بعرض كلمتين، والتذييل يبقى ليقول **إلى أين**.
 {% endcomment %}
-{% if stat.href %}<a class="stat stat--{{ stat.tone }}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}">{% endif %}
+{% comment %} `stat--chart` لبطاقةٍ تحمل رسماً: تأخذ عمودين في الشبكة على
+   الشاشات التي تتّسع لذلك. رسمٌ بعرض بطاقةٍ عادية سبعةُ أعمدةٍ في 150px —
+   أي ٢١px للعمود الواحد، وهو عرضٌ لا يُقرأ منه شكل. {% endcomment %}
+{% if stat.href %}<a class="stat stat--{{ stat.tone }}{% if stat.spark_points %} stat--chart{% endif %}" href="{{ stat.href }}">{% else %}<div class="stat stat--{{ stat.tone }}{% if stat.spark_points %} stat--chart{% endif %}">{% endif %}
   <div class="stat__top">
     {% comment %} الرمزُ والعنوان **مجموعةٌ واحدة** على سطرٍ واحد، لا رمزٌ في
        صفٍّ وعنوانٌ في الصفّ الذي تحته. أمرَ بذلك المالك، وهو أصحّ: البطاقةُ
@@ -45,18 +48,29 @@
 
   {% if stat.delta %}<span class="stat__delta-note">{{ stat.delta.word }} {{ stat.delta.percent }}% {{ stat.delta.note }}</span>{% endif %}
 
-  {% if stat.spark_points %}
-    {% comment %} شكلٌ لا رقم — والرقم مكتوبٌ فوقه. `aria-hidden` لأن قارئ
-       الشاشة قرأ القيمة والدلتا بالفعل، وسلسلةُ إحداثياتٍ ضجيج. {% endcomment %}
-    <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
-         role="presentation" aria-hidden="true" focusable="false">
-      <polyline points="{{ stat.spark_points }}" />
-    </svg>
-  {% endif %}
 
   {% comment %} `title` يحمل السطر كاملاً: القصُّ بسطرين يحفظ إيقاع الصفّ،
      ولا يجوز أن يحذف — والوقوفُ على النصّ يُظهر ما قُصّ. {% endcomment %}
   <span class="stat__detail" title="{{ stat.detail }}">{{ stat.detail }}</span>
+
+  {% if stat.spark_points %}
+    {% comment %} شكلٌ لا رقم — والرقم مكتوبٌ فوقه. `aria-hidden` لأن قارئ
+       الشاشة قرأ القيمة والدلتا بالفعل، وسلسلةُ إحداثياتٍ ضجيج. {% endcomment %}
+    {% comment %} ثلاثُ طبقاتٍ لا خطٌّ واحد: مساحةٌ تحته تُقرأ حجماً،
+       والخطُّ فوقها يُقرأ اتجاهاً، ونقطةٌ على طرفه تقول «هنا اليوم».
+       و`preserveAspectRatio="none"` يمطّ المحور الأفقيَّ وحده — والنقطةُ
+       تُرسم في طبقةٍ ثانيةٍ بصندوقها لأن المطَّ يحوّل الدائرةَ إلى قطعٍ
+       ناقص. {% endcomment %}
+    <span class="stat__chart">
+      <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
+           role="presentation" aria-hidden="true" focusable="false">
+        <path class="stat__spark-area" d="{{ stat.spark_area }}" />
+        <polyline points="{{ stat.spark_points }}" />
+      </svg>
+      <span class="stat__spark-dot" aria-hidden="true"
+            style="left: {{ stat.spark_last_x }}%; top: {{ stat.spark_last_y }}%"></span>
+    </span>
+  {% endif %}
 
   {% if stat.action %}
     {% comment %} الوجهةُ في جهة، والسهمُ في قرصه على مقابلها — لا كلمتان

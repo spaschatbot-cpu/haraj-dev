@@ -136,19 +136,57 @@ class Stat:
         return path_of(self.icon)
 
     @property
-    def spark_points(self) -> str:
-        """النقاط كما يقرأها `<polyline>` — محسوبةً هنا لا في القالب.
+    def _spark_xy(self) -> list[tuple[float, float]]:
+        """إحداثياتُ الخطّ المصغَّر، محسوبةً مرّةً واحدة.
 
-        قالبٌ يحسب إحداثيات هو مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
-        والمحور الرأسي مقلوبٌ لأن أعلى القيمة أدنى الإحداثي في SVG.
+        الحسابُ هنا لا في القالب: قالبٌ يحسب إحداثيات هو مكانٌ ثانٍ للقاعدة
+        ولا يُختبَر (المادة ٤-٤). والمحور الرأسي مقلوبٌ لأن أعلى القيمة أدنى
+        الإحداثي في SVG. والصندوق `0 0 100 32`.
         """
         if len(self.spark) < 2:
-            return ""
+            return []
         step = 100 / (len(self.spark) - 1)
-        return " ".join(
-            f"{i * step:.1f},{30 - value * 0.28:.1f}"
-            for i, value in enumerate(self.spark)
-        )
+        return [(i * step, 30 - v * 0.28) for i, v in enumerate(self.spark)]
+
+    @property
+    def spark_points(self) -> str:
+        """النقاط كما يقرأها `<polyline>` — الخطُّ نفسُه."""
+        return " ".join(f"{x:.1f},{y:.1f}" for x, y in self._spark_xy)
+
+    @property
+    def spark_area(self) -> str:
+        """المساحةُ تحت الخطّ، مسارٌ مغلقٌ يقرأه `<path>`.
+
+        خطٌّ وحدَه يقول «إلى أين يتجه»؛ والمساحةُ تحته تقول «كم» — يقرأها
+        الناسُ حجماً قبل أن يتتبّعوا الخطّ. وتُغلق عند القاع (`32`) لا عند
+        أوّل نقطةٍ ولا آخرِها، وإلا مالت قاعدةُ الرسم مع البيانات.
+        """
+        xy = self._spark_xy
+        if not xy:
+            return ""
+        line = " L ".join(f"{x:.1f} {y:.1f}" for x, y in xy)
+        return f"M {xy[0][0]:.1f} 32 L {line} L {xy[-1][0]:.1f} 32 Z"
+
+    #: موضعُ نقطة «اليوم» على الرسم، **نسبةً مئوية لا إحداثيَّ SVG**.
+    #:
+    #: النقطةُ تُرسم عنصرَ HTML فوق الرسم لا `<circle>` داخله، لأن الرسم
+    #: يُمطّ أفقياً (`preserveAspectRatio="none"`) فيتحوّل كلُّ دائرةٍ فيه
+    #: إلى قطعٍ ناقص. وعنصرٌ فوقه لا يمسّه المطّ.
+    #:
+    #: والمحور الأفقيُّ هنا **لا ينقلب مع اتجاه الصفحة**: فضاءُ إحداثيات SVG
+    #: يبدأ من اليسار دائماً، فالموضعُ يُكتب بـ`left` الفيزيائية لا بحافةٍ
+    #: منطقية — ومنطقيّةٌ هنا كانت ستضع «اليوم» في طرف الأسبوع الآخر.
+    @property
+    def spark_last_x(self) -> str:
+        """بُعدُ آخر نقطةٍ عن يسار الرسم، ٪."""
+        xy = self._spark_xy
+        return f"{xy[-1][0]:.1f}" if xy else ""
+
+    @property
+    def spark_last_y(self) -> str:
+        """بُعدُ آخر نقطةٍ عن أعلى الرسم، ٪ — من ارتفاع الصندوق (32)."""
+        xy = self._spark_xy
+        return f"{xy[-1][1] / 32 * 100:.1f}" if xy else ""
 
 
 @dataclass

@@ -5990,3 +5990,93 @@ a.stat:hover, a.stat:focus-visible {
   .stat { padding: .95rem 1rem .85rem; padding-inline-start: 1.15rem; }
   .stat__value { font-size: 1.35rem; }
 }
+
+/* ===========================================================================
+   الرسمُ داخل البطاقة: مساحةٌ وخطٌّ ونقطةُ اليوم — وبطاقتُه أعرض
+   ---------------------------------------------------------------------------
+   «خلى مربع مزايدات مرفوضة أعرض وفيه رسم بياني احترافي أكتر، وخلى كلمة افتح
+   بخط بولد عشان تكون واضحة».
+
+   **والعرضُ قاعدةٌ لا استثناء**: كلُّ بطاقةٍ تحمل رسماً تأخذ عمودين. رسمٌ
+   بعرض بطاقةٍ عادية سبعةُ أعمدةٍ في 150px — أي ٢١px للعمود الواحد، وهو عرضٌ
+   لا يُقرأ منه شكل. وبطاقتان تحملان رسماً اليوم («مزايدات مرفوضة» و«المزايدات»)،
+   فالقاعدةُ تشملهما معاً بدل أن تُسمّى إحداهما بالاسم وتُنسى الأخرى.
+
+   **والرسمُ ثلاثُ طبقات** بدل خطٍّ واحد:
+
+   * **مساحةٌ** تحت الخطّ تُقرأ حجماً قبل أن يُتتبَّع الخطّ.
+   * **خطٌّ** فوقها يقول الاتجاه.
+   * **نقطةٌ** على طرفه تقول «هنا اليوم» بلا تتبّعٍ إلى الطرف.
+
+   والنقطةُ عنصرُ HTML فوق الرسم لا `<circle>` داخله: الرسمُ يُمطّ أفقياً
+   (`preserveAspectRatio="none"`) فتتحوّل كلُّ دائرةٍ فيه إلى قطعٍ ناقص.
+   ======================================================================== */
+
+@media (min-width: 48rem) {
+  .board-stats .stat--chart, .board-alarms .stat--chart { grid-column: span 2; }
+}
+
+.stat__chart {
+  position: relative;
+  display: block;
+  margin-block-start: .45rem;
+  block-size: 3.1rem;
+}
+
+.stat__spark {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+.stat__spark polyline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* السُّمكُ لا يُمطّ مع الرسم: بلا هذا يصير الخطُّ شعرةً على بطاقةٍ عريضة
+     وحبلاً على ضيّقة، لأن المطَّ الأفقيَّ يقسم سُمكَه. */
+  vector-effect: non-scaling-stroke;
+}
+.stat__spark-area {
+  fill: color-mix(in srgb, currentColor 13%, transparent);
+  stroke: none;
+}
+
+.stat__spark-dot {
+  position: absolute;
+  inline-size: .45rem;
+  block-size: .45rem;
+  margin: -.225rem 0 0 -.225rem;   /* مركزُها على النقطة لا ركنُها */
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px var(--panel);
+}
+
+.stat--money .stat__chart   { color: var(--money); }
+.stat--auction .stat__chart { color: var(--auction); }
+.stat--people .stat__chart  { color: var(--people); }
+.stat--warn .stat__chart    { color: var(--warn); }
+.stat--alarm .stat__chart   { color: var(--danger); }
+.stat--ok .stat__chart      { color: var(--ok); }
+.stat__chart                { color: var(--brand-dark); }
+
+/* حلقةُ النقطة تأخذ لونَ البطاقة المصبوغة لا الأبيضَ المصمت. */
+.stat--warn .stat__spark-dot  { box-shadow: 0 0 0 2px var(--warn-soft); }
+.stat--alarm .stat__spark-dot { box-shadow: 0 0 0 2px var(--danger-soft); }
+
+/* ---- «افتح» غليظة ------------------------------------------------------- */
+
+/* 700 لا 600: الزرُّ كلمتان في حبّةٍ صغيرة، ووزنٌ وسيطٌ فيها يُقرأ نصّاً
+   عادياً بخلفيةٍ ملوّنة لا فعلاً. */
+.stat__btn { font-weight: 700; }
+
+/* الرسمُ بعد سطر الشرح لا قبله (رُتِّب في القالب): الشرحُ يقول ما يعدّه
+   الرقم، والرسمُ يقول كيف تحرّك — فتُقرأ الجملةُ ثم يُرى شكلُها. وكان فوقه
+   فوقعت الجملةُ على المساحة المظلَّلة وصارت تُقرأ فوق تظليل.
+
+   وفُسحةٌ تحته تفصله عن خطّ الزرّ، وارتفاعٌ أكبرُ في البطاقة العريضة: رسمٌ
+   بعرض ٦٥٠px وارتفاع ٥٠ خطٌّ مستوٍ تقريباً مهما تحرّكت بياناتُه. */
+.stat__chart { margin-block: .55rem .15rem; }
+.stat--chart .stat__chart { block-size: 3.8rem; }
