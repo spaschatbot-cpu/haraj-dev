@@ -7537,3 +7537,70 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   font-weight: 700;
   font-size: .82rem;
 }
+
+/* ===========================================================================
+   رأسُ الشاشة: الرجوعُ في صفّ الأفعال، وزرُّ التصدير يُقرأ زرّاً
+   ---------------------------------------------------------------------------
+   «شيل كلمة الرئيسية اللي فوق العنوان، وصغّر الكلام تحت العنوان شويه، وخلى
+   زر تصدير شكله احترافي».
+
+   **وزرُّ الرجوع لم يُحذف.** القاعدةُ المكتوبة في T864 أنه يحمل اسمَ ما
+   يعود إليه فيُقرأ قبل النقر — «← المزادات» لا سهمٌ لا يُعرف إلى أين، لأن
+   `history.back()` يعود إلى **الطلب** السابق لا الشاشة. فبقي الاسمُ وتغيّر
+   موضعُه: كان سطراً قائماً بذاته يعلو العنوان، فأولُ ما يُقرأ في الشاشة
+   اسمُ شاشةٍ **أخرى**. صار في الطرف المقابل على السطر نفسِه.
+
+   **وأزرارُ الرأس صنفان لا واحد**: الرجوعُ **هادئ** (بلا خلفيةٍ حتى يُمَرَّ
+   عليه) لأنه طريقُ خروجٍ لا فعل، والتصديرُ **محدَّدٌ بحدّ** لأنه فعلٌ يُنتج
+   ملفّاً. وكانا شكلاً واحداً، فيتنافسان على انتباهٍ واحد.
+   ======================================================================== */
+
+/* ---- سطرُ الوصف أصغر ---------------------------------------------------- */
+
+.lede { font-size: .82rem; line-height: 1.75; }
+
+/* ---- الرأس -------------------------------------------------------------- */
+
+.page { align-items: center; gap: .75rem 1rem; }
+.page__actions { gap: .5rem; }
+
+/* ---- زرُّ الرجوع: هادئ ---------------------------------------------------- */
+
+.page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .42rem .75rem;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.page__back:hover {
+  background: var(--raised);
+  border-color: var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+.page__back svg { flex: none; }
+
+/* ---- زرُّ التصدير وأخواته: فعلٌ محدَّد ------------------------------------ */
+
+.page__actions a:not(.page__back) {
+  padding: .5rem 1.05rem;
+  border-radius: 9px;
+  border-color: var(--field-border);
+  background: var(--panel);
+  color: var(--ink-soft);
+  font-size: .79rem;
+  font-weight: 700;
+}
+.page__actions a:not(.page__back):hover {
+  background: var(--brand-soft);
+  border-color: var(--brand-solid);
+  color: var(--brand-dark);
+}
