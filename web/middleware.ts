@@ -42,7 +42,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-import { api } from "@/lib/api";
+import { backendUrl } from "@/lib/api";
 import { FLASH_COOKIE } from "@/lib/flash";
 import { ACCESS_COOKIE, REFRESH_COOKIE } from "@/lib/session";
 
@@ -91,20 +91,46 @@ export async function middleware(request: NextRequest) {
   }
 
   /*
-    العميل المولَّد لا `fetch` مكتوباً بيد — القاعدة الأولى في الفيز 011
-    (`ops/checks/web_uses_the_contract_only.mjs`)، وهو محقّ حتى هنا: مسارٌ
-    يُكتب حرفاً في هذا الملفّ هو مسارٌ لا يعرف المترجم أنه تغيّر يوم يتغيّر
-    المخطط. و`api` يقرأ `backendUrl()` من تلقائه في الخادم.
+    القاعدة في الفيز 011 أن يُنادى العميلُ المولَّد لا `fetch` مكتوباً بيد،
+    وهي محقّة: مسارٌ يُكتب حرفاً هنا مسارٌ لا يعرف المترجمُ أنه تغيّر يوم
+    يتغيّر المخطط. **وهذا الموضعُ وحدَه يخرج عنها**، والسببُ مقيسٌ أدناه.
 
-    و`request()` **لا تُستعمل**: تلك ترمي `ApiError` على كل رفض، وهنا الرفض
-    ليس خطأً بل **الجواب**: «هذا الرمز لم يعد صالحاً» قرارٌ يُتّخذ عليه.
+    و`request()` لا تُستعمل على أي حال: تلك ترمي `ApiError` على كل رفض،
+    وهنا الرفض ليس خطأً بل **الجواب** — «هذا الرمز لم يعد صالحاً» قرارٌ
+    يُتّخذ عليه.
   */
-  let pair: { access: string; refresh?: string; expires_in?: number } | null = null;
+  type TokenPair = { access: string; refresh?: string; expires_in?: number };
+  let pair: TokenPair | null = null;
   try {
-    const answer = await api.POST("/api/v1/auth/refresh/", {
-      body: { refresh },
+    /*
+      **`fetch` عارياً هنا، لا `api.POST` — وهذا استثناءٌ بقياسٍ لا بذوق.**
+
+      `openapi-fetch` يبني `Request` ثم يمرّره إلى `fetch`، و`fetch` **داخل
+      وسيط Next** يُسقط جسمَ ذلك الكائن. فتصل الخلفيةَ `POST` فارغةً، وتردّ
+      «هذا الحقل مطلوب» بـ400، ويُقرأ الـ400 رفضاً للرمز فتُمسَح الجلسة —
+      أي **خروجٌ كامل بدل تجديد، كلَّ ربع ساعة**.
+
+      قِيس في ١٦ سبتمبر ٢٠٢٦ بالنداءين جنباً إلى جنب في هذا الموضع نفسِه،
+      بالرمز نفسِه وفي الطلب نفسِه:
+
+          plain fetch    → 200 {"access":"…","expires_in":20}
+          openapi-fetch  → 400 {"detail":{"refresh":["هذا الحقل مطلوب."]}}
+
+      **ولم يكن السببُ الحافّة.** كان مكتوباً أسفل الملفّ أن العلّة أن الوسيط
+      يعمل على الحافّة، و`runtime = "nodejs"` علاجُها. والتشخيصُ طبع
+      `runtime= node` — أي أن العلاج قائمٌ والعطل باقٍ، فالسببُ غيرُه.
+
+      و`api.POST` يعمل في كلّ مكانٍ آخر (أفعالُ الخادم تُرسل مزايدةً بجسمها
+      وتردّ 201)، فلا يُعمَّم هذا الاستثناءُ خارج الوسيط.
+    */
+    const answer = await fetch(`${backendUrl()}/api/v1/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept-Language": "ar" },
+      body: JSON.stringify({ refresh }),
     });
-    if (answer.data) pair = answer.data;
+    if (answer.ok) {
+      pair = (await answer.json()) as TokenPair;
+    }
   } catch {
     //: الخلفية لم تُجب. لا تُمسح الجلسة على عطلِ شبكة — العميل لم يُخطئ،
     //: ورمزه ما زال صالحاً على الأرجح. يمرّ الطلب بلا رمز، فتُرسَم الصفحة
@@ -159,13 +185,13 @@ export async function middleware(request: NextRequest) {
 /*
   عقدة لا الحافّة — والسبب مقيس.
 
-  الوسيط يعمل على الحافّة افتراضاً، وعميلُ العقد (`openapi-fetch`) هناك
-  **يرسل الطلب بلا جسم**: تصل الخلفيةَ `POST /auth/refresh/` فارغةً فتردّ
-  «هذا الحقل مطلوب»، ويُقرأ الجواب رفضاً للرمز فتُمسَح الجلسة — أي خروجٌ
-  كامل بدل تجديد. قِيس بترويسة تشخيص: `status=400 detail.refresh=[required]`
-  ورمزٌ حيٌّ في القاعدة لم يُمسّ.
+  الوسيط يعمل على الحافّة افتراضاً، والخلفيةُ تُنادى من الشبكة الخاصّة في
+  الإنتاج والحافّةُ لا تجلس عليها — وهو السبب نفسه المكتوب في
+  `app/api/backend/[...path]/route.ts`.
 
-  والخلفية تُنادى من الشبكة الخاصّة في الإنتاج على أي حال، والحافّة لا تجلس
-  عليها — وهو السبب نفسه المكتوب في `app/api/backend/[...path]/route.ts`.
+  **وكان مكتوباً هنا أن هذا السطر يُصلح سقوطَ جسم `openapi-fetch`. وهو لا
+  يُصلحه.** قِيس في ١٦ سبتمبر ٢٠٢٦: التشخيصُ طبع `runtime= node` — أي أن
+  السطر يعمل — **والجسمُ يسقط كما كان**. فالعلاجُ الحقيقيّ في موضع النداء
+  أعلاه (`fetch` عارياً)، وهذا السطر يبقى لسببه الأوّل وحدَه.
 */
 export const runtime = "nodejs";
