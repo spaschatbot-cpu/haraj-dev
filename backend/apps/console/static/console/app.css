@@ -7651,3 +7651,37 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 :root {
   --icon-export: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'><path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4'/><path d='M7 10l5 5 5-5'/><path d='M12 15V3'/></svg>");
 }
+
+/* ===========================================================================
+   سطرُ الوصف يلتصق بعنوانه، وزرُّ التصدير يمتلئ
+   ---------------------------------------------------------------------------
+   «ارفع تحت العنوان شويه، وخلى زر تصدير واضح».
+
+   **والمسافةُ كانت في مكانين**: `margin-block-end: 1.1rem` على رأس الصفحة
+   و`margin-block-start` سالبٌ على السطر يسحبه إليها. ورفعُه أكثرَ بزيادة
+   السالب يجعل الرقمين يتنازعان — فالرأسُ هو الذي قلّ هامشُه حين يتبعه سطرُ
+   وصف، والسطرُ يبدأ من الصفر.
+
+   و`:has()` لا صنفٌ يُكتب في القالب: القوالبُ أربعةٌ وعشرون، وصنفٌ منسيٌّ
+   في واحدٍ منها هو الشاشةُ التي تبدو مكسورة.
+
+   **والزرُّ يمتلئ في السكون.** كان خلفيةً مخفَّفةً ونصّاً ملوّناً يمتلئ عند
+   المرور — وهو شكلُ زرٍّ **ثانوي**، والتصديرُ هو الفعلُ الوحيد في رأس هذه
+   الشاشات. فصار ممتلئاً بلون الأساسي ونصُّه أبيض، وهو الزوجُ المعايَرُ في
+   رأس الورقة على حدّ 4.5 في الألوان السبعة.
+   ======================================================================== */
+
+.page:has(+ .lede) { margin-block-end: .35rem; }
+.lede { margin-block-start: 0; }
+
+.page__actions a:not(.page__back) {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(23 32 51 / .06);
+}
+.page__actions a:not(.page__back):hover {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  border-color: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+}
