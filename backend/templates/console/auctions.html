@@ -172,8 +172,10 @@ have to undo one in their head.
           </td>
           <td data-col="ready">
             <div class="metric">
-              <b class="metric__n">{{ auction.summary.offered|unlocalize }}</b>
-              <span class="metric__label">متاحة من {{ auction.summary.cars|unlocalize }}</span>
+              {% comment %} الرقمان معاً في سطر: «٢ من ٢» تُقرأ نسبةً في
+                 لمحة، و«٢» فوق «متاحة من ٢» تجعل العينَ تجمعهما. {% endcomment %}
+              <b class="metric__n">{{ auction.summary.offered|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
+              <span class="metric__label">متاحة للمزايدة</span>
               <span class="bar" role="img"
                     aria-label="{{ auction.summary.offered|unlocalize }} متاحة من {{ auction.summary.cars|unlocalize }}">
                 <i style="inline-size: {% widthratio auction.summary.offered auction.summary.cars 100 %}%"></i>
@@ -182,8 +184,8 @@ have to undo one in their head.
           </td>
           <td data-col="images">
             <div class="metric">
-              <b class="metric__n">{{ auction.summary.cars_with_images|unlocalize }}</b>
-              <span class="metric__label">لها صور من {{ auction.summary.cars|unlocalize }}</span>
+              <b class="metric__n">{{ auction.summary.cars_with_images|unlocalize }}<span class="metric__of">/ {{ auction.summary.cars|unlocalize }}</span></b>
+              <span class="metric__label">لها صور</span>
               <span class="bar {% if auction.summary.images_missing %}bar--warn{% endif %}" role="img"
                     aria-label="{{ auction.summary.cars_with_images|unlocalize }} سيارة لها صور من {{ auction.summary.cars|unlocalize }}، وإجمالي {{ auction.summary.images|unlocalize }} صورة">
                 <i style="inline-size: {% widthratio auction.summary.cars_with_images auction.summary.cars 100 %}%"></i>
