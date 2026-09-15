@@ -47,7 +47,9 @@
     </svg>
   {% endif %}
 
-  <span class="stat__detail">{{ stat.detail }}</span>
+  {% comment %} `title` يحمل السطر كاملاً: القصُّ بسطرين يحفظ إيقاع الصفّ،
+     ولا يجوز أن يحذف — والوقوفُ على النصّ يُظهر ما قُصّ. {% endcomment %}
+  <span class="stat__detail" title="{{ stat.detail }}">{{ stat.detail }}</span>
 
   {% if stat.action %}
     {% comment %} الوجهةُ في جهة، والسهمُ في قرصه على مقابلها — لا كلمتان
