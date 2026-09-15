@@ -196,6 +196,14 @@ class Board:
     is_clean: bool = True
     alarms: list[Stat] = field(default_factory=list)
     stats: list[Stat] = field(default_factory=list)
+    #: البطاقاتُ التي تحمل رسماً، مفصولةً عن `stats` في شبكةٍ خاصّة بها.
+    #:
+    #: وليست ترتيباً بصرياً فحسب: البطاقةُ ذاتُ الرسم تحتاج عرضاً مضاعفاً
+    #: ليُقرأ شكلُها، وبطاقتان كذلك في شبكةٍ من **ثلاثة** أعمدة لا تجتمعان
+    #: في صفّ — تأخذ الأولى عمودين والثانية تنزل وحدها، فتبقى في الصفّ
+    #: فجوةٌ وتُدفع البطاقاتُ العادية بعدها إلى أسفل. وشبكةٌ ثانيةٌ بعمودين
+    #: تحلّ الأمرين معاً: الرسمان في صفٍّ، والعاديةُ تملأ صفوفَها.
+    charts: list[Stat] = field(default_factory=list)
     auction_states: list[tuple[str, int, int]] = field(default_factory=list)
     auction_wheel: str = ""
     auction_total: int = 0
@@ -424,6 +432,12 @@ def board_for(user) -> Board:
                 unit="اليوم",
             )
         )
+
+    # الفصلُ في آخر السطر لا عند كل إضافة: بناءُ البطاقات مشروطٌ بصلاحيات
+    # القارئ في ستّة مواضع، وشرطُ «هل تحمل رسماً» في كلٍّ منها ستّةُ أماكن
+    # للقاعدة الواحدة.
+    board.charts = [s for s in board.stats if s.spark]
+    board.stats = [s for s in board.stats if not s.spark]
 
     return board
 

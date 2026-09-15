@@ -68,6 +68,15 @@
     <section class="board-stats" aria-labelledby="head-stats">
       {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
     </section>
+    {% if board.charts %}
+      {% comment %} شبكةٌ ثانيةٌ بعمودين للبطاقات ذات الرسم — لا عنوانَ لها:
+         هي من «أرقام المنصّة» نفسِها، وعنوانٌ ثانٍ فوق صفٍّ واحد يقطع الكتلة
+         بلا أن يقول شيئاً جديداً. وفصلُها عن الشبكة الأولى في `dashboard.py`
+         لا هنا — القالبُ لا يفرز بيانات. {% endcomment %}
+      <section class="board-charts" aria-labelledby="head-stats">
+        {% for stat in board.charts %}{% include "console/_stat.html" %}{% endfor %}
+      </section>
+    {% endif %}
   {% else %}
     <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
   {% endif %}
