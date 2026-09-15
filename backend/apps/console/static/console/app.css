@@ -5543,3 +5543,21 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
      يبقى له الثلثان. */
   .board .page__actions { padding-inline-start: 0; }
 }
+
+/* العنوانُ ومربّعُه أصغر — أمرُ المالك. كان 1.75rem ومربّعاً بـ3rem، وذلك
+   حجمُ رأسٍ داخل لوحٍ يسنده؛ ولمّا زال اللوحُ صار الاثنان يصرخان على أرضيةٍ
+   عارية. و1.45rem تبقى أكبرَ من `main h1` العامّ (1.5rem؟ لا — أصغر بقليل)
+   بقدرِ ما يميّز الرئيسية، لا بقدرِ ما ينافس ما تحتها.
+
+   والإزاحةُ تحت العنوان تتبع وحدَها: `--crest` يدخل في `calc` الذي يحاذي
+   سطرَ الترحيب، فتصغيرُ المربّع يحرّك السطرَ معه بلا رقمٍ ثانٍ يُعدَّل. */
+.board { --crest: 2.45rem; --crest-gap: .7rem; }
+.board .page h1 { font-size: 1.45rem; }
+.board-crest { border-radius: 12px; }
+.board-crest svg { width: 21px; height: 21px; }
+
+@media (max-width: 40rem) {
+  .board { --crest: 2.1rem; --crest-gap: .55rem; }
+  .board .page h1 { font-size: 1.2rem; }
+  .board-crest svg { width: 18px; height: 18px; }
+}
