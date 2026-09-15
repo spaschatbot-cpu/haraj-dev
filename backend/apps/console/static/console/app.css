@@ -7960,3 +7960,71 @@ form.filters {
   border-color: var(--line);
   box-shadow: none;
 }
+
+/* ===========================================================================
+   شريطُ الجدول: عنوانٌ برتبته، وعدٌّ يُقرأ عدّاً، وزرٌّ يقابله
+   ---------------------------------------------------------------------------
+   «قائمة المستخدمين ١٤ — خلي شكلها احترافي أكتر هي وزر تصدير اللي قصادها».
+
+   وكان العنوانُ مضبوطاً بـ`style=` في القالب (`1.1rem`، `800`، `--ink`)،
+   وحاويةُ الأفعال كذلك. وسبعةُ قوالبَ تحمل الشريطَ نفسَه، فالضبطُ بيدٍ في
+   كلٍّ منها سبعةُ أماكنَ للقاعدة الواحدة — وواحدٌ منها يُنسى فيبدو مكسوراً.
+   نُقلت إلى الورقة.
+
+   * **العنوانُ** يأخذ رتبةَ ما تحته لا رتبةَ `<h1>`: هو اسمُ جدولٍ في صفحة،
+     لا اسمُ الصفحة.
+   * **العدُّ حبّةٌ محايدةٌ لا زرقاء**: كان بلون الأساسي فيُقرأ **رابطاً**
+     يُنقر — وهو عددٌ لا يُنقر. والرقمُ فيه بخاناتٍ مستقيمة.
+   * **وزرُّ التصدير يقابله** برسمِ الورقة النازلة نفسِه الذي في رأس الصفحة
+     (`--icon-export`)، فالفعلُ الواحد شكلٌ واحدٌ أينما وقع — وهو **ثانويٌّ
+     هنا**: زرُّ الرأس يصدّر كلَّ ما طابق المرشِّحات، وهذا يصدّر الصفحةَ
+     المعروضة، فلا يصحّ أن يتساويا في الوزن.
+   ======================================================================== */
+
+.table-bar { margin-block-end: .85rem; }
+
+.table-bar__title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+
+.table-bar__actions { display: flex; align-items: center; gap: .5rem; }
+
+/* العدّ: حبّةٌ محايدة. */
+.table-bar__title .pill--filter {
+  background: var(--raised);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-size: .74rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: .12rem .5rem;
+}
+
+/* زرُّ تصدير الصفحة — ثانويّ، وبرسم زرِّ الرأس نفسِه. */
+.table-bar__actions .btn-sm {
+  padding: .42rem .8rem;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--field-border) 45%, #fff);
+  font-weight: 700;
+}
+.table-bar__actions .btn-sm::before {
+  content: "";
+  inline-size: 13px;
+  block-size: 13px;
+  flex: none;
+  background: currentColor;
+  -webkit-mask: var(--icon-export) center / contain no-repeat;
+          mask: var(--icon-export) center / contain no-repeat;
+}
+.table-bar__actions .btn-sm:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
