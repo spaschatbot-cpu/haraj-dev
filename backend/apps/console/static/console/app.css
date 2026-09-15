@@ -7922,3 +7922,101 @@ a.stat:hover, a.stat:focus-visible { box-shadow: 0 2px 4px rgb(23 32 51 / .06), 
   font-weight: 600;
   border-inline-start: 1px solid var(--line);
 }
+
+/* ===========================================================================
+   شريطُ الفلاتر: كلُّ حقلٍ فوقه اسمُه
+   ---------------------------------------------------------------------------
+   اختاره المالكُ من أربعة أشكالٍ رُسمت له بالورقة نفسِها.
+
+   وكان كلُّ حقلٍ يُعرَف **بقيمته الحالية وحدَها**: «كل الحالات» و«كل أنواع
+   الحسابات» و«25 في الصفحة». وذلك يعمل ما دامت القيمةُ هي «الكل» — فإذا
+   اختار الموظّفُ «موقوف» صار في الشريط قائمةٌ مكتوبٌ فيها «موقوف» ولا شيء
+   يقول **موقوفُ ماذا**: الحساب أم المزاد أم الفاتورة. والاسمُ فوقه يقولها
+   قبل القيمة وبعدها.
+
+   **والعنوانُ `<label>` يلفّ حقلَه لا نصٌّ بجواره**: النقرُ عليه يصل إلى
+   الحقل، وقارئُ الشاشة يقرؤه اسماً للحقل لا سطراً سابقاً له. ولذلك حُذف
+   `aria-label` من الحقول الأربعة والعشرين في الحركة نفسِها — اسمان لشيءٍ
+   واحد يتنازعان، والمرئيُّ أولى.
+   ======================================================================== */
+
+.filters {
+  padding: .95rem 1.05rem;
+  overflow: visible;
+  border-radius: 14px;
+  border-color: var(--line);
+}
+
+.filters__main { align-items: flex-end; gap: .75rem; }
+.filters__main > * + * { border-inline-start: 0; }
+
+.ff { display: flex; flex-direction: column; gap: .3rem; margin: 0; }
+.ff__l {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  padding-inline-start: .15rem;
+}
+
+/* الحقلُ يستعيد حدَّه وزاويتَه: صار قطعةً قائمةً بذاتها تحت اسمها، لا خانةً
+   في شريط. */
+.filters__main input[type="search"],
+.filters__main select {
+  border: 1px solid var(--field-border);
+  border-radius: 10px;
+  background-color: var(--panel);
+  block-size: 2.6rem;
+  font-size: .84rem;
+}
+.filters__main input[type="search"]:focus,
+.filters__main select:focus {
+  border-color: var(--brand-solid);
+  box-shadow: 0 0 0 3px var(--ring);
+  outline: none;
+}
+
+/* حقلُ البحث يأخذ ما بقي، والقوائمُ بعرض محتواها. */
+.ff:has(input[type="search"]) { flex: 1 1 18rem; min-inline-size: 0; }
+.ff:has(input[type="search"]) input { inline-size: 100%; }
+.ff:has(select) { flex: 0 0 auto; }
+.filters__main select { inline-size: auto; min-inline-size: 7.5rem; }
+
+.filters__main button[type="submit"] {
+  block-size: 2.6rem;
+  border-radius: 10px;
+  padding-inline: 1.5rem;
+}
+
+.filters__reset { align-self: center; border-inline-start: 0; padding-block: .5rem; }
+
+/* **`.ff` تُعرَّف بنوعيّةٍ تغلب `form[method="get"] label { display: none }`.**
+
+   تلك قاعدةٌ من يوم كانت نماذجُ البحث سطراً من حقولٍ بلا عناوين — تُخفي كلَّ
+   `<label>` فيها لأن العناوينَ حينها كانت لقارئ الشاشة وحده. ونوعيّتُها
+   (0,1,1) تغلب `.ff` (0,1,0) مهما تأخّرت في الملفّ، فظهر الشريطُ بزرِّ بحثٍ
+   وحدَه وحقولٍ بعرضٍ صفر — رُسمت ولم تُرَ.
+
+   ولا تُحذف تلك القاعدة: أحدَ عشرَ قالباً حُوّلت هنا، وفي الورقة نماذجُ
+   `get` أخرى لا لصائقَ مرئيةً فيها. فالتخصيصُ هنا لا الإلغاءُ هناك. */
+form[method="get"] label.ff {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  margin: 0;
+}
+form[method="get"] label.ff:has(input[type="search"]) { flex: 1 1 18rem; min-inline-size: 0; }
+form[method="get"] label.ff:has(select) { flex: 0 0 auto; }
+
+/* **والقاعدةُ القديمةُ تُلغى داخل `.ff` لا خارجَه.**
+
+   `form[method="get"] input[type="search"] { flex: 1 1 14rem }` كُتبت
+   والحقلُ ابنٌ مباشرٌ لصفٍّ أفقيّ، فـ`14rem` عرضٌ. وقد صار ابناً **لعمود**
+   (`.ff`)، فالأساسُ نفسُه يُقرأ **ارتفاعاً**: قيس فكان الحقلُ 224px طولاً —
+   أي أربعةَ عشرَ ريماً رأسياً.
+
+   وهذا ما يفعله `flex-basis` دائماً: لا يعني عرضاً ولا ارتفاعاً، بل «المحور
+   الرئيسيّ» — ويقلبه تغييرُ اتجاه الأب وحدَه.
+*/
+form[method="get"] .ff input[type="search"],
+form[method="get"] .ff select { flex: 0 0 auto; min-inline-size: 0; }
+form[method="get"] .ff input[type="search"] { inline-size: 100%; }

@@ -24,28 +24,28 @@
 
   <form method="get" class="filters">
     <div class="filters__main">
-      <input id="q" type="search" name="q" value="{{ q }}"
-             placeholder="ابحث بالاسم، الجوال، أو رقم الهوية..." aria-label="البحث">
+      <label class="ff"><span class="ff__l">البحث</span><input id="q" type="search" name="q" value="{{ q }}"
+             placeholder="ابحث بالاسم، الجوال، أو رقم الهوية..."></label>
 
-      <select id="account_type" name="account_type" aria-label="نوع الحساب">
+      <label class="ff"><span class="ff__l">نوع الحساب</span><select id="account_type" name="account_type">
         <option value="">كل أنواع الحسابات</option>
         {% for value, label in types %}
           <option value="{{ value }}"{% if value == kind %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select>
+      </select></label>
 
-      <select id="status" name="status" aria-label="الحالة">
+      <label class="ff"><span class="ff__l">الحالة</span><select id="status" name="status">
         <option value="">كل الحالات</option>
         {% for value, label in statuses %}
           <option value="{{ value }}"{% if value == status %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select>
+      </select></label>
 
-      <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
+      <label class="ff"><span class="ff__l">في الصفحة</span><select id="per_page" name="per_page">
         {% for choice in row_choices %}
           <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
         {% endfor %}
-      </select>
+      </select></label>
 
       <button type="submit" class="btn-primary" style="margin: 0;">بحث</button>
 

@@ -37,43 +37,42 @@
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      <input id="q" type="search" name="q" value="{{ q }}"
-             placeholder="لوحة · شاصي · رقم مطالبة · اسم المركبة · لون · اسم المشتري أو جوّاله · رقم"
-             aria-label="البحث">
+      <label class="ff"><span class="ff__l">البحث</span><input id="q" type="search" name="q" value="{{ q }}"
+             placeholder="لوحة · شاصي · رقم مطالبة · اسم المركبة · لون · اسم المشتري أو جوّاله · رقم"></label>
 
-      <select id="auction" name="auction" aria-label="المزاد">
+      <label class="ff"><span class="ff__l">المزاد</span><select id="auction" name="auction">
         <option value="">كل المزادات المنتهية</option>
         {% for number, title in auctions %}
           <option value="{{ number|unlocalize }}"{% if auction == number|stringformat:"s" %} selected{% endif %}>
             #{{ number|unlocalize }} — {{ title }}
           </option>
         {% endfor %}
-      </select>
+      </select></label>
 
-      <select id="pay" name="pay" aria-label="حالة الفاتورة">
+      <label class="ff"><span class="ff__l">حالة الفاتورة</span><select id="pay" name="pay">
         <option value="">كل حالات الفاتورة</option>
         {% for value, label in pay_choices %}
           <option value="{{ value }}"{% if value == pay %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select>
+      </select></label>
 
-      <select id="mkt" name="mkt" aria-label="التسويق">
+      <label class="ff"><span class="ff__l">التسويق</span><select id="mkt" name="mkt">
         <option value="">تسويق: الكل</option>
         <option value="yes"{% if mkt == "yes" %} selected{% endif %}>سيارات تسويق</option>
         <option value="no"{% if mkt == "no" %} selected{% endif %}>سياراتنا</option>
-      </select>
+      </select></label>
 
-      <select id="settle" name="settle" aria-label="سداد الشريك">
+      <label class="ff"><span class="ff__l">سداد الشريك</span><select id="settle" name="settle">
         <option value="">سداد الشريك: الكل</option>
         <option value="yes"{% if settle == "yes" %} selected{% endif %}>سُدِّدت من ملفّ</option>
         <option value="no"{% if settle == "no" %} selected{% endif %}>لم تُسدَّد من ملفّ</option>
-      </select>
+      </select></label>
 
-      <select id="per_page" name="per_page" aria-label="عدد النتائج في الصفحة">
+      <label class="ff"><span class="ff__l">في الصفحة</span><select id="per_page" name="per_page">
         {% for choice in row_choices %}
           <option value="{{ choice|unlocalize }}"{% if choice == size %} selected{% endif %}>{{ choice|unlocalize }} في الصفحة</option>
         {% endfor %}
-      </select>
+      </select></label>
 
       <button type="submit" class="btn-primary">بحث</button>
 
