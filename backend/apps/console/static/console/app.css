@@ -6734,3 +6734,91 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
   font-variant-numeric: tabular-nums;
   padding-inline-start: .15rem;
 }
+
+/* ===========================================================================
+   «حالات المزادات»: صفٌّ لكلّ حالة، وشريطٌ بعرض اللوحة
+   ---------------------------------------------------------------------------
+   الشكلُ الخامس على هذه اللوحة، واختير بعد أن سُئل المالك فقال «أيّ الأفضل
+   شكلاً». والسببُ واحدٌ يجمع فشلَ الأربعة قبله: **اللوحةُ صارت بعرض الصفحة**،
+   فما لا يستعمل العرضَ يترك فراغاً يُحشى بما لا يقول شيئاً.
+
+   * **الدائرة** شكلٌ مربَّع: تأخذ من الارتفاع بقدر العرض، فتترك أربعةَ
+     أخماسه.
+   * **الشريطُ المكدَّس** يستعمل العرضَ لكنه يضغط الحالات كلَّها في خطٍّ
+     واحد، فتُقرأ قطعةً بجوار قطعة لا حالةً لها اسمٌ ورقم.
+   * **والصفُّ الواحد لكلّ حالة** يستعمل العرضَ **ويُبقي لكلٍّ اسمَها
+     ورقمَها**. ومقارنةُ طولين مستقيمين متجاورين أدقُّ مقارنةٍ بصريةٍ يقدر
+     عليها الإنسان — أدقُّ من الزوايا ومن المساحات.
+
+   ولا حدودَ بين الصفوف: الشريطُ نفسُه يفصل، وخطٌّ فوق شريطٍ خطّان.
+   ======================================================================== */
+
+.dist__rows { display: grid; gap: 1.15rem; margin: 0; padding: 0; list-style: none; }
+
+.dist__row { display: block; }
+
+.dist__line {
+  display: flex;
+  align-items: baseline;
+  gap: .55rem;
+  margin-block-end: .5rem;
+}
+
+.dist__dot {
+  flex: none;
+  inline-size: .55rem;
+  block-size: .55rem;
+  border-radius: 50%;
+  background: var(--line);
+  align-self: center;
+}
+
+/* الاسمُ يأخذ ما بقي فيُدفع العددُ والنسبةُ إلى الحافة المقابلة — فيستقيم
+   عمودُ الأرقام نزولاً مهما اختلفت أطوالُ الأسماء. */
+.dist__name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.dist__count {
+  flex: none;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dist__share {
+  flex: none;
+  min-inline-size: 3rem;
+  text-align: end;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dist__track {
+  display: block;
+  block-size: .55rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  overflow: hidden;
+}
+.dist__fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  /* حدٌّ أدنى يُرى: حالةٌ بنسبة ١٪ شريطُها بعرض ٦px على لوحةٍ بعرض ٩٠٠،
+     وذلك خيطٌ لا شريط — والقارئُ يظنّ الحالةَ صفراً وهي ليست كذلك. */
+  min-inline-size: .55rem;
+  background: var(--line);
+}
+
+.dist__fill[data-slice="0"], .dist__dot[data-slice="0"] { background: #1a9aa1; }
+.dist__fill[data-slice="1"], .dist__dot[data-slice="1"] { background: #4aa5df; }
+.dist__fill[data-slice="2"], .dist__dot[data-slice="2"] { background: #8c6ad6; }
+.dist__fill[data-slice="3"], .dist__dot[data-slice="3"] { background: #c9891a; }
+.dist__fill[data-slice="4"], .dist__dot[data-slice="4"] { background: #21a06a; }
+.dist__fill[data-slice="5"], .dist__dot[data-slice="5"] { background: #e05a4c; }

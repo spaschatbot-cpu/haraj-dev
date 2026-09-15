@@ -102,38 +102,37 @@
         {% comment %} دائرةٌ ومفتاحٌ بأرقام. القطاعان المتقاربان لا يُقرآن من
            الدائرة وحدها — والمفتاح بجوارها يحمل العدد والنسبة، فالرسم يقول
            «أيّها أكبر» والمفتاح يقول «كم». {% endcomment %}
-        {% comment %} **شريطٌ مكدَّسٌ لا دائرة.** الدائرةُ شكلٌ مربَّع: تأخذ
-           من الارتفاع بقدر ما تأخذ من العرض، وفي لوحةٍ بعرض الشاشة تترك
-           أربعةَ أخماس العرض لغيرها. والشريطُ المكدَّس يستعمل العرضَ كلَّه
-           — وهو البُعدُ الذي عند اللوحة منه فائض.
+        {% comment %} **صفٌّ لكلّ حالة، وشريطٌ بعرض اللوحة تحته.**
 
-           وأصدقُ أيضاً: مقارنةُ طولين مستقيمين أدقُّ من مقارنة زاويتين،
-           وقطاعان بينهما خمسُ درجاتٍ في دائرةٍ لا يُميَّزان. {% endcomment %}
+           اختير هذا بعد أربع محاولاتٍ على هذه اللوحة، وسببُه واحد: اللوحةُ
+           صارت بعرض الصفحة، والشريطُ الأفقيُّ وحده هو ما يستعمل ذلك العرض.
+           الدائرةُ شكلٌ مربَّعٌ يترك أربعةَ أخماس العرض، والشريطُ المكدَّس
+           يستعمله لكنه يضغط الحالات كلَّها في خطٍّ واحدٍ فتُقرأ قطعةً
+           بجوار قطعة لا حالةً لها اسمٌ ورقم.
+
+           وهنا لكلّ حالةٍ سطرُها: اسمُها وعددُها ونسبتُها في صفّ، وطولُها
+           تحته. ومقارنةُ طولين مستقيمين متجاورين أدقُّ مقارنةٍ بصريةٍ
+           يقدر عليها الإنسان — أدقُّ من الزوايا ومن المساحات. {% endcomment %}
         <div class="dist">
           <p class="dist__total">
             <strong>{{ board.auction_total }}</strong>
             <span>مزاد في الدفتر</span>
           </p>
 
-          {% comment %} `role="img"` باسمٍ يصف ما يقوله الشريط، لأن قطعه
-             `<span>`ات فارغةٌ لا نصَّ فيها. والتفصيلُ مكتوبٌ تحته صفّاً
-             صفّاً، فلا يفقده من لا يراه. {% endcomment %}
-          <div class="dist__bar" role="img"
-               aria-label="توزيعُ حالات المزادات — التفصيل في القائمة تحته">
+          <ul class="dist__rows">
             {% for label, count, share in board.auction_states %}
-              <span class="dist__seg" data-slice="{{ forloop.counter0 }}"
-                    style="inline-size: {{ share }}%"
-                    title="{{ label }} — {{ count }} ({{ share }}%)"></span>
-            {% endfor %}
-          </div>
-
-          <ul class="dist__key">
-            {% for label, count, share in board.auction_states %}
-              <li class="dist__item">
-                <span class="dist__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
-                <span class="dist__name">{{ label }}</span>
-                <strong class="dist__count">{{ count }}</strong>
-                <span class="dist__share">{{ share }}%</span>
+              <li class="dist__row">
+                <span class="dist__line">
+                  <span class="dist__dot" data-slice="{{ forloop.counter0 }}" aria-hidden="true"></span>
+                  <span class="dist__name">{{ label }}</span>
+                  <strong class="dist__count">{{ count }}</strong>
+                  <span class="dist__share">{{ share }}%</span>
+                </span>
+                {% comment %} `aria-hidden`: العددُ والنسبةُ مكتوبان فوقه في
+                   السطر نفسِه، وشريطٌ يُقرأ مرّةً ثانيةً ضجيج. {% endcomment %}
+                <span class="dist__track" aria-hidden="true">
+                  <span class="dist__fill" data-slice="{{ forloop.counter0 }}" style="inline-size: {{ share }}%"></span>
+                </span>
               </li>
             {% endfor %}
           </ul>
