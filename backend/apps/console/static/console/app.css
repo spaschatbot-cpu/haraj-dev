@@ -8934,11 +8934,14 @@ form.cat-filters .cat-filters__actions > .btn-ghost {
    زرٍّ مصمتٍ في المنتصف يُقرأ نصّاً سائباً لا زرّاً مساوياً. */
 form.cat-filters .cat-filters__actions > .btn-ghost {
   background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--ink-soft);
+  /* أمرُ المالك: «غمّق الاستروك قليلاً وخلّي لونه أزرق». حدٌّ بلون الأساسيّ
+     مخلوطاً بالخطّ — أغمقُ من `--line` وأخفُّ من الأساسيّ المصمت، فيُقرأ
+     زرّاً ثانويّاً من عائلة الأساسيِّ لا منافساً له. */
+  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
+  color: var(--brand-dark);
 }
 form.cat-filters .cat-filters__actions > .btn-ghost:hover {
-  background: var(--ground);
-  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
-  color: var(--ink);
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
 }
