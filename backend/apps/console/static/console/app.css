@@ -9128,15 +9128,16 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
    وخيارُ «فاتح» في درج المظهر يبقى يعمل: كان معرَّفاً للمظهر الداكن وحده —
    لأن الفاتحَ كان يرثه من `:root` — والآن صار له صفٌّ مستقلّ.
 
-   التباينات على #10294f: الأبيض 14.46، والخافت #a8bcdb 7.49، واللون الأساسي
-   #7fd0ff 8.52 — كلُّها فوق 4.5:1.
+   ثم أُغمِق مرّةً ثانيةً بأمر المالك: #10294f ← #0b1e3d. والتباينات عليه:
+   الأبيض 16.57، والخافت #a8bcdb 8.59، واللون الأساسي #7fd0ff 9.76 — وكانت
+   14.46 و7.49 و8.52 على الأوّل.
    ======================================================================== */
 
 :root {
-  --side: #10294f;
+  --side: #0b1e3d;
   --side-ink: #ffffff;
   --side-dim: #a8bcdb;
-  --side-line: #23375f;
+  --side-line: #1c3054;
   --side-hover: rgb(255 255 255 / .09);
   --side-accent: #7fd0ff;
 }
@@ -9153,7 +9154,7 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 
 /* المتدرّجُ يتبع الكحليَّ لا الفحميّ. */
 :root[data-sidebar="gradient"] .sidebar {
-  background: linear-gradient(170deg, #17396c 0%, #0d1f3d 62%);
+  background: linear-gradient(170deg, #12305e 0%, #081831 62%);
 }
 
 .nav a, .nav__soon, .nav-out button { font-weight: 700; }
