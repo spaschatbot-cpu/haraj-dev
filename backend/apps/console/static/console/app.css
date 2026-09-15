@@ -240,7 +240,9 @@ body {
   transition: background-color .2s ease, color .2s ease;
   background: var(--ground);
   color: var(--ink);
-  font-family: system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
+  /* «بلكس عربي» أولاً، والنظامُ خلفه: ورقةُ الخطوط تُحمَّل قبل هذه في
+     `base.html`، وإن تعذّر ملفٌّ منها لا تصير الصفحةُ بلا خطّ. */
+  font-family: "IBM Plex Sans Arabic", system-ui, "Segoe UI", Tahoma, Arial, sans-serif;
   line-height: 1.7;
 }
 
@@ -5521,7 +5523,7 @@ a.stat:hover::before, a.stat:focus-visible::before { inline-size: 6px; block-siz
    تحته، والفصلُ عمّا يليه بالمسافة لا بحدّ — خطٌّ هنا وخطُّ «أرقام المنصّة»
    بعده بسطرين يصيران خطّين متجاورين بلا شيءٍ بينهما. */
 .board .page h1 { font-size: 1.75rem; }
-.board .page__actions { padding-inline-start: 3.95rem; margin-block-start: .7rem; }
+.board .page__actions { padding-inline-start: 3.95rem; margin-block-start: .25rem; }
 
 @media (max-width: 40rem) {
   .board .page h1 { font-size: 1.35rem; }
