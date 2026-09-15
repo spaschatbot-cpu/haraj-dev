@@ -17,6 +17,12 @@
       <span class="delta delta--{{ stat.delta.direction }}">
         <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
       </span>
+    {% elif stat.unit %}
+      {% comment %} وحدةُ ما يعدّه الرقم، في المكان الذي تشغله المقارنةُ حين
+         توجد — «70,000.00» وحده لا يقول ريالاً أم مزاداً. و`aria-hidden`
+         لأن قارئ الشاشة يقرأ الوحدة في سطر الشرح كاملةً مع سياقها، وكلمةٌ
+         عائمةٌ بين العنوان والرقم تقطع الجملة عليه. {% endcomment %}
+      <span class="stat__unit" aria-hidden="true">{{ stat.unit }}</span>
     {% endif %}
   </div>
 

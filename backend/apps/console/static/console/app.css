@@ -5113,3 +5113,147 @@ a.stat:hover::before, a.stat:focus-visible::before { opacity: 1; block-size: 4px
   font-size: .8rem;
 }
 .figure__empty + .spark { opacity: .45; }
+
+
+/* ===========================================================================
+   بطاقةُ الرقم — على هيئة لوحة v1 التي أقرّها المالك
+   ---------------------------------------------------------------------------
+   الشكلُ المرجعي: `haraj1.com.sa/application/admin_v2` — بطاقةٌ بيضاء، عليها
+   **شريطٌ مصمتٌ بعرضها كاملاً في أعلاها**، ورمزٌ في مربّعٍ مستديرٍ على حافة
+   البداية، وحبّةُ سياقٍ على مقابلها، ثم عنوانٌ خافتٌ صغير فرقمٌ كبير فسطرُ
+   شرح.
+
+   وما كان هنا قبلها حمل التصنيفَ **مرّتين**: حافةٌ بعرض ٣px على الجانب،
+   وشريطٌ متدرّجٌ في الأعلى لا يظهر إلا تحت الفأرة. فالبطاقة تُقرأ مؤطَّرةً من
+   جهتين، والتدرّجُ يبهت قبل أن ينتهي عرضُ البطاقة فيُقرأ خطأً في الطباعة لا
+   تصنيفاً.
+
+   فهنا: **إشارةٌ واحدة، مصمتة، في مكانٍ واحد** — الشريط الأعلى. والحافة
+   الجانبية تُلغى، والحدُّ يستوي على الجهات الأربع.
+
+   وخلفيةُ التنبيه تُلغى معها. كانت البطاقةُ الحمراء تلوّن خلفيتها «لأنها وحدها
+   تريد أن تُقرأ أولاً» — وذلك كان صحيحاً يوم كانت تقع في شبكةٍ واحدة مع عدّاد
+   المستخدمين. وقد صار للإنذار كتلةٌ وحده بعنوانٍ أحمر وعدّاد، فاللونُ الثالث
+   على الخلفية وزنٌ بلا قول، ويُخرج البطاقةَ من هيئة أخواتها لا غير.
+   ======================================================================== */
+
+/* ---- الهيئة ------------------------------------------------------------- */
+
+.stat {
+  /* حدٌّ واحدٌ على الجهات الأربع: التصنيفُ في الشريط الأعلى وحده. */
+  border: 1px solid var(--line);
+  border-inline-start-width: 1px;
+  border-inline-start-color: var(--line);
+  padding: 1.35rem 1.3rem 1.1rem;
+  gap: .4rem;
+}
+
+/* الشريط الأعلى: مصمتٌ بعرض البطاقة، ظاهرٌ دائماً. أربعةُ بكسلات لا ثلاثة —
+   ثلاثةٌ تحت زوايا `1rem` تُقرأ خيطاً لا شريطاً. */
+.stat::before {
+  block-size: 4px;
+  opacity: 1;
+  background: var(--brand);
+  transition: block-size .18s ease;
+}
+a.stat:hover::before, a.stat:focus-visible::before { block-size: 5px; opacity: 1; }
+
+.stat--money::before   { background: var(--money); }
+.stat--auction::before { background: var(--auction); }
+.stat--people::before  { background: var(--people); }
+.stat--ok::before      { background: var(--ok); }
+.stat--brand::before   { background: var(--brand); }
+.stat--warn::before    { background: var(--warn); }
+.stat--alarm::before   { background: var(--danger); }
+
+/* التنبيهُ بطاقةٌ بيضاء كأخواتها — الشريطُ والرقمُ وعنوانُ الكتلة تقول ما
+   تقوله، والخلفيةُ الملوّنة صارت وزناً رابعاً بلا قولٍ رابع. */
+.stat--warn, .stat--alarm { background: var(--panel); }
+.stat--alarm { border-color: var(--danger-line); }
+.stat--warn  { border-color: var(--warn-line); }
+
+/* ---- الصفّ العلوي ------------------------------------------------------- */
+
+.stat__top { margin-block-end: .5rem; }
+
+/* المربّعُ أكبرُ وأكثرُ استدارة — هو أول ما تجده العينُ في البطاقة، وثِقَلُه
+   يجب أن يوازن الرقمَ تحته. */
+.stat__icon {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  padding: .62rem;
+  border-radius: 13px;
+}
+.stat--warn .stat__icon  { background: var(--warn-soft);   color: var(--warn); }
+.stat--alarm .stat__icon { background: var(--danger-soft); color: var(--danger); }
+
+/* حبّةُ السياق: أكبرُ حشوةً قليلاً لتقع في وزن المربّع المقابل لها. */
+.delta { padding: .28rem .6rem; font-size: .73rem; }
+
+/* ---- النصّ -------------------------------------------------------------- */
+
+.stat__label { font-size: .8rem; font-weight: 600; color: var(--muted); }
+
+/* الرقم هو الرسالة. `700` لا `650`: الوزنُ الوسيط على شاشةٍ باهتة يُقرأ
+   عادياً، والفرقُ بينه وبين العنوان فوقه هو ما يجعل البطاقة تُقرأ في لمحة. */
+.stat__value {
+  font-size: 2.15rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  margin-block: .1rem .15rem;
+}
+
+.stat__detail { font-size: .76rem; line-height: 1.6; color: var(--muted); }
+
+/* ---- التذييل ------------------------------------------------------------ */
+
+/* لوحةُ v1 بلا تذييل — وبطاقتُها ليست رابطاً أصلاً. وهذه بطاقةٌ **كلُّها**
+   رابط، فالتذييل يقول **إلى أين** قبل النقر؛ حذفُه يترك بطاقةً تُفتح ولا
+   يُعرف على ماذا. فيبقى، خلف خطٍّ رفيع وبوزنٍ خافت — سطرُ وجهةٍ لا زرّ. */
+.stat__action {
+  margin-block-start: auto;
+  padding-block-start: .8rem;
+  border-block-start: 1px solid var(--line-soft);
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color .18s ease;
+}
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action { color: var(--brand-dark); }
+.stat--alarm .stat__action, .stat--warn .stat__action { color: var(--ink-soft); }
+a.stat--alarm:hover .stat__action { color: var(--danger); }
+a.stat--warn:hover .stat__action  { color: var(--warn); }
+
+/* ---- الخطّ المصغَّر ------------------------------------------------------ */
+
+/* يقع فوق التذييل لا ملتصقاً بالرقم: هو سياقُ الرقم لا زخرفتُه. */
+.stat__spark { margin-block-start: .35rem; }
+
+/* ---- الشاشة الضيّقة ----------------------------------------------------- */
+
+@media (max-width: 40rem) {
+  .stat { padding: 1.15rem 1.1rem 1rem; }
+  .stat__value { font-size: 1.85rem; }
+  .stat__icon { inline-size: 2.5rem; block-size: 2.5rem; padding: .56rem; }
+}
+
+/* حبّةُ الوحدة: تقع حيث تقع المقارنة، وبوزنها نفسه — فالصفّ العلويّ في كل
+   بطاقةٍ صارت له كتلتان، رمزٌ وحبّة، لا رمزٌ وفراغ. ومحايدةُ اللون عمداً:
+   المقارنةُ تلوّن لأنها تقول اتجاهاً، والوحدةُ لا تقول شيئاً يُلوَّن. */
+.stat__unit {
+  display: inline-flex;
+  align-items: center;
+  padding: .28rem .6rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: .73rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.stat--money .stat__unit   { background: var(--money-soft);   color: var(--money); }
+.stat--auction .stat__unit { background: var(--auction-soft); color: var(--auction); }
+.stat--people .stat__unit  { background: var(--people-soft);  color: var(--people); }
+.stat--warn .stat__unit    { background: var(--warn-soft);    color: var(--warn); }
+.stat--alarm .stat__unit   { background: var(--danger-soft);  color: var(--danger); }

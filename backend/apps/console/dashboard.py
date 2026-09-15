@@ -119,6 +119,16 @@ class Stat:
     #: نقاطٌ للخطّ المصغَّر داخل البطاقة، مقيسةً على 0-100. فارغةٌ تعني لا خطّ.
     #: شكلٌ لا رقم: الرقم مكتوبٌ فوقه، وهذا يقول «إلى أين يتجه» في لمحة.
     spark: tuple[int, ...] = ()
+    #: وحدةُ ما يعدّه الرقم — «ريال» أو «مزاد» أو «عميل». تُعرض حبّةً في أعلى
+    #: البطاقة على مقابل الرمز، كما في لوحة v1 التي أقرّها المالك.
+    #:
+    #: وهي **وحدةٌ لا زخرفة**: «70,000.00» وحده لا يقول ريالاً أم مزاداً، وكان
+    #: يُقرأ من سطر الشرح تحته أو لا يُقرأ. ولا تُعرض مع المقارنة — مكانٌ واحد
+    #: لا يحمل شيئين، والمقارنةُ أولى به لأنها تتغيّر.
+    #:
+    #: **في آخر الحقول عمداً**: كلُّ نداءٍ في هذا الملفّ موضعيٌّ، وحقلٌ يُدسّ
+    #: في الوسط يزيح ثلاثةَ عشرَ نداءً صامتةً — فيصير `tone` رمزاً و`icon` فعلاً.
+    unit: str = ""
 
     @property
     def icon_path(self) -> str:
@@ -185,6 +195,7 @@ def board_for(user) -> Board:
                     "ملاحظةٌ من `verify_ledger` — تُقرأ قبل أي إجمالي أدناه",
                     reverse("console:money-health"),
                     "alarm",
+                    unit="ملاحظة",
                 )
             )
         if report.suspense.balance != ZERO:
@@ -195,6 +206,7 @@ def board_for(user) -> Board:
                     "مالٌ وصل ولم يُنسب — لا يُسقَط ولا يُخمَّن صاحبه",
                     reverse("console:money-health"),
                     "warn",
+                    unit="ريال",
                 )
             )
 
@@ -207,6 +219,7 @@ def board_for(user) -> Board:
                 "أودو طلب سحب وديعةٍ مرهونة — لم يُنفَّذ، وينتظر قراراً",
                 reverse("console:refund-queue"),
                 "warn",
+                unit="عجز",
             )
         )
 
@@ -223,6 +236,7 @@ def board_for(user) -> Board:
                 "حان وقتها ولم تُفتَح، أو انتهى ولم تُغلَق — تحقّق من Celery",
                 reverse("console:auctions"),
                 "warn",
+                unit="مزاد",
             )
         )
 
@@ -235,6 +249,7 @@ def board_for(user) -> Board:
                 "لم تُفهَم ولم تُسقَط — تُقرأ ويُعاد تشغيلها",
                 reverse("console:odoo-inbox"),
                 "warn",
+                unit="رسالة",
             )
         )
 
@@ -253,6 +268,7 @@ def board_for(user) -> Board:
                 "money",
                 "book",
                 "افتح دفتر التأمينات",
+                unit="ريال",
             )
         )
         active_holds = Hold.objects.filter(state=HoldState.ACTIVE).count()
@@ -265,6 +281,7 @@ def board_for(user) -> Board:
                 "money",
                 "lock",
                 "من عليه حجز",
+                unit="حجز",
             )
         )
 
@@ -281,6 +298,7 @@ def board_for(user) -> Board:
                 "money",
                 "file",
                 "افتح الفواتير",
+                unit="فاتورة",
             )
         )
 
@@ -300,6 +318,7 @@ def board_for(user) -> Board:
                 "auction" if live or scheduled else "warn",
                 "award",
                 "افتح المزادات",
+                unit="مزاد",
             )
         )
         undecided = Vehicle.objects.filter(state=VehicleState.AWAITING_DECISION).count()
@@ -312,6 +331,7 @@ def board_for(user) -> Board:
                 "warn" if undecided else "plain",
                 "scale",
                 "قرارات الشركاء",
+                unit="مركبة",
             )
         )
         board.stats.append(
@@ -346,6 +366,7 @@ def board_for(user) -> Board:
                 "people",
                 "users",
                 "افتح المستخدمين",
+                unit="عميل",
             )
         )
         refusals = BidRefusal.objects.filter(
@@ -362,6 +383,7 @@ def board_for(user) -> Board:
                 "لماذا رُفضت",
                 _week_over_week(BidRefusal, "refused_at"),
                 _daily_shape(BidRefusal, "refused_at"),
+                unit="اليوم",
             )
         )
 
