@@ -5664,3 +5664,94 @@ main {
      ضجيجاً لا نسيجاً. */
   main, [data-scheme="dark"] main { background-size: auto, auto, 28px 28px; }
 }
+
+/* ===========================================================================
+   الرأسُ إلى حافة البداية، والأرضيةُ شبكةَ خطوطٍ لا نقطاً
+   ---------------------------------------------------------------------------
+   «خلى دي في يمين الصفحة»، و«غيّر النقط لحاجة تانية أشيك».
+
+   والتوسيطُ رُدّ: العنوانُ ومربّعُه على حافة البداية — يمينُ الصفحة في RTL —
+   وسطرُ الترحيب تحته محاذياً **نصَّ** العنوان لا المربّع. والخطُّ الفاصل
+   يبقى ممتدّاً بعرض الصفحة كما هو.
+
+   والإزاحةُ تعود محسوبةً من `--crest` وفجوته لا مكتوبةً: هي القاعدة نفسها
+   التي كُتبت قبل ستّ خطواتٍ ثم صُفِّرت بالتوسيط، وهي التي جعلت تصغيرَ
+   المربّع مرّتين لا يحتاج تعديلَ رقمٍ ثانٍ.
+   ======================================================================== */
+
+.board .page { text-align: start; }
+.board .page h1 { justify-content: flex-start; }
+.board-hello { text-align: start; }
+.board .page__actions {
+  align-items: flex-start;
+  padding-inline-start: calc(var(--crest) + var(--crest-gap));
+}
+.board-verdict { align-self: flex-start; }
+
+/* ---- الأرضية: ورقُ رسمٍ يتلاشى -----------------------------------------
+   النقطُ استُبدلت بشبكةِ خطوطٍ رفيعة — «ورق رسم» — **تتلاشى نزولاً**. وهذا
+   هو الفرق كلُّه: شبكةٌ موزّعةٌ بالتساوي على الشاشة كلّها تُقرأ ورقاً
+   مسطّراً رخيصاً، وشبكةٌ تبدأ تحت الرأس ثم تذوب قبل منتصف الصفحة تُقرأ
+   عمقاً. والتلاشي بـ`mask-image`، فيحتاج طبقةً وحده.
+
+   `::before` بـ`z-index: -1` داخل `isolation: isolate`: العزلُ يجعل `main`
+   سياقَ تكديسٍ مستقلاً، فتقع الطبقةُ خلف محتواه **وداخله** — لا خلف أرضية
+   الصفحة كلِّها حيث تختفي تحت `--ground` المصمت. وبلا `isolation` كانت
+   الشبكةُ تُرسم ولا تُرى، وذلك أسوأُ من ألّا تُرسم.
+   ---------------------------------------------------------------------- */
+
+main { isolation: isolate; }
+
+/* التوهّجان يبقيان على `main` نفسِه: تدرّجٌ دائريّ يتلاشى بذاته ولا يحتاج
+   قناعاً، وطبقةٌ ثانيةٌ لأجلهما ثمنٌ بلا مقابل. */
+main {
+  background-image:
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 11%, transparent) 0%, transparent 62%),
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 7%, transparent) 0%, transparent 60%);
+  background-size: auto, auto;
+  background-repeat: no-repeat, no-repeat;
+}
+
+main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(to right,
+      color-mix(in srgb, var(--ink) 8%, transparent) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--ink) 8%, transparent) 0 1px, transparent 1px 34px);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 18%, transparent 68%);
+          mask-image: linear-gradient(to bottom, #000 0%, #000 18%, transparent 68%);
+}
+
+/* الداكن: الخطُّ يُرفع لأن `--ink` فيه فاتحٌ أصلاً، ومزجُه بـ8٪ يختفي على
+   أرضيةٍ سوداء. */
+[data-scheme="dark"] main {
+  background-image:
+    radial-gradient(60rem 26rem at 88% -8%,
+      color-mix(in srgb, var(--brand) 14%, transparent) 0%, transparent 62%),
+    radial-gradient(48rem 22rem at 6% 2%,
+      color-mix(in srgb, var(--auction) 9%, transparent) 0%, transparent 60%);
+  background-size: auto, auto;
+  background-repeat: no-repeat, no-repeat;
+}
+[data-scheme="dark"] main::before {
+  background-image:
+    repeating-linear-gradient(to right,
+      color-mix(in srgb, var(--ink) 13%, transparent) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(to bottom,
+      color-mix(in srgb, var(--ink) 13%, transparent) 0 1px, transparent 1px 34px);
+}
+
+@media (max-width: 40rem) {
+  /* الإزاحةُ تُلغى على الضيّق: عمودٌ مزاحٌ بـ2.4rem على شاشةٍ بعرض 24rem
+     يبقى له أقلُّ من ثلاثة أرباعه. */
+  .board .page__actions { padding-inline-start: 0; }
+  /* والشبكةُ تتّسع: مربّعٌ بـ34px على شاشةٍ ضيّقة يملأها تسطيراً. */
+  main::before, [data-scheme="dark"] main::before { background-size: 44px 44px; }
+}
