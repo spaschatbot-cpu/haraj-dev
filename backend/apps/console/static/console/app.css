@@ -6329,3 +6329,73 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 .board .page__actions { padding-block-end: 0; border-block-end: 0; }
 
 .board-stats .stat__detail { font-size: .75rem; line-height: 1.55; }
+
+/* ===========================================================================
+   «الصورة العامّة»: سطرُ تعريفٍ، ولوحتان مرتَّبتان
+   ---------------------------------------------------------------------------
+   «خلى الصورة العامة وما تحتها بشكل احترافي أكتر، وضيف سطر كلام تحت الصورة
+   العامة».
+
+   **السطر** يقول ما تجيبه اللوحتان. وعنوانُ الكتلة كلمتان لا تقولان ما
+   الفرقَ بينه وبين «أرقام المنصّة» فوقه — وكلتاهما أرقامٌ عن المنصّة.
+   والفرقُ أن تلك **عدّادات** وهذه **توزيعٌ وحركة**.
+
+   **واللوحتان** كانتا صندوقين بعنوانٍ عائمٍ فوق محتوىً بلا فاصل، وبحشوةٍ
+   واحدةٍ من كل جهة — فرأسُ اللوحة يُقرأ سطراً من المحتوى لا رأساً له. فصار:
+
+   * **خطٌّ تحت الرأس** يفصله عمّا يشرحه، وحشوةٌ أوسعُ حوله.
+   * **الدائرةُ أكبرُ وحلقتُها أثخن**، ورقمُها في مركزها أثقلُ وزناً — هي
+     الرقمُ الوحيدُ في اللوحة، وكانت بوزن سطرٍ عادي.
+   * **مفتاحُ الدائرة** صفوفٌ أعلى، والحبّةُ فيه دائرةٌ لا مربّعٌ مستدير:
+     الدائرةُ تقول «هذه قطعةٌ من تلك الدائرة»، والمربّعُ يقول «وسمٌ آخر».
+   * **أعمدةُ الحركة** برؤوسٍ مستديرة وقاعدةٍ مرسومة، وأرقامُها فوقها
+     بخاناتٍ مستقيمة.
+   ======================================================================== */
+
+.board-lede {
+  margin: -.35rem 0 1rem;
+  font-size: .82rem;
+  line-height: 1.7;
+  color: var(--muted);
+  max-inline-size: 52rem;
+}
+
+/* ---- اللوح ------------------------------------------------------------- */
+
+.figure { padding: 1.35rem 1.45rem 1.5rem; }
+
+.figure__head {
+  padding-block-end: .85rem;
+  margin-block-end: 1.15rem;
+  border-block-end: 1px solid var(--line-soft);
+}
+.figure h2 { font-size: 1rem; font-weight: 700; }
+
+/* ---- الدائرة ------------------------------------------------------------ */
+
+.wheel { gap: 1.6rem; }
+.wheel__disc { inline-size: 8.5rem; block-size: 8.5rem; }
+/* الثقبُ أضيقُ نسبةً: حلقةٌ أثخنُ تُقرأ قطاعاتُها المتقاربة، وثقبٌ يكفي رقماً. */
+.wheel__hole { inline-size: 5.3rem; block-size: 5.3rem; }
+.wheel__hole strong { font-size: 1.9rem; font-weight: 700; line-height: 1.1; }
+.wheel__hole span { font-size: .72rem; font-weight: 600; }
+
+.wheel__item { padding-block: .55rem; gap: .6rem; }
+/* دائرةٌ لا مربّعٌ مستدير: الحبّةُ هنا **قطعةٌ من الدائرة** المجاورة، لا
+   وسمٌ ثالثٌ بجوار حبّات الوحدة والمقارنة في البطاقات فوقها. */
+.wheel__dot { inline-size: .62rem; block-size: .62rem; border-radius: 50%; }
+.wheel__name { font-size: .85rem; font-weight: 600; color: var(--ink-soft); }
+.wheel__count { font-size: .95rem; color: var(--ink); }
+.wheel__share { font-size: .78rem; font-weight: 600; }
+
+/* ---- أعمدة الحركة ------------------------------------------------------- */
+
+.spark { padding-block-end: .2rem; border-block-end: 1px solid var(--line-soft); }
+.spark__bar {
+  border-start-start-radius: 5px;
+  border-start-end-radius: 5px;
+  border-end-start-radius: 0;
+  border-end-end-radius: 0;
+}
+.spark__count { font-size: .76rem; font-weight: 700; color: var(--ink-soft); }
+.spark__label { font-size: .7rem; font-weight: 500; margin-block-start: .45rem; }
