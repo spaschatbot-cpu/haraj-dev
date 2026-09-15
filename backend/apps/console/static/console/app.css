@@ -5755,3 +5755,109 @@ main::before {
   /* والشبكةُ تتّسع: مربّعٌ بـ34px على شاشةٍ ضيّقة يملأها تسطيراً. */
   main::before, [data-scheme="dark"] main::before { background-size: 44px 44px; }
 }
+
+/* ===========================================================================
+   البطاقة — تجريدٌ أخير: ما بقي هو ما يقول شيئاً
+   ---------------------------------------------------------------------------
+   «مش عاجبني المربعات برضو، خليها حاجة بسيطة خالص تدّي شكل حلو».
+
+   وكانت البطاقة قد جمعت — طبقةً فوق طبقة عبر ستّ خطوات — **سبعَ** إشارات
+   على شيءٍ واحد: حدٌّ، وظلّ، وشريطٌ جانبيّ ملوّن، ومربّعٌ ملوّنٌ للرمز،
+   وحبّةٌ للوحدة، وخطٌّ فاصلٌ للتذييل، وقرصٌ للسهم. وكلٌّ منها أُضيف لسببٍ
+   صحيحٍ وحده؛ ومجموعُها صندوقٌ مزخرفٌ يُقرأ قبل الرقم الذي فيه.
+
+   فحُذف ستٌّ وبقيت واحدة: **اللون**. الرمزُ والرقمُ بلون تصنيف البطاقة —
+   مالٌ بنفسجيّ، ومزادٌ فيروزيّ، وناسٌ كهرمانيّ — فالعينُ تجد الكتلةَ قبل أن
+   تقرأ عنوانها، وهو الغرضُ الذي وُضع الشريطُ والمربّعُ لأجله أصلاً.
+
+   وما حُذف حقاً هو **الزخرفة لا المعلومة**: الوحدةُ باقيةٌ نصّاً بجوار
+   الرقم، والوجهةُ باقيةٌ سطراً في القاع. حبّةٌ حول كلمةٍ ليست معلومةً
+   زائدة — هي الكلمةُ نفسُها في صندوق.
+   ======================================================================== */
+
+/* ---- الصندوق ------------------------------------------------------------ */
+
+.stat {
+  padding: 1.25rem 1.3rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  /* لا ظلّ: حدٌّ رفيعٌ وظلٌّ معاً حدّان. والظلُّ يبقى للتحويم وحده، فيقول
+     «هذه تُفتح» حين تُسأل لا طول الوقت. */
+  box-shadow: none;
+}
+.stat::before { content: none; }          /* الشريطُ الجانبي — حُذف */
+
+a.stat:hover, a.stat:focus-visible {
+  transform: none;                        /* لا قفزة: ثماني بطاقاتٍ تقفز إيقاعٌ مكسور */
+  border-color: color-mix(in srgb, var(--ink) 22%, transparent);
+  box-shadow: 0 6px 20px rgb(23 32 51 / .07);
+}
+
+/* ---- الرمز: رسمٌ لا مربّع ----------------------------------------------- */
+
+.stat__icon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding: 0;
+  border-radius: 0;
+  background: none;
+  stroke-width: 1.9;
+  opacity: .9;
+}
+.stat--money .stat__icon   { background: none; color: var(--money); }
+.stat--auction .stat__icon { background: none; color: var(--auction); }
+.stat--people .stat__icon  { background: none; color: var(--people); }
+.stat--ok .stat__icon      { background: none; color: var(--ok); }
+.stat--brand .stat__icon   { background: none; color: var(--brand-dark); }
+.stat--warn .stat__icon    { background: none; color: var(--warn); }
+.stat--alarm .stat__icon   { background: none; color: var(--danger); }
+
+.stat__ident { gap: .5rem; }
+.stat__label { font-size: .88rem; font-weight: 600; color: var(--ink-soft); }
+
+/* ---- الوحدة: كلمةٌ لا حبّة ---------------------------------------------- */
+
+.stat__unit {
+  padding: 0;
+  border-radius: 0;
+  background: none !important;
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 500;
+}
+.stat__figure { gap: .15rem; }
+
+/* الدلتا تبقى حبّةً: هي وحدها تحمل **لوناً معناه اتجاه** — أخضرُ صعودٍ
+   وأحمرُ هبوط — ولونٌ بلا خلفيةٍ تحدّه يُقرأ نصّاً ملوّناً لا إشارة. */
+
+/* ---- التذييل: سطرٌ وسهم ------------------------------------------------- */
+
+.stat__action {
+  padding-block-start: .85rem;
+  border-block-start: 0;                  /* الخطُّ الفاصل — حُذف */
+  justify-content: flex-start;
+  gap: .35rem;
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.stat__go {
+  inline-size: auto;
+  block-size: auto;
+  border-radius: 0;
+  background: none !important;
+  color: inherit;
+  place-items: center;
+}
+.stat__go svg { width: 12px; height: 12px; stroke-width: 2.6; }
+
+a.stat:hover .stat__action, a.stat:focus-visible .stat__action { color: var(--ink); }
+a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
+.stat--money .stat__action  { color: color-mix(in srgb, var(--money) 78%, var(--muted)); }
+.stat--auction .stat__action{ color: color-mix(in srgb, var(--auction) 78%, var(--muted)); }
+.stat--people .stat__action { color: color-mix(in srgb, var(--people) 78%, var(--muted)); }
+
+/* ---- التنبيه: الحدُّ وحده يلوّن ----------------------------------------- */
+
+.stat--alarm { border-color: var(--danger-line); }
+.stat--warn  { border-color: var(--warn-line); }
