@@ -6209,3 +6209,64 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 @media (min-width: 78rem) {
   .board-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* ===========================================================================
+   الرسمُ منحنىً، والزرُّ أخفُّ درجةً — كلٌّ إلى حدِّه هو
+   ---------------------------------------------------------------------------
+   «خفّف درجة لون أزرار افتح قليلاً، وغيّر شكل الرسم البياني لشكل احترافي
+   أكتر».
+
+   ---- الزرّ -------------------------------------------------------------
+   كان تخفيفاً واحداً (٨٨٪) على الدرجات كلّها، وذلك يترك كلَّ درجةٍ عند
+   نسبةٍ مختلفة من الحدّ: الأحمرُ عند 5.41 والكهرمانيُّ عند 4.58 — أي أن
+   الأحمر كان يحتمل تخفيفاً أكبرَ بكثير ولم يُعطَه.
+
+   فصار **لكلِّ درجةٍ حدُّها هي**، محسوباً بالبحث عن أفتح مزيجٍ يبقى عنده
+   الأبيضُ فوق 4.55:
+
+       بنفسجي  84%  →  4.57        أحمر    80%  →  4.64
+       فيروزي  88%  →  4.63        أخضر    87%  →  4.61
+       كهرماني 88%  →  4.58
+
+   ---- الرسم --------------------------------------------------------------
+   كان سبعَ نقاطٍ موصولةٍ بمستقيمات — أي سبعَ زوايا حادّةٍ في 50px من
+   الارتفاع، وهو أول ما يميّز رسماً مرتجلاً من رسمِ لوحةٍ مصنوعة. صار
+   منحنىً (Catmull-Rom، في `dashboard.py`) يمرّ بكل نقطةٍ بالضبط.
+
+   والخطُّ أثخنُ قليلاً، والمساحةُ أوضح، والنقطةُ أكبرُ بحلقةٍ حولها: ثلاثةٌ
+   تجعل الرسمَ يُقرأ من بعيد بدل أن يُتحرّى.
+   ======================================================================== */
+
+/* ---- الزرّ: كلُّ درجةٍ إلى حدّها --------------------------------------- */
+
+.stat--money .stat__btn   { background: color-mix(in srgb, var(--money) 84%, #fff); }
+.stat--auction .stat__btn { background: color-mix(in srgb, var(--auction) 88%, #fff); }
+.stat--people .stat__btn  { background: color-mix(in srgb, var(--people) 88%, #fff); }
+.stat--ok .stat__btn      { background: color-mix(in srgb, var(--ok) 87%, #fff); }
+.stat--warn .stat__btn    { background: color-mix(in srgb, var(--warn) 88%, #fff); }
+.stat--alarm .stat__btn   { background: color-mix(in srgb, var(--danger) 80%, #fff); }
+
+/* ---- الرسم -------------------------------------------------------------- */
+
+.stat__spark-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  /* السُّمكُ لا يُمطّ مع الرسم: بلا هذا يصير الخطُّ شعرةً على بطاقةٍ عريضة
+     وحبلاً على ضيّقة، لأن المطَّ الأفقيَّ يقسم سُمكَه. */
+  vector-effect: non-scaling-stroke;
+}
+.stat__spark-area { fill: color-mix(in srgb, currentColor 16%, transparent); stroke: none; }
+
+.stat__spark-dot {
+  inline-size: .55rem;
+  block-size: .55rem;
+  margin: -.275rem 0 0 -.275rem;
+  box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent);
+}
+.stat--warn .stat__spark-dot,
+.stat--alarm .stat__spark-dot {
+  box-shadow: 0 0 0 2.5px var(--panel), 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent);
+}

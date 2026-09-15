@@ -65,7 +65,7 @@
       <svg class="stat__spark" viewBox="0 0 100 32" preserveAspectRatio="none"
            role="presentation" aria-hidden="true" focusable="false">
         <path class="stat__spark-area" d="{{ stat.spark_area }}" />
-        <polyline points="{{ stat.spark_points }}" />
+        <path class="stat__spark-line" d="{{ stat.spark_curve }}" />
       </svg>
       <span class="stat__spark-dot" aria-hidden="true"
             style="left: {{ stat.spark_last_x }}%; top: {{ stat.spark_last_y }}%"></span>
