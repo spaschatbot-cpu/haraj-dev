@@ -9039,3 +9039,72 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   .cat-toolbar__actions { inline-size: 100%; }
   .cat-toolbar__actions > button { flex: 1 1 auto; justify-content: center; }
 }
+
+/* ===========================================================================
+   جدولُ الكتالوج — صفٌّ يُقرأ في سطر
+   ---------------------------------------------------------------------------
+   «خلّي البيانات وتصميمها اللي في الجدول بشكل احترافي».
+
+   العطلُ الأول بنيويٌّ لا لونيّ: الغلافُ كان `.scroller` عارياً، فالجدولُ
+   يُضغَط في عرض الشاشة وستّةَ عشرَ عموداً تتقاسمه — «غير محدد» تلفُّ سطرين،
+   واسمُ السيارة ثلاثة، فيقارب ارتفاعُ الصفّ 100px ولا يُرى إلا أربعةُ صفوف.
+   `scroller--wide` (المكتوبة أصلاً لما بعد البيع) تمنع اللفَّ وتُمرّر أفقياً.
+   وثمنُها صريح: من يقرأ آخرَ الأعمدة يمرّر.
+
+   والباقي فرزُ الأنواع: السيارةُ اسمٌ غليظٌ وسنةٌ خافتة، والأرقامُ بخاناتٍ
+   مستقيمة، والشاصي والّلوحة أحاديّةُ العرض أصغرُ وأخفتُ (سلسلةُ 17 محرفاً
+   لا تُقرأ، تُطابَق — فوزنُها البصريُّ يجب أن يكون أقلَّ ما يمكن)، والشرطةُ
+   «—» تخفت حتى لا تُقرأ قيمةً، والصورُ حبّةٌ برمز آلة تصوير لا محرفُ إيموجي
+   يختلف رسمُه من نظامٍ إلى نظام.
+   ======================================================================== */
+
+/* رأسٌ أوضح: حبرٌ أغمقُ من `--muted` — سطرُ العناوين يُقرأ في جدولٍ بستّةَ
+   عشرَ عموداً قبل أن تُقرأ خانةٌ واحدة. */
+.cat-table thead th {
+  color: var(--ink-soft);
+  font-size: .73rem;
+  font-weight: 800;
+  background: var(--raised);
+}
+
+.cat-table td { vertical-align: middle; padding-block: .6rem; }
+
+/* السيارة: الاسمُ سطرٌ والسنةُ تحته بوزنٍ خافت. */
+.cat-table td strong { font-weight: 700; color: var(--ink); }
+.cat-table td small { font-size: .72rem; color: var(--muted); margin-block-start: .1rem; }
+
+/* السلاسلُ الأحاديّة: أصغرُ وأخفت، ولا تُحاذى كالنصّ. */
+.cat-table td.mono { font-size: .76rem; color: var(--ink-soft); letter-spacing: -.01em; }
+
+.cat-table td.count { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* موعدُ المزاد: بدايةٌ فوق ونهايةٌ تحتها خافتة، بخاناتٍ مستقيمة. */
+.cat-table td.sched { font-variant-numeric: tabular-nums; font-size: .78rem; line-height: 1.5; }
+.cat-table td.sched > span { display: block; }
+.cat-table td.sched > .muted { font-size: .74rem; }
+
+/* الشرطةُ «—»: قيمةٌ غائبةٌ لا قيمةٌ مكتوبة. */
+.cat-nil { color: var(--line); font-weight: 700; }
+
+/* حبّةُ الصور: رمزٌ ورقمٌ في إطارٍ خفيف — هدفُ نقرٍ يُرى أنه هدف. */
+.cat-table .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .2rem .5rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: .78rem;
+  font-variant-numeric: tabular-nums;
+  transition: background .14s ease, border-color .14s ease, color .14s ease;
+}
+.cat-table .link-btn:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+/* خانةُ التحديد تضيق: عمودٌ بحشوةٍ كاملةٍ لمربّعٍ بـ1rem يسرق عرضاً من
+   ستّةَ عشرَ عموداً تتنازعه. */
+.cat-table th:first-child, .cat-table td:first-child { padding-inline: .7rem; width: 1%; }
+
+/* الصفُّ المحدَّد يُرى محدَّداً: أرضيّةٌ خفيفةٌ بلون الأساسيّ. بلا هذا يكون
+   الدليلُ الوحيدُ على التحديد علامةً بـ1rem في طرف صفٍّ عرضُه 92rem. */
+.cat-table tbody tr:has(.row-select:checked) { background: var(--brand-soft); }

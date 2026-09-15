@@ -83,7 +83,11 @@
     </div>
   </div>
 
-  <div class="scroller">
+  {% comment %} ستّةَ عشرَ عموداً في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفُّ —
+     «غير محدد» سطرين، واسمُ السيارة ثلاثة — فارتفاعُ الصفّ يقارب 100px ولا
+     يُرى في الشاشة إلا أربعةُ صفوف. `scroller--wide` تمنع اللفَّ وتُمرّر
+     أفقياً، كما في «ما بعد البيع». {% endcomment %}
+  <div class="scroller scroller--wide cat-table">
     <table>
     <thead>
       <tr>
@@ -126,9 +130,12 @@
             {% if row.image_count %}
               <button type="button" class="link-btn" data-images-modal
                       data-url="{% url 'console:vehicle-images' row.pk %}?modal=1"
-                      title="عرض كل صور السيارة">📷 {{ row.image_count|unlocalize }}</button>
+                      title="عرض كل صور السيارة">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
+                <span>{{ row.image_count|unlocalize }}</span>
+              </button>
             {% else %}
-              <span class="muted">0</span>
+              <span class="cat-nil">—</span>
             {% endif %}
           </td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.auction.get_state_display }}</span></td>
