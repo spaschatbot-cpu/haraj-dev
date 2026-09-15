@@ -334,7 +334,7 @@ have to undo one in their head.
 
   <div class="table-footer">
     <div class="table-footer__count">
-      {{ page.paginator.count }} مزاداً · صفحة {{ page.number }} من {{ page.paginator.num_pages }}
+      <b class="tf__n">{{ page.paginator.count }}</b> مزاداً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b>
     </div>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المزادات">

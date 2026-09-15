@@ -152,7 +152,7 @@
 
   <div class="table-footer">
     <span>
-      {{ page.paginator.count|unlocalize }} حساباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+      <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> حساباً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
     </span>
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات المستخدمين">

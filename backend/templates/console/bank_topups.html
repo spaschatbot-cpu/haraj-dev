@@ -72,6 +72,6 @@
     </table>
   </div>
 
-  <p>{{ page.paginator.count|unlocalize }} طلباً · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
+  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> طلباً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
      {% if open_count %}· <strong>{{ open_count|unlocalize }}</strong> قيد المراجعة{% endif %}</p>
 {% endblock %}
