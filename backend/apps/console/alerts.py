@@ -34,6 +34,7 @@ from django.db.models import Q
 from django.shortcuts import render
 
 from apps.accounts.services import find_by_phone
+from apps.core.arabic import search_q
 from apps.notifications.models import Notification
 
 from .exports import export, wants_export
@@ -67,7 +68,7 @@ def search(*, text: str = "", state: str = "", channel: str = ""):
     if text:
         # الجوّال أولاً لأنه ما في يد الدعم والعميل على الهاتف؛ ثم الاسم، ثم
         # نصُّ الرسالة نفسه لمن يبحث عن «كل من وصلته هذه الرسالة».
-        matches = Q(user__full_name__icontains=text) | Q(body__icontains=text)
+        matches = search_q(text, "user__full_name", "body")
         person = find_by_phone(text)
         if person is not None:
             matches |= Q(user=person)

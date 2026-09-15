@@ -11,6 +11,7 @@ from apps.accounts.api.auth import (
 )
 from apps.accounts.api.profile import (
     CompanyProfileView,
+    DocumentsView,
     NationalIdView,
     ProfileView,
 )
@@ -43,4 +44,7 @@ urlpatterns = [
         name="profile-national-id",
     ),
     path("profile/company/", CompanyProfileView.as_view(), name="profile-company"),
+    # الوثائق الأربع. وصورةُ الآيبان تفتح بابَ الاسترداد — فبلا هذه النقطة لا
+    # طريقَ للعميل إليه إلا بموظّفٍ يرفع عنه.
+    path("profile/documents/", DocumentsView.as_view(), name="profile-documents"),
 ]

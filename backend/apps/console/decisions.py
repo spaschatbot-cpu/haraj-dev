@@ -46,11 +46,12 @@ from django.db.models import Q, Sum
 from django.shortcuts import render
 
 from apps.auctions.models import Vehicle
-from apps.auctions.states import VehicleState
+from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice
 
-from .exports import export, wants_export
+from .exports import export_table, wants_export
+from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
 
@@ -60,12 +61,12 @@ PAGE_SIZE = 50
 
 #: المركبة التي رست. تُقرأ من الحالة لا من وجود `awarded_to`: الحالتان
 #: متلازمتان بقيدٍ في القاعدة، والقراءة من الحالة تُفهرَس.
-AWARDED = (
-    VehicleState.AWARDED,
-    VehicleState.INVOICED,
-    VehicleState.PAID,
-    VehicleState.RELEASED,
-)
+#:
+#: واسمٌ آخرُ لـ:data:`~apps.console.sensitive.AWARDED_STATES` لا نسخةٌ ثانية:
+#: حارسُ المبلغ يسأل «أرَست؟» وهذه الشاشة تُبنى على الجواب نفسِه، وتعريفان
+#: للكلمة الواحدة يُصلَح أحدُهما ويُنسى الآخر. والاسمُ هنا يبقى لأن
+#: `analytics.py` يستورده باسمه.
+AWARDED = AWARDED_STATES
 
 
 def awarded(*, text: str = "", first: str = "", last: str = ""):
@@ -87,13 +88,14 @@ def awarded(*, text: str = "", first: str = "", last: str = ""):
     if text:
         # ما يُتذكَّر من مركبةٍ رست: لوحتها، أو شاصيها، أو اسم من أخذها، أو
         # رقم مزادها. ولا يُعرف أيُّها في يد السائل، فتُطابَق الأربعة.
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(awarded_to__full_name__icontains=text)
-            | Q(awarded_to__phone__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
+        matches = search_q(
+            text,
+            "plate_number",
+            "vin",
+            "awarded_to__full_name",
+            "awarded_to__phone",
+            "make",
+            "model",
         )
         if text.isdigit():
             matches |= Q(auction__number=int(text)) | Q(lot_number=int(text))
@@ -141,39 +143,38 @@ def accepted_bids(request):
         last=request.GET.get("to", ""),
     )
 
+    # الشاشةُ `auctions.view`، والفائزُ وجوّالُه ومبالغُه ليسوا منها. وكانت
+    # الصفحةُ تضع في **مصدرها** ثمانيةَ جوّالاتٍ واثنين وعشرين مبلغاً لمن يملك
+    # `auctions.view` وحدَها، والملفُّ أربعةَ عشرَ عموداً فيها «الفائز»
+    # و«الجوال» و«سعر الترسية» و«الضريبة». والقاعدةُ في `sensitive.py`.
+    seen = shown_to(request.user)
+
     if wants_export(request):
-        return export(
+        return export_table(
             rows,
             name="المزايدات-المقبولة",
-            headers=[
-                "المزاد",
-                "اللوت",
-                "المركبة",
-                "السنة",
-                "اللوحة",
-                "رقم الهيكل",
-                "الفائز",
-                "الجوال",
-                "سعر الترسية",
-                "الحالة",
-                "رقم الفاتورة",
-                "قبل الضريبة",
-                "الضريبة",
-                "الإجمالي",
-            ],
-            cell=lambda row: [
-                row.auction.number,
-                row.lot_number,
-                f"{row.make} {row.model}",
-                row.year,
-                row.plate_number,
-                row.vin,
-                row.awarded_to.full_name,
-                row.awarded_to.phone,
-                row.awarded_price or ZERO,
-                row.get_state_display(),
-                *_export_money(row),
-            ],
+            columns=columns_for(
+                [
+                    ("المزاد", lambda row: row.auction.number, None),
+                    ("اللوت", lambda row: row.lot_number, None),
+                    ("المركبة", lambda row: f"{row.make} {row.model}", None),
+                    ("السنة", lambda row: row.year, None),
+                    ("اللوحة", lambda row: row.plate_number, None),
+                    ("رقم الهيكل", lambda row: row.vin, None),
+                    ("الفائز", lambda row: row.awarded_to.full_name, CUSTOMER),
+                    ("الجوال", lambda row: row.awarded_to.phone, CUSTOMER),
+                    ("سعر الترسية", lambda row: row.awarded_price or ZERO, MONEY),
+                    ("الحالة", lambda row: row.get_state_display(), None),
+                    # رقمُ الفاتورة يبقى بـ`auctions.view`: «أفُوتِرت هذه
+                    # المركبة؟» سؤالُ تشغيلٍ لا سؤالُ مال — الحكمُ نفسُه الذي
+                    # في `sensitive.py` وفي كتالوج السيارات.
+                    ("رقم الفاتورة", lambda row: _cell(row, "number"), None),
+                    ("قبل الضريبة", lambda row: _cell(row, "base"), MONEY),
+                    ("الضريبة", lambda row: _cell(row, "tax"), MONEY),
+                    ("الإجمالي", lambda row: _cell(row, "total"), MONEY),
+                ],
+                seen,
+            ),
         )
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
@@ -181,15 +182,27 @@ def accepted_bids(request):
 
     # الفاتورة تُقرأ لصفحةٍ واحدة لا للاستعلام كلّه: `money_of` استعلامٌ لكل
     # صفّ، وخمسون منها مقبولةٌ في صفحة، وأربعةُ آلافٍ في تصدير ليست كذلك —
-    # ولذلك التصدير يمرّ بـ`_export_money` التي تقرأ من `prefetch`.
+    # ولذلك التصدير يمرّ بـ`_cell` التي تقرأ الفاتورة مرّةً لكلّ صفّ وتحفظها
+    # عليه، فأربعةُ أعمدةٍ ماليّةٍ لا تعني أربعةَ استعلامات.
     for vehicle in page.object_list:
         vehicle.money = money_of(vehicle)
+        # الثلاثةُ تُمحى من الصفّ قبل أن يصل القالبَ، لا تُخفى فيه: «قبل
+        # الضريبة» و«الضريبة» و«الإجمالي» مبالغُ فاتورةٍ بعينها. ورقمُ
+        # الفاتورة ورابطُها يبقيان، وهما ما يبقى في v1 نفسِه.
+        if not seen.money:
+            vehicle.money |= {"base": None, "tax": None, "total": None}
+
+    # اسمُ الفائز وجوّالُه إلى `buyer_name`/`buyer_phone`، وسعرُ الترسية إلى
+    # `award_price` — بالدالّة نفسها التي تحرس الكتالوج وكارت الأرشيف.
+    prepare(page.object_list, seen)
 
     return render(
         request,
         "console/accepted_bids.html",
         {
             "page": page,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
             "q": request.GET.get("q", ""),
             "first": request.GET.get("from", ""),
             "last": request.GET.get("to", ""),
@@ -197,17 +210,19 @@ def accepted_bids(request):
     )
 
 
-def _export_money(vehicle: Vehicle) -> list:
-    """الأعمدة المالية الأربعة في التصدير — أو أربع فراغات."""
-    split = money_of(vehicle)
+def _cell(vehicle: Vehicle, key: str):
+    """خليّةٌ من فاتورة المركبة في التصدير — **والفاتورة تُقرأ مرّةً للصفّ**.
+
+    أربعةُ أعمدةٍ ماليّةٍ تسأل `money_of` أربعَ مرّاتٍ تعني أربعةَ استعلاماتٍ
+    لكلّ صفٍّ في ملفٍّ يبلغ خمسةَ آلاف صفّ. فالجوابُ يُحفظ على الصفّ نفسِه —
+    وهو كائنٌ يُبنى مرّةً في حلقة `export_table` ثم يُرمى، فلا ذاكرةَ تتراكم.
+    """
+    split = getattr(vehicle, "_money", None)
+    if split is None:
+        split = vehicle._money = money_of(vehicle)
     if split["invoice"] is None:
-        return ["", "", "", ""]
-    return [
-        split["invoice"].number,
-        split["base"],
-        split["tax"],
-        split["total"],
-    ]
+        return ""
+    return split["invoice"].number if key == "number" else split[key]
 
 
 def summary(*, text: str = "", first: str = "", last: str = "") -> dict:
@@ -248,11 +263,18 @@ def accepted_summary(request):
     first = request.GET.get("from", "")
     last = request.GET.get("to", "")
 
+    # ثلاثةُ أرقامٍ من الستّة مبالغُ مجموعة، **ومبلغٌ مجموعٌ على آلاف الصفوف
+    # ليس أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر** — الحجّةُ نفسُها
+    # التي حجبت بطاقات أرشيف المزادات. والأعدادُ الثلاثةُ تبقى: «كم مركبةً
+    # رست وكم منها فُوتِرت» سؤالُ تشغيلٍ يجيبه عدّ، وهو سببُ فتح الشاشة.
+    seen = shown_to(request.user)
+
     return render(
         request,
         "console/accepted_summary.html",
         {
             "totals": summary(text=text, first=first, last=last),
+            "show_money": seen.money,
             "q": text,
             "first": first,
             "last": last,

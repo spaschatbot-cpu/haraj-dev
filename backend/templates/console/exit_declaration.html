@@ -8,8 +8,11 @@
 {% block heading %}إقرار واستلام نهائي للمركبة{% endblock %}
 
 {% block actions %}
-  <button type="button" class="btn-primary" onclick="window.print()">🖨️ طباعة</button>
-  <a href="{% url 'console:vehicle-exit' %}" class="btn-ghost">↩ رجوع</a>
+  <button type="button" class="btn-primary" onclick="window.print()">{% include "console/_act_icon.html" with path=print_icon %} طباعة</button>
+  {% comment %} و`↩` سقط بلا بديل: زرُّ «رجوع» العامّ في الترويسة
+     (`page__back` في `base.html`) يحمل سهمَه، وسهمٌ ثانٍ في الشريط نفسه
+     يقول إن الرجوعَ رجوعان. ذيلُ T837. {% endcomment %}
+  <a href="{% url 'console:vehicle-exit' %}" class="btn-ghost">رجوع</a>
 {% endblock %}
 
 {% block content %}

@@ -13,18 +13,26 @@
 
 {% comment %} الرفعُ أوّلاً: النافذةُ تُفتح غالباً لأن السيارةَ «بلا صور»،
    فالفعلُ الذي جاء لأجله يجب ألّا يكون تحت صورٍ لا وجود لها. سحبٌ وإفلاتٌ
-   ومعاينةٌ فورية — أسلوبُ رفع v1؛ تحسينٌ تدريجيّ يعمل بلا جافاسكربت. {% endcomment %}
+   ومعاينةٌ فورية — أسلوبُ رفع v1؛ تحسينٌ تدريجيّ يعمل بلا جافاسكربت.
+
+   **وأدواتُ الكتابة كلُّها خلف `can_manage`** (٢٠٢٦-٠٩-١٤): صارت الصفحةُ
+   `auctions.view` كي يرى موظّفُ الساحة الصور، والرفعُ وتغييرُ العرض والحذفُ
+   تبقى `auctions.manage`. والإخفاءُ هنا **راحةُ عينٍ لا حارس** — الحارسُ في
+   فرع `POST` من `vehicle_images.gallery`، لأن إخفاء الزرّ يمنع الضغطَ ولا
+   يمنع الطلب. {% endcomment %}
+{% if can_manage %}
 <form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
       enctype="multipart/form-data" class="shots-upload" data-uploader data-gallery-form>
   {% csrf_token %}
   <input type="hidden" name="op" value="upload">
   <label class="dropzone" data-dropzone>
-    <span class="dropzone__hint">📤 اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
+    <span class="dropzone__hint">{% include "console/_act_icon.html" with path=upload_icon %} اسحب الصور هنا أو اضغط للاختيار — حتى {{ batch|unlocalize }} في المرّة</span>
     <input type="file" name="images" accept="image/*" multiple required data-file-input>
   </label>
   <div class="dropzone__preview" data-preview hidden></div>
   <button type="submit" class="btn-primary">ارفع</button>
 </form>
+{% endif %}
 
 {% if shots %}
   <ul class="shots shots--managed">
@@ -38,7 +46,7 @@
         <div class="shots__foot">
           {% if shot.is_cover %}
             <span class="pill" data-tone="info">صورة العرض</span>
-          {% else %}
+          {% elif can_manage %}
             <form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
                   class="shots__act" data-gallery-form>
               {% csrf_token %}
@@ -47,6 +55,7 @@
               <button type="submit" class="btn-sm">اجعلها العرض</button>
             </form>
           {% endif %}
+          {% if can_manage %}
           <form method="post" action="{% url 'console:vehicle-images' vehicle.pk %}"
                 class="shots__act" data-gallery-form>
             {% csrf_token %}
@@ -54,6 +63,7 @@
             <input type="hidden" name="image" value="{{ shot.pk|unlocalize }}">
             <button type="submit" class="btn-danger-sm" title="حذفُ هذه الصورة">احذف</button>
           </form>
+          {% endif %}
         </div>
       </li>
     {% endfor %}

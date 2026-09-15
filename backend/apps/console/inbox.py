@@ -107,6 +107,10 @@ def inbox(request):
 
     search = (request.GET.get("q") or "").strip()
     if search:
+        # **لا يُطبَّع عربيّاً عمداً** (T897): `subject_ref` مرجعُ رسالةٍ من
+        # Odoo — `res.partner,1842` وأمثالُه — يكتبه النظامان لبعضهما، ولا
+        # يُقرأ ولا يُكتب بالعربية. وتطبيعُه يحذف النقطةَ والشرطةَ من المُدخَل
+        # فيصير المرجعُ الدقيقُ مطابقةً أوسع، والدقّةُ هي المقصودة هنا.
         rows = rows.filter(subject_ref__icontains=search)
 
     if wants_export(request):
@@ -235,4 +239,47 @@ def replay(request, pk: int):
     return redirect("console:odoo-message", pk=pk)
 
 
-__all__ = ["inbox", "message", "replay"]
+@console_page("console:gateway-retry")
+def gateway_retry(request):
+    """أعِد تشغيل كلّ رسائل البوّابة الفاشلة التي حان موعدُ محاولتها.
+
+    ## العطل
+
+    `apps.money.tasks.retry_failed_gateway` كانت **معرَّفةً ولا يستدعيها أحدٌ ولا
+    تُجدوَل**: طابورُ إعادةٍ كاملٌ بتراجعٍ أسّيّ، وبلا زرٍّ ولا نبضةٍ توقظه. فدفعةٌ
+    فشل تفسيرُها — مهلةُ قفل، أو بوّابةٌ لم تردّ على الاستعلام التأكيديّ — كانت
+    تنتظر إلى الأبد أن يفتح أحدٌ صفحتَها بالذات ويضغط «إعادة تشغيل» عليها وحدها.
+
+    والزرُّ لا المُجدوِل، اتّساقاً مع قرار المشروع: لا شيء في هذا المستودع
+    مجدوَل (المادة ٥-٢). ومن يضغط يعرف أنه ضغط، والسجلُّ يعرف مَن.
+
+    وتُنادى الدالّةُ نفسَها التي ينادِيها الطابور — لا نسخةً منها ولا صيغةً
+    تتخطّى فحصاً لأن إنساناً طلب هذه المرّة. نفسُ قاعدة `INTERPRETERS` أعلاه.
+    """
+    if request.method != "POST":
+        return redirect("console:odoo-inbox")
+
+    # داخل الطلب لا في صدر الملفّ: `apps.money.tasks` يستورد Celery وسلسلةَ
+    # الخدمات كلَّها، واستيرادُه هنا يجرّها إلى كل صفحةٍ في اللوحة.
+    from apps.money.tasks import retry_failed_gateway
+
+    # `()` لا `.delay()`: النتيجةُ رقمٌ يُعرَض على من ضغط. ومهمّةٌ تُرمى إلى
+    # عاملٍ ثم تُعاد الصفحةُ بلا خبرٍ تُعلّم قارئها أن الضغطة لم تفعل شيئاً.
+    result = retry_failed_gateway()
+
+    if result.get("skipped"):
+        flash.warning(request, "نسخةٌ أخرى تعمل على الطابور الآن؛ لم يُعَد شيء.")
+    else:
+        flash.success(
+            request,
+            "أُعيد تشغيل {attempted} رسالة: نجحت {processed} "
+            "وما زالت {still_failing} فاشلة.".format(
+                attempted=result.get("attempted", 0),
+                processed=result.get("processed", 0),
+                still_failing=result.get("still_failing", 0),
+            ),
+        )
+    return redirect("console:odoo-inbox")
+
+
+__all__ = ["gateway_retry", "inbox", "message", "replay"]

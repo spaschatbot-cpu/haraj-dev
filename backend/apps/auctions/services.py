@@ -533,7 +533,8 @@ def queue_auction_reminder(auction: Auction, *, actor=None, now=None) -> dict:
         locked = Auction.objects.select_for_update().get(pk=auction.pk)
         if locked.reminder_sent_at is not None:
             raise ValueError(
-                f"reminder for auction {locked.number} was queued at {locked.reminder_sent_at}"
+                f"reminder for auction {locked.number} was queued at "
+                f"{locked.reminder_sent_at}"
             )
 
         audience = list(

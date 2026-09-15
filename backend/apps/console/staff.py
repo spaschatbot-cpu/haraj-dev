@@ -24,7 +24,9 @@
   فالحساب الذي تُرك مفعَّلاً بعد أن ترك صاحبُه العمل هو ما يُمسَك بالتاريخ لا
   بمربّعٍ لا أحد يفكّه.
 * **«غير متوفر» في أربعةٍ وعشرين من سبعةٍ وثلاثين جوّالاً.** الجوّال في v2
-  هو **اسم الدخول** (`USERNAME_FIELD`) فلا يكون فارغاً أصلاً.
+  حقلٌ فريدٌ إلزاميّ على كل حساب، فلا يكون فارغاً أصلاً. (وكان مكتوباً هنا
+  أنه «اسم الدخول» — ولم يعد: T918 فصل البابين، فالدخولُ باسمٍ في عمود
+  `username` والجوّالُ قناةُ تواصلٍ وسجلّ. وعمودُ «اسم الدخول» إلى جواره.)
 * **الدور صلاحيةٌ لا كارت.** v1 يعرض `Company (شركة)` و`مدخل بيانات المزادات`
   و`الساحة/العدادات (تعديل سريع)` — أربعةَ عشرَ دوراً، ثلاثةٌ منها إصلاحاتٌ
   لدورٍ سابق. وv2 أربعةٌ، ويُبنى فوقها `StaffGrant`: استثناءٌ **بسببٍ مكتوب
@@ -41,8 +43,15 @@ from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from apps.accounts.models import ConsoleRole, User
+from apps.accounts.models import (
+    USERNAME_MAX_LENGTH,
+    ConsoleRole,
+    User,
+    not_a_phone_number,
+    staff_username,
+)
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import (
     Capability,
     Role,
@@ -82,7 +91,9 @@ def staff_rows(*, text: str = "", role: str = "", state: str = ""):
 
     text = (text or "").strip()
     if text:
-        rows = rows.filter(Q(full_name__icontains=text) | Q(phone__icontains=text))
+        # واسمُ الدخول معهما: صار عموداً في الجدول (T918)، وعمودٌ يُعرَض ولا
+        # يُبحَث فيه هو الذي يُنسخ بالعين من الشاشة إلى خانة البحث ثم لا يجد.
+        rows = rows.filter(search_q(text, "full_name", "phone", "username"))
 
     # المرشّح يمرّ بالبوابة: `console_role` له قارئٌ واحد في المستودع
     # (`ops/checks/one_permission_gate.py`)، وهذه شاشةُ عرضٍ لا بوابة.
@@ -428,6 +439,15 @@ def password_change(request):
 
     وupdate_session_auth_hash ليست تفصيلاً: بدونها يُخرِج تغييرُ كلمة
     المرور صاحبَها من جلسته فوراً، فيظنّ أن التغيير فشل ويحاول ثانيةً.
+
+    **وهنا وحده يُخفض `must_change_password`.** كان يُرفع في موضعين
+    (`admin_new` و`admin_password_reset`) ولا يُخفَض في موضعٍ واحد — وقِيس
+    أثرُه على حسابٍ حقيقيّ في ١٣ سبتمبر ٢٠٢٦: مشرفٌ أُنشئ، وغيّر كلمته من
+    هذه الشاشة بنجاح، **ثم بقي محوَّلاً إليها من كلّ صفحة**. لأن الحارس في
+    `console_page` يردّ كلَّ شاشةٍ إلى هنا ما دام العلمُ مرفوعاً، وهذه الشاشة
+    تُعيده إلى `console:settings` فيردّه الحارسُ ثانيةً — دورةٌ مغلقة، والحسابُ
+    الجديد لا يفتح شيئاً أبداً. فعلَمٌ يُرفع بلا من يخفضه ليس حمايةً ناقصة:
+    هو قفلٌ بلا مفتاح.
     """
     from django.contrib import messages
     from django.contrib.auth import update_session_auth_hash
@@ -439,6 +459,19 @@ def password_change(request):
         if form.is_valid():
             form.save()
             update_session_auth_hash(request, form.user)
+            if request.user.must_change_password:
+                request.user.must_change_password = False
+                request.user.save(update_fields=["must_change_password"])
+                # قيدٌ لأن السؤال يُسأل: «متى بطلت الكلمةُ التي كتبها له
+                # المنشئ؟» — وبين رفعِ العلم وخفضِه تبقى كلمةٌ يعرفها اثنان.
+                audit.record(
+                    action="console.password_changed",
+                    entity=request.user,
+                    actor=request.user,
+                    before={"must_change_password": True},
+                    after={"must_change_password": False},
+                    note="غيّر صاحبُ الحساب الكلمةَ المؤقّتة.",
+                )
             messages.success(request, "غُيّرت كلمة المرور.")
             return redirect("console:settings")
     else:
@@ -605,9 +638,18 @@ def role_delete(request, slug: str):
 
 
 class NewAdminForm(forms.Form):
-    """مشرفٌ جديد: اسمٌ وجوّالٌ ودورٌ وكلمةٌ مؤقّتة."""
+    """مشرفٌ جديد: اسمُ دخولٍ واسمٌ كاملٌ وجوّالٌ ودورٌ وكلمةٌ مؤقّتة."""
 
-    full_name = forms.CharField(label="اسم المستخدم", max_length=200)
+    # كان عنوانُ هذه الخانة «اسم المستخدم» وهي الاسمُ الكامل — وصار ذلك كذباً
+    # يومَ وُجد اسمُ دخولٍ حقيقيّ (T918): خانتان بالعنوان نفسه في استمارةٍ
+    # واحدة تعني موظّفاً يكتب اسمَه العربيَّ في خانة الدخول ثم لا يدخل.
+    full_name = forms.CharField(label="الاسم الكامل", max_length=200)
+    username = forms.CharField(
+        label="اسم المستخدم (للدخول)",
+        max_length=USERNAME_MAX_LENGTH,
+        widget=forms.TextInput(attrs={"dir": "ltr", "autocomplete": "off"}),
+        help_text="بحروفٍ لاتينيةٍ وأرقام. هذا ما يُكتب في شاشة الدخول، لا الجوال.",
+    )
     phone = forms.CharField(label="رقم الجوال", max_length=12)
     password = forms.CharField(
         label="كلمة مرور مؤقّتة",
@@ -638,6 +680,23 @@ class NewAdminForm(forms.Form):
             raise forms.ValidationError("هذا الجوّال لحسابٍ قائم — افتحه بدل إنشاء ثانٍ.")
         return phone
 
+    def clean_username(self) -> str:
+        """اسمُ دخولٍ مستعمَلٌ يُرفض بالاسم، لا برسالة قاعدة بيانات. T918
+
+        القيدُ في القاعدة جزئيٌّ وفريد، فالحفظُ بلا هذا الفحص يرمي
+        `IntegrityError` ويُسقط الطلبَ كلَّه — وهو `clean_phone` نفسُها للسبب
+        نفسه (T808): قيمةٌ واحدة تُسقط ما أدخله الموظّف كلَّه.
+
+        والمقارنةُ بالمصغَّر لأن `User.save` يطوي الاسم: فحصٌ حسّاسٌ للحالة
+        كان سيمرّ `Ahmad` بجوار `ahmad` ثم يرفضه القيد بعد الطيّ.
+        """
+        name = (self.cleaned_data.get("username") or "").strip().lower()
+        for check in (staff_username, not_a_phone_number):
+            check(name)
+        if User.objects.filter(username=name).exists():
+            raise forms.ValidationError("اسم الدخول هذا مستعمَل — اختر غيره.")
+        return name
+
     def clean_password(self) -> str:
         """مصادقاتُ جانغو لا شرطان مكتوبان بيد — كما في `console:password-change`."""
         password = self.cleaned_data.get("password") or ""
@@ -654,6 +713,7 @@ def admin_new(request):
         person = User.objects.create_user(
             phone=form.cleaned_data["phone"],
             full_name=form.cleaned_data["full_name"],
+            username=form.cleaned_data["username"],
             password=form.cleaned_data["password"],
         )
         person.is_staff = True
@@ -676,6 +736,9 @@ def admin_new(request):
             entity=person,
             actor=request.user,
             after={
+                # اسمُ الدخول في القيد: «بأيّ اسمٍ يدخل هذا الحساب» سؤالٌ
+                # يُسأل بعد شهور، وجوابُه يجب أن يكون في السجلّ لا في تخمين.
+                "username": person.username,
                 "phone": person.phone,
                 # اسمُ الدور لا قيمةُ الحقل: `role_label` تخرج من البوّابة
                 # بدل قراءة `console_role` هنا، وهي أنفعُ في قيدٍ يُقرأ بعد
@@ -731,9 +794,18 @@ def admin_new(request):
 
 
 class AdminEditForm(forms.Form):
-    """ما يُعدَّل في مشرف: دورُه وجوّالُه وحالتُه. لا كلمةَ مرور."""
+    """ما يُعدَّل في مشرف: اسمُ دخولِه ودورُه وجوّالُه وحالتُه. لا كلمةَ مرور."""
 
     full_name = forms.CharField(label="الاسم", max_length=200)
+    # اسمُ الدخول يُغيَّر من هنا — ومن هنا وحده، وبقيدٍ في `AuditLog` (T918).
+    # «من غيّر اسمَ دخولِ موظّفٍ» سؤالٌ يُسأل: الاسمُ الجديد يدخل بكلمةِ
+    # الحساب نفسِها، والقديمُ يصير حرّاً يأخذه غيرُه — فتبديلُ اسمين بين
+    # حسابين ينقل بابَ أحدهما إلى الآخر بلا أثرٍ لولا القيد.
+    username = forms.CharField(
+        label="اسم المستخدم (للدخول)",
+        max_length=USERNAME_MAX_LENGTH,
+        widget=forms.TextInput(attrs={"dir": "ltr", "autocomplete": "off"}),
+    )
     phone = forms.CharField(label="رقم التواصل", max_length=12)
     role = forms.ChoiceField(label="الدور (الصلاحية)", choices=(), required=False)
     is_active = forms.BooleanField(label="الحساب مفعّل", required=False)
@@ -758,6 +830,18 @@ class AdminEditForm(forms.Form):
             raise forms.ValidationError("هذا الجوّال لحسابٍ آخر.")
         return phone
 
+    def clean_username(self) -> str:
+        """اسمُ دخولٍ لحسابٍ آخر يُرفض بالاسم لا بـ`IntegrityError` يُسقط الحفظ."""
+        name = (self.cleaned_data.get("username") or "").strip().lower()
+        for check in (staff_username, not_a_phone_number):
+            check(name)
+        clash = User.objects.filter(username=name)
+        if self.person is not None:
+            clash = clash.exclude(pk=self.person.pk)
+        if clash.exists():
+            raise forms.ValidationError("اسم الدخول هذا لحسابٍ آخر.")
+        return name
+
 
 @console_page("console:admin-edit")
 def admin_edit(request, pk: int):
@@ -776,6 +860,7 @@ def admin_edit(request, pk: int):
         person=person,
         initial={
             "full_name": person.full_name,
+            "username": person.username,
             "phone": person.phone,
             "role": current_role,
             "is_active": person.is_active,
@@ -798,14 +883,25 @@ def admin_edit(request, pk: int):
             for line in refusals:
                 messages.error(request, line)
         else:
-            watched = ["full_name", "phone", "console_role", "is_active"]
+            # `username` في المرصود لا خارجه: تغييرُ اسم الدخول نقلُ بابٍ من
+            # حسابٍ إلى آخر، وقيدٌ لا يقول ما كان قبلُ لا يجيب «من غيّره».
+            watched = ["full_name", "username", "phone", "console_role", "is_active"]
             before = audit.snapshot(User.objects.get(pk=pk), watched)
             person.full_name = form.cleaned_data["full_name"]
+            person.username = form.cleaned_data["username"]
             person.phone = form.cleaned_data["phone"]
             person.is_active = wanted_active
             # الدورُ بالبوّابة: حقلُه له كاتبٌ واحد كما له قارئٌ واحد (T848).
             assign_role(person, wanted_role, save=False)
-            person.save(update_fields=["full_name", "phone", "is_active", "console_role"])
+            person.save(
+                update_fields=[
+                    "full_name",
+                    "username",
+                    "phone",
+                    "is_active",
+                    "console_role",
+                ]
+            )
             audit.record(
                 action="console.edit_admin",
                 entity=person,

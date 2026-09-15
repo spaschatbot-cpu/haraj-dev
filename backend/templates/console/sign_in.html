@@ -1,11 +1,17 @@
 {% comment %}
 Staff sign-in, in the console's own clothes. T819، وأُعيد شكلها في T827.
 
-`admin.site.login` (still throttled in `apps.accounts.login`) renders this
-template instead of Django's own — the view is untouched, only the skin is
-ours. Field names, the csrf token and the hidden `next` field are exactly what
-the view expects: a redesign that renames a field locks everybody out, and a
-lockout that pages the team at night is not a styling issue.
+**وصارت شاشتَنا لا شاشةَ جانغو (T918).** كان الملفُّ `templates/admin/login.html`
+يكسو `admin.site.login`، وتلك شاشةٌ عنوانُ خانتها يأتي من `USERNAME_FIELD` —
+أي «رقم الجوال». وقرارُ المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و
+باس، مش بالرقم. الرقم و الـOTP دا للمستخدمين». فانتقل الملفُّ إلى
+`console/sign_in.html` ويرسمه `apps.accounts.login.StaffSignInView` — ملفٌّ
+واحدٌ لا اثنان، فلا تبقى نسخةٌ تقول «رقم الجوال» ينساها من يقرأ.
+
+واسمُ الخانة `username` كما كان، وهو ما يعدّ به `ACCOUNT_FIELD` في
+`apps.accounts.login`: تغييرُه هنا يقتل الحدَّ بالحساب بلا أن يشتكي أحد.
+والـcsrf والحقلُ الخفيّ `next` كما تتوقّعهما `LoginView` — شاشةٌ تُعاد بلا
+`next` تُدخل الموظّف ثم تُلقيه على الجذر بدل الصفحة التي طُلب منها.
 
 ولماذا صارت عمودين (T827)
 =========================
@@ -92,7 +98,7 @@ lockout that pages the team at night is not a styling issue.
 
     <main class="login-card">
       <h1 class="login-card__title">دخول الموظفين</h1>
-      <p class="login-card__hint">بالجوال المسجَّل لك في اللوحة.</p>
+      <p class="login-card__hint">باسم الدخول المسجَّل لك في اللوحة — لا برقم الجوال.</p>
 
       {% if form.non_field_errors %}
         <div class="notice error" role="alert">
@@ -100,10 +106,10 @@ lockout that pages the team at night is not a styling issue.
         </div>
       {% endif %}
 
-      <form method="post" action="{{ app_path }}" class="login-form">
+      <form method="post" action="{% url 'admin-login' %}" class="login-form">
         {% csrf_token %}
         <p>
-          <label for="{{ form.username.id_for_label }}">رقم الجوال</label>
+          <label for="{{ form.username.id_for_label }}">اسم المستخدم</label>
           {{ form.username }}
           {% if form.username.errors %}
             <br><strong>{{ form.username.errors|join:" · " }}</strong>

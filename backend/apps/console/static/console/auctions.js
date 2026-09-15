@@ -69,7 +69,10 @@
     var status = hit("[data-open-status]");
     if (status) {
       var statusModal = document.getElementById("statusModal");
-      openWith(statusModal, status, ["starts", "ends"]);
+      /* `stampstate` هو ختمُ HR-13 لهذه النافذة — بصمةُ (الحالة · اللافتة ·
+         الموعدين). ولكلِّ نافذةٍ ختمُها لأن لكلٍّ أعمدتَها: ختمٌ واحدٌ للصفّ
+         كان سيرفض تعديلَ الرسوم لأن زميلاً غيّر الموعد. */
+      openWith(statusModal, status, ["starts", "ends", "stampstate"]);
       var choice = statusModal.querySelector("[data-badge]");
       if (choice) choice.value = status.dataset.badge;
       syncTimeFields(statusModal);
@@ -79,19 +82,20 @@
     var reschedule = hit("[data-open-reschedule]");
     if (reschedule) {
       openWith(document.getElementById("rescheduleModal"), reschedule,
-               ["starts", "ends", "sms"]);
+               ["starts", "ends", "sms", "stampsched"]);
       return;
     }
 
     var fees = hit("[data-open-fees]");
     if (fees) {
-      openWith(document.getElementById("feesModal"), fees, ["deposit", "fee"]);
+      openWith(document.getElementById("feesModal"), fees,
+               ["deposit", "fee", "stampfees"]);
       return;
     }
 
     var ending = hit("[data-open-end]");
     if (ending) {
-      openWith(document.getElementById("endModal"), ending, []);
+      openWith(document.getElementById("endModal"), ending, ["stampend"]);
       return;
     }
 

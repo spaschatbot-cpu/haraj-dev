@@ -1,7 +1,7 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-Three lists, three counts, and no grand total.
+Four lists, four counts, and no grand total.
 
 The missing grand total is deliberate: a drift in the cache and a difference
 against Odoo may be the same incident seen from two sides, and adding them
@@ -15,7 +15,7 @@ template.
 {% block content %}
   {% if report.is_clean %}
     <p class="clean"><strong>لا ملاحظات.</strong> الدفتر متّسق مع نفسه، ولا فروق
-      مفتوحة مع أودو، ولا مبلغ معلّق بلا صاحب.</p>
+      مفتوحة مع أودو، ولا مبلغ معلّق بلا صاحب، ولا شيء ينتظر إنساناً.</p>
   {% endif %}
 
   <h2>١ · الدفتر مع نفسه <span class="count">{{ report.findings|length|unlocalize }}</span></h2>
@@ -92,4 +92,72 @@ template.
     </tbody>
   </table>
 </div>
+
+  {% comment %} القسم الرابع: لا تناقضَ في الدفتر، بل شيءٌ متوقّفٌ على يد. وهذه
+     الثلاثة كانت غائبةً عن الشاشة تماماً وهي في v1 — ولذلك كان مالٌ يصل ولا
+     يُفهَم فلا يراه أحد، وعميلٌ يُمنع من المزايدة ولا يعرف أحدٌ لماذا. {% endcomment %}
+  <h2>٤ · ينتظر إنساناً <span class="count">{{ report.waiting.total|unlocalize }}</span></h2>
+
+  <h3>مالٌ وصل ولم يُفهَم <span class="count">{{ report.waiting.stuck_inbound|length|unlocalize }}</span></h3>
+  <p class="empty">رسائلُ فاشلةٌ ما زالت في طابور الإعادة — <strong>بالموضوع لا
+    بالرسالة</strong>: ثلاثُ رسائلَ عن دفعةٍ واحدة عطلٌ واحد.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>متى</th><th>المصدر</th><th>الحدث</th><th>الموضوع</th><th>السبب</th></tr></thead>
+      <tbody>
+        {% for m in report.waiting.stuck_inbound %}
+          <tr>
+            <td>{{ m.received_at }}</td>
+            <td>{{ m.source }}</td>
+            <td><code>{{ m.event|default:"—" }}</code></td>
+            <td><code>{{ m.subject_ref|default:"—" }}</code></td>
+            <td>{{ m.note|default:"—" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty">لا رسالة عالقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>عطلٌ في القناة <span class="count">{{ report.waiting.channel_failures|length|unlocalize }}</span></h3>
+  <p class="empty">توقيعٌ لم يُقبَل (سرٌّ دُوِّر في طرفٍ دون الآخر، أو أحدٌ يجرّب)،
+    أو رسالةٌ هُجرت إلى أودو فلن يسمعوها أبداً.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>الرسالة</th><th>الحالة</th><th>السبب</th></tr></thead>
+      <tbody>
+        {% for m in report.waiting.channel_failures %}
+          <tr>
+            <td><code>{{ m.subject }}</code></td>
+            <td>{{ m.state }}</td>
+            <td>{{ m.reason }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3" class="empty">القناة سليمة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>محجوبون عن المزايدة بطلب استردادهم <span class="count">{{ report.waiting.blocked_bidders|length|unlocalize }}</span></h3>
+  <p class="empty">الطلبُ القائم يحجز الوديعة، فصاحبُه يقرأ رصيده كاملاً ويُرفض
+    عند المزايدة. حجبٌ صحيحٌ وصامت — يُعرض ليُقال له، لا لأنه خلل.</p>
+  <div class="scroller">
+    <table>
+      <thead><tr><th>العميل</th><th>المبلغ</th><th>الحالة</th><th>منذ</th></tr></thead>
+      <tbody>
+        {% for r in report.waiting.blocked_bidders %}
+          <tr>
+            <td><a href="{% url 'console:customer-detail' r.user_id %}">{{ r.user.full_name|default:r.user.phone }}</a></td>
+            <td class="money">{{ r.amount|unlocalize }}</td>
+            <td>{{ r.get_state_display }}</td>
+            <td>{{ r.created_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="empty">لا أحد محجوب.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

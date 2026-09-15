@@ -47,18 +47,23 @@
 
 from __future__ import annotations
 
+import datetime as dt
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
-from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.accounts.services import display_name
 from apps.core import audit
+from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money.models import UNPAID_INVOICE_STATES, Hold, HoldState, Invoice
 
+from . import sensitive
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -80,7 +85,7 @@ def people(text: str = ""):
         return None
     return (
         User.objects.filter(is_staff=False)
-        .filter(Q(full_name__icontains=text) | Q(phone__icontains=text))
+        .filter(search_q(text, "full_name", "phone"))
         .order_by("full_name", "id")[:FOUND]
     )
 
@@ -92,6 +97,22 @@ def _amount(raw: str) -> Decimal | None:
     except (InvalidOperation, ValueError):
         return None
     return value if value > ZERO else None
+
+
+def _a_date(raw: str):
+    """تاريخُ التحويل كما كُتب، أو `None` — ولا استثناءَ يصعد.
+
+    و`None` لا تُسقِط الاعتماد: التاريخُ سندُ مطابقةٍ لا شرطَ قيد، وردُّ
+    استمارةٍ كاملةٍ لأن الموظّف لم يقرأ تاريخاً في الكشف يجعله يكتب تاريخاً
+    مخترَعاً — وحقلٌ مخترَعٌ أسوأ من حقلٍ فارغ.
+    """
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return dt.date.fromisoformat(raw)
+    except ValueError:
+        return None
 
 
 @console_page("console:wallet-credit")
@@ -205,23 +226,50 @@ def direct_deduct(request):
 
 @console_page("console:bank-topups")
 def bank_topups(request):
-    """طلباتُ شحن التأمين بتحويلٍ بنكيّ — للقراءة فقط.
+    """طابورُ الشحن البنكيّ: يُطابَق بكشف الحساب، ثم يُعتمد **بما وصل**. T919.
 
-    قرار المالك (٢٠٢٦-٠٩-٠٨): اللوحةُ تقرأ ولا تعتمد — الاعتمادُ فعلُ أودو.
-    فلا زرَّ «اعتماد» ولا «رفض» هنا: تُعرَض الطلباتُ وحالاتُها وإيصالاتُها
-    ليراها المالية، ويُرحّلونها في أودو، فيقيَّد الائتمانُ عبر المسار الوارد.
+    وهي «إدارة الطلبات» التي في قائمة v1 — لا شاشةٌ ثانية. القياسُ من دَمب
+    الإنتاج: ٢٣٢ صفّاً في `transfer_requests`، **كلُّها** `wallet_topup`
+    بـ`payment_method='bank'`، وصفرُ طلبِ نقلِ ملكيّة رغم أن اسمَ الجدول
+    والافتراضيَّ فيه يقولان `ownership_transfer`. فالاسمُ هناك يَعِد بخمسة
+    أقسامٍ ويعمل واحدٌ منها، والقسمُ العامل هو هذا.
+
+    والمراجعةُ فعلٌ ماليّ، والصفحةُ عرضٌ — فالقدرتان مختلفتان
+    ========================================================
+    الصفحةُ خلف `money.view` (`navigation.py`)، و«اعتماد/رفض» خلف
+    `money.act`. ولا تكفي واحدةٌ للاثنين: من يقرأ الطابور ليعرف أين وصل طلبُ
+    عميلٍ ليس بالضرورة من يقيّد في الدفتر، وقدرةٌ واحدةٌ تجعل كلَّ قارئٍ كاتباً.
+
+    ولا يُكتب رصيدٌ هنا: :mod:`apps.money.services` كاتبُ الأرصدة الوحيد، وهذه
+    الشاشة تجمع ما كُتب في الاستمارة وتُسلّمه لها.
     """
+    if request.method == "POST":
+        return _review_topup(request)
+    return _queue(request)
+
+
+def _queue(request, *, revealed=None):
+    """الطابورُ مرسوماً — ومنه يُخرَج بعد `POST` أيضاً حين لا يُعاد التوجيه."""
     from django.core.paginator import Paginator
 
     from apps.money.models import BankTopupRequest, BankTopupState
 
     state = (request.GET.get("state") or "").strip()
-    rows = BankTopupRequest.objects.select_related("user").order_by("-created_at", "-id")
+    seen = sensitive.shown_to(request.user)
+    # و`resulting_transaction` في نفس الاستعلام: «أين وقع المال؟» يُسأل لكلّ
+    # صفٍّ معتمَد، وخمسون صفّاً بلا هذا خمسون رحلةً إلى القاعدة.
+    rows = BankTopupRequest.objects.select_related(
+        "user", "resulting_transaction"
+    ).order_by("-created_at", "-id")
     if state:
         rows = rows.filter(state=state)
 
     counts = [
-        {"value": s.value, "label": s.label, "n": rows.model.objects.filter(state=s.value).count()}
+        {
+            "value": s.value,
+            "label": s.label,
+            "n": rows.model.objects.filter(state=s.value).count(),
+        }
         for s in BankTopupState
     ]
     open_count = BankTopupRequest.objects.filter(
@@ -229,8 +277,137 @@ def bank_topups(request):
     ).count()
 
     page = Paginator(rows, 50).get_page(request.GET.get("page"))
+    _dress(page.object_list, seen, revealed=revealed)
     return render(
         request,
         "console/bank_topups.html",
-        {"page": page, "counts": counts, "open_count": open_count, "state": state},
+        {
+            "page": page,
+            "counts": counts,
+            "open_count": open_count,
+            "state": state,
+            "seen": seen,
+            "may_act": can(request.user, Capability.MONEY_ACT),
+            "today": timezone.localdate(),
+        },
     )
+
+
+def _dress(rows, seen: sensitive.Shown, *, revealed=None) -> None:
+    """امحُ من الصفوف ما لا يحقُّ لقارئها — قبل أن تصل القالبَ.
+
+    واسمُ العميل وجوّالُه كانا يُقرآن من `row.user` في القالب مباشرةً بلا
+    شرط، والصفحةُ خلف `money.view` وحدها — فدورٌ بـ`money.view` بلا
+    `users.view` كان يأخذ اسمَ كلِّ من شحن وجوّالَه من هذه الشاشة. وهو نظيرُ
+    ما أُصلح في الكتالوج حرفياً (`sensitive.py`).
+    """
+    from apps.money.models import TransactionKind
+
+    sensitive.person_on(rows, seen, field="user")
+    sensitive.bank_match_on(rows, seen, revealed=revealed)
+    for row in rows:
+        # **أين وقع المال**، صفّاً صفّاً. وعنوانُ الحالة لا يقوله: «اعتُمد
+        # وقُيِّد» صادقةٌ في الحالتين، والفرقُ بينهما هو ما يسأل عنه العميل
+        # حين لا يرى رصيدَه ارتفع. ومبلغٌ ليس مضاعفاً للوديعة يجلس في
+        # «المعلّق» (HR-03) — محفوظاً ومعدوداً، لا ضائعاً.
+        txn = row.resulting_transaction
+        row.landed = (
+            ""
+            if txn is None
+            else (
+                "أُضيف لتأمينه"
+                if txn.kind == TransactionKind.INSURANCE_TOPUP
+                else "في المعلّق — لم يصل رصيدَه"
+            )
+        )
+
+
+def _review_topup(request):
+    """«اعتماد» أو «رفض» أو «اكشف الآيبان» — والثلاثة أفعالٌ تُقيَّد."""
+    from apps.money.models import BankTopupRequest
+
+    action = (request.POST.get("action") or "").strip()
+    topup = BankTopupRequest.objects.filter(pk=request.POST.get("topup")).first()
+    back = f"{request.path}?state={request.POST.get('state', '')}"
+
+    if topup is None:
+        messages.error(request, "لم يُختَر طلب.")
+        return redirect(back)
+
+    if action == "reveal":
+        return _reveal_iban(request, topup)
+
+    if not can(request.user, Capability.MONEY_ACT):
+        # الصفحةُ مفتوحةٌ بـ`money.view`، والفعلُ خلف `money.act` — والحارسُ
+        # هنا لا في القالب: زرٌّ مخفيٌّ ليس حارساً، و`POST` يُصنَع بيد.
+        raise PermissionDenied("money.act غير مسموحة لهذا المستخدم")
+
+    note = (request.POST.get("note") or "").strip()
+
+    if action == "reject":
+        try:
+            money.reject_bank_topup(topup=topup, by=request.user, note=note)
+        except Exception as refusal:
+            messages.error(request, str(refusal))
+            return redirect(back)
+        messages.success(request, f"رُفض الطلب {topup.reference} — والسبب مكتوب.")
+        return redirect(back)
+
+    if action != "approve":
+        messages.error(request, "فعلٌ غير معروف.")
+        return redirect(back)
+
+    amount = _amount(request.POST.get("approved", ""))
+    if amount is None:
+        messages.error(request, "المبلغ المعتمَد يجب أن يكون رقماً موجباً.")
+        return redirect(back)
+
+    try:
+        topup, txn = money.approve_bank_topup(
+            topup=topup,
+            by=request.user,
+            amount=amount,
+            sender_name=request.POST.get("sender", ""),
+            transfer_date=_a_date(request.POST.get("transfer_date", "")),
+            iban=request.POST.get("iban", ""),
+            note=note,
+        )
+    except Exception as refusal:
+        messages.error(request, str(refusal))
+        return redirect(back)
+
+    # وأين وقع المالُ يُقال، لا «تم بنجاح»: مبلغٌ ليس مضاعفاً للوديعة يجلس في
+    # «المعلّق» ولا يصير تأميناً (HR-03)، والموظّفُ الذي يقرأ «اعتُمد» وحدها
+    # يظنّ أن رصيد العميل ارتفع — وهو لم يرتفع.
+    landed = (
+        "وأُضيف إلى تأمين العميل"
+        if txn.kind == "insurance_topup"
+        else (
+            "وجلس في «المعلّق» — ليس مضاعفاً للوديعة، فلا يصير تأميناً "
+            "حتى يُكمل العميل الفرق"
+        )
+    )
+    messages.success(
+        request,
+        f"اعتُمد {amount} من أصل {topup.amount} مُدَّعىً (حركة {txn.pk}) {landed}.",
+    )
+    return redirect(back)
+
+
+def _reveal_iban(request, topup):
+    """اكشف آيبانَ صفٍّ واحد — بقيدٍ في `AuditLog`، ثمّ ارسم الصفحة.
+
+    ولا إعادةَ توجيه بعده: الوجهةُ كانت ستحمل المفتاحَ في الرابط، فيصير
+    الكشفُ قابلاً للنسخ والمشاركة — وهو ما يُفرغ القيدَ من معناه. والاستمارةُ
+    في القالب ترسل إلى `?{{ request.GET.urlencode }}`، فتبقى التصفيةُ والصفحةُ
+    كما كانتا بعد الكشف.
+    """
+    if not can(request.user, sensitive.CUSTOMER):
+        raise PermissionDenied("users.view غير مسموحة لهذا المستخدم")
+    audit.record(
+        action="console.bank_topup_iban_revealed",
+        entity=topup,
+        actor=request.user,
+        note=f"آيبان طلب {topup.reference} — العميل {topup.user_id}",
+    )
+    return _queue(request, revealed=topup.pk)

@@ -40,7 +40,11 @@ class OrdersScreen extends StatelessWidget {
         childAspectRatio: 0.78,
         children: <Widget>[
           for (final item in items)
-            _OrderCard(icon: item.icon, label: item.label, soon: l10n.ordersSoon),
+            _OrderCard(
+              icon: item.icon,
+              label: item.label,
+              soon: l10n.ordersSoon,
+            ),
         ],
       ),
     );

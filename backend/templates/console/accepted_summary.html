@@ -31,9 +31,14 @@
         <th>مركبات رست</th>
         <td class="count">{{ totals.count|unlocalize }}</td>
       </tr>
+      {% comment %} الأعدادُ تبقى والمبالغُ تُحجَب — القاعدةُ نفسُها التي في
+         بطاقات أرشيف المزادات: «كم مركبةً رست وكم منها فُوتِرت» سؤالُ تشغيلٍ
+         يجيبه عدّ، و«كم ريالاً» مبلغ. **ومبلغٌ مجموعٌ على آلاف الصفوف ليس
+         أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر**. {% endcomment %}
       <tr>
         <th>إجمالي أسعار الترسية</th>
-        <td class="money">{{ totals.awarded_total|unlocalize }}</td>
+        {% if show_money %}<td class="money">{{ totals.awarded_total|unlocalize }}</td>
+        {% else %}<td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>{% endif %}
       </tr>
       <tr>
         <th>منها مفوتَرة</th>
@@ -41,11 +46,13 @@
       </tr>
       <tr>
         <th>الضريبة على المفوتَر</th>
-        <td class="money">{{ totals.invoiced_tax|unlocalize }}</td>
+        {% if show_money %}<td class="money">{{ totals.invoiced_tax|unlocalize }}</td>
+        {% else %}<td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>{% endif %}
       </tr>
       <tr>
         <th>الإجمالي المفوتَر (شاملاً الضريبة)</th>
-        <td class="money">{{ totals.invoiced_total|unlocalize }}</td>
+        {% if show_money %}<td class="money">{{ totals.invoiced_total|unlocalize }}</td>
+        {% else %}<td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>{% endif %}
       </tr>
       {% comment %} الصفُّ الأخير هو السبب الذي تُفتح الشاشة لأجله: ما رسا ولم
          يُفوتَر بعدُ عملٌ ينتظر، لا رقمٌ ناقص. {% endcomment %}

@@ -264,6 +264,20 @@ VEHICLE_MOVES: tuple[Move, ...] = (
         "أُلغيت الترسية قبل الفوترة — تعود للعرض",
     ),
     Move(VehicleState.INVOICED, VehicleState.PAID, "سُدّدت الفاتورة"),
+    # **والطريقُ ذهاباً وإياباً.** أُضيفت اليوم (T-paid-to-exit) لأن النقلة
+    # الطرديّة بلا عكسيّتها تعني أن سيّارةً دخلت طابورَ الخروج على دفعةٍ ثم
+    # أُلغيت فاتورتُها — بنقل الترسية إلى مشترٍ آخر مثلاً — **تبقى فيه**،
+    # فتخرج من البوّابة على مالٍ لم يعد لنا. وهو عطلُ v1 الذي كُتب من أجله
+    # `apps/money` كلُّه بحذره.
+    #
+    # ولا يُكتب هذا العمودُ بـ`update(state=…)` التفافاً على الجدول: الجدولُ
+    # هو من يقول ما يجوز، فإن رفض نقلةً مشروعةً أُضيفت هنا وكُتب سببُها —
+    # لا حولَه.
+    Move(
+        VehicleState.PAID,
+        VehicleState.INVOICED,
+        "لم تعد فاتورتُها مسدَّدة — عُكس السداد أو أُلغيت الفاتورة",
+    ),
     Move(VehicleState.INVOICED, VehicleState.RELISTED, "لم تُسدَّد الفاتورة فاستُرجعت"),
     Move(VehicleState.PAID, VehicleState.RELEASED, "استلمها المشتري"),
     Move(VehicleState.REJECTED, VehicleState.RELISTED, "تعود للعرض في مزاد لاحق"),

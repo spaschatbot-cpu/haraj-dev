@@ -11,7 +11,11 @@
     مزاد {{ vehicle.auction.number|unlocalize }} · {{ vehicle.plate_number|default:"بلا لوحة" }}
     {% if vehicle.vin %} · {{ vehicle.vin }}{% endif %}
     · <strong>{{ rows|length|unlocalize }}</strong> مزايدة ({{ live|unlocalize }} قائمة)
-    {% if top %} · أعلى مبلغ <strong class="money">{{ top|unlocalize }}</strong>{% endif %}
+    {% comment %} «أعلى مبلغ» على مركبةٍ رست **هو** سعرُ رسوّها، فيُحجَب معها.
+       و`hide_top` تفرّق بين «لا مزايدات» و«لا يحقُّ لك الرقم». وسعرُ الوقوف
+       يبقى: سؤالُ تشغيلٍ لا سؤالُ مال (`sensitive.py`). {% endcomment %}
+    {% if hide_top %} · أعلى مبلغ <strong class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</strong>
+    {% elif top %} · أعلى مبلغ <strong class="money">{{ top|unlocalize }}</strong>{% endif %}
     {% if vehicle.reserve_price %} · سعر الوقوف {{ vehicle.reserve_price|unlocalize }}{% endif %}
   </p>
 </header>
@@ -24,10 +28,27 @@
     <tbody>
       {% for bid in rows %}
         <tr>
+          {% comment %} `buyer_name`/`buyer_phone`/`bid_amount` من
+             `sensitive.person_on` و`amounts_on` لا `bid.bidder` من العلاقة:
+             القِطعةُ `auctions.view` وحدَها وكانت تضع مئةً وثمانيةَ عشرَ
+             جوّالاً في مصدرها. والاسمُ الفارغ يبقى «—» لمن يملك الصلاحية:
+             أسماءُ المزايدين المرحَّلين فارغةٌ في القاعدة. {% endcomment %}
           <td class="count">{{ forloop.counter|unlocalize }}</td>
-          <td>{{ bid.bidder.full_name|default:"—" }}</td>
-          <td>{{ bid.bidder.phone|unlocalize }}</td>
-          <td class="money">{{ bid.amount|unlocalize }}</td>
+          <td>
+            {% if bid.buyer_name %}{{ bid.buyer_name }}
+            {% elif show_customer %}—
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td>
+            {% if show_customer %}{{ bid.buyer_phone|unlocalize }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% comment %} `is not None` لا اختبارَ صدقٍ مجرّداً: مزايدةٌ بمبلغ
+               `0.00` تُقرأ كاذبةً فتخرج «محجوب» وهي ظاهرة. {% endcomment %}
+            {% if bid.bid_amount is not None %}{{ bid.bid_amount|unlocalize }}
+            {% else %}<span class="empty" title="مبلغُ المزايدة على مركبةٍ رست هو سعرُ رسوّها — خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
           <td>
             {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
             {% elif bid.is_superseded %}<span class="pill" data-tone="warn">مستبدَلة</span>

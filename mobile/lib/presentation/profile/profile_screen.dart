@@ -555,67 +555,67 @@ class _AccountMenuTile extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Row(
-              children: <Widget>[
-                // أيقونةٌ دائريّة (البادئة في RTL = يمين السطر): ذهبيّة
-                // للخدمات، وحمراءُ خفيفةٌ لتسجيل الخروج.
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: danger
-                        ? null
-                        : LinearGradient(
-                            begin: Alignment.topRight,
-                            end: Alignment.bottomLeft,
-                            colors: <Color>[palette.gold, palette.goldDeep],
-                          ),
-                    color: danger
-                        ? dangerColour.withValues(alpha: 0.12)
-                        : null,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: danger ? dangerColour : Colors.white,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: danger ? dangerColour : palette.ink,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: HarajTheme.fontFamily,
+                children: <Widget>[
+                  // أيقونةٌ دائريّة (البادئة في RTL = يمين السطر): ذهبيّة
+                  // للخدمات، وحمراءُ خفيفةٌ لتسجيل الخروج.
+                  Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: danger
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topRight,
+                              end: Alignment.bottomLeft,
+                              colors: <Color>[palette.gold, palette.goldDeep],
+                            ),
+                      color: danger
+                          ? dangerColour.withValues(alpha: 0.12)
+                          : null,
+                    ),
+                    child: Icon(
+                      icon,
+                      color: danger ? dangerColour : Colors.white,
+                      size: 22,
                     ),
                   ),
-                ),
-                // دائرةٌ خافتةٌ حول السهم — بحبرٍ خفيف لا ذهبيّ فلا ينازع
-                // الأيقونةَ البادئة. **`chevron_right`** بطلب المالك: يشير
-                // نحو النصّ لا بعيداً عنه.
-                Container(
-                  width: 30,
-                  height: 30,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.ink.withValues(alpha: 0.06),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: danger ? dangerColour : palette.ink,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: HarajTheme.fontFamily,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    Icons.chevron_right,
-                    size: 20,
-                    color: palette.inkMuted,
+                  // دائرةٌ خافتةٌ حول السهم — بحبرٍ خفيف لا ذهبيّ فلا ينازع
+                  // الأيقونةَ البادئة. **`chevron_right`** بطلب المالك: يشير
+                  // نحو النصّ لا بعيداً عنه.
+                  Container(
+                    width: 30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: palette.ink.withValues(alpha: 0.06),
+                    ),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: palette.inkMuted,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
     );
   }
 }

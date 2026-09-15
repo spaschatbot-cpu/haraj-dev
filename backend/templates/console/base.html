@@ -26,7 +26,11 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   يشترط أن الشيء الوحيد الذي يُرسِل في الإطار هو الخروج، وهو محقّ.
 {% endcomment %}<!doctype html>
 {% load static %}
-<html lang="ar" dir="rtl">
+{% comment %} `html_attrs` مكانُ سمةٍ **يجب أن تُقرأ قبل أول رسم**: `theme.js`
+   حاجزٌ في `<head>` ويقرأ `data-wide-table` منها ليقرّر عرضَ الشريط الجانبي،
+   فسمةٌ تُضاف من جافاسكربت لاحقاً تعني شريطاً يُرى مفتوحاً ثم ينطوي أمام
+   العين. وهي فارغةٌ في اثنتين وستّين شاشةً من ثلاثٍ وستّين. {% endcomment %}
+<html lang="ar" dir="rtl"{% block html_attrs %}{% endblock %}>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -39,7 +43,9 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
-  <script src="{% static 'console/theme.js' %}"></script>
+  {% comment %} `?v=` عليه كما على الورقة: كان بلا بصمةٍ، فبقي المتصفّحُ على
+     نسختِه القديمة بعد تعديلٍ في المنطق — وضاع قياسٌ كامل على ذلك. {% endcomment %}
+  <script src="{% static 'console/theme.js' %}?v=939"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -236,7 +242,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
     <div class="themer__head">
       <h2>المظهر</h2>
       <button type="button" class="icon-btn" data-themer-close aria-label="إغلاق">
-        <span aria-hidden="true">✕</span>
+        <svg class="btn__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ close_icon }}"/></svg>
       </button>
     </div>
 

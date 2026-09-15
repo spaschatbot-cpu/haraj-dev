@@ -40,7 +40,12 @@
           <span class="chip">ينتهي {{ row.ends_at|date:"Y-m-d" }}</span>
         </div>
         {% if row.cars %}
-          <span class="pick-card__cta">⚡ افتح العدّادات <span aria-hidden="true">←</span></span>
+          {% comment %} و`⚡` سقط بلا بديل: `stat__action` في `_stat.html` هو
+             نمطُ «فعلٌ ← » في اللوحة كلِّها، وليس فيه رسمٌ قبل النصّ. ورسمٌ
+             هنا وحده يجعل الكارتَ يُقرأ نوعاً آخر من العناصر. ذيلُ T837.
+             (والسهمُ `←` محرفٌ نصّيّ لا إيموجي — يرثُ لونَ النصّ وحجمَه،
+             ولا يرسمه نظامُ التشغيل، فحجّةُ T837 لا تنطبق عليه.) {% endcomment %}
+          <span class="pick-card__cta">افتح العدّادات <span aria-hidden="true">←</span></span>
         {% else %}
           <span class="pick-card__cta pick-card__cta--off">بلا سيارات</span>
         {% endif %}

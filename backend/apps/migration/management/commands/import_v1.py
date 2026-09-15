@@ -44,6 +44,7 @@ from django.core.management.base import BaseCommand, CommandError
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.migration.dumpfile import read_table
+from apps.migration.models import LegacyRef
 
 #: توقيتُ v1: الأعمدة `datetime` بلا منطقة، وهي ساعةُ الرياض كما كتبها
 #: الموظّف. تُقرأ بها ثم تُخزَّن UTC — والتحويلُ مرّةً واحدة هنا، لا في
@@ -121,7 +122,8 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "--dump",
-            default="D:/tmp/haraj_db_dump/hara_clone_v1_data_20260905_1444.sql.gz",
+            default=settings.V1_DUMP_PATH,
+            help="مسارُ نسخة mysqldump — أو `V1_DUMP_PATH` في البيئة.",
         )
         parser.add_argument("--dry-run", action="store_true", help="اقرأ وشخّص ولا تكتب")
         parser.add_argument(
@@ -218,7 +220,22 @@ class Command(BaseCommand):
 
             person = User(
                 phone=phone,
-                full_name=(row.get("name") or row.get("full_name") or "").strip()[:150],
+                # **`arabic_name` لا `name`.** كان مكتوباً هنا
+                # `row["name"] or row["full_name"]` — **وكلاهما عمودٌ لا وجود
+                # له في `userss`**، فكانت القراءةُ تسقط إلى الفراغ صامتةً:
+                # ١٦٬١٩٦ اسماً عربيّاً في اللقطة، وخمسةُ أسماءٍ عندنا من
+                # ٤٤٬٠٤٠ (قِيس ٢٠٢٦-٠٩-١٤).
+                #
+                # ولم يُكتشف شهراً لأن الفراغ لا يرمي: `dict.get` تُرجع `None`
+                # لمفتاحٍ غير موجودٍ كما تُرجعه لقيمةٍ فارغة، فعمودٌ أُسيء
+                # اسمُه وعمودٌ خالٍ يبدوان سواءً. **والأثرُ يُقرأ شاشةً لا
+                # سجلّاً**: «المزايد —» في كلّ صفّ، وبحثٌ بالاسم يعطي صفراً.
+                #
+                # و`english_name` احتياطٌ لا بديل: ١٦١ صفّاً وحدها تحمله.
+                full_name=(
+                    (row.get("arabic_name") or row.get("english_name") or "")
+                    .strip()[:150]
+                ),
                 national_id=str(row.get("identity_number") or "")[:20],
                 # **بلا كلمة مرور.** نسخةُ v1 تحمل `password` مجزوءاً بخوارزميّةٍ
                 # أخرى، ونقلُه يعني حساباً يُفتح بكلمةٍ لا نعرف قوّتها ولا نملك
@@ -242,6 +259,18 @@ class Command(BaseCommand):
                 for key, person in made.items()
                 if person.phone in found
             }
+            # **الجسرُ يُحفظ، ولا يموت مع الأمر.** القاعدة ٣: «مفتاحُ المصدر
+            # محفوظ… فتبقى المقارنة ممكنة للأبد». وكان هذا القاموسُ يُبنى في
+            # الذاكرة ويُرمى، فلا يبقى في القاعدة ما يقول إن هذا الحساب هو
+            # `userss.id = 15034` — و`customer_links.user_id` و
+            # `insurance_deposits.user_id` كلُّها مفاتيحُ v1 تحتاج هذه الترجمة.
+            #
+            # والمطابقةُ بالجوّال ليست بديلاً: v1 يحوي جوّالاتٍ مكرَّرة (ولذلك
+            # `ignore_conflicts` أعلاه)، فالمطابقةُ به تخلط حسابين.
+            written = LegacyRef.remember(
+                "accounts.user", {key: p.pk for key, p in made.items()}
+            )
+            self.stdout.write(f"جسرُ المفاتيح: {written} صفّاً لـaccounts.user")
 
         self.stdout.write(f"العملاء: {len(made)} محمَّلاً · {skipped} مرفوضاً")
         return made
@@ -328,7 +357,16 @@ class Command(BaseCommand):
 
         # لتُقرأ منها `pk` هدرٌ، و`Bid(vehicle_id=…)` يكفيه الرقم.
         by_key = {(number, lot): pk for pk, number, lot in rows}
-        return {v1: by_key[key] for v1, key in bridge.items() if key in by_key}
+        resolved = {v1: by_key[key] for v1, key in bridge.items() if key in by_key}
+
+        if not self.dry:
+            # الجسرُ يُحفظ كما يُحفظ جسرُ الحسابات، وللسبب نفسِه: `T309`
+            # يترجم `invoices_odoo.vehicle_id`، و`T310` يترجم روابط الودائع.
+            # وبلاه يُرحَّل كلُّ ذلك **بلا مركبة** ولا يشكو أحد.
+            written = LegacyRef.remember("auctions.vehicle", resolved)
+            self.stdout.write(f"جسرُ المفاتيح: {written} صفّاً لـauctions.vehicle")
+
+        return resolved
 
     # -- المزايدات --------------------------------------------------------
 
@@ -366,7 +404,9 @@ class Command(BaseCommand):
 
             bidder = people.get(str(row.get("user_id")))
             if bidder is None:
-                self._reject("مزايدة: مزايدٌ غير موجود", row["id"], str(row.get("user_id")))
+                self._reject(
+                    "مزايدة: مزايدٌ غير موجود", row["id"], str(row.get("user_id"))
+                )
                 skipped += 1
                 continue
 

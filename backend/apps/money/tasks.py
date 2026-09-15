@@ -21,6 +21,7 @@ from apps.core.locks import single_instance
 from apps.odoo.models import InboundMessage, InboundState
 
 from .inbound import INTERPRETED_SOURCE, interpret
+from .services import expire_stale_intents
 from .verification import verify_ledger
 
 log = logging.getLogger(__name__)
@@ -59,6 +60,25 @@ def verify() -> dict:
         if not findings:
             log.info("verify_ledger: clean")
         return {"ran": True, "findings": len(findings)}
+
+
+@shared_task(name="money.expire_intents")
+def expire_intents() -> dict:
+    """أنهِ مهلةَ كلّ نيّةِ دفعٍ مهجورة. **مُعرَّفةٌ لا مُجدوَلة** (المادة ٥-٢).
+
+    والمسارُ الأساسيّ ليس هذه المهمّة بل الحدَث: `services.start_topup` تُنهي
+    مهلاتِ صاحبها قبل أن تفتح له نيّةً جديدة — وهو ما يفعله v1 حرفيّاً عند كل
+    بدء دفع. فالنيّةُ التي يراها عميلٌ تُنظَّف في اللحظة التي يهمّ فيها أن تكون
+    نظيفة، بلا كرون.
+
+    وهذه لمن لا يعود أبداً: نيّاتٌ لصاحبٍ هجر المنصّة، تبقى `pending` في
+    التقارير وفي شاشة اللوحة. يُنادَى حين يقرّر مشغّلٌ ذلك، لا على نبضة.
+    """
+    with single_instance("money.expire_intents") as acquired:
+        if not acquired:
+            log.info("money.expire_intents: another instance holds the lock")
+            return {"ran": False, "expired": 0}
+        return {"ran": True, "expired": expire_stale_intents()}
 
 
 # ---------------------------------------------------------------------------

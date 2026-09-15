@@ -15,6 +15,7 @@
 
 {% block content %}
   <p>
+    <span class="pill" style="direction: ltr; unicode-bidi: isolate;">{{ person.username|default:"بلا اسم دخول" }}</span>
     <span class="pill">{{ role_name }}</span>
     {% if person.is_active %}
       <span class="pill" data-tone="ok">مفعّل</span>

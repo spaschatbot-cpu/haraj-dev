@@ -31,6 +31,7 @@ from django.urls import reverse
 from apps.accounts import services as accounts_services
 from apps.accounts.models import AccountType, Company, StaffGrant, User
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.permissions import (
     Capability,
     can,
@@ -52,7 +53,7 @@ from .exports import export, wants_export
 from .forms import ReasonMixin
 from .icons import path_of
 from .tones import with_tones
-from .views import console_page
+from .views import atomic_write, console_page, row_for_write
 
 PAGE_SIZE = 25
 
@@ -194,7 +195,7 @@ def customer_rows(*, text: str = "", kind: str = "", status: str = ""):
     text = (text or "").strip()
     if text:
         digits = "".join(character for character in text if character.isdigit())
-        terms = Q(full_name__icontains=text)
+        terms = search_q(text, "full_name")
         if digits:
             terms = terms | Q(phone__contains=digits) | Q(national_id=digits)
         rows = rows.filter(terms)
@@ -395,8 +396,9 @@ def customers(request):
 
 
 @console_page("console:customer-edit")
+@atomic_write
 def customer_edit(request, pk: int):
-    customer = get_object_or_404(User.objects.all(), pk=pk)
+    customer = row_for_write(request, User.objects.all(), pk=pk)
     form = CustomerForm(request.POST or None, instance=customer)
 
     if request.method == "POST" and form.is_valid():
@@ -441,6 +443,7 @@ def _address_snapshot(customer) -> dict:
 
 
 @console_page("console:company-edit")
+@atomic_write
 def company_edit(request, pk: int):
     """Edit a company's ZATCA details.
 
@@ -449,7 +452,7 @@ def company_edit(request, pk: int):
     an old one must be able to save a fixed district without producing a VAT
     number they do not have. The invoice is what refuses to issue.
     """
-    customer = get_object_or_404(User.objects.all(), pk=pk)
+    customer = row_for_write(request, User.objects.all(), pk=pk)
     company = Company.objects.filter(user=customer).first()
     form = CompanyForm(request.POST or None, instance=company)
 
@@ -521,7 +524,7 @@ def invoices(request):
     search = (request.GET.get("q") or "").strip()
     if search:
         digits = "".join(character for character in search if character.isdigit())
-        terms = Q(number__icontains=search) | Q(customer__full_name__icontains=search)
+        terms = search_q(search, "number", "customer__full_name")
         if digits:
             terms = terms | Q(customer__phone__contains=digits)
         rows = rows.filter(terms)
@@ -711,13 +714,14 @@ class AccessForm(forms.Form):
 
 
 @console_page("console:customer-access")
+@atomic_write
 def customer_access(request, pk: int):
     """أوقف عميلاً أو أعِده. الشاشة التي لم تكن.
 
     والإعادة موجودة كالإيقاف: حارسٌ يمنع العودة يجعل الإيقاف عقوبةً نهائية بيد
     موظّف، وv1 كان يعالج ذلك بإنشاء حسابٍ ثانٍ للعميل نفسه.
     """
-    customer = get_object_or_404(User.objects.filter(is_staff=False), pk=pk)
+    customer = row_for_write(request, User.objects.filter(is_staff=False), pk=pk)
     form = AccessForm(request.POST or None, initial={"is_active": customer.is_active})
 
     if request.method == "POST" and form.is_valid():
@@ -780,13 +784,14 @@ def what_holds(customer: User) -> list[tuple[str, int]]:
 
 
 @console_page("console:customer-delete")
+@atomic_write
 def customer_delete(request, pk: int):
     """احذف حساباً لا أثر له، أو اعرف لماذا لا يُحذف.
 
     والرفضُ هو الحالة الشائعة عمداً: حسابٌ زايد أو صدرت له فاتورة يبقى، لأن
     صفوفه تشير إليه. والشاشة تقول **كلَّ** ما يمنع لا أوّلَه.
     """
-    customer = get_object_or_404(User.objects.select_related("company"), pk=pk)
+    customer = row_for_write(request, User.objects.select_related("company"), pk=pk)
     holds = what_holds(customer)
 
     # نفسُك ليست صفّاً تحذفه: من يحذف حسابه يخرج من اللوحة في منتصف الفعل،

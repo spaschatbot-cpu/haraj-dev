@@ -69,13 +69,18 @@ lib/
 الإعداد في `swagger_parser.yaml`، والمولَّد **مرفوع في المستودع** حتى يعمل
 `flutter analyze` بلا خطوة توليد، وحتى يكشف الـCI أي فرق بينه وبين المخطط.
 
-> ⚠️ **المخطط الحالي مؤقّت.** `openapi/haraj-mock.yaml` يمثّل ما نعرفه من
-> [الفيز 007](../specs/007-client-api/spec.md)، وهو موجود ليعمل خط التوليد قبل
-> تثبيت العقد.
+**المصدر `../backend/openapi/schema.yaml` مباشرةً** — لا نسخةً منه في `mobile/`:
+نسختان لعقدٍ واحد تنحرفان، وقد كلّف ذلك جلسةً كاملة. والملفُّ نفسُه محروسٌ في
+الخلفية بـ`manage.py schema_check`، وتشغّله بوابةُ `contract.yml`.
+
+> **تغيير في الخلفية ⇦ ما تفعله هنا:** `just schema` (أو
+> `backend/.venv/Scripts/python.exe manage.py schema_check --write`) ثم
+> `bash tool/regenerate_api_client.sh` من `mobile/`. الفرقُ الناتج هو تغييرُ
+> العقد نفسه، مقروءاً.
 >
-> **عند إغلاق T621:** نزّل `/api/schema/` من الخادم، بدّل `schema_path` في
-> `swagger_parser.yaml` إليه، شغّل `tool/regenerate_api_client.sh`، واحذف
-> `openapi/haraj-mock.yaml`. لا يتغيّر شيء آخر في الإعداد.
+> ‏`openapi/haraj-mock.yaml` **لم يعد يُقرأ من أي مكان** — كان عقداً كُتب بيد
+> قبل أن تُوجد الخلفية. بقي في المستودع ولم يُحذف هنا: حذفُه قرارُ مالك لا
+> تنظيفُ تاسك.
 
 ## الإشعارات (T716)
 

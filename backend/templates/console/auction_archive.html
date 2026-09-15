@@ -17,6 +17,18 @@
   <section class="board-stats board-stats--compact" aria-label="أرقام الأرشيف">
     {% for card in cards %}{% include "console/_stat.html" with stat=card %}{% endfor %}
   </section>
+  {% comment %}
+  البطاقتان بأساسين — تناقضٌ موروثٌ من v1 حرفياً، وحكمُ المالك ألّا يُغيَّر
+  رقمٌ يقرؤه: يُسمَّى كلٌّ بأساسه، ويُقال لماذا لا يتساويان. ولا حسابَ أُعيد.
+  {% endcomment %}
+  {# السطرُ يشرح فرقَ رقمين — فلا يُبنى أصلاً لمن حُجب عنه الرقمان. #}
+  {% if show_money %}
+  <p class="hint">
+    <strong>البطاقتان لا تتساويان، وهذا صحيح:</strong> «المبيعات» سعرُ المطرقة
+    وحده (جمعُ أسعار الرسو)، و«المحصّل» و«المتبقّي» من الفواتير — وكلُّ فاتورةٍ
+    سعرٌ + رسمٌ إداريّ + ضريبة. فالثاني أكبرُ من الأوّل بحكم تكوينه لا بخطأ.
+  </p>
+  {% endif %}
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
@@ -43,7 +55,10 @@
         <th>اسم المزاد</th>
         <th>تاريخ الانتهاء</th>
         <th>عدد المركبات</th>
-        <th>إجمالي المبيعات (ر.س)</th>
+        {% comment %} عمودُ المبيعات مبلغٌ — يُحجَب عمّن لا يملك «عرض الفواتير
+           والمدفوعات»، والعمودُ نفسُه يسقط من رأس الجدول فلا يبقى عنوانٌ فوق
+           خلايا فارغة. وعددُ المركبات يبقى: عددٌ لا مبلغ. {% endcomment %}
+        {% if show_money %}<th>إجمالي المبيعات (ر.س)</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -56,19 +71,19 @@
             aria-expanded="false"{% endif %}>
           <td>
             {% if row.vehicle_count %}
-              <span class="arch-toggle" aria-hidden="true">▸</span>
+              <span class="arch-toggle" aria-hidden="true">{% include "console/_act_icon.html" with path=toggle_icon %}</span>
             {% endif %}
           </td>
           <td><strong>{{ row.title }}</strong></td>
           <td>{{ row.ends_at|date:"Y-m-d H:i" }}</td>
           <td class="count">{{ row.vehicle_count|unlocalize }}</td>
-          <td class="money tnum">{{ row.sold_total|default:"0.00"|unlocalize }}</td>
+          {% if show_money %}<td class="money tnum">{{ row.sold_total|default:"0.00"|unlocalize }}</td>{% endif %}
         </tr>
         {% if row.vehicle_count %}
-          <tr class="arch-panel" hidden><td colspan="5"><div class="arch-panel__inner" data-arch-panel></div></td></tr>
+          <tr class="arch-panel" hidden><td colspan="{% if show_money %}5{% else %}4{% endif %}"><div class="arch-panel__inner" data-arch-panel></div></td></tr>
         {% endif %}
       {% empty %}
-        <tr><td colspan="5" class="empty">لا مزادات منتهية مطابقة.</td></tr>
+        <tr><td colspan="{% if show_money %}5{% else %}4{% endif %}" class="empty">لا مزادات منتهية مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -80,36 +95,14 @@
     </div>
   </div>
 
-  {% comment %} نافذةُ «سجل المزايدات» — تُجلَب من كرت السيارة وتُحقَن. {% endcomment %}
-  <dialog class="modal cmodal" data-content-dialog>
-    <div data-content-body></div>
-  </dialog>
+  {% comment %} نافذةُ «سجل المزايدات» — والقالبُ المشترَك. كان مقتطفُها
+     مكتوباً هنا بيده، وهو الأمتنُ بين النسختين (تفويضٌ على المستند، ورسالةُ
+     فشلٍ مكتوبة)، فانتقل سلوكُه إلى المشترَك كما هو. {% endcomment %}
+  {% include "console/_content_modal.html" %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-(function () {
-  // «سجل المزايدات» — الكروتُ تُحقَن عند التوسّع، فالربطُ بتفويض حدثٍ على المستند.
-  var cDialog = document.querySelector('[data-content-dialog]');
-  var cBody = cDialog ? cDialog.querySelector('[data-content-body]') : null;
-  if (cDialog && cDialog.showModal && cBody) {
-    document.addEventListener('click', function (e) {
-      var opener = e.target.closest('[data-content-url]');
-      if (opener) {
-        e.preventDefault(); e.stopPropagation();
-        fetch(opener.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) { return r.text(); })
-          .then(function (html) {
-            cBody.innerHTML = html; cDialog.showModal();
-            cBody.querySelectorAll('[data-bids-close], [data-content-close], [data-close]').forEach(function (el) {
-              el.addEventListener('click', function () { cDialog.close(); });
-            });
-          });
-        return;
-      }
-    });
-  }
-})();
 (function () {
   // الضغطُ على صفِّ مزادٍ يُوسِّعه: يجلب سياراتِه مرّةً (يُخزَّن) ثم يُظهر/يُخفي
   // اللوحة تحته. لا صفحةَ منفصلة — التفاصيلُ والصورُ تنزل تحت الصفّ نفسِه.
@@ -124,12 +117,30 @@
       if (open && !loaded) {
         inner.innerHTML = '<p class="muted" style="padding:1rem">…جارٍ التحميل</p>';
         fetch(row.getAttribute('data-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) { return r.text(); })
-          .then(function (html) { inner.innerHTML = html; loaded = true; });
+          // الحالةُ تُقرأ قبل النصّ. كان `r.text()` وحدَه، فردُّ ٤٠٣ أو ٥٠٠
+          // **صفحةُ خطأٍ كاملةٌ من HTML تُحقَن في اللوحة** — `<html>` و`<head>`
+          // داخل `<td>`، ويُعلَّم `loaded = true` فلا تُجرَّب ثانيةً. والموظّفُ
+          // يرى فوضى ولا يعرف أنها رفضُ صلاحية.
+          .then(function (r) {
+            if (!r.ok) throw new Error(r.status);
+            return r.text();
+          })
+          .then(function (html) { inner.innerHTML = html; loaded = true; })
+          .catch(function (err) {
+            inner.innerHTML = '';
+            var p = document.createElement('p');
+            p.className = 'empty';
+            p.style.padding = '1rem';
+            p.textContent = 'تعذّر جلبُ سيارات هذا المزاد (' + err.message + '). أعِد المحاولة.';
+            inner.appendChild(p);
+          });
       }
       panel.hidden = !open;
       row.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (mark) { mark.classList.toggle('is-open', open); mark.textContent = open ? '▾' : '▸'; }
+      // الصنفُ وحدَه يقلب العلامة — الرسمُ واحدٌ يُدار ٩٠ درجة في `app.css`.
+      // وكان هنا سطرٌ ثانٍ يكتب `textContent` بمحرفَي `▾`/`▸`: حالةٌ واحدة
+      // مكتوبةٌ في مكانين، والرسمُ الذي يضعه القالبُ يُمحى عند أول ضغطة.
+      if (mark) { mark.classList.toggle('is-open', open); }
     });
   });
 })();

@@ -64,7 +64,18 @@ def _tls_verify():
 
 
 def call(endpoint: str, payload: dict, *, reference: str) -> dict:
-    """POST to Odoo, carrying a reference they treat as unique."""
+    """POST to Odoo, exactly the body the caller built.
+
+    ``payload`` is sent **verbatim**. It used to be merged with
+    ``{"reference": reference}``, and that was a second place deciding what
+    Odoo receives: their contract has no top-level `reference` field, and the
+    identifier they treat as unique travels *inside* `params` (as
+    `payment_reference` or `memo`, per endpoint). A merge here meant the body
+    was assembled in two modules, and neither one of them matched Odoo.
+
+    ``reference`` stays in the signature because it names the row in every log
+    line and every error — it is what a person greps when one message is stuck.
+    """
     if not settings.ODOO_ENABLED:
         raise OdooDisabled(
             f"تكامل أودو مطفأ في هذه البيئة؛ لم يُرسل {reference} إلى {endpoint}"
@@ -74,7 +85,7 @@ def call(endpoint: str, payload: dict, *, reference: str) -> dict:
     try:
         response = requests.post(
             url,
-            json={**payload, "reference": reference},
+            json=payload,
             headers={
                 "Content-Type": "application/json",
                 # عقدُ أودو الحقيقيّ (كما في v1): مصادقةُ Bearer لا `X-Api-Key`.

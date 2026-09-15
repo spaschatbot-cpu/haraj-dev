@@ -617,7 +617,6 @@ class _Segment extends StatelessWidget {
   }
 }
 
-
 /// ترويسةُ الرئيسية: **لوحةٌ تنطوي وصندوقُ بحثٍ يثبت**.
 ///
 /// شريحةٌ واحدة لا شريحتان، لأن صندوق البحث يتراكب على أسفل صورة اللوحة —
@@ -654,7 +653,9 @@ class _HomeHeader extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final travel = maxExtent - minExtent;
-    final progress = travel <= 0 ? 1.0 : (shrinkOffset / travel).clamp(0.0, 1.0);
+    final progress = travel <= 0
+        ? 1.0
+        : (shrinkOffset / travel).clamp(0.0, 1.0);
     return Stack(
       clipBehavior: Clip.hardEdge,
       children: <Widget>[

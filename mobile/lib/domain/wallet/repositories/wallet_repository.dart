@@ -3,6 +3,7 @@ import '../entities/ledger_movement.dart';
 import '../entities/refund_request.dart';
 import '../entities/top_up.dart';
 import '../entities/wallet_balance.dart';
+
 /// عقد المحفظة.
 ///
 /// يرجع `Snapshot` لا الكيان مجرَّداً: العرض يحتاج أن يعرف إن كانت هذه آخر نسخة

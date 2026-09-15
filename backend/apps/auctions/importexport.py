@@ -188,6 +188,9 @@ class Column:
     attribute: str | None = None
     required: bool = False
     optional: bool = False
+    #: عمودٌ تعداديّ (`_choice_reader`). خليّتُه الفارغةُ تعني «لم يُقَل» —
+    #: انظر `_apply_row`، وهناك ثمنُ القرار.
+    choice: bool = False
 
 
 COLUMNS: tuple[Column, ...] = (
@@ -243,6 +246,7 @@ COLUMNS: tuple[Column, ...] = (
         write=lambda v: _choice_writer(PlateType)(v.plate_type),
         read=_choice_reader(PlateType, "نوع اللوحة"),
         attribute="plate_type",
+        choice=True,
     ),
     Column(
         "الممشى",
@@ -256,18 +260,21 @@ COLUMNS: tuple[Column, ...] = (
         write=lambda v: _choice_writer(Transmission)(v.transmission),
         read=_choice_reader(Transmission, "ناقل الحركة"),
         attribute="transmission",
+        choice=True,
     ),
     Column(
         "الوقود",
         write=lambda v: _choice_writer(FuelType)(v.fuel_type),
         read=_choice_reader(FuelType, "الوقود"),
         attribute="fuel_type",
+        choice=True,
     ),
     Column(
         "الحالة الفنية",
         write=lambda v: _choice_writer(VehicleCondition)(v.condition),
         read=_choice_reader(VehicleCondition, "الحالة الفنية"),
         attribute="condition",
+        choice=True,
     ),
     Column(
         "سعر الوقوف",
@@ -343,7 +350,13 @@ HEADER_ALIASES: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
     (
         "سعر الوقوف",
-        ("سعر_الوقوف", "السعر_الابتدائي", "starting_price", "start_price", "reserve_price"),
+        (
+            "سعر_الوقوف",
+            "السعر_الابتدائي",
+            "starting_price",
+            "start_price",
+            "reserve_price",
+        ),
     ),
     (
         "حالة المركبة",
@@ -410,7 +423,8 @@ KNOWN_BUT_NOT_A_COLUMN: dict[str, str] = {
 }
 
 #: مؤشرات v1 الأربعة لاكتشاف صف الرأس (looksLikeVehicleHeader 3362-3371):
-#: vehicle_name أو vehicle_brand (الماركة) أو starting_price (سعر الوقوف) أو vehicle_condition (الحالة الفنية).
+#: vehicle_name أو vehicle_brand (الماركة) أو starting_price (سعر الوقوف)
+#: أو vehicle_condition (الحالة الفنية).
 HEADER_INDICATORS: set[str] = {
     "الماركة",
     "سعر الوقوف",
@@ -641,7 +655,11 @@ def import_vehicles(
             if not any(cell.strip() for cell in row):
                 continue
             padded_row = (row + [""] * len(headers))[: len(headers)]
-            record = dict(zip(headers, padded_row))
+            # `strict=True` لا `False`: السطرُ فوقه يجعل طولَ `padded_row`
+            # مساوياً لطول `headers` بالضبط — يحشو الناقصَ ويقصّ الزائد. فإن
+            # اختلّ الطولان يوماً فذلك عطلٌ في الحشو نفسه، و`zip` الصامت كان
+            # سيبتلع أعمدةً من ملفِّ المالك بلا كلمة.
+            record = dict(zip(headers, padded_row, strict=True))
             _apply_row(
                 record,
                 known,
@@ -720,6 +738,20 @@ def _apply_row(
         column = COLUMNS_BY_HEADER[header]
         raw = record.get(header, "")
         if column.read is None:
+            continue
+        # خليّةٌ تعداديّةٌ فارغةٌ تعني «لم يُقَل»، فتُترك القيمةُ المخزَّنة أو
+        # افتراضُ الموديل — ولا تُقرأ فتُرفض.
+        #
+        # قِيس على الشاشة (T867): صفٌّ في ملفٍّ حقيقيّ نقصته الخلايا الأخيرة —
+        # وإكسل يُسقط الفارغَ في آخر الصفّ، و`Sheet._fit` يتسامح معه صراحةً —
+        # فرجع بـ«قيمة «الحالة الفنية» غير معروفة: «»»، أي أن الصفَّ رُفض لأنه
+        # **لم يقل شيئاً**. وللتعداد قيمةُ «غير محدد» لمن أراد أن يقول «لا
+        # أعرف»، فالفراغُ ليس قيمةً ثالثة.
+        #
+        # وثمنُه: لا يُمحى تعدادٌ بتفريغ خانته — تُكتب «غير محدد» صراحةً. وذلك
+        # أرخص من رفضِ صفٍّ كاملٍ لخانةٍ لم تُملأ، وهو ما يجعل المستورِد
+        # يُهجَر إلى الإدخال اليدويّ.
+        if column.choice and raw.strip() == "":
             continue
         if (
             column.header == AUCTION_HEADER
@@ -855,7 +887,9 @@ def _auction_is_live(auction) -> bool:
     return auction.state == AuctionState.LIVE
 
 
-def _transfer(existing, auction, lot_number, attributes: dict, report: ImportReport) -> None:
+def _transfer(
+    existing, auction, lot_number, attributes: dict, report: ImportReport
+) -> None:
     """انقل مركبةً غير مباعةٍ إلى مزادٍ جديد — نظيرُ `transferVehicleToAuction` في v1.
 
     المزايداتُ القديمة تُسحَب (`is_withdrawn`) لا تُحذَف: التاريخُ يبقى، والفتحةُ

@@ -9,10 +9,12 @@ looks like a styling problem.
 from __future__ import annotations
 
 from django.conf import settings
+from django.utils.functional import SimpleLazyObject
 
 from .exports import PARAM
 from .icons import path_of
 from .navigation import back_for, icon_for, sidebar_for
+from .sensitive import shown_to
 
 
 def navigation(request) -> dict:
@@ -26,6 +28,22 @@ def navigation(request) -> dict:
     user = getattr(request, "user", None)
     return {
         "sidebar": sidebar_for(user),
+        # `shown.money` و`shown.customer` لكلّ قالبٍ في اللوحة — **بالحجّة
+        # التي فوق حرفياً**. T901
+        #
+        # العرضُ الذي ينسى الحارسَ يرسم شاشةً فيها جوّالُ عميلٍ ومبلغُ فاتورته
+        # لمن لا يملك قدرتَهما، وهو عطلٌ لا يُرى على الشاشة — يُرى في «عرض
+        # المصدر» بعد أن يكون قد مرّ. وقد وقع هذا في تسع شاشاتٍ في ثلاث
+        # جولات، آخرُها هذه.
+        #
+        # وهنا لأن `vehicle_detail` عرضُه في `auctions.py` وهو خارج نصيب هذه
+        # الجولة: القالبُ يحتاج الجوابَ ولا سبيلَ إليه من عرضه. والعروضُ التي
+        # تحسبه بنفسها تُبقي `show_money`/`show_customer` كما هي — هذا لا
+        # يلغيها، إنّما يجعل النسيانَ غيرَ ممكن.
+        #
+        # و`SimpleLazyObject` لا قيمةً محسوبة: `shown_to` استعلاما `StaffGrant`،
+        # وستٌّ وتسعون شاشةً لا تقرؤه كلُّها. فلا يُدفع الثمنُ إلّا حيث يُقرأ.
+        "shown": SimpleLazyObject(lambda: shown_to(user)),
         "environment": settings.ENVIRONMENT_NAME,
         "app_base": settings.APP_BASE,
         "export_url": _export_url(request),
@@ -34,6 +52,17 @@ def navigation(request) -> dict:
         # `GET` ينهيها من أي `<img src>` — و`test_entry_points.py` يشترط
         # غيابه. فهو نموذجٌ يُرسَم بيده، ويأخذ رسمَه من السجلّ نفسه.
         "sign_out_icon": path_of("exit-door"),
+        # أزرارُ الشريط العلويّ ودرجِ المظهر. كانت محارفَ نصّية — `☰` و`◐`
+        # و`✕` — نجت من T837 لأنها ليست صفّاً في `PAGES` ولا بطاقةً في
+        # `STAT_ICONS`، فلم يمرّ عليها أحد. وعليها حجّة T837 نفسُها حرفياً:
+        # **نظام التشغيل هو الذي يرسمها**، بأسلوبه لا بأسلوب اللوحة، ومختلفةً
+        # بين ويندوز وماك وأندرويد. و`◐` بعينه مذكورٌ في T837 ضمن ما أُخرج من
+        # بطاقات الأرقام — ثم بقي هنا.
+        #
+        # ومن السجلّ نفسه لا مرسومةً في القالب بيدها: سجلٌّ واحدٌ لقرّائه.
+        "nav_toggle_icon": path_of("menu"),
+        "themer_icon": path_of("moon"),
+        "close_icon": path_of("close"),
         # زرُّ «رجوع» على كل شاشة — من السجلّ لا من تاريخ المتصفّح. T864
         #
         # ومعالجُ سياق لا سطرٌ في كل عرض: الشاشاتُ ستٌّ وتسعون، وواحدةٌ تُنسى

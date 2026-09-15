@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 الخروج ونقل الملكية — دورةُ حياةٍ كاملة، نظيرُ v1: أربعةُ ألسنة (إنشاء ·
 متابعة · أرشيف · بوابة). الكتابةُ عبر `apps.auctions.exits` وحدها، وكلُّ فعلٍ
@@ -12,10 +12,14 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   <p class="lede">أوامرُ الخروج الإلكترونية بالباركود، ومتابعةُ نقل الملكية حتى الأرشيف — لِما بيع وسُدِّد.</p>
 
   <div class="ex-tabs" role="tablist">
-    <button type="button" class="ex-tab is-on" data-tab="create">📤 إنشاء الخروج <span class="ex-tab__n">{{ counts.create|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="follow">🔄 متابعة نقل الملكية <span class="ex-tab__n">{{ counts.follow|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="archive">🗄️ أرشيف المنقولة <span class="ex-tab__n">{{ counts.archive|unlocalize }}</span></button>
-    <button type="button" class="ex-tab" data-tab="gate">🚧 البوابة</button>
+    {% comment %} رسومٌ من `icons.py` لا إيموجي: اللسانُ الواحد مرحلةٌ في
+       دورة حياة، والمراحلُ الأربع تُقرأ صفّاً واحداً حين تكون بسمكٍ وزوايا
+       واحدة — وهو ما لا يفعله أربعةُ محارفَ يرسمها نظامُ التشغيل. ذيلُ T837.
+    {% endcomment %}
+    <button type="button" class="ex-tab is-on" data-tab="create">{% include "console/_act_icon.html" with path=tab_icons.create %} إنشاء الخروج <span class="ex-tab__n">{{ counts.create|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="follow">{% include "console/_act_icon.html" with path=tab_icons.follow %} متابعة نقل الملكية <span class="ex-tab__n">{{ counts.follow|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="archive">{% include "console/_act_icon.html" with path=tab_icons.archive %} أرشيف المنقولة <span class="ex-tab__n">{{ counts.archive|unlocalize }}</span></button>
+    <button type="button" class="ex-tab" data-tab="gate">{% include "console/_act_icon.html" with path=tab_icons.gate %} البوابة</button>
   </div>
 
   {# ── لسانُ الإنشاء ────────────────────────────────────────────────── #}
@@ -26,7 +30,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
         <button type="submit" class="btn-primary">بحث</button>
         {% if q %}<a href="{% url 'console:vehicle-exit' %}" class="filters__reset">مسح</a>{% endif %}
         <a href="{{ export_url }}" class="ex-act" title="تصدير كل النتائج المطابقة">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          {% include "console/_act_icon.html" with path=row_icons.export %}
           <span>تصدير Excel</span></a>
       </div>
     </form>
@@ -42,8 +46,21 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
               <td><strong>{{ car.make }} {{ car.model }}</strong></td>
               <td class="mono">{{ car.plate_number|default:"—" }}</td>
               <td>{{ car.year|unlocalize }}</td>
-              <td>{{ car.awarded_to.full_name|default:"—" }}</td>
-              <td class="mono">{{ car.awarded_to.phone|default:"—"|unlocalize }}</td>
+              {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on`
+                 لا `car.awarded_to` من العلاقة: حقلٌ يُقرأ من علاقةٍ في
+                 القالب لا يمرّ بحارس. واسمُ المشتري وجوّالُه خلف
+                 `users.view`، والشاشةُ `auctions.view` وحدَها — وكان عمودُ
+                 الجوّال كاملاً في **مصدر الصفحة**. {% endcomment %}
+              <td>
+                {% if car.buyer_name %}{{ car.buyer_name }}
+                {% elif car.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                {% else %}—{% endif %}
+              </td>
+              <td class="mono">
+                {% if car.buyer_phone %}{{ car.buyer_phone|unlocalize }}
+                {% elif car.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                {% else %}—{% endif %}
+              </td>
               <td>
                 {% if car.exit_order %}
                   <span class="pill" data-tone="{% if car.exit_order.stage == 'archived' %}ok{% elif car.exit_order.stage == 'under_transfer' %}warn{% else %}info{% endif %}">{{ car.exit_order.get_stage_display }}</span>
@@ -51,13 +68,33 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                   <span class="pill" data-tone="plain">لم يُنشأ</span>
                 {% endif %}
               </td>
+              {% comment %} **زرُّ «تعديل» كان يحمل في مصدر الصفحة اسمَ
+                 المستلِم ورقمَ هويّته وجوّالَه** (`data-name`/`data-id`/
+                 `data-phone`) لكلّ من يفتح الشاشة — وكلُّ أفعال هذه الشاشة
+                 خلف `auctions.manage` (`_guard`)، تردّ غيرَه بتحويلٍ صامت.
+                 فالزرُّ الذي لا يعمل ولا يُؤذن بمحتواه لا يُبنى أصلاً.
+                 {% endcomment %}
               <td class="actions actions--nowrap">
-                {% if car.exit_order %}
+                {% if not manage %}<span class="empty">—</span>
+                {% elif car.exit_order %}
                   {% comment %} ثلاثةُ أفعالٍ كـ v1، أيقونةٌ ونصٌّ معاً: الإقرار/
                      الباركود · رفع الموقّع · تعديل بيانات المستلِم. {% endcomment %}
                   <a class="ex-act" href="{% url 'console:exit-declaration' car.pk %}" target="_blank">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-1M7 15h10v6H7z"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.declaration %}
                     <span>الإقرار/الباركود</span></a>
+                  {% if car.exit_order.stage == 'created' or car.exit_order.stage == 'sent_to_gate' %}
+                    {% comment %} حتى البوّابة وحدها: بعدها خرجت السيارةُ فعلاً
+                       ونوعُ خروجها قد وجّهها، فتغييرُه لاحقاً يعيد كتابةَ ما
+                       حدث. {% endcomment %}
+                    <button type="button" class="ex-act ex-act--papers"
+                            data-exit-papers
+                            data-action="{% url 'console:exit-upload' car.exit_order.pk %}"
+                            data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}"
+                            data-type="{{ car.exit_order.exit_type }}"
+                            data-reason="{{ car.exit_order.exit_reason }}">
+                      {% include "console/_act_icon.html" with path=row_icons.papers %}
+                      <span>رفع الموقّع</span></button>
+                  {% endif %}
                   <button type="button" class="ex-act ex-act--edit"
                           data-exit-edit
                           data-pk="{{ car.exit_order.pk|unlocalize }}"
@@ -66,13 +103,13 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                           data-id="{{ car.exit_order.recipient_id }}"
                           data-phone="{{ car.exit_order.recipient_phone|unlocalize }}"
                           data-decl="{{ car.exit_order.declaration_date|date:'Y-m-d' }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8a2.8 2.8 0 0 0-4-4L4 16zM14 6l4 4"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.edit %}
                     <span>تعديل</span></button>
                 {% else %}
                   <button type="button" class="ex-act ex-act--create" data-exit-create
                           data-action="{% url 'console:exit-create' car.pk %}"
                           data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+                    {% include "console/_act_icon.html" with path=row_icons.create %}
                     <span>إنشاء الخروج</span></button>
                 {% endif %}
               </td>
@@ -89,26 +126,91 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ المتابعة ──────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="follow" hidden>
     {% if follow %}
+      {% comment %} شريطُ الفلترة في المتصفّح لا بطلبٍ جديد: الصفوفُ كلُّها في
+         الصفحة أصلاً (المرحلةُ لا الجدول)، وطلبُ خادمٍ لكلّ حرفٍ يُكتب في خانةِ
+         بحثٍ فوق جدولٍ حاضرٍ إنفاقٌ بلا مقابل. والتصديرُ بالمقابل خادميٌّ
+         و**للمرحلة كاملةً** لا لما تركه الفلتر. {% endcomment %}
+      <div class="ex-filter" data-filter="follow">
+        <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال · الملاحظة" aria-label="بحث في المتابعة">
+        <span class="muted">تاريخ الخروج من</span>
+        <input type="date" class="ex-filter__from" aria-label="من تاريخ">
+        <span class="muted">إلى</span>
+        <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
+        <button type="button" class="btn-sm ex-filter__clear">مسح</button>
+        <a href="?export=xlsx&amp;scope=follow" class="ex-act" title="تصدير كل صفوف هذه المرحلة، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — متابعة نقل الملكية ({{ counts.follow|unlocalize }})</span></a>
+        <span class="ex-filter__n muted" hidden></span>
+      </div>
       <div class="scroller">
         <table>
-          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>إجراءات</th></tr></thead>
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>الغرض / الحالة</th><th>تاريخ الخروج</th><th>المؤقّت</th><th>المرفقات</th><th>ملاحظات المتابعة</th><th>إجراءات</th></tr></thead>
           <tbody>
             {% for o in follow %}
-              <tr>
+              {% comment %} لونُ الصفّ من درجة التأخّر، ومن الحظر قبلها: صفٌّ
+                 محظورٌ يُقرأ قبل أن يُقرأ مؤقّتُه، لأن متابعتَه شيءٌ آخر. {% endcomment %}
+              <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}" data-late="{{ o.timer.2|unlocalize }}"{% if o.is_banned %} data-ban="1"{% endif %}>
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
-                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
-                <td class="mono">{{ o.vehicle.awarded_to.phone|default:"—"|unlocalize }}</td>
+                {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on`
+                   لا من العلاقة — الحارسُ نفسُه الذي في لسان الإنشاء. {% endcomment %}
+                <td>
+                  {% if o.vehicle.buyer_name %}{{ o.vehicle.buyer_name }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="mono">
+                  {% if o.vehicle.buyer_phone %}{{ o.vehicle.buyer_phone|unlocalize }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td><span class="pill" data-tone="{{ o.purpose.1 }}">{{ o.purpose.0 }}</span></td>
                 <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
-                <td class="count">{% if o.days_out is not None %}{{ o.days_out|unlocalize }} يوم{% else %}—{% endif %}</td>
-                <td><a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a></td>
+                <td><span class="pill" data-tone="{{ o.timer.1 }}">{{ o.timer.0 }}</span></td>
+                <td class="ex-files">
+                  <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
+                  {% if o.declaration_file %}<a class="btn-sm" href="{{ o.declaration_file.url }}" target="_blank">الموقّع</a>{% endif %}
+                  {% if o.transfer_proof_file %}<a class="btn-sm" href="{{ o.transfer_proof_file.url }}" target="_blank">إثبات النقل</a>{% endif %}
+                </td>
+                <td>
+                  {% comment %} الملاحظةُ تُحفَظ بزرّها لا بمغادرة الخانة: حفظٌ
+                     تلقائيٌّ عند كلّ ضغطةِ مفتاحٍ يعني طلبَ شبكةٍ لكلّ حرف،
+                     وحفظٌ عند `blur` يضيع إن أُغلق اللسان. وهي **كتابة**، فمن
+                     لا يملك `auctions.manage` يقرؤها ولا يُبنى له نموذج. {% endcomment %}
+                  {% if manage %}
+                    <form method="post" action="{% url 'console:exit-note' o.pk %}" class="ex-note">
+                      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+                      <textarea name="notes" rows="1" placeholder="اكتب ملاحظة…">{{ o.notes }}</textarea>
+                      <button type="submit" class="btn-sm">حفظ</button>
+                    </form>
+                  {% else %}
+                    {{ o.notes|default:"—" }}
+                  {% endif %}
+                </td>
                 <td class="actions actions--nowrap">
-                  <form method="post" action="{% url 'console:exit-transfer' o.pk %}" enctype="multipart/form-data" class="ex-inline">
-                    {% csrf_token %}<input type="hidden" name="tab" value="follow">
-                    <input type="file" name="proof" accept="image/*,application/pdf" title="إثبات النقل (اختياري)">
-                    <button type="submit" class="btn-primary-sm">✅ تأكيد النقل</button>
-                  </form>
+                  {% if not manage %}<span class="empty">—</span>
+                  {% elif o.is_banned %}
+                    {% comment %} المحظورةُ لها فعلٌ واحد: رفعُ الحظر. و«تأكيد
+                       النقل» يُحجب عنها لا يُعرَض معطَّلاً — زرٌّ يُضغَط فيرفض
+                       يُعلّم الموظّفَ أن الشاشة تكذب. {% endcomment %}
+                    <form method="post" action="{% url 'console:exit-lift-ban' o.pk %}" class="ex-inline">
+                      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+                      <button type="submit" class="btn-danger-sm">تم رفع الحظر</button>
+                    </form>
+                  {% else %}
+                    {% comment %} زرٌّ يفتح نافذة، لا استمارةٌ في الخليّة: خانةُ
+                       ملفٍّ داخل الصفّ ارتفاعُها ٣٧px وحدَها، فترفع كلَّ صفٍّ
+                       في الجدول لأجل مرفقٍ اختياريٍّ يُرفَع مرّةً. وv1 يسأل عنه
+                       في نافذةِ تأكيدٍ للسبب نفسِه. {% endcomment %}
+                    <button type="button" class="ex-act ex-act--transfer"
+                            data-exit-transfer
+                            data-action="{% url 'console:exit-transfer' o.pk %}"
+                            data-car="{{ o.vehicle.make }} {{ o.vehicle.model }} {{ o.vehicle.plate_number }}">
+                      {% include "console/_act_icon.html" with path=confirm_icon %}
+                      <span>تأكيد النقل</span></button>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}
@@ -123,20 +225,48 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   {# ── لسانُ الأرشيف ───────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="archive" hidden>
     {% if archive %}
+      <div class="ex-filter" data-filter="archive">
+        <input type="search" class="ex-filter__q" placeholder="بحث بالسيارة · اللوحة · الموديل · المشتري · الجوال" aria-label="بحث في الأرشيف">
+        <span class="muted">تاريخ الخروج من</span>
+        <input type="date" class="ex-filter__from" aria-label="من تاريخ">
+        <span class="muted">إلى</span>
+        <input type="date" class="ex-filter__to" aria-label="إلى تاريخ">
+        <button type="button" class="btn-sm ex-filter__clear">مسح</button>
+        <a href="?export=xlsx&amp;scope=archive" class="ex-act" title="تصدير الأرشيف كاملاً، بغضّ النظر عن الفلاتر المعروضة">
+          {% include "console/_act_icon.html" with path=row_icons.export %}
+          <span>تصدير Excel — الأرشيف ({{ counts.archive|unlocalize }})</span></a>
+        <span class="ex-filter__n muted" hidden></span>
+      </div>
       <div class="scroller">
         <table>
-          <thead><tr><th>السيارة</th><th>اللوحة</th><th>الموديل</th><th>المشتري</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
+          {% comment %} تسعةُ أعمدةٍ كـ v1 حرفيّاً. كانت سبعة: **رقمُ المطالبة
+             والجوّال** ساقطان — ورقمُ المطالبة هو ما يُبحَث به الصفُّ في ملفّ
+             التأمين بعد شهور، والأرشيفُ بلا جوّالِ المشتري لا يُتّصَل منه بأحد.
+             والوقتُ يُعرَض بالساعة والدقيقة لا باليوم وحده: صفٌّ خرج ونُقل في
+             اليوم نفسه (`after_transfer`) كان يُقرأ تاريخين متطابقين. {% endcomment %}
+          <thead><tr><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th><th>الموديل</th><th>المشتري</th><th>الجوال</th><th>تاريخ الخروج</th><th>تاريخ النقل</th><th>المرفقات</th></tr></thead>
           <tbody>
             {% for o in archive %}
-              <tr>
+              <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}">
                 <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
+                <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
-                <td>{{ o.vehicle.awarded_to.full_name|default:"—" }}</td>
-                <td>{{ o.warehouse_exit_at|date:"Y-m-d"|default:"—" }}</td>
-                <td>{{ o.transfer_at|date:"Y-m-d"|default:"—" }}</td>
                 <td>
+                  {% if o.vehicle.buyer_name %}{{ o.vehicle.buyer_name }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="mono">
+                  {% if o.vehicle.buyer_phone %}{{ o.vehicle.buyer_phone|unlocalize }}
+                  {% elif o.vehicle.awarded_to and not show_customer %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+                  {% else %}—{% endif %}
+                </td>
+                <td>{{ o.warehouse_exit_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td>{{ o.transfer_at|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td class="ex-files">
                   <a class="btn-sm" href="{% url 'console:exit-declaration' o.vehicle.pk %}" target="_blank">الإقرار</a>
+                  {% if o.declaration_file %}<a class="btn-sm" href="{{ o.declaration_file.url }}" target="_blank">الموقّع</a>{% endif %}
                   {% if o.transfer_proof_file %}<a class="btn-sm" href="{{ o.transfer_proof_file.url }}" target="_blank">إثبات النقل</a>{% endif %}
                 </td>
               </tr>
@@ -150,6 +280,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
   </section>
 
   {# ── نافذةُ إنشاء أمر الخروج: بياناتُ المستلِم كـ v1 ─────────────── #}
+  {% if manage %}
   <dialog class="modal" data-exit-create-dialog>
     <form method="post" enctype="multipart/form-data" data-exit-create-form>
       {% csrf_token %}
@@ -161,6 +292,63 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       <label>صورة الهوية<input type="file" name="recipient_id_image" accept="image/*"></label>
       <p class="modal__buttons">
         <button type="submit" class="btn-primary">إنشاء وطباعة الإقرار</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── نافذةُ أوراق الخروج: نوعٌ وسببٌ وإقرارٌ موقّع → البوابة ───────── #}
+  <dialog class="modal" data-exit-papers-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-papers-form>
+      {% csrf_token %}<input type="hidden" name="tab" value="create">
+      <h2>رفع المستند الموقّع</h2>
+      <p class="muted" data-f="car"></p>
+
+      <fieldset class="ex-choice">
+        <legend>نوع الخروج</legend>
+        {% for value, label in exit_types %}
+          <label class="ex-choice__opt">
+            <input type="radio" name="exit_type" value="{{ value }}" data-f="type" required>
+            <span>{{ label }}{% if value == after_transfer %} ← الأرشيف{% else %} ← متابعة النقل{% endif %}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      {% comment %} سببُ الخروج لا يُسأل عن المنقولة سلفاً — يُخفى ويُنزَع
+         `required` معاً، فحقلٌ مخفيٌّ وهو `required` يمنع الإرسال بلا أن يُرى
+         سببُ المنع. و`{# … #}` لا يصلح هنا: تعليقُ جانغو القصير **سطرٌ واحد**،
+         وما امتدّ منه إلى سطرٍ ثانٍ يُطبَع في الصفحة كما هو — ظهر في النافذة
+         نصّاً عربياً بين مجموعتي الاختيار. {% endcomment %}
+      <fieldset class="ex-choice" data-f="reasonBox">
+        <legend>سبب الخروج</legend>
+        {% for value, label in exit_reasons %}
+          <label class="ex-choice__opt">
+            <input type="radio" name="exit_reason" value="{{ value }}" data-f="reason">
+            <span>{{ label }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <label>صورة الإقرار / الخروج الموقّع<input type="file" name="signed" accept="image/*,application/pdf" capture="environment"></label>
+      <label data-f="proofBox">صورة إثبات نقل الملكية<input type="file" name="proof" accept="image/*,application/pdf" capture="environment" data-f="proof"></label>
+
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">حفظ وإرسال للبوابة</button>
+        <button type="button" data-close>إلغاء</button>
+      </p>
+    </form>
+  </dialog>
+
+  {# ── نافذةُ تأكيد نقل الملكية: إثباتٌ اختياريّ ثم أرشفة ──────────── #}
+  <dialog class="modal" data-exit-transfer-dialog>
+    <form method="post" enctype="multipart/form-data" data-exit-transfer-form>
+      {% csrf_token %}<input type="hidden" name="tab" value="follow">
+      <h2>تأكيد نقل الملكية</h2>
+      <p class="muted" data-f="car"></p>
+      <p class="muted">سيُؤرشَف أمرُ الخروج ويُختَم بتاريخ النقل — ولا رجوعَ من الأرشيف بشاشة.</p>
+      <label>صورة إثبات النقل (اختياري)<input type="file" name="proof" accept="image/*,application/pdf"></label>
+      <p class="modal__buttons">
+        <button type="submit" class="btn-primary">تم النقل</button>
         <button type="button" data-close>إلغاء</button>
       </p>
     </form>
@@ -183,23 +371,54 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       </p>
     </form>
   </dialog>
+  {% endif %}
 
   {# ── لسانُ البوابة ──────────────────────────────────────────────── #}
   <section class="ex-pane" data-pane="gate" hidden>
     <div class="ex-gate">
-      <h2>🚧 بوابة الخروج</h2>
-      <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) ثم اضغط تأكيد.</p>
-      <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__form">
-        {% csrf_token %}<input type="hidden" name="tab" value="gate">
-        <input type="text" name="barcode" placeholder="EX…" autocomplete="off" autofocus
+      {% comment %} و`🚧` سقط من العنوان بلا بديل: اللسانُ الذي فُتحت منه هذه
+         اللوحةُ يحمل رسمَ البوّابة بالفعل، ورسمٌ ثانٍ في العنوان تحته مباشرةً
+         تكرارٌ لا يضيف. ذيلُ T837. {% endcomment %}
+      <h2>بوابة الخروج</h2>
+      <p class="muted">امسح باركود إقرار الخروج (أو اكتبه) واضغط Enter — تُعرض بيانات المركبة للمطابقة قبل التأكيد.</p>
+
+      {% comment %} **بحثٌ ثم تأكيد، لا تأكيدٌ مباشر.** كانت الخانةُ تُرسِل إلى
+         `exit-gate` فوراً: الحارسُ يفتح البوّابةَ دون أن يرى أيَّ سيارةٍ يُفرج
+         عنها ولا لمن، وباركودٌ خاطئٌ يُخرج سيارةَ غيره ولا رجوعَ بشاشة. فصار
+         `GET` يقرأ ستَّ حقائقَ تُطابَق بالعين على ورقة السائق، والتأكيدُ
+         نموذجاً منفصلاً — وهو ترتيبُ v1 نفسُه (`gate-lookup` ثم
+         `gate-confirm`). {% endcomment %}
+      <div class="ex-gate__form">
+        <input type="text" id="gateCode" placeholder="HRJ-XXXXXXXXXX" autocomplete="off" autofocus
                inputmode="latin" class="ex-gate__input">
-        <button type="submit" class="btn-primary">تأكيد الخروج</button>
+        <button type="button" class="btn-primary" data-gate-lookup>بحث</button>
+      </div>
+      <p class="ex-gate__scan">
+        <button type="button" class="ex-act" data-gate-scan hidden>
+          {% include "console/_act_icon.html" with path=row_icons.camera %}
+          <span>مسح بالكاميرا</span></button>
+      </p>
+      {% comment %} حاويتان: الأولى لفيديو `BarcodeDetector`، والثانية تملؤها
+         `html5-qrcode` بفيديوها. لا تظهران معاً. {% endcomment %}
+      <div id="gateReader" class="ex-gate__reader" hidden><video playsinline muted></video></div>
+      <div id="gateReaderLib" class="ex-gate__reader" hidden></div>
+      <div id="gateResult" class="ex-gate__result" aria-live="polite"></div>
+
+      {% comment %} نموذجُ التأكيد واحدٌ يُملأ من نتيجة البحث — لا نموذجَ يُبنى
+         بـ`innerHTML`، فرمزُ CSRF لا يُكتب في JS. {% endcomment %}
+      <form method="post" action="{% url 'console:exit-gate' %}" class="ex-gate__confirm" hidden>
+        {% csrf_token %}<input type="hidden" name="tab" value="gate">
+        <input type="hidden" name="barcode" value="">
+        <button type="submit" class="btn-primary">{% include "console/_act_icon.html" with path=confirm_icon %} تأكيد الخروج من البوابة</button>
       </form>
     </div>
   </section>
 {% endblock %}
 
 {% block scripts %}
+{% comment %} نسخةٌ محليّة لا CDN — `static/console/vendor/README.md` يقول لماذا،
+   وهي بديلُ `BarcodeDetector` حيث لا يوجد (كروم ويندوز). {% endcomment %}
+<script src="{% static 'console/vendor/html5-qrcode.min.js' %}" defer></script>
 <script>
 (function () {
   var tabs = [].slice.call(document.querySelectorAll('.ex-tab'));
@@ -240,6 +459,216 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
       eDlg.showModal();
     });
   });
+
+  // نافذةُ الأوراق: النوعُ يُظهر أحدَ حقلين ويُخفي الآخر، كـ v1.
+  var pDlg = document.querySelector('[data-exit-papers-dialog]');
+  var pForm = pDlg && pDlg.querySelector('[data-exit-papers-form]');
+  var AFTER = '{{ after_transfer }}';
+  function papersSync() {
+    var picked = pForm.querySelector('input[name=exit_type]:checked');
+    var after = picked && picked.value === AFTER;
+    pForm.querySelector('[data-f=reasonBox]').hidden = !!after;
+    pForm.querySelector('[data-f=proofBox]').hidden = !after;
+    // `required` يتبع الظهور: المخفيُّ لا يُطالَب به، والظاهرُ يُطالَب.
+    pForm.querySelectorAll('[data-f=reason]').forEach(function (r) { r.required = !after; });
+    pForm.querySelector('[data-f=proof]').required = !!after;
+  }
+  if (pForm) {
+    pForm.querySelectorAll('[data-f=type]').forEach(function (el) {
+      el.addEventListener('change', papersSync);
+    });
+  }
+  document.querySelectorAll('[data-exit-papers]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      pForm.setAttribute('action', btn.getAttribute('data-action'));
+      pForm.reset();
+      pForm.querySelector('[data-f=car]').textContent = btn.getAttribute('data-car') || '';
+      // أمرٌ رُفعت أوراقُه وأُعيد فتحُه: يُستعاد اختيارُه لا يُعاد من الصفر.
+      var t = btn.getAttribute('data-type');
+      var r = btn.getAttribute('data-reason');
+      if (t) { var ti = pForm.querySelector('[name=exit_type][value="' + t + '"]'); if (ti) ti.checked = true; }
+      if (r) { var ri = pForm.querySelector('[name=exit_reason][value="' + r + '"]'); if (ri) ri.checked = true; }
+      papersSync();
+      pDlg.showModal();
+    });
+  });
+
+  // نافذةُ تأكيد النقل: وجهتُها من الزرّ، واسمُ السيارة في رأسها.
+  var tDlg = document.querySelector('[data-exit-transfer-dialog]');
+  var tForm = tDlg && tDlg.querySelector('[data-exit-transfer-form]');
+  document.querySelectorAll('[data-exit-transfer]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tForm.setAttribute('action', btn.getAttribute('data-action'));
+      tForm.reset();
+      tForm.querySelector('[data-f=car]').textContent = btn.getAttribute('data-car') || '';
+      tDlg.showModal();
+    });
+  });
+
+  // ── شريطُ الفلترة في لساني المتابعة والأرشيف ───────────────────────
+  // إخفاءٌ لا حذف: الصفوفُ تبقى في الصفحة (ولذلك يُصدَّر الخادمُ المرحلةَ
+  // كاملةً لا ما بقي على الشاشة). والمقارنةُ نصّيّةٌ على `YYYY-MM-DD` —
+  // الصيغةُ تترتّب أبجديّاً كما تترتّب زمنيّاً، فلا حاجةَ إلى `Date`.
+  document.querySelectorAll('.ex-filter').forEach(function (bar) {
+    var pane = bar.closest('.ex-pane');
+    var rows = [].slice.call(pane.querySelectorAll('tbody .ex-row'));
+    var q = bar.querySelector('.ex-filter__q');
+    var from = bar.querySelector('.ex-filter__from');
+    var to = bar.querySelector('.ex-filter__to');
+    var note = bar.querySelector('.ex-filter__n');
+
+    function apply() {
+      var text = (q.value || '').trim().toLowerCase();
+      var f = from.value, t = to.value, shown = 0;
+      rows.forEach(function (row) {
+        var d = row.getAttribute('data-date') || '';
+        var ok = (!text || row.innerText.toLowerCase().indexOf(text) !== -1)
+          && (!f || (d && d >= f))
+          && (!t || (d && d <= t));
+        row.hidden = !ok;
+        if (ok) { shown++; }
+      });
+      var filtered = text || f || t;
+      note.hidden = !filtered;
+      note.textContent = filtered ? ('ظاهر ' + shown + ' من ' + rows.length) : '';
+    }
+
+    [q, from, to].forEach(function (el) {
+      el.addEventListener('input', apply);
+      el.addEventListener('change', apply);
+    });
+    bar.querySelector('.ex-filter__clear').addEventListener('click', function () {
+      q.value = ''; from.value = ''; to.value = ''; apply();
+    });
+  });
+
+  // ── البوّابة: باركود → بحث → مطابقةٌ بالعين → تأكيد ────────────────
+  var gCode = document.getElementById('gateCode');
+  var gBox = document.getElementById('gateResult');
+  var gForm = document.querySelector('.ex-gate__confirm');
+  var gLookupUrl = '{% url "console:exit-gate-lookup" %}';
+
+  function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+
+  function gateLookup() {
+    var code = (gCode.value || '').trim();
+    gForm.hidden = true;
+    if (!code) { gBox.innerHTML = ''; return; }
+    gBox.innerHTML = '<p class="muted">… جارٍ البحث</p>';
+    fetch(gLookupUrl + '?code=' + encodeURIComponent(code), { headers: { 'X-Requested-With': 'fetch' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { gBox.innerHTML = '<p class="ex-gate__bad">' + esc(j.message) + '</p>'; return; }
+        gBox.innerHTML =
+          '<dl class="ex-gate__facts">' +
+          '<div><dt>السيارة</dt><dd>' + esc(j.car) + '</dd></div>' +
+          '<div><dt>اللوحة</dt><dd>' + esc(j.plate) + '</dd></div>' +
+          '<div><dt>الموديل</dt><dd>' + esc(j.model) + '</dd></div>' +
+          '<div><dt>اللوت</dt><dd>' + esc(j.lot) + '</dd></div>' +
+          '<div><dt>المستلِم</dt><dd>' + esc(j.recipient) + '</dd></div>' +
+          '<div><dt>نوع الخروج</dt><dd>' + esc(j.exit_type) + '</dd></div>' +
+          '</dl>' +
+          (j.already
+            ? '<p class="ex-gate__bad">تم تأكيد خروج هذه المركبة مسبقاً — ' + esc(j.exited_at) + '</p>'
+            : '');
+        // الزرُّ يظهر لمن لم يخرج بعد فقط، ورمزُه من النموذج المبنيّ في القالب.
+        if (!j.already) { gForm.querySelector('[name=barcode]').value = j.code; gForm.hidden = false; }
+      })
+      .catch(function () { gBox.innerHTML = '<p class="ex-gate__bad">خطأ في الاتصال</p>'; });
+  }
+
+  var gBtn = document.querySelector('[data-gate-lookup]');
+  if (gBtn) { gBtn.addEventListener('click', gateLookup); }
+  if (gCode) {
+    // ‏Enter يبحث ولا يُرسل: قارئُ الباركود السلكيّ يكتب الرمزَ ثم يضغط Enter،
+    // فلو كانت الخانةُ في نموذجٍ لأكّد المسحُ الخروجَ بلا أن يرى الحارسُ شيئاً.
+    gCode.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); gateLookup(); }
+    });
+  }
+
+  // ── المسح بالكاميرا ────────────────────────────────────────────────
+  // طريقان، والأولُ بلا تحميل: `BarcodeDetector` المدمج إن وُجد، وإلّا
+  // `html5-qrcode` **من `static/console/vendor/`** لا من CDN (انظر README
+  // هناك: بوّابةُ ساحةٍ بلا إنترنتٍ لحظةَ الحاجة تبقى بلا كاميرا).
+  //
+  // وكان الزرُّ مشروطاً بـ`BarcodeDetector` وحده، **وهو غيرُ موجودٍ على كروم
+  // ويندوز** — فاختفى على الجهاز الذي تُجرَّب عليه اللوحة. فصار الزرُّ يظهر
+  // متى وُجدت كاميرا، ويختار الطريقَ عند الضغط.
+  var scanBtn = document.querySelector('[data-gate-scan]');
+  var reader = document.getElementById('gateReader');
+  var readerLib = document.getElementById('gateReaderLib');
+  var video = reader && reader.querySelector('video');
+  var stream = null, detector = null, timer = null, libScanner = null;
+
+  if (scanBtn && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    scanBtn.hidden = false;
+  }
+
+  function scanLabel(on) {
+    scanBtn.querySelector('span').textContent = on ? 'إيقاف الكاميرا' : 'مسح بالكاميرا';
+  }
+
+  function stopScan() {
+    if (timer) { clearInterval(timer); timer = null; }
+    if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    if (libScanner) {
+      var s = libScanner; libScanner = null;
+      try { s.stop().then(function () { s.clear(); }).catch(function () {}); } catch (e) {}
+    }
+    reader.hidden = true; readerLib.hidden = true;
+    scanLabel(false);
+  }
+
+  function scanning() { return !!(stream || libScanner); }
+
+  function found(code) { gCode.value = code; stopScan(); gateLookup(); }
+
+  function startNative() {
+    detector = detector || new window.BarcodeDetector({
+      formats: ['code_128', 'code_39', 'qr_code', 'ean_13']
+    });
+    return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(function (s) {
+        stream = s; video.srcObject = s; video.play();
+        reader.hidden = false; scanLabel(true);
+        timer = setInterval(function () {
+          detector.detect(video).then(function (hits) {
+            if (hits && hits.length) { found(hits[0].rawValue); }
+          }).catch(function () {});
+        }, 400);
+      });
+  }
+
+  function startLibrary() {
+    if (typeof Html5Qrcode === 'undefined') {
+      gBox.innerHTML = '<p class="ex-gate__bad">مكتبة الكاميرا لم تُحمَّل — اكتب الباركود يدوياً.</p>';
+      return Promise.resolve();
+    }
+    readerLib.hidden = false; scanLabel(true);
+    libScanner = new Html5Qrcode('gateReaderLib');
+    var fmts = (typeof Html5QrcodeSupportedFormats !== 'undefined') ? [
+      Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.EAN_13, Html5QrcodeSupportedFormats.QR_CODE
+    ] : undefined;
+    return libScanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 300, height: 150 }, formatsToSupport: fmts },
+      function (text) { found(text); },
+      function () {}
+    );
+  }
+
+  if (scanBtn) {
+    scanBtn.addEventListener('click', function () {
+      if (scanning()) { stopScan(); return; }
+      var start = ('BarcodeDetector' in window) ? startNative : startLibrary;
+      start().catch(function () {
+        stopScan();
+        gBox.innerHTML = '<p class="ex-gate__bad">تعذّر فتح الكاميرا — تأكّد من السماح بها لهذا الموقع.</p>';
+      });
+    });
+  }
 
   // أزرارُ الإلغاء تُغلق نافذتَها.
   document.querySelectorAll('dialog [data-close]').forEach(function (b) {

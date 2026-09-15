@@ -22,7 +22,10 @@ class SupportContactCard extends StatelessWidget {
   /// يصل من المالك.
   static const String _whatsAppNumber = '';
 
-  Future<void> _openWhatsApp(BuildContext context, AppLocalizations l10n) async {
+  Future<void> _openWhatsApp(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) async {
     if (_whatsAppNumber.isEmpty) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()

@@ -56,6 +56,24 @@ class DisplayDateTimeField(forms.DateTimeField):
         return value
 
 
+def row_stamp_of(instance, names) -> str:
+    """بصمةُ الأعمدة المذكورة من هذا الصفّ — ختمُ HR-13 بحسبةٍ واحدة.
+
+    مرفوعةٌ من :meth:`ReasonMixin._row_stamp` إلى دالّةٍ مستقلّة لأن أربعَ
+    نوافذَ على شاشة المزادات تكتب **بلا استمارة**: «الرسوم» تقرأ المبلغين من
+    ``POST`` بيدها، و«إعادة الجدولة» و«تغيير الحالة» و«الإنهاء» مثلُها. فلو
+    حُسب ختمُها بسطرٍ ثانٍ لصار للحارس تعريفان — وتعريفان لبصمةٍ هو بالضبط
+    كيف يمرّ حارسٌ لا يقارن شيئاً.
+
+    والحسبةُ هي هي: نصٌّ من ``اسم=repr(القيمة)`` مفصولاً بـ``|``، ثم أوّلُ
+    ٣٢ محرفاً من ``sha256``. ومن غيّر هذا السطر غيّر ختمَ الاستمارات معه،
+    فتُرفَض كلُّ نافذةٍ فُتحت قبل النشر — وذلك مقصودٌ ومحتمَل: الرفضُ يُقرأ،
+    والقبولُ الخاطئ لا يُقرأ.
+    """
+    payload = "|".join(f"{name}={getattr(instance, name)!r}" for name in names)
+    return hashlib.sha256(payload.encode()).hexdigest()[:32]
+
+
 class ReasonMixin(forms.Form):
     """Every console write is logged — **who, what, when** — automatically.
 
@@ -141,8 +159,7 @@ class ReasonMixin(forms.Form):
                 f"{type(self).__name__}: لا عمود لختم HR-13. "
                 "استمارةُ تعديلٍ بلا أعمدةٍ تُبصَم تعني حارساً يمرّ دائماً."
             )
-        payload = "|".join(f"{name}={getattr(instance, name)!r}" for name in names)
-        return hashlib.sha256(payload.encode()).hexdigest()[:32]
+        return row_stamp_of(instance, names)
 
     def clean(self):
         cleaned = super().clean()
@@ -225,7 +242,11 @@ class AuctionForm(ReasonMixin, forms.ModelForm):
             if name in self.fields:
                 self.fields[name].required = False
         # المرحلة الافتراضية «لاحقاً» كـ v1 (بدل `upcoming` الافتراضيّ في النموذج).
-        if "showcase" in self.fields and not self.is_bound and not self.initial.get("showcase"):
+        if (
+            "showcase" in self.fields
+            and not self.is_bound
+            and not self.initial.get("showcase")
+        ):
             self.fields["showcase"].initial = Showcase.LATER
 
     def clean(self):

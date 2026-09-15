@@ -50,8 +50,8 @@ from apps.auctions.states import AuctionState
 from apps.core import audit
 
 from .auction_moves import _mover
-from .forms import DisplayDateTimeField
-from .views import console_page
+from .forms import DisplayDateTimeField, row_stamp_of
+from .views import atomic_write, console_page, row_for_write
 
 #: إلى أين يعود الموظّف بعد الحفظ. اسمُ مسارٍ من قائمةٍ مغلقة لا قيمةٌ من
 #: الطلب: `redirect(request.POST["back"])` بابٌ مفتوح لإعادة توجيهٍ إلى أي
@@ -72,6 +72,55 @@ _NEEDS_WINDOW = (
 _BAD_WINDOW = (
     "وقت النهاية يجب أن يكون بعد وقت البداية — صحّحه من «إعادة الجدولة»."
 )
+
+
+#: أعمدةُ ختم HR-13 لكل نافذة — **بالضبط ما تكتبه**، لا أوسع ولا أضيق.
+#:
+#: كان الختمُ على نافذة «التعديل» وحدها من خمس: `grep -n row_stamp
+#: templates/console/*.html` أعطى سطرين، كلاهما نافذةُ التعديل. فالرسومُ
+#: والجدولةُ والحالةُ والإنهاء تكتب بلا ختم — وأسوأُها **الرسوم**، وهي التي
+#: تكتب التأمين والرسم: موظّفان يفتحان الصفّ بدقائقَ بينهما فيمحو الثاني
+#: تأمينَ الأوّل بلا سطرٍ يقول ذلك.
+#:
+#: والقسمةُ بعمودٍ عمود لا بختمٍ واحدٍ للصفّ: ختمٌ واحدٌ واسعٌ يرفض تعديلَ
+#: الرسوم لأن زميلاً غيّر الموعد من نافذةٍ أخرى — وذلك رفضٌ لكتابةٍ لا تدهس
+#: أحداً، وهو ما يعلّم الموظّف أن يتجاهل الرفض. (القاعدةُ نفسُها مكتوبةٌ في
+#: `ReasonMixin.__init__`: «لا أوسع فيزعج، ولا أضيق فيفوته ما يحرسه».)
+STAMP_FIELDS = {
+    "showcase": ("state", "showcase", "starts_at", "ends_at"),
+    "reschedule": ("starts_at", "ends_at", "sms_reminder_at"),
+    "fees": ("deposit_required", "admin_fee"),
+    "end_now": ("state", "ends_at"),
+}
+
+#: ما يُقال لمن وصل ثانياً — **فعلاً يُفعَل لا تشخيصاً تقنياً**.
+#:
+#: «تعارضٌ في النسخة» جملةٌ تُنتج تذكرةَ دعم؛ وهذه تقول ما جرى وما يُفعل.
+#: والموظّفُ يعود إلى القائمة بعد الرفض، والنافذةُ تُملأ من الصفّ ساعةَ
+#: تُفتح — ففتحُها ثانيةً يريه القيمةَ الجديدة بلا أن نطبعها في الرسالة.
+_STALE = (
+    "عُدِّل الصفُّ من نافذةٍ أخرى بعد أن فتحتَ هذه — "
+    "أعِد الفتح وطبّق تعديلك على القيمة الجديدة. "
+    "الحفظ الآن يمحو عمل غيرك بلا أن يعلم."
+)
+
+
+def _stale(request, auction: Auction, window: str) -> bool:
+    """هل كُتب في هذه الأعمدة بعد أن رُسمت النافذة؟
+
+    يُنادى **بعد** `row_for_write`، أي والصفُّ مقفولٌ ومقروءٌ من القاعدة:
+    الختمُ يغلق النافذةَ الواسعة (دقائقُ بين فتح الشاشة والحفظ)، والقفلُ
+    يغلق الضيّقة (طلبان في العشرات نفسِها من الميلي‑ثانية يقرآن الصفَّ
+    فيتطابق ختماهما معاً). وأحدُهما بلا الآخر حارسٌ نصفُه مفتوح.
+
+    والختمُ الفارغ يمرّ — نافذةٌ في صفحةٍ قديمةٍ من ذاكرة المتصفّح لا تحمله،
+    وذلك عقدُ `ReasonMixin` نفسُه (`if expected and …`). وهذا ثمنُ التوافق
+    مع صفحةٍ رُسمت قبل النشر، ويُدفَع مرّةً واحدة.
+    """
+    sent = (request.POST.get("row_stamp") or "").strip()
+    if not sent:
+        return False
+    return sent != row_stamp_of(auction, STAMP_FIELDS[window])
 
 
 def _back(request, auction: Auction):
@@ -123,19 +172,29 @@ def _read_window(request, auction: Auction) -> str | None:
 
 
 @console_page("console:auction-showcase")
+@atomic_write
 def auction_showcase(request, pk: int):
     """غيّر لافتة المزاد أو حالته من القائمة — نافذةُ «تغيير الحالة».
 
-    **واللافتة غيرُ الحالة**، وهذا الفرق هو ما يجعل النافذة آمنة: «لاحقاً»
-    و«قادم» و«قريباً» ثلاثُ طرقِ عرضٍ لمزادٍ مجدولٍ واحد، فتغييرُها كتابةٌ في
-    `showcase` لا نقلةٌ في آلة الحالات — ولا توقظ تسويةً ولا بوّابة. و«نشط»
-    و«منتهٍ» **نقلتان**، فتمرّان بـ`_mover` — الكاتب نفسه الذي يستعمله زرّ
-    صفحة المزاد، فلا يوجد بابان إلى الحالة.
+    **واللافتة غيرُ الحالة**: «لاحقاً» و«قادم» و«قريباً» ثلاثُ طرقِ عرضٍ لمزادٍ
+    مجدولٍ واحد، فتغييرُها كتابةٌ في `showcase`. و«نشط» و«منتهٍ» **نقلتان**،
+    فتمرّان بـ`_mover` — الكاتب نفسه الذي يستعمله زرّ صفحة المزاد، فلا يوجد
+    بابان إلى الحالة.
+
+    **ولافتةٌ على مسودّة تجدولها أيضاً**، وهذا ليس تفصيلاً: مزادٌ `draft` يمرّ
+    بـ`move_auction(SCHEDULED)` في الفرع نفسِه، فيخضع لحرّاسها — ومزادٌ بلا
+    مركبات يُرَدّ بـ«لا يمكن جدولة مزاد بلا مركبات» ولا تُكتب لافتتُه (قِيس على
+    مزاد ٩٨٦٨ في ١٤ سبتمبر ٢٠٢٦). وكان مكتوباً هنا أن تغيير اللافتة «لا نقلةٌ
+    في آلة الحالات» على إطلاقه — وهو صحيحٌ لمزادٍ مجدولٍ وحده.
     """
-    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    auction = row_for_write(request, Auction.objects.all(), pk=pk)
 
     if request.method != "POST":
         return redirect("console:auctions")
+
+    if _stale(request, auction, "showcase"):
+        messages.error(request, _STALE)
+        return _back(request, auction)
 
     badge = request.POST.get("badge", "")
     reason = _reason(request)
@@ -240,6 +299,7 @@ def auction_showcase(request, pk: int):
 
 
 @console_page("console:auction-reschedule")
+@atomic_write
 def auction_reschedule(request, pk: int):
     """موعدٌ جديد، وتذكيرٌ اختياري، وإعادةُ مزايدةِ ما لم يُبَع.
 
@@ -253,12 +313,28 @@ def auction_reschedule(request, pk: int):
     """
     from apps.bidding.models import Bid
 
-    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    auction = row_for_write(request, Auction.objects.all(), pk=pk)
 
     if request.method != "POST":
         return redirect("console:auctions")
 
+    # قبل `_read_window`: تلك تكتب الموعدين على الكائن، فيصير الختمُ بعدها
+    # مبصوماً على ما أراده المرسِل لا على ما في القاعدة — وهو بعينه ما يحذّر
+    # منه `ReasonMixin.clean` («`_post_clean` يكون قد كتب قيم الإرسال…»).
+    if _stale(request, auction, "reschedule"):
+        messages.error(request, _STALE)
+        return _back(request, auction)
+
     reason = _reason(request)
+
+    # **و`before` تُلتقط هنا، قبل `_read_window`، للعلّة نفسِها.** كانت تُلتقط
+    # بعدها — و`_read_window` تكتب الموعدين على الكائن — فيُبصَم «قبلُ» على ما
+    # أرسله الموظّف لا على ما في القاعدة. والأثرُ مقيسٌ في `haraj2_t307`:
+    # القيدان ٤٨ و٦١ من `console.auction_reschedule` **`before` فيهما يساوي
+    # `after` حرفاً بحرف** — أي أن السجلَّ يقول إن شيئاً لم يتغيّر بينما تغيّر
+    # الموعد. وقيدٌ لا يقول القيمةَ السابقة قيدٌ لا يُسأل.
+    fields = ["starts_at", "ends_at", "sms_reminder_at"]
+    before = audit.snapshot(auction, fields)
 
     problem = _read_window(request, auction)
     if problem:
@@ -272,8 +348,6 @@ def auction_reschedule(request, pk: int):
         messages.error(request, "صيغة موعد التذكير غير مفهومة.")
         return _back(request, auction)
 
-    fields = ["starts_at", "ends_at", "sms_reminder_at"]
-    before = audit.snapshot(auction, fields)
     reset = request.POST.get("reset_unsold_bids") == "on"
     cleared = 0
 
@@ -307,17 +381,28 @@ def auction_reschedule(request, pk: int):
 
 
 @console_page("console:auction-fees")
+@atomic_write
 def auction_fees(request, pk: int):
     """الرسوم الإدارية ومبلغ التأمين — والضريبةُ تُعرض ولا تُكتب.
 
     والحقلان مختلفان لا مترادفان: التأمين مبلغٌ **يُحجَز ويُردّ**، والرسم
     مبلغٌ **يُدفَع ولا يُردّ**. ودمجُهما في عمودٍ واحد هو ما جعل ردَّ تأمينٍ
     في v1 يردّ الرسم معه.
+
+    **وهذه أولى النوافذ بالختم**، وحكمُ المالك فيها بالحرف: «مسارُ رفضٍ يراه
+    الموظّف أرخصُ من كتابةٍ تدهس أخرى بلا أثر، ونافذةُ الرسوم تكتب التأمينَ
+    والرسم». وكانت تقرأ المبلغين من ``POST`` بيدها — فلا `Form` ولا
+    `ReasonMixin` ولا ختم — فيمحو الثاني تأمينَ الأوّل ولا يبقى إلا قيدان
+    متتاليان لا يقول أيٌّ منهما إن الأوّل دُهس.
     """
-    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    auction = row_for_write(request, Auction.objects.all(), pk=pk)
 
     if request.method != "POST":
         return redirect("console:auctions")
+
+    if _stale(request, auction, "fees"):
+        messages.error(request, _STALE)
+        return _back(request, auction)
 
     reason = _reason(request)
 
@@ -354,6 +439,7 @@ def auction_fees(request, pk: int):
 
 
 @console_page("console:auction-end-now")
+@atomic_write
 def auction_end_now(request, pk: int):
     """أنهِ المزاد الآن — والنهايةُ تُثبَّت على هذه اللحظة.
 
@@ -365,16 +451,41 @@ def auction_end_now(request, pk: int):
     `settlement.close_auction`، وهذا الزرّ ينهي المزايدة فقط. فصلُهما مقصود —
     إنهاءُ المزايدة قرارُ توقيت، والتسويةُ حركةُ مال.
     """
-    auction = get_object_or_404(Auction.objects.all(), pk=pk)
+    auction = row_for_write(request, Auction.objects.all(), pk=pk)
 
     if request.method != "POST":
         return redirect("console:auctions")
+
+    if _stale(request, auction, "end_now"):
+        messages.error(request, _STALE)
+        return _back(request, auction)
 
     reason = _reason(request)
 
     fields = ["state", "ends_at"]
     before = audit.snapshot(auction, fields)
     now = timezone.now()
+
+    # **مزادٌ لم يبدأ بعد لا يُنهى الآن**، ويُقال ذلك بجملة.
+    #
+    # التثبيتُ أدناه يكتب `ends_at = now`؛ ومزادٌ بدايتُه في المستقبل يجعل
+    # النهايةَ قبل البداية، فيرفضه قيدُ `auction_ends_after_it_starts` في
+    # القاعدة. وكان `except Exception` وحده تحته، فيخرج نصُّ الخطأ الخام إلى
+    # الموظّف: «new row for relation "auctions_auction" violates check
+    # constraint "auction_ends_after_it_starts"» — قِيس على مزاد ٩٨٦٨ في
+    # ١٤ سبتمبر ٢٠٢٦. ونافذةُ «تغيير الحالة» تُعالج الحالةَ نفسَها وتقول
+    # `_BAD_WINDOW`، فكان لفعلٍ واحدٍ رسالتان وأسوأُهما على أوضح زرّ.
+    #
+    # والفحصُ قبل الكتابة لا `IntegrityError` بعدها: `IntegrityError` داخل
+    # معاملةٍ تُسمّمها، وهو ما يجعل الإمساك بها هنا أثقل من منعها.
+    if auction.starts_at is not None and auction.starts_at > now:
+        messages.error(
+            request,
+            f"مزاد {auction.number} لم يبدأ بعد — يبدأ "
+            f"{_CLOCK.prepare_value(auction.starts_at):%Y-%m-%d %H:%M} بتوقيت الرياض. "
+            "لا يُنهى الآن: أعِد جدولته أو ألغِه من «تغيير الحالة».",
+        )
+        return _back(request, auction)
 
     try:
         with transaction.atomic():
@@ -410,9 +521,15 @@ def auction_delete(request, pk: int):
 
     * **مزادٌ فارغ** — مسودّةٌ أُنشئت بالخطأ، أو نسخةٌ مكرّرة — يُحذف. ولا شيء
       يشير إليه فلا شيء يُكسَر.
-    * **مزادٌ تحته سيارةٌ أو تأمين** لا يُحذف، ولا في القاعدة أصلاً:
-      ``Vehicle.auction`` و``Hold.auction`` و``PaymentSheet.auction`` كلُّها
-      ``PROTECT``. فلو أذن الكودُ رفضت القاعدة.
+    * **مزادٌ تحته سيارةٌ أو تأمين أو نيّةُ دفع** لا يُحذف، ولا في القاعدة
+      أصلاً: ``Vehicle.auction`` و``Hold.auction`` و``PaymentIntent.auction``
+      ثلاثتُها ``PROTECT``. فلو أذن الكودُ رفضت القاعدة.
+
+      وكان مكتوباً هنا ``PaymentSheet.auction`` — **و``PaymentSheet`` بلا حقل
+      مزادٍ أصلاً**؛ الثالثُ هو ``PaymentIntent``. فُحص في القاعدة: مفاتيحُ
+      `auctions_auction` الواردة ثلاثةٌ، من `auctions_vehicle` و`money_hold`
+      و`money_paymentintent`. واسمٌ خاطئٌ في وصفٍ يُقرأ بدل الشيفرة هو كيف
+      يسقط عدٌّ ناقصٌ من المراجعة.
 
     **والرفضُ يقول العدد.** «لا يمكن الحذف» جملةٌ تُنتج تذكرة دعم؛ و«تحته ٧
     سيارات و٣ تأمينات محجوزة» جملةٌ يتصرّف بها الموظّف. وv1 يرفض بلا عدد.
@@ -421,7 +538,7 @@ def auction_delete(request, pk: int):
     الفعلُ الصحيح: يفكّ الحجوز ويُبطل الفواتير غير المدفوعة **ثم** ينقل
     الحالة، ويترك صفّاً يُسأل عنه: من ألغاه ومتى ولماذا.
     """
-    from apps.money.models import Hold, HoldState
+    from apps.money.models import Hold, HoldState, PaymentIntent
 
     auction = get_object_or_404(Auction.objects.all(), pk=pk)
 
@@ -432,13 +549,20 @@ def auction_delete(request, pk: int):
 
     cars = auction.vehicles.count()
     holds = Hold.objects.filter(auction=auction, state=HoldState.ACTIVE).count()
+    # نيّاتُ الدفع تُعدّ كالبقيّة: هي المفتاحُ الثالثُ الحامي، وكانت خارج العدّ
+    # — فمزادٌ بلا سيارةٍ ولا تأمينٍ وعليه نيّةُ دفعٍ كان يمرّ من الفحص ويصطدم
+    # بـ`ProtectedError`، فيقرأ الموظّفُ نصَّ جانغو الخام بدل الجملة التي
+    # يَعِد بها وصفُ هذه الدالّة. (صفرُ صفٍّ اليوم في `haraj2_t307` — العطلُ
+    # كامنٌ لا قائم.)
+    intents = PaymentIntent.objects.filter(auction=auction).count()
 
-    if cars or holds:
+    if cars or holds or intents:
         blocking = " و".join(
             part
             for part in (
                 f"{cars} سيارة" if cars else "",
                 f"{holds} تأميناً محجوزاً" if holds else "",
+                f"{intents} نيّةَ دفع" if intents else "",
             )
             if part
         )

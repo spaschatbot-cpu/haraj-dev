@@ -3,6 +3,11 @@
 A person signs in with a Saudi mobile number, not an email address, so the
 number is the username. Everything else about them — company details, tax
 profile, national id — hangs off that.
+
+وذلك **للعميل** وحده منذ T918: الموظّف يدخل اللوحة باسمٍ في `username` وكلمةِ
+مرور، لا برقمه — بقرار المالك. و`USERNAME_FIELD` يبقى `phone` لأن تغييرَه يمسّ
+`createsuperuser` وكلَّ هجرةٍ قائمةٍ ومسارَ العميل؛ المُبدَّلُ خلفيّةُ المصادقة
+(`apps.accounts.backends`) لا حقلُ الهويّة.
 """
 
 from __future__ import annotations
@@ -13,6 +18,8 @@ from django.core.validators import RegexValidator
 from django.db import models
 from django.utils import timezone
 
+from apps.core.uploads import customer_document_path
+
 #: The single place the shape of a Saudi mobile number is written down. The same
 #: expression backs the CHECK constraint on the table, so python and postgres can
 #: never disagree about which numbers exist.
@@ -20,6 +27,45 @@ PHONE_PATTERN = r"^9665\d{8}$"
 PHONE_ERROR = "الرقم لازم يكون بصيغة 9665XXXXXXXX"
 
 saudi_mobile = RegexValidator(PHONE_PATTERN, PHONE_ERROR)
+
+# ---------------------------------------------------------------------------
+# اسمُ دخولِ الموظّف — بابٌ مستقلٌّ عن الجوّال. T918
+# ---------------------------------------------------------------------------
+#
+# قرارُ المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و باس، مش بالرقم.
+# الرقم و الـOTP دا للمستخدمين». وv1 يفعلها بجدولٍ منفصلٍ اسمه `management`
+# فيه `username` و`password` (`admin3/login/admin_login.php`) — و**البنيةُ لا
+# تُنقل**: هويّةُ الموظّف في جدولٍ وهويّةُ العميل في آخر تعني شخصاً واحداً في
+# مكانين يتفارقان، ومن غيّر جوّالَه في أحدهما لم يغيّره في الآخر. المنقولُ
+# **المنطق**: اسمٌ يُعرَف به الموظّف لا يتعلّق برقمه.
+#
+#: الطولُ ٣٢ لا ١٥٠: الاسم يُكتب في خانةٍ ويُقرأ في جدول، وواحدٌ بمئةِ حرفٍ
+#: يكسر عمودَ الجدول ولا يخدم أحداً.
+USERNAME_MAX_LENGTH = 32
+
+#: الحروفُ المسموحة. `A-Z` مقبولةٌ هنا **وتُطوى إلى صغيرةٍ في `save`**، لا
+#: لأن `Ahmad` اسمٌ ثانٍ — بل لأنه العينُ نفسها، ورفضُه عند الكتابة رفضٌ بلا
+#: فائدةٍ لمن كتب اسمَه بحرفٍ كبير. والطيُّ هو الحارس: `Ahmad` و`ahmad`
+#: اسمان لعينٍ واحدة، واختلافُ الحالة بابُ انتحالٍ صامت.
+USERNAME_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{2,31}$"
+USERNAME_ERROR = (
+    "اسم الدخول: من ٣ إلى ٣٢ محرفاً، حروفاً لاتينية وأرقاماً و. _ - "
+    "ويُحفظ بحروفٍ صغيرة."
+)
+
+staff_username = RegexValidator(USERNAME_PATTERN, USERNAME_ERROR)
+
+
+def not_a_phone_number(value: str) -> None:
+    """اسمُ الدخول لا يكون رقماً — وإلا عاد البابُ الذي أُغلق من الخلف.
+
+    لو جاز `966500000000` اسمَ دخول، لصار الموظّف يدخل برقمه فعلاً وإن كانت
+    الخلفيّة تبحث في عمودٍ آخر — فيلتبس البابان على من يقرأ الشاشة وعلى من
+    يقرأ الكود. والمنعُ على **كلّ ما هو أرقامٌ محضة** لا على صيغة `9665…`
+    وحدها: `0500000000` رقمُ جوّالٍ أيضاً في عين من يكتبه.
+    """
+    if value and value.isdigit():
+        raise ValidationError("اسم الدخول لا يكون أرقاماً وحدها — الرقم للعملاء.")
 
 
 class UserManager(BaseUserManager["User"]):
@@ -67,6 +113,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     # actually holds the shape.
     phone = models.CharField(
         "الجوال", max_length=12, unique=True, validators=[saudi_mobile]
+    )
+    #: اسمُ دخولِ الموظّف. فارغٌ لكلّ عميل — و**الفراغُ ليس هويّة**: أربعةٌ
+    #: وأربعون ألفَ عميلٍ يحملونه، فقيدُ التفرّد جزئيٌّ على غرار `national_id`
+    #: تماماً، و`StaffUsernameBackend` يردّ الاسمَ الفارغ قبل أيّ استعلام.
+    username = models.CharField(
+        "اسم الدخول",
+        max_length=USERNAME_MAX_LENGTH,
+        blank=True,
+        default="",
+        validators=[staff_username, not_a_phone_number],
     )
     full_name = models.CharField("الاسم الكامل", max_length=200)
     name_ar = models.CharField("الاسم بالعربي", max_length=255, blank=True)
@@ -128,7 +184,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "phone"
-    REQUIRED_FIELDS = ["full_name"]
+    # و`username` معهما — وهي ليست زينةً في القائمة (T918): `createsuperuser`
+    # ينشئ حساباً `is_staff` وحقلُ اسم الدخول فارغ، و**الفارغُ لا يُصادِق**
+    # (الحارس الأول في `StaffUsernameBackend`). أي أن الأمر الوحيد الذي يُنشئ
+    # أوّلَ مديرٍ في قاعدةٍ جديدة كان سيُنشئه **مقفولاً خارج اللوحة**، بلا
+    # رسالةٍ تقول لماذا. فالسؤال عنه صار جزءاً من الأمر.
+    REQUIRED_FIELDS = ["full_name", "username"]
 
     class Meta:
         verbose_name = "مستخدم"
@@ -150,7 +211,30 @@ class User(AbstractBaseUser, PermissionsMixin):
                 name="user_national_id_unique_when_set",
                 violation_error_message="رقم الهوية مسجَّل على حساب آخر",
             ),
+            # اسمُ دخولٍ واحدٌ لحسابٍ واحد — بالشكل نفسه وللسبب نفسه: كلُّ
+            # عميلٍ يبدأ به فارغاً، و`""` ليست هويّة. وقيدٌ كامل (لا جزئيّ)
+            # كان سيمنع المستخدمَ الثاني من الوجود أصلاً.
+            models.UniqueConstraint(
+                fields=["username"],
+                condition=~models.Q(username=""),
+                name="user_username_unique_when_set",
+                violation_error_message="اسم الدخول مستعمَل لحسابٍ آخر",
+            ),
         ]
+
+    def save(self, *args, **kwargs):
+        """الاسمُ يُطوى إلى حروفٍ صغيرة — هنا وحدَه، لا في كلّ من يكتبه.
+
+        الطيُّ في الاستمارة وحدها يترك باباً مفتوحاً: صفٌّ يُكتب من `shell` أو
+        من هجرةٍ بحرفٍ كبير يصير اسماً **لا يستطيع صاحبُه الدخول به** (الخلفيّة
+        تبحث بالمصغَّر)، ولا رسالةَ تقول لماذا. وأسوأ منه: `Ahmad` و`ahmad`
+        صفّان يمرّان من قيد التفرّد معاً — وذلك انتحالٌ صامت.
+
+        و`update_fields` لا يُمَسّ: طيُّ خاصّيّةٍ لا تُحفَظ في هذا النداء لا
+        يضرّ، وإضافتُها إلى القائمة كانت ستكتب عموداً لم يطلب أحدٌ كتابته.
+        """
+        self.username = (self.username or "").strip().lower()
+        super().save(*args, **kwargs)
 
     def __str__(self) -> str:
         # Imported here because services imports this module. The admin is a
@@ -652,3 +736,83 @@ class ConsoleRole(models.Model):
         unknown = sorted(set(self.capabilities or []) - known)
         if unknown:
             raise ValidationError({"capabilities": f"قدراتٌ لا وجود لها: {unknown}"})
+
+
+# ---------------------------------------------------------------------------
+# وثائقُ العميل — أربعةُ مرفوعاتٍ كانت غائبةً كلُّها
+# ---------------------------------------------------------------------------
+#
+# في v1 أربعةُ أعمدةٍ على `userss`: `cr_file_path` (السجل التجاري) و
+# `tax_file_path` (الشهادة الضريبية) و`identity_file_path` (صورة الهوية)،
+# و`refunds_requests.iban_image` (صورة الآيبان، **إلزاميّة** على كل طلب استرداد).
+# وفي v2 **لا واحدَ منها**: `FileField` في المستودع كلِّه كان أربعةً — ثلاثُ صورِ
+# مركبةٍ وإيصالُ تحويل.
+#
+# والنقصُ ليس تجميليّاً. شركةٌ تسجّل بلا سجلٍّ تجاريٍّ مرفوع لا يستطيع أحدٌ
+# التحقّق منها، وفاتورةٌ ضريبيّةٌ بلا شهادةٍ محفوظةٍ لا سند لها عند مراجعةٍ
+# زكويّة، و**استردادٌ إلى آيبانٍ بلا صورةٍ تُثبته** هو تحويلُ عشرةِ آلافٍ إلى رقمٍ
+# كتبه أحدٌ في خانة — وهو بالضبط ما جعل v1 يفرض الصورة.
+#
+# ## جدولٌ واحدٌ لا أربعةُ أعمدة
+#
+# v1 يضعها أعمدةً نصّيّةً على صفّ المستخدم، فلا تاريخَ لها ولا يُعرف من رفعها
+# ولا متى، ورفعُ نسخةٍ جديدةٍ **يمحو القديمة** — والقديمةُ هي التي صدرت بها
+# فاتورةُ العام الماضي. وهنا صفٌّ لكل رفعة، والأحدثُ هو الساري، والقديمُ باقٍ
+# مقروءاً. ولذلك لا قيدَ تفرّدٍ على (المستخدم، النوع): التاريخُ لا يُحذف.
+
+
+class DocumentKind(models.TextChoices):
+    """أنواعُ الوثائق. مُعدَّدةٌ لأن كلَّ نوعٍ له من يطلبه ومن يقرؤه."""
+
+    COMMERCIAL_REGISTER = "cr", "السجل التجاري"
+    TAX_CERTIFICATE = "tax", "الشهادة الضريبية"
+    NATIONAL_ID = "id", "صورة الهوية"
+    IBAN = "iban", "صورة الآيبان"
+
+
+class CustomerDocument(models.Model):
+    """وثيقةٌ رفعها عميلٌ أو رُفعت عنه. صفٌّ لكل رفعة، ولا حذف.
+
+    `uploaded_by` قد يكون العميلَ نفسه أو موظّفاً رفعها عنه على الهاتف. وفارقُ
+    الاثنين يُقرأ من الصفّ لا يُخمَّن — «من رفع صورة هوية هذا العميل؟» سؤالُ
+    تدقيقٍ حقيقيّ، وجوابُه في v1 غيرُ موجود.
+    """
+
+    user = models.ForeignKey(
+        "accounts.User", on_delete=models.PROTECT, related_name="documents"
+    )
+    kind = models.CharField(max_length=8, choices=DocumentKind.choices)
+
+    #: المسارُ مولَّدٌ في `customer_document_path` ولا يحمل اسمَ الرافع ولا نوعَ
+    #: الوثيقة: رابطٌ مسرَّبٌ لا يقول لمن هو، ولا يُخمَّن جارُه.
+    file = models.FileField(upload_to=customer_document_path)
+
+    note = models.CharField(max_length=200, blank=True)
+    uploaded_by = models.ForeignKey(
+        "accounts.User",
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "وثيقة عميل"
+        verbose_name_plural = "وثائق العملاء"
+        ordering = ("-uploaded_at",)
+        indexes = [models.Index(fields=["user", "kind", "-uploaded_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.get_kind_display()} — {self.user_id}"
+
+    @classmethod
+    def current(cls, user, kind: str):
+        """الساريةُ من هذا النوع: الأحدثُ رفعاً، أو لا شيء.
+
+        دالّةٌ لا خاصّةٌ محسوبةٌ على المستخدم، لأن «الأحدث» تعريفٌ يجب أن يكون
+        في **موضعٍ واحد**: شاشةُ اللوحة وواجهةُ العميل وأيُّ فحصٍ يسأل عن وجود
+        الوثيقة، ثلاثتُها تسأل هنا. وثلاثُ نسخٍ من `order_by("-uploaded_at")`
+        هي ثلاثةُ مواضعَ تختلف يومَ يتغيّر معنى «الساري».
+        """
+        return cls.objects.filter(user=user, kind=kind).first()

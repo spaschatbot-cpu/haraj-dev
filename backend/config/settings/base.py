@@ -8,6 +8,7 @@ see `specs/001-foundation/plan.md`).
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # base.py sits two packages deep (config/settings/), so BASE_DIR is the
 # third parent, not the second.
@@ -20,10 +21,61 @@ env = environ.Env(
 )
 environ.Env.read_env(BASE_DIR / ".env")
 
+
+#: ما تقبله `django-environ` صحيحاً، حرفياً (`environ.Env.BOOLEAN_TRUE_STRINGS`).
+TRUE_WORDS = ("true", "on", "ok", "y", "yes", "1")
+#: وما نقبله خطأً. وكلُّ ما عداهما **يُرفض**، ولا يُقرأ إطفاءً.
+FALSE_WORDS = ("false", "off", "no", "n", "0")
+
+
+def flag(name: str, *, default: bool) -> bool:
+    """قيمةٌ منطقيّةٌ من البيئة — **أو رفضٌ يسمّي المتغيّر**، لا إطفاءٌ صامت.
+
+    `env.bool` تقرأ كلَّ ما ليس في :data:`TRUE_WORDS` **خطأً**: فمن كتب
+    ``ODOO_ENABLED=yes`` بمسافةٍ زائدة، أو ``True.`` بنقطة، أو ``ture``، يظنّ
+    أودو شغّالاً وهو مطفأ — ولا سطرَ واحدٌ يقول ذلك. مقيسٌ في
+    `docs/environment-contract.md` §٥-٣: ``ODOO_ENABLED=maybe`` تُقرأ ``False``
+    بلا خطأ، والفحصُ يمرّ بـ`rc=0`، ولا يُكتشف العطلُ إلا من محاسبٍ يسأل عن
+    فواتيرَ لم تصل.
+
+    والقاعدةُ هي نفسُها التي في :mod:`apps.money.units` («عملةٌ لا نعرف وحدتها
+    تُرفَض ولا تُقسَم على ١٠٠ تخميناً»): **ما لا يُفهم يُرفض، ولا يُفسَّر بأهون
+    المعنيين**. وثمنُ ذلك أن خطأً إملائيّاً يمنع الإقلاع — وهو الثمنُ المقصود:
+    السقوطُ في الثانية الأولى أرخصُ من تكاملٍ مطفأٍ يُكتشف بعد أسبوع.
+
+    والمُعرَّفُ فارغاً (``ODOO_ENABLED=``) يبقى على الافتراض: سطرٌ بلا قيمة هو
+    «لم أقل شيئاً»، لا قيمةٌ لا تُفهم.
+    """
+    # `cast=str` صراحةً: المتغيّرُ قد يكون في مخطّط `Env` أعلاه بـ`(bool, …)`،
+    # وعندها تُحوّله `env()` بنفسها **قبل أن نراه** — فتبتلع القيمةَ المجهولة
+    # وتردّها `False`، وهو العطلُ نفسُه الذي كُتبت هذه الدالّة له.
+    raw = env(name, cast=str, default=None)
+    if raw is None or isinstance(raw, bool):
+        return default if raw is None else raw
+    text = str(raw).strip().lower()
+    if not text:
+        return default
+    if text in TRUE_WORDS:
+        return True
+    if text in FALSE_WORDS:
+        return False
+    raise ImproperlyConfigured(
+        f"{name}={raw!r} قيمةٌ لا تُفهم. المقبول: "
+        f"{', '.join(TRUE_WORDS)} أو {', '.join(FALSE_WORDS)}. "
+        "ولا تُقرأ قيمةٌ مجهولةٌ إطفاءً — تكاملٌ يظنّه مشغّلُه شغّالاً وهو مطفأ "
+        "لا يُكتشف إلا بعد أسبوع."
+    )
+
+
 INSECURE_SECRET_KEY = "dev-only-insecure-key"
 
+#: قاعدةُ التطوير، مسمّاةً كي يميّزها حارسُ `prod.py` عن قاعدةٍ حقيقيّة.
+#: بلا هذا الاسم يكون الافتراضُ قيمةً مجهولةَ المصدر في `env.db`، ولا شيء
+#: يستطيع أن يقول «هذه قاعدةُ جهازِ مطوّرٍ، لا قاعدةُ إنتاج».
+DEV_DATABASE_URL = "postgres://haraj:haraj@127.0.0.1:5432/haraj2"
+
 SECRET_KEY = env("SECRET_KEY", default=INSECURE_SECRET_KEY)
-DEBUG = env("DEBUG")
+DEBUG = flag("DEBUG", default=False)
 ALLOWED_HOSTS = env("ALLOWED_HOSTS")
 
 # The environment names itself on /health, in the UI, and in every outbound
@@ -65,6 +117,11 @@ LOCAL_APPS = [
     "apps.auctions",
     "apps.bidding",
     "apps.notifications",
+    # ما يقرؤه **العميل** ويحرّره الموظّف: شريطُ الأخبار وباقاتُ الاشتراك.
+    # ليست في `core` لأن `core` أدواتٌ مشتركة (سجلُّ التدقيق، الوقت، القفل) لا
+    # نطاقٌ له شاشات؛ وليست في `notifications` لأن الإشعار رسالةٌ **لشخصٍ**
+    # بقناةٍ وحالةِ تسليم، وشريطُ الأخبار جملةٌ تُعرَض للجميع بلا مُرسَلٍ إليه.
+    "apps.storefront",
     "apps.console",
 ]
 
@@ -116,7 +173,11 @@ TEMPLATES = [
 DATABASES = {
     "default": env.db(
         "DATABASE_URL",
-        default="postgres://haraj:haraj@127.0.0.1:5432/haraj2",
+        # والافتراضُ هنا قاعدةُ جهازِ المطوّر. وهو مريحٌ محلّيّاً وخطرٌ منشوراً:
+        # إنتاجٌ بلا `DATABASE_URL` يُقلع صامتاً مشيراً إليها، وعلى آلةٍ فيها
+        # PostgreSQL محلّيّ **قد يتّصل فعلاً** فيكتب في دفترٍ ليس دفترَه.
+        # لذلك يرفضه `prod.py` بالاسم — انظر الحارس هناك.
+        default=DEV_DATABASE_URL,
     )
 }
 # Connection reuse is an environment decision: prod holds connections open,
@@ -158,6 +219,20 @@ USE_TZ = True
 # and every hard-coded link broke on each move. Nothing writes a console path
 # by hand — `ops/checks/console_urls_are_named.py` fails the build on one.
 APP_BASE = env("APP_BASE", default="console").strip("/")
+
+# من يُصادَق وبماذا — خلفيّةٌ واحدة، و`ModelBackend` **ليس** معها. T918
+#
+# قرارُ المالك بالحرف: «عايز تسجيل دخول الادمن يكون بيوزر و باس، مش بالرقم».
+# و`ModelBackend` يُصادِق بـ`USERNAME_FIELD` وهو `phone` — فلو بقي في القائمة
+# لبقي دخولُ الموظّف **برقم جوّاله وكلمته** شغّالاً إلى جانب الاسم، أي أن
+# القرار يُنفَّذ في الشاشة ويُنقَض في الخلفيّة، وهو أسوأُ من ألّا يُنفَّذ:
+# الشاشةُ تقول «اسم المستخدم» والباب القديم مفتوح خلفها.
+#
+# وما يعتمد عليه — فُحص لا افتُرض: لا نداءَ لـ`authenticate()` في `apps/`
+# إطلاقاً (الوحيدةُ في `apps.accounts.authentication` صنفُ DRF لا خلفيّة)،
+# ودخولُ العميل جوّالٌ و‎OTP‎ ولا يمرّ بخلفيّاتِ جانغو أصلاً، وآلةُ الصلاحيات
+# موروثةٌ كاملةً لأن الخلفيّة تمتدّ `ModelBackend` ولا تُعيد كتابتَه.
+AUTHENTICATION_BACKENDS = ["apps.accounts.backends.StaffUsernameBackend"]
 
 # Staff sign-in lands in the staff console, not Django's raw admin index. An
 # explicit `?next=` still wins — this is only the default for a bare visit to
@@ -456,6 +531,19 @@ OURSMS_API_URL = env("OURSMS_API_URL", default="")
 OURSMS_TOKEN = env("OURSMS_TOKEN", default="")
 OURSMS_SENDER = env("OURSMS_SENDER", default="HirajOne")
 
+#: كلفةُ الرسالة النصّيّة الواحدة بالريال — **بلا قيمةٍ افتراضيّة، عمداً**.
+#:
+#: شاشةُ «إرسال إشعار» تعرض تقديرَ الكلفة قبل الزرّ (عددُ المستلمين × هذه)،
+#: والرقمُ المخترَع في شاشةِ إنفاقٍ أسوأُ من فراغ: من يقرأ «٤٤٬٠٣٦ × ٠٫١٠ =
+#: ٤٬٤٠٣ ريالاً» يتصرّف على أساسه، ولو كان العقدُ بضعفِ ذلك لكان قد قرّر على
+#: رقمٍ اخترعناه له. فالفارغُ يُعرض فارغاً: «الكلفة غير معروفة — يحتاج قيمةً
+#: من المالك»، والبثُّ لا يُمنع بسببه.
+#:
+#: وسلسلةٌ لا `float`: المادة ٣-٢ تمنع `float` على مسار مال، وقارئُها الوحيد
+#: يحوّلها `Decimal`. وv1 لا يملك هذا الإعداد ولا ما يشبهه — لا سعرَ رسالةٍ
+#: ولا ميزانيةَ ولا حدّاً أقصى في الشجرة كلِّها.
+SMS_COST_PER_MESSAGE = env.str("SMS_COST_PER_MESSAGE", default="")
+
 CURRENCY = "SAR"
 INSURANCE_DEPOSIT_AMOUNT = env.int("INSURANCE_DEPOSIT_AMOUNT", default=10_000)
 
@@ -508,13 +596,48 @@ PAYMENT_WEBHOOK_SECRET = env("PAYMENT_WEBHOOK_SECRET", default="")
 #: The gateway's own words for "the money arrived". Kept as data, because a new
 #: word from them must never be read as success by accident.
 PAYMENT_SUCCESS_STATUSES = env.list("PAYMENT_SUCCESS_STATUSES", default=["paid"])
+#: بأيّ وحدةٍ تتكلّم هذه البوّابة: `minor` (هللة/سنت) أو `major` (ريال).
+#:
+#: الافتراضُ `minor` لأن البوّابة الافتراضيّة Moyasar ترسل الهللة — وv1 يقسم على
+#: ١٠٠ صراحةً. وكان هذا الطرفُ **غائباً تماماً**، فكانت كلُّ دفعةٍ ستُقرأ مئةَ
+#: ضعفها وتذهب إلى المعلَّق. راجع :mod:`apps.money.units`.
+PAYMENT_AMOUNT_UNIT = env("PAYMENT_AMOUNT_UNIT", default="minor")
+#: كم دقيقةً تبقى نيّةُ الدفع قابلةً للدفع قبل أن تنتهي.
+#:
+#: ١٢٠ لأن v1 يكتب `payments_intents.expires_at = NOW() + INTERVAL 2 HOUR`.
+#: وكان `PaymentIntentState.EXPIRED` و`CANCELLED` **معرَّفتين ولا يسندهما أي
+#: مسار** — فنيّةٌ هجرها صاحبُها تبقى `pending` للأبد، وزرُّ الدفع حيٌّ عليها،
+#: ورابطُ البوّابة يقبل الدفع بعد شهر.
+PAYMENT_INTENT_TTL_MINUTES = env.int("PAYMENT_INTENT_TTL_MINUTES", default=120)
+#: هل يُستعلَم عن الدفعة من البوّابة قبل تقييدها؟ **نعم افتراضاً.**
+#:
+#: v1 يفعلها في كل مسارٍ بلا استثناء («Fetch من Moyasar (مصدر الحقيقة)»)، ولا
+#: يثق بحمولة الويبهوك أبداً. `False` إعلانُ مشغّلٍ صريحٌ بأن بوّابة هذه البيئة
+#: بلا واجهةِ استعلام — وعندها تصير الحمولةُ الموقّعة هي المصدر، ويُكتب ذلك في
+#: ملاحظة الرسالة لا يُسكت عنه.
+PAYMENT_CONFIRM_WITH_GATEWAY = flag("PAYMENT_CONFIRM_WITH_GATEWAY", default=True)
+
+#: مفاتيح Moyasar — فارغةٌ افتراضاً، والتكاملُ يرفض بالعربيّة حين تكون كذلك.
+#:
+#: السرّيُّ وحده كافٍ لأن **الخادم هو من يُنشئ الفاتورة**: لا يحتاج أيُّ عميلٍ
+#: مفتاحاً منشوراً، ولا يصل المبلغ إلى متصفّحٍ أصلاً. v1 يضع
+#: `publishable_api_key` في صفحة HTML ويمرّر `amount` من `$_GET` — وهو الباب
+#: الذي أُغلق في v2 ولا يُفتح من الخلف.
+MOYASAR_API_BASE = env("MOYASAR_API_BASE", default="https://api.moyasar.com/v1")
+MOYASAR_SECRET_KEY = env("MOYASAR_SECRET_KEY", default="")
+#: أين يعود العميلُ بعد الدفع. قالبٌ يسمّي `{reference}`، وفارغٌ يعني «لا
+#: ترسل `callback_url` إلى Moyasar». الوجهةُ صفحةُ عميلٍ لا نقطةُ API: العودةُ
+#: تحت إبهام الدافع ولا يتحرّك بها مال (`TopupDetailView` تشرح لماذا).
+PAYMENT_RETURN_URL_TEMPLATE = env("PAYMENT_RETURN_URL_TEMPLATE", default="")
 
 # --------------------------------------------------------------------------
 # Odoo — off by default. Nothing reaches the accounting system until an
 # operator turns it on for this environment, deliberately.
 # --------------------------------------------------------------------------
 
-ODOO_ENABLED = env("ODOO_ENABLED")
+# `flag` لا `env("ODOO_ENABLED")`: القيمةُ المجهولة تُرفض بصوتٍ ولا تُفسَّر
+# إطفاءً — وهي المخالفةُ المقيسة في §٥-٣ من عقد البيئة.
+ODOO_ENABLED = flag("ODOO_ENABLED", default=False)
 ODOO_BASE_URL = env("ODOO_BASE_URL", default="")
 ODOO_DB = env("ODOO_DB", default="")
 ODOO_USERNAME = env("ODOO_USERNAME", default="")
@@ -522,7 +645,19 @@ ODOO_API_KEY = env("ODOO_API_KEY", default="")
 ODOO_WEBHOOK_SECRET = env("ODOO_WEBHOOK_SECRET", default="")
 #: أطفئ التحقّق من TLS في التطوير فقط (شهادةُ أجهزة التطوير قديمة غالباً، كـ v1).
 #: يبقى `False` في الإنتاج — التحقّقُ قائم.
-ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
+ODOO_INSECURE_TLS = flag("ODOO_INSECURE_TLS", default=False)
+#: `payment_code` الذي يفرضه عقدُ أودو على كل دفعةٍ واستردادٍ واشتراك — وهو
+#: **دفترُ اليومية عندهم**، أي أن قيمةً خاطئةً تُرحّل المالَ إلى الحساب الخطأ
+#: بلا أن يُرفض النداء. لذلك إعدادُ بيئةٍ لا ثابتٌ في الشيفرة: قيمةُ الاختبار
+#: غيرُ قيمة الإنتاج، وv1 يستعمل `005/01` للفواتير و`0002/02` للاشتراكات.
+#:
+#: **وكان افتراضيُّه `005/01` — دفترَ الإنتاج الحقيقيّ.** فبيئةُ تجريبٍ تنسى
+#: كتابتَه **تُقيّد مالَ اختبارها في دفترٍ حقيقيّ**، ولا يُرفض النداء، ولا
+#: يُكتشف إلّا من محاسبٍ يسأل بعد شهر. صار فارغاً بقرار المالك ٢٠٢٦-٠٩-١٤:
+#: `odoo.E006` يرفض الإقلاع حين يكون أودو مُفعَّلاً بلا دفتر. وهي قاعدةُ
+#: `apps/money/units.py` نفسُها — **ما لا نعرفه يُرفض ولا يُخمَّن** — لأن
+#: التخمين هنا مالٌ يُقيَّد في حساب غيره.
+ODOO_PAYMENT_CODE = env("ODOO_PAYMENT_CODE", default="")
 
 # ---------------------------------------------------------------------------
 # v1 — read only, and empty by default (phase 004)
@@ -536,6 +671,14 @@ ODOO_INSECURE_TLS = env.bool("ODOO_INSECURE_TLS", default=False)
 # D6). `apps.migration.extract` refuses to send anything but a read, but that
 # is the readable sentence in front of the guard, not the guard.
 V1_DSN = env("V1_DSN", default="")
+
+#: مسارُ نسخة `mysqldump` من v1، حين يُرحَّل من ملفٍّ لا من خادم
+#: (:mod:`apps.migration.dumpfile`). فارغٌ افتراضاً للسبب نفسِه أعلاه.
+#:
+#: **إعدادٌ لا ثابتٌ في الأمر**: كان مسارُ جهازٍ بعينه (`D:/tmp/...`) مكتوباً
+#: `default` داخل `import_v1`، فيفشل عند غيره صامتاً بـ«النسخة غير موجودة»،
+#: ويحتاج أمران متتاليان كتابةَ المسار مرّتين ويختلفان يومَ تتغيّر النسخة.
+V1_DUMP_PATH = env("V1_DUMP_PATH", default="")
 
 LOGGING = {
     "version": 1,

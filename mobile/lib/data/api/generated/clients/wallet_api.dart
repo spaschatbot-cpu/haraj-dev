@@ -52,6 +52,17 @@ abstract class WalletApi {
     @Path('reference') required String reference,
   });
 
+  /// ألغِ عمليّةَ شحنٍ لم تُدفَع بعد. POST لأنها تكتب.
+  ///
+  /// الحالةُ `cancelled` كانت **معرَّفةً ولا يصل إليها مسار**: كلُّ نيّةٍ فتحها.
+  /// عميلٌ ثم عدل تبقى `pending` إلى الأبد، وزرُّ الدفع حيٌّ عليها، ورابطُ.
+  /// البوّابة يقبل ماله بعد شهر. الإلغاءُ هنا هو نصفُ الجواب؛ ونصفُه الآخر.
+  /// المهلةُ (`services.expire_stale_intents`) لمن لم يُلغِ ولم يدفع.
+  @POST('/api/v1/wallet/topups/{reference}/cancel/')
+  Future<PaymentIntent> v1WalletTopupsCancelCreate({
+    @Path('reference') required String reference,
+  });
+
   /// Hand the customer over to the gateway. One hop, decided on the server.
   ///
   /// A redirect and not a JSON body carrying a url: the client's whole job is to.

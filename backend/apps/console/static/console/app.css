@@ -118,6 +118,8 @@
      ورأسيّاً لا يُدفَع شيء: الشريط يمرّر وحده أصلاً. */
   --sidebar-w: 19rem;
   --sidebar-w-mini: 4.6rem;
+  /* حشوةُ خليّة الجدول أفقيّاً — تُقرأ في `th, td` وهناك شرحُ قياسها. */
+  --cell-pad-x: .45rem;
   --ring: color-mix(in srgb, var(--brand) 26%, transparent);
 }
 
@@ -514,6 +516,19 @@ body {
   line-height: 1;
   cursor: pointer;
 }
+/* رسمٌ مضمَّنٌ لا محرفٌ نصّيّ: `☰` و`◐` و`✕` كان يرسمها نظامُ التشغيل — وهي
+   حجّة T837 نفسُها التي أخرجت الإيموجي من الشريط والرموزَ الهندسية من بطاقات
+   الأرقام. والسمكُ والزوايا هنا هي هي في `.nav__icon` و`.act svg`، لأن ما
+   يجعل الرسوم تُقرأ مجموعةً واحدة هو التطابقُ في السمك لا التشابهُ في الموضوع. */
+.btn__icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 .icon-btn:hover { background: var(--brand-soft); color: var(--brand-dark); border-color: var(--line); box-shadow: none; }
 .icon-btn[aria-pressed="true"] { background: var(--brand-soft); color: var(--brand-dark); }
 
@@ -760,20 +775,92 @@ form[method="get"] button[type="submit"] { margin-inline-start: auto; }
 }
 .scroller > table { margin: 0; }
 
-/* ---- جدولٌ لا يُضغَط ------------------------------------------------------
-   `table { width: 100% }` يجعل الجدولَ يملأ غلافه مهما كثرت أعمدتُه — وذلك
-   صحيحٌ لثمانية أعمدة وخطأٌ لستّة عشر: في «ما بعد البيع» انضغط عمودُ المزاد
-   إلى ٦٧ بكسلاً فلفَّ اسمَ المزاد ثلاثةَ أسطر، وانضغطت خانةُ الأفعال فنزلت
-   أيقوناتُها الثلاث واحدةً تحت واحدة — فصار ارتفاعُ الصفّ ١٤٢ بكسلاً، أي
-   خمسةُ صفوفٍ في الشاشة بدل اثني عشر.
+/* ---- جدولُ سبعةَ عشرَ عموداً: يضيق ولا يُمرَّر ------------------------------
+   يستعمله «ما بعد البيع» و«القرارات المنتهية» (يرث قالبَها).
 
-   والعرضُ الأدنى يجعل `.scroller` يمرّر أفقياً كما بُني ليفعل. وثمنُه صريح:
-   من يقرأ آخرَ الأعمدة يمرّر — وهو أرخص من قراءة خمسة صفوفٍ في نظرة. */
-.scroller--wide > table { min-inline-size: 92rem; }
+   **`white-space: nowrap` تبقى، وهي أهمُّ سطرٍ هنا.** جُرِّب إلغاؤها وقِيس:
+   الجدولُ ينزل من ١٨٦٣ إلى ١٤٣٣ بكسلاً — **وارتفاعُ الصفّ يقفز من ٦٨ إلى
+   ١٢٦**، أي أربعةَ عشرَ صفّاً في الشاشة تصير سبعة. فالعرضُ لا يُشترى بنصف
+   الصفوف؛ يُشترى من الحشوة والخطّ والحدود الدنيا.
+
+   **وكان هنا `min-inline-size: 92rem` فحُذفت** (٢٠٢٦-٠٩-١٤). حجّتُها كانت أن
+   `width: 100%` يضغط الأعمدة فيلفّ اسمُ المزاد ثلاثةَ أسطر — **و`nowrap`
+   أعلاه تمنع ذلك وحدَها**، فالعرضُ الأدنى كان يحرس ما هو محروس. وثمنُها
+   مقيس: بعد ضغط الحشوة والخطّ توقّف الجدولُ عند ١٤٧٢ بالضبط (= ٩٢rem) وهو
+   **سقفٌ كاذب** يفرض تمريراً لم يعد له سبب. قِيس بعد الحذف: ١٤٥٩ في غلافٍ
+   ١٤٥٩، أي صفرَ فيض، وارتفاعُ الصفّ ٦٤ كما كان.
+
+   والحشوةُ ٤ بكسل والخطُّ ٠٫٧٨ريم هنا وحدَهما لا في اللوحة كلّها: سبعةَ عشرَ
+   عموداً تدفع الفرقَ أربعاً وثلاثين مرّة، وجدولُ ستّةِ أعمدةٍ لا يحتاجه. */
 .scroller--wide td,
 .scroller--wide th { white-space: nowrap; }
+.scroller--wide th,
+.scroller--wide td { padding-inline: 4px; font-size: .78rem; }
+/* خانةُ الأفعال هنا **أيقونةٌ واحدة** (سند الدفع) — و`td.actions` العامّة
+   تفرض ٩ريم لصفوفٍ فيها ثلاثُ أيقونات، فكانت الخانةُ تأخذ ١٤٤ بكسلاً
+   لتعرض ٤٩. والهدفُ اللمسيُّ باقٍ على الزرّ نفسه (`.act` ٢٫٢ريم). */
+.scroller--wide td.actions { min-inline-size: 0; }
 /* والسطرُ الخافت تحت القيمة يبقى سطراً ثانياً مقصوداً، لا لفّاً عارضاً. */
 .scroller--wide td small { display: block; }
+
+/* نصٌّ يُقَصُّ بثلاث نقاط ويبقى كاملاً في `title` — **لا يُحذف**. المالك
+   طلب «نفس الداتا المعروضة وعدد الأعمدة»، واسمُ المركبة وحدَه كان ٢٨١ بكسلاً
+   من ١٧٤٣ (قِيس على ٢٨٨ مركبةً مرحَّلة في `?which=rejected`). فالقصُّ يردّه
+   إلى سقفه، والقيمةُ تُقرأ بالمرور عليه — ولا يُقَصُّ في ملفّ التصدير ولا في
+   شاشة التفصيل، فهما ليسا شاشةً ضيّقة.
+
+   و`--clip` متغيّرٌ لأن السقفَ يختلف بالعمود، و**صنفٌ لا `style=` في السطر**:
+   السقفُ يضيق على الشاشات الأضيق (الكتلة تحته)، والسطرُ يغلب استعلامَ
+   الوسائط فلا يضيق شيء. */
+.cell-clip {
+  display: inline-block;
+  max-inline-size: var(--clip, 9rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+.clip-name { --clip: 9rem; }
+.clip-model { --clip: 9rem; }
+.clip-buyer { --clip: 8rem; }
+.clip-aname { --clip: 6rem; }
+
+/* دون ١٥٣٦ بكسلاً يضيق الغلافُ نفسُه: ١٤٥٩ على منفذ ١٦٠٠ و١٢٩٩ على ١٤٤٠
+   (بالشريط مطويّاً في الحالين). فالسقوفُ والحشوةُ تنزل معه — قِيس على
+   `?which=rejected`: ١٣٧٥ في غلافٍ ١٢٩٩ قبل هذه الكتلة، و١٢٩٩ بعدها.
+
+   ولماذا بخطوةٍ واحدة لا بسُلَّم: قياسان اثنان لا يرسمان سُلَّماً، وخطوةٌ
+   مقيسةٌ أصدقُ من ثلاثٍ مُخمَّنة. */
+@media (max-width: 96rem) {
+  .scroller--wide th,
+  .scroller--wide td { padding-inline: 3px; }
+  .clip-name { --clip: 7rem; }
+  .clip-model { --clip: 7rem; }
+  .clip-buyer { --clip: 7rem; }
+  .clip-aname { --clip: 5rem; }
+}
+
+/* سطرٌ ثانٍ في خليّةٍ قائمة يحمل ما لا يستحقّ عموداً — «القرارات المنتهية»
+   تضع فيه القرارَ ووقتَه بعد أن حُذف عمودُ «القرار».
+
+   **كلمةٌ ملوّنةٌ لا لونٌ وحدَه**: صفٌّ يُميَّز بلونه فقط لا يُقرأ لمن لا
+   يميّز الأحمرَ من الأخضر، ولا يُنسَخ مع النصّ. واللونُ من النغمة نفسِها
+   التي تلوّن الحبّة (`tones.py`) فلا خريطةَ ثانية تفترق عنها.
+
+   وثمنُه صفرٌ: خليّةُ المزاد بجواره تحمل سطرين أصلاً فالصفُّ لا يعلو
+   (قِيس: ٦٤ بكسلاً قبل وبعد)، والسطرُ أقصرُ من اسم المركبة فوقه فالعمودُ
+   لا يتّسع. */
+.cell-note {
+  display: block;
+  font-size: .72rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+.cell-note[data-tone="ok"] { color: var(--ok); }
+.cell-note[data-tone="warn"] { color: var(--warn); }
+.cell-note[data-tone="bad"] { color: var(--danger); }
+.cell-note[data-tone="info"] { color: var(--info); }
+.cell-note[data-tone="money"] { color: var(--money); }
+.cell-note[data-tone="auction"] { color: var(--auction); }
 
 table {
   border-collapse: separate;
@@ -793,7 +880,17 @@ thead tr:first-child th:last-child { border-start-end-radius: var(--radius-lg); 
 tbody tr:last-child td:first-child { border-end-start-radius: var(--radius-lg); }
 tbody tr:last-child td:last-child { border-end-end-radius: var(--radius-lg); }
 th, td {
-  padding: .68rem .9rem;
+  /* الحشوةُ الأفقيّة متغيّرٌ لأنها **أكبرُ مشترٍ للعرض في اللوحة كلّها**:
+     سبعةَ عشرَ عموداً تدفع ثمنَها أربعاً وثلاثين مرّة. قِيس على «كتالوج
+     السيارات» بحساب المالك على منفذ ١٦٠٠: الجدولُ ١٥٥٧ في غلافٍ ١٢٢٨ (يفيض
+     ٣٢٩) — وخفضُها وحدَها إلى ٦ بكسل ردّه إلى ١٢٨٨، ومع لفّ `.mono` إلى
+     ١٢٢٨، أي صفرَ فيضٍ (٢٠٢٦-٠٩-١٤).
+
+     وثمنُها مذكور: الخلايا تتقارب، ولا حدودَ رأسيّةً بينها تفصلها — فالفصلُ
+     صار بالفراغ وحدَه. وذلك أرخصُ من تمريرٍ أفقيّ في كلّ شاشة، وأرخصُ من
+     خطٍّ أصغرَ لا يُقرأ (قِيس: الخطُّ الأصغر لم يُعطِ بكسلاً واحداً بعد
+     هذين العلاجين). */
+  padding: .68rem var(--cell-pad-x);
   border-block-end: 1px solid var(--line-soft);
   text-align: start;
   font-size: .88rem;
@@ -841,6 +938,10 @@ td.count, td.money, th.count, th.money { font-variant-numeric: tabular-nums; }
 .pill[data-tone="warn"] { background: var(--warn-soft); color: var(--warn); }
 .pill[data-tone="bad"] { background: var(--danger-soft); color: var(--danger); }
 .pill[data-tone="info"] { background: var(--info-soft); color: var(--info); }
+/* أشدُّ من `bad`: أرضيّةٌ مصمتة لا باهتة. الدرجةُ الرابعة في مؤقّت متابعة النقل
+   («تنبيه المالك» عند ٣٠ يوماً) لو أخذت نبرةً غيرَ معرَّفةٍ لسقطت إلى الرماديّ
+   الافتراضيّ — فيخرج أخطرُ صفٍّ في الجدول أهدأَ من الذي قبله. */
+.pill[data-tone="critical"] { background: var(--danger); color: #fff; }
 .pill[data-tone="money"] { background: var(--money-soft); color: var(--money); }
 .pill[data-tone="auction"] { background: var(--auction-soft); color: var(--auction); }
 
@@ -2202,7 +2303,14 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
 
 
 /* زر الإجراء الرئيسي في رأس الصفحة: يبرز بلون المنظومة المصمت لتمييز الإنشاء عن التصدير */
+/* زرُّ «طباعة» في إقرار الخروج يحمل رسمَ طابعةٍ بدل `🖨️` — وهي صفحةٌ تُطبَع
+   فعلاً: الإيموجي يخرج من الطابعة ملوَّناً بأسلوب نظام التشغيل بجوار نصٍّ
+   أسود. (T837 — الذيل) */
+.page__actions .btn-primary svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .page__actions .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
   background: var(--brand-solid);
   color: #fff;
   border-color: var(--brand-solid);
@@ -4230,6 +4338,14 @@ dialog.row-modal {
   white-space: nowrap;
 }
 .chip--count { color: var(--brand-dark); border-color: var(--brand); }
+/* حبّةٌ برسمٍ داخلها: الرسمُ `<svg>` مضمَّنٌ لا محرف `🎨`/`🏷️`/`👤` — وكان
+   المحرفُ يرسمه نظامُ التشغيل ملوّناً بأسلوبه، وهو ما رفضه المالك (T837).
+   و`inline-flex` لأن الرسمَ والكلمةَ سطرٌ واحد لا سطران على الالتفاف. */
+.chip:has(svg) { display: inline-flex; align-items: center; gap: .3rem; }
+.chip svg { inline-size: .85rem; block-size: .85rem; flex: none; }
+.arch-card__noimg svg { inline-size: 1.6rem; block-size: 1.6rem; }
+.arch-card__actions .btn-sm svg,
+.arch-card__actions .btn-odoo svg { inline-size: .85rem; block-size: .85rem; vertical-align: -.15em; }
 .pick-card__cta {
   margin-block-start: auto;
   padding: .55rem .8rem;
@@ -4283,6 +4399,9 @@ dialog.row-modal {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* فجوةٌ بين الرسم والكلمة: الرسمُ `<svg>` مضمَّنٌ لا محرف `📷`، فلا مسافةَ
+     نصّيّةٌ تفصلهما من تلقاء نفسها. T837 */
+  gap: .35rem;
   color: var(--muted);
   font-size: .82rem;
 }
@@ -4320,6 +4439,27 @@ dialog.row-modal {
 
 /* السيارةُ المخفيّةُ عن العملاء: تُعتَّم قليلاً وتُوسَم بشريطٍ مائل، فيُعرَف
    في نظرةٍ أيُّها مطويٌّ عن القوائم — دون إخفائه عن الموظّف الذي يديره. */
+/* المركبةُ التي جاء الموظّفُ من أجلها من «بحث عن سيارة» (`?focus=`).
+   حدٌّ يبقى ووميضٌ ينطفئ: الوميضُ يقول «هنا» في اللحظة الأولى، والحدُّ يبقى
+   ليُجيب بعد ثانيتين حين يكون الموظّفُ قد رفع عينَه عن الشاشة ثمّ عاد.
+   ووميضٌ وحده — كما في v1 (`mv-focus-row`، ٢٫٦ ثانية ثمّ يُحذف الصنف) —
+   يترك من فاتته اللحظةُ أمام جدولٍ لا تعليمَ فيه.
+
+   و`prefers-reduced-motion` تُسقط الحركةَ وتُبقي الحدّ: التعليمُ معلومة، لا زينة. */
+.veh-card--focus {
+  outline: 2px solid var(--gold, #a88118);
+  outline-offset: -2px;
+  scroll-margin-block: 96px;  /* الترويسةُ لاصقةٌ بارتفاع ٥٨ — بلا هذا يقف الصفُّ تحتها */
+}
+.veh-card--focus { animation: veh-focus-flash 2.4s ease-in-out 1; }
+@keyframes veh-focus-flash {
+  0%, 100% { background: transparent; }
+  15%, 55% { background: color-mix(in srgb, var(--gold, #a88118) 14%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .veh-card--focus { animation: none; }
+}
+
 .veh-card--hidden { opacity: .62; }
 .veh-card--hidden .veh-card__img::after {
   content: "مخفيّة";
@@ -4370,6 +4510,14 @@ dialog.row-modal {
   line-height: 1;
 }
 .modal__close:hover { border-color: var(--brand); color: var(--ink); }
+/* زرُّ الإغلاق رسمٌ مضمَّن لا محرف `✕`: نافذتان في اللوحة تُغلقان، وكانت
+   واحدةٌ منهما بالرسم والأخرى بالمحرف. و`inline-flex` ليتوسّط الرسمُ المربّعَ
+   كما كان المحرف يتوسّطه. (T837 — الذيل) */
+.modal__close { display: inline-flex; align-items: center; justify-content: center; }
+/* و`flex: none` لازمٌ لا زينة: الزرُّ صار حاوياً مرناً ليتوسّط الرسمُ فيه،
+   والعنصرُ المرن ينكمش افتراضياً — فقِيس عرضُ الرسم على الشاشة **صفراً**
+   وارتفاعُه ١٤٫٤ (أي شريطٌ رأسيّ لا صليب). */
+.modal__close svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .gallery-msgs { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .4rem; }
 
 /* بطاقةُ مزادٍ بلا سيارات في مُنتقي التعديل السريع: لا تُفتح، فتُعتّم ويغيب
@@ -4476,6 +4624,16 @@ dialog.row-modal {
 }
 .qe-card__title { font-weight: 800; font-size: .92rem; color: var(--ink); line-height: 1.4; min-inline-size: 0; overflow-wrap: anywhere; }
 .qe-card__sub { display: block; margin-block-start: .2rem; font-family: var(--mono, ui-monospace, monospace); font-size: .74rem; font-weight: 700; color: var(--muted); overflow-wrap: anywhere; }
+/* سطرُ التعارض: يظهر حين يردّ الخادم ٤٠٩ «عُدِّل هذا الكارت من نافذةٍ أخرى»،
+   ويحمل ما صار إليه الحقل. لونُ الخطر لأنه رفضُ كتابة، وداخلَ الكارت لا في
+   توستٍ يختفي بعد ثانيتين — الموظّفُ يحتاج أن يقرأه وهو ينظر إلى الخانة. */
+.qe-card__clash {
+  margin: 0 0 .7rem; padding: .45rem .6rem; border-radius: var(--radius);
+  border: 1px solid var(--danger, #dc2626);
+  background: var(--danger-soft, rgb(220 38 38 / .07));
+  color: var(--ink); font-size: .78rem; font-weight: 700; line-height: 1.6;
+  overflow-wrap: anywhere;
+}
 .qe-card__act { display: flex; align-items: center; gap: .4rem; flex: 0 0 auto; }
 .qe-card__status { min-inline-size: 1.4rem; text-align: center; font-size: 1rem; }
 .qe-card__save {
@@ -4543,8 +4701,37 @@ dialog.row-modal {
   background: var(--ink); color: var(--panel); padding: .6rem 1.1rem; border-radius: var(--radius);
   font-weight: 800; font-size: .84rem; z-index: 9999; box-shadow: var(--shadow-lift);
 }
-.qe-toast--ok { background: var(--ok, #16a34a); color: #fff; }
+/* ولونٌ مثبَّت هنا أيضاً، وهذا عطلٌ **قائمٌ قبل هذا العمل** كشفه القياس على
+   الشاشة: `--ok` يقلب في المظهر الداكن إلى `#63d3a4` — أخضرَ فاتح، وعليه نصٌّ
+   أبيض بنسبة **١٫٨٤** (والحدّ ٤٫٥). أي أن رسالةَ «حُفظ» كانت لا تُقرأ في
+   المظهر الداكن أصلاً. و`#12704a` (قيمةُ `--ok` في المظهر الفاتح) نسبتُه مع
+   الأبيض **٦٫١٠** في المظهرين — والتوستُ طبقةٌ تحمل خلفيّتها ولا ترث الصفحة،
+   فلا معنى لأن يتبدّل لونُها مع المظهر. و`--bad` غيرُ معرَّفٍ أصلاً فالبديل
+   `#dc2626` هو العامل، ونسبتُه **٤٫٨٣** — يمرّ، فتُرك. */
+.qe-toast--ok { background: #12704a; color: #fff; }
 .qe-toast--err { background: var(--bad, #dc2626); color: #fff; }
+/* نغمةٌ ثالثة: «حُفظت البيانات ورُفضت الصورة» و«حُفظ ٩ وفشل ١» ليستا فشلاً —
+   شيءٌ كُتب فعلاً. كانتا تحملان `⚠` في النصّ واللونَ الأحمر معاً، فالمحرف
+   يقول تحذيراً واللونُ يقول خطأً. (T837 — الذيل)
+
+   ولونٌ مثبَّت لا `var(--warn)`: الرمزُ يقلب `--warn` في المظهر الداكن إلى
+   `#f0c268` — أصفرَ شاحب، وعليه نصٌّ أبيض بنسبة ١٫٩، أي لا يُقرأ. والمثبَّت
+   `#8a5a00` نسبتُه مع الأبيض **٥٫٩٣** في المظهرين معاً، لأن التوستَ طبقةٌ
+   فوق الصفحة تحمل خلفيّتها معها ولا ترث شيئاً. */
+.qe-toast--warn { background: #8a5a00; color: #fff; }
+/* الرسمُ والكلمة سطرٌ واحد، والرسمُ يرث `currentColor` — وهو ما لا يفعله
+   المحرفُ الذي كان يبدأ كلَّ رسالة. */
+.qe-toast { display: inline-flex; align-items: center; gap: .45rem; }
+.qe-toast svg { flex: none; }
+/* علامةُ حالة الحفظ في رأس الكارت: رسمٌ لا محرف، ولونٌ يقول الحالة. */
+.qe-card__status { display: inline-flex; align-items: center; justify-content: center; gap: .12rem; }
+.qe-card__status.is-ok { color: var(--ok, #16a34a); }
+.qe-card__status.is-bad { color: var(--bad, #dc2626); }
+.qe__search-ic { display: inline-flex; }
+.qe__search-ic svg { inline-size: .95rem; block-size: .95rem; }
+.qe-photo__lbl { display: inline-flex; align-items: center; gap: .3rem; }
+#qeSaveAll { display: inline-flex; align-items: center; gap: .35rem; }
+#qeSaveAll svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 @media (max-width: 600px) { .qe-list { grid-template-columns: 1fr; } }
 
 /* ---- كتالوج السيارات: أدواتٌ صغيرة مشتركة. T884 ------------------------- */
@@ -4558,7 +4745,16 @@ dialog.row-modal {
 /* خليّةُ موعد المزاد: بدايةٌ ونهايةٌ سطرين. */
 .sched { display: flex; flex-direction: column; gap: .1rem; font-size: .78rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .muted { color: var(--muted); }
-.mono { font-family: var(--mono, ui-monospace, monospace); font-size: .82rem; }
+/* `overflow-wrap: anywhere` لا `break-word`: الثانيةُ تكسر عند الرسم ولا
+   تُنقِص **العرضَ الأدنى** للعمود، فالجدولُ يبقى عريضاً كما كان. والأولى
+   تُنقِصه، فيُصبح للمتصفّح أن يضغط عمودَ الشاصي حين يضيق الغلاف وحده.
+
+   ولماذا لا `max-width` بعددِ محارف: رقمُ اللوحة `.mono` أيضاً وهو ستّةُ
+   محارف — وسقفٌ ثابتٌ يكسره بلا سبب. وبهذه القاعدة لا يُكسر شيءٌ ما دام
+   المكان يتّسع؛ الشاصي (١٧ محرفاً، ١٦٣ بكسلاً وهو أعرضُ عمودٍ في الكتالوج)
+   هو أوّلُ ما يلتفّ لأنه أطولُ ما في الصفّ. وثمنُه: صفُّ الكتالوج يصير
+   سطرين حين يضيق العرض. */
+.mono { font-family: var(--mono, ui-monospace, monospace); font-size: .82rem; overflow-wrap: anywhere; }
 
 /* صفُّ فلاتر الكتالوج — شبكةٌ من حقولٍ معنونة (لصيقةٌ فوق كل حقل كـ v1)،
    وصفُّ الأزرار يمتدّ العرضَ كلَّه أسفلها. */
@@ -4611,7 +4807,18 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 .ex-tab.is-on { color: var(--brand-dark); border-block-end-color: var(--brand-solid); }
 .ex-tab__n { display: inline-block; min-inline-size: 1.2rem; padding: 0 .35rem; margin-inline-start: .25rem; font-size: .72rem; background: var(--raised); border: 1px solid var(--line); border-radius: 999px; color: var(--ink-soft); }
 .ex-tab.is-on .ex-tab__n { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); }
-.ex-inline { display: flex; align-items: center; gap: .35rem; margin: 0; flex-wrap: wrap; }
+/* **نموذجٌ داخل خليّةِ جدول، فيُنزَع عنه رداءُ البطاقة صراحةً.** القاعدةُ
+   العامّة `form {…}` تعطي كلَّ `<form>` في اللوحة خلفيةً وحدّاً وظلاً وحشوةَ
+   ‏`1.2rem 1.4rem` و`margin-bottom: 1.25rem` — وهي بطاقةٌ صحيحةٌ لنموذجٍ في
+   صفحة، وكارثةٌ لزرٍّ في صفّ: `margin` وحده كان منزوعاً هنا، فبقيت الحشوةُ
+   والحدُّ فصار **كلُّ زرٍّ في الجدول داخل مربّعٍ، وارتفاعُ الصفّ ١٢٣px**.
+   وهذه ثالثُ مرّة: `.sign-out` رفع الشريطَ العلويَّ إلى ٩٨px للسبب نفسه،
+   و`.filters` قبله. من يكتب `<form>` في هذه اللوحة يرث البطاقةَ ما لم ينزعها. */
+.ex-inline {
+  display: flex; align-items: center; gap: .35rem; flex-wrap: wrap;
+  margin: 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+}
 .ex-inline input[type=file] { max-inline-size: 11rem; font-size: .76rem; }
 
 /* أزرارُ الإجراءات: أيقونةٌ ورسمةٌ ونصٌّ معاً، بأنميشن دخولٍ وتفاعلٍ عند المرور. */
@@ -4632,15 +4839,96 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
 /* «إنشاء الخروج» أبرزُ قليلاً — فعلٌ رئيسيّ بلون العلامة. */
 .ex-act--create { border-color: var(--brand); color: var(--brand-dark); }
 .ex-act--create:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
+.ex-act--papers:hover { border-color: var(--ok, #15803d); color: var(--ok, #15803d); background: var(--ok-soft, #dcfce7); }
+/* «تأكيد النقل» فعلُ اللسان الرئيسيّ — يُقرأ قبل غيره في الصفّ. */
+.ex-act--transfer { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.ex-act--transfer:hover { background: var(--brand-solid); color: #fff; border-color: var(--brand-solid); }
 .ex-upload { display: inline; margin: 0; }
+
+/* مجموعاتُ الاختيار في نافذة الأوراق: نوعُ الخروج وسببُه.
+   و`[hidden]` بـ`!important` ضرورةٌ لا زينة: `.modal label` أعلاه تُعلن
+   `display:block`، وقاعدةُ المؤلِّف تغلب `[hidden]` في ورقة المتصفّح — فحقلُ
+   إثبات النقل كان يبقى ظاهراً بعد إخفائه من الشيفرة. */
+.modal [hidden] { display: none !important; }
+.ex-choice { margin: 0 0 .7rem; padding: .5rem .7rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.ex-choice legend { padding-inline: .3rem; font-size: .8rem; font-weight: 700; color: var(--ink-soft); }
+.ex-choice__opt { display: flex !important; align-items: center; gap: .45rem; margin-block-end: .3rem; font-weight: 600; cursor: pointer; }
+.ex-choice__opt:last-child { margin-block-end: 0; }
+.ex-choice__opt input { inline-size: auto; margin: 0; accent-color: var(--brand-solid, currentColor); }
 .actions--nowrap .ex-act:nth-child(2) { animation-delay: .05s; }
 .actions--nowrap .ex-act:nth-child(3) { animation-delay: .1s; }
 @keyframes exActIn { from { opacity: 0; transform: translateY(4px) scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .ex-act { animation: none !important; } .ex-act, .ex-act svg { transition: none !important; } }
 
+/* ---- لسانُ متابعة نقل الملكية -------------------------------------------
+   الصفُّ يُلوَّن بدرجة تأخّره، والمحظورُ يسبق التأخّر: `data-ban` بعد `data-late`
+   في الترتيب فيغلبه عند التساوي في الخصوصيّة. والتلوينُ خفيفٌ عمداً — أرضيّةٌ
+   لا تُذهب قراءةَ النصّ فوقها في الوضعين الفاتح والداكن. */
+.ex-row[data-late="1"] > td { background: color-mix(in srgb, var(--warn) 7%, transparent); }
+.ex-row[data-late="2"] > td { background: color-mix(in srgb, var(--danger) 9%, transparent); }
+.ex-row[data-late="3"] > td { background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.ex-row[data-ban] > td { background: color-mix(in srgb, var(--danger) 12%, transparent); }
+/* اثنا عشرَ عموداً في عرضٍ واحد: بلا `nowrap` يلتفّ رقمُ الجوّال على أربعة
+   أسطرَ ورقمُ المطالبة على سطرين، فيصير الصفُّ الواحد كتلةً بارتفاع خمسة صفوف
+   ولا يُقرأ الجدولُ مسحاً بالعين. الالتفافُ يُمنع، والفائضُ يُمرَّر أفقياً في
+   `.scroller` — وهو ما يفعله جدولُ v1 حرفيّاً. */
+/* شريطُ فلترة المرحلة: بحثٌ ومدى تاريخٍ ومسحٌ وتصدير، في سطرٍ يلتفّ على الضيّق. */
+.ex-filter { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: 0 0 .7rem; }
+.ex-filter__q { min-inline-size: 18rem; flex: 1 1 18rem; }
+.ex-filter input[type=date] { inline-size: 9.5rem; }
+.ex-filter .muted { font-size: .78rem; }
+.ex-filter__n { margin-inline-start: auto; font-weight: 700; }
+/* صفٌّ يُخفيه الفلتر: `[hidden]` على `<tr>` تغلبه قاعدةُ `display: table-row`
+   في ورقة المتصفّح، فلا يختفي بلا هذا السطر — وهو عطلُ `.modal [hidden]` نفسُه
+   في موضعٍ آخر. */
+tr.ex-row[hidden] { display: none !important; }
+.ex-row > td { white-space: nowrap; }
+/* والخليّتان الوحيدتان اللتان تُستثنَيان هما اللتان تحملان نموذجاً — ومعهما
+   `flex-wrap` يُطفأ: صفٌّ واحدٌ بارتفاع خمسة أسطرَ يقتل الجدولَ نفسَه الذي
+   مُنع الالتفافُ لأجله. */
+.ex-row > td:has(.ex-note), .ex-row > td:has(.ex-inline) { white-space: normal; }
+.ex-row .ex-inline { flex-wrap: nowrap; }
+.ex-row .ex-inline input[type=file] { max-inline-size: 7.5rem; font-size: .7rem; }
+/* و«تأكيد النقل» في سطرٍ واحد: الخليّةُ ضيّقةٌ فيلتفّ النصُّ على سطرين ويصير
+   الزرُّ أطولَ من صفّه. */
+.ex-row .ex-inline button { white-space: nowrap; }
+/* المرفقاتُ الثلاثة في سطرٍ واحد: التفافُها يرفع الصفَّ ١٤px لأجل رابطٍ ثانٍ،
+   والعرضُ متاحٌ أفقياً في `.scroller`. */
+.ex-files { display: flex; flex-wrap: nowrap; gap: .25rem; }
+/* ونموذجُ الملاحظة مثلُه — انظر `.ex-inline` أعلاه. */
+.ex-note {
+  display: flex; gap: .3rem; align-items: center;
+  margin: 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+}
+.ex-note textarea {
+  flex: 1; inline-size: 8rem; min-inline-size: 0; block-size: 1.9rem; resize: vertical;
+  font: inherit; font-size: .78rem; padding: .3rem .4rem;
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--panel); color: var(--ink);
+}
+
 .ex-gate { max-inline-size: 30rem; margin: 1rem auto; text-align: center; padding: 1.6rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
 .ex-gate h2 { margin: 0 0 .3rem; }
 .ex-gate__form { display: flex; gap: .5rem; margin-block-start: 1rem; }
+.ex-gate__scan { margin: .6rem 0 0; }
+.ex-gate__reader { margin: .8rem auto 0; max-inline-size: 26rem; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
+.ex-gate__reader video { inline-size: 100%; display: block; }
+.ex-gate__result { margin-block-start: 1rem; }
+/* الحقائقُ الستُّ شبكةً لا سطراً: الحارسُ يطابقها بالعين على ورقةٍ بيده،
+   والمطابقةُ أسرع في عمودين منها في جملةٍ واحدة طويلة. */
+.ex-gate__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .9rem; margin: 0; text-align: start; }
+.ex-gate__facts div { display: flex; gap: .4rem; align-items: baseline; border-block-end: 1px dashed var(--line); padding-block-end: .35rem; }
+.ex-gate__facts dt { color: var(--ink-soft); font-size: .78rem; font-weight: 700; }
+.ex-gate__facts dd { margin: 0; font-weight: 700; }
+.ex-gate__bad { margin: .8rem 0 0; padding: .55rem .7rem; border-radius: var(--radius); background: var(--danger-soft); color: var(--danger); font-weight: 700; }
+/* ونموذجُ التأكيد ينزع بطاقةَ النماذج كـ`.ex-inline` — القاعدةُ العامّة
+   `form {…}` تُلبسها كلَّ `<form>` في اللوحة. */
+.ex-gate__confirm {
+  margin: 1rem 0 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none;
+}
+.ex-gate__confirm .btn-primary { inline-size: 100%; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; }
 .ex-gate__input { flex: 1 1 auto; padding: .7rem .9rem; font: inherit; font-size: 1.1rem; font-family: var(--mono, ui-monospace, monospace); letter-spacing: .1em; text-align: center; border: 2px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--ink); text-transform: uppercase; }
 .ex-gate__input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--ring); }
 
@@ -4723,6 +5011,32 @@ form.cat-filters .cat-filters__field select { flex: 0 0 auto; min-inline-size: 0
   border: 1px solid var(--line); background: var(--panel);
 }
 .arch-toggle.is-open { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+/* علامةُ الطيّ: رسمٌ واحدٌ يُدار، لا محرفان يُبدَّلان. كان القالبُ يحمل `▸`
+   ويكتب JS فوقه `▾` بـ`textContent` — فالشكلُ والحالة في مكانين، وحذفُ محرفٍ
+   من القالب يترك السطرَ في JS يعيده. الآن الصنفُ `is-open` وحدَه يقلبه.
+   والدورانُ ٩٠ درجة لا ١٨٠: السهمُ يشير يميناً مطوياً وأسفلَ مفتوحاً، كما
+   كان `▸`/`▾` بالضبط. (T837 — الذيل) */
+.arch-toggle svg { inline-size: .8rem; block-size: .8rem; transition: transform .15s ease; }
+.arch-toggle.is-open svg { transform: rotate(90deg); }
+/* ألسنةُ شاشة الخروج وأزرارُها: الرسمُ والكلمةُ سطرٌ واحد. كانت `📤` `🔄`
+   `🗄️` `🚧` `✅` — يرسمها نظامُ التشغيل بأسلوبه، وتكبر مع حجم الخطّ. */
+.ex-tab { display: inline-flex; align-items: center; gap: .35rem; }
+/* **مقاسٌ واحدٌ وسُمكٌ واحد لكلّ رسمٍ في هذه الشاشة.** كانت رسومُ الألسنة
+   ‏`.9rem` بسُمك `2` (السُمكُ من خاصّية `_act_icon.html` لأن لا قاعدةَ تكتبه)،
+   ورسومُ الأفعال `1rem` بسُمك `1.7` — أي مقاسان وسُمكان في عرضٍ واحد. ورسمان
+   بسُمكين لا يُقرآن مجموعةً واحدة ولو كانا من الملفّ نفسه (T837: التطابقُ في
+   السُمك هو ما يصنع المجموعة، لا التشابهُ في الموضوع).
+   ويُكتَب هنا في قاعدةٍ واحدة لا في أربع، فلا يُنسى واحدٌ عند أيّ تعديلٍ لاحق. */
+.ex-tab svg,
+.ex-act svg,
+.ex-inline .btn-primary-sm svg,
+.ex-gate__form svg {
+  inline-size: 1rem; block-size: 1rem; flex: none; stroke-width: 1.7;
+}
+.ex-inline .btn-primary-sm { display: inline-flex; align-items: center; gap: .3rem; }
+/* «إضافة سيارة يدويًا» — كانت `➕`. */
+.cat-add-row .btn-primary { display: inline-flex; align-items: center; gap: .35rem; }
+.cat-add-row .btn-primary svg { inline-size: .9rem; block-size: .9rem; flex: none; }
 .arch-panel > td { padding: 0 !important; background: var(--raised); }
 .arch-panel__inner { padding: 1rem 1.1rem; }
 .arch-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; }

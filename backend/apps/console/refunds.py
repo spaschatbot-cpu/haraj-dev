@@ -60,6 +60,7 @@ from django.utils import timezone
 from apps.auctions.models import Auction
 from apps.bidding.models import Bid
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.money.models import RefundRequest, RefundRequestState
 from apps.odoo.models import RefundShortfall
 
@@ -77,9 +78,7 @@ def refund_rows(*, text: str = "", state: str = ""):
     text = (text or "").strip()
     if text:
         rows = rows.filter(
-            Q(user__full_name__icontains=text)
-            | Q(user__phone__icontains=text)
-            | Q(reference__icontains=text)
+            search_q(text, "user__full_name", "user__phone", "reference")
         )
 
     if (state or "").strip() in RefundRequestState.values:
@@ -159,7 +158,7 @@ def auctions_with_bids(text: str = ""):
 
     text = (text or "").strip()
     if text:
-        matches = Q(title__icontains=text)
+        matches = search_q(text, "title")
         if text.isdigit():
             matches |= Q(number=int(text))
         rows = rows.filter(matches)

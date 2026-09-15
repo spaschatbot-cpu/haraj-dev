@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, render
@@ -37,10 +38,14 @@ from django.shortcuts import get_object_or_404, render
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
-from apps.money.models import Invoice
+from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
+from apps.money.models import Invoice, InvoiceState
 
 from .dashboard import Stat
-from .exports import export, wants_export
+from .exports import export_table, wants_export
+from .icons import path_of
+from .sensitive import CUSTOMER, MONEY, Shown, columns_for, person_on, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
 
@@ -81,7 +86,7 @@ def archived(*, text: str = "", state: str = ""):
     if text:
         # الرقم أو الاسم: الاثنان ما يُتذكَّر من مزادٍ مضى، ولا يُعرف أيّهما
         # في يد السائل. و`number` رقمٌ فيُطابَق تماماً لا جزئياً.
-        matches = Q(title__icontains=text)
+        matches = search_q(text, "title")
         if text.isdigit():
             matches |= Q(number=int(text))
         rows = rows.filter(matches)
@@ -93,12 +98,32 @@ def archived(*, text: str = "", state: str = ""):
     ).order_by("-ends_at", "-number")
 
 
-def archive_totals() -> list[Stat]:
+def archive_totals(seen: Shown) -> list[Stat]:
     """البطاقاتُ الأربع في رأس الأرشيف — نظيرُ v1، بأرقامٍ من القاعدة.
 
     «المبيعات» جمعُ أسعار المرساة، و«المحصّل» و«المتبقّي» **من الفواتير
     ودفعاتها** لا من عمودٍ مخزَّن — فلا رقمٌ لا يُعرف متى حُسب. تُحسب على كامل
     الأرشيف (لا المرشَّح) لأنها ملخّصُ الأرشيف كلِّه، كما في v1.
+
+    والفاتورةُ الملغاة خارج «المتبقّي» — ولماذا
+    ============================================
+    كان المتبقّي `SUM(amount) - SUM(amount_paid)` على **كلّ** فاتورة، والملغاةُ
+    فيها. وفاتورةٌ ملغاةٌ لا يدين بها أحد، فكانت البطاقةُ تعرض ديناً لا وجود له:
+    قِيس على `haraj2_t307` في ١٤ سبتمبر ٢٠٢٦ — الشاشةُ ٢٢٬٧٥٤٬١١٧٫٧٣ والصحيحُ
+    ١٢٬٣٣٨٬٥٢٣٫١١، أي **زيادةٌ قدرُها ١٠٬٤١٥٬٥٩٤٫٦٢** من ٢٥٢ فاتورةٍ ملغاة.
+
+    والشرطُ ليس اجتهاداً هنا، هو مكتوبٌ في موضعين قبل هذا:
+    * **v1 يستثنيها نصّاً** في استعلام البطاقتين
+      (`AuctionArchiveController.php:315-328`):
+      `PaymentStatus NOT IN ('cancelled','reversed')`. فإدخالُها هنا كان
+      **إسقاطاً لشرطٍ كان في القديم**، لا تبسيطاً.
+    * و:attr:`~apps.money.models.Invoice.outstanding` — تعريفُ طبقةِ المال
+      نفسِها لِما «لا يزال مستحقّاً» — يُرجع صفراً للملغاة.
+
+    ولذلك يُطرح مبلغُ الملغاة من المفوتَر بدل أن يُجمَع الباقي صفّاً صفّاً:
+    الجمعُ في بايثون على ١٢٬٣٢٤ فاتورةً استعلامٌ يجرّها كلَّها إلى الذاكرة،
+    والطرحُ يبقى استعلامَ تجميعٍ واحداً. وقد قِيس أن الطريقتين تعطيان الرقم
+    نفسَه بالهللة — ١٢٬٣٣٨٬٥٢٣٫١١ — فالأرخصُ منهما هو المختار.
     """
     count = Auction.objects.filter(state__in=ARCHIVED).count()
     sales = (
@@ -110,18 +135,58 @@ def archive_totals() -> list[Stat]:
     inv = Invoice.objects.filter(vehicle__auction__state__in=ARCHIVED)
     billed = inv.aggregate(s=Sum("amount"))["s"] or ZERO
     collected = inv.aggregate(s=Sum("amount_paid"))["s"] or ZERO
-    remaining = billed - collected
+    # الملغاةُ تخرج من طرفَي الطرح معاً: مبلغُها ليس ديناً، وما سُدِّد عليها قبل
+    # الإلغاء ليس تحصيلاً قائماً. وإخراجُها من طرفٍ واحد كان سيقلب الإشارة.
+    voided = inv.filter(state=InvoiceState.CANCELLED).aggregate(
+        billed=Sum("amount"), paid=Sum("amount_paid")
+    )
+    remaining = (billed - (voided["billed"] or ZERO)) - (
+        collected - (voided["paid"] or ZERO)
+    )
+
+    # **البطاقتان بأساسين، وكلٌّ تحمل أساسَها في عنوانها.**
+    #
+    # «المبيعات» جمعُ `Vehicle.awarded_price` — **سعرُ المطرقة وحده**. و«المحصّل»
+    # و«المتبقّي» من `Invoice.amount`/`amount_paid`، و`amount` بحكم قيدِ القاعدة
+    # `net + fee + tax == amount` — أي **شاملاً الرسمَ والضريبة**. فالرقمان لا
+    # يتساويان ولا يجوز أن يتساويا، وهذا تناقضٌ موروثٌ من v1 حرفياً (§٢-ب-٩).
+    #
+    # وحكمُ المالك: **لا يُغيَّر رقمٌ يقرؤه المالك — يُسمَّى كلٌّ بأساسه.** فلم
+    # يُعَد حسابُ أيٍّ منهما؛ اللصيقةُ وحدها هي التي تغيّرت، وسطرٌ تحت
+    # البطاقات يقول لماذا لا يتساويان.
+    #
+    # ويُقرأ معه ما قِيس في ١٤ سبتمبر ٢٠٢٦: «مبيعات ٠٫٠٠» بجوار «محصّل
+    # ٤٠١٬٠١٣٬٨٨٤٫٩٤» **تبدو متناقضةً وليست كذلك** — `awarded_price` صفرُ صفٍّ
+    # في القاعدة لأن الترحيل ينقل المزايدات ولا يُرسي، والفواتيرُ مُرحَّلةٌ
+    # بمبالغها. فالبطاقتان من مصدرين، والأولى تنتظر الترسية.
+    # **العددُ يبقى والمبالغُ تُحجَب** — القاعدةُ نفسُها التي في
+    # `after_sales.tallies`: «كم مزاداً انتهى» سؤالُ تشغيلٍ يجيبه عدّ، و«كم
+    # ريالاً بِيع وحُصّل وبقي» مبلغٌ. **ومبلغٌ مجموعٌ على كامل الأرشيف ليس
+    # أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة، بل أكثر**: البطاقاتُ الثلاثُ هنا
+    # هي إيرادُ المنصّة كلُّه في رقمٍ واحد. فتبقى البطاقةُ ولصيقتُها ويسقط
+    # رقمُها لمن لا يملك `invoices.view`.
+    def money_stat(label: str, value, detail: str, *, tone: str, icon: str) -> Stat:
+        if seen.money:
+            return Stat(label=label, value=f"{value:,.2f}", detail=detail,
+                        tone=tone, icon=icon)
+        return Stat(
+            label=label, value="محجوب",
+            detail="المبلغُ خلف صلاحية «عرض الفواتير والمدفوعات».",
+            tone="plain", icon=icon,
+        )
 
     return [
         Stat(label="إجمالي المزادات", value=f"{count:,}",
              detail="مزاداتٌ منتهية أو ملغاة.", tone="auction", icon="gavel"),
-        Stat(label="إجمالي المبيعات", value=f"{sales:,.2f}",
-             detail="جمعُ أسعار المركبات المرساة.", tone="money", icon="coins"),
-        Stat(label="إجمالي المحصّل", value=f"{collected:,.2f}",
-             detail="من الدفعات المسجَّلة على الفواتير.", tone="money", icon="wallet"),
-        Stat(label="إجمالي المتبقّي", value=f"{remaining:,.2f}",
-             detail="ما بقي على الفواتير — لا من كلمة أودو.",
-             tone="warn" if remaining > ZERO else "plain", icon="minus-wallet"),
+        money_stat("المبيعات — سعر المطرقة", sales,
+                   "جمعُ أسعار المركبات المرساة، بلا رسومٍ ولا ضريبة.",
+                   tone="money", icon="coins"),
+        money_stat("المحصّل — شامل الرسوم والضريبة", collected,
+                   "الدفعاتُ المسجَّلة على الفواتير، وكلُّ فاتورةٍ سعرٌ + رسمٌ + ضريبة.",
+                   tone="money", icon="wallet"),
+        money_stat("المتبقّي — شامل الرسوم والضريبة", remaining,
+                   "ما بقي على الفواتير غير الملغاة — لا من كلمة أودو.",
+                   tone="warn" if remaining > ZERO else "plain", icon="minus-wallet"),
     ]
 
 
@@ -133,30 +198,29 @@ def auction_archive(request):
         state=request.GET.get("state", ""),
     )
 
+    seen = shown_to(request.user)
+
     if wants_export(request):
-        return export(
+        # **والملفُّ يرث حارسَ الشاشة**: «إجمالي المبيعات» عمودُ مالٍ محجوبٌ
+        # في الجدول، وعمودٌ يخرج في ملفٍّ ولا يظهر على شاشةٍ هو بابُ التسريب
+        # نفسُه من الخلف. و`export_table` بثلاثيّات — لا قائمةَ عناوينَ
+        # وقائمةَ خلايا تتفارقان عند أوّل حذفٍ مشروط.
+        return export_table(
             rows,
             name="ارشيف-المزادات",
-            headers=[
-                "الرقم",
-                "الاسم",
-                "الحالة",
-                "بدأ",
-                "انتهى",
-                "المركبات",
-                "المباعة",
-                "إجمالي المبيعات",
-            ],
-            cell=lambda row: [
-                row.number,
-                row.title,
-                row.get_state_display(),
-                row.starts_at,
-                row.ends_at,
-                row.vehicle_count,
-                row.sold_count,
-                row.sold_total or ZERO,
-            ],
+            columns=columns_for(
+                [
+                    ("الرقم", lambda row: row.number, None),
+                    ("الاسم", lambda row: row.title, None),
+                    ("الحالة", lambda row: row.get_state_display(), None),
+                    ("بدأ", lambda row: row.starts_at, None),
+                    ("انتهى", lambda row: row.ends_at, None),
+                    ("المركبات", lambda row: row.vehicle_count, None),
+                    ("المباعة", lambda row: row.sold_count, None),
+                    ("إجمالي المبيعات", lambda row: row.sold_total or ZERO, MONEY),
+                ],
+                seen,
+            ),
         )
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
@@ -167,10 +231,19 @@ def auction_archive(request):
         "console/auction_archive.html",
         {
             "page": page,
-            "cards": archive_totals(),
+            "cards": archive_totals(seen),
+            # عمودُ «إجمالي المبيعات» و«المباعة» في الجدول: الأوّل مبلغٌ
+            # يُحجَب، والثاني عددٌ يبقى — والقاعدةُ في `sensitive.py`.
+            "show_money": seen.money,
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "states": [(value, AuctionState(value).label) for value in ARCHIVED],
+            # علامةُ الطيّ — رسمٌ **واحد** يُدار بـCSS، لا محرفان يقلبهما JS.
+            # كانت `▸`/`▾` و`mark.textContent = open ? '▾' : '▸'` بجوار
+            # `mark.classList.toggle('is-open', open)` — أي أن الحالة مكتوبةٌ
+            # مرّتين، وتغييرُ الشكل في القالب يترك السطرَ في JS يكتب فوقه.
+            # ذيلُ T837.
+            "toggle_icon": path_of("chevron"),
         },
     )
 
@@ -181,7 +254,28 @@ def archive_auction_vehicles(request, pk: int):
     نظيرُ لوحة v1 المنسدلة تحت كل مزاد: لكل سيارة الفائزُ وسعرُ الرسو وفاتورتُها
     وحالُ سدادها وصورتُها. تُجلَب عند التوسّع لا مع الصفحة — فأرشيفٌ من مئات
     المزادات لا يبني آلافَ الكروت دفعةً. بيانات القاعدة، لا رقمٌ من الدماغ.
+
+    وحارسُها مكتوبٌ في جسدها لا بـ`@console_page`
+    ==============================================
+    **كانت بلا حارسٍ أصلاً**، ولا `@console_page` ولا `login_required`. وهي
+    مسارٌ قائمٌ بذاته (`archive/<pk>/vehicles/`)، فكان يُفتح **بلا جلسةٍ ولا
+    كعكة**: قِيس في ١٤ سبتمبر ٢٠٢٦ على `haraj2_t307` — `GET` بلا أيّ ترويسةٍ
+    على `archive/38/vehicles/` ردَّ **٢٠٠ ومعه ١٬٠٧٧٬٦٢١ بايتاً** فيها ٣٣٧
+    كارتَ سيارةٍ بأسماء الفائزين ولوحاتِهم وحالِ سدادهم، بينما الصفحةُ الأمّ
+    `archive/` تُحوّل إلى `/admin/login/` كما يجب. والصفحةُ محروسةٌ والقِطعةُ
+    مفتوحة يعني أن الحارسَ زينة.
+
+    و`@console_page` تأخذ **اسمَ صفحةٍ في `navigation.PAGES`**، وهذه قِطعةٌ لا
+    صفحة: لا صفَّ لها هناك، وإضافةُ صفٍّ كانت ستُدخلها في قائمةٍ تُبنى منها
+    الشاشات. فالحارسُ هنا كما في `vehicle_quick_update` و`columns_save` —
+    مكتوبٌ في الجسد، وبالقدرة التي تحرس الشاشةَ الأمّ نفسِها
+    (`AUCTIONS_VIEW`)، فلا قدرتان لبابين إلى البيانات ذاتها.
     """
+    if not request.user.is_authenticated:
+        raise PermissionDenied("قِطعةُ الأرشيف تحتاج جلسة.")
+    if not can(request.user, Capability.AUCTIONS_VIEW):
+        raise PermissionDenied("auctions.view غير مسموحة لهذا المستخدم")
+
     from apps.auctions import cards
     from apps.console.after_sales import (
         latest_invoice_field,
@@ -190,7 +284,11 @@ def archive_auction_vehicles(request, pk: int):
         state_label,
     )
 
-    auction = get_object_or_404(Auction, pk=pk)
+    # ومنتهٍ فعلاً: الدالّةُ تقول «مزادٍ منتهٍ» وكانت تقبل أيَّ `pk` — مسودّةً
+    # أو جاريةً — فتُخرج سياراتِ مزادٍ لم يبدأ من بابِ الأرشيف. وv1 يحصر
+    # `?auction=` في قائمة المنتهية قبل استعمالها
+    # (`AuctionArchiveController.php:93-95`)، وهو الشرطُ نفسُه هنا.
+    auction = get_object_or_404(Auction, pk=pk, state__in=ARCHIVED)
     rows = list(
         auction.vehicles.select_related("awarded_to")
         .annotate(
@@ -210,18 +308,51 @@ def archive_auction_vehicles(request, pk: int):
     for row in rows:
         row.thumb = covers.get(row.pk)
         row.invoice_label = state_label(row.invoice_state) if row.invoice_state else ""
-        row.invoice_residual = residual_of(row) if row.invoice_number else None
+        # والملغاةُ لا متبقّيَ عليها — التعريفُ نفسُه الذي في
+        # :attr:`~apps.money.models.Invoice.outstanding` وفي بطاقة «المتبقّي»
+        # أعلاه. و`residual_of` طرحٌ مجرّدٌ لا يعرف الحالة، فلو مرّ وحدَه لعرض
+        # الكارتُ مبلغَ فاتورةٍ ملغاةٍ ديناً على المشتري.
+        row.invoice_residual = (
+            residual_of(row)
+            if row.invoice_number and row.invoice_state != InvoiceState.CANCELLED
+            else None
+        )
         # رابطُ الفاتورة الضريبيّة في أودو — «عرض في Odoo» كـ v1؛ يظهر الزرُّ
         # فقط حين للفاتورة معرّفٌ هناك و`ODOO_BASE_URL` مضبوط.
         row.odoo_invoice_url = odoo_move_url(row.invoice_odoo_id)
         row.sold = row.state in SOLD
+
+    # **المحجوبُ يُمحى هنا، بعد الحساب وقبل القالب.** كان كلُّ كارتٍ يحمل في
+    # **مصدر الصفحة** اسمَ الفائز و«مبلغ المزايدة» و«إجمالي الفاتورة»
+    # و«المتبقّي»، والقِطعةُ `auctions.view` وحدَها — وهي بعينها البياناتُ
+    # التي أُغلقت أمسِ في الكتالوج و«ما بعد البيع». والقاعدةُ واحدةٌ في
+    # `sensitive.py`، فلا تُطبَّق في شاشةٍ وتُترك في أختها.
+    seen = shown_to(request.user)
+    prepare(rows, seen)
 
     from django.conf import settings
 
     return render(
         request,
         "console/_archive_vehicles.html",
-        {"auction": auction, "rows": rows, "odoo_base": settings.ODOO_BASE_URL},
+        {
+            "auction": auction,
+            "rows": rows,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
+            "odoo_base": settings.ODOO_BASE_URL,
+            # رسومُ الكارت من `icons.py` لا محارفَ في القالب: كانت `🚗` و`🎨`
+            # و`🏷️` و`👤` و`🔗` و`🔨` — يرسمها نظامُ التشغيل بأسلوبه هو،
+            # ومختلفةً بين ويندوز وماك. وهو ما رفضه المالك في T837 بالحرف.
+            "card_icons": {
+                "car": path_of("car"),
+                "colour": path_of("pencil-line"),
+                "plate": path_of("card"),
+                "winner": path_of("users"),
+                "odoo": path_of("inbox"),
+                "bids": path_of("gavel"),
+            },
+        },
     )
 
 
@@ -243,29 +374,24 @@ def auction_bids(request, pk: int):
     """مزايدات مزادٍ بعينه، وحالةُ كلٍّ منها مكتوبةٌ لا مستنتَجة."""
     auction = get_object_or_404(Auction, pk=pk)
     rows = bids_of(auction)
+    seen = shown_to(request.user)
 
     if wants_export(request):
-        return export(
+        return export_table(
             rows,
             name=f"مزايدات-مزاد-{auction.number}",
-            headers=[
-                "المركبة",
-                "اللوحة",
-                "المزايد",
-                "الجوال",
-                "المبلغ",
-                "الحالة",
-                "الوقت",
-            ],
-            cell=lambda row: [
-                row.vehicle_id,
-                row.vehicle.plate_number,
-                row.bidder.full_name,
-                row.bidder.phone,
-                row.amount,
-                _bid_state(row),
-                row.placed_at,
-            ],
+            columns=columns_for(
+                [
+                    ("المركبة", lambda row: row.vehicle_id, None),
+                    ("اللوحة", lambda row: row.vehicle.plate_number, None),
+                    ("المزايد", lambda row: row.bidder.full_name, CUSTOMER),
+                    ("الجوال", lambda row: row.bidder.phone, CUSTOMER),
+                    ("المبلغ", lambda row: row.amount, MONEY),
+                    ("الحالة", lambda row: _bid_state(row), None),
+                    ("الوقت", lambda row: row.placed_at, None),
+                ],
+                seen,
+            ),
         )
 
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
@@ -278,12 +404,25 @@ def auction_bids(request, pk: int):
         # مخزَّنة لا حالاتٍ محسوبة.
         bid.tone = "bad" if bid.is_withdrawn else ("" if bid.is_superseded else "ok")
 
+    # اسمُ المزايد وجوّالُه خلف `users.view` — وهما `Customer` نفسُه الذي
+    # تحرسه «إدارة المستخدمين»، لا شيءٌ آخر لأنه ظهر في جدولِ مزايدات.
+    #
+    # **والمبلغُ خلف `invoices.view` كسعرِ الرسو في الكارت**: أعلى مزايدةٍ
+    # قائمةٍ على مركبةٍ رست **هي** سعرُ رسوّها، فحجبُه في كارت الأرشيف
+    # وإظهارُه في هذا الجدول للمزاد نفسِه يفتح البابَ الذي أُغلق.
+    #
+    # والشاشةُ تبقى مفتوحة: المركبةُ ولوحتُها وحالةُ المزايدة ووقتُها —
+    # «لماذا لم تُحتسب مزايدتي؟» يُجاب بلا ريالٍ ولا جوّال.
+    person_on(page.object_list, seen, field="bidder")
+
     return render(
         request,
         "console/auction_bids.html",
         {
             "auction": auction,
             "page": page,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
             "total": rows.count(),
             "vehicles": Vehicle.objects.filter(auction=auction).count(),
         },

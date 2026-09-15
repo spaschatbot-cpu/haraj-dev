@@ -27,6 +27,7 @@
 from __future__ import annotations
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.auctions import services as auction_services
@@ -34,6 +35,7 @@ from apps.auctions.models import Vehicle, VehicleImage
 from apps.core import audit
 from apps.core.uploads import UploadRejected
 
+from .icons import path_of
 from .views import console_page
 
 #: كم صورةً تُقبل في الرفعة الواحدة. v1 بلا حدٍّ إطلاقاً — لا للعدد ولا للحجم
@@ -69,6 +71,17 @@ def gallery(request, pk: int):
     )
 
     if request.method == "POST":
+        # **الفحصُ هنا لا في قدرة الصفحة.** صارت الصفحةُ `auctions.view` كي
+        # يرى موظّفُ الساحة صورةَ السيّارة — وهي قراءةٌ، وv1 يفتح المعرضَ لكلّ
+        # من يرى الكتالوج. وكان هذا الفرعُ **بلا فحصٍ واحد**، متّكئاً كلَّه على
+        # أن الصفحة `auctions.manage`: فلو خُفضت القدرةُ وحدها لصار الرفعُ
+        # والحذفُ وتغييرُ صورة العرض مفتوحاً لكلّ قارئ.
+        #
+        # والقراءةُ تُفصل عن الكتابة في الحارس، لا في القالب: إخفاءُ الزرّ يمنع
+        # الضغطَ ولا يمنع الطلب.
+        if not _may_manage(request.user):
+            raise PermissionDenied("تعديلُ صور المركبة يحتاج صلاحية «إدارة المزادات»")
+
         operation = request.POST.get("op", "")
         if operation == "upload":
             _upload(request, vehicle)
@@ -85,6 +98,17 @@ def gallery(request, pk: int):
     return _render_gallery(request, vehicle, modal=is_modal)
 
 
+def _may_manage(user) -> bool:
+    """هل يملك هذا الفاعلُ تعديلَ الصور؟ — سؤالٌ واحدٌ يجيبه الحارسُ والقالب.
+
+    الاستيرادُ داخل الدالّة كما في فرع `POST` أعلاه: `apps.core.permissions`
+    تستورد النماذج، وهذه الوحدةُ تُستورَد منها عند الإقلاع.
+    """
+    from apps.core.permissions import Capability, can
+
+    return can(user, Capability.AUCTIONS_MANAGE)
+
+
 def _render_gallery(request, vehicle: Vehicle, *, modal: bool):
     """المعرضُ بوجهيه: جزئيةُ النافذة، أو الصفحةُ الكاملة."""
     template = (
@@ -98,6 +122,13 @@ def _render_gallery(request, vehicle: Vehicle, *, modal: bool):
             "auction": vehicle.auction,
             "shots": list(_gallery_of(vehicle)),
             "batch": BATCH,
+            # القراءةُ للجميع والكتابةُ لمن يُدير — والقالبُ يُخفي ما لا يُتاح.
+            # راحةُ عينٍ لا حارس: الحارسُ في فرع `POST` أعلاه.
+            "can_manage": _may_manage(request.user),
+            # رسما المعرض من `icons.py`. كانا `📤` و`✕` مكتوبين في القالب،
+            # ونظامُ التشغيل هو الذي يرسمهما — وهو ما رفضه المالك في T837.
+            "upload_icon": path_of("upload"),
+            "close_icon": path_of("close"),
         },
     )
 
@@ -108,9 +139,7 @@ def _upload(request, vehicle: Vehicle):
         messages.error(request, "لم يُختَر ملفّ.")
         return
     if len(files) > BATCH:
-        messages.error(
-            request, f"{len(files)} ملفّاً في رفعةٍ واحدة — الحدّ {BATCH}."
-        )
+        messages.error(request, f"{len(files)} ملفّاً في رفعةٍ واحدة — الحدّ {BATCH}.")
         return
 
     # الموضعُ يتابع آخر ما في المعرض، ولا يبدأ من الصفر: صفران بالموضع نفسه
@@ -226,7 +255,9 @@ def set_display_image(request, pk: int):
 
     from apps.core.permissions import Capability, can
 
-    if not request.user.is_authenticated or not can(request.user, Capability.AUCTIONS_MANAGE):
+    if not request.user.is_authenticated or not can(
+        request.user, Capability.AUCTIONS_MANAGE
+    ):
         return JsonResponse({"ok": False, "message": "لا صلاحية."}, status=403)
     if request.method != "POST":
         return JsonResponse({"ok": False, "message": "POST فقط."}, status=405)

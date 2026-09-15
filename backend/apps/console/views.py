@@ -18,8 +18,9 @@ from zoneinfo import ZoneInfo
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured, PermissionDenied
-from django.shortcuts import redirect
-from django.utils import timezone
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect
+from django.utils import timezone, translation
 
 from apps.core.permissions import can
 
@@ -67,6 +68,22 @@ def console_page(url_name: str):
             # ويحوّل عنده، وقلبُ المنطقة لكلّ طلبٍ في المشروع كان سيغيّر
             # مخرَج تلك النقاط أيضاً.
             timezone.activate(ZoneInfo(settings.DISPLAY_TIME_ZONE))
+            # ولغةُ اللوحة عربيّةٌ بقرارٍ لا بترويسةِ متصفّح — T839.
+            #
+            # كلُّ قالبٍ هنا يكتب `<html lang="ar" dir="rtl">` ثابتاً،
+            # و`LocaleMiddleware` مع `LANGUAGES` فيها الإنجليزية كانت تختار
+            # اللغة من `Accept-Language`. فمتصفّحُ ويندوز الافتراضيّ
+            # (`en-US`) يجعل الصفحةَ **تدّعي العربية وتُرسم إنجليزيّة**: قِيس
+            # على هذه القاعدة في ١٣ سبتمبر ٢٠٢٦ — تاريخُ التسجيل يُقرأ
+            # «Sept. 13, 2026, 4:40 p.m.» وسط جدولٍ عربيّ، ورفضُ كلمةِ مرورٍ
+            # ضعيفةٍ في «إضافة مشرف» يخرج «This password is too common.»
+            # وحدها. وبترويسة `ar` تخرج الاثنتان عربيّتين — فالترجمةُ موجودة،
+            # والمختارُ هو الخطأ.
+            #
+            # والتفعيلُ هنا لا في الإعدادات، للسبب نفسه الذي وُضعت له المنطقة
+            # فوق: نقاطُ الـAPI يقرؤها العميلُ ويتفاوض عليها بلغته، وقلبُ
+            # اللغة للمشروع كلِّه كان سيغيّر مخرَجها معها.
+            translation.activate("ar")
             try:
                 response = view(request, *args, **kwargs)
                 # لا bfcache على صفحات اللوحة: المتصفّح كان يخدم نسخةً محفوظة
@@ -75,11 +92,16 @@ def console_page(url_name: str):
                 # فكلُّ عودةٍ إلى صفحةٍ تُجلَب طازجةً بحالتها بعد الفعل.
                 if hasattr(response, "headers"):
                     response.headers["Cache-Control"] = "no-store, must-revalidate"
+                    # `LocaleMiddleware` يكتب `Content-Language` بما تفاوض
+                    # عليه (`setdefault`)، فيُعلن الردُّ إنجليزيّةً ومحتواه
+                    # عربيّ. والمكتوبُ هنا يسبقه.
+                    response.headers["Content-Language"] = "ar"
                 return response
             finally:
                 # الخيوطُ يُعاد استعمالها: منطقةٌ مفعَّلةٌ لا تُعاد تُسرّب
-                # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة.
+                # ساعة الرياض إلى طلبٍ تالٍ ليس صفحةَ لوحة. واللغةُ مثلها.
                 timezone.deactivate()
+                translation.deactivate()
 
         return guarded
 
@@ -93,7 +115,6 @@ def columns_save(request):
     كتابةٍ يستدعيها مكوّنُ الأعمدة من أيّ جدول. وحارسُها `CONSOLE_ACCESS` وحده:
     من يفتح اللوحة يخصّص أعمدةَ ما يراه، والرؤيةُ نفسُها محروسةٌ في شاشة الجدول.
     """
-    from django.contrib.auth.decorators import login_required as _login
     from django.shortcuts import redirect
     from django.utils.http import url_has_allowed_host_and_scheme
 
@@ -126,3 +147,50 @@ def columns_save(request):
     if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
         return redirect(nxt)
     return redirect("console:home")
+
+
+# ---------------------------------------------------------------------------
+# HR-13ج — «افحص ثم اكتب» تصير خطوةً واحدة
+# ---------------------------------------------------------------------------
+#
+# `HR-13` أضاف ختمَ الصفّ (`ReasonMixin.row_stamp`) فأغلق النافذةَ الواسعة:
+# موظّفان يفتحان الشاشة بدقائقَ بينهما، والثاني يُرفض. **وبقيت نافذةٌ ضيّقة**:
+# الفحصُ في `clean` والكتابةُ في `save`، وبينهما لا قفلٌ ولا معاملة. طلبان
+# يصلان في نفس عشراتِ الميلي‑ثانية يقرآن الصفَّ نفسه، فيتطابق ختماهما معاً،
+# ويكتب الثاني فوق الأوّل — وهو عينُ العطل الذي وُجد `HR-13` ضدّه.
+#
+# والعلاجُ الذي يصفه التاسكُ بنصّه: «`atomic` على العرض و`select_for_update`
+# عند تحميل الصفّ». وهما هنا **أداتان مشتركتان لا سطران في كلّ شاشة**: خمسُ
+# نسخٍ من القفل هي خمسةُ مواضعَ تُنسى إحداها يومَ تُضاف شاشةٌ سادسة.
+#
+# **والقفلُ على الكتابة وحدها.** قفلُ صفٍّ لمن يقرأ صفحةً يجعل فتحَ ملفِّ عميلٍ
+# يحجب تعديلَه من موظّفٍ آخر — ثمنٌ لا يشتري شيئاً، فالقارئ لا يدهس أحداً.
+
+
+def atomic_write(view):
+    """اجعل معالجةَ `POST` كلَّها معاملةً واحدة — من القراءة إلى الحفظ.
+
+    و`GET` يمرّ بلا معاملة: هو قراءةٌ لا تدهس شيئاً، ومعاملةٌ حولها تحجز
+    اتّصالاً بلا مقابل.
+    """
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        if request.method != "POST":
+            return view(request, *args, **kwargs)
+        with transaction.atomic():
+            return view(request, *args, **kwargs)
+
+    return wrapper
+
+
+def row_for_write(request, queryset, **lookup):
+    """حمّل الصفَّ — مقفولاً إن كنّا نكتب، حرّاً إن كنّا نقرأ.
+
+    يُستعمل **مع** :func:`atomic_write` وحدها: `select_for_update` خارج معاملةٍ
+    يرمي `TransactionManagementError`، وذلك رفضٌ صريحٌ خيرٌ من قفلٍ صامتٍ لا
+    يقفل — وهو ما يجعل نسيانَ الزينةِ الأولى عطلاً يظهر فوراً لا بعد شهور.
+    """
+    if request.method == "POST":
+        queryset = queryset.select_for_update()
+    return get_object_or_404(queryset, **lookup)

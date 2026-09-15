@@ -1,0 +1,75 @@
+{% comment %}
+نافذةُ المحتوى المجلوب — **قالبٌ واحدٌ لكلّ من يفتح شيئاً في `<dialog>`**.
+
+كلُّ زرٍّ يحمل `data-content-url` يُفتح هنا: تفاصيلُ المركبة · سجلُّ مزايداتها ·
+نموذجُ الإضافة اليدوية · وأيُّ قِطعةٍ تُجلب بـ`fetch`.
+
+**ولماذا قالبٌ مشترَك.** كان المقتطفُ مكتوباً بيده في `vehicle_catalog.html`
+و`auction_archive.html` — نسختان تفترقان فعلاً: نسخةُ الكتالوج تربط عند
+التحميل (فلا ترى زرّاً يُحقَن بعده) ولا تقول شيئاً حين يفشل الجلب، ونسخةُ
+الأرشيف تفوّض على المستند وتكتب سببَ الفشل. **والثانيةُ هي المعتمَدة هنا.**
+
+وقد مُنع وصلُ «المزايدون» في «القرارات المنتهية» مرّةً بحجّة أن وصلَه يعني
+**نسخةً ثالثة** — وكانت حجّةً صحيحة. فهذا الملفُّ جوابُها: لا ثالثةَ، بل
+واحدةٌ تحلّ محلّ الاثنتين (٢٠٢٦-٠٩-١٤).
+
+**والتفويضُ على المستند لا على الأزرار**: صفوفُ الأرشيف تُحقَن عند التوسّع،
+وربطٌ يجري عند التحميل لا يرى ما جاء بعده — فالزرُّ يبدو حيّاً ولا يفعل شيئاً.
+
+**والفشلُ يُقال.** كان صامتاً في نسخة الكتالوج: الضغطةُ لا تفعل شيئاً ولا
+رسالةَ، فيُعيد الموظّفُ الضغطَ ويظنّ الشاشةَ معطّلة. فالنافذةُ تُفتح بجملةٍ
+تقول ما وقع.
+{% endcomment %}
+<dialog class="modal cmodal" data-content-dialog>
+  <div data-content-body></div>
+</dialog>
+
+<script>
+(function () {
+  var dlg = document.querySelector('[data-content-dialog]');
+  var body = dlg ? dlg.querySelector('[data-content-body]') : null;
+  if (!dlg || !dlg.showModal || !body) return;
+
+  function wireClosers() {
+    body.querySelectorAll('[data-content-close], [data-bids-close], [data-close], a.btn-cancel')
+      .forEach(function (el) {
+        el.addEventListener('click', function (e) { e.preventDefault(); dlg.close(); });
+      });
+  }
+
+  /* نموذجٌ داخل النافذة (الإضافة اليدوية): `204` نجاحٌ فتُغلَق ويُعاد التحميل،
+     وإلّا يُحقَن الجوابُ ثانيةً بأخطائه — فالموظّفُ يصحّح في مكانه ولا يفقد ما
+     كتب. */
+  function wireForm() {
+    var form = body.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch(form.getAttribute('action') || location.href, {
+        method: 'POST', body: new FormData(form), credentials: 'same-origin',
+        headers: { 'X-Requested-With': 'fetch' }
+      })
+        .then(function (r) {
+          if (r.status === 204) { dlg.close(); window.location.reload(); return null; }
+          return r.text();
+        })
+        .then(function (html) { if (html !== null) { body.innerHTML = html; wireForm(); wireClosers(); } });
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var opener = e.target.closest('[data-content-url]');
+    if (!opener) return;
+    e.preventDefault(); e.stopPropagation();
+    fetch(opener.getAttribute('data-content-url'), {
+      credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' }
+    })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (html) { body.innerHTML = html; dlg.showModal(); wireForm(); wireClosers(); })
+      .catch(function (err) {
+        body.textContent = 'تعذّر جلبُ المحتوى (' + err.message + ').';
+        dlg.showModal();
+      });
+  });
+})();
+</script>

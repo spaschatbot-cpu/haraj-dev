@@ -607,6 +607,36 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/profile/documents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description الساري من كل نوع — أربعةُ صفوفٍ دائماً، والغائبُ `file: null`.
+         *
+         *     الأربعةُ كلُّها لا المرفوعُ منها، لأن الشاشة تسأل «ماذا ينقصني؟» وقائمةٌ
+         *     بما رُفع تجيب عن سؤالٍ آخر. */
+        get: operations["v1_profile_documents_list"];
+        put?: never;
+        /** @description `GET`/`POST /api/v1/profile/documents/` — وثائقُ صاحب الرمز وحده.
+         *
+         *     الوثائقُ الأربع (سجل تجاريّ · شهادة ضريبيّة · هويّة · آيبان) لم يكن لها
+         *     طريقٌ في v2 إطلاقاً، ولا يزال في v1 ثلاثةُ أعمدةِ مسارٍ على صفّ المستخدم.
+         *     وصورةُ الآيبان **شرطٌ لفتح طلب الاسترداد** (`request_refund`)، فبلا هذه
+         *     النقطة لا سبيل للعميل إلى استرداده إلا بموظّفٍ يرفع عنه.
+         *
+         *     ولا معرّفَ مستخدمٍ في المسار ولا في الجسم — كبقيّة هذا الملفّ. صاحبُ الوثيقة
+         *     هو صاحبُ الرمز، ولا شيء آخر يقرّر ذلك: ثغرةُ محفظة v1 كانت بالضبط معرّفاً
+         *     يُقرأ من الطلب. */
+        post: operations["v1_profile_documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/profile/national-id/": {
         parameters: {
             query?: never;
@@ -835,6 +865,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wallet/topups/{reference}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description ألغِ عمليّةَ شحنٍ لم تُدفَع بعد. POST لأنها تكتب.
+         *
+         *     الحالةُ `cancelled` كانت **معرَّفةً ولا يصل إليها مسار**: كلُّ نيّةٍ فتحها
+         *     عميلٌ ثم عدل تبقى `pending` إلى الأبد، وزرُّ الدفع حيٌّ عليها، ورابطُ
+         *     البوّابة يقبل ماله بعد شهر. الإلغاءُ هنا هو نصفُ الجواب؛ ونصفُه الآخر
+         *     المهلةُ (`services.expire_stale_intents`) لمن لم يُلغِ ولم يدفع. */
+        post: operations["v1_wallet_topups_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet/topups/{reference}/checkout/": {
         parameters: {
             query?: never;
@@ -945,8 +997,6 @@ export interface components {
         BidQuoteRequest: {
             amount: string;
         };
-        /** @enum {unknown} */
-        BlankEnum: "";
         /** @description One named pot, with the count of entries that add up to it. */
         Bucket: {
             kind: string;
@@ -1000,6 +1050,32 @@ export interface components {
             current_code: string;
             /** @description الرمز المُرسَل إلى الرقم الجديد */
             new_code: string;
+        };
+        /** @description نوعُ وثيقةٍ وحالتُه — صفٌّ لكل نوعٍ من الأربعة، مرفوعاً كان أو لا.
+         *
+         *     `document` قد يكون `None`، و`file` حينها `null`. وذلك أصدقُ من إسقاط الصفّ:
+         *     شاشةٌ تقرأ أربعةَ صفوفٍ تعرف ما ينقص، وشاشةٌ تقرأ اثنين تعرف ما وُجد فقط. */
+        CustomerDocument: {
+            kind: string;
+            label: string;
+            /** Format: date-time */
+            readonly uploaded_at: string | null;
+            readonly file: string | null;
+            readonly note: string;
+            /** @description هل رفعها موظّفٌ عن العميل؟ — سؤالٌ يسأله العميل نفسُه.
+             *
+             *     «لم أرفع هذه» شكوى حقيقية، وجوابُها هنا لا في تخمين. */
+            readonly uploaded_by_staff: boolean;
+        };
+        /** @description رفعُ وثيقة. الملفُّ يُفحص في `uploads.sanitise_image` لا هنا.
+         *
+         *     النوعُ من التعداد حصراً: `kind` حرٌّ كان سيجعل العميل يخترع أنواعاً لا يقرؤها
+         *     أحد، فتُرفع وثيقةٌ ولا تفتح ما رُفعت لأجله. */
+        CustomerDocumentUpload: {
+            kind: components["schemas"]["KindEnum"];
+            /** Format: uri */
+            file: string;
+            note?: string;
         };
         /** @description A registered handset, as its owner sees it. */
         Device: {
@@ -1065,8 +1141,8 @@ export interface components {
          *     ``card`` is not a member, so the schema itself rejects it and there is no
          *     branch anywhere that could accidentally grow one. */
         InvoicePay: {
-            /** @default balance */
-            method: components["schemas"]["MethodEnum"];
+            /** @description الافتراضيّ حين لا يُرسَل الحقل: `balance`. */
+            method?: components["schemas"]["MethodEnum"];
         };
         /**
          * @description * `draft` - مسودة
@@ -1077,6 +1153,14 @@ export interface components {
          * @enum {string}
          */
         InvoiceStateEnum: "draft" | "open" | "partial" | "paid" | "cancelled";
+        /**
+         * @description * `cr` - السجل التجاري
+         *     * `tax` - الشهادة الضريبية
+         *     * `id` - صورة الهوية
+         *     * `iban` - صورة الآيبان
+         * @enum {string}
+         */
+        KindEnum: "cr" | "tax" | "id" | "iban";
         /** @description One line of the statement, read straight off an ``Entry`` row. */
         LedgerEntry: {
             id: number;
@@ -1251,13 +1335,6 @@ export interface components {
             active: number;
             ended: number;
         };
-        /**
-         * @description * `soon` - قريباً
-         *     * `active` - نشط
-         *     * `ended` - منتهي
-         * @enum {string}
-         */
-        PhaseEnum: "soon" | "active" | "ended";
         /** @description One bid on one car. */
         PlaceBid: {
             amount: string;
@@ -1347,8 +1424,8 @@ export interface components {
         /** @description Ask for a code. */
         SendCode: {
             phone: string;
-            /** @default login */
-            purpose: components["schemas"]["SendCodePurposeEnum"];
+            /** @description الافتراضيّ حين لا يُرسَل الحقل: `login`. */
+            purpose?: components["schemas"]["SendCodePurposeEnum"];
         };
         /**
          * @description * `login` - دخول أو تسجيل
@@ -1406,7 +1483,8 @@ export interface components {
             auction_number: number;
             auction_title: string;
             auction_state: string;
-            phase: components["schemas"]["PhaseEnum"] | components["schemas"]["BlankEnum"];
+            /** @description التبويب الذي يقرّره الخادم: `soon`، `active`، `ended`، أو `""` (فراغ) لمزادٍ خارج الثلاثة — مسودّةٍ أو ملغيّ، لا يراه إلا موظّف. الفراغ يُقرأ «غير معروف» ولا يُطوى في `ended` (المادة ٢-٣). */
+            phase: string;
             /** Format: date-time */
             auction_starts_at: string;
             /** Format: date-time */
@@ -1423,6 +1501,7 @@ export interface components {
             condition: string;
             condition_label: string;
             location: string;
+            is_favourite: boolean;
             admin_fee: string;
             admin_fee_with_vat: string;
             state: string;
@@ -1479,6 +1558,19 @@ export interface components {
             /** Format: date-time */
             as_of: string;
         };
+        /** @description غلافُ كل خطأ تردّ به هذه الواجهة — بلا استثناء. يُبنى في `apps.core.exceptions.envelope` وحدها، فلا عرضٌ يخترع شكلاً ثانياً. */
+        ApiErrorEnvelope: {
+            error: {
+                /** @description رمزٌ ثابت يفرّق سببَ الرفض عن سببٍ آخر. **هو ما يُفرَّع عليه في العميل**، لا الرسالة ولا رمز HTTP. */
+                code: string;
+                /** @description جملةٌ عربية جاهزة للعرض كما هي. لا يُترجمها العميل ولا يستبدلها: نصٌّ واحد للسبب الواحد (المادة ٤-٥). */
+                message: string;
+                /** @description حقولٌ تخصّ هذا الرفض بعينه — مبلغٌ قائم، حقلٌ ناقص. كائنٌ فارغ حين لا تفصيل، لا `null`. */
+                detail: {
+                    [key: string]: unknown;
+                };
+            };
+        };
     };
     responses: never;
     parameters: never;
@@ -1515,6 +1607,15 @@ export interface operations {
                     "application/json": components["schemas"]["AuctionPage"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     auctions_retrieve: {
@@ -1534,6 +1635,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuctionCard"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1581,6 +1691,15 @@ export interface operations {
                     "application/json": components["schemas"]["VehiclePage"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_auth_code_create: {
@@ -1604,6 +1723,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SendCodeResponse"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1631,6 +1759,15 @@ export interface operations {
                     "application/json": components["schemas"]["StartPhoneChangeResponse"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_auth_phone_change_confirm_create: {
@@ -1654,6 +1791,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuthenticatedUser"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1681,6 +1827,15 @@ export interface operations {
                     "application/json": components["schemas"]["TokenPair"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_auth_verify_create: {
@@ -1706,6 +1861,15 @@ export interface operations {
                     "application/json": components["schemas"]["TokenPair"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     bids_withdraw: {
@@ -1725,6 +1889,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Bid"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1748,6 +1921,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BidPage"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1775,6 +1957,15 @@ export interface operations {
                     "application/json": components["schemas"]["BidQuote"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     devices_list: {
@@ -1792,6 +1983,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Device"][];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1819,6 +2019,15 @@ export interface operations {
                     "application/json": components["schemas"]["Device"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     devices_unregister: {
@@ -1843,6 +2052,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     favourites_list: {
@@ -1865,6 +2083,15 @@ export interface operations {
                     "application/json": components["schemas"]["VehiclePage"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     favourites_mark: {
@@ -1885,6 +2112,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     favourites_unmark: {
@@ -1904,6 +2140,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
             };
         };
     };
@@ -1929,6 +2174,15 @@ export interface operations {
                     "application/json": components["schemas"]["PaginatedInvoiceList"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_invoices_retrieve: {
@@ -1948,6 +2202,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Invoice"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -1977,6 +2240,15 @@ export interface operations {
                     "application/json": components["schemas"]["Invoice"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     live_updates: {
@@ -1994,6 +2266,15 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": string;
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2018,6 +2299,15 @@ export interface operations {
                     "application/json": components["schemas"]["ParticipationPage"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_payments_callback_create: {
@@ -2036,6 +2326,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     profile_retrieve: {
@@ -2053,6 +2352,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2080,6 +2388,15 @@ export interface operations {
                     "application/json": components["schemas"]["Profile"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     profile_company_retrieve: {
@@ -2097,6 +2414,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompanyProfileRead"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2124,6 +2450,76 @@ export interface operations {
                     "application/json": components["schemas"]["CompanyProfileRead"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    v1_profile_documents_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDocument"][];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    v1_profile_documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["CustomerDocumentUpload"];
+                "application/x-www-form-urlencoded": components["schemas"]["CustomerDocumentUpload"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerDocument"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     profile_set_national_id: {
@@ -2149,6 +2545,15 @@ export interface operations {
                     "application/json": components["schemas"]["Profile"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_purchases_list: {
@@ -2171,6 +2576,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedPurchaseList"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2216,6 +2630,15 @@ export interface operations {
                     "application/json": components["schemas"]["VehiclePage"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     vehicles_retrieve: {
@@ -2235,6 +2658,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VehicleCard"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2264,6 +2696,15 @@ export interface operations {
                     "application/json": components["schemas"]["Bid"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     vehicles_images_list: {
@@ -2285,6 +2726,15 @@ export interface operations {
                     "application/json": components["schemas"]["VehicleImages"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_wallet_retrieve: {
@@ -2304,6 +2754,15 @@ export interface operations {
                     "application/json": components["schemas"]["Wallet"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_wallet_refund_requests_list: {
@@ -2321,6 +2780,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefundRequest"][];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2348,6 +2816,15 @@ export interface operations {
                     "application/json": components["schemas"]["RefundRequest"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_wallet_topups_list: {
@@ -2365,6 +2842,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentIntent"][];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2392,6 +2878,15 @@ export interface operations {
                     "application/json": components["schemas"]["PaymentIntent"];
                 };
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_wallet_topups_retrieve: {
@@ -2411,6 +2906,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaymentIntent"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    v1_wallet_topups_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentIntent"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };
@@ -2447,6 +2981,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
         };
     };
     v1_wallet_transactions_list: {
@@ -2469,6 +3012,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PaginatedLedgerEntryList"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
                 };
             };
         };

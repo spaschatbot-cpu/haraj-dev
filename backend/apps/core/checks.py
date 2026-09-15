@@ -18,7 +18,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from django.conf import settings
-from django.core.checks import Error, Tags, register
+from django.core.checks import Error, Tags, Warning, register
 
 from apps.core import ratelimit
 
@@ -214,3 +214,90 @@ def media_base_url_is_absolute_in_production(app_configs, **kwargs):
             id="core.E010",
         )
     ]
+
+
+#: مضيفاتُ جهازِ المطوّر. عنوانٌ منها في بيئةٍ منشورة يعني غالباً أن المتغيّر
+#: لم يُكتب أصلاً وورث الافتراضَ — و`CACHE_URL` و`CELERY_BROKER_URL` لهما
+#: افتراضاتٌ تشير إلى Redis محلّيّ، فغيابُهما لا يبدو غياباً.
+LOCAL_HOSTS = ("127.0.0.1", "localhost", "::1", "[::1]")
+
+
+def _points_at_this_machine(url: str) -> bool:
+    text = str(url or "")
+    return any(f"@{host}" in text or f"//{host}" in text for host in LOCAL_HOSTS)
+
+
+@register(Tags.security, deploy=True)
+def deferred_work_has_a_broker_in_a_deployed_environment(app_configs, **kwargs) -> list:
+    """المالُ الذي يتحرّك بعد إغلاق المزاد يحتاج حاملَ رسائلَ حقيقيّاً.
+
+    **لا جدولةَ دوريّة في هذا المشروع** (قرارُ المالك ٢٠٢٦-٠٩-١٠)، فما يُنفَّذ
+    بعد الإغلاق — فكُّ تأمين الخاسر وفوترةُ الفائز — **محجوزٌ للحظته**
+    بـ`apply_async(eta=ends_at)`. وذلك يجعل الطابورَ جزءاً من مسار المال لا
+    تحسيناً للأداء: بلا حاملٍ حقيقيّ لا يقع شيءٌ من ذلك، ولا استثناءَ يُرفع في
+    وجه أحد — المزادُ ينتهي، والوديعةُ تبقى مؤمَّنةً على خاسرٍ لا يفهم لماذا.
+
+    و`CELERY_TASK_ALWAYS_EAGER` أسوأُ من غياب الحامل، ولذلك هو `Error` وحده:
+    التنفيذُ الفوريُّ **يتجاهل `eta` تماماً**، فتقع تسويةُ المزاد لحظةَ جدولته
+    — أي قبل أن يزايد أحد. وهو إعدادُ اختباراتٍ يصل الإنتاجَ بنسخة `.env`.
+    """
+    if settings.DEBUG or getattr(settings, "ENVIRONMENT_NAME", "") == "test":
+        # وإعداداتُ الاختبار مستثناةٌ بالاسم: هي ترث `prod` عمداً **وتُشغّل
+        # المهامَّ فوراً عمداً** (لا Redis في CI)، فاعتراضٌ عليها هو قاعدةٌ عن
+        # الإنتاج تكسر ما ليس إنتاجاً — وهو ما تشرحه `apps.accounts.checks`.
+        return []
+
+    findings: list = []
+
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        findings.append(
+            Error(
+                "`CELERY_TASK_ALWAYS_EAGER=True` في بيئةٍ منشورة.",
+                hint="المهمّةُ تُنفَّذ داخل الطلب نفسِه و`eta` تُهمَل: تسويةُ "
+                "المزاد — فكُّ تأمين الخاسر وفوترةُ الفائز — تقع **لحظةَ "
+                "الجدولة** لا لحظةَ الإغلاق. إعدادُ اختباراتٍ لا إعدادُ خادم.",
+                id="core.E011",
+            )
+        )
+
+    broker = str(getattr(settings, "CELERY_BROKER_URL", "") or "").strip()
+    if not broker:
+        findings.append(
+            Error(
+                "`CELERY_BROKER_URL` فارغ.",
+                hint="لا مهمّةً مؤجَّلةً تُسلَّم أصلاً، ومنها تحريكُ مالِ نهاية "
+                "المزاد المحجوزُ بـ`apply_async(eta=…)`.",
+                id="core.E012",
+            )
+        )
+    elif _points_at_this_machine(broker):
+        findings.append(
+            Warning(
+                f"`CELERY_BROKER_URL` يشير إلى هذه الآلة ({broker}).",
+                hint="تحذيرٌ لا خطأ: خادمٌ واحدٌ يحمل Redis معه وضعٌ مشروع. "
+                "لكنه أيضاً شكلُ المتغيّرِ **الذي لم يُكتب** فورث الافتراضَ — "
+                "وبلا Redis هناك لا تصل مهمّةٌ واحدة، بلا سطرٍ في أي سجلّ. "
+                "تأكّد أنه قرارٌ لا وراثة.",
+                id="core.W011",
+            )
+        )
+
+    cache = settings.CACHES.get("default", {})
+    # و`LOCATION` قد تكون قائمةً (عناقيدُ Redis): يُقرأ أوّلُها، فعنوانُ العقدة
+    # الأولى كافٍ ليقول «هذه الآلة» أو «آلةٌ أخرى».
+    location = cache.get("LOCATION", "")
+    if isinstance(location, (list, tuple)):
+        location = location[0] if location else ""
+    if location and _points_at_this_machine(str(location)):
+        findings.append(
+            Warning(
+                f"كاشُ الحدود يشير إلى هذه الآلة ({location}).",
+                hint="وهو حاملُ عدّاداتِ كلِّ حدٍّ في المشروع — الدخولُ وOTP "
+                "والمزايدة. بلا Redis على هذا العنوان **يسقط كلُّ مسارٍ فيه "
+                "حدٌّ بـ500**، ابتداءً من صفحة الدخول نفسِها. و`accounts.E003` "
+                "يمسك الذاكرةَ المحلّيّة، ولا يمسك Redis غيرَ الموجود.",
+                id="core.W012",
+            )
+        )
+
+    return findings

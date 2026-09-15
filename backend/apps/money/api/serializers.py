@@ -222,14 +222,15 @@ class PaymentIntentSerializer(serializers.ModelSerializer):
         """
         from .. import gateway
 
-        try:
-            # Asked, not re-derived. The module decides whether this intent can
-            # be paid *right now* — which is two conditions, its state and
-            # whether a gateway is configured at all — and a serializer that
-            # checked one of them would offer a button in the environment that
-            # has no gateway.
-            gateway.checkout_target(intent)
-        except gateway.CheckoutUnavailable:
+        # Asked, not re-derived. The module decides whether this intent can be
+        # paid *right now* — its state, its deadline, and whether a gateway is
+        # configured at all — and a serializer that checked one of them would
+        # offer a button in the environment that has no gateway.
+        #
+        # **و`available_for` لا `checkout_target`.** صارت الأخيرةُ تُنشئ فاتورةً
+        # عند Moyasar، وكان هذا السطرُ يستدعيها لمجرّد أن يعرف هل يعرض الزرّ —
+        # فقائمةُ عشرِ نيّاتٍ كانت ستُنشئ عشرَ فواتيرَ قابلةٍ للدفع في كل تحميل.
+        if not gateway.available_for(intent):
             return ""
 
         path = reverse("money:topup-checkout", args=[intent.reference])

@@ -36,6 +36,7 @@ from django.shortcuts import render
 from django.utils import timezone
 
 from apps.accounts.services import find_by_phone
+from apps.core.arabic import search_q
 from apps.core.models import AuditLog
 
 from .exports import export, wants_export
@@ -80,10 +81,13 @@ def search(*, actor: str = "", entity: str = "", action: str = "", since="", unt
         # phone or in a ticket — so it is matched the way every other staff
         # screen matches one, then falls back to a name.
         person = find_by_phone(actor)
+        # واسمُ الفاعل يُطبَّع عربيّاً كبقيّة اللوحة (T897): من يبحث «احمد» عن
+        # مشرفٍ اسمُه «أحمد» يقرأ «لا سجلّ»، وهي جملةٌ تعني في شاشة تدقيقٍ
+        # شيئاً آخرَ تماماً — «لم يفعلها أحد».
         rows = (
             rows.filter(actor=person)
             if person is not None
-            else rows.filter(actor__full_name__icontains=actor)
+            else rows.filter(search_q(actor, "actor__full_name"))
         )
 
     entity = (entity or "").strip()
@@ -91,6 +95,10 @@ def search(*, actor: str = "", entity: str = "", action: str = "", since="", unt
         # "money.hold", "money.hold:41" or just "41". The colon form is what the
         # rows themselves print, so a subject copied off another screen pastes
         # straight in.
+        #
+        # **ولا يُطبَّع هذا عمداً**: مُعرِّفٌ آليٌّ يكتبه الخادمُ لنفسه، لا
+        # حرفَ عربيّاً فيه ولا همزةَ ولا تشكيل — والتطبيعُ عليه كلفةُ تعبيرٍ
+        # نمطيّ بلا مقابل، ويجعل مطابقةَ نوعٍ بعينه أوسعَ ممّا يقصد كاتبُها.
         entity_type, _, entity_id = entity.partition(":")
         terms = Q(entity_type__icontains=entity_type)
         if entity_id:

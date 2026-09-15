@@ -40,15 +40,16 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Count, Exists, OuterRef, Q, Sum
-from django.contrib import messages
 from django.shortcuts import render
 
 from apps.accounts.models import Company
 from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState, VehicleState
+from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
@@ -239,12 +240,7 @@ def vehicles_of(partner: str = "", which: str = "", text: str = ""):
 
     text = (text or "").strip()
     if text:
-        matches = (
-            Q(plate_number__icontains=text)
-            | Q(vin__icontains=text)
-            | Q(make__icontains=text)
-            | Q(model__icontains=text)
-        )
+        matches = search_q(text, "plate_number", "vin", "make", "model")
         if text.isdigit():
             matches |= Q(lot_number=int(text)) | Q(auction__number=int(text))
         rows = rows.filter(matches)

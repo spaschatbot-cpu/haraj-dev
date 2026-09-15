@@ -10,6 +10,17 @@
 «التأمين» في v1 تخلط المؤمِّنَ بمصدر المركبة — القرارُ (فصلُهما) للمالك.
 **رقم الموقف** عددٌ صحيح، و**العداد** رقمٌ أو `—` واحدة.
 {% endcomment %}
+{% comment %} **الشاشةُ تطلب الشريطَ مطويّاً.** سبعةَ عشرَ عموداً: قِيس على
+   منفذ ١٦٠٠، الجدولُ ١٥٥٧ بكسلاً في غلافٍ ١٢٢٨ فيفيض ٣٢٩. وبعد ضغط الحشوة صار
+   أدناه ١٣١٢ — أوسعَ من ١٢٢٨ بالشريط مفتوحاً، وأضيقَ من ١٤٥٩ بطيّه. فبالطيّ
+   يفيض صفراً **وصفُّه يبقى سطراً واحداً**؛ وبالشريط مفتوحاً يفيض صفراً أيضاً
+   لكن بلفّ الشاصي سطرين (ارتفاعُ الصفّ ٩٥ ⇐ ١١٢). فالطيُّ يشتري العرضَ بلا
+   ثمنٍ في الارتفاع، واللفُّ شبكةُ أمانٍ لمن فتح الشريطَ بيده.
+
+   والاختيارُ اليدويُّ محفوظٌ لهذه الشاشات وحدها (`navWide` في `theme.js`).
+{% endcomment %}
+{% block html_attrs %} data-wide-table{% endblock %}
+
 {% block title %}كتالوج السيارات{% endblock %}
 {% block heading %}كتالوج السيارات{% endblock %}
 {% comment %} «إضافة سيارة يدويًا» في رأس الشاشة مع بقيّة أفعالها.
@@ -19,7 +30,13 @@
    صفُّ أفعالٍ في رأسها، فزرٌّ يقع خارجه يُقرأ عائماً لا منتمياً — ويفصل
    البطاقاتِ عن الفلاتر بسطرٍ لا علاقة له بهما. {% endcomment %}
 {% block actions %}
-  <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">+ إضافة سيارة يدويًا</button>
+  {% comment %} `can_manage` حارسٌ جاء من `main` مع صفِّ الإضافة الذي كان تحت
+     البطاقات: النموذجُ خلف الزرّ يطلب `auctions.manage`، فزرٌّ يفتح نافذةً
+     محتواها صفحةُ ٤٠٣ ليس زرّاً. وقد انتقل الزرُّ إلى الرأس هنا، فانتقل
+     الحارسُ معه — وإسقاطُه في الدمج كان سيُعيد العطل. {% endcomment %}
+  {% if can_manage %}
+    <button type="button" class="btn-primary" data-content-url="{% url 'console:vehicle-new' %}?modal=1">{% include "console/_act_icon.html" with path=plus_icon %} إضافة سيارة يدويًا</button>
+  {% endif %}
   <a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>
 {% endblock %}
 
@@ -71,16 +88,18 @@
 
   {% comment %} شريطُ الأدوات — نظيرُ v1: نصُّ التجميع، وأزرارُ الإضافة والتحديث
      والتحديد وإنشاء مزادٍ من المحدد. {% endcomment %}
+  {% comment %} **حُذف شريطُ الأفعال الجماعيّة بقرار المالك ٢٠٢٦-٠٩-١٤** —
+     «إنشاء مزاد من المحدد» و«تحديد / إلغاء الكل» و«تحديث البيانات». ونُقل
+     معها عمودُ التحديد ومربّعاتُه: التحديدُ كان **لأجل الزرّ الأوّل وحده**،
+     فمربّعاتٌ تبقى بلا فعلٍ تقودها هي دعوةٌ إلى لا شيء — وذلك أسوأ من غيابها.
+
+     و«تحديث البيانات» كان `location.reload()` حرفياً، أي **زرٌّ يفعل ما يفعله
+     زرُّ المتصفّح نفسُه** بجواره؛ ونقلُه من v1 نقلٌ لعادةٍ لا لوظيفة.
+
+     وإنشاءُ المزاد يبقى من بابه: `console:auction-new`، وإضافةُ المركبات
+     إليه من شاشته أو بالاستيراد. {% endcomment %}
   <div class="cat-toolbar">
-    {% comment %} السطرُ كان ثلاثَ جملٍ في فقرةٍ واحدة: الترتيبُ، ومحتوى
-       عمودين، وأمرٌ بالتحديد. والأولان يقولهما الجدولُ نفسُه — رأسُه وأعمدتُه
-       — والثالثُ وحدَه معلومةٌ لا تُرى: أن التحديدَ يصنع مزاداً. فبقي هو. {% endcomment %}
-    <p class="cat-toolbar__meta">حدِّد سياراتٍ من الجدول لإنشاء مزادٍ منها — المعروضُ مرتَّبٌ بالأحدث.</p>
-    <div class="cat-toolbar__actions">
-      <button type="button" class="btn-primary" data-select-create>إنشاء مزاد من المحدد</button>
-      <button type="button" class="btn-ghost" data-select-all>تحديد / إلغاء الكل</button>
-      <button type="button" class="btn-ghost" onclick="location.reload()">تحديث البيانات</button>
-    </div>
+    <p class="cat-toolbar__meta">تُعرَض السيارات مرتّبةً بالأحدث، ولكلّ صفٍّ موعدُ بداية مزاده ونهايتُه.</p>
   </div>
 
   {% comment %} ستّةَ عشرَ عموداً في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفُّ —
@@ -91,7 +110,6 @@
     <table>
     <thead>
       <tr>
-        <th><input type="checkbox" data-select-all-box aria-label="تحديد الكل"></th>
         <th>#</th>
         <th>رقم الموقف</th>
         <th>المزاد</th>
@@ -105,6 +123,13 @@
         <th>الصور</th>
         <th>حالة المزاد</th>
         <th>موعد المزاد</th>
+        {% comment %} عمودان كانا في ملفّ التصدير وحدَه ولا وجودَ لهما على
+           الشاشة — فمن يقارن الملفَّ بالشاشة كان يجد جدولين لا واحداً.
+           وأُضيفا هنا لا حُذفا من الملفّ: كلاهما معروضٌ أصلاً في «بحث عن
+           سيارة» **بالقدرة نفسِها** (`auctions.view`) فلا ثقةَ جديدة فيهما،
+           و«ما عندنا وبأيّ حال» سؤالٌ لا تجيبه حالةُ المزاد وحدَها. {% endcomment %}
+        <th>حالة المركبة</th>
+        <th>سعر الوقوف</th>
         <th>الفاتورة</th>
         <th>الإجراءات</th>
       </tr>
@@ -112,7 +137,6 @@
     <tbody>
       {% for row in page %}
         <tr>
-          <td><input type="checkbox" class="row-select" value="{{ row.pk|unlocalize }}" aria-label="تحديد"></td>
           <td class="muted">{{ row.pk|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
           <td class="count">{{ row.auction.number|unlocalize }}</td>
@@ -127,15 +151,26 @@
           <td class="mono">{{ row.vin|default:"—" }}</td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>
           <td>
+            {% comment %} الرسمُ `<svg>` لا `📷`: نظامُ التشغيل يرسم المحرف
+               بأسلوبه هو، وهو ما رفضه المالك في T837.
+
+               و**الصفرُ كلمةٌ لا رقم**. الترحيلُ لم ينقل ملفّات الصور — ٩٢٬٠٢٤
+               صفّاً تشير إلى قرص خادم v1 — فالعمودُ صفرٌ في كل صفّ، و«0» صامتةً
+               تُقرأ «عطلٌ في الشاشة» أو «لم يُحسب بعد». «بلا صور» تُقرأ كما هي.
+
+               **والمعرضُ صار `auctions.view`** (٢٠٢٦-٠٩-١٤): كان
+               `auctions.manage`، فمن يقرأ الكتالوج لا يرى صورةَ سيّارةٍ
+               إطلاقاً — وv1 يفتحه لكلّ من يرى الشاشة، والصورةُ ما يُميّز
+               السيّارةَ عن سطرِ نصّ. والرفعُ والحذفُ يبقيان `auctions.manage`
+               محروسَين في فرع `POST` نفسِه.
+
+               فالزرُّ للجميع الآن، وشرطُه العددُ وحده. T866 {% endcomment %}
             {% if row.image_count %}
               <button type="button" class="link-btn" data-images-modal
                       data-url="{% url 'console:vehicle-images' row.pk %}?modal=1"
-                      title="عرض كل صور السيارة">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8a2 2 0 0 1 2-2h2l1.5-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>
-                <span>{{ row.image_count|unlocalize }}</span>
-              </button>
+                      title="عرض كل صور السيارة">{% include "console/_act_icon.html" with path=camera_icon %} {{ row.image_count|unlocalize }}</button>
             {% else %}
-              <span class="cat-nil">—</span>
+              <span class="muted">بلا صور</span>
             {% endif %}
           </td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.auction.get_state_display }}</span></td>
@@ -143,6 +178,8 @@
             <span>{{ row.auction.starts_at|date:"Y-m-d H:i" }}</span>
             <span class="muted">← {{ row.auction.ends_at|date:"Y-m-d H:i" }}</span>
           </td>
+          <td>{{ row.get_state_display }}</td>
+          <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
           <td>
             {% if row.invoice_number %}
               {% comment %} فاتحُ سند الدفع — كلُّ حقوله في `data-*` على الزرّ،
@@ -155,18 +192,30 @@
                       data-plate="{{ row.plate_number|default:'—' }}"
                       data-chassis="{{ row.vin|default:'—' }}"
                       data-mileage="{% if row.odometer_km %}{{ row.odometer_km|unlocalize }}{% else %}—{% endif %}"
+                      {% comment %} **الحجبُ في الخادم لا في CSS.** كان الصفُّ
+                         يحمل `data-phone="966…"` و`data-amount` و`data-paid`
+                         و`data-residual` في **مصدر الصفحة** لكلّ صفٍّ مفوتَر،
+                         والشاشةُ `auctions.view` وحدَها — فتدخل الأرقامُ
+                         والجوّالاتُ ذاكرةَ المتصفّح وتظهر في «عرض المصدر».
+                         و`show_money`/`show_customer` من `sensitive.py`،
+                         والقيمُ نفسُها مُمحاةٌ من الصفّ في الخادم فلا يبقى
+                         على الحجب حارسٌ واحد. {% endcomment %}
+                      {% if show_customer %}
                       data-buyer="{% if row.awarded_to %}{{ row.awarded_to.full_name }}{% else %}—{% endif %}"
                       data-phone="{% if row.awarded_to %}{{ row.awarded_to.phone|unlocalize }}{% else %}—{% endif %}"
+                      {% endif %}
                       data-number="{{ row.invoice_number }}"
                       data-state="{{ row.invoice_label }}"
                       data-source="{{ row.invoice_source_label }}"
                       data-odoo="{{ row.invoice_odoo|default:'—' }}"
                       data-odoo-url="{{ row.odoo_invoice_url }}"
+                      {% if show_money %}
                       data-amount="{{ row.invoice_amount|unlocalize }}"
                       data-paid="{{ row.invoice_paid|unlocalize }}"
                       data-residual="{{ row.invoice_residual|unlocalize }}"
-                      data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}"
-                      data-sheet="—">
+                      data-sheet="—"
+                      {% endif %}
+                      data-date="{{ row.invoice_issued|date:'Y-m-d'|default:'—' }}">
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l3 3v17l-3-2-3 2-3-2-3 2V2M9 8h6M9 12h6M9 16h4"/></svg>
                 <span class="act__lbl">{{ row.invoice_number }}</span>
               </button>
@@ -186,7 +235,11 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="16" class="empty">لا مركبات مطابقة.</td></tr>
+        {% comment %} ١٧ عموداً، و١٨ مع عمود التحديد لمن يملك `auctions.manage`
+           (زِيد اثنان: «حالة المركبة» و«سعر الوقوف»). {% endcomment %}
+        {% comment %} ١٧ ثابتةً بعد حذف عمود التحديد — لم يعد العددُ يختلف
+           باختلاف الصلاحيّة. {% endcomment %}
+        <tr><td colspan="17" class="empty">لا مركبات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -196,11 +249,15 @@
     <div class="table-footer__count">
       <b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مركبةً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b>
     </div>
+    {% comment %} `keep` هو الفلاترُ كلُّها مسلسلةً بلا `page` (من
+       `vehicle_filters.keep`). وكان هنا `?q={{ q }}&page=` مبنيّاً باليد،
+       فيحمل خانةَ البحث وحدها ويُسقط حالةَ المزاد والتواريخ الأربعة: «التالي»
+       كان يخرج بالموظّف من نتيجته إلى الجدول كلِّه بلا أن يقول شيئاً. {% endcomment %}
     {% if page.paginator.num_pages > 1 %}
       <nav class="pagination" aria-label="صفحات الكتالوج">
-        {% if page.has_previous %}<a href="?{% if q %}q={{ q }}&{% endif %}page={{ page.previous_page_number }}">السابق</a>{% endif %}
+        {% if page.has_previous %}<a href="?{% if keep %}{{ keep }}&{% endif %}page={{ page.previous_page_number }}">السابق</a>{% endif %}
         <span>{{ page.number|unlocalize }} / {{ page.paginator.num_pages|unlocalize }}</span>
-        {% if page.has_next %}<a href="?{% if q %}q={{ q }}&{% endif %}page={{ page.next_page_number }}">التالي</a>{% endif %}
+        {% if page.has_next %}<a href="?{% if keep %}{{ keep }}&{% endif %}page={{ page.next_page_number }}">التالي</a>{% endif %}
       </nav>
     {% endif %}
   </div>
@@ -210,11 +267,11 @@
     <div data-images-body></div>
   </dialog>
 
-  {% comment %} نافذةٌ عامّة للمحتوى المجلوب: تفاصيلُ السيارة، مزايداتُها،
-     ونموذجُ الإضافة اليدوية — كلُّها تُحقَن هنا. {% endcomment %}
-  <dialog class="modal cmodal" data-content-dialog>
-    <div data-content-body></div>
-  </dialog>
+  {% comment %} نافذةُ المحتوى — قالبٌ مشترَكٌ واحدٌ للوحة كلِّها. كان
+     مقتطفُها مكتوباً هنا وفي `auction_archive.html`، والنسختان تفترقان:
+     هذه تربط عند التحميل فلا ترى زرّاً يُحقَن بعدها، **وتصمت حين يفشل
+     الجلب**. والمشترَكُ يأخذ السلوكَ الأمتن. {% endcomment %}
+  {% include "console/_content_modal.html" %}
 
   {% include "console/_invoice_voucher.html" %}
 {% endblock %}
@@ -268,47 +325,12 @@
     });
   }
 
-  // ── نافذةُ المحتوى العامّة: تفاصيل · مزايدات · إضافة ──────────────────────
-  var cDialog = document.querySelector('[data-content-dialog]');
-  var cBody = cDialog ? cDialog.querySelector('[data-content-body]') : null;
-  if (cDialog && cDialog.showModal && cBody) {
-    function wireContent() {
-      // نموذجٌ داخل النافذة (الإضافة): 204 يعني نجاحاً فتُغلَق ويُعاد التحميل،
-      // وإلا يُحقَن ثانيةً بأخطائه.
-      var form = cBody.querySelector('form');
-      if (form) {
-        form.addEventListener('submit', function (e) {
-          e.preventDefault();
-          fetch(form.getAttribute('action') || location.href, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-            .then(function (r) { if (r.status === 204) { cDialog.close(); window.location.reload(); return null; } return r.text(); })
-            .then(function (html) { if (html !== null) { cBody.innerHTML = html; wireContent(); } });
-        });
-      }
-      cBody.querySelectorAll('[data-content-close], [data-bids-close], a.btn-cancel, [data-close]').forEach(function (el) {
-        el.addEventListener('click', function (e) { e.preventDefault(); cDialog.close(); });
-      });
-    }
-    document.querySelectorAll('[data-content-url]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        fetch(btn.getAttribute('data-content-url'), { credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-          .then(function (r) { return r.text(); }).then(function (html) { cBody.innerHTML = html; cDialog.showModal(); wireContent(); });
-      });
-    });
-  }
+  // نافذةُ المحتوى صارت في `console/_content_modal.html` — قالبٌ واحدٌ يحمل
+  // الحوارَ وربطَه. وكان المقتطفُ هنا يربط عند التحميل ويصمت عند الفشل.
 
-  // ── التحديد وإنشاء مزادٍ من المحدد ────────────────────────────────────────
-  function boxes() { return [].slice.call(document.querySelectorAll('.row-select')); }
-  var allBtn = document.querySelector('[data-select-all]');
-  var allBox = document.querySelector('[data-select-all-box]');
-  function toggleAll(on) { boxes().forEach(function (b) { b.checked = on; }); if (allBox) allBox.checked = on; }
-  if (allBtn) allBtn.addEventListener('click', function () { var every = boxes().length && boxes().every(function (b) { return b.checked; }); toggleAll(!every); });
-  if (allBox) allBox.addEventListener('change', function () { toggleAll(allBox.checked); });
-  var createBtn = document.querySelector('[data-select-create]');
-  if (createBtn) createBtn.addEventListener('click', function () {
-    var ids = boxes().filter(function (b) { return b.checked; }).map(function (b) { return b.value; });
-    if (!ids.length) { alert('حدِّد سيارةً واحدة على الأقل أولاً.'); return; }
-    window.location.href = '{% url "console:auction-new" %}?vehicle_ids=' + encodeURIComponent(ids.join(','));
-  });
+  // كتلةُ «التحديد وإنشاء مزادٍ من المحدد» حُذفت مع شريطها (قرار المالك
+  // ٢٠٢٦-٠٩-١٤). ولا يبقى جافاسكربتٌ يبحث عن عناصرَ لم تعد تُرسَم: كودٌ ميّتٌ
+  // يعمل بصمتٍ هو ما يجعل القارئَ بعد سنةٍ يظنّ الميزةَ قائمةً ويبني عليها.
 })();
 </script>
 {% endblock %}

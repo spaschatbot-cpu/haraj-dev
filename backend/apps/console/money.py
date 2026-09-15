@@ -39,6 +39,7 @@ from django.shortcuts import redirect, render
 
 from apps.accounts.models import User
 from apps.accounts.services import display_name, find_by_phone
+from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money import verification
@@ -104,11 +105,7 @@ def ledger(request):
         .distinct()
     )
     if query:
-        rows = rows.filter(
-            Q(full_name__icontains=query)
-            | Q(company__name__icontains=query)
-            | Q(phone__contains=query)
-        )
+        rows = rows.filter(search_q(query, "full_name", "company__name", "phone"))
 
     # The total is annotated rather than read per row: a list of forty customers
     # that asks the database four times each is the shape of a screen that gets

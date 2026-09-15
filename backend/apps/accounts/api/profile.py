@@ -13,17 +13,21 @@ from __future__ import annotations
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts import identity, services
-from apps.accounts.models import Company
+from apps.accounts.models import Company, CustomerDocument, DocumentKind
+from apps.core import uploads
 
 from .serializers import (
     CompanyProfileReadSerializer,
     CompanyProfileSerializer,
+    CustomerDocumentSerializer,
+    CustomerDocumentUploadSerializer,
     NationalIdSerializer,
     ProfileSerializer,
     ProfileUpdateSerializer,
@@ -184,3 +188,72 @@ def _company_body(company: Company) -> dict:
     }
     body["is_complete"] = services.company_profile_is_complete(company)
     return body
+
+
+class DocumentsView(APIView):
+    """`GET`/`POST /api/v1/profile/documents/` — وثائقُ صاحب الرمز وحده.
+
+    الوثائقُ الأربع (سجل تجاريّ · شهادة ضريبيّة · هويّة · آيبان) لم يكن لها
+    طريقٌ في v2 إطلاقاً، ولا يزال في v1 ثلاثةُ أعمدةِ مسارٍ على صفّ المستخدم.
+    وصورةُ الآيبان **شرطٌ لفتح طلب الاسترداد** (`request_refund`)، فبلا هذه
+    النقطة لا سبيل للعميل إلى استرداده إلا بموظّفٍ يرفع عنه.
+
+    ولا معرّفَ مستخدمٍ في المسار ولا في الجسم — كبقيّة هذا الملفّ. صاحبُ الوثيقة
+    هو صاحبُ الرمز، ولا شيء آخر يقرّر ذلك: ثغرةُ محفظة v1 كانت بالضبط معرّفاً
+    يُقرأ من الطلب.
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(responses=CustomerDocumentSerializer(many=True))
+    def get(self, request: Request) -> Response:
+        """الساري من كل نوع — أربعةُ صفوفٍ دائماً، والغائبُ `file: null`.
+
+        الأربعةُ كلُّها لا المرفوعُ منها، لأن الشاشة تسأل «ماذا ينقصني؟» وقائمةٌ
+        بما رُفع تجيب عن سؤالٍ آخر.
+        """
+        rows = [
+            {
+                "kind": kind.value,
+                "label": kind.label,
+                "document": CustomerDocument.current(request.user, kind.value),
+            }
+            for kind in DocumentKind
+        ]
+        return Response(CustomerDocumentSerializer(rows, many=True).data)
+
+    @extend_schema(
+        request=CustomerDocumentUploadSerializer,
+        responses={201: CustomerDocumentSerializer},
+    )
+    def post(self, request: Request) -> Response:
+        form = CustomerDocumentUploadSerializer(data=request.data)
+        form.is_valid(raise_exception=True)
+
+        try:
+            # البوّابةُ الوحيدة (T912): المحتوى يقرّر، والبايتات يُعاد ترميزها.
+            safe = uploads.sanitise_image(form.validated_data["file"])
+        except uploads.UploadRejected as exc:
+            raise ValidationError({"file": [str(exc.user_message or exc)]}) from exc
+
+        document = CustomerDocument(
+            user=request.user,
+            kind=form.validated_data["kind"],
+            note=form.validated_data.get("note", ""),
+            # `uploaded_by` فارغٌ عمداً حين يرفع العميل نفسُه: الفراغُ هنا **معلومة**
+            # — «رفعها صاحبُها» — وملؤه بـ`request.user` كان سيجعل رفعَ الموظّف
+            # ورفعَ العميل صفّين لا يُفرَّق بينهما.
+            uploaded_by=None,
+        )
+        document.file.save(f"upload{safe.suffix}", safe.content, save=False)
+        document.save()
+
+        payload = {
+            "kind": document.kind,
+            "label": document.get_kind_display(),
+            "document": document,
+        }
+        return Response(
+            CustomerDocumentSerializer(payload).data, status=status.HTTP_201_CREATED
+        )

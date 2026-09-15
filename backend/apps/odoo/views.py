@@ -24,6 +24,7 @@ from django.views.decorators.http import require_POST
 from apps.core import jsonio, ratelimit
 from apps.core.net import client_ip
 
+from . import vocabulary
 from .models import InboundMessage, InboundState
 from .signing import verify
 
@@ -136,7 +137,15 @@ def _store(
     payload = payload if payload is not None else {}
     fields = {
         "source": "odoo",
-        "event": str(payload.get("event", ""))[:64],
+        # **الاسمُ القانونيّ لا الخامّ.** أودو يرسل فعلاً بلا موضوع (`posted`)،
+        # وأحياناً لا يرسل فعلاً أصلاً والحقيقةُ في `payment_state` — فختمُ
+        # الكلمة كما وصلت كان يجعل كلَّ رسالةٍ حقيقيّةٍ تسقط في «حدث غير معروف».
+        # والترجمةُ هنا، عند الاستقبال، لأن الصفَّ يُعاد تفسيرُه لاحقاً من زرٍّ
+        # أو طابور، فيجب أن يحمل معناه معه لا أن يُعاد اشتقاقُه في كل مرّة.
+        #
+        # ولا شيء يضيع: الجسمُ الخامّ في `raw_body` والحمولةُ في `payload`،
+        # وكلمةُ أودو الأصليّة تبقى فيهما. وما لا يُفهم يُختم بكلمته كما هي.
+        "event": vocabulary.canonical_event(payload)[:64],
         "delivery_id": _delivery_id(payload, headers),
         "subject_ref": _subject_ref(payload),
         "odoo_database": str(payload.get("db") or payload.get("database") or "")[:64],

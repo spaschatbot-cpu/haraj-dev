@@ -98,9 +98,9 @@ class HomeShell extends StatelessWidget {
             // «المحفظة» اسمَ التطبيق مرّتين — في الرأس وفي الشريط السفليّ —
             // ولا يقرأ أين هو. ومن التعداد لا بشرطٍ لكل قسم: القسمُ يعرف
             // اسمه، وقائمةٌ ثانية تفترق عنه عند أول إضافة.
-            title: HomeSection
-                .values[navigationShell.currentIndex]
-                .label(AppLocalizations.of(context)),
+            title: HomeSection.values[navigationShell.currentIndex].label(
+              AppLocalizations.of(context),
+            ),
             onOpenNotifications: () => context.go(Routes.myActivityPath),
             onOpenAccount: () => context.go(Routes.profilePath),
           ),

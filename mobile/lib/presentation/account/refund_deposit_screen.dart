@@ -272,7 +272,10 @@ class _FormCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          _SectionTitle(icon: Icons.description_outlined, text: l10n.refundFormSection),
+          _SectionTitle(
+            icon: Icons.description_outlined,
+            text: l10n.refundFormSection,
+          ),
           const SizedBox(height: 16),
 
           TextField(
@@ -329,7 +332,11 @@ class _FormCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
 
-          _GoldButton(label: l10n.refundSubmit, onTap: onSubmit, palette: palette),
+          _GoldButton(
+            label: l10n.refundSubmit,
+            onTap: onSubmit,
+            palette: palette,
+          ),
         ],
       ),
     );

@@ -20,7 +20,9 @@ from . import (
     auctions,
     audit,
     bids,
+    bids_report,
     billing,
+    broadcast,
     bulk,
     catalog,
     customer_file,
@@ -29,7 +31,10 @@ from . import (
     health,
     importexport,
     inbox,
+    manual_payment,
     money,
+    news,
+    packages,
     partner_console,
     partner_payments,
     partners,
@@ -149,11 +154,15 @@ urlpatterns = [
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
     path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
+    # تقرير المزايدات — المزايدون مجمَّعين، بمسار v1 نفسِه (T832).
+    path("analytics/bids-report/", bids_report.bids_report, name="bids-report"),
     path("analytics/active/", analytics.active_auction, name="active-auction"),
     path("analytics/profit/", analytics.profit_report, name="profit-report"),
     path("owners/", analytics.owners_console, name="owners-console"),
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
+    # مسارٌ واحدٌ للشاشة كلِّها، كـ«شريط الأخبار» — و`op` يميّز الفعل. T921
+    path("finance/packages/", packages.packages, name="packages"),
     # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
     path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
     path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
@@ -183,6 +192,9 @@ urlpatterns = [
         exits.exit_declaration,
         name="exit-declaration",
     ),
+    # البحثُ قبل التأكيد: `GET` لأنه قراءةٌ لا كتابة — الحارسُ يقرأ ما بيده
+    # قبل أن يفتح البوّابة، والتأكيدُ وحده `POST`.
+    path("vehicle-exit/gate/lookup/", exits.exit_gate_lookup, name="exit-gate-lookup"),
     path("vehicle-exit/gate/", exits.exit_gate, name="exit-gate"),
     path("vehicle-exit/<int:pk>/transfer/", exits.exit_transfer, name="exit-transfer"),
     path("vehicle-exit/<int:pk>/lift-ban/", exits.exit_lift_ban, name="exit-lift-ban"),
@@ -263,6 +275,18 @@ urlpatterns = [
     path("partners/<int:pk>/reject/", partners.reject, name="partner-reject"),
     path("customers/", people.customers, name="customers"),
     path("customers/<int:pk>/", customer_file.customer_detail, name="customer-detail"),
+    # ليست صفّاً في `PAGES`: فعلٌ على صفحةٍ قائمة لا وجهةٌ في الشريط. حراستُها
+    # حراسةُ ملفّ العميل، وفوقها `money.act` داخل المنظر نفسه.
+    path(
+        "customers/<int:pk>/odoo-link/",
+        customer_file.odoo_link,
+        name="customer-odoo-link",
+    ),
+    path(
+        "customers/<int:pk>/documents/",
+        customer_file.customer_documents,
+        name="customer-documents",
+    ),
     path("customers/<int:pk>/edit/", people.customer_edit, name="customer-edit"),
     path("customers/<int:pk>/company/", people.company_edit, name="company-edit"),
     path("customers/<int:pk>/access/", people.customer_access, name="customer-access"),
@@ -288,6 +312,10 @@ urlpatterns = [
     path("invoices/", people.invoices, name="invoices"),
     path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),
     path("payments/", payments.payments, name="payments"),
+    # «إنشاء دفعة» — قيدٌ على فاتورةٍ بيد موظّف. صفحةٌ واحدة تبحث وتقيّد:
+    # البحثُ `GET` والقيدُ `POST` على المسار نفسه، فلا عنوانٌ ثانٍ يُفتح بلا
+    # فاتورةٍ في يده.
+    path("payments/create/", manual_payment.payment_create, name="payment-create"),
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
     path("money/<int:pk>/actions/", actions.actions, name="money-actions"),
@@ -308,8 +336,19 @@ urlpatterns = [
     ),
     path("health/", health.health, name="money-health"),
     path("notifications/", alerts.notifications, name="notifications"),
+    # «إرسال إشعار» — ثلاثُ خطواتٍ على مسارٍ واحد: `GET` يفتح الاستمارة،
+    # و`POST step=preview` يعدّ الجمهور ويقدّر الكلفة، و`POST step=send` ينفّذ
+    # برمز المعاينة. ومسارٌ واحد لأن الخطوات الثلاث شيءٌ واحدٌ لا يُدخَل من
+    # منتصفه: عنوانٌ للتنفيذ وحده هو عنوانٌ يُفتح بلا عدٍّ رآه أحد.
+    path("notifications/send/", broadcast.broadcast, name="broadcast"),
+    # مسارٌ واحدٌ للشاشة كلِّها: الإضافةُ والتعديلُ والإيقاف `POST` عليه
+    # يميّزها حقلُ `op`. ومسارٌ لكلّ فعلٍ كان يعني صفوفاً في `DETAIL_PAGES`
+    # لصفحاتٍ لا تُفتح — كلُّها تُعيد التوجيه. T921.
+    path("news/", news.news, name="news"),
     path("audit/", audit.audit, name="audit"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),
     path("inbox/<int:pk>/replay/", inbox.replay, name="odoo-replay"),
+    # الطابورُ كلُّه دفعةً واحدة — المنادي الوحيد لـ`retry_failed_gateway`.
+    path("inbox/gateway-retry/", inbox.gateway_retry, name="gateway-retry"),
 ]

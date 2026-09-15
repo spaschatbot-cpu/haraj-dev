@@ -21,6 +21,7 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction as db_transaction
 from django.utils import timezone
 
+from apps.bidding import settlement
 from apps.money import services
 from apps.money.models import (
     AccountKind,
@@ -171,9 +172,14 @@ def _interpret(message: InboundMessage) -> Outcome:
     handlers = {
         "payment.posted": _handle_payment,
         "payment.updated": _handle_payment,
+        "payment.created": _handle_payment_created,
+        "payment.cancelled": _handle_payment_cancelled,
         "invoice.posted": _handle_invoice,
         "invoice.updated": _handle_invoice,
+        "invoice.cancelled": _handle_invoice_cancelled,
         "refund.confirmed": _handle_refund,
+        "refund.rejected": _handle_refund_rejected,
+        "refund.pending": _handle_refund_pending,
     }
     handler = handlers.get(message.event)
     if handler is None:
@@ -301,7 +307,11 @@ def _settle_invoice_from_deposit(
 
     services.lock_for_invoice(user=user, invoice=invoice)
     payable = min(amount, invoice.outstanding)
-    services.record_payment(
+    # `settlement.record_vehicle_payment` لا `services.record_payment`: هذا
+    # أكثرُ أبواب الدفع طرقاً في الإنتاج (١١٬٤٩٤ فاتورةً مسدَّدةً في القاعدة
+    # المُرحَّلة أتت من هنا)، وكان يسدّد الفاتورةَ ويترك المركبةَ `invoiced`
+    # إلى الأبد — فلا تدخل طابورَ الخروج. البابُ الواحد ينقلها.
+    settlement.record_vehicle_payment(
         invoice=invoice,
         amount=payable,
         source="insurance",
@@ -373,10 +383,35 @@ def _handle_invoice(message: InboundMessage) -> Outcome:
             "وقراراً بشرياً",
         )
 
+    parts = invoice.net_amount + invoice.admin_fee + invoice.tax_amount
+    if parts > Decimal("0.00") and amount != invoice.amount:
+        # **فاتورةٌ أصدرناها نحن، وأودو يقول لها مبلغاً آخر.** مجموعُ بنودها
+        # (صافٍ + رسمٌ إداريّ + ضريبة) **هو** إجماليُّها بقيدٍ في القاعدة
+        # (`invoice_parts_add_up_to_its_total`)، فكتابةُ إجماليٍّ لا يساويها
+        # ترمي `IntegrityError` — والرسالةُ تنتهي `failed`، أي **في طابور
+        # الإعادة**، فتُعاد كلَّ دقيقةٍ إلى الأبد على عملٍ لا يمكن أن ينجح.
+        # قِيس: رسالةُ `invoice.updated` على فاتورةٍ محلّيّةٍ برفع ألفِ ريال
+        # ⇦ `failed` بنصّ قيدٍ من القاعدة (١٤ سبتمبر ٢٠٢٦).
+        #
+        # و`ignored` لا `failed`: هذا **قرارٌ** لا عطلٌ عابر. المرآةُ تعكس ما
+        # عندهم؛ وما أصدرناه نحن مصدرُه هنا، وتعديلُ إجماليِّه يكون بقيدٍ
+        # عندنا لا برسالةٍ منهم. وفواتيرُ أودو نفسُها (بلا بنود) تُحدَّث كما
+        # كانت — الشرطُ على البنود لا على المصدر.
+        return Outcome(
+            InboundState.IGNORED,
+            f"الفاتورة {invoice.number} أصدرناها ببنودٍ مجموعُها {parts} "
+            f"وأودو يقول {amount} — إجماليُّ فاتورةٍ محلّيّةٍ لا يُكتب من الخارج",
+        )
+
     invoice.odoo_state_raw = raw_state
     invoice.amount = amount
     invoice.state = services.derive_invoice_state(invoice)
     invoice.save(update_fields=["odoo_state_raw", "amount", "state", "updated_at"])
+    # **رفعُ المبلغ يُخرج الفاتورةَ من «مسدَّدة» بلا إلغاءٍ ولا عكسِ دفعة**:
+    # فاتورةٌ سُدِّدت بعشرة آلاف ثمّ صحّحها أودو إلى اثني عشر تصير `partial`،
+    # والمركبةُ يجب أن تخرج من طابور الخروج معها. بابٌ عكسيٌّ حقيقيٌّ لا
+    # يمرّ بالإلغاء، ولذلك يُنادى الباب هنا أيضاً.
+    settlement.sync_vehicle_to_invoice(invoice)
     return Outcome(
         InboundState.PROCESSED,
         f"حُدّثت الفاتورة {invoice.number} (حالة أودو المحفوظة: {raw_state!r})",
@@ -554,6 +589,246 @@ def _close_refund_request(user, payload: dict, txn: Transaction) -> str:
     request.resulting_transaction = txn
     request.save(update_fields=["state", "resulting_transaction", "updated_at"])
     return f" — أُغلق الطلب {reference}"
+
+
+# ---------------------------------------------------------------------------
+# الإلغاء والعكس — الفروعُ التي لم تكن موجودةً إطلاقاً
+# ---------------------------------------------------------------------------
+#
+# `grep cancel|revers` على هذه الحزمة كان يعطي مطابقةً واحدة، وهي قائمةُ حالاتٍ
+# في `reconciliation.py` — **لا معالِج**. أي أن أودو يعكس دفعةً ويبقى عندنا
+# ائتمانُها قائماً: وديعةٌ مقيَّدةٌ لمالٍ لم يعد عنده، يزايد بها صاحبُها.
+#
+# v1 يعرف هذا بحادثةٍ مسمّاة (`INV/2026/03708`): العكسُ يصل بفعلٍ يقول `updated`
+# وحالةٍ تقول `posted`، والحقيقةُ في `payment_state` وحده. تلك نصفُ العطل، وقد
+# سُدّت في :mod:`apps.odoo.vocabulary`. وهذا نصفُه الآخر.
+
+
+@db_transaction.atomic
+def _handle_payment_cancelled(message: InboundMessage) -> Outcome:
+    """أودو عكس دفعةً أو ألغاها. يُعكَس ما قيّدناه عنها — أو تُفتح قضيّة.
+
+    **ولا يُخصَم قسراً.** الوديعةُ قد تكون صُرفت منذ وصولها: محجوزةً على مزادٍ
+    أو مرهونةً على فاتورة. وسحبُها حينئذٍ من دلوٍ لا يملكها إمّا يرفضه قيدُ
+    `customer_buckets_never_go_negative` (فتخرج الرسالةُ `failed` بجملةِ حساب،
+    ولا شيء يقول إن سيّارةً بلا غطاء)، أو — لو اُلتُفَّ على القيد — يُلغي مزايداتٍ
+    قائمةً بقرارٍ اتّخذته آلة.
+
+    فالمقياسُ هو المتاح، والعجزُ يفتح :class:`~apps.odoo.models.RefundShortfall`
+    — نفسُ الطابور الذي بُني لصورة هذه الحالة المقلوبة (HR-09)، لا مفهومٌ ثانٍ
+    يشبهه. الرسالةُ تنتهي `ignored` بسببٍ مكتوب، والقرارُ لإنسان.
+    """
+    payload = message.payload
+    payment_id = str(payload.get("payment_id") or payload.get("id") or "")
+    if not payment_id:
+        return Outcome(InboundState.FAILED, "رسالة إلغاء دفعة بلا معرّف دفعة")
+
+    reference = f"odoo:{payment_id}"
+    credited = services.find_transaction(services.deposit_key("cash", reference))
+    in_suspense = services.find_transaction(services.suspense_key("cash", reference))
+    original = credited or in_suspense
+
+    if original is None:
+        # لم نقيّدها أصلاً. `ignored` لا `failed`: إعادةُ المحاولة لن تخلق قيداً
+        # لم يوجد، و`failed` تعني «حاول ثانيةً» فتبقى في الطابور إلى الأبد.
+        return Outcome(
+            InboundState.IGNORED,
+            f"أودو ألغى الدفعة {payment_id} ولم تكن مقيَّدةً عندنا — لا شيء يُعكس",
+        )
+
+    # بالاستعلام لا بعلاقة `reversed_by`: الوصولُ إليها وهي غائبةٌ يرمي
+    # `RelatedObjectDoesNotExist`، فيخرج الإلغاءُ المكرَّر `failed` بدل أن يُقرأ
+    # «معكوسةٌ سابقاً» — وهو نفسُ ما تفعله `services.reverse` قبل أن ترفض.
+    earlier = Transaction.objects.filter(reverses=original).first()
+    if earlier is not None:
+        return Outcome(
+            InboundState.PROCESSED,
+            f"الدفعة {payment_id} معكوسةٌ سابقاً بالمعاملة {earlier.pk}",
+            earlier,
+        )
+
+    # المعلَّق ليس مال عميل: عكسُه يردّ دلواً للمنصّة إلى ما كان، بلا مساسٍ بأحد.
+    # أما المقيَّد لعميلٍ فيُقاس على متاحه قبل أي كتابة.
+    if credited is not None:
+        amount, error = _amount(payload)
+        if amount is None:
+            amount = original.total
+        odoo_customer = str(
+            payload.get("customer_id") or payload.get("partner_id") or ""
+        )
+        user, link_note = _resolve_customer(odoo_customer)
+        if user is None:
+            user = _owner_of(original)
+        if user is None:
+            return Outcome(
+                InboundState.FAILED,
+                f"إلغاء الدفعة {payment_id}: لا يُعرف صاحبُ القيد — {link_note}",
+            )
+        shortfall = _shortfall_if_pledged(message, user, amount, f"cancel:{payment_id}")
+        if shortfall is not None:
+            return shortfall
+
+    try:
+        reversal = services.reverse(
+            original,
+            reason=f"أودو ألغى الدفعة {payment_id} ({_low_state(payload)})",
+        )
+    except services.MoneyError as exc:
+        return Outcome(
+            InboundState.IGNORED,
+            f"إلغاء الدفعة {payment_id} لم يُنفَّذ: {exc}",
+        )
+
+    return Outcome(
+        InboundState.PROCESSED,
+        f"عُكست الدفعة {payment_id} — المعاملة {original.pk} ألغتها {reversal.pk}",
+        reversal,
+    )
+
+
+def _handle_payment_created(message: InboundMessage) -> Outcome:
+    """دفعةٌ أُنشئت في أودو ولم تُرحَّل. تُسجَّل ولا تُقيَّد — قاعدةُ v1 حرفيّاً.
+
+    «`event` غير `posted` → لا اعتماد»، والسببُ مكتوبٌ في v1 نفسه: رسالةُ
+    `created` تحمل **معرّف دفعةٍ ناقصاً**، فالاعتمادُ عليها ثم الاعتمادُ على
+    `posted` التي تليها كان **سببَ الاعتماد المزدوج**.
+
+    و`ignored` هنا قرارٌ لا تجاهل: المسوّدةُ ستصل ثانيةً مرحَّلةً، وحينها تُقيَّد.
+    """
+    payment_id = str(
+        message.payload.get("payment_id") or message.payload.get("id") or ""
+    )
+    return Outcome(
+        InboundState.IGNORED,
+        f"دفعة {payment_id or '؟'} مسوّدةٌ في أودو ولم تُرحَّل — "
+        "لا تُقيَّد حتى تصل مرحَّلة (معرّفُ المسوّدة ناقصٌ، وقيده يُضاعف)",
+    )
+
+
+@db_transaction.atomic
+def _handle_invoice_cancelled(message: InboundMessage) -> Outcome:
+    """أودو ألغى فاتورة. تُلغى عندنا — ما لم يكن قد سُدِّد عليها شيء.
+
+    فاتورةٌ سُدِّد عليها لا تُلغى بضغطة: الإلغاء يجعل `outstanding` صفراً
+    و`derive_invoice_state` تقرأ «ملغاة»، فيختفي المسدَّدُ من كل تقريرٍ بلا قيدٍ
+    عاكسٍ يقابله — وهو نفسُ رفض «تخفيضها تحت المسدَّد» أعلاه، من الباب الآخر.
+    """
+    payload = message.payload
+    invoice_ref = str(payload.get("invoice_id") or payload.get("id") or "")
+    if not invoice_ref:
+        return Outcome(InboundState.FAILED, "رسالة إلغاء فاتورة بلا معرّف فاتورة")
+    if invoice_ref == ODOO_UNNUMBERED:
+        return Outcome(
+            InboundState.IGNORED,
+            f"إلغاءُ مسودّةٍ غير مرقَّمة ({ODOO_UNNUMBERED!r}) — لا فاتورة تقابلها عندنا",
+        )
+
+    invoice = (
+        Invoice.objects.select_for_update().filter(odoo_invoice_id=invoice_ref).first()
+    )
+    if invoice is None:
+        return Outcome(
+            InboundState.IGNORED,
+            f"أودو ألغى الفاتورة {invoice_ref} ولا نسخة لها عندنا",
+        )
+    if invoice.state == InvoiceState.CANCELLED:
+        return Outcome(
+            InboundState.PROCESSED, f"الفاتورة {invoice.number} ملغاةٌ سابقاً"
+        )
+    if invoice.amount_paid > Decimal("0.00"):
+        return Outcome(
+            InboundState.FAILED,
+            f"الفاتورة {invoice.number} مسدَّدٌ عليها {invoice.amount_paid} — "
+            "إلغاؤها يُخفي المسدَّد بلا قيدٍ عاكس، ويحتاج قراراً بشرياً",
+        )
+
+    invoice.state = InvoiceState.CANCELLED
+    invoice.odoo_state_raw = str(payload.get("state", ""))[:64]
+    invoice.save(update_fields=["state", "odoo_state_raw", "updated_at"])
+    services.release_invoice_holds(invoice)
+    # البابُ نفسُه. ولا ينقل شيئاً على فاتورةٍ مسدَّدة — الرفضُ فوق يمنع إلغاءَ
+    # ما سُدِّد عليه — لكنّه ينقلها لو رُفع ذلك الرفضُ يوماً بقرارٍ بشريّ، ولا
+    # يُنتظر من مَن يرفعه أن يتذكّر سيّارةً في طابور الخروج.
+    settlement.sync_vehicle_to_invoice(invoice)
+    return Outcome(
+        InboundState.PROCESSED,
+        f"أُلغيت الفاتورة {invoice.number} بإلغاء أودو، وفُكّ ما رُهن عليها",
+    )
+
+
+@db_transaction.atomic
+def _handle_refund_rejected(message: InboundMessage) -> Outcome:
+    """أودو رفض/ألغى استرداداً. الطلبُ يُفتح ثانيةً ولا يُخصم شيء.
+
+    v1 يجعلها `(rejected, cancelled)`. وأهمُّ ما فيها أنها **لا تحرّك مالاً**:
+    الخصمُ لم يقع أصلاً (يقع عند `posted` وحدها)، فالفعلُ الوحيد إغلاقُ الطلب
+    بحالته الصحيحة — وإلا بقي «مُقدَّماً» إلى الأبد، ومعه قاعدةُ «طلبٌ واحدٌ
+    معلّقٌ لكل عميل» تمنع صاحبَه من طلبٍ جديد.
+    """
+    payload = message.payload
+    refund_id = str(payload.get("refund_id") or payload.get("id") or "")
+    reference = str(payload.get("reference") or "")
+    if not reference:
+        return Outcome(
+            InboundState.IGNORED,
+            f"رفضُ استرداد {refund_id or '؟'} بلا مرجع طلب — لا طلبَ يُغلق",
+        )
+
+    request = (
+        RefundRequest.objects.select_for_update().filter(reference=reference).first()
+    )
+    if request is None:
+        return Outcome(
+            InboundState.IGNORED,
+            f"رفضُ استرداد {refund_id or '؟'}: لا يوجد طلب بالمرجع {reference!r}",
+        )
+    if request.state == RefundRequestState.CONFIRMED:
+        # نُفِّذ ثم وصل رفضُه. لا يُعكَس هنا بحال: عكسُ استردادٍ خرج فعلاً قرارٌ
+        # ماليٌّ بشريّ، وهذه رسالةٌ تصف حالةً عند أودو لا أمراً بإرجاع مال.
+        return Outcome(
+            InboundState.FAILED,
+            f"الطلب {reference} منفَّذٌ عندنا وأودو يقول مرفوض — تعارضٌ يحتاج قراراً بشرياً",
+        )
+    if request.state == RefundRequestState.REJECTED:
+        return Outcome(InboundState.PROCESSED, f"الطلب {reference} مرفوضٌ سابقاً")
+
+    request.state = RefundRequestState.REJECTED
+    request.save(update_fields=["state", "updated_at"])
+    return Outcome(
+        InboundState.PROCESSED, f"رُفض الطلب {reference} بقرار أودو؛ لم يتحرّك مال"
+    )
+
+
+def _handle_refund_pending(message: InboundMessage) -> Outcome:
+    """استردادٌ عند أودو ليس مرحَّلاً ولا ملغى. يُسجَّل ولا يُخصم.
+
+    قاعدةُ v1: كلُّ ما ليس `posted` ولا `cancelled` هو `(pending, draft)`.
+    والخصمُ يقع عند الترحيل وحده — فرعٌ يقولها ويتوقّف، لا فرعٌ ناقص.
+    """
+    refund_id = str(
+        message.payload.get("refund_id") or message.payload.get("id") or ""
+    )
+    return Outcome(
+        InboundState.IGNORED,
+        f"استرداد {refund_id or '؟'} ما زال مسوّدةً عند أودو — لا خصم قبل الترحيل",
+    )
+
+
+def _owner_of(txn: Transaction):
+    """صاحبُ القيد كما كُتب وقتَه، لا كما يُستنتج اليوم من ربطٍ قد تغيّر."""
+    entry = txn.entries.filter(owner__isnull=False).first()
+    return entry.owner if entry is not None else None
+
+
+def _low_state(payload: dict) -> str:
+    """حالةُ أودو كما أرسلها، لتُكتب في سبب العكس فيُقرأ لاحقاً لماذا عُكس."""
+    said = (
+        payload.get("payment_state")
+        or payload.get("state")
+        or payload.get("status")
+        or "ملغاة"
+    )
+    return str(said)[:64]
 
 
 # ---------------------------------------------------------------------------

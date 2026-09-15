@@ -409,7 +409,9 @@ class Command(BaseCommand):
                 source="cash",
                 reference=f"demo/clear/{invoice.number}",
             )
-            money.pay_invoice_from_balance(user=invoice.customer, invoice=invoice)
+            settlement.pay_vehicle_invoice_from_balance(
+                user=invoice.customer, invoice=invoice
+            )
             self.stdout.write(f"  سُدِّدت {invoice.number} لتحرير المزايد")
 
         # ثم يُعاد التمويل: السداد استهلك الوديعة، فبوابةُ الأهلية ترفض
@@ -534,7 +536,12 @@ class Command(BaseCommand):
                 source="cash",
                 reference=f"demo/settle/{invoice.number}",
             )
-            money.pay_invoice_from_balance(user=invoice.customer, invoice=invoice)
+            # البابُ الواحد للدفع (`settlement.pay_vehicle_invoice_from_balance`)
+            # كي تُنتج البذرةُ ما يُنتجه الإنتاج: مركبةٌ `paid` في طابور
+            # الخروج، لا فاتورةٌ مسدَّدةٌ ومركبةٌ `invoiced` كما كان.
+            settlement.pay_vehicle_invoice_from_balance(
+                user=invoice.customer, invoice=invoice
+            )
             paid += 1
 
         self.stdout.write(

@@ -17,7 +17,12 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")  # noqa: F405
 if not ALLOWED_HOSTS:
     raise RuntimeError("ALLOWED_HOSTS must be set in production")
 
-if SECRET_KEY == INSECURE_SECRET_KEY:  # noqa: F405
+# والفراغُ يُرفض كما تُرفض قيمةُ التطوير. كان الشرطُ يقارن بالسنتينل وحده،
+# فسطرٌ اسمُه بلا قيمة (`SECRET_KEY=` في ملفّ بيئة) **يمرّ الحارس**: جانغو
+# يرمي `ImproperlyConfigured` ويبتلعها `check` فتصير تحذير `W009`، ثم يسقط
+# أوّلُ طلبٍ يمسّ الجلسة — أي أن الخادم يُقلع «سليماً» ويموت عند أوّل عميل.
+# والغيابُ الكامل أأمنُ من السطر الفارغ، وهذا يسوّي بينهما.
+if not SECRET_KEY or SECRET_KEY == INSECURE_SECRET_KEY:  # noqa: F405
     raise RuntimeError("SECRET_KEY must be set outside DEBUG")
 
 # --------------------------------------------------------------------------
@@ -45,6 +50,27 @@ X_FRAME_OPTIONS = "DENY"
 # --------------------------------------------------------------------------
 # Database
 # --------------------------------------------------------------------------
+
+# الدفترُ هو الشيءُ الوحيد الذي لا يُعوَّض إن ضاع، و`DATABASE_URL` **له قيمةٌ
+# افتراضيّةٌ وهي قاعدةُ التطوير** (`base.DEV_DATABASE_URL`). فغيابُه في الإنتاج
+# لا يُسقط شيئاً: الخادمُ يُقلع مشيراً إلى `haraj2@127.0.0.1`، وعلى آلةٍ فيها
+# PostgreSQL محلّيّ — وهو قرارُ النشر اليوم — **قد يتّصل فعلاً**، فيكتب إنتاجٌ
+# كاملٌ في قاعدةٍ ليست قاعدته وهو يظنّ نفسه سليماً. مقيسٌ في عقد البيئة §٤:
+# بلا `DATABASE_URL` يعطي `check` رمزَ خروجٍ صفراً و`NAME='haraj2'`.
+#
+# والقيمةُ الافتراضيّة تُرفض كما يُرفض الغياب، تماماً كحارس `SECRET_KEY` تحته:
+# من نسخ `.env.example` كما هو لم يقل شيئاً عن قاعدته.
+_settings_module = env("DJANGO_SETTINGS_MODULE", default="")  # noqa: F405
+if not _settings_module.endswith(".test"):
+    # و`settings/test.py` مستثنىً وحده لأنه يستبدل `DATABASES["default"]`
+    # كاملاً بعد هذا السطر بأربعة أسطر (`TEST_DATABASE_URL`): حارسٌ يرفض قيمةً
+    # لا تُستعمل هو قاعدةٌ عن الإنتاج تكسر ما ليس إنتاجاً.
+    _database_url = env("DATABASE_URL", default="")  # noqa: F405
+    if not _database_url or _database_url == DEV_DATABASE_URL:  # noqa: F405
+        raise RuntimeError(
+            "DATABASE_URL must be set outside DEBUG — refusing to boot on the "
+            "development database"
+        )
 
 # Reusing connections matters here: the money engine opens a transaction per
 # posting, and reconnecting on each one shows up immediately under load.
