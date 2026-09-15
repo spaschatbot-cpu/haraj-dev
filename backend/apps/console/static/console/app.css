@@ -9169,3 +9169,9 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 .nav-sec { font-size: .74rem; letter-spacing: .04em; }
 .nav__icon { inline-size: 1.25rem; block-size: 1.25rem; }
 :root { --sidebar-w: 20rem; }
+
+/* عناوينُ المجموعات أعرض: 0.74 → 0.84rem، والتباعدُ بين الحروف ينزل إلى
+   0.02em — التباعدُ الواسع يُصغّر الحرفَ بصريّاً وإن كبر قياسُه، وهو مكتوبٌ
+   لعناوينَ لاتينيّةٍ صغيرة لا لعربيّةٍ متّصلة. وهامشٌ أعلى أوسعُ معه: عنوانٌ
+   كبر ولم يبتعد عمّا قبله يُقرأ تذييلاً للقسم السابق لا رأساً للتالي. */
+.nav-sec { font-size: .84rem; letter-spacing: .02em; margin-block-start: 1.35rem; }
