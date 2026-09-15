@@ -6399,3 +6399,73 @@ a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { bac
 }
 .spark__count { font-size: .76rem; font-weight: 700; color: var(--ink-soft); }
 .spark__label { font-size: .7rem; font-weight: 500; margin-block-start: .45rem; }
+
+/* ===========================================================================
+   عناوينُ الكتل: كحليّةٌ غامقة — و«الصورة العامّة» تنزل قليلاً
+   ---------------------------------------------------------------------------
+   «نزّل الصورة العامة لتحت شويه وغمّقها بلون كحلي».
+
+   **والكحليُّ مشتقٌّ لا مكتوب**: `color-mix` بين `--ink` وأزرقٍ صريح بنسبة
+   ٨٠٪ إلى ٢٠٪. وذلك لأن `--ink` **ينقلب** في المظهر الداكن (من `#172033`
+   إلى لونٍ فاتح)، فقيمةٌ كحليّةٌ مكتوبةٌ بيدٍ تصير نصّاً غامقاً على أرضيةٍ
+   سوداء لا يُقرأ. والمزيجُ يتبع الانقلاب.
+
+   وقيس على أرضية الصفحة قبل الاعتماد: `#182b55`، تباينُه **12.81** — وكان
+   `--muted` عند **5.01**. أي أن العنوان صار يُقرأ قبل ما تحته لا معه.
+
+   **والعناوينُ الثلاثةُ معاً** لا «الصورة العامّة» وحدها: هي عنصرٌ واحدٌ
+   مكرَّر، وواحدٌ كحليٌّ بين رماديَّين يُقرأ خطأً في الطباعة لا قصداً.
+   وعنوانُ الإنذار يبقى أحمر — لونُه معناه حالةٌ لا رتبة.
+
+   **والنزول** على «الصورة العامّة» وحدها (`#head-figures`): هي الكتلةُ
+   الوحيدةُ التي يسبقها **رسمان** لا بطاقات، والفصلُ عن كتلةِ رسومٍ يحتاج
+   فراغاً أوسعَ من الفصل عن صفٍّ من الأرقام.
+   ======================================================================== */
+
+.board-eyebrow {
+  color: color-mix(in srgb, var(--ink) 80%, #1a56db);
+  font-size: .82rem;
+}
+.board-eyebrow::after { background: var(--line); }
+.board-eyebrow--alarm { color: var(--danger); }
+
+#head-figures { margin-block-start: 2.3rem; }
+.board-lede { color: var(--ink-soft); }
+
+/* ===========================================================================
+   عطلٌ في المظهر الداكن: أبيضُ على درجاتٍ فاتحة
+   ---------------------------------------------------------------------------
+   زرُّ الوجهة يُملأ بدرجة تصنيف بطاقته **مخفَّفةً بالأبيض** ونصُّه أبيض.
+   وذلك حُسب على الفاتح حيث الدرجاتُ غامقة (`--money: #6d4aa8`). لكنّ المظهرَ
+   الداكن **يقلب الدرجات إلى فاتحة** (`--money: #c4a9f2`) — فصار الزرُّ
+   لوحةً باستيل ونصُّه أبيض. القياس:
+
+       بنفسجي  #cdb7f4   أبيضٌ عليه 1.80    غامقٌ عليه 10.25
+       فيروزي  #6dd1d6              1.79              10.30
+       كهرماني #f2c97a              1.57              11.77
+       أحمر    #fdb4ae              1.71              10.81
+       أخضر    #77d9b0              1.70              10.83
+
+   أي أن النصَّ كان عند خُمس الحدّ تقريباً — يُرى بياضاً على لونٍ فاتح لا
+   كلمةً. ولم يظهر في اللقطات لأن كل مراجعةٍ للزرّ جرت على المظهر الفاتح؛
+   ظهر حين صُوّر الداكنُ لسببٍ آخر.
+
+   والإصلاح مقلوبُ القاعدة لا استثناءٌ منها: **الدرجةُ لا تُخفَّف** هنا (هي
+   فاتحةٌ أصلاً، وتخفيفُها يزيد الطين بلّة)، **والنصُّ يأخذ لونَ الأرضية**
+   الداكنة. فيبقى المعنى واحداً في المظهرين: خلفيةٌ بلون التصنيف ونصٌّ يناقضها.
+   ======================================================================== */
+
+[data-scheme="dark"] .stat--money .stat__btn   { background: var(--money);   color: var(--ground); }
+[data-scheme="dark"] .stat--auction .stat__btn { background: var(--auction); color: var(--ground); }
+[data-scheme="dark"] .stat--people .stat__btn  { background: var(--people);  color: var(--ground); }
+[data-scheme="dark"] .stat--ok .stat__btn      { background: var(--ok);      color: var(--ground); }
+[data-scheme="dark"] .stat--warn .stat__btn    { background: var(--warn);    color: var(--ground); }
+[data-scheme="dark"] .stat--alarm .stat__btn   { background: var(--danger);  color: var(--ground); }
+
+/* والتحويمُ يُفتّح بدل أن يُغمّق — الاتجاهُ ينقلب مع المظهر كما تنقلب الدرجة. */
+[data-scheme="dark"] a.stat--money:hover .stat__btn,   [data-scheme="dark"] a.stat--money:focus-visible .stat__btn   { background: color-mix(in srgb, var(--money) 78%, #fff);   color: var(--ground); }
+[data-scheme="dark"] a.stat--auction:hover .stat__btn, [data-scheme="dark"] a.stat--auction:focus-visible .stat__btn { background: color-mix(in srgb, var(--auction) 78%, #fff); color: var(--ground); }
+[data-scheme="dark"] a.stat--people:hover .stat__btn,  [data-scheme="dark"] a.stat--people:focus-visible .stat__btn  { background: color-mix(in srgb, var(--people) 78%, #fff);  color: var(--ground); }
+[data-scheme="dark"] a.stat--ok:hover .stat__btn,      [data-scheme="dark"] a.stat--ok:focus-visible .stat__btn      { background: color-mix(in srgb, var(--ok) 78%, #fff);      color: var(--ground); }
+[data-scheme="dark"] a.stat--warn:hover .stat__btn,    [data-scheme="dark"] a.stat--warn:focus-visible .stat__btn    { background: color-mix(in srgb, var(--warn) 78%, #fff);    color: var(--ground); }
+[data-scheme="dark"] a.stat--alarm:hover .stat__btn,   [data-scheme="dark"] a.stat--alarm:focus-visible .stat__btn   { background: color-mix(in srgb, var(--danger) 78%, #fff);  color: var(--ground); }
