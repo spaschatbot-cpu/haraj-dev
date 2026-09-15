@@ -8761,3 +8761,43 @@ td.actions .act--del:hover {
    بحدّ 3 — وهو يرسب نصّاً. والفرقُ بينهما هو بعينه ما كُتبا لأجله. */
 .pick-card__cta { color: var(--brand-dark); }
 .pick-card:hover .pick-card__cta { color: var(--brand-solid); text-decoration: underline; text-underline-offset: .25em; }
+
+/* سطرُ الوجهة يصير زرّاً أزرقَ متوسّطاً بنصٍّ أبيض — بأمر المالك.
+
+   وبحجم محتواه لا بعرض البطاقة: خمسةُ كروتٍ في شبكةٍ تعني خمسةَ أزرارٍ،
+   وزرٌّ يمتدّ من حافةٍ إلى حافة يصرخ بقدر عرضه. والخطُّ الرفيعُ فوقه يبقى
+   فاصلاً بينه وبين بيان البطاقة. */
+.pick-card__cta {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  margin-block-start: auto;
+  padding: .5rem 1.05rem;
+  border-radius: 9px;
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .76rem;
+  font-weight: 700;
+  text-align: center;
+  transition: background .15s ease;
+}
+/* والخطُّ الفاصلُ ينتقل إلى **سطر البيان** فوقه: حدٌّ على زرٍّ بحجم محتواه
+   يرسم خطّاً بطول الزرّ لا بعرض البطاقة، وزائفٌ مُزاحٌ بـ`transform` رقمٌ
+   يُقدَّر بالعين ويفترق عن موضعه عند أوّل تغييرٍ في الحشوة — جُرّب فلم
+   يظهر. والحدُّ على ما فوقه يصيب دائماً. */
+.pick-card__cta { border-block-start: 0; }
+.pick-card__meta {
+  padding-block-end: .85rem;
+  border-block-end: 1px solid var(--line-soft);
+  margin-block-end: .2rem;
+}
+.pick-card { padding-block-end: 1.15rem; }
+
+.pick-card:hover .pick-card__cta,
+.pick-card:focus-visible .pick-card__cta {
+  background: color-mix(in srgb, var(--brand-solid) 86%, #000);
+  color: #fff;
+  text-decoration: none;
+}
+.pick-card__cta--off { background: var(--line-soft); color: var(--muted); }
