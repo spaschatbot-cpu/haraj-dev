@@ -40,7 +40,7 @@
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      <label class="ff"><span class="ff__l">البحث</span><input type="search" name="q" value="{{ q }}" placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…"></label>
+      <input type="search" name="q" value="{{ q }}" placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…" aria-label="بحث">
       <button type="submit" class="btn-primary">بحث</button>
       {% if q %}<a href="{% url 'console:live-bids' %}" class="filters__reset">مسح</a>{% endif %}
     </div>

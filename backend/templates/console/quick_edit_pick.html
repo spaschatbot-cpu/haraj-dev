@@ -15,8 +15,8 @@
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      <label class="ff"><span class="ff__l">البحث</span><input type="search" name="q" value="{{ q }}"
-             placeholder="ابحث برقم المزاد أو اسمه…"></label>
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="ابحث برقم المزاد أو اسمه…" aria-label="بحث">
       <button type="submit" class="btn-primary">بحث</button>
       {% if q %}<a href="{% url 'console:auctions-quick-edit' %}" class="filters__reset">مسح</a>{% endif %}
     </div>

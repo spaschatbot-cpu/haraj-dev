@@ -24,20 +24,20 @@
 
   <form method="get" class="filters">
     <div class="filters__main">
-      <label class="ff"><span class="ff__l">البحث</span><input id="q" type="search" name="q" value="{{ q }}" placeholder="ابحث بالاسم أو رقم الجوال..."></label>
+      <input id="q" type="search" name="q" value="{{ q }}" placeholder="ابحث بالاسم أو رقم الجوال..." aria-label="البحث في المشرفين">
 
-      <label class="ff"><span class="ff__l">الدور</span><select id="role" name="role">
+      <select id="role" name="role" aria-label="الدور">
         <option value="">كل الأدوار</option>
         {% for value, label in roles %}
           <option value="{{ value }}" {% if value == role %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select></label>
+      </select>
 
-      <label class="ff"><span class="ff__l">الحالة</span><select id="state" name="state">
+      <select id="state" name="state" aria-label="الحالة">
         <option value="">مفعّل ومعطّل</option>
         <option value="active" {% if state == "active" %}selected{% endif %}>المفعّل فقط</option>
         <option value="off" {% if state == "off" %}selected{% endif %}>المعطّل فقط</option>
-      </select></label>
+      </select>
 
       <button type="submit" class="btn-primary" style="margin: 0;">بحث</button>
 

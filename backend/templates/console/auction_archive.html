@@ -20,13 +20,13 @@
 
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      <label class="ff"><span class="ff__l">البحث</span><input type="search" name="q" value="{{ q }}" placeholder="اسم المزاد أو رقمه"></label>
-      <label class="ff"><span class="ff__l">الحالة</span><select name="state">
+      <input type="search" name="q" value="{{ q }}" placeholder="اسم المزاد أو رقمه" aria-label="بحث">
+      <select name="state" aria-label="الحالة">
         <option value="">كل الحالات المنتهية</option>
         {% for value, label in states %}
           <option value="{{ value }}"{% if value == state %} selected{% endif %}>{{ label }}</option>
         {% endfor %}
-      </select></label>
+      </select>
       <button type="submit" class="btn-primary">بحث</button>
       {% if q or state %}<a href="{% url 'console:auction-archive' %}" class="filters__reset">مسح</a>{% endif %}
     </div>

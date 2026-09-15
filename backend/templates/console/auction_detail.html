@@ -235,8 +235,8 @@ somebody went looking for it.
     {% if filters.photos %}<input type="hidden" name="photos" value="{{ filters.photos }}">{% endif %}
     {% if filters.marketing %}<input type="hidden" name="marketing" value="{{ filters.marketing }}">{% endif %}
     <div class="filters__main">
-      <label class="ff"><span class="ff__l">البحث</span><input type="search" name="q" value="{{ filters.q }}"
-             placeholder="بحث برقم اللوحة أو الشاصي أو الاسم…"></label>
+      <input type="search" name="q" value="{{ filters.q }}"
+             placeholder="بحث برقم اللوحة أو الشاصي أو الاسم…" aria-label="بحث في السيارات">
       <button type="submit" class="btn-primary">بحث</button>
       {% if filters.q %}<a href="{% url 'console:auction-detail' auction.pk %}{% if filters.keep_no_q %}?{{ filters.keep_no_q }}{% endif %}" class="filters__reset">مسح البحث</a>{% endif %}
     </div>
