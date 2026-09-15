@@ -19,22 +19,29 @@
       {% if stat.icon_path %}<svg class="stat__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="{{ stat.icon_path }}"/></svg>{% endif %}
       <span class="stat__label">{{ stat.label }}</span>
     </span>
-    {% if stat.delta %}
-      {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
-         الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
-      <span class="delta delta--{{ stat.delta.direction }}">
-        <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
-      </span>
-    {% elif stat.unit %}
-      {% comment %} وحدةُ ما يعدّه الرقم، في المكان الذي تشغله المقارنةُ حين
-         توجد — «70,000.00» وحده لا يقول ريالاً أم مزاداً. و`aria-hidden`
-         لأن قارئ الشاشة يقرأ الوحدة في سطر الشرح كاملةً مع سياقها، وكلمةٌ
-         عائمةٌ بين العنوان والرقم تقطع الجملة عليه. {% endcomment %}
-      <span class="stat__unit" aria-hidden="true">{{ stat.unit }}</span>
-    {% endif %}
-  </div>
+    {% comment %} **الرقم قُصاد العنوان** لا تحته — أمرُ المالك. فالبطاقة
+       صارت تُقرأ في سطرٍ واحد: «ما هذا» على حافة البداية و«كم هو» على
+       مقابلها، وما تحتهما شرحٌ لا رقم. وكانت العينُ تنزل سطراً بين الاسم
+       وعدده، وفي شبكةٍ من ثماني بطاقاتٍ تنزل ثماني مرّات.
 
-  <strong class="stat__value">{{ stat.value }}</strong>
+       والحبّةُ — وحدةً أو مقارنة — تحت الرقم لا بجواره: هي وصفٌ له، وصفٌّ
+       يحمل ثلاثةَ أشياء يجعل الرقمَ واحداً منها لا أكبرَها. {% endcomment %}
+    <span class="stat__figure">
+      <strong class="stat__value">{{ stat.value }}</strong>
+      {% if stat.delta %}
+        {% comment %} الاتجاه في السهم وفي النصّ معاً: من لا يميّز الأخضر من
+           الأحمر يقرأ الجملة نفسها، ولا تُحمَل معلومةٌ على لونٍ وحده. {% endcomment %}
+        <span class="delta delta--{{ stat.delta.direction }}">
+          <span aria-hidden="true">{{ stat.delta.arrow }}</span>{{ stat.delta.percent }}%
+        </span>
+      {% elif stat.unit %}
+        {% comment %} وحدةُ ما يعدّه الرقم. و`aria-hidden` لأن قارئ الشاشة
+           يقرأ الوحدة في سطر الشرح كاملةً مع سياقها، وكلمةٌ عائمةٌ تحت الرقم
+           تقطع الجملة عليه. {% endcomment %}
+        <span class="stat__unit" aria-hidden="true">{{ stat.unit }}</span>
+      {% endif %}
+    </span>
+  </div>
 
   {% if stat.delta %}<span class="stat__delta-note">{{ stat.delta.word }} {{ stat.delta.percent }}% {{ stat.delta.note }}</span>{% endif %}
 
