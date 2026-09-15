@@ -10,7 +10,11 @@ from .base import *  # noqa: F403
 ENVIRONMENT_NAME = "development"
 
 DEBUG = True
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]"]
+# ‏`10.0.2.2` هو اسمُ **جهازِ المطوّر** داخل محاكي أندرويد — المحاكي شبكةٌ
+# افتراضيّة، و`localhost` فيه هو المحاكي نفسُه لا هذا الجهاز. فبدون هذا السطر
+# يصل كلُّ نداءٍ من التطبيق بترويسة `Host: 10.0.2.2:8001` **فيردّ جانغو 400**،
+# ولا يقول الخطأُ في التطبيق إلّا «فشل الاتصال». قِيس في ١٥ سبتمبر ٢٠٢٦.
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "[::1]", "10.0.2.2"]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
