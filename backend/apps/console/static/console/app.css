@@ -5896,3 +5896,45 @@ a.stat--warn:hover .stat__btn,    a.stat--warn:focus-visible .stat__btn    { bac
 a.stat--alarm:hover .stat__btn,   a.stat--alarm:focus-visible .stat__btn   { background: var(--danger);  color: #fff; }
 
 a.stat:hover .stat__go, a.stat:focus-visible .stat__go { transform: translateX(-3px); }
+
+/* ===========================================================================
+   التحويم: تغييرٌ واحدٌ لا أربعة
+   ---------------------------------------------------------------------------
+   «خلى لما أقف عليهم يكون الشكل أبسط وأفضل».
+
+   وكان الوقوفُ على بطاقةٍ يُحدث **أربعةَ** أشياءٍ معاً: تقفز البطاقة 3px،
+   ويثخن ظلُّها، ويمتلئ زرُّها مصمتاً، **ويُصبغ الغلافُ حولَ الزرّ برقعةٍ
+   ملوّنة**. والرقعةُ عطلٌ لا اختيار: قاعدةُ `a.stat:hover .stat__action`
+   من طبقةٍ سابقة، حين كان `.stat__action` هو الزرَّ نفسَه؛ ثم انقسم إلى
+   غلافٍ وزرّ، فبقيت الصبغةُ على الغلاف تحت الزرّ وحولَه.
+
+   فصار التحويمُ **شيئاً واحداً**: الزرُّ يمتلئ. وهو الشيءُ الذي يُضغط،
+   وهو وحده الذي يجب أن يقول إنه يُضغط.
+
+   والقفزةُ حُذفت: ثماني بطاقاتٍ ترتفع تحت المؤشّر وهو يمرّ عليها إيقاعٌ
+   مكسور، والارتفاعُ يزيح ما تحت البطاقة بصرياً في شبكةٍ من صفّين.
+   ======================================================================== */
+
+/* الغلافُ لا يُصبَغ — لا في السكون ولا في التحويم. هو خطٌّ فاصلٌ وحده. */
+.stat__action,
+a.stat:hover .stat__action,
+a.stat:focus-visible .stat__action,
+a.stat--money:hover .stat__action,   a.stat--money:focus-visible .stat__action,
+a.stat--auction:hover .stat__action, a.stat--auction:focus-visible .stat__action,
+a.stat--people:hover .stat__action,  a.stat--people:focus-visible .stat__action,
+a.stat--warn:hover .stat__action,    a.stat--warn:focus-visible .stat__action,
+a.stat--alarm:hover .stat__action,   a.stat--alarm:focus-visible .stat__action {
+  background: none;
+  border-inline: 0;
+  border-block-end: 0;
+  border-radius: 0;
+  color: inherit;
+  padding-inline: 0;
+}
+
+/* البطاقةُ تسكن: حدٌّ أغمقُ قليلاً وظلٌّ أخفّ، بلا ارتفاع. */
+a.stat:hover, a.stat:focus-visible {
+  transform: none;
+  border-color: color-mix(in srgb, var(--ink) 20%, transparent);
+  box-shadow: 0 2px 10px rgb(23 32 51 / .06);
+}
