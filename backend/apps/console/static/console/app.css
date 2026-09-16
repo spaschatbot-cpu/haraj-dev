@@ -10712,3 +10712,50 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   overflow: hidden;
 }
 .board-stats .stat__action { padding-block-start: .65rem; }
+
+/* خمسُ بطاقاتٍ في سطرٍ واحد — بأمر المالك. وهي تنقض قاعدةَ «3 + 2» التي
+   كُتبت قبل قليل: خمسةُ أعمدةٍ لا تقسم اثني عشر، فالشبكةُ تُكتب خمسةً
+   متساوية بدل الاثني عشر.
+
+   وثمنُها أن البطاقة تضيق إلى نحو 180px — وعنوانٌ مثل «مركبات تنتظر قراراً»
+   يلتفّ سطرين فيها. وهو مقبولٌ هنا لأن سطرَ الشرح مقصوصٌ بسطرين أصلاً. */
+@media (min-width: 62rem) {
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat,
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(n+4) {
+    grid-column: auto;
+  }
+}
+
+/* وفي صفّ الخمسة تضيق البطاقةُ إلى ~180px، فيُقصّ العنوان: «المستخ…»
+   و«المزاي…» و«مركبات تنتظر…». والسببُ حسابيّ: الصفُّ العلويُّ فيها رمزٌ
+   بـ2.75rem وحبّةٌ وعنوانٌ بينهما — فلا يبقى للعنوان إلا نحو 85px.
+
+   فالرمزُ يصغر والحشوةُ تضيق والعنوانُ يُسمح له بثلاثة أسطر. والقياسُ بعدها:
+   «مزايدات مرفوضة اليوم» كاملةً في سطرين. */
+@media (min-width: 62rem) {
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat { padding-inline: .95rem; }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__icon {
+    inline-size: 2.1rem;
+    block-size: 2.1rem;
+    padding: .45rem;
+    border-radius: 10px;
+  }
+  /* **والرمزُ فوق العنوان لا بجواره**: في صفٍّ واحدٍ يأخذ الرمزُ والفجوةُ
+     نحو 45px من 150، فيبقى للعنوان 105 — و«المستخدمون» كلمةٌ واحدةٌ لا
+     تنكسر، فتُقصّ في وسطها («المستخده»). وبوضعه فوقها يأخذ العنوانُ عرضَ
+     البطاقة كلَّه. */
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__ident {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .45rem;
+  }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__top { align-items: flex-start; }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__label {
+    font-size: .84rem;
+    -webkit-line-clamp: 3;
+  }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__btn { padding-inline: .6rem; font-size: .74rem; }
+}
