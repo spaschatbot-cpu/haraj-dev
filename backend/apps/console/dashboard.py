@@ -239,6 +239,8 @@ class Board:
     #: فجوةٌ وتُدفع البطاقاتُ العادية بعدها إلى أسفل. وشبكةٌ ثانيةٌ بعمودين
     #: تحلّ الأمرين معاً: الرسمان في صفٍّ، والعاديةُ تملأ صفوفَها.
     charts: list[Stat] = field(default_factory=list)
+    # بطاقاتُ الحركة: ما ليس مالاً — مزاداتٌ ومزايداتٌ وناسٌ وما ينتظر قراراً.
+    flow: list[Stat] = field(default_factory=list)
     auction_states: list[tuple[str, int, int]] = field(default_factory=list)
     #: أكثرُ الحالات عدداً — `(الاسم، العدد، رتبتُها في القائمة)` أو `None`.
     #:
@@ -445,7 +447,10 @@ def board_for(user) -> Board:
                 "gavel",
                 "",
                 _week_over_week(Bid, "placed_at"),
-                _daily_shape(Bid, "placed_at"),
+                # لا رسمَ بيانيّ — بأمر المالك. والبطاقةُ تقول رقمين: الإجمالي
+                # وما وقع خلال أربعٍ وعشرين ساعة، والفرقُ بينهما هو الخبر.
+                # والرسمُ كان يضاعف ارتفاعَ البطاقة لأجل سبعِ نقاطٍ لا تُقرأ
+                # في 220px عرضاً.
             )
         )
         board.auction_states = _auction_states()
@@ -507,16 +512,22 @@ def board_for(user) -> Board:
                 "help",
                 "لماذا رُفضت",
                 _week_over_week(BidRefusal, "refused_at"),
-                _daily_shape(BidRefusal, "refused_at"),
+                (),  # لا رسمَ بيانيّ — انظر بطاقة «المزايدات» أعلاه.
                 unit="اليوم",
             )
         )
 
     # الفصلُ في آخر السطر لا عند كل إضافة: بناءُ البطاقات مشروطٌ بصلاحيات
-    # القارئ في ستّة مواضع، وشرطُ «هل تحمل رسماً» في كلٍّ منها ستّةُ أماكن
-    # للقاعدة الواحدة.
+    # القارئ في ستّة مواضع، وشرطٌ في كلٍّ منها ستّةُ أماكنَ للقاعدة الواحدة.
+    #
+    # **والقاعدةُ هي اللون لا الترتيب**: بطاقةُ المال بطاقةُ مال — رصيدٌ أو
+    # حجزٌ أو فاتورة — وما عداها حركةٌ تُقاس بالعدّ. والمالكُ طلب عنواناً بين
+    # الكتلتين، وعنوانٌ بلا قاعدةٍ تحته يصير سطراً يفصل حيث انتهى صفٌّ لا
+    # حيث انتهى معنى: تُضاف بطاقةٌ يوماً فيقع العنوانُ في منتصف موضوعٍ واحد.
     board.charts = [s for s in board.stats if s.spark]
     board.stats = [s for s in board.stats if not s.spark]
+    board.flow = [s for s in board.stats if s.tone != "money"]
+    board.stats = [s for s in board.stats if s.tone == "money"]
 
     return board
 

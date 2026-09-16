@@ -1411,6 +1411,7 @@ export interface components {
         RefundRequestCreate: {
             /** Format: decimal */
             amount: string;
+            note?: string;
         };
         /**
          * @description * `requested` - مُقدَّم

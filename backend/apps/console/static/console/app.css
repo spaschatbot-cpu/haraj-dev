@@ -10664,3 +10664,51 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   --warn-soft: #2f2029;
   --warn-line: #57384a;
 }
+
+/* ===========================================================================
+   أرقامُ المنصّة: أربعةٌ في السطر، والصفُّ الأخير يمتلئ
+   ---------------------------------------------------------------------------
+   «خلّي كل أربع مربعات في سطر».
+
+   وكانت ثلاثةً باختيارٍ سابق. وأربعةٌ في ستِّ بطاقاتٍ تعني 4 + 2 — وصفٌّ ثانٍ
+   نصفُه أبيض. فالشبكةُ اثنا عشرَ عموداً: أربعٌ بعرض ٣ (= أربعةٌ في السطر)،
+   والباقي يتقاسم الصفَّ الأخير كاملاً.
+
+   والحالاتُ مكتوبةٌ بعددها لأن عددَ البطاقات يتبع صلاحيّاتِ من ينظر: خمسٌ
+   وستٌّ وسبعٌ وثمانٍ.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .board-stats:not(.board-stats--compact) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .board-stats:not(.board-stats--compact) > .stat { grid-column: span 3; }
+
+  /* ثلاثٌ: صفٌّ تامّ. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(3):last-child) > .stat { grid-column: span 4; }
+
+  /* خمسٌ: **ثلاثٌ ثم اثنتان** لا أربعٌ ثم واحدة. والواحدةُ الممدودةُ على
+     الصفّ كلِّه تُقرأ لافتةً لا بطاقة — تُعطي وزنَ عنوانٍ لرقمٍ ليس أهمَّ من
+     أخواته. رُئي على «مزايدات مرفوضة اليوم». */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat { grid-column: span 4; }
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(n+4) { grid-column: span 6; }
+
+  /* ستٌّ: أربعٌ ثم اثنتان بالنصف. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(6):last-child) > .stat:nth-child(n+5) { grid-column: span 6; }
+
+  /* سبعٌ: أربعٌ ثم ثلاثٌ بالثلث. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(7):last-child) > .stat:nth-child(n+5) { grid-column: span 4; }
+
+  /* ثمانٍ: صفّان تامّان بلا استثناء. */
+}
+
+/* البطاقةُ تقصر بعد أن خرج الرسمُ منها: الحشوةُ كانت تحسب مكاناً لرسمٍ بارتفاع
+   32 وحدة، والسطرُ الخافتُ تحت الرقم يُقصّ بعد سطرين فلا ترفع بطاقةٌ صفَّها. */
+.board-stats .stat { padding-block: 1rem .85rem; }
+.board-stats .stat__detail {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.board-stats .stat__action { padding-block-start: .65rem; }
