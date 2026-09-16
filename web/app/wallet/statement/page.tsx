@@ -101,9 +101,20 @@ export default async function StatementPage({
                     server's string. Deriving "in or out" from the amount here
                     would be this page's own reading of a ledger convention that
                     is written down once, in `apps/money/models`.
+
+                    **والرقمُ يصل موقَّعاً أصلاً**، فكانت الخليّة تكتب الإشارةَ
+                    مرّتين: «− -5000.00». قِيس على الممرّ:
+                    `direction=out amount=-5000.00` و`direction=in amount=5000.00`
+                    — أي أن `direction` والإشارةَ يقولان الشيءَ نفسَه.
+
+                    فتُقشَّر إشارةُ الرقم هنا **ولا يُقرأ الاتّجاهُ منها**:
+                    القاعدةُ تبقى كما كُتبت (الاتّجاهُ من الخادم لا من حسابنا)،
+                    ويذهب التكرار. ولا يُلمس الممرّ لأن التطبيق يقرؤه أيضاً،
+                    وتغييرُ الإشارة فيه يكسر قارئاً لا نراه.
                   */}
                   <td className="money p-3">
-                    {entry.direction === "out" ? "−" : "+"} {amount(entry.amount)}
+                    {entry.direction === "out" ? "−" : "+"}{" "}
+                    {amount(entry.amount).replace(/^-/, "")}
                   </td>
                   <td className="p-3 text-neutral-600">{entry.memo}</td>
                 </tr>

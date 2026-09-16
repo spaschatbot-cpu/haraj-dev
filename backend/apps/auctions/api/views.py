@@ -14,6 +14,7 @@ these pages server-side for search engines (Phase 011). What an anonymous caller
 
 from __future__ import annotations
 
+from django.db.models import OuterRef, Subquery
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -295,9 +296,24 @@ class FavouriteListView(APIView):
         total, counts = page_totals(queryset)
         # Ordered by the mark, not by lot: this screen answers "what did I save",
         # and the newest save is what the customer is looking for.
-        page = card_queryset(queryset).order_by("-favourited_by__created_at")[
-            query["offset"] : query["offset"] + query["limit"]
-        ]
+        #
+        # **ووقتُ العلامة يُسحب بمُستعلَمٍ فرعيّ، لا بـ`order_by` على العلاقة
+        # العكسيّة.** `order_by("-favourited_by__created_at")` يضمّ جدولَ
+        # المفضّلة بلا قيدٍ على صاحبها، فتتكرّر المركبةُ **بعدد من فضّلوها**.
+        # وقِيس: مركبةٌ فضّلها خمسةُ عملاء ظهرت خمس مرّاتٍ في صفحة عميلٍ واحد،
+        # و`total` يقول «١» لأنه محسوبٌ قبل الضمّ — فالعدّادُ يكذّب القائمة.
+        # والمُستعلَمُ الفرعيّ يقرأ علامةَ **هذا العميل** وحدَه، فلا ضمَّ ولا
+        # تكرار.
+        marked_at = Subquery(
+            Favourite.objects.filter(
+                user=request.user, vehicle=OuterRef("pk")
+            ).values("created_at")[:1]
+        )
+        page = (
+            card_queryset(queryset)
+            .annotate(marked_at=marked_at)
+            .order_by("-marked_at")[query["offset"] : query["offset"] + query["limit"]]
+        )
 
         return Response(
             VehiclePageSerializer(
