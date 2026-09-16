@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# مجلَّدُ Kotlin المؤقَّت — يولّده البناء ولا يُودَع.
+.kotlin/

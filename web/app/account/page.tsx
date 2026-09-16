@@ -19,7 +19,13 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { saveCompany, saveNationalId, saveProfile } from "@/features/account/actions";
+import {
+  confirmPhoneChange,
+  saveCompany,
+  saveNationalId,
+  saveProfile,
+  startPhoneChange,
+} from "@/features/account/actions";
 import { signOut } from "@/features/auth/actions";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
@@ -148,6 +154,82 @@ export default async function AccountPage() {
             </button>
           </form>
         )}
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-lg font-semibold">تغيير رقم الجوال</h2>
+
+        {/*
+          خطوتان، ونموذجان اثنان — لأن الخطوة الثانية تحمل **رمزين معاً**:
+          واحدٌ وصل الرقم الحالي وواحدٌ وصل الجديد. وذلك شرطُ العقد لا شكلُ
+          الشاشة: تأكيدٌ برمزٍ واحد يعني رقماً أُثبت وآخرَ لم يُثبت، وهو ما
+          يجعل سرقةَ حسابٍ بجوّالٍ ضائعٍ ممكنة.
+
+          ولا تحقّقَ من صيغة الرقم هنا ولا `pattern`: النمطُ عند الخادم، ونسخةٌ
+          ثانيةٌ منه تتفارق عنه يوم يتغيّر.
+        */}
+        <form action={startPhoneChange} className="max-w-md space-y-4">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-neutral-600">رقم الجوال الجديد</span>
+            <input
+              type="tel"
+              name="new_phone"
+              inputMode="numeric"
+              placeholder="9665XXXXXXXX"
+              required
+              className="money rounded border border-neutral-500 px-3 py-2"
+            />
+          </label>
+          <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white">
+            أرسل الرمزين
+          </button>
+        </form>
+
+        <form action={confirmPhoneChange} className="mt-6 max-w-md space-y-4">
+          <p className="text-sm text-neutral-600">
+            بعد وصول الرمزين — واحدٌ إلى رقمك الحالي وواحدٌ إلى الجديد —
+            أدخلهما معاً هنا.
+          </p>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="text-neutral-600">رقم الجوال الجديد</span>
+            <input
+              type="tel"
+              name="new_phone"
+              inputMode="numeric"
+              placeholder="9665XXXXXXXX"
+              required
+              className="money rounded border border-neutral-500 px-3 py-2"
+            />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-neutral-600">رمز الرقم الحالي</span>
+              <input
+                type="text"
+                name="current_code"
+                inputMode="numeric"
+                required
+                className="money rounded border border-neutral-500 px-3 py-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-neutral-600">رمز الرقم الجديد</span>
+              <input
+                type="text"
+                name="new_code"
+                inputMode="numeric"
+                required
+                className="money rounded border border-neutral-500 px-3 py-2"
+              />
+            </label>
+          </div>
+          <p className="text-sm text-neutral-500">
+            بعد التغيير تُغلق جلستك، وتدخل بالرقم الجديد.
+          </p>
+          <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white">
+            تأكيد التغيير
+          </button>
+        </form>
       </section>
 
       {profile.account_type === "company" ? (

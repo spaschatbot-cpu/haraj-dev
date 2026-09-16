@@ -21,7 +21,7 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader } from "@/lib/session";
+import { authHeader, clearSession } from "@/lib/session";
 
 const ACCOUNT = "/account";
 
@@ -123,4 +123,63 @@ export async function saveNationalId(form: FormData): Promise<void> {
     return finish(error, "");
   }
   return finish(null, "سُجّل رقم الهوية.");
+}
+
+/**
+ * تغييرُ رقم الجوّال — الطلبُ أوّلاً، ثمّ الرمزان معاً.
+ *
+ * **ولماذا نداءان لا واحد.** الأوّل يُرسل رمزاً إلى الرقم القديم وآخرَ إلى
+ * الجديد، والثاني يحمل الرمزين في **طلبٍ واحد**. وذلك قاعدةٌ لا تسهيل: طلبان
+ * منفصلان للتأكيد يعنيان حالةً نصفَ منتهيةٍ عند الخادم — رقمٌ أُثبت وآخرُ لم
+ * يُثبت — وهي بالضبط ما بُني `T604` ليمنعه.
+ *
+ * ولا تحقّقَ من صيغة الرقم هنا: النمطُ مكتوبٌ في `PHONE_PATTERN` عند الخادم،
+ * ونسخةٌ ثانيةٌ منه في الويب تتفارق عنه يوم يتغيّر.
+ */
+export async function startPhoneChange(form: FormData): Promise<void> {
+  const new_phone = String(form.get("new_phone") ?? "").trim();
+
+  const headers = await auth();
+
+  try {
+    await request(() =>
+      api.POST("/api/v1/auth/phone/change/", { headers, body: { new_phone } }),
+    );
+  } catch (error) {
+    return finish(error, "");
+  }
+  return finish(null, "أُرسل رمزان: واحدٌ إلى رقمك الحالي وواحدٌ إلى الجديد.");
+}
+
+/**
+ * تأكيدُ التغيير بالرمزين.
+ *
+ * **والجلسةُ تُمسح بعده.** الخلفيةُ تُبطل رموزَ العميل حين يتغيّر رقمُه
+ * (`apps/accounts/tokens.py`)، فرمزٌ باقٍ في الكوكي رمزٌ سيُرفض في الطلب
+ * التالي — ومسحُه هنا يُنتج شاشةَ دخولٍ مفهومة بدل رفضٍ غامضٍ في صفحةٍ ما.
+ */
+export async function confirmPhoneChange(form: FormData): Promise<void> {
+  const body = {
+    new_phone: String(form.get("new_phone") ?? "").trim(),
+    current_code: String(form.get("current_code") ?? "").trim(),
+    new_code: String(form.get("new_code") ?? "").trim(),
+  };
+
+  const headers = await auth();
+
+  try {
+    await request(() =>
+      api.POST("/api/v1/auth/phone/change/confirm/", { headers, body }),
+    );
+  } catch (error) {
+    return finish(error, "");
+  }
+
+  const store = await cookies();
+  clearSession(store);
+  setFlash(store, {
+    code: "phone_changed",
+    message: "تغيّر رقمك. سجّل الدخول بالرقم الجديد.",
+  });
+  redirect("/sign-in");
 }
