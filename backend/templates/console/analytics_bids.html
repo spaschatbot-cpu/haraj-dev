@@ -17,74 +17,139 @@
 {% block heading %}تحليل المزايدات{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
-    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ تعريفٍ يحمل الفرقَ بين هذه الشاشة ونظيرتها في v1، وهو
+     مكتوبٌ في تعليق الملفّ ولا يراه إلا من يفتحه. {% endcomment %}
+  <p class="lede">
+    المزايداتُ في مدىً من المزادات. <strong>والحالاتُ الثلاثُ قسمةٌ لا
+    تصنيف</strong> — مجموعُها يساوي الإجمالي ويثبته اختبار. وفي v1 مجموعُ
+    الثلاثة ١٥٨٬١٢٤ والإجماليُّ المعروض ١٢٥٬٠٠٦، أي فائضُ ٣٣٬١١٨ لا تفسّره
+    الشاشة.
+  </p>
+
+  {% comment %} حقلا المدى كانا بلا لصيقةٍ مرئيّة — `placeholder` يختفي أوّلَ
+     ما يُكتب فيه، فيبقى رقمان بلا اسم. {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="abFrom">من مزاد</label>
+      <input id="abFrom" type="number" name="from" value="{{ first }}" placeholder="رقم">
+    </div>
+    <div class="cat-filters__field">
+      <label for="abTo">إلى مزاد</label>
+      <input id="abTo" type="number" name="to" value="{{ last }}" placeholder="رقم">
+    </div>
+    <div class="cat-filters__actions">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>إجمالي المزايدات</th><td class="count">{{ shape.total|unlocalize }}</td></tr>
-      <tr><th>المزادات التي فيها مزايدة</th><td class="count">{{ shape.auctions|unlocalize }}</td></tr>
-      <tr><th>المركبات التي زُويد عليها</th><td class="count">{{ shape.vehicles|unlocalize }}</td></tr>
-      <tr><th>عدد المزايدين</th><td class="count">{{ shape.bidders|unlocalize }}</td></tr>
-      {% comment %} الأربعةُ الماليّة تجميعٌ على **كلّ** المزايدات، وفيها
-         مزايداتُ المركبات المرساة — أي أن «أعلى مزايدة» قد تكون سعرَ رسوِّ
-         مركبةٍ بعينها. ولا شرطَ صفٍّ يفصلها كما يفصلها جدولُ المزايدات،
-         فتُحجَب كلُّها خلف «عرض الفواتير والمدفوعات» (`analytics.py`).
-         والأعدادُ فوقها وتحتها تبقى: القسمةُ هي سببُ فتح الشاشة. {% endcomment %}
-      {% if show_money %}
-        <tr><th>أعلى مزايدة</th><td class="money">{{ shape.highest|default:"—"|unlocalize }}</td></tr>
-        <tr><th>أقل مزايدة</th><td class="money">{{ shape.lowest|default:"—"|unlocalize }}</td></tr>
-        <tr><th>متوسط المزايدة</th><td class="money">{{ shape.average|default:"—"|unlocalize }}</td></tr>
-        <tr><th>إجمالي قيمة المزايدات</th><td class="money">{{ shape.value|unlocalize }}</td></tr>
-      {% else %}
-        <tr><th>أعلى مزايدة · أقل · متوسط · إجمالي القيمة</th>
-            <td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td></tr>
-      {% endif %}
-    </tbody>
-  </table>
-</div>
+  {% comment %} كان جدولاً صفوفُه «عنوانٌ · قيمة» — ثمانِ قيمٍ منفردةٍ لا تُفرَز
+     ولا تُقارَن، والعنوانُ على حافةٍ والقيمةُ على مقابلها بعرض الشاشة. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام المزايدات">
+    <div class="sum">
+      <p class="sum__label">إجمالي المزايدات</p>
+      <p class="sum__value">{{ shape.total|unlocalize }}</p>
+      <p class="sum__note">كلُّ مزايدةٍ وقعت في المدى.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مزادات فيها مزايدة</p>
+      <p class="sum__value">{{ shape.auctions|unlocalize }}</p>
+      <p class="sum__note">وجدت من يزايد فيها.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مركبات زُويد عليها</p>
+      <p class="sum__value">{{ shape.vehicles|unlocalize }}</p>
+      <p class="sum__note">طلبها أحد.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">عدد المزايدين</p>
+      <p class="sum__value">{{ shape.bidders|unlocalize }}</p>
+      <p class="sum__note">أشخاصٌ لا مزايدات.</p>
+    </div>
 
-  <h2>الحالات — قسمةٌ لا تصنيف</h2>
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>قائمة</th><td class="count">{{ shape.standing|unlocalize }}</td></tr>
-      <tr><th>استُبدلت بأعلى</th><td class="count">{{ shape.superseded|unlocalize }}</td></tr>
-      <tr><th>مسحوبة</th><td class="count">{{ shape.withdrawn|unlocalize }}</td></tr>
-      {% comment %} السطر الذي تُفتح الشاشة لأجله: المجموع مرسومٌ بجوار
-         الإجمالي كي يُقارَنا بالعين. في v1 الفرق ٣٣٬١١٨ ولا سطر يقوله. {% endcomment %}
-      <tr>
-        <th>مجموع الثلاثة</th>
-        <td class="count">
-          {{ partition_total|unlocalize }}
-          {% if partition_total == shape.total %}
-            <span class="pill" data-tone="ok">يساوي الإجمالي</span>
-          {% else %}
-            <span class="pill" data-tone="bad">لا يساوي الإجمالي</span>
-          {% endif %}
-        </td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+    {% comment %} الأربعةُ الماليّة تجميعٌ على **كلّ** المزايدات، وفيها مزايداتُ
+       المركبات المرساة — أي أن «أعلى مزايدة» قد تكون سعرَ رسوِّ مركبةٍ بعينها.
+       ولا شرطَ صفٍّ يفصلها، فتُحجَب كلُّها خلف «عرض الفواتير والمدفوعات».
+       والأعدادُ فوقها تبقى: القسمةُ هي سببُ فتح الشاشة. {% endcomment %}
+    {% if show_money %}
+      <div class="sum sum--money">
+        <p class="sum__label">أعلى مزايدة</p>
+        <p class="sum__value money">{{ shape.highest|default:"—"|unlocalize }}</p>
+        <p class="sum__note">قد تكون سعرَ رسوّ.</p>
+      </div>
+      <div class="sum sum--money">
+        <p class="sum__label">أقل مزايدة</p>
+        <p class="sum__value money">{{ shape.lowest|default:"—"|unlocalize }}</p>
+        <p class="sum__note">في المدى كلِّه.</p>
+      </div>
+      <div class="sum sum--money">
+        <p class="sum__label">متوسّط المزايدة</p>
+        <p class="sum__value money">{{ shape.average|default:"—"|unlocalize }}</p>
+        <p class="sum__note">على المزايدات كلِّها.</p>
+      </div>
+      <div class="sum sum--money">
+        <p class="sum__label">إجمالي قيمة المزايدات</p>
+        <p class="sum__value money">{{ shape.value|unlocalize }}</p>
+        <p class="sum__note">مجموعُها — لا مبيعات.</p>
+      </div>
+    {% else %}
+      <div class="sum sum--money">
+        <p class="sum__label">أعلى · أقل · متوسّط · إجمالي القيمة</p>
+        <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
+        <p class="sum__note">خلف صلاحية عرض الفواتير والمدفوعات.</p>
+      </div>
+    {% endif %}
+  </section>
 
-  <h2>محاولاتٌ لم تصر مزايدات</h2>
-  <p>
-    {{ shape.refused|unlocalize }} محاولةً منعتها بوابةُ الأهلية قبل أن تُسجَّل،
-    ولكلٍّ منها سببُها ولقطةٌ لمال صاحبها وقتَها.
-    <a href="{% url 'console:why-no-bid' %}">لماذا رُفضت ←</a>
+  <h3 class="dd-sec">الحالات <small>قسمةٌ لا تصنيف</small></h3>
+  <section class="sum-grid sum-grid--tight" aria-label="قسمة الحالات">
+    <div class="sum">
+      <p class="sum__label">قائمة</p>
+      <p class="sum__value">{{ shape.standing|unlocalize }}</p>
+      <p class="sum__note">لم يعلُها أحد ولم تُسحَب.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">استُبدلت بأعلى</p>
+      <p class="sum__value">{{ shape.superseded|unlocalize }}</p>
+      <p class="sum__note">وقعت ثم عُلِيت — وهي الحالةُ الطبيعيّة.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مسحوبة</p>
+      <p class="sum__value">{{ shape.withdrawn|unlocalize }}</p>
+      <p class="sum__note">سحبها صاحبُها.</p>
+    </div>
+  </section>
+
+  {% comment %} السطرُ الذي تُفتح الشاشةُ لأجله: المجموعُ بجوار الإجمالي كي
+     يُقارَنا بالعين. في v1 الفرقُ ٣٣٬١١٨ ولا سطرَ يقوله. {% endcomment %}
+  {% if partition_total == shape.total %}
+    <p class="notice success">
+      <strong>مجموع الثلاثة {{ partition_total|unlocalize }}</strong> — يساوي
+      الإجماليَّ أعلاه. فالقسمةُ تامّةٌ ولا مزايدةَ خارجها.
+    </p>
+  {% else %}
+    <p class="notice error">
+      <strong>مجموع الثلاثة {{ partition_total|unlocalize }}</strong> — ولا
+      يساوي الإجماليَّ أعلاه. فثمّةَ مزايداتٌ خارج القسمة، وهذا عطلٌ يُفحص.
+    </p>
+  {% endif %}
+
+  <h3 class="dd-sec">محاولاتٌ لم تصر مزايدات</h3>
+  <section class="sum-grid sum-grid--tight" aria-label="المحاولات المرفوضة">
+    <a class="sum sum--wait" href="{% url 'console:why-no-bid' %}">
+      <p class="sum__label">منعتها بوابةُ الأهلية</p>
+      <p class="sum__value">{{ shape.refused|unlocalize }}</p>
+      <p class="sum__note">لماذا رُفضت</p>
+    </a>
+  </section>
+
+  <p class="notice notice--soft">
+    <strong>وهذه ليست من الأرقام أعلاه.</strong> المزايدةُ المستبدَلة
+    <strong>وقعت</strong> ثم عُلِيت، والمحاولةُ المرفوضة <strong>لم تقع</strong>
+    — جدولان مختلفان. وخلطُهما هو ما يجعل «مرفوضة» تبدو نصفَ المنصّة وهي ليست
+    منها.
   </p>
-  <p class="empty">
-    هذه ليست من الأرقام أعلاه: المزايدة المستبدَلة <strong>وقعت</strong> ثم
-    عُلِيت، والمحاولة المرفوضة <strong>لم تقع</strong>. وخلطُهما هو ما يجعل
-    «مرفوضة» تبدو نصفَ المنصّة وهي ليست منها.
-  </p>
 
-  <h2>أكثر المزايدين نشاطاً</h2>
+  <h3 class="dd-sec">أكثر المزايدين نشاطاً</h3>
   <div class="scroller">
     <table>
     <thead>
