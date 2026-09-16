@@ -9766,7 +9766,15 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
     flex-wrap: initial;
     align-items: center;
   }
-  .filters--row .filters__main input[type="search"] { grid-column: 1 / -1; }
+  /* البحثُ يمتدّ العرضَ **إن كان تحته قوائم**. وفي «الخروج ونقل الملكية»
+     لا قوائمَ أصلاً — بحثٌ وزرّان — فامتدادُه يدفع الزرّين إلى سطرٍ ثانٍ
+     نصفُه فارغ، ويبعدهما عن الحقل الذي يعملان عليه. فبلا قوائمَ: عمودٌ
+     يتمدّد للحقل وأعمدةٌ بمقاس محتواها للأزرار، في سطرٍ واحد. */
+  .filters--row .filters__main:has(select) input[type="search"] { grid-column: 1 / -1; }
+  .filters--row .filters__main:not(:has(select)) {
+    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  }
+  .filters--row .filters__main:not(:has(select)) .btn-primary { min-inline-size: 6.5rem; }
   /* الزرُّ ورابطُ الإلغاء يلتصقان في آخر الصفّ لا يتمدّدان بعرض عمود. */
   .filters--row .filters__main .btn-primary { justify-self: start; min-inline-size: 7rem; }
   .filters--row .filters__reset { justify-self: start; }
