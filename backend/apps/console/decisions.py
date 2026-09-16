@@ -44,6 +44,7 @@ from decimal import Decimal
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.shortcuts import render
+from django.utils.timezone import localtime
 
 from apps.auctions.models import Vehicle
 from apps.core.arabic import search_q
@@ -160,10 +161,18 @@ def accepted_bids(request):
                     ("المركبة", lambda row: f"{row.make} {row.model}", None),
                     ("السنة", lambda row: row.year, None),
                     ("اللوحة", lambda row: row.plate_number, None),
+                    ("اللون", lambda row: row.get_colour_display(), None),
                     ("رقم الهيكل", lambda row: row.vin, None),
                     ("الفائز", lambda row: row.awarded_to.full_name, CUSTOMER),
                     ("الجوال", lambda row: row.awarded_to.phone, CUSTOMER),
                     ("سعر الترسية", lambda row: row.awarded_price or ZERO, MONEY),
+                    (
+                        "تاريخ الانتهاء",
+                        lambda row: localtime(row.auction.ends_at).strftime("%Y-%m-%d")
+                        if row.auction.ends_at
+                        else "",
+                        None,
+                    ),
                     ("الحالة", lambda row: row.get_state_display(), None),
                     # رقمُ الفاتورة يبقى بـ`auctions.view`: «أفُوتِرت هذه
                     # المركبة؟» سؤالُ تشغيلٍ لا سؤالُ مال — الحكمُ نفسُه الذي

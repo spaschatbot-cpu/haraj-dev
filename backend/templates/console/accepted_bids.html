@@ -35,10 +35,12 @@
         <th>اللوت</th>
         <th>المركبة</th>
         <th>اللوحة</th>
+        <th>اللون</th>
         <th>رقم الهيكل</th>
         <th>الفائز</th>
         <th>الجوال</th>
         <th>سعر الترسية</th>
+        <th>تاريخ الانتهاء</th>
         <th>الحالة</th>
         <th>الفاتورة</th>
         <th>الضريبة</th>
@@ -55,6 +57,7 @@
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td>{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.get_colour_display|default:"—" }}</td>
           <td>{{ row.vin|default:"—" }}</td>
           {% comment %} `buyer_name`/`buyer_phone`/`award_price` من
              `sensitive.prepare` لا `row.awarded_to` من العلاقة: الشاشةُ
@@ -81,6 +84,11 @@
             {% if show_money %}{{ row.award_price|default:"—"|unlocalize }}
             {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
           </td>
+          {% comment %} تاريخُ انتهاء المزاد — عمودُ v1 «تاريخ الانتهاء».
+             وهو **تاريخُ المزاد لا تاريخُ الترسية**: المزادُ ينتهي مرّةً
+             واحدةً لكلّ مركباته، والترسيةُ تقع بعده بساعاتٍ أو بيوم. ومن قرأه
+             تاريخَ ترسيةٍ حسب المهلةَ من يومٍ خطأ. {% endcomment %}
+          <td>{{ row.auction.ends_at|date:"Y-m-d"|default:"—" }}</td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           {% comment %} الثلاثة الأخيرة من الفاتورة أو لا شيء. و«بلا فاتورة»
              مكتوبةٌ نصّاً لا خانةً فارغة: الفارغة تُقرأ «لم يُحسب» وهذه تقول
