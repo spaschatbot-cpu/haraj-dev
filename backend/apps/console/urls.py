@@ -43,6 +43,7 @@ from . import (
     refunds,
     reminders,
     staff,
+    support,
     vehicle_bulk,
     vehicle_images,
     wallet,
@@ -355,6 +356,11 @@ urlpatterns = [
     # يميّزها حقلُ `op`. ومسارٌ لكلّ فعلٍ كان يعني صفوفاً في `DETAIL_PAGES`
     # لصفحاتٍ لا تُفتح — كلُّها تُعيد التوجيه. T921.
     path("news/", news.news, name="news"),
+    # شاشةٌ واحدةٌ بثلاثة أجزاء (الأقسامُ · القائمةُ · النصّ)، ومسارٌ
+    # واحدٌ لها: المحادثةُ المفتوحةُ معاملٌ في الرابط لا صفحةٌ ثانية —
+    # فالرابطُ الذي يُرسله موظّفٌ لزميله يفتح **ما كان يراه** بقسمه
+    # ومرشّحه وصفحته، لا الشاشةَ من أوّلها. T924.
+    path("support/", support.support, name="support"),
     path("audit/", audit.audit, name="audit"),
     path("inbox/", inbox.inbox, name="odoo-inbox"),
     path("inbox/<int:pk>/", inbox.message, name="odoo-message"),

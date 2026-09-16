@@ -1,0 +1,257 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+الدعم الفني — ثلاثةُ أعمدة: الأقسامُ · المحادثاتُ · النصّ. T924
+
+**والأعمدةُ ثلاثةٌ في صفحةٍ واحدة لا ثلاثُ صفحات.** الموظّفُ هنا يعمل بثلاثِ
+نظراتٍ متتاليةٍ في الثانية الواحدة (أيُّ قسمٍ فيه انتظار · أيُّ محادثةٍ ·
+ماذا قال)، وفصلُها صفحاتٍ يجعل كلَّ جوابٍ رحلتين. وهو تخطيطُ v1 نفسُه —
+أُبقي لأنه صحيح، لا لأنه كان.
+
+**ولا صوتَ ولا نبضَ هنا.** شاشةُ v1 تُشغّل ملفَّ تنبيهٍ من `cdn.pixabay.com`
+كلَّما وصلت رسالة — أي أن لوحةَ الإدارة تطلب مورداً من موقعٍ خارجيّ في كل
+نبضة. والتحديثُ الحيّ (SSE) بندٌ مستقلّ، وحتى يُبنى فالزرُّ «تحديث» يقولها
+صراحةً بدل أن تُظنَّ الشاشةُ حيّةً وهي ساكنة.
+{% endcomment %}
+{% block title %}الدعم الفني{% endblock %}
+{% block heading %}الدعم الفني{% endblock %}
+{% block html_attrs %} data-wide-table="1"{% endblock %}
+
+{% block actions %}
+  <a class="btn-sm" href="{% url 'console:support' %}?dept={{ current.code }}{% if term %}&q={{ term }}{% endif %}{% if state %}&status={{ state }}{% endif %}{% if conversation %}&conversation_id={{ conversation.pk|unlocalize }}{% endif %}">تحديث</a>
+{% endblock %}
+
+{% block content %}
+
+{% if not departments %}
+  <p class="notice">
+    لا أقسامَ دعمٍ بعد. القسمُ صفٌّ في <code>support.Department</code>، وبابُه
+    قدرةُ «فتحُ أقسام الدعم وإغلاقها».
+  </p>
+{% else %}
+
+<div class="support">
+
+  {# ---------------- العمود الأول: الأقسام ---------------- #}
+  <aside class="support__rail" aria-label="أقسام الدعم">
+    <h2 class="support__rail-title">الأقسام</h2>
+    {% for row in departments %}
+      <div class="dept{% if row.pk == current.pk %} dept--on{% endif %}">
+        <a class="dept__open" href="{% url 'console:support' %}?dept={{ row.code }}{% if state %}&status={{ state }}{% endif %}">
+          {% comment %} نقطةٌ **ومعها كلمة**: من لا يميّز الألوان يقرأ الحالة.
+             وv1 يعرض النقطةَ وحدَها. {% endcomment %}
+          <span class="dept__dot" data-open="{{ row.is_open|yesno:'1,0' }}" aria-hidden="true"></span>
+          <span class="dept__name">{{ row.name_ar }}</span>
+          {% if row.unread_count %}
+            <span class="pill pill--count" title="رسائلُ عملاءَ لم يفتحها أحد">{{ row.unread_count|unlocalize }}</span>
+          {% endif %}
+        </a>
+        <div class="dept__meta">
+          <span>{{ row.open_count|unlocalize }} مفتوحة</span>
+          <span class="dept__state">{% if row.is_open %}يستقبل{% else %}لا يستقبل{% endif %}</span>
+        </div>
+        {% if may_departments %}
+          {% comment %} `POST` لا رابط: فعلٌ يقع على **كلّ من سيكتب بعده**
+             لا يقع من سجلّ المتصفّح. {% endcomment %}
+          <form method="post" class="dept__toggle">
+            {% csrf_token %}
+            <input type="hidden" name="op" value="toggle-department">
+            <input type="hidden" name="dept" value="{{ current.code }}">
+            <input type="hidden" name="pk" value="{{ row.pk|unlocalize }}">
+            <input type="text" name="reason" placeholder="السبب" maxlength="255">
+            <button type="submit" class="btn-sm">{% if row.is_open %}أوقف الاستقبال{% else %}افتح{% endif %}</button>
+          </form>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </aside>
+
+  {# ---------------- العمود الثاني: المحادثات ---------------- #}
+  <section class="support__list" aria-label="المحادثات">
+    <form class="support__filters" method="get">
+      <input type="hidden" name="dept" value="{{ current.code }}">
+      <input type="search" name="q" value="{{ term }}" placeholder="اسم · جوّال · رقم محادثة · كلمة في النصّ">
+      <select name="status" aria-label="الحالة">
+        {% comment %} «الكلّ» أوّلاً: افتراضُ v1 «المفتوحة» يُخفي صفّاً واحداً
+           من ٩٣٬٢٩٥ — فيبدو مرشّحاً وهو لا يرشّح شيئاً. {% endcomment %}
+        <option value="all"{% if state == "all" %} selected{% endif %}>الكلّ</option>
+        <option value="open"{% if state == "open" %} selected{% endif %}>المفتوحة</option>
+        <option value="closed"{% if state == "closed" %} selected{% endif %}>المغلقة</option>
+      </select>
+      <button type="submit" class="btn-sm">بحث</button>
+    </form>
+
+    <p class="support__count">
+      <strong>{{ page.paginator.count|unlocalize }}</strong> محادثةً في «{{ current.name_ar }}»
+      {% if term %}تطابق البحث{% endif %}
+    </p>
+
+    <ol class="conv-list">
+      {% for row in page %}
+        <li>
+          <a class="conv{% if conversation and row.pk == conversation.pk %} conv--on{% endif %}"
+             href="{% url 'console:support' %}?dept={{ current.code }}&status={{ state }}{% if term %}&q={{ term }}{% endif %}&page={{ page.number|unlocalize }}&conversation_id={{ row.pk|unlocalize }}">
+            <span class="conv__head">
+              <span class="conv__who">{{ row.display_name }}</span>
+              <span class="conv__when">{{ row.last_message_at|date:"Y-m-d H:i"|default:"—" }}</span>
+            </span>
+            <span class="conv__body">
+              {% comment %} كاتبُ آخر رسالةٍ يُقال: «أنت آخرُ من تكلّم» و«العميلُ
+                 ينتظر» حالتان مختلفتان، وv1 يعرض النصَّ بلا قائله. {% endcomment %}
+              <span class="conv__preview">
+                {% if row.preview_kind == "staff" %}<em>أنت:</em>
+                {% elif row.preview_kind == "system" %}<em>النظام:</em>{% endif %}
+                {{ row.preview|default:"— لا رسائل —"|truncatechars:preview_length }}
+              </span>
+              {% if row.unread %}<span class="pill pill--count">{{ row.unread|unlocalize }}</span>{% endif %}
+            </span>
+            <span class="conv__tags">
+              <span class="pill" data-tone="{% if row.is_open %}info{% else %}mute{% endif %}">#{{ row.pk|unlocalize }} · {% if row.is_open %}مفتوحة{% else %}مغلقة{% endif %}</span>
+              {% if row.assigned_to %}<span class="pill" data-tone="ok">{{ row.assigned_to.full_name }}</span>{% endif %}
+            </span>
+          </a>
+        </li>
+      {% empty %}
+        <li class="conv-list__none">لا محادثاتٍ في هذا القسم بهذه المرشّحات.</li>
+      {% endfor %}
+    </ol>
+
+    {% if page.paginator.num_pages > 1 %}
+      <nav class="pager" aria-label="صفحات">
+        {% if page.has_previous %}
+          <a class="btn-sm" href="?dept={{ current.code }}&status={{ state }}{% if term %}&q={{ term }}{% endif %}&page={{ page.previous_page_number|unlocalize }}">السابق</a>
+        {% endif %}
+        <span>{{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</span>
+        {% if page.has_next %}
+          <a class="btn-sm" href="?dept={{ current.code }}&status={{ state }}{% if term %}&q={{ term }}{% endif %}&page={{ page.next_page_number|unlocalize }}">التالي</a>
+        {% endif %}
+      </nav>
+    {% endif %}
+  </section>
+
+  {# ---------------- العمود الثالث: النصّ ---------------- #}
+  <section class="support__thread" aria-label="نصّ المحادثة">
+    {% if not conversation %}
+      <div class="thread__empty">
+        <p>اختر محادثةً من القائمة.</p>
+      </div>
+    {% else %}
+      <header class="thread__head">
+        <div class="thread__who">
+          <span class="thread__avatar" aria-hidden="true">{{ conversation.display_name|slice:":1" }}</span>
+          <div>
+            <strong>{{ conversation.display_name }}</strong>
+            <small>
+              محادثة #{{ conversation.pk|unlocalize }} · {{ conversation.department.name_ar }}
+              {% if conversation.customer %}
+                · <a href="{% url 'console:customer-detail' conversation.customer.pk %}">ملفّ العميل</a>
+              {% else %}
+                · <span class="empty">بلا حساب</span>
+              {% endif %}
+            </small>
+          </div>
+        </div>
+        <div class="thread__state">
+          {% if conversation.is_open %}
+            <span class="pill" data-tone="info">مفتوحة</span>
+          {% else %}
+            <span class="pill" data-tone="mute">أغلقها {{ conversation.closed_by.full_name|default:"—" }} — {{ conversation.closed_reason }}</span>
+          {% endif %}
+        </div>
+      </header>
+
+      {% if may_reply %}
+      <div class="thread__acts">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="transfer">
+          <input type="hidden" name="dept" value="{{ current.code }}">
+          <input type="hidden" name="conversation_id" value="{{ conversation.pk|unlocalize }}">
+          <select name="department" aria-label="القسم الجديد">
+            {% for row in targets %}<option value="{{ row.pk|unlocalize }}">{{ row.name_ar }}</option>{% endfor %}
+          </select>
+          <input type="text" name="reason" placeholder="سببُ التحويل" maxlength="255" required>
+          <button type="submit" class="btn-sm">تحويل</button>
+        </form>
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="assign">
+          <input type="hidden" name="dept" value="{{ current.code }}">
+          <input type="hidden" name="conversation_id" value="{{ conversation.pk|unlocalize }}">
+          <select name="staff" aria-label="المسؤول">
+            <option value="">— بلا مسؤول —</option>
+            {% for person in staff_choices %}
+              <option value="{{ person.pk|unlocalize }}"{% if conversation.assigned_to_id == person.pk %} selected{% endif %}>{{ person.full_name }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn-sm">إسناد</button>
+        </form>
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="{% if conversation.is_open %}close{% else %}reopen{% endif %}">
+          <input type="hidden" name="dept" value="{{ current.code }}">
+          <input type="hidden" name="conversation_id" value="{{ conversation.pk|unlocalize }}">
+          <input type="text" name="reason" placeholder="{% if conversation.is_open %}سببُ الإغلاق{% else %}سببُ إعادة الفتح{% endif %}" maxlength="255" required>
+          <button type="submit" class="btn-sm">{% if conversation.is_open %}إغلاق{% else %}إعادة فتح{% endif %}</button>
+        </form>
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="read">
+          <input type="hidden" name="dept" value="{{ current.code }}">
+          <input type="hidden" name="conversation_id" value="{{ conversation.pk|unlocalize }}">
+          <button type="submit" class="btn-sm">تعليمُ الوارد كمقروء</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <div class="thread__body">
+        {% for message in thread %}
+          <article class="bubble bubble--{{ message.sender_kind }}">
+            {% comment %} النصُّ نصٌّ — ولا يُفسَّر. قارئُ v1 يفحص كلَّ رسالةٍ
+               بتعبيرٍ نمطيّ فإن انتهت بامتداد صورةٍ رسمها `<img src>`: أي أن
+               **العميلَ يختار عنواناً يطلبه متصفّحُ الموظّف**. وسبعُ رسائلَ
+               في الإنتاج تنطبق عليها القاعدة. {% endcomment %}
+            <p class="bubble__text">{{ message.body|linebreaksbr }}</p>
+            <footer class="bubble__meta">
+              {% if message.sender_kind == "staff" %}{{ message.author.full_name }}
+              {% elif message.sender_kind == "system" %}النظام
+              {% else %}{{ conversation.display_name }}{% endif %}
+              · {{ message.created_at|date:"Y-m-d H:i" }}
+              {% if message.sender_kind == "customer" %}
+                {% if message.read_at %}· قُرئت{% else %}· <span class="unread">لم تُقرأ</span>{% endif %}
+              {% endif %}
+            </footer>
+          </article>
+        {% empty %}
+          <p class="thread__none">لا رسائلَ في هذه المحادثة.</p>
+        {% endfor %}
+      </div>
+
+      {% if may_reply and conversation.is_open %}
+        <form class="composer" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="op" value="reply">
+          <input type="hidden" name="dept" value="{{ current.code }}">
+          <input type="hidden" name="conversation_id" value="{{ conversation.pk|unlocalize }}">
+          <input type="hidden" name="status" value="{{ state }}">
+          {% if term %}<input type="hidden" name="q" value="{{ term }}">{% endif %}
+          <textarea name="body" rows="3" maxlength="4000" required placeholder="اكتب ردّك — يصل العميلَ باسم الشركة."></textarea>
+          <div class="composer__row">
+            {% comment %} سببٌ مكتوبٌ لا مربّعُ اختيار: v1 يُغلق بمربّعٍ بلا
+               سبب، فيُسأل بعدها «لماذا أُغلقت؟» ولا جواب. {% endcomment %}
+            <input type="text" name="close_reason" maxlength="255" placeholder="اتركه فارغاً لتبقى مفتوحة — أو اكتب سببَ الإغلاق">
+            <button type="submit" class="btn-primary-sm">إرسال</button>
+          </div>
+        </form>
+      {% elif not conversation.is_open %}
+        <p class="composer__shut">المحادثةُ مغلقة — أعِد فتحَها قبل الردّ.</p>
+      {% endif %}
+    {% endif %}
+  </section>
+
+</div>
+{% endif %}
+{% endblock %}

@@ -152,6 +152,27 @@ class Capability(models.TextChoices):
     CONTENT_MANAGE = "content.manage", "تحرير محتوى واجهة العميل"
     PACKAGES_MANAGE = "packages.manage", "إدارة باقات الاشتراك وأسعارها"
 
+    #: **محادثاتُ الدعم: قراءةٌ وردّ، قدرتان لا واحدة.** T924
+    #:
+    #: القراءةُ لازمةٌ لكثيرين — من يتابع شكوى، ومن يحقّق في قرار، ومن يقيس
+    #: زمنَ الاستجابة. والردُّ **كلامٌ يخرج باسم الشركة إلى عميلٍ بعينه**،
+    #: ويُقرأ على أنه جوابُها الرسميّ: «الوديعة رُدّت» سطرٌ يُبنى عليه.
+    #:
+    #: وv1 يجمعهما في حارسٍ واحد — ثلاثةُ أدوارٍ يُسمح لها بالملفّ كلِّه
+    #: (`admin_chat.php`: ``requireAdmin(['owner','admin','support_manager'])``)
+    #: — ومعه بابٌ خلفيّ: `conversation_action.php` يقبل أيَّ جلسةٍ فيها
+    #: `admin_username` **بلا فحصِ دورٍ إطلاقاً** (``$isAdminFallback``).
+    SUPPORT_VIEW = "support.view", "قراءة محادثات الدعم"
+    SUPPORT_REPLY = "support.reply", "الردّ على محادثات الدعم وإغلاقها"
+
+    #: **فتحُ قسمٍ وإغلاقُ بابه — قدرةٌ ثالثة، وخارجَ كلّ دورٍ إلا المالك.**
+    #:
+    #: الردُّ يقع على محادثةٍ واحدة، وهذه تقع على **كلّ من سيكتب بعدها**:
+    #: قسمٌ أُغلق بابُه يردّ على العميل «لا يستقبل الآن» قبل أن يكتب حرفاً.
+    #: فهي كـ`packages.manage` — أثرُها على من لم يصل بعد، وبابُها
+    #: `StaffGrant` لشخصٍ بعينه.
+    SUPPORT_DEPARTMENTS = "support.departments", "فتحُ أقسام الدعم وإغلاقها"
+
 
 class Role(models.TextChoices):
     """A named bundle of capabilities. A convenience, never an authority.
@@ -217,6 +238,12 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.MONEY_VIEW,
             Capability.DIAGNOSTICS_VIEW,
             Capability.NOTIFICATIONS_VIEW,
+            # القراءةُ والردُّ كلاهما للدعم: هذا عملُه اليوميّ لا استثناءٌ
+            # يُمنح. وما ليس له — فتحُ قسمٍ وإغلاقه — قدرةٌ ثالثةٌ لم تُضف
+            # إلى دورٍ: `support.view` تكفي ليرى، و«يستقبل/لا يستقبل» قرارُ
+            # تشغيلٍ يقع على العملاء كلِّهم لا على محادثة.
+            Capability.SUPPORT_VIEW,
+            Capability.SUPPORT_REPLY,
         }
     ),
 }
