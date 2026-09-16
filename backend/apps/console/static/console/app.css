@@ -10477,3 +10477,9 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum,
   .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
 }
+
+/* بطاقةٌ واحدةٌ رابطةٌ في شبكةٍ مضغوطة تبقى بعرض ثلثٍ لا بعرض الصفّ: هي
+   عدّادٌ واحدٌ لا لوحةٌ عريضة، والعرضُ الكاملُ يجعلها تُقرأ عنواناً. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> a.sum:only-child) > .sum { grid-column: span 4; }
+}
