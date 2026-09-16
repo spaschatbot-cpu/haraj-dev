@@ -10712,3 +10712,273 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   overflow: hidden;
 }
 .board-stats .stat__action { padding-block-start: .65rem; }
+
+/* خمسُ بطاقاتٍ في سطرٍ واحد — بأمر المالك. وهي تنقض قاعدةَ «3 + 2» التي
+   كُتبت قبل قليل: خمسةُ أعمدةٍ لا تقسم اثني عشر، فالشبكةُ تُكتب خمسةً
+   متساوية بدل الاثني عشر.
+
+   وثمنُها أن البطاقة تضيق إلى نحو 180px — وعنوانٌ مثل «مركبات تنتظر قراراً»
+   يلتفّ سطرين فيها. وهو مقبولٌ هنا لأن سطرَ الشرح مقصوصٌ بسطرين أصلاً. */
+@media (min-width: 62rem) {
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat,
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(n+4) {
+    grid-column: auto;
+  }
+}
+
+/* وفي صفّ الخمسة تضيق البطاقةُ إلى ~180px، فيُقصّ العنوان: «المستخ…»
+   و«المزاي…» و«مركبات تنتظر…». والسببُ حسابيّ: الصفُّ العلويُّ فيها رمزٌ
+   بـ2.75rem وحبّةٌ وعنوانٌ بينهما — فلا يبقى للعنوان إلا نحو 85px.
+
+   فالرمزُ يصغر والحشوةُ تضيق والعنوانُ يُسمح له بثلاثة أسطر. والقياسُ بعدها:
+   «مزايدات مرفوضة اليوم» كاملةً في سطرين. */
+@media (min-width: 62rem) {
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat { padding-inline: .95rem; }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__icon {
+    inline-size: 2.1rem;
+    block-size: 2.1rem;
+    padding: .45rem;
+    border-radius: 10px;
+  }
+  /* **والرمزُ فوق العنوان لا بجواره**: في صفٍّ واحدٍ يأخذ الرمزُ والفجوةُ
+     نحو 45px من 150، فيبقى للعنوان 105 — و«المستخدمون» كلمةٌ واحدةٌ لا
+     تنكسر، فتُقصّ في وسطها («المستخده»). وبوضعه فوقها يأخذ العنوانُ عرضَ
+     البطاقة كلَّه. */
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__ident {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .45rem;
+  }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__top { align-items: flex-start; }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__label {
+    font-size: .84rem;
+    -webkit-line-clamp: 3;
+  }
+  .board-stats:has(> .stat:nth-child(5):last-child) .stat__btn { padding-inline: .6rem; font-size: .74rem; }
+}
+
+/* ===========================================================================
+   نصُّ زرّ البطاقة أبيضُ عند المرور أيضاً
+   ---------------------------------------------------------------------------
+   «خلّي لمّا أقف عليهم يفضل الكلام لونه أبيض ما يتغيّرش».
+
+   الخلفيّةُ صارت كحليّةً واحدةً لكلّ الأزرار (91ad8c9)، لكن قواعدَ التحويم
+   القديمةَ لكلّ تصنيفٍ ما زالت تكتب `color` معها — وهي أعلى تخصيصاً من قاعدة
+   اللون الموحَّد. فالنصُّ يقفز لوناً عند المرور بلا سبب: الخلفيّةُ تتغيّر
+   درجةً واحدة، والنصُّ يتغيّر كلَّه.
+
+   فالأبيضُ يُثبَّت على الحالات الثلاث بمحدِّدٍ يكافئ أعلاها.
+   ======================================================================== */
+
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--money:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--auction:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--people:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--ok:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--warn:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--alarm:hover .stat__btn { color: #fff; }
+
+/* ===========================================================================
+   لوحُ «حالات المزادات» — الخانات تستوي، والمصدرُ يصير تذييلاً
+   ---------------------------------------------------------------------------
+   «خلّي المربّع ده بشكل احترافي أكتر». والهيئةُ نفسُها لا تُمسّ — اختارها
+   المالك من أربعةٍ بعد ستّ محاولات — والمسُّ في ثلاثة مواضعَ صغيرة:
+
+   ١) **خانتا «حالات مرصودة» و«الحالة الأكثر» غيرُ متساويتين**: الأولى ملوّنةٌ
+      والثانيةُ بيضاء، وعرضُهما يتبع نصَّهما فتُقرآن خانةً وملحقاً. صارتا
+      عمودين متساويين بأرضيّةٍ واحدة، والتمييزُ في النصّ لا في اللون.
+
+   ٢) **«المصدر» خانةٌ ثالثة** وهو ليس قيمةً تُقرأ مع القيمتين — هو حاشيةٌ
+      تقول من أين الرقم. صار تذييلاً خلف خطٍّ رفيع.
+
+   ٣) **الحلقةُ الواحدةُ تتوسّط عمودَها**: حين تكون الحالةُ واحدةً (كإنتاجٍ
+      كلُّ مزاداته منتهية) تقف الحلقةُ في طرفٍ والفراغُ في الآخر.
+   ======================================================================== */
+
+.brief { align-items: stretch; }
+.brief__cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .25rem;
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+.brief__cell--brand { background: var(--raised); }
+.brief__cell--brand dd { color: var(--ink); }
+
+.brief__cell--wide {
+  background: none;
+  border: 0;
+  border-block-start: 1px solid var(--line);
+  border-radius: 0;
+  padding: .7rem 0 0;
+  margin-block-start: .2rem;
+}
+.brief__cell--wide dt { font-size: .7rem; letter-spacing: .04em; }
+.brief__cell--wide dd { font-size: .78rem; line-height: 1.6; color: var(--muted); font-weight: 600; }
+
+/* حلقةٌ واحدةٌ تتوسّط عمودَها بدل أن تقف في طرفه. */
+.rings:has(> .rings__one:only-child) { justify-content: center; align-content: center; }
+
+/* **والنصُّ داخل الزرّ عنصرٌ ثالث.** `a.stat:hover .stat__action-text
+   { color: var(--ink) }` (سطر 5733) تلوّن الـ`span` الذي يحمل الكلمة —
+   وهو ابنُ الزرّ، فلونُه هو الظاهر لا لونُ أبيه. كُتبت يوم كان التذييلُ
+   سطرَ نصٍّ على أرضيّة البطاقة البيضاء، لا زرّاً مصمتاً.
+
+   فالبحثُ عن السبب في `.stat__btn` كان في الموضع الخطأ: الزرُّ أبيضُ النصّ
+   بالفعل منذ 91ad8c9، والابنُ يكتب فوقه. يرث الآن. */
+a.stat:hover .stat__action-text,
+a.stat:focus-visible .stat__action-text,
+a.stat:hover .stat__go,
+a.stat:focus-visible .stat__go { color: inherit; }
+
+/* ===========================================================================
+   زرُّ البطاقة في المظهر الداكن — كان أغمقَ من بطاقته
+   ---------------------------------------------------------------------------
+   «عايزة كل الثيمات دي شغّالة».
+
+   **والعطلُ من 91ad8c9**: `--stat-btn` كُتب لوناً واحداً ثابتاً (#0b1e3d) بلا
+   نظيرٍ للداكن. فالبطاقاتُ ذاتُ التصنيف (مال ومزاد وناس) نجت — لها استثناءٌ
+   يعيد لونَ تصنيفها في الداكن — و**البطاقاتُ بلا تصنيف** (`plain`، `brand`،
+   `ok`) بقيت على الكحليّ: قِيس زرُّها في المظهر الداكن `rgb(11,30,61)`
+   وبطاقتُه `rgb(23,29,43)` — أي زرٌّ **أغمقُ من اللوح الذي يقف عليه**، فيختفي.
+
+   فصار للّون نظيرٌ داكن: أرضيّةٌ فاتحةٌ وحبرٌ داكن، كبقيّة أزرار الداكن.
+   التباين على `#171d2b`: 11.44 للزرّ، و12.6 للنصّ على الزرّ.
+   ======================================================================== */
+
+:root { --stat-btn-ink: #fff; }
+:root[data-scheme="dark"] { --stat-btn: #cbd8ef; --stat-btn-ink: #0e131e; }
+
+.stat--money .stat__btn,
+.stat--auction .stat__btn,
+.stat--people .stat__btn,
+.stat--ok .stat__btn,
+.stat--brand .stat__btn,
+.stat .stat__btn { background: var(--stat-btn); color: var(--stat-btn-ink); }
+
+a.stat:hover .stat__btn,
+a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn { background: #16325e; color: #fff; }
+:root[data-scheme="dark"] a.stat:hover .stat__btn,
+:root[data-scheme="dark"] a.stat:focus-visible .stat__btn { background: #e3ebf8; color: #0e131e; }
+
+/* ===========================================================================
+   الشريط الجانبي يتلوّن باللون الأساسي
+   ---------------------------------------------------------------------------
+   «خلّي السايدبار يتلوّن حسب الألوان دي».
+
+   كان كحليّاً واحداً مكتوباً بيده (#0b1e3d)، فاختيارُ اللون الأساسي يغيّر
+   التنقّلَ والأزرارَ ولا يمسّ أعرضَ مساحةٍ ملوّنةٍ في الشاشة.
+
+   فصار **مشتقّاً**: أغمقُ درجةٍ من اللون المختار (`--a700`) ممزوجةً بنسبة 32%
+   في أسودَ مزرقّ (#06101f). فالكحليُّ يبقى كحليّاً مع الأزرق، ويصير بنفسجيّاً
+   داكناً مع البنفسجي، وتوتيّاً مع الوردي — بلا جدولٍ يُكتب بيد لكلّ لون.
+
+   **والنسبةُ 32% محسوبةٌ لا مذوّقة**: تباينُ الأبيض على النواتج السبعة يقع بين
+   13.97 (الأزرق) و16.34 (البنفسجي)، وتباينُ الخافت `#a8bcdb` بين 7.24 و8.47 —
+   فلا لونَ يخرج عن حدّ القراءة مهما اختار المالك.
+
+   والخيارات الثلاثة الداكنة (يتبع · داكن · متدرّج) تتلوّن كلُّها: خيارٌ يبقى
+   رماديّاً بينها يُقرأ عطلاً لا خياراً. و«فاتح» يبقى أبيض.
+   ======================================================================== */
+
+:root,
+:root[data-sidebar="dark"],
+:root[data-sidebar="gradient"] {
+  --side: color-mix(in srgb, var(--a700) 32%, #06101f);
+  --side-ink: #ffffff;
+  --side-dim: #a8bcdb;
+  --side-line: color-mix(in srgb, var(--a700) 45%, #1b2740);
+  --side-hover: rgb(255 255 255 / .09);
+  --side-accent: var(--a300);
+}
+
+:root[data-sidebar="gradient"] .sidebar {
+  background: linear-gradient(170deg,
+    color-mix(in srgb, var(--a700) 46%, #06101f) 0%,
+    color-mix(in srgb, var(--a700) 18%, #06101f) 62%);
+}
+
+/* شريطُ التمرير من عائلة اللون كذلك. */
+.sidebar { scrollbar-color: color-mix(in srgb, var(--a300) 30%, var(--side-line)) transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--a300) 30%, var(--side-line)); }
+
+/* والقسمُ الحاليُّ بأرضيّةٍ من اللون المختار لا بزرقةٍ ثابتة. */
+.nav a.active {
+  background: color-mix(in srgb, var(--a300) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--a300) 24%, transparent);
+}
+
+/* «فاتح» يبقى أبيض — يُعاد بعد القاعدة أعلاه لأن ترتيبَه فيها. */
+:root[data-sidebar="light"] {
+  --side: #ffffff;
+  --side-ink: #0f2c52;
+  --side-dim: #5a6b85;
+  --side-line: #e2e8f1;
+  --side-hover: var(--a050);
+  --side-accent: var(--a700);
+}
+
+/* ===========================================================================
+   البطاقات كلُّها تتبع اللون الأساسي — والتصنيفُ باللون يسقط
+   ---------------------------------------------------------------------------
+   «خلّي ألوان الزراير تتغيّر حسب اللون، والخطوط».
+
+   **وهذا يُلغي قاعدةً مكتوبةً في أعلى الملفّ منذ بنائه**، ونصُّها: «ألوانُ
+   البطاقات (المال، المزاد، الناس) لا تتغيّر باختيار اللون الأساسي — هي
+   تصنيفٌ لا زينة، وإلا صارت بطاقةُ المال بلون بطاقة المزاد عند اختيارٍ
+   بعينه، وضاع التصنيف كلّه».
+
+   وقد ضاع التصنيفُ فعلاً قبل اليوم: المالكُ طلب «كلَّها درجات أزرق»
+   (99362fe)، فصار الفارقُ بين المزاد والناس **1.9 نقطةً في الإضاءة** — لا
+   يُرى. فالقاعدةُ كانت تحرس شيئاً لم يعد قائماً، وإلغاؤها صريحاً أصدقُ من
+   إبقائها مكتوبةً ومنقوضةً في الرسم.
+
+   **والفارقُ يبقى**: الرمزُ في أعلى كلّ بطاقة، وعنوانُها، والحبّةُ التي تقول
+   وحدتَها. وثلاثتُها تُقرأ ولا تُخمَّن — بخلاف درجةِ لونٍ.
+
+   والتباينات على السبعة: `--a700` على الأبيض بين 5.48 (الأزرق) و8.98
+   (البنفسجي)، والأبيضُ عليه بالقيم نفسِها — فهو حدٌّ وأرضيّةُ زرٍّ معاً.
+   وفي الداكن `--a300` على `#171d2b` بين 7.13 و10.12.
+   ======================================================================== */
+
+:root {
+  --money: var(--a700);
+  --money-soft: var(--a050);
+  --auction: var(--a700);
+  --auction-soft: var(--a050);
+  --people: var(--a700);
+  --people-soft: var(--a050);
+  --stat-btn: var(--a700);
+  --stat-btn-ink: #fff;
+}
+
+:root[data-scheme="dark"] {
+  --money: var(--a300);
+  --money-soft: var(--a-dim);
+  --auction: var(--a300);
+  --auction-soft: var(--a-dim);
+  --people: var(--a300);
+  --people-soft: var(--a-dim);
+  --stat-btn: var(--a300);
+  --stat-btn-ink: #0e131e;
+}
+
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn {
+  background: color-mix(in srgb, var(--a700) 82%, #000);
+  color: #fff;
+}
+:root[data-scheme="dark"] a.stat:hover .stat__btn,
+:root[data-scheme="dark"] a.stat:focus-visible .stat__btn {
+  background: color-mix(in srgb, var(--a300) 82%, #fff);
+  color: #0e131e;
+}
