@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../domain/activity/entities/invoice.dart';
+import '../../../domain/common/failure.dart';
 import '../../../domain/common/money.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../common/failure_message.dart';
 import '../../common/money_text.dart';
 import '../../common/saudi_time.dart';
+import '../activity_providers.dart';
 
 /// عرض فاتورة واحدة: رقمها وحالتها ومبالغها وأثرها على التأمين.
 ///
@@ -60,7 +65,117 @@ class InvoiceDetails extends StatelessWidget {
           const SizedBox(height: 8),
           _InsuranceLockNote(lock: lock),
         ],
+        if (_isPayable(invoice)) ...<Widget>[
+          const SizedBox(height: 12),
+          _PayFromBalanceButton(invoice: invoice),
+        ],
       ],
+    );
+  }
+}
+
+/// أتقبل هذه الفاتورةُ سداداً الآن؟
+///
+/// **الحالةُ من الخادم لا من المبلغ.** كان يُغري أن يُقرأ «الباقي أكبر من صفر»
+/// وحدَه، لكنّ فاتورةً ملغاةً قد تحمل باقياً غيرَ مصفَّر، وزرُّ سدادٍ عليها
+/// وعدٌ يكسره الخادم بعد الضغطة. فالشرطان معاً: حالةٌ تقبل الدفع، ومبلغٌ
+/// يستحقّ الدفع.
+bool _isPayable(Invoice invoice) {
+  final state = invoice.state;
+  if (state != InvoiceState.open && state != InvoiceState.partiallyPaid) {
+    return false;
+  }
+  return (double.tryParse(invoice.due.amount) ?? 0) > 0;
+}
+
+/// زرُّ السداد من رصيد التأمين.
+///
+/// **والخلفيةُ هي التي تقرّر**: تقيّد الدفعة وتنقل المركبةَ وتفكّ ما رُهن في
+/// بابٍ واحد (`bidding.settlement`). فهذا الزرّ ينادي وينتظر ويعرض، ولا يحسب
+/// مبلغاً ولا يفترض نتيجة — ولا يُحدِّث الشاشة من عنده بل يُبطل المزوّدات
+/// فتُقرأ من الخادم من جديد.
+class _PayFromBalanceButton extends ConsumerStatefulWidget {
+  const _PayFromBalanceButton({required this.invoice});
+
+  final Invoice invoice;
+
+  @override
+  ConsumerState<_PayFromBalanceButton> createState() =>
+      _PayFromBalanceButtonState();
+}
+
+class _PayFromBalanceButtonState extends ConsumerState<_PayFromBalanceButton> {
+  bool _sending = false;
+
+  Future<void> _pay() async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final invoice = widget.invoice;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.invoicePayConfirmTitle),
+        content: Text(
+          l10n.invoicePayConfirmBody(
+            '${invoice.due.amount} ${invoice.due.currency}',
+            invoice.number,
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.invoicePayAction),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !mounted) return;
+
+    setState(() => _sending = true);
+    try {
+      await ref.read(payInvoiceFromBalanceProvider)(invoice.id);
+      // الثلاثةُ معاً: الفاتورةُ صارت مسدَّدة، والمركبةُ صارت شراءً، والرصيدُ
+      // نقص. وإبطالُ واحدٍ منها يترك الشاشتين الأخريين تكذبان.
+      ref
+        ..invalidate(myInvoicesProvider)
+        ..invalidate(myPurchasesProvider);
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(l10n.invoicePaid)));
+    } on Failure catch (failure) {
+      // جوابُ الخادم كما جاء: «رصيدك لا يكفي»، «الفاتورة مسدَّدة»… وأيٌّ منها
+      // أوضح من «تعذّر السداد» التي كنّا سنكتبها نحن.
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(content: Text(failureMessage(context, failure))),
+      );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton(
+        // **يُعطَّل أثناء الإرسال**: ضغطتان على زرِّ دفعٍ ضغطتان على المال،
+        // ولا يُترك ذلك لحارس التكرار في الخلفية وحدَه.
+        onPressed: _sending ? null : _pay,
+        child: _sending
+            ? const SizedBox(
+                height: 16,
+                width: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(l10n.invoicePayAction),
+      ),
     );
   }
 }

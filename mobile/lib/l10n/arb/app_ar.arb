@@ -387,7 +387,11 @@
   "vehicleLotPosition": "الموقف {lotNumber}",
   "@vehicleLotPosition": {
     "description": "شارةُ موقع اللوت على صورة الكرت — كما في v1",
-    "placeholders": { "lotNumber": { "type": "String" } }
+    "placeholders": {
+      "lotNumber": {
+        "type": "String"
+      }
+    }
   },
   "vehicleBidAction": "مزايدة",
   "@vehicleBidAction": {
@@ -863,7 +867,13 @@
   "walletLockedForDues": "مقفل للمستحقات",
   "@walletLockedForDues": {},
   "walletEntryCount": "{count} قيداً",
-  "@walletEntryCount": {"placeholders": {"count": {"type": "int"}}},
+  "@walletEntryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "walletStatementAction": "كشف الحساب",
   "@walletStatementAction": {},
   "walletRefundRequests": "مجموع طلبات الاسترداد",
@@ -932,14 +942,12 @@
   "@walletMethodUnavailable": {},
   "walletMethodSoon": "قريباً — هذه الطريقة لم تُفعَّل بعد",
   "@walletMethodSoon": {},
-
   "profileAccountIndividual": "حساب فرد",
   "@profileAccountIndividual": {},
   "profileAccountCompany": "حساب شركة",
   "@profileAccountCompany": {},
   "profileIdVerified": "هوية موثّقة",
   "@profileIdVerified": {},
-
   "accountMenuSection": "خدماتي",
   "@accountMenuSection": {
     "description": "عنوان قائمة صفحات الحساب في شاشة حسابي"
@@ -976,7 +984,6 @@
   "@accountLanguageSoon": {
     "description": "يظهر عند اختيار لغةٍ غير مترجَمة بعد"
   },
-
   "refundHeaderTitle": "طلب استرداد",
   "@refundHeaderTitle": {},
   "refundHeaderSubtitle": "استرداد مبلغ التأمين — يُراجَع الطلب من الإدارة.",
@@ -1009,7 +1016,6 @@
   "@refundPreviousSection": {},
   "refundPreviousEmpty": "لا توجد طلبات سابقة.",
   "@refundPreviousEmpty": {},
-
   "purchasesEmptyTitle": "لا توجد مشتريات حتى الآن",
   "@purchasesEmptyTitle": {},
   "purchasesEmptyBody": "لم تقم بإتمام أي عمليات شراء حتى الآن. استكشف المزادات الحالية وابدأ المزايدة الآن!",
@@ -1028,9 +1034,12 @@
   "@purchasesPaySoon": {},
   "purchasesLotNumber": "رقم اللوت {number}",
   "@purchasesLotNumber": {
-    "placeholders": { "number": { "type": "String" } }
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
   },
-
   "ordersSoon": "قريباً",
   "@ordersSoon": {},
   "ordersHandover": "طلب تنازل",
@@ -1041,7 +1050,6 @@
   "@ordersDelivery": {},
   "ordersReceive": "طلب استلام",
   "@ordersReceive": {},
-
   "supportTitle": "الدعم الفني",
   "@supportTitle": {},
   "supportSubtitle": "اختر الطريقة المناسبة للتواصل مع فريقنا",
@@ -1054,7 +1062,6 @@
   "@supportInfo": {},
   "editRequestInfo": "تعديل البيانات غير متاح مباشرة من الحساب. إذا كنت تريد تعديل بياناتك، افتح الشات الداخلي أو تواصل عبر واتساب وسيقوم فريق الدعم بتنفيذ الطلب لك.",
   "@editRequestInfo": {},
-
   "guideHeaderTitle": "شرح التسجيل في موقع المزاد",
   "@guideHeaderTitle": {},
   "guideHeaderSubtitle": "اتبع الخطوات البسيطة لبدء المزايدة",
@@ -1081,7 +1088,6 @@
   "@guideSupportHint": {},
   "guideContactHint": "في حال وجود أي استفسار، تواصل عبر واتساب الدعم أو نموذج المراسلة.",
   "@guideContactHint": {},
-
   "walletGuideHeaderTitle": "شرح شحن المحفظة للمزاد",
   "@walletGuideHeaderTitle": {},
   "walletGuideHeaderSubtitle": "تعرّف على كيفية إدارة محفظتك المالية",
@@ -1105,5 +1111,20 @@
   "walletGuideStep5Title": "انتظار الموافقة",
   "@walletGuideStep5Title": {},
   "walletGuideStep5Body": "يتم مراجعة الطلب وتأكيد شحن المحفظة خلال وقت قصير.",
-  "@walletGuideStep5Body": {}
+  "@walletGuideStep5Body": {},
+  "invoicePayAction": "سدّد من رصيدي",
+  "@invoicePayAction": {},
+  "invoicePayConfirmTitle": "تأكيد السداد",
+  "@invoicePayConfirmTitle": {},
+  "invoicePayConfirmBody": "سيُخصَم {amount} من رصيد تأمينك سداداً للفاتورة {number}.",
+  "@invoicePayConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "number": {
+        "type": "String"
+      }
+    }
+  }
 }

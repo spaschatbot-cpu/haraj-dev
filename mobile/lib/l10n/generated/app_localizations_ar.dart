@@ -1241,4 +1241,15 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get walletGuideStep5Body =>
       'يتم مراجعة الطلب وتأكيد شحن المحفظة خلال وقت قصير.';
+
+  @override
+  String get invoicePayAction => 'سدّد من رصيدي';
+
+  @override
+  String get invoicePayConfirmTitle => 'تأكيد السداد';
+
+  @override
+  String invoicePayConfirmBody(String amount, String number) {
+    return 'سيُخصَم $amount من رصيد تأمينك سداداً للفاتورة $number.';
+  }
 }

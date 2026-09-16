@@ -2197,6 +2197,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'يتم مراجعة الطلب وتأكيد شحن المحفظة خلال وقت قصير.'**
   String get walletGuideStep5Body;
+
+  /// No description provided for @invoicePayAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'سدّد من رصيدي'**
+  String get invoicePayAction;
+
+  /// No description provided for @invoicePayConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تأكيد السداد'**
+  String get invoicePayConfirmTitle;
+
+  /// No description provided for @invoicePayConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُخصَم {amount} من رصيد تأمينك سداداً للفاتورة {number}.'**
+  String invoicePayConfirmBody(String amount, String number);
 }
 
 class _AppLocalizationsDelegate

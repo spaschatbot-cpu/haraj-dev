@@ -35,6 +35,7 @@ import '../domain/activity/repositories/activity_repository.dart';
 import '../domain/activity/usecases/load_my_invoices.dart';
 import '../domain/activity/usecases/load_my_participations.dart';
 import '../domain/activity/usecases/load_my_purchases.dart';
+import '../domain/activity/usecases/pay_invoice_from_balance.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/session_signal.dart';
 import '../domain/auth/usecases/change_phone_number.dart';
@@ -371,6 +372,10 @@ final loadMyPurchasesProvider = Provider<LoadMyPurchases>(
 
 final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
   (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
+);
+
+final payInvoiceFromBalanceProvider = Provider<PayInvoiceFromBalance>(
+  (ref) => PayInvoiceFromBalance(ref.watch(activityRepositoryProvider)),
 );
 
 final loadWalletTransactionsProvider = Provider<LoadWalletTransactions>(

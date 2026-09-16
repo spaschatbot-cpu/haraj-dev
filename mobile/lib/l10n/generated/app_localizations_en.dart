@@ -1239,4 +1239,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get walletGuideStep5Body =>
       'The request is reviewed and the wallet top-up is confirmed shortly.';
+
+  @override
+  String get invoicePayAction => 'Pay from my balance';
+
+  @override
+  String get invoicePayConfirmTitle => 'Confirm payment';
+
+  @override
+  String invoicePayConfirmBody(String amount, String number) {
+    return '$amount will be deducted from your deposit balance for invoice $number.';
+  }
 }

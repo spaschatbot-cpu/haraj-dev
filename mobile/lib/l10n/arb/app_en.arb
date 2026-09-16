@@ -106,7 +106,11 @@
   "filterClear": "Clear filters",
   "vehicleLotPosition": "Lot {lotNumber}",
   "@vehicleLotPosition": {
-    "placeholders": { "lotNumber": { "type": "String" } }
+    "placeholders": {
+      "lotNumber": {
+        "type": "String"
+      }
+    }
   },
   "vehicleBidAction": "Bid",
   "@vehicleBidAction": {},
@@ -315,7 +319,13 @@
   "walletLockedForDues": "Locked for dues",
   "@walletLockedForDues": {},
   "walletEntryCount": "{count} entries",
-  "@walletEntryCount": {"placeholders": {"count": {"type": "int"}}},
+  "@walletEntryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "walletStatementAction": "Statement",
   "@walletStatementAction": {},
   "walletRefundRequests": "Refund requests",
@@ -384,14 +394,12 @@
   "@walletMethodUnavailable": {},
   "walletMethodSoon": "Coming soon — this method is not enabled yet",
   "@walletMethodSoon": {},
-
   "profileAccountIndividual": "Individual account",
   "@profileAccountIndividual": {},
   "profileAccountCompany": "Company account",
   "@profileAccountCompany": {},
   "profileIdVerified": "Verified identity",
   "@profileIdVerified": {},
-
   "accountMenuSection": "My services",
   "@accountMenuSection": {},
   "accountMenuWallet": "My wallet",
@@ -422,7 +430,6 @@
   "@accountLanguageSection": {},
   "accountLanguageSoon": "This language is not enabled yet",
   "@accountLanguageSoon": {},
-
   "refundHeaderTitle": "Deposit refund",
   "@refundHeaderTitle": {},
   "refundHeaderSubtitle": "Refund of the insurance deposit — reviewed by admin.",
@@ -455,7 +462,6 @@
   "@refundPreviousSection": {},
   "refundPreviousEmpty": "No previous requests.",
   "@refundPreviousEmpty": {},
-
   "purchasesEmptyTitle": "No purchases yet",
   "@purchasesEmptyTitle": {},
   "purchasesEmptyBody": "You have not completed any purchases yet. Explore the live auctions and start bidding now!",
@@ -474,9 +480,12 @@
   "@purchasesPaySoon": {},
   "purchasesLotNumber": "Lot {number}",
   "@purchasesLotNumber": {
-    "placeholders": { "number": { "type": "String" } }
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
   },
-
   "ordersSoon": "Soon",
   "@ordersSoon": {},
   "ordersHandover": "Waiver request",
@@ -487,7 +496,6 @@
   "@ordersDelivery": {},
   "ordersReceive": "Pickup request",
   "@ordersReceive": {},
-
   "supportTitle": "Support",
   "@supportTitle": {},
   "supportSubtitle": "Pick the way that suits you to reach our team",
@@ -500,7 +508,6 @@
   "@supportInfo": {},
   "editRequestInfo": "Editing your data is not available directly from the account. To change your data, open the in-app chat or reach us on WhatsApp and the support team will do it for you.",
   "@editRequestInfo": {},
-
   "guideHeaderTitle": "How to register on the auction site",
   "@guideHeaderTitle": {},
   "guideHeaderSubtitle": "Follow the simple steps to start bidding",
@@ -527,7 +534,6 @@
   "@guideSupportHint": {},
   "guideContactHint": "For any question, reach us on support WhatsApp or the contact form.",
   "@guideContactHint": {},
-
   "walletGuideHeaderTitle": "How to top up the wallet",
   "@walletGuideHeaderTitle": {},
   "walletGuideHeaderSubtitle": "Learn how to manage your wallet",
@@ -551,5 +557,20 @@
   "walletGuideStep5Title": "Wait for approval",
   "@walletGuideStep5Title": {},
   "walletGuideStep5Body": "The request is reviewed and the wallet top-up is confirmed shortly.",
-  "@walletGuideStep5Body": {}
+  "@walletGuideStep5Body": {},
+  "invoicePayAction": "Pay from my balance",
+  "@invoicePayAction": {},
+  "invoicePayConfirmTitle": "Confirm payment",
+  "@invoicePayConfirmTitle": {},
+  "invoicePayConfirmBody": "{amount} will be deducted from your deposit balance for invoice {number}.",
+  "@invoicePayConfirmBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "number": {
+        "type": "String"
+      }
+    }
+  }
 }

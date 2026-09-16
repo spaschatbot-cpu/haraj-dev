@@ -58,6 +58,23 @@ final class DriftResponseCache implements ResponseCache {
     }
   }
 
+  @override
+  Future<void> remove(String key) async {
+    try {
+      await (_database.delete(
+        _database.cachedDocuments,
+      )..where((table) => table.key.equals(key))).go();
+    } on Object catch (error) {
+      // يبتلع كما تفعل `write` وللسبب نفسه: الكاشُ راحةٌ لا مصدرُ حقيقة،
+      // وفشلُ محوِه لا يُسقط فعلاً نجح على الخادم.
+      assert(() {
+        // ignore: avoid_print
+        print('تعذّر محو الكاش «$key»: $error');
+        return true;
+      }());
+    }
+  }
+
   /// والمحو كذلك: تنظيفٌ فاشل لا يمنع خروجاً من الحساب.
   @override
   Future<void> clear() async {
