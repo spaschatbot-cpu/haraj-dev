@@ -10470,3 +10470,10 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   line-height: 1.7;
   color: var(--ink-soft);
 }
+
+/* ستُّ بطاقاتٍ رابطة: ثلاثٌ وثلاث. القاعدةُ الأصليّة مكتوبةٌ لسبعٍ (4×3 ثم
+   3×4)، وستٌّ فيها تصير 4 + 2 ويبقى ثلثُ الصفّ الثاني أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum,
+  .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
+}
