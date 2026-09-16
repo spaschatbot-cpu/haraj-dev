@@ -1272,4 +1272,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get refundAmountRequired => 'اكتب المبلغ المطلوب استرداده.';
+
+  @override
+  String get purchasesNothingPayable => 'لا فاتورة بعد على ما اخترته.';
+
+  @override
+  String purchasesPaid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'سُدِّدت $count فواتير.',
+      one: 'سُدِّدت فاتورة.',
+    );
+    return '$_temp0';
+  }
 }

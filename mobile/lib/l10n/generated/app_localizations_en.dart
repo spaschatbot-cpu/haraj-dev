@@ -1270,4 +1270,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get refundAmountRequired => 'Enter the amount you want refunded.';
+
+  @override
+  String get purchasesNothingPayable =>
+      'No invoice has been issued yet for what you selected.';
+
+  @override
+  String purchasesPaid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count invoices paid.',
+      one: 'One invoice paid.',
+    );
+    return '$_temp0';
+  }
 }

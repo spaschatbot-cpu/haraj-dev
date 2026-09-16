@@ -2251,6 +2251,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اكتب المبلغ المطلوب استرداده.'**
   String get refundAmountRequired;
+
+  /// No description provided for @purchasesNothingPayable.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا فاتورة بعد على ما اخترته.'**
+  String get purchasesNothingPayable;
+
+  /// No description provided for @purchasesPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{سُدِّدت فاتورة.} other{سُدِّدت {count} فواتير.}}'**
+  String purchasesPaid(int count);
 }
 
 class _AppLocalizationsDelegate

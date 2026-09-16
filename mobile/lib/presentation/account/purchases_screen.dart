@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../domain/activity/entities/purchase.dart';
@@ -9,9 +10,11 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../activity/activity_providers.dart';
+import '../common/failure_message.dart';
 import '../common/failure_view.dart';
 import '../common/haraj_app_bar.dart';
 import '../common/riyal_text.dart';
+import '../wallet/wallet_controller.dart';
 
 /// صفحة «مشترياتي» — على تصميم المالك (١٣ سبتمبر ٢٠٢٦).
 ///
@@ -81,17 +84,27 @@ class _Body extends StatelessWidget {
     // تكفي الشريطَ فلا يُقصّ آخرُها، والشريطُ فوقها ملتصقٌ بالحافّة. يظهر دائماً
     // حتى مع لا مشتريات، بعددٍ وإجماليٍّ صفر وزرّين معطَّلين.
     const barSpace = 150.0;
-    // ارتفاعُ الشريط السفليّ للقشرة بالضبط (`_GoldNavigationBar.barHeight` = ٧٠):
-    // `MediaQuery.bottom` هنا أكبرُ منه فيترك فجوةً فوق الفوتر. ثابتٌ مطابقٌ له
-    // يُجلس شريطَ الدفع فوق الفوتر تماماً (١٣ سبتمبر ٢٠٢٦).
-    const footerHeight = 70.0;
+    // **حاشيةُ القشرة لا ثابتٌ مكتوب.** كان هنا `70.0` نسخةً من
+    // `_GoldNavigationBar.barHeight`، وكُتب أن `MediaQuery.bottom` «أكبرُ منه
+    // فيترك فجوة». وهو أكبرُ منه فعلاً — **بمقدار شريط الإيماءات بالضبط**،
+    // لأن الشريط السفليّ داخل `SafeArea`. فالسبعون تُجلس زرَّ الدفع **تحت
+    // الشريط** لا فوقه.
+    //
+    // وأثرُه ليس تجميلاً: قِيس على المحاكي في ١٦ سبتمبر ٢٠٢٦ — ضغطتان في
+    // موضعين على «دفع كامل المختارة» ولا شيء يحدث، والفاتورة تبقى `open`.
+    // أي أن **العميل لا يستطيع الدفع أصلاً**.
+    //
+    // و`_BarInset` في القشرة يضيف ارتفاعَ الشريط إلى `MediaQuery.padding`
+    // خصّيصاً ليُقرأ هنا — فقراءتُه تتبع الشريطَ يوم يتغيّر ارتفاعُه، والثابتُ
+    // المكتوب لا يتبعه.
+    final footerHeight = MediaQuery.paddingOf(context).bottom;
     return Stack(
       children: <Widget>[
         Positioned.fill(
           child: purchases.isEmpty
               ? _EmptyState(bottomPadding: barSpace + footerHeight)
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     16,
                     16,
                     16,
@@ -331,7 +344,7 @@ class _StatePill extends StatelessWidget {
 }
 
 /// شريطُ الدفع السفليّ — عددُ المختار وإجماليُّه، وزرّا الدفع والمسح.
-class _PayBar extends StatelessWidget {
+class _PayBar extends ConsumerStatefulWidget {
   const _PayBar({
     required this.purchases,
     required this.selected,
@@ -343,7 +356,74 @@ class _PayBar extends StatelessWidget {
   final VoidCallback onClear;
 
   @override
+  ConsumerState<_PayBar> createState() => _PayBarState();
+}
+
+class _PayBarState extends ConsumerState<_PayBar> {
+  bool _sending = false;
+
+  /// يسدّد فواتيرَ ما اختاره العميل من رصيد التأمين.
+  ///
+  /// **واحدةً واحدة، وتتوقّف عند أوّل رفض.** لا نداءَ جماعيَّ في العقد، ولو
+  /// مضينا على الباقي بعد رفضٍ لرأى العميل «سُدّدت» وفواتيرُ لم تُسدَّد.
+  /// والمسدَّدُ قبل الرفض يبقى مسدَّداً — وهو الصواب: كلُّ فاتورةٍ قيدٌ مستقلّ
+  /// في الدفتر، لا جزءٌ من صفقةٍ تُلغى.
+  ///
+  /// **وشراءٌ بلا فاتورة يُتخطّى** ولا يُعدّ فشلاً: المركبةُ رست ولم تُفوتَر
+  /// بعد، وليس للعميل فيها فعل.
+  Future<void> _pay(List<Purchase> chosen) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final payable = chosen
+        .where((p) => p.invoice != null)
+        .toList(growable: false);
+    if (payable.isEmpty) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.purchasesNothingPayable)));
+      return;
+    }
+
+    setState(() => _sending = true);
+    var paid = 0;
+    try {
+      for (final purchase in payable) {
+        await ref.read(payInvoiceFromBalanceProvider)(purchase.invoice!.id);
+        paid += 1;
+      }
+      ref
+        ..invalidate(myPurchasesProvider)
+        ..invalidate(myInvoicesProvider)
+        ..invalidate(walletBalanceProvider);
+      if (!mounted) return;
+      widget.onClear();
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.purchasesPaid(paid))));
+    } on Failure catch (failure) {
+      // جوابُ الخادم كما جاء: «رصيدك لا يكفي»، «الفاتورة مسدَّدة»…
+      if (paid > 0) {
+        ref
+          ..invalidate(myPurchasesProvider)
+          ..invalidate(myInvoicesProvider)
+          ..invalidate(walletBalanceProvider);
+      }
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(failureMessage(context, failure))),
+        );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final purchases = widget.purchases;
+    final selected = widget.selected;
+    final onClear = widget.onClear;
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
 
@@ -413,13 +493,11 @@ class _PayBar extends StatelessWidget {
                   label: l10n.purchasesPayAll,
                   icon: Icons.credit_card_rounded,
                   palette: palette,
-                  onTap: selected.isEmpty
+                  // **يُعطَّل أثناء الإرسال**: ضغطتان على زرِّ دفعٍ ضغطتان
+                  // على المال، ولا يُترك ذلك لحارس التكرار في الخلفية وحدَه.
+                  onTap: selected.isEmpty || _sending
                       ? null
-                      : () => ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            SnackBar(content: Text(l10n.purchasesPaySoon)),
-                          ),
+                      : () => _pay(chosen),
                 ),
               ),
               const SizedBox(width: 12),
@@ -516,11 +594,18 @@ class _DarkButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[palette.heroTop, palette.heroBottom],
-            ),
+            // **التدرّجُ يُرفع عند التعطيل، لا يُغطّى بلون.** كان الاثنان
+            // مكتوبين معاً، و`BoxDecoration` يُقدّم التدرّج — فالزرُّ المعطَّل
+            // يبدو مفعَّلاً تماماً، ولا يعرف الضاغطُ لماذا لا يستجيب. وكلّفني
+            // ذلك ثلاثَ محاولاتٍ وأنا أظنّ الموضعَ خطأً والعطلُ في مكانٍ آخر
+            // (١٦ سبتمبر ٢٠٢٦).
+            gradient: enabled
+                ? LinearGradient(
+                    begin: Alignment.topRight,
+                    end: Alignment.bottomLeft,
+                    colors: <Color>[palette.heroTop, palette.heroBottom],
+                  )
+                : null,
             color: enabled ? null : palette.inkMuted,
           ),
           child: Row(

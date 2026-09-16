@@ -1144,5 +1144,15 @@
   "refundSubmitted": "أُرسل طلب الاسترداد.",
   "@refundSubmitted": {},
   "refundAmountRequired": "اكتب المبلغ المطلوب استرداده.",
-  "@refundAmountRequired": {}
+  "@refundAmountRequired": {},
+  "purchasesNothingPayable": "لا فاتورة بعد على ما اخترته.",
+  "@purchasesNothingPayable": {},
+  "purchasesPaid": "{count, plural, =1{سُدِّدت فاتورة.} other{سُدِّدت {count} فواتير.}}",
+  "@purchasesPaid": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

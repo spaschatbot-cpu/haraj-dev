@@ -590,5 +590,15 @@
   "refundSubmitted": "Your refund request was sent.",
   "@refundSubmitted": {},
   "refundAmountRequired": "Enter the amount you want refunded.",
-  "@refundAmountRequired": {}
+  "@refundAmountRequired": {},
+  "purchasesNothingPayable": "No invoice has been issued yet for what you selected.",
+  "@purchasesNothingPayable": {},
+  "purchasesPaid": "{count, plural, =1{One invoice paid.} other{{count} invoices paid.}}",
+  "@purchasesPaid": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
