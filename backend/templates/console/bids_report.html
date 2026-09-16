@@ -13,55 +13,103 @@
 {% endcomment %}
 {% block title %}تقرير المزايدات{% endblock %}
 {% block heading %}تقرير المزايدات{% endblock %}
-{% block actions %}<a href="?{{ keep }}export=xlsx" class="btn-secondary">تصدير إكسل</a>{% endblock %}
+{% block actions %}<a href="?{{ keep }}export=xlsx" class="btn-ghost">تصدير إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} الأرقامُ فوق الجدول من **نفس الاستعلام المرشَّح** تحتها: رقمٌ
      في ترويسةٍ لا يتبع مرشّحَ جدوله هو كيف صار مركزُ تقارير v1 يقول «٦٬٥٠٣»
      وتقول شاشتُه «٤٬٣٧٨». {% endcomment %}
-  <div class="board-stats">
-    <div class="stat"><span class="stat__label">مزايدون</span><strong class="stat__value">{{ bidders }}</strong></div>
-    <div class="stat"><span class="stat__label">مزايدات</span><strong class="stat__value">{{ bids }}</strong></div>
-    {% if show_money %}
-      <div class="stat"><span class="stat__label">إجمالي قيمة المزايدات</span><strong class="stat__value">{{ value }}</strong></div>
-    {% endif %}
-  </div>
+  {% comment %} سطرُ تعريفٍ يقول ما تجيب عنه هذه الشاشةُ وما تجيبه جارتاها —
+     وهو مكتوبٌ في تعليق الملفّ ولا يراه إلا من يفتحه. وثلاثُ شاشاتٍ متجاورةٍ
+     عن المزايدات بلا سطرٍ يفرّقها تُفتَح الخطأُ منها. {% endcomment %}
+  <p class="lede">
+    صفٌّ لكلّ <strong>مزايد</strong> لا لكلّ مزايدة — الشاشةُ تجيب «مَن»، وما
+    فعله كلٌّ منهم في رقمٍ واحد. و«تحليل المزايدات» تجيب «كم»، و«تقرير مزايدات
+    مستخدم» تُسأل عن واحدٍ تعرفه سلفاً.
+  </p>
 
-  <form method="get" class="filters filters--row">
-    <div class="filters__main">
-      <select name="auction" aria-label="فلتر المزاد">
+  {% comment %} الأرقامُ فوق الجدول من **نفس الاستعلام المرشَّح** تحتها: رقمٌ
+     في ترويسةٍ لا يتبع مرشّحَ جدوله هو كيف صار مركزُ تقارير v1 يقول «٦٬٥٠٣»
+     وتقول شاشتُه «٤٬٣٧٨».
+
+     وكانت مكتوبةً بوسم `.stat` بيدها — `<span>` و`<strong>` بلا رمزٍ ولا
+     سطرِ شرح — فتخرج بطاقاتٍ عاريةً لا تشبه بطاقاتِ بقيّة اللوحة. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام التقرير">
+    <div class="sum">
+      <p class="sum__label">مزايدون</p>
+      <p class="sum__value">{{ bidders }}</p>
+      <p class="sum__note">أشخاصٌ — وهم صفوفُ الجدول.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مزايدات</p>
+      <p class="sum__value">{{ bids }}</p>
+      <p class="sum__note">مجموعُ ما فعلوه.</p>
+    </div>
+    {% if show_money %}
+      <div class="sum sum--money">
+        <p class="sum__label">إجمالي قيمة المزايدات</p>
+        <p class="sum__value money">{{ value }}</p>
+        <p class="sum__note">مجموعُها — لا مبيعات.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  {% comment %} الاستمارةُ كانت صفّاً واحداً بسبعةِ عناصر، فينزل الزرُّ إلى
+     سطرٍ ثانٍ نصفُه فارغ. وحقلا المدى بلا لصيقةٍ مرئيّة — `placeholder` يختفي
+     أوّلَ ما يُكتب فيه — وهو العطلُ نفسُه في «تقرير الأرباح» و«تحليل
+     المزايدات». فصارت حقولاً معنونةً في شبكة. {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="brAuction">المزاد</label>
+      <select id="brAuction" name="auction">
         <option value="">كل المزادات</option>
         {% for a in auctions %}
           <option value="{{ a.number|unlocalize }}" {% if a.number|stringformat:"s" == auction %}selected{% endif %}>{{ a.number|unlocalize }} — {{ a.title }}</option>
         {% endfor %}
       </select>
-      {% comment %} مدىً بأرقام المزادات لا بالتواريخ — كما في «تحليل
-         المزايدات» المجاورة فيُقارَن التقريران. و`placed_at` في ٤٣٬٣٦٢ مزايدةً
-         من ١٦٣٬٢٨٩ هو لحظةُ الاستيراد لا لحظةُ المزايدة، فمرشّحُ تاريخٍ يقسم
-         على «متى استُوردت». {% endcomment %}
-      <input type="number" name="from" value="{{ first }}" placeholder="من مزاد" aria-label="من رقم مزاد">
-      <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد" aria-label="إلى رقم مزاد">
-      <input type="search" name="q" value="{{ q }}" placeholder="اسم المزايد أو جوّاله…" aria-label="بحث">
-      <select name="sort" aria-label="الترتيب">
+    </div>
+    {% comment %} مدىً بأرقام المزادات لا بالتواريخ — كما في «تحليل المزايدات»
+       المجاورة فيُقارَن التقريران. و`placed_at` في ٤٣٬٣٦٢ مزايدةً من ١٦٣٬٢٨٩
+       هو لحظةُ الاستيراد لا لحظةُ المزايدة، فمرشّحُ تاريخٍ يقسم على «متى
+       استُوردت». {% endcomment %}
+    <div class="cat-filters__field">
+      <label for="brFrom">من مزاد</label>
+      <input id="brFrom" type="number" name="from" value="{{ first }}" placeholder="رقم">
+    </div>
+    <div class="cat-filters__field">
+      <label for="brTo">إلى مزاد</label>
+      <input id="brTo" type="number" name="to" value="{{ last }}" placeholder="رقم">
+    </div>
+    <div class="cat-filters__field">
+      <label for="brQ">بحث</label>
+      <input id="brQ" type="search" name="q" value="{{ q }}" placeholder="اسم المزايد أو جوّاله…">
+    </div>
+    <div class="cat-filters__field">
+      <label for="brSort">الترتيب</label>
+      <select id="brSort" name="sort">
         <option value="bids" {% if sort == "bids" %}selected{% endif %}>الأكثر مزايدةً</option>
         <option value="vehicles" {% if sort == "vehicles" %}selected{% endif %}>الأكثر مركباتٍ</option>
         <option value="withdrawn" {% if sort == "withdrawn" %}selected{% endif %}>الأكثر سحباً</option>
         <option value="last" {% if sort == "last" %}selected{% endif %}>الأحدث مزايدةً</option>
         {% comment %} خيارا المال يُسقَطان لمن لا يرى المال: جدولٌ مرتَّبٌ
            بإجمالي القيمة يقول «هذا أكبرُ من ذاك» بلا رقمٍ واحدٍ في الصفحة —
-           فالترتيبُ وحدَه يُفشي ما حُجب. والخادم يُسقطهما كذلك، فمن يكتبهما
-           في شريط العنوان يأخذ الترتيبَ الافتراضيّ لا صفحةَ خطأ. {% endcomment %}
+           فالترتيبُ وحدَه يُفشي ما حُجب. والخادم يُسقطهما كذلك، فمن يكتبهما في
+           شريط العنوان يأخذ الترتيبَ الافتراضيّ لا صفحةَ خطأ. {% endcomment %}
         {% if show_money %}
           <option value="value" {% if sort == "value" %}selected{% endif %}>الأعلى إجمالاً</option>
           <option value="highest" {% if sort == "highest" %}selected{% endif %}>صاحب أعلى مزايدة</option>
         {% endif %}
       </select>
+    </div>
+    <div class="cat-filters__actions">
       <button type="submit" class="btn-primary">بحث</button>
-      {% if q or auction or first or last %}<a href="{% url 'console:bids-report' %}" class="filters__reset">مسح</a>{% endif %}
+      {% if q or auction or first or last %}<a href="{% url 'console:bids-report' %}" class="btn-ghost">مسح الفلاتر</a>{% endif %}
     </div>
   </form>
 
-  <div class="scroller">
+  {% comment %} أربعةَ عشرَ عموداً في غلافٍ بعرض الشاشة تلفُّ كلُّ خانةٍ فيها.
+     `scroller--wide` تمنع اللفَّ وتُمرّر أفقياً، كما في «ما بعد البيع». {% endcomment %}
+  <div class="scroller scroller--wide">
     <table>
       <thead>
         <tr>
@@ -70,7 +118,7 @@
           <th>قائمة</th><th>مستبدَلة</th><th>مسحوبة</th>
           <th>رسا له</th>
           {% if show_money %}<th>إجمالي المزايدات</th><th>أعلى مزايدة</th><th>قيمة ما رسا له</th>{% endif %}
-          <th>آخر مزايدة</th><th></th>
+          <th>آخر مزايدة</th><th>الملفّ</th>
         </tr>
       </thead>
       <tbody>

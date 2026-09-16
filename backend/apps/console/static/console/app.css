@@ -10483,3 +10483,26 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
 @media (min-width: 62rem) {
   .sum-grid--tight:has(> a.sum:only-child) > .sum { grid-column: span 4; }
 }
+
+/* ===========================================================================
+   لوحةُ الفلاتر: عددُ الأعمدة يتبع عددَ الحقول
+   ---------------------------------------------------------------------------
+   القاعدةُ الأصليّة مكتوبةٌ لستّة حقول (اثنان يمتدّان عمودين ثم أربعةُ
+   تواريخ). وأيُّ عددٍ آخر يخرج أعرج: خمسةٌ تصير 2+3 ويبقى ربعُ الصفّ الثاني
+   أبيض (رُئي في «تقرير المزايدات»)، وأربعةٌ تصير 2+2 في صفّين وهي تسع صفّاً.
+
+   والعدّ بـ`nth-of-type` على الـ`div`: آخرُ `div` في الاستمارة صفُّ الأفعال،
+   فالشرطُ «الحقلُ N موجودٌ وN+1 ليس» لا `:last-of-type`.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  /* أربعةٌ: صفٌّ واحدٌ تامّ. */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(4)):not(:has(> .cat-filters__field:nth-of-type(5))) > .cat-filters__field { grid-column: auto; }
+
+  /* خمسةٌ: اثنا عشرَ عموداً — ثلاثةٌ بعرض ٤ ثم اثنان بعرض ٦. */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) > .cat-filters__field { grid-column: span 4; }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) > .cat-filters__field:nth-of-type(n+4) { grid-column: span 6; }
+}
