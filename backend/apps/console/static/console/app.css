@@ -10825,3 +10825,15 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
 
 /* حلقةٌ واحدةٌ تتوسّط عمودَها بدل أن تقف في طرفه. */
 .rings:has(> .rings__one:only-child) { justify-content: center; align-content: center; }
+
+/* **والنصُّ داخل الزرّ عنصرٌ ثالث.** `a.stat:hover .stat__action-text
+   { color: var(--ink) }` (سطر 5733) تلوّن الـ`span` الذي يحمل الكلمة —
+   وهو ابنُ الزرّ، فلونُه هو الظاهر لا لونُ أبيه. كُتبت يوم كان التذييلُ
+   سطرَ نصٍّ على أرضيّة البطاقة البيضاء، لا زرّاً مصمتاً.
+
+   فالبحثُ عن السبب في `.stat__btn` كان في الموضع الخطأ: الزرُّ أبيضُ النصّ
+   بالفعل منذ 91ad8c9، والابنُ يكتب فوقه. يرث الآن. */
+a.stat:hover .stat__action-text,
+a.stat:focus-visible .stat__action-text,
+a.stat:hover .stat__go,
+a.stat:focus-visible .stat__go { color: inherit; }
