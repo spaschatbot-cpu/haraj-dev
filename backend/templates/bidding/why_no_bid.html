@@ -17,18 +17,37 @@ belonging to some other tool.
 {% block heading %}ليه ما يقدرش يزايد؟{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="search" name="phone" value="{{ lookup.query }}"
-           placeholder="رقم جوال العميل" autofocus>
-    <button type="submit">ابحث</button>
+  {% comment %} سطرُ تعريفٍ يقول القاعدةَ التي تُقرأ بها الشاشةُ كلُّها،
+     وكانت مكتوبةً في ذيلها بعد الجدول: الأرقامُ حالةُ فلوسه **وقت الرفض**. {% endcomment %}
+  <p class="lede">
+    كلُّ محاولةِ مزايدةٍ رُفضت لهذا العميل وسببُها.
+    <strong>والأرقامُ هي حالةُ فلوسه وقتَ الرفض لا رصيدَه الآن</strong> —
+    السؤالُ دائماً عن تلك اللحظة.
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="phone" value="{{ lookup.query }}"
+             placeholder="رقم جوال العميل" aria-label="رقم الجوال" autofocus>
+      <button type="submit" class="btn-primary">ابحث</button>
+    </div>
   </form>
 
-  {% if lookup.searched and not lookup.bidder %}
-    <p class="empty">لا يوجد عميل بهذا الرقم.</p>
+  {% if not lookup.searched %}
+    <div class="blank">
+      <p class="blank__say">اكتب رقمَ جوّال العميل لترى محاولاتِه المرفوضة.</p>
+      <p class="blank__hint">الرقمُ كما هو مسجَّلٌ في حسابه.</p>
+    </div>
+  {% elif not lookup.bidder %}
+    <div class="blank">
+      <p class="blank__say">لا يوجد عميلٌ بهذا الرقم.</p>
+      <p class="blank__hint">تأكّد من الرقم — أو ابحث عنه في «إدارة المستخدمين».</p>
+    </div>
   {% endif %}
 
   {% if lookup.bidder %}
-    <p>
+    <p class="wnb-who">
       العميل: <strong>{{ lookup.bidder }}</strong> ·
       {% comment %} The next question is always «وكم عنده الآن؟», and it is a different
          question from the one this page answers. So it is a link, not a column:
@@ -38,6 +57,11 @@ belonging to some other tool.
     </p>
 
     {% if lookup.refusals %}
+      {% comment %} عشرةُ أعمدةٍ في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفّ، فيقارب
+         ارتفاعُ الصفّ مئةَ بكسل. `scroller--wide` تمنع اللفَّ وتُمرّر أفقياً —
+         كما في «ما بعد البيع» و«كتالوج السيارات». وثمنُها صريح: من يقرأ آخرَ
+         الأعمدة يمرّر. {% endcomment %}
+      <div class="scroller scroller--wide">
       <table>
         <thead>
           <tr>
@@ -78,10 +102,12 @@ belonging to some other tool.
           {% endfor %}
         </tbody>
       </table>
-      <p class="empty">الأرقام أعلاه هي حالة فلوسه <strong>وقت الرفض</strong>،
-        لا رصيده الآن.</p>
+      </div>
     {% else %}
-      <p class="empty">لا توجد محاولات مرفوضة لهذا العميل.</p>
+      <div class="blank">
+        <p class="blank__say">لا محاولاتٍ مرفوضةً لهذا العميل.</p>
+        <p class="blank__hint">فلا شيءَ منعه من المزايدة.</p>
+      </div>
     {% endif %}
   {% endif %}
 {% endblock %}
