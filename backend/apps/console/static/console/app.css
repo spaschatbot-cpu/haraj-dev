@@ -10695,3 +10695,14 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
 
   /* ثمانٍ: صفّان تامّان بلا استثناء. */
 }
+
+/* البطاقةُ تقصر بعد أن خرج الرسمُ منها: الحشوةُ كانت تحسب مكاناً لرسمٍ بارتفاع
+   32 وحدة، والسطرُ الخافتُ تحت الرقم يُقصّ بعد سطرين فلا ترفع بطاقةٌ صفَّها. */
+.board-stats .stat { padding-block: 1rem .85rem; }
+.board-stats .stat__detail {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.board-stats .stat__action { padding-block-start: .65rem; }
