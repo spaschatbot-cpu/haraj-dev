@@ -9770,11 +9770,19 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
      لا قوائمَ أصلاً — بحثٌ وزرّان — فامتدادُه يدفع الزرّين إلى سطرٍ ثانٍ
      نصفُه فارغ، ويبعدهما عن الحقل الذي يعملان عليه. فبلا قوائمَ: عمودٌ
      يتمدّد للحقل وأعمدةٌ بمقاس محتواها للأزرار، في سطرٍ واحد. */
-  .filters--row .filters__main:has(select) input[type="search"] { grid-column: 1 / -1; }
-  .filters--row .filters__main:not(:has(select)) {
-    grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  /* **الشرطُ ثلاثُ قوائمَ فأكثر** لا وجودُ قائمة. الامتدادُ كُتب لشريطٍ فيه
+     خمسُ قوائم: حشرُها مع البحث في سطرٍ يقصّ خياراتِها. وشريطٌ فيه قائمةٌ
+     واحدة («أرشيف المزادات») أو لا قائمة («الخروج ونقل الملكية») يتّسع لها
+     جميعاً في سطر — وامتدادُ البحث فيه يدفع البقيّةَ إلى سطرٍ ثانٍ نصفُه
+     فارغ، ويبعد الزرَّ عن الحقل الذي يعمل عليه.
+
+     و`select:nth-of-type(3)` تعني «القائمةُ الثالثة موجودة»، أي ثلاثٌ فأكثر. */
+  .filters--row .filters__main:has(select:nth-of-type(3)) input[type="search"] { grid-column: 1 / -1; }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) {
+    grid-template-columns: minmax(0, 1fr) repeat(4, auto);
   }
-  .filters--row .filters__main:not(:has(select)) .btn-primary { min-inline-size: 6.5rem; }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) select { min-inline-size: 11rem; }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) .btn-primary { min-inline-size: 6.5rem; }
   /* الزرُّ ورابطُ الإلغاء يلتصقان في آخر الصفّ لا يتمدّدان بعرض عمود. */
   .filters--row .filters__main .btn-primary { justify-self: start; min-inline-size: 7rem; }
   .filters--row .filters__reset { justify-self: start; }
