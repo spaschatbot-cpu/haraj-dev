@@ -10664,3 +10664,34 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   --warn-soft: #2f2029;
   --warn-line: #57384a;
 }
+
+/* ===========================================================================
+   أرقامُ المنصّة: أربعةٌ في السطر، والصفُّ الأخير يمتلئ
+   ---------------------------------------------------------------------------
+   «خلّي كل أربع مربعات في سطر».
+
+   وكانت ثلاثةً باختيارٍ سابق. وأربعةٌ في ستِّ بطاقاتٍ تعني 4 + 2 — وصفٌّ ثانٍ
+   نصفُه أبيض. فالشبكةُ اثنا عشرَ عموداً: أربعٌ بعرض ٣ (= أربعةٌ في السطر)،
+   والباقي يتقاسم الصفَّ الأخير كاملاً.
+
+   والحالاتُ مكتوبةٌ بعددها لأن عددَ البطاقات يتبع صلاحيّاتِ من ينظر: خمسٌ
+   وستٌّ وسبعٌ وثمانٍ.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .board-stats:not(.board-stats--compact) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .board-stats:not(.board-stats--compact) > .stat { grid-column: span 3; }
+
+  /* خمسٌ: أربعٌ ثم واحدةٌ بعرض الصفّ. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(5) { grid-column: span 12; }
+
+  /* ستٌّ: أربعٌ ثم اثنتان بالنصف. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(6):last-child) > .stat:nth-child(n+5) { grid-column: span 6; }
+
+  /* سبعٌ: أربعٌ ثم ثلاثٌ بالثلث. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(7):last-child) > .stat:nth-child(n+5) { grid-column: span 4; }
+
+  /* ثمانٍ: صفّان تامّان بلا استثناء. */
+}
