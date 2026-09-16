@@ -15,49 +15,67 @@
 {% block heading %}لوحة التقارير{% endblock %}
 
 {% block content %}
-  <p>الأرقام أدناه تُقرأ من مصادر شاشاتها نفسها — اضغط أيّها لتفتح صفوفه.</p>
+  {% comment %} سطرُ تعريفٍ يقول لماذا هذه الشاشةُ موجودة — وهو مكتوبٌ في
+     تعليق الملفّ ولا يراه إلا من يفتحه، وهو **الفرقُ كلُّه** بينها وبين نظيرتها
+     في v1. {% endcomment %}
+  <p class="lede">
+    كلُّ رقمٍ هنا يُقرأ من مصدر شاشته نفسِها — <strong>الدالّةُ ذاتُها التي
+    تبنيها</strong>، لا استعلامٌ ثانٍ. وفي v1 يقول هذا المركزُ «المزايدات
+    المقبولة ٦٬٥٠٣» وتقول شاشتُها ٤٬٣٧٨؛ وهنا لا يمكن أن يختلفا. اضغط أيَّ
+    بطاقةٍ لتفتح صفوفَها.
+  </p>
 
-  <div class="scroller">
-    <table>
-    <thead>
-      <tr><th>الرقم</th><th>القيمة</th><th>من أين</th></tr>
-    </thead>
-    <tbody>
-      <tr>
-        <th>مركبات رست</th>
-        <td class="count">{{ totals.awarded|unlocalize }}</td>
-        <td><a href="{% url 'console:accepted-bids' %}">المزايدات المقبولة ←</a></td>
-      </tr>
-      {% comment %} الوحيدُ الذي مبلغٌ بين خمسةِ أعداد — وهو بعينه الرقمُ
-         المحجوب في «ملخّص المقبولة» التي يفتحها الرابطُ بجواره. فإظهارُه هنا
-         يُبطل حجبَه هناك بنقرةٍ أقلّ (`analytics.reports`). {% endcomment %}
-      <tr>
-        <th>إجمالي أسعار الترسية</th>
-        {% if show_money %}<td class="money">{{ totals.awarded_value|unlocalize }}</td>
-        {% else %}<td class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>{% endif %}
-        <td><a href="{% url 'console:accepted-summary' %}">ملخّص المقبولة ←</a></td>
-      </tr>
-      <tr>
-        <th>إجمالي المزايدات</th>
-        <td class="count">{{ totals.bids|unlocalize }}</td>
-        <td><a href="{% url 'console:analytics-bids' %}">تحليل المزايدات ←</a></td>
-      </tr>
-      <tr>
-        <th>محاولات منعتها البوابة</th>
-        <td class="count">{{ totals.refusals|unlocalize }}</td>
-        <td><a href="{% url 'console:why-no-bid' %}">لماذا رُفضت ←</a></td>
-      </tr>
-      <tr>
-        <th>المزادات</th>
-        <td class="count">{{ totals.auctions|unlocalize }}</td>
-        <td><a href="{% url 'console:auctions' %}">قائمة المزادات ←</a></td>
-      </tr>
-      <tr>
-        <th>المركبات</th>
-        <td class="count">{{ totals.vehicles|unlocalize }}</td>
-        <td><a href="{% url 'console:vehicles' %}">المركبات ←</a></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} كان جدولاً بثلاثة أعمدة «الرقم · القيمة · من أين»، وعمودُه
+     الثالثُ كلُّه رابطٌ مكرَّر «← اسمُ الشاشة» — أي ثلثُ عرض الشاشة يحمل السهمَ
+     نفسَه ستَّ مرّات. وهو ليس جدولاً: ستُّ قيمٍ منفردةٍ لا تُفرَز ولا تُقارَن.
+
+     فكلُّ صفٍّ صار بطاقةً **هي نفسُها الرابط**، كما في «منصّة الملاك». {% endcomment %}
+  <section class="sum-grid sum-grid--links" aria-label="أرقام اللوحة">
+
+    <a class="sum" href="{% url 'console:accepted-bids' %}">
+      <p class="sum__label">مركبات رست</p>
+      <p class="sum__value">{{ totals.awarded|unlocalize }}</p>
+      <p class="sum__note">المزايدات المقبولة</p>
+    </a>
+
+    {% comment %} الوحيدُ الذي مبلغٌ بين خمسةِ أعداد — وهو بعينه الرقمُ المحجوب
+       في «ملخّص المقبولة» التي يفتحها الرابط. فإظهارُه هنا يُبطل حجبَه هناك
+       بنقرةٍ أقلّ، ولذلك يُحجب بالقدرة نفسِها (`analytics.reports`). {% endcomment %}
+    <a class="sum sum--money" href="{% url 'console:accepted-summary' %}">
+      <p class="sum__label">إجمالي أسعار الترسية</p>
+      {% if show_money %}
+        <p class="sum__value money">{{ totals.awarded_value|unlocalize }}</p>
+      {% else %}
+        <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
+      {% endif %}
+      <p class="sum__note">ملخّص المقبولة</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:analytics-bids' %}">
+      <p class="sum__label">إجمالي المزايدات</p>
+      <p class="sum__value">{{ totals.bids|unlocalize }}</p>
+      <p class="sum__note">تحليل المزايدات</p>
+    </a>
+
+    {% comment %} «منعتها البوابة» رقمُ عملٍ لا إحصاء: كلُّ واحدةٍ فيه عميلٌ
+       حاول ولم يستطع، وقد يكون على الهاتف الآن. {% endcomment %}
+    <a class="sum sum--wait" href="{% url 'console:why-no-bid' %}">
+      <p class="sum__label">محاولات منعتها البوابة</p>
+      <p class="sum__value">{{ totals.refusals|unlocalize }}</p>
+      <p class="sum__note">لماذا رُفضت</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:auctions' %}">
+      <p class="sum__label">المزادات</p>
+      <p class="sum__value">{{ totals.auctions|unlocalize }}</p>
+      <p class="sum__note">قائمة المزادات</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:vehicles' %}">
+      <p class="sum__label">المركبات</p>
+      <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
+      <p class="sum__note">المركبات</p>
+    </a>
+
+  </section>
 {% endblock %}
