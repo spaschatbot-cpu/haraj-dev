@@ -10586,3 +10586,48 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   --people: #a8cfe0;
   --people-soft: #313d4c;
 }
+
+/* ===========================================================================
+   زرُّ البطاقة بكحليِّ الشريط الجانبيّ
+   ---------------------------------------------------------------------------
+   «خلّيهم بنفس اللون الكحلي للسايدبار — الزراير».
+
+   كان لكلِّ بطاقةٍ زرٌّ بلون تصنيفها، فستّةُ أزرارٍ بستّة ألوانٍ في شاشةٍ
+   واحدة. وبعد أن صارت الألوانُ درجاتِ أزرقٍ متقاربة (99362fe) لم يعد الزرُّ
+   يفرز شيئاً — يفرّق بفارقِ إضاءةٍ لا يُرى، ويبقى ستّةَ ألوانٍ بلا ستّةِ
+   معانٍ.
+
+   فصارت كلُّها **كحليَّ الشريط الجانبيّ** `#0b1e3d`: لونٌ واحدٌ لفعلٍ واحدٍ
+   («افتح»)، ويربط البطاقةَ بالشريط الذي يفتحها الزرُّ إليه. والتصنيفُ يبقى في
+   الشريط الجانبيّ للبطاقة وحدَه.
+
+   والتباين: الأبيضُ على #0b1e3d = 16.57. وفي المظهر الداكن يُقلب — الكحليُّ
+   على أرضيّةٍ كحليّةٍ لا يُرى — فيبقى لونُ التصنيف كما هو هناك.
+   ======================================================================== */
+
+:root { --stat-btn: #0b1e3d; }
+
+.stat--money .stat__btn,
+.stat--auction .stat__btn,
+.stat--people .stat__btn,
+.stat--ok .stat__btn,
+.stat--brand .stat__btn,
+.stat .stat__btn {
+  background: var(--stat-btn);
+  color: #fff;
+}
+
+/* التنبيهُ والإنذارُ يبقيان بلونهما: زرُّهما يقول «هذا غيرُ ما فوقه». */
+.stat--warn .stat__btn  { background: var(--warn);   color: #fff; }
+.stat--alarm .stat__btn { background: var(--danger); color: #fff; }
+
+/* عند المرور يفتح قليلاً لا يتغيّر لونُه — الحركةُ تقول «قابلٌ للضغط». */
+a.stat:hover .stat__btn,
+a.stat:focus-visible .stat__btn { background: #16325e; color: #fff; }
+a.stat--warn:hover .stat__btn,  a.stat--warn:focus-visible .stat__btn  { background: color-mix(in srgb, var(--warn) 86%, #000); }
+a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { background: color-mix(in srgb, var(--danger) 86%, #000); }
+
+/* الداكنُ مستثنى: كحليٌّ على كحليٍّ لا يُرى. */
+[data-scheme="dark"] .stat--money .stat__btn   { background: var(--money);   color: var(--ground); }
+[data-scheme="dark"] .stat--auction .stat__btn { background: var(--auction); color: var(--ground); }
+[data-scheme="dark"] .stat--people .stat__btn  { background: var(--people);  color: var(--ground); }
