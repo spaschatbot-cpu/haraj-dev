@@ -10213,3 +10213,80 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   .sum-grid--tight:has(> .sum:nth-child(2):last-child) > .sum { grid-column: span 6; }
   .sum-grid--tight:has(> .sum:nth-child(3):last-child) > .sum { grid-column: span 4; }
 }
+
+/* ===========================================================================
+   ذيلُ الجدول جملةٌ لا صفَّ فلكس
+   ---------------------------------------------------------------------------
+   `.table-footer, .scroller + p, table + p { display: flex; justify-content:
+   space-between }` تجمع شكلين مختلفين تحت قاعدةٍ واحدة:
+
+   · `.table-footer` **كتلةٌ بطرفين** — عدّادٌ على حافةٍ وأزرارُ صفحاتٍ على
+     مقابلها. و`space-between` هي المطلوبة فيها.
+
+   · و`<p>` العاري **جملةٌ واحدة**: «0 دفعةً · صفحة 1 من 1». وفي الفلكس يصير
+     كلُّ ابنٍ عنصراً — والنصُّ العاري بينها عناصرُ مجهولة — فتُوزَّع سبعُ
+     قطعٍ على عرض الشاشة: «1» في حافة و«من» في وسط و«دفعة» في المقابلة. أي
+     أن الجملة تُفكَّك إلى كلماتٍ متباعدة.
+
+   فالفقرةُ تعود كتلةً، و`.table-footer` تبقى فلكس. والفرقُ ليس ذوقاً: أحدُهما
+   تخطيطٌ والآخرُ نصّ.
+
+   وهذا يُصلح سبعةَ قوالبَ معاً — كلَّ ما فيه هذا الذيل.
+   ======================================================================== */
+
+.scroller + p, table + p { display: block; }
+
+/* ===========================================================================
+   «إنشاء دفعة» — حقائقُ الفاتورة شبكةٌ، وحالةُ الفراغ لوحة
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   ١) حقائقُ الفاتورة كانت جدولاً صفوفُه «عنوانٌ · قيمة» — سبعُ قيمٍ منفردةٍ
+      عن فاتورةٍ واحدة، لا أعمدةَ تُقارَن. وثمنُه أن العنوان يقف على حافةٍ
+      والقيمةُ على مقابلها بعرض الشاشة بينهما.
+
+   ٢) حالتا الفراغ («ابحث عن الفاتورة…» و«لا فاتورة تطابق…») كانتا سطراً
+      رماديّاً في الهواء — وهما الشاشةُ **كلُّها** قبل البحث.
+
+   ٣) وسطرُ التعريف كان صنفُه `empty`، وهو صنفُ «لا نتائج»: فالنصُّ الرئيسُ
+      في الشاشة يُرسم بهيئة حالةِ فراغ.
+   ======================================================================== */
+
+/* ---- شبكةُ الحقائق ------------------------------------------------------ */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .7rem;
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.fact { display: flex; flex-direction: column; gap: .2rem; min-inline-size: 0; }
+.fact__k { font-size: .76rem; font-weight: 700; color: var(--muted); }
+.fact__v {
+  font-size: .98rem;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* «الباقي» أكبرُها: هو الرقمُ الذي يُكتب في الحقل تحته. */
+.fact--lead { padding-inline-start: .7rem; border-inline-start: 3px solid var(--brand); }
+.fact--lead .fact__v { font-size: 1.3rem; color: var(--brand-dark); }
+
+/* ---- حالةُ الفراغ ------------------------------------------------------- */
+
+.blank {
+  padding: 2.2rem 1.2rem;
+  text-align: center;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+}
+.blank__say { margin: 0; font-size: .95rem; font-weight: 700; color: var(--ink-soft); }
+.blank__hint { margin: .4rem 0 0; font-size: .82rem; color: var(--muted); }
