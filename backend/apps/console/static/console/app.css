@@ -9619,9 +9619,33 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
    فيتغيّر تقسيمُ الصفوف بتغيّر نافذةٍ لا بتغيّر البيانات.
    ======================================================================== */
 
+/* `:not(--compact)`: الصياغةُ المضغوطة تُستعمل في ستِّ شاشاتٍ أخرى بأعدادٍ
+   مختلفة (٣ و٤ و٥)، وفرضُ الثلاثة عليها كسر صفوفَها — «إدارة المستخدمين»
+   صارت ٣ + ٢ بعد هذا التغيير. وهذا هو العطلُ الذي كشفه المالك بعد النشر. */
 @media (min-width: 62rem) {
-  .board-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .board-stats:not(.board-stats--compact) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 40rem) and (max-width: 61.999rem) {
-  .board-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .board-stats:not(.board-stats--compact) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ===========================================================================
+   الصياغةُ المضغوطة: عددُ الأعمدة = عددُ البطاقات
+   ---------------------------------------------------------------------------
+   «خلّي الخمس مربّعات دول في سطر واحد».
+
+   و`auto-fit` لا تفعلها: الحدُّ الأدنى 11.5rem أي 184px، وخمسٌ منها مع أربع
+   فجواتٍ بـ11.2px تساوي 964.8px — والحاويةُ 962px بالقياس. فتسقط الخامسةُ
+   إلى سطرٍ ثانٍ لأجل **2.8 بكسل**، وتُقرأ الشاشةُ صفّاً وبقيّةً.
+
+   فالعددُ يُكتب من عدد البطاقات نفسِه: `:has(> .stat:nth-child(N):last-child)`
+   تعني «الشبكةُ التي فيها N بطاقةً بالضبط». وهي تتبع الصلاحيات تلقائياً —
+   مَن لا يرى «حسابات محظورة» تصير شبكتُه أربعةً في سطر، بلا صفٍّ في أي قالب.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .board-stats--compact:has(> .stat:nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(5):last-child) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
