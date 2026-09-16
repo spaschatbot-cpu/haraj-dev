@@ -10,29 +10,60 @@
 {% block heading %}تصدير الفواتير{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="date" name="since" value="{{ since }}" title="من تاريخ">
-    <input type="date" name="until" value="{{ until }}" title="إلى تاريخ">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">احسب</button>
-  </form>
-
-  <p>
-    <strong>{{ count|unlocalize }}</strong> فاتورةً تطابق هذا المدى.
+  {% comment %} سطرُ تعريفٍ يقول لماذا هذه الشاشةُ موجودةٌ أصلاً — وهو مكتوبٌ
+     في تعليق الملفّ ولا يراه إلا من يفتحه. {% endcomment %}
+  <p class="lede">
+    حدِّد المدى والحالة، <strong>وشاهد العدد قبل أن تُنزّل</strong>. وفي v1
+    التصديرُ رابطٌ يُضغط فيبدأ التنزيل، ولا يعرف الضاغطُ أهو ثلاثةُ صفوفٍ أم
+    ثلاثةَ عشرَ ألفاً حتى يفتح الملفّ — ومن ينتظر بلا سببٍ يضغط ثانيةً.
   </p>
 
+  {% comment %} الحقلان كانا `input[type="date"]` بلا لصيقةٍ مرئيّة، واسمُهما
+     في `title` وحده — أي **مربّعان متطابقان** يقولان `mm/dd/yyyy`، ولا يُعرف
+     أيُّهما «من» وأيُّهما «إلى» إلا بالوقوف عليهما بالفأرة. ومن يملأ الثاني
+     مكان الأول يحصل على مدىً مقلوبٍ وعددٍ صفر، فيظنّ أن لا فواتير.
+
+     فصارت الاستمارةُ حقولاً معنونةً كفلاتر الكتالوج. {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="exSince">من تاريخ</label>
+      <input id="exSince" type="date" name="since" value="{{ since }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="exUntil">إلى تاريخ</label>
+      <input id="exUntil" type="date" name="until" value="{{ until }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="exState">الحالة</label>
+      <select id="exState" name="state">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="cat-filters__actions">
+      <button type="submit" class="btn-primary">احسب</button>
+    </div>
+  </form>
+
+  {% comment %} العددُ كان سطراً في فقرة، وهو **جوابُ الشاشة كلِّها**: عليه
+     يُقرَّر أيُنزَّل الملفُّ أم يُضيَّق المدى. فصار بطاقةً والزرُّ تحته. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="نتيجة المدى">
+    <div class="sum{% if not count %} sum--wait{% endif %}">
+      <p class="sum__label">فواتير تطابق هذا المدى</p>
+      <p class="sum__value">{{ count|unlocalize }}</p>
+      <p class="sum__note">
+        {% if count %}جاهزةٌ للتنزيل في ملفٍّ واحد.{% else %}لا شيءَ يُنزَّل — وسِّع المدى أو غيّر الحالة.{% endif %}
+      </p>
+    </div>
+  </section>
+
   {% if count %}
-    <p><a href="{{ export_url }}">نزّل ملف إكسل ←</a></p>
-  {% else %}
-    <p class="empty">لا فواتير في هذا المدى — لا شيء يُنزَّل.</p>
+    <p class="sum-more"><a class="btn-primary" href="{{ export_url }}">نزّل ملف إكسل</a></p>
   {% endif %}
 
-  <p class="empty">
+  <p class="notice notice--soft">
     الملفّ يحمل «كلمة أودو» عموداً بجوار الحالة المحسوبة من الدفعات. واختلافُهما
     هو ما يُراد أن يُرى عند المطابقة، لا أن يُخفى بعمودٍ واحد.
   </p>

@@ -10410,3 +10410,23 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
 .inv-no a { font-weight: 800; color: var(--brand-dark); text-decoration: none; font-variant-numeric: tabular-nums; }
 .inv-no a:hover { text-decoration: underline; }
 .inv-due { font-weight: 800; color: var(--ink); }
+
+/* بطاقةٌ واحدةٌ في الشبكة المضغوطة تأخذ العرضَ كلَّه لا ربعَه: الافتراضيُّ
+   `span 3` مكتوبٌ لأربعٍ، وبطاقةٌ وحدَها تترك ثلاثةَ أرباع الصفّ أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> .sum:only-child) > .sum { grid-column: span 12; }
+}
+
+/* لوحةُ فلاترٍ بثلاثة حقول: ثلاثةُ أعمدةٍ لا أربعة. القاعدةُ الأصليّة مكتوبةٌ
+   لستّة حقول (البحثُ والحالةُ يمتدّان عمودين ثم أربعةُ تواريخ)، وثلاثةُ حقولٍ
+   فيها تصير 2+1 ويبقى نصفُ الصفّ الثاني أبيض. رُئي في «تصدير الفواتير». */
+@media (min-width: 62rem) {
+  /* و`:last-of-type` لا تصلح للعدّ هنا: `nth-of-type` تعدّ الـ`div` لا الصنف،
+     وآخرُ `div` في الاستمارة هو صفُّ الأفعال لا آخرُ حقل. فالشرطُ: الحقلُ
+     الثالثُ موجودٌ والرابعُ ليس. (قِيس: القاعدةُ بـ`last-of-type` لم تُطبَّق
+     أصلاً، وبقيت الشبكةُ 2+1.) */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(3)):not(:has(> .cat-filters__field:nth-of-type(4))) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(3)):not(:has(> .cat-filters__field:nth-of-type(4))) > .cat-filters__field { grid-column: auto; }
+}
