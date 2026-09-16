@@ -1424,7 +1424,7 @@ def apply_gateway_payment(
 
 @db_transaction.atomic
 def request_refund(
-    *, user, amount: Decimal, client_key: str | None = None
+    *, user, amount: Decimal, client_key: str | None = None, note: str = ""
 ) -> RefundRequest:
     """Queue a refund of the customer's *free* insurance.
 
@@ -1559,8 +1559,20 @@ def request_refund(
             "currency": settings.CURRENCY,
         },
     )
+    # `note` نصٌّ يكتبه العميل — الآيبان الذي يريد التحويلَ إليه وما يوضّحه.
+    # والعمودُ كان موجوداً في النموذج **ولا يصله شيء**: شاشةُ التطبيق تطلب
+    # آيباناً وملاحظاتٍ، ولا مكانَ لهما في العقد، فتُجمع وتُرمى. ومحاسبةٌ تُنفّذ
+    # استرداداً بلا آيبان تسأل العميلَ بالهاتف عمّا كتبه في التطبيق.
+    #
+    # ولا يُفسَّر هنا ولا يُقسَّم إلى حقول: هو **ما كتبه العميل كما كتبه**،
+    # يقرؤه موظّفٌ في شاشة الاستردادات. وأوّلُ من يقصّه إلى «آيبان» و«ملاحظة»
+    # يكتب متحقّقاً من صيغة الآيبان، وذلك تاسكٌ بذاته لا سطرٌ هنا.
     return RefundRequest.objects.create(
-        user=user, amount=amount, reference=reference, outbox_message=outbox
+        user=user,
+        amount=amount,
+        reference=reference,
+        outbox_message=outbox,
+        note=note.strip()[:1000],
     )
 
 

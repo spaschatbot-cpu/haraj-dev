@@ -2215,6 +2215,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سيُخصَم {amount} من رصيد تأمينك سداداً للفاتورة {number}.'**
   String invoicePayConfirmBody(String amount, String number);
+
+  /// No description provided for @topUpCancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء طلب الشحن'**
+  String get topUpCancel;
+
+  /// No description provided for @topUpCancelConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الطلب؟'**
+  String get topUpCancelConfirmTitle;
+
+  /// No description provided for @topUpCancelConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُلغى الطلب {reference}، ولن يعود رابط الدفع صالحاً.'**
+  String topUpCancelConfirmBody(String reference);
+
+  /// No description provided for @topUpCancelled.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُلغي طلب الشحن.'**
+  String get topUpCancelled;
+
+  /// No description provided for @refundSubmitted.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُرسل طلب الاسترداد.'**
+  String get refundSubmitted;
+
+  /// No description provided for @refundAmountRequired.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب المبلغ المطلوب استرداده.'**
+  String get refundAmountRequired;
 }
 
 class _AppLocalizationsDelegate

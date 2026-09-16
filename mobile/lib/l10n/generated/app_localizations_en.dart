@@ -1250,4 +1250,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String invoicePayConfirmBody(String amount, String number) {
     return '$amount will be deducted from your deposit balance for invoice $number.';
   }
+
+  @override
+  String get topUpCancel => 'Cancel top-up';
+
+  @override
+  String get topUpCancelConfirmTitle => 'Cancel the request?';
+
+  @override
+  String topUpCancelConfirmBody(String reference) {
+    return 'Request $reference will be cancelled and its payment link will stop working.';
+  }
+
+  @override
+  String get topUpCancelled => 'The top-up request was cancelled.';
+
+  @override
+  String get refundSubmitted => 'Your refund request was sent.';
+
+  @override
+  String get refundAmountRequired => 'Enter the amount you want refunded.';
 }

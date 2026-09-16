@@ -254,6 +254,13 @@ class RefundRequestCreateSerializer(serializers.Serializer):
     #: in ``services.request_refund``; a second copy of that rule at the edge
     #: would be a second place to keep in step with it.
     amount = MoneyField()
+    #: ما يكتبه العميل مع طلبه — الآيبان الذي يريد التحويل إليه وما يوضّحه.
+    #: اختياريّ: شاشةُ الويب تطلب المبلغَ وحدَه، وشاشةُ التطبيق تطلب آيباناً
+    #: وملاحظات. ولولا هذا الحقل لجمعتهما ورمتهما، ثم سألت المحاسبةُ العميلَ
+    #: بالهاتف عن آيبانٍ كتبه فعلاً.
+    note = serializers.CharField(
+        required=False, allow_blank=True, max_length=1000, trim_whitespace=True
+    )
 
 
 class RefundRequestSerializer(serializers.ModelSerializer):

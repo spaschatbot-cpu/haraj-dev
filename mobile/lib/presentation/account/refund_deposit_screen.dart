@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../app/theme.dart';
+import '../../domain/common/failure.dart';
 import '../../domain/common/money.dart';
 import '../../domain/wallet/entities/refund_request.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../common/failure_message.dart';
 import '../common/riyal_text.dart';
 import '../profile/profile_controller.dart';
 import '../wallet/wallet_controller.dart';
@@ -53,9 +56,71 @@ class _RefundDepositScreenState extends ConsumerState<RefundDepositScreen> {
       )
       .toList(growable: false);
 
+  /// ما لم يُبنَ بعد: إرفاقُ صورة الآيبان. لا مسارَ له في العقد، فيُقال
+  /// صراحةً بدل أن يبدو الزرُّ معطّلاً بلا سبب.
   void _soon(AppLocalizations l10n) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(l10n.refundSubmitSoon)));
+
+  bool _sending = false;
+
+  /// يُرسل الطلب.
+  ///
+  /// **والآيبانُ والملاحظاتُ يسافران في `note`**، نصّاً واحداً كما كتبهما
+  /// العميل. لا حقلَ آيبانٍ في النموذج عند الخادم، وكانت الشاشةُ تجمعهما
+  /// وترميهما — فتُنفّذ المحاسبةُ استرداداً بلا حسابٍ تحوّل إليه، وتسأل
+  /// العميلَ بالهاتف عمّا كتبه في التطبيق.
+  ///
+  /// **ولا تحقّقَ من المبلغ هنا** غير أنه مكتوب: ما يجوز خروجُه يقرّره الدلو
+  /// الحرّ في الخلفية، وقاعدةٌ ثانيةٌ هنا تتفارق عنها فترفض الشاشةُ مبلغاً
+  /// يقبله الخادم أو العكس.
+  Future<void> _submit(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final amount = _amount.text.trim();
+    if (amount.isEmpty) {
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.refundAmountRequired)));
+      return;
+    }
+
+    final iban = _iban.text.trim();
+    final notes = _notes.text.trim();
+    final note = <String>[
+      if (iban.isNotEmpty) '${l10n.refundIbanLabel}: $iban',
+      if (notes.isNotEmpty) notes,
+    ].join('\n');
+
+    setState(() => _sending = true);
+    try {
+      await ref.read(requestInsuranceRefundProvider)(
+        amount: amount,
+        note: note,
+      );
+      // الطلبُ لا يحرّك رصيداً، لكنّه يظهر في «طلباتي السابقة» — وقائمةٌ
+      // قديمةٌ بلا الطلب الجديد تجعل العميلَ يظنّ أن إرساله ضاع فيعيده.
+      ref
+        ..invalidate(refundRequestsProvider)
+        ..invalidate(walletBalanceProvider);
+      if (!mounted) return;
+      _amount.clear();
+      _iban.clear();
+      _notes.clear();
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.refundSubmitted)));
+    } on Failure catch (failure) {
+      // جوابُ الخادم كما جاء: «لديك طلبٌ مفتوح»، «المتاح أقلّ من المطلوب»…
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(failureMessage(context, failure))),
+        );
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +159,7 @@ class _RefundDepositScreenState extends ConsumerState<RefundDepositScreen> {
             iban: _iban,
             notes: _notes,
             onChooseFile: () => _soon(l10n),
-            onSubmit: () => _soon(l10n),
+            onSubmit: _sending ? null : () => _submit(l10n),
           ),
           const SizedBox(height: 16),
           _PreviousCard(l10n: l10n, requests: requests),
@@ -263,7 +328,9 @@ class _FormCard extends StatelessWidget {
   final TextEditingController iban;
   final TextEditingController notes;
   final VoidCallback onChooseFile;
-  final VoidCallback onSubmit;
+
+  /// `null` أثناء الإرسال: ضغطتان على طلبِ استردادٍ طلبان.
+  final VoidCallback? onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -674,7 +741,7 @@ class _GoldButton extends StatelessWidget {
   });
 
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final HarajPalette palette;
 
   @override

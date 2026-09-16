@@ -459,6 +459,7 @@ class RefundRequestListCreateView(APIView):
             user=request.user,
             amount=form.validated_data["amount"],
             client_key=request.headers.get("Idempotency-Key") or None,
+            note=form.validated_data.get("note", ""),
         )
         return Response(
             RefundRequestSerializer(refund).data, status=status.HTTP_201_CREATED

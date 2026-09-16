@@ -1252,4 +1252,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String invoicePayConfirmBody(String amount, String number) {
     return 'سيُخصَم $amount من رصيد تأمينك سداداً للفاتورة $number.';
   }
+
+  @override
+  String get topUpCancel => 'إلغاء طلب الشحن';
+
+  @override
+  String get topUpCancelConfirmTitle => 'إلغاء الطلب؟';
+
+  @override
+  String topUpCancelConfirmBody(String reference) {
+    return 'سيُلغى الطلب $reference، ولن يعود رابط الدفع صالحاً.';
+  }
+
+  @override
+  String get topUpCancelled => 'أُلغي طلب الشحن.';
+
+  @override
+  String get refundSubmitted => 'أُرسل طلب الاسترداد.';
+
+  @override
+  String get refundAmountRequired => 'اكتب المبلغ المطلوب استرداده.';
 }

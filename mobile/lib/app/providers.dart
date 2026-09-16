@@ -64,9 +64,11 @@ import '../domain/profile/repositories/profile_repository.dart';
 import '../domain/profile/usecases/manage_profile.dart';
 import '../domain/wallet/gateways/checkout_launcher.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
+import '../domain/wallet/usecases/cancel_card_top_up.dart';
 import '../domain/wallet/usecases/load_wallet_balance.dart';
 import '../domain/wallet/usecases/load_wallet_transactions.dart';
 import '../domain/wallet/usecases/read_top_up_status.dart';
+import '../domain/wallet/usecases/request_insurance_refund.dart';
 import '../domain/wallet/usecases/start_card_top_up.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../presentation/common/push_banner.dart';
@@ -376,6 +378,14 @@ final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
 
 final payInvoiceFromBalanceProvider = Provider<PayInvoiceFromBalance>(
   (ref) => PayInvoiceFromBalance(ref.watch(activityRepositoryProvider)),
+);
+
+final cancelCardTopUpProvider = Provider<CancelCardTopUp>(
+  (ref) => CancelCardTopUp(ref.watch(walletRepositoryProvider)),
+);
+
+final requestInsuranceRefundProvider = Provider<RequestInsuranceRefund>(
+  (ref) => RequestInsuranceRefund(ref.watch(walletRepositoryProvider)),
 );
 
 final loadWalletTransactionsProvider = Provider<LoadWalletTransactions>(

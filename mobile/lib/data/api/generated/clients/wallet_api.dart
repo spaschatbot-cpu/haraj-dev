@@ -28,6 +28,7 @@ abstract class WalletApi {
   @POST('/api/v1/wallet/refund-requests/')
   Future<RefundRequest> v1WalletRefundRequestsCreate({
     @Part(name: 'amount') required String amount,
+    @Part(name: 'note') String? note,
   });
 
   /// Start a card top-up, or list the ones this customer started.

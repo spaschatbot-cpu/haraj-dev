@@ -78,12 +78,17 @@ class _WalletApi implements WalletApi {
   @override
   Future<RefundRequest> v1WalletRefundRequestsCreate({
     required String amount,
+    String? note,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
+    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     final _data = FormData();
     _data.fields.add(MapEntry('amount', amount));
+    if (note != null) {
+      _data.fields.add(MapEntry('note', note));
+    }
     final _options = _setStreamType<RefundRequest>(
       Options(
             method: 'POST',

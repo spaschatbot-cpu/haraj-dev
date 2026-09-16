@@ -572,5 +572,23 @@
         "type": "String"
       }
     }
-  }
+  },
+  "topUpCancel": "Cancel top-up",
+  "@topUpCancel": {},
+  "topUpCancelConfirmTitle": "Cancel the request?",
+  "@topUpCancelConfirmTitle": {},
+  "topUpCancelConfirmBody": "Request {reference} will be cancelled and its payment link will stop working.",
+  "@topUpCancelConfirmBody": {
+    "placeholders": {
+      "reference": {
+        "type": "String"
+      }
+    }
+  },
+  "topUpCancelled": "The top-up request was cancelled.",
+  "@topUpCancelled": {},
+  "refundSubmitted": "Your refund request was sent.",
+  "@refundSubmitted": {},
+  "refundAmountRequired": "Enter the amount you want refunded.",
+  "@refundAmountRequired": {}
 }

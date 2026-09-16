@@ -49,6 +49,37 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
     unawaited(ref.read(topUpControllerProvider.notifier).checkStatus());
   }
 
+  /// يسأل ثمّ يُلغي — والسؤالُ لأن الإلغاء يُبطل رابطَ الدفع بلا رجعة.
+  Future<void> _cancel(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final reference = ref.read(topUpControllerProvider).intent?.reference;
+    if (reference == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.topUpCancelConfirmTitle),
+        content: Text(l10n.topUpCancelConfirmBody(reference)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.topUpCancel),
+          ),
+        ],
+      ),
+    );
+    if (!(confirmed ?? false) || !mounted) return;
+
+    final done = await ref.read(topUpControllerProvider.notifier).cancel();
+    if (!mounted || !done) return;
+    messenger.showSnackBar(SnackBar(content: Text(l10n.topUpCancelled)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -88,6 +119,16 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
               onPressed: state.isBusy ? null : controller.checkStatus,
               child: Text(l10n.topUpCheckStatus),
             ),
+            // **والإلغاءُ للمعلّقة وحدَها.** نيّةٌ نجحت أو أُلغيت لا تُلغى
+            // ثانية، وزرٌّ عليها يطلب من الخادم ما يرفضه — فيقرأ العميلُ رفضاً
+            // عن فعلٍ ما كان ينبغي أن يُعرض عليه.
+            if (intent.isPending) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: state.isBusy ? null : () => _cancel(context, ref),
+                child: Text(l10n.topUpCancel),
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
               l10n.topUpStatusFromServer,

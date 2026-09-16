@@ -108,6 +108,35 @@ final class WalletRepositoryImpl implements WalletRepository {
   }
 
   @override
+  Future<TopUp> cancelTopUp(String reference) async {
+    final intent = await callApi(
+      () => _api.v1WalletTopupsCancelCreate(reference: reference),
+    );
+    return intent.toDomain();
+  }
+
+  @override
+  Future<RefundRequest> requestRefund({
+    required String amount,
+    String note = '',
+  }) async {
+    // العملةُ تأتي من المحفظة لا من ثابتٍ هنا — كما تفعل `loadRefundRequests`
+    // بالضبط، ولنفس السبب: عملةُ الحساب قرارُ الخادم.
+    final wallet = await callApi(_api.v1WalletRetrieve);
+    final row = await callApi(
+      () => _api.v1WalletRefundRequestsCreate(
+        amount: amount,
+        note: note.isEmpty ? null : note,
+      ),
+    );
+    // رصيدُ المحفظة لا يتحرّك بطلبٍ لم يُنفَّذ بعد، **لكنّ الكاش يُمحى**:
+    // الشاشةُ تعرض «طلباتي السابقة»، وقائمةٌ محفوظةٌ بلا الطلب الجديد تجعل
+    // العميلَ يظنّ أن إرساله ضاع فيرسله ثانية.
+    await _cache.remove(CacheKeys.wallet);
+    return row.toDomain(currency: wallet.currency);
+  }
+
+  @override
   Future<TopUp> startTopUp() async {
     // بلا `preset`: الخادم يحدّد المبلغ، وطلبٌ يسمّي مبلغه يُرفض عند الحافة.
     final intent = await callApi(() => _api.v1WalletTopupsCreate());

@@ -88,6 +88,25 @@ final class TopUpController extends Notifier<TopUpState> {
   /// يفتح صفحة الدفع ثانية بالمرجع نفسه، بلا إنشاء نيّة جديدة.
   ///
   /// نيّة جديدة لكل ضغطة تترك عند الخادم صفوفاً معلَّقة لا يقابلها دفع.
+  /// يُلغي النيّةَ المعلّقة عند الخادم.
+  ///
+  /// **ويُرجع `true` عند النجاح وحدَه** — الشاشةُ تحتاج أن تعرف لتُظهر رسالةً
+  /// أو تعود، وقراءةُ ذلك من `state.failure` بعدها سباقٌ مع أيّ تحديثٍ آخر.
+  Future<bool> cancel() async {
+    final reference = state.intent?.reference;
+    if (reference == null || state.isBusy) return false;
+
+    state = state.copyWith(isBusy: true, clearFailure: true);
+    try {
+      final intent = await ref.read(cancelCardTopUpProvider)(reference);
+      state = state.copyWith(intent: intent, isBusy: false);
+      return true;
+    } on Failure catch (failure) {
+      state = state.copyWith(isBusy: false, failure: failure);
+      return false;
+    }
+  }
+
   Future<void> openGatewayAgain() async {
     final intent = state.intent;
     if (intent == null) return;
