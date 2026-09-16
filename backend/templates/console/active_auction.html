@@ -12,6 +12,11 @@
 {% endcomment %}
 {% block title %}احصائيات المزاد النشط{% endblock %}
 {% block heading %}احصائيات المزاد النشط{% endblock %}
+{% comment %} «لوحة التقارير» كان زرّاً في **ذيل** الشاشة، بعد حالة الفراغ
+   وعلى الحافة المقابلة — فيُقرأ فعلاً تابعاً لما فوقه لا انتقالاً إلى شاشةٍ
+   أخرى. وهو انتقالٌ لا فعل: مكانُه صفُّ أفعال الرأس حيث يضعه كلُّ شاشةٍ
+   أخرى في اللوحة. {% endcomment %}
+{% block actions %}<a href="{% url 'console:analytics' %}" class="btn-ghost">لوحة التقارير</a>{% endblock %}
 
 {% block content %}
   {% comment %} سطرُ تعريفٍ يقول القاعدتين المكتوبتين في تعليق الملفّ ولا
@@ -117,6 +122,4 @@
       هذا الرقم نفسِه.
     </p>
   {% endif %}
-
-  <p class="sum-more"><a class="btn-primary" href="{% url 'console:analytics' %}">لوحة التقارير</a></p>
 {% endblock %}
