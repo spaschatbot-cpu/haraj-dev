@@ -10167,3 +10167,49 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
 .rf-go::after { content: "←"; transition: transform .15s ease; }
 tbody tr:hover .rf-go { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
 tbody tr:hover .rf-go::after { transform: translateX(-3px); }
+
+/* ===========================================================================
+   «الباقات» — العددان بطاقتان، والأنماطُ تخرج من القالب
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   ١) **العددان كانا مدفونَين في جملة**: «0 باقةً تُعرَض، و0 موقوفة» داخل فقرةِ
+      تنبيهٍ من سطرين مع قاعدة الحذف. فالعينُ تقرأ الجملةَ كلَّها لتلتقط رقمين.
+      صارا بطاقتين، وبقيت القاعدةُ وحدَها في التنبيه — وهي الأهمّ.
+
+   ٢) **ثلاثةُ `style=` في القالب**: صفُّ الأزرار، وهامشُ النموذج، وهامشُ
+      الفقرة. والنمطُ في الوسم لا يُعاد استعماله ولا يتبع المظهر ولا يُغلَب
+      إلا بـ`!important` — فخرجت إلى أصنافٍ هنا.
+
+   ٣) **رأسُ عمود التحكّم فارغ** — عمودٌ بلا اسم — وصار «تحكّم».
+
+   ٤) **اسمُ الباقة ووصفُها بوزنٍ واحد**، وصنفُ الوصف `empty` وهو للحالات
+      الفارغة لا للنصّ الثانوي. فالاسمُ غليظٌ والوصفُ خافتٌ تحته.
+   ======================================================================== */
+
+.pk-acts { display: flex; gap: .4rem; align-items: center; }
+.pk-form { margin: 0; padding: 0; background: none; border: 0; box-shadow: none; max-inline-size: none; }
+
+.pk-name strong { font-weight: 700; color: var(--ink); }
+.pk-name small { display: block; margin-block-start: .15rem; font-size: .74rem; line-height: 1.5; color: var(--muted); }
+
+/* تنبيهٌ هادئ: هذا سطرُ مرجعٍ عن v1 لا تحذيرٌ يُفعَل بناءً عليه. */
+.notice--soft { background: var(--raised); border-color: var(--line); color: var(--ink-soft); }
+.pk-foot { margin-block-start: .9rem; font-size: .82rem; line-height: 1.7; }
+
+/* فقرةُ الشرح بعد الجدول تنكسر: `.scroller + p` (سطر 2593) تجعل كلَّ فقرةٍ
+   تلي غلافَ الجدول **صفَّ فلكس** — وهي مكتوبةٌ لذيل الصفحات («٢٤ طلباً ·
+   صفحة ١ من ٢»)، حيث القطعُ عناصرُ مستقلّة. وفقرةُ نثرٍ فيها `<strong>` في
+   وسطها تصير عندئذٍ عنصرين: نصٌّ وكتلةٌ، فينقطع السطرُ عند الغليظ ويقفز إلى
+   الحافة المقابلة. رُئي على «لا شيء في v1 اليوم يقرأ هذا العمود».
+
+   والتخصيصُ على `.notice` وحدَها: ما بعد الجدول إمّا ذيلُ صفحاتٍ (لا صنفَ له)
+   أو تنبيهٌ نثريّ — والأول يبقى كما هو. */
+.scroller + p.notice, table + p.notice { display: block; }
+
+/* بطاقتان في الشبكة المضغوطة: نصفان لا ربعان. الافتراضيُّ `span 3` مكتوبٌ
+   لأربعٍ، فبطاقتان تتركان نصفَ الصفّ أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> .sum:nth-child(2):last-child) > .sum { grid-column: span 6; }
+  .sum-grid--tight:has(> .sum:nth-child(3):last-child) > .sum { grid-column: span 4; }
+}
