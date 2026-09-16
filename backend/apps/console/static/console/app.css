@@ -9954,3 +9954,102 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   background: var(--brand-dark);
   border-color: var(--brand-dark);
 }
+
+/* ===========================================================================
+   «منصّة الملاك» — البطاقةُ هي الرابط، والقائمةُ بلاطات
+   ---------------------------------------------------------------------------
+   «عايزة الصفحة دي بشكل احترافي أكتر ومنظّم».
+
+   كانت جدولاً بثلاثة أعمدة: «الرقم · القيمة · من أين». وهو ليس جدولاً — لا
+   أعمدةَ تُقارَن ولا صفوفَ تُفرَز — وعمودُه الثالثُ كلُّه رابطٌ مكرَّر «←
+   اسمُ الشاشة»، أي أن ثلثَ عرض الشاشة يحمل السهمَ نفسَه سبعَ مرّات.
+
+   فكلُّ صفٍّ صار **بطاقةً هي نفسُها الرابط**: الرقمُ وعنوانُه ووجهتُه كتلةٌ
+   تُنقر كلُّها. فلا عمودَ ثالث، وهدفُ النقر يكبر من كلمةٍ إلى بطاقة.
+
+   وسبعةٌ عددٌ أوّليّ: شبكةٌ من اثني عشر عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤
+   — فصفّان تامّان بلا فراغ. (القاعدةُ نفسُها في «القرارات المنتهية».)
+
+   و«ما يُفتح من هنا» كانت `<ul>` عارية: سبعةُ روابطَ مسطورةٍ وشرحُ كلٍّ بعد
+   شرطةٍ في سطره، فيُقرأ الاسمُ والشرحُ كتلةً واحدة ولا هدفَ نقرٍ إلا الكلمة.
+   فصارت بلاطاتٍ: اسمٌ فوقَ شرحه، والبلاطةُ كلُّها تُنقر.
+   ======================================================================== */
+
+/* ---- البطاقاتُ روابط ---------------------------------------------------- */
+
+.sum-grid--links { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.sum-grid--links > .sum { grid-column: span 3; }
+.sum-grid--links > .sum:nth-child(n+5) { grid-column: span 4; }
+
+a.sum {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+a.sum:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  box-shadow: var(--shadow-lift, 0 10px 26px rgb(23 32 51 / .10));
+}
+a.sum:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* سطرُ الوجهة يصير سطرَ فعلٍ بسهم — والسهمُ يتحرّك عند المرور فيقول «تُفتح». */
+a.sum .sum__note {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+a.sum .sum__note::after { content: "←"; transition: transform .16s ease; }
+a.sum:hover .sum__note::after { transform: translateX(-3px); }
+
+.sum--live::before { background: var(--auction); }
+
+/* ---- بلاطاتُ «ما يُفتح من هنا» ------------------------------------------ */
+
+.owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
+
+/* سبعُ بلاطاتٍ كسبع بطاقات: اثنا عشرَ عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤ —
+   فلا تبقى خانةٌ فارغةٌ في ذيل الصفّ الثاني. */
+.open-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: .7rem;
+  margin-block-end: 1.3rem;
+}
+.open-grid > .open { grid-column: span 3; }
+.open-grid > .open:nth-child(n+5) { grid-column: span 4; }
+
+.open {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .8rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.open:hover { background: var(--brand-soft); border-color: var(--brand); }
+.open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.open__name { font-size: .88rem; font-weight: 800; color: var(--ink); }
+.open__why  { font-size: .74rem; line-height: 1.5; color: var(--muted); }
+
+.owners-note { margin: 0; }
+
+@media (max-width: 62rem) {
+  .sum-grid--links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sum-grid--links > .sum,
+  .sum-grid--links > .sum:nth-child(n+5) { grid-column: auto; }
+  .open-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .open-grid > .open,
+  .open-grid > .open:nth-child(n+5) { grid-column: auto; }
+}
+@media (max-width: 40rem) {
+  .sum-grid--links { grid-template-columns: minmax(0, 1fr); }
+  .open-grid { grid-template-columns: minmax(0, 1fr); }
+}
