@@ -16,32 +16,53 @@
 {% block heading %}طلبات الشحن البنكي{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-      <thead><tr><th>الحالة</th><th>العدد</th><th></th></tr></thead>
-      <tbody>
-        {% for row in counts %}
-          <tr>
-            <th>{{ row.label }}</th>
-            <td class="count">{{ row.n|unlocalize }}</td>
-            <td>{% if row.value == "submitted" and row.n %}<span class="pill" data-tone="warn">قيد المراجعة</span>{% endif %}</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  {% comment %} سطرُ تعريفٍ يقول القاعدةَ المكتوبةَ في تعليق الملفّ ولا يراها
+     إلا من يفتحه: أن المعتمَد ما وصل في الكشف لا ما ادّعاه العميل. {% endcomment %}
+  <p class="lede">
+    طلباتُ شحن الرصيد بتحويلٍ بنكيّ. <strong>والتحويلُ لا يُخطِر أحداً</strong>،
+    فالمطابقةُ أوّلاً ثم الاعتماد: يُفتح كشفُ حساب المنصّة، ويُكتب هنا ما وصل
+    فعلاً لا ما ادّعاه العميل — وحين يختلفان فالسببُ إجباريّ.
+  </p>
 
-  <form method="get">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for row in counts %}
-        <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">تصفية</button>
+  {% comment %} كان جدولاً بثلاثة أعمدة: «الحالة · العدد · حبّةُ قيد المراجعة».
+     وهو ليس جدولاً — أربعُ قيمٍ منفردةٍ لا تُفرَز ولا تُقارَن — وعمودُه الثالثُ
+     فارغٌ في ثلاثةِ صفوفٍ من أربعة. وتحته جدولٌ حقيقيٌّ بعشرة أعمدة، فتُقرأ
+     الشاشةُ جدولين والأولُ ليس منهما. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="الطلبات بحالاتها">
+    {% for row in counts %}
+      <div class="sum{% if row.value == "submitted" %} sum--wait{% endif %}">
+        <p class="sum__label">{{ row.label }}</p>
+        <p class="sum__value">{{ row.n|unlocalize }}</p>
+        <p class="sum__note">
+          {% comment %} القيمةُ `posted` لا `approved` — الاسمُ في
+             `BankTopupState` وتعليقُه يشرح لماذا: مبلغٌ ليس مضاعفاً للوديعة
+             يُقيَّد في «المعلّق» ولا يصل رصيدَ العميل. {% endcomment %}
+          {% if row.value == "submitted" %}ينتظر مطابقةً واعتماداً.
+          {% elif row.value == "posted" %}اعتُمد وقُيِّد في الدفتر.
+          {% elif row.value == "rejected" %}لم يُطابِق الكشف.
+          {% else %}أغلقه صاحبُه.{% endif %}
+        </p>
+      </div>
+    {% endfor %}
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمةٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <select name="state" aria-label="الحالة">
+        <option value="">كل الحالات</option>
+        {% for row in counts %}
+          <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">تصفية</button>
+    </div>
   </form>
 
-  <div class="scroller">
+
+  {% comment %} عشرةُ أعمدةٍ في غلافٍ بعرض الشاشة تلفُّ كلُّ خانةٍ فيها.
+     `scroller--wide` تمنع اللفَّ وتُمرّر أفقياً — كما في «ما بعد البيع». {% endcomment %}
+  <div class="scroller scroller--wide">
     <table>
       <thead>
         <tr>
@@ -53,7 +74,8 @@
           <th>سند المطابقة</th>
           <th>الإيصال</th>
           <th>قُدِّم</th>
-          <th></th>
+          {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
+          <th>تحكّم</th>
         </tr>
       </thead>
       <tbody>

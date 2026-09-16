@@ -18,8 +18,8 @@ template.
       مفتوحة مع أودو، ولا مبلغ معلّق بلا صاحب، ولا شيء ينتظر إنساناً.</p>
   {% endif %}
 
-  <h2>١ · الدفتر مع نفسه <span class="count">{{ report.findings|length|unlocalize }}</span></h2>
-  <p class="empty">إعادة اشتقاق كل رصيد من قيوده. تُحسب الآن عند فتح الصفحة، فما
+  <h2 class="mh-head"><span class="mh-no">١</span> · الدفتر مع نفسه <span class="count">{{ report.findings|length|unlocalize }}</span></h2>
+  <p class="mh-say">إعادة اشتقاق كل رصيد من قيوده. تُحسب الآن عند فتح الصفحة، فما
     زال سببه يختفي من هنا وحده.</p>
   <div class="scroller">
     <table>
@@ -38,8 +38,8 @@ template.
   </table>
 </div>
 
-  <h2>٢ · الدفتر مع أودو <span class="count">{{ report.differences|length|unlocalize }}</span></h2>
-  <p class="empty">أودو هو دفتر القيد المعتمد. اتّساق الدفتر مع نفسه لا يقول شيئاً
+  <h2 class="mh-head"><span class="mh-no">٢</span> · الدفتر مع أودو <span class="count">{{ report.differences|length|unlocalize }}</span></h2>
+  <p class="mh-say">أودو هو دفتر القيد المعتمد. اتّساق الدفتر مع نفسه لا يقول شيئاً
     عن هذا السؤال. المعروض هنا آخر مقارنة لكل عميل، لا كل مقارنة جرت.</p>
   <div class="scroller">
     <table>
@@ -63,8 +63,8 @@ template.
   </table>
 </div>
 
-  <h2>٣ · معلّق بلا صاحب <span class="money count">{{ report.suspense.balance|unlocalize }}</span></h2>
-  <p class="empty">مبلغ وصل فعلاً ولم يُنسَب لعميل. الرقم أعلاه هو رصيد الدلو نفسه؛
+  <h2 class="mh-head"><span class="mh-no">٣</span> · معلّق بلا صاحب <span class="money count">{{ report.suspense.balance|unlocalize }}</span></h2>
+  <p class="mh-say">مبلغ وصل فعلاً ولم يُنسَب لعميل. الرقم أعلاه هو رصيد الدلو نفسه؛
     الجدول أدناه حركات — ما دخل وما خرج — لا مطالبات قائمة.</p>
 
   {% if not report.suspense.agrees %}
@@ -96,10 +96,10 @@ template.
   {% comment %} القسم الرابع: لا تناقضَ في الدفتر، بل شيءٌ متوقّفٌ على يد. وهذه
      الثلاثة كانت غائبةً عن الشاشة تماماً وهي في v1 — ولذلك كان مالٌ يصل ولا
      يُفهَم فلا يراه أحد، وعميلٌ يُمنع من المزايدة ولا يعرف أحدٌ لماذا. {% endcomment %}
-  <h2>٤ · ينتظر إنساناً <span class="count">{{ report.waiting.total|unlocalize }}</span></h2>
+  <h2 class="mh-head"><span class="mh-no">٤</span> · ينتظر إنساناً <span class="count">{{ report.waiting.total|unlocalize }}</span></h2>
 
   <h3>مالٌ وصل ولم يُفهَم <span class="count">{{ report.waiting.stuck_inbound|length|unlocalize }}</span></h3>
-  <p class="empty">رسائلُ فاشلةٌ ما زالت في طابور الإعادة — <strong>بالموضوع لا
+  <p class="mh-say">رسائلُ فاشلةٌ ما زالت في طابور الإعادة — <strong>بالموضوع لا
     بالرسالة</strong>: ثلاثُ رسائلَ عن دفعةٍ واحدة عطلٌ واحد.</p>
   <div class="scroller">
     <table>
@@ -121,7 +121,7 @@ template.
   </div>
 
   <h3>عطلٌ في القناة <span class="count">{{ report.waiting.channel_failures|length|unlocalize }}</span></h3>
-  <p class="empty">توقيعٌ لم يُقبَل (سرٌّ دُوِّر في طرفٍ دون الآخر، أو أحدٌ يجرّب)،
+  <p class="mh-say">توقيعٌ لم يُقبَل (سرٌّ دُوِّر في طرفٍ دون الآخر، أو أحدٌ يجرّب)،
     أو رسالةٌ هُجرت إلى أودو فلن يسمعوها أبداً.</p>
   <div class="scroller">
     <table>
@@ -141,7 +141,7 @@ template.
   </div>
 
   <h3>محجوبون عن المزايدة بطلب استردادهم <span class="count">{{ report.waiting.blocked_bidders|length|unlocalize }}</span></h3>
-  <p class="empty">الطلبُ القائم يحجز الوديعة، فصاحبُه يقرأ رصيده كاملاً ويُرفض
+  <p class="mh-say">الطلبُ القائم يحجز الوديعة، فصاحبُه يقرأ رصيده كاملاً ويُرفض
     عند المزايدة. حجبٌ صحيحٌ وصامت — يُعرض ليُقال له، لا لأنه خلل.</p>
   <div class="scroller">
     <table>

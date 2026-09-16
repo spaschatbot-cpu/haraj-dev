@@ -8,7 +8,7 @@ say" when the question was "what are we owed".
 
 {% block title %}الفواتير{% endblock %}
 {% block heading %}الفواتير{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
@@ -16,15 +16,29 @@ say" when the question was "what are we owed".
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="رقم الفاتورة أو اسم العميل">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ تعريفٍ يقول القرارَ المكتوبَ في تعليق الملفّ ولا يراه إلا
+     من يفتحه: أن الحالاتِ المعروضةَ **مشتقّةٌ من الدفعات** لا منقولةٌ عن أودو.
+     ومن يقرأ «مدفوعة» هنا ويراها غيرَها هناك يحتاج أن يعرف أيَّهما يُصدّق. {% endcomment %}
+  <p class="lede">
+    كلُّ فاتورةٍ وما سُدِّد منها وما بقي. <strong>والحالةُ محسوبةٌ من الدفعات
+    المسجَّلة</strong> — لا من كلمة أودو: السؤالُ هنا «ما الذي لنا» لا «ماذا
+    يقول أودو».
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. وهي حقلان وزرّ — دون عتبةِ
+     القوائم الثلاث — فتقع في سطرٍ واحد. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="رقم الفاتورة أو اسم العميل" aria-label="بحث">
+      <select name="state" aria-label="الحالة">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   <div class="scroller">
@@ -36,11 +50,12 @@ say" when the question was "what are we owed".
     <tbody>
       {% for invoice in page %}
         <tr>
-          <td><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
+          <td class="inv-no"><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
           <td>{{ invoice.customer.full_name }}</td>
           <td class="money">{{ invoice.amount|unlocalize }}</td>
           <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
-          <td class="money">{{ invoice.outstanding|unlocalize }}</td>
+          {% comment %} المتبقّي هو جوابُ «ما الذي لنا»، فيُقرأ قبل أخوَيه. {% endcomment %}
+          <td class="money inv-due">{{ invoice.outstanding|unlocalize }}</td>
           <td><span class="pill" data-tone="{{ invoice.tone }}">{{ invoice.get_state_display }}</span></td>
           <td>{{ invoice.issued_at|date:"Y-m-d" }}</td>
         </tr>

@@ -41,16 +41,25 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from django.shortcuts import render
+from django.db.utils import IntegrityError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import urlencode
+from django.utils.timezone import localtime
 
 from apps.auctions.models import Vehicle
+from apps.auctions.states import VehicleState
+from apps.bidding import settlement
+from apps.core import audit
 from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money.models import Invoice
 
 from .exports import export_table, wants_export
+from .icons import path_of
 from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
@@ -67,6 +76,18 @@ PAGE_SIZE = 50
 #: للكلمة الواحدة يُصلَح أحدُهما ويُنسى الآخر. والاسمُ هنا يبقى لأن
 #: `analytics.py` يستورده باسمه.
 AWARDED = AWARDED_STATES
+
+
+#: رسومُ شريط التبويبات — من `icons.py` لا محارف. وv1 يضع `↩️ ⚖️ ✅ 🔴 🔍 🤝 📊`
+#: ويرسمها نظامُ التشغيل بأسلوبه، فتخرج سبعةُ رسومٍ بسبعة أساليب (T837).
+def _tab_icons() -> dict[str, str]:
+    return {
+        "live": path_of("eye"),
+        "accepted": path_of("gavel"),
+        "summary": path_of("sum"),
+        "ended": path_of("stamp"),
+        "owners": path_of("handshake"),
+    }
 
 
 def awarded(*, text: str = "", first: str = "", last: str = ""):
@@ -160,10 +181,18 @@ def accepted_bids(request):
                     ("المركبة", lambda row: f"{row.make} {row.model}", None),
                     ("السنة", lambda row: row.year, None),
                     ("اللوحة", lambda row: row.plate_number, None),
+                    ("اللون", lambda row: row.get_colour_display(), None),
                     ("رقم الهيكل", lambda row: row.vin, None),
                     ("الفائز", lambda row: row.awarded_to.full_name, CUSTOMER),
                     ("الجوال", lambda row: row.awarded_to.phone, CUSTOMER),
                     ("سعر الترسية", lambda row: row.awarded_price or ZERO, MONEY),
+                    (
+                        "تاريخ الانتهاء",
+                        lambda row: localtime(row.auction.ends_at).strftime("%Y-%m-%d")
+                        if row.auction.ends_at
+                        else "",
+                        None,
+                    ),
                     ("الحالة", lambda row: row.get_state_display(), None),
                     # رقمُ الفاتورة يبقى بـ`auctions.view`: «أفُوتِرت هذه
                     # المركبة؟» سؤالُ تشغيلٍ لا سؤالُ مال — الحكمُ نفسُه الذي
@@ -206,6 +235,26 @@ def accepted_bids(request):
             "q": request.GET.get("q", ""),
             "first": request.GET.get("from", ""),
             "last": request.GET.get("to", ""),
+            # زرُّ الفوترة وراء قدرته هو، لا وراء قدرة الشاشة: من يقرأ الجدول
+            # بـ`auctions.view` لا يُفوتِر منه. ويُقرأ مرّةً هنا لا مرّةً لكلّ
+            # صفّ في القالب.
+            "can_invoice": can(request.user, Capability.MONEY_ACT),
+            "tab_icons": _tab_icons(),
+            "active": "accepted-bids",
+            # عددُ ما ينتظر فوترةً في **هذه النتائج** — يُكتب على زرّ الدفعة،
+            # فمن يضغطه يعرف كم سيُصدر قبل أن يضغط لا بعده.
+            "pending_invoices": rows.filter(state=VehicleState.AWARDED).count(),
+            # المرشّحاتُ كما هي، ليعود إليها بعد الفوترة: الموظّفُ يفوتر من
+            # نتيجةِ بحثٍ، وعودةٌ إلى الصفحة عاريةً تعني بحثاً جديداً بعد كلّ
+            # فاتورة.
+            "filters": urlencode(
+                {
+                    "q": request.GET.get("q", ""),
+                    "from": request.GET.get("from", ""),
+                    "to": request.GET.get("to", ""),
+                    "page": request.GET.get("page", ""),
+                }
+            ),
         },
     )
 
@@ -280,3 +329,137 @@ def accepted_summary(request):
             "last": last,
         },
     )
+
+
+def accepted_invoice(request, pk: int):
+    """أصدِر فاتورةَ الترسية لمركبةٍ رست — نظيرُ «إنشاء فاتورة» في v1.
+
+    **ولماذا صارت هذه الشاشةُ بابَ فعلٍ بعد أن كانت قراءةً محضة.** كان مكتوباً
+    في رأس هذه الوحدة: «شاشةٌ تعرض ما وقع لا يجوز أن تكون بابَ تغييرٍ فيه».
+    والقاعدةُ معقولةٌ في ذاتها، لكنّها تركت الفوترةَ **بلا بابٍ في اللوحة
+    إطلاقاً**: `invoice_award` موجودةٌ وسليمة، ولا يستدعيها إلا `seed_demo` —
+    أي أن مركبةً ترسو في الإنتاج لا سبيلَ إلى فوترتها من أيّ شاشة.
+
+    وقرارُ المالكة (١٦ سبتمبر ٢٠٢٦) مطابقةُ v1، وهذه الشاشةُ **وظيفتُها هناك
+    الفوترة** لا العرض. والموظّفُ الذي يفوتر أربعين سيارةً لا يفتح أربعين صفحةَ
+    تفصيل.
+
+    والقاعدةُ القديمة تبقى صحيحةً في نصفها الذي يهمّ: **المنطق ليس هنا.**
+    الفاتورةُ تُبنى في `bidding.settlement.invoice_award` بمعاملةٍ واحدة تربطها
+    بحجز الفائز، وهذه الدالّة تنادي وتعرض الجواب — لا تحسب مبلغاً ولا ضريبة.
+
+    وثلاثةُ حرّاسٍ تحت الزرّ، ولا واحدَ منها تجميليّ:
+
+    * `money.act` — إصدارُ فاتورةٍ فعلٌ ماليّ، لا `auctions.view` التي تفتح
+      الشاشة. فمن يقرأ الجدولَ لا يُفوتِر منه.
+    * `POST` وحده: `GET` يُصدِر فاتورةً بزيارةِ رابطٍ — ومُسبِّقُ المتصفّح
+      يزور الروابط.
+    * وقيدُ القاعدة `one_live_invoice_per_vehicle` هو الضمانةُ الأخيرة: ضغطتان
+      متتاليتان لا تُنتجان فاتورتين، والثانيةُ ترتدّ برسالةٍ لا بصفٍّ ثانٍ.
+    """
+    if not can(request.user, Capability.MONEY_ACT):
+        messages.error(request, "إصدارُ الفواتير يحتاج صلاحية «الأفعال المالية الإدارية».")
+        return redirect("console:accepted-bids")
+    if request.method != "POST":
+        return redirect("console:accepted-bids")
+
+    vehicle = get_object_or_404(
+        Vehicle.objects.select_related("auction", "awarded_to"), pk=pk
+    )
+    try:
+        invoice = settlement.invoice_award(vehicle)
+    except (ValueError, IntegrityError, money.MoneyError) as why:
+        # ثلاثةُ أسبابٍ للرفض، وكلُّها **قواعدُ عملٍ لا أعطال**، فتُعرض جملةً
+        # للموظّف لا صفحةَ خطأٍ بيضاء:
+        #
+        # * `ValueError` من الخدمة: المركبةُ ليست مرسّاة، أو بلا فائزٍ أو سعر.
+        # * `IntegrityError` من قيد «فاتورةٌ حيّةٌ واحدة لكلّ مركبة»: ضغطتان
+        #   متتاليتان لا تُنتجان فاتورتين.
+        # * `MoneyError` من `lock_for_invoice`: **الفوترةُ تُثبّت تأمينَ الفائز
+        #   على الفاتورة في المعاملة نفسها**، فمن لا تأمينَ له لا تصدر له
+        #   فاتورة. وهذا فرقٌ جوهريّ عن v1 — هناك تصدر الفاتورةُ وحدها ويبقى
+        #   الحجزُ سؤالاً بلا جواب. وقعت الرسالةُ في التجربة حرفيّاً: «المتاح
+        #   0.00 والمطلوب 34,270.00».
+        messages.error(request, f"تعذّر إصدارُ الفاتورة: {why}")
+        return redirect(_back(request))
+
+    audit.record(
+        action="console.accepted_invoice",
+        entity=vehicle,
+        actor=request.user,
+        after={"invoice": invoice.number, "amount": str(invoice.amount)},
+        note="إصدار فاتورة ترسية",
+    )
+    messages.success(
+        request,
+        f"صدرت الفاتورة {invoice.number} لـ{vehicle.make} {vehicle.model} "
+        f"(لوت {vehicle.lot_number}).",
+    )
+    return redirect(_back(request))
+
+
+def _back(request) -> str:
+    """يعود إلى القائمة بمرشّحاتها — لا إلى رأسها.
+
+    الموظّفُ يفوتر من نتيجةِ بحثٍ أو مدى مزادات، وعودةٌ إلى الصفحة عاريةً تعني
+    أن يبحث من جديد بعد كلّ فاتورة.
+    """
+    query = request.POST.get("back", "")
+    return f"/console/bids/accepted/?{query}" if query else "/console/bids/accepted/"
+
+
+def accepted_invoice_all(request):
+    """فوترةُ كلِّ ما رسا ولم يُفوتَر — نظيرُ «إرسال جميع الفواتير دفعة واحدة».
+
+    **وبتقريرٍ لا بصمت.** v1 يزرّ زرّاً واحداً ويقول «تمّ»، والفشلُ فيه يختفي:
+    عميلٌ بلا تأمينٍ كافٍ تُردّ فوترتُه، ومركبةٌ سبق أن فُوتِرت تُردّ كذلك —
+    ومن ضغط الزرَّ لا يعرف أيُّ الأربعين نجح. فهنا يُعدّ الناجحُ والمردودُ
+    وتُقال أسبابُ الردّ بأسمائها.
+
+    والحلقةُ **لا تقف عند أوّل رفض**: رفضُ مركبةٍ شأنُها وحدها، وإيقافُ الدفعة
+    لأجلها يترك تسعةً وثلاثين لم تُحاوَل ولا يُعرف لماذا. وكلُّ فاتورةٍ معاملةٌ
+    مستقلّة داخل `invoice_award`، فالفاشلةُ لا تُبطل الناجحة.
+
+    والمرشّحاتُ تُحترم: من فوتر نتيجةَ بحثٍ يقصد **ما يراه**، لا كلَّ ما في
+    القاعدة. فـ«الكلّ» هنا كلُّ ما تعرضه الشاشةُ الآن — وهو ما يقوله العدد
+    المكتوب على الزرّ نفسه.
+    """
+    if not can(request.user, Capability.MONEY_ACT):
+        messages.error(request, "إصدارُ الفواتير يحتاج صلاحية «الأفعال المالية الإدارية».")
+        return redirect("console:accepted-bids")
+    if request.method != "POST":
+        return redirect("console:accepted-bids")
+
+    rows = awarded(
+        text=request.POST.get("q", ""),
+        first=request.POST.get("from", ""),
+        last=request.POST.get("to", ""),
+    ).filter(state=VehicleState.AWARDED)
+
+    done, failed = 0, []
+    for vehicle in rows:
+        try:
+            invoice = settlement.invoice_award(vehicle)
+        except (ValueError, IntegrityError, money.MoneyError) as why:
+            failed.append(f"لوت {vehicle.lot_number}: {why}")
+            continue
+        done += 1
+        audit.record(
+            action="console.accepted_invoice",
+            entity=vehicle,
+            actor=request.user,
+            after={"invoice": invoice.number, "amount": str(invoice.amount)},
+            note="إصدار فاتورة ترسية (دفعة)",
+        )
+
+    if done:
+        messages.success(request, f"صدرت {done} فاتورة.")
+    if failed:
+        # أوّلُ ثلاثةٍ بأسبابها ثم العدد: رسالةٌ بأربعين سطراً لا تُقرأ، وعددٌ
+        # بلا سببٍ واحدٍ لا يُفيد. والسجلُّ يحمل البقيّة.
+        head = " · ".join(failed[:3])
+        rest = f" (و{len(failed) - 3} غيرها)" if len(failed) > 3 else ""
+        messages.error(request, f"تعذّرت {len(failed)}: {head}{rest}")
+    if not done and not failed:
+        messages.info(request, "لا مركبةَ رست بلا فاتورة في هذه النتائج.")
+    return redirect(_back(request))

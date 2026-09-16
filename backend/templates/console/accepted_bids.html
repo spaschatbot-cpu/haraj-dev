@@ -19,6 +19,26 @@
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
+  {% include "console/_decision_tabs.html" %}
+
+  {% comment %} بطاقةُ الإجراء الجماعيّ — نظيرُ «إجراءات جماعية للمقبولين»
+     في v1. ولا تُبنى إلا حين يكون ثمّ ما يُفوتَر: بطاقةٌ بزرٍّ يقول «٠» تشغل
+     ربعَ الشاشة وتعلّم قارئَها تجاهُلَها. {% endcomment %}
+  {% if can_invoice and pending_invoices %}
+    <section class="acc-bulk">
+      <p class="acc-bulk__label">إجراءات جماعية للمقبولين</p>
+      <form method="post" action="{% url 'console:accepted-invoice-all' %}" class="acc-bulk__form">
+        {% csrf_token %}
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="from" value="{{ first }}">
+        <input type="hidden" name="to" value="{{ last }}">
+        <input type="hidden" name="back" value="{{ filters }}">
+        <button type="submit" class="btn-primary">إصدار فواتير كل ما رسا ولم يُفوتَر ({{ pending_invoices|unlocalize }})</button>
+      </form>
+      <p class="acc-bulk__note">تُصدَر لما تعرضه هذه النتائج وحدها، وكلُّ فاتورةٍ معاملةٌ مستقلّة — فالمردودةُ لا تُبطل الصادرة.</p>
+    </section>
+  {% endif %}
+
   <form method="get">
     <input type="search" name="q" value="{{ q }}"
            placeholder="لوحة أو شاصي أو اسم الفائز أو رقم مزاد">
@@ -28,34 +48,38 @@
   </form>
 
   <div class="scroller">
-    <table>
+    <table class="acc-tbl">
     <thead>
       <tr>
         <th>المزاد</th>
         <th>اللوت</th>
         <th>المركبة</th>
         <th>اللوحة</th>
+        <th>اللون</th>
         <th>رقم الهيكل</th>
         <th>الفائز</th>
         <th>الجوال</th>
         <th>سعر الترسية</th>
+        <th>تاريخ الانتهاء</th>
         <th>الحالة</th>
         <th>الفاتورة</th>
         <th>الضريبة</th>
         <th>الإجمالي</th>
+        <th>إجراء</th>
       </tr>
     </thead>
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.auction.number|unlocalize }}</td>
-          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><span class="acc-auction">مزاد {{ row.auction.number|unlocalize }}</span></td>
+          <td><span class="acc-lot">{{ row.lot_number|unlocalize }}</span></td>
           <td>
             <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
+          <td class="acc-plate">{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.get_colour_display|default:"—" }}</td>
+          <td class="acc-vin">{{ row.vin|default:"—" }}</td>
           {% comment %} `buyer_name`/`buyer_phone`/`award_price` من
              `sensitive.prepare` لا `row.awarded_to` من العلاقة: الشاشةُ
              `auctions.view` وحدَها، والاسمُ والجوّالُ خلف `users.view`
@@ -81,6 +105,11 @@
             {% if show_money %}{{ row.award_price|default:"—"|unlocalize }}
             {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
           </td>
+          {% comment %} تاريخُ انتهاء المزاد — عمودُ v1 «تاريخ الانتهاء».
+             وهو **تاريخُ المزاد لا تاريخُ الترسية**: المزادُ ينتهي مرّةً
+             واحدةً لكلّ مركباته، والترسيةُ تقع بعده بساعاتٍ أو بيوم. ومن قرأه
+             تاريخَ ترسيةٍ حسب المهلةَ من يومٍ خطأ. {% endcomment %}
+          <td>{{ row.auction.ends_at|date:"Y-m-d"|default:"—" }}</td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           {% comment %} الثلاثة الأخيرة من الفاتورة أو لا شيء. و«بلا فاتورة»
              مكتوبةٌ نصّاً لا خانةً فارغة: الفارغة تُقرأ «لم يُحسب» وهذه تقول
@@ -106,9 +135,26 @@
           {% else %}
             <td class="empty" colspan="3">بلا فاتورة — لا ضريبة على مبلغٍ لم يُفوتَر</td>
           {% endif %}
+          {% comment %} عمودُ «إجراء» — نظيرُ v1. والزرُّ يظهر لثلاثةٍ معاً:
+             صلاحيةُ الأفعال المالية، ومركبةٌ حالتُها «رست» (وحدها ما تقبله
+             `invoice_award`)، ولا فاتورةَ حيّةً عليها. وغيابُه عن الصفّ يقول
+             «لا عملَ هنا»، وهو أصدقُ من زرٍّ يُضغَط فيرفض. {% endcomment %}
+          <td class="actions">
+            {% if can_invoice and row.state == "awarded" and not row.money.invoice %}
+              <form method="post" action="{% url 'console:accepted-invoice' row.pk %}" class="ex-inline">
+                {% csrf_token %}
+                <input type="hidden" name="back" value="{{ filters }}">
+                <button type="submit" class="btn-primary-sm">إنشاء فاتورة</button>
+              </form>
+            {% elif row.money.invoice %}
+              <span class="empty">فُوتِرت</span>
+            {% else %}
+              <span class="empty">—</span>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="12" class="empty">لا مركبات مرساة مطابقة.</td></tr>
+        <tr><td colspan="15" class="empty">لا مركبات مرساة مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

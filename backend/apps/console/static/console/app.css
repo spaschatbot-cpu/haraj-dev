@@ -9563,3 +9563,991 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 /* الرموزُ أوضحُ على الكحليّ: 0.62 كانت مكتوبةً لخطٍّ داكنٍ على أبيض. */
 .nav__icon { opacity: .72; }
 .nav a.active .nav__icon { opacity: 1; }
+
+/* ===========================================================================
+   قرارات المزايدات — شريطُ التبويبات وجدولُ «المقبولة»
+
+   v1 يضع خمسَ شاشاتٍ صفّاً فوق الجدول لأنها **خمسةُ أسئلةٍ عن الشيء نفسه**،
+   لا خمسُ وجهاتٍ متجاورة. والقطعُ إلى الشريط الجانبيّ بين سؤالٍ وسؤالٍ يعني
+   بحثاً عن سطرٍ بين ستّةٍ وخمسين في كلّ مرّة.
+   ======================================================================== */
+.dec-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 1rem; border-block-end: 1px solid var(--line); }
+.dec-tab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .5rem .8rem; font-size: .82rem; font-weight: 700;
+  color: var(--ink-soft); text-decoration: none;
+  border-block-end: 3px solid transparent;
+}
+.dec-tab:hover { color: var(--ink); background: var(--raised); }
+.dec-tab.is-on { color: var(--brand-dark); border-block-end-color: var(--brand-solid); }
+.dec-tabs svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
+
+/* الجدولُ بمقاييس v1: `padding: 8px 10px` و`font-size: 13px` و**وسطاً**.
+   خمسةَ عشرَ عموداً بحشوةِ `--cell-pad-x` العامّة (٧٫٢px) تجعل آخرَ كلمةٍ في
+   عمودٍ تلامس أوّلَ كلمةٍ في الذي يليه — وهي العلّةُ نفسُها التي قِيست في
+   جدول الخروج. والعمودان الأوّلان (المزاد واللوت) رقمان، فالوسطُ يناسبهما؛
+   و«المركبة» اسمٌ متغيّرُ الطول فيبقى إلى البداية. */
+.acc-tbl th, .acc-tbl td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
+.acc-tbl thead th { font-size: .74rem; }
+.acc-tbl tbody td:nth-child(3), .acc-tbl thead th:nth-child(3) { text-align: start; }
+/* شاراتُ v1: رقمُ المزاد ذهبيٌّ، واللوتُ رماديّ، واللوحةُ عريضةٌ بلون العلامة،
+   والشاصي أحاديُّ التباعد — أربعةُ حقولٍ يُفرَّق بينها بالنظر لا بالقراءة. */
+.acc-tbl .acc-auction { display: inline-block; padding: .12rem .45rem; border-radius: 999px; font-size: .74rem; font-weight: 800; background: var(--brand-soft); color: var(--brand-dark); }
+.acc-tbl .acc-lot { display: inline-block; padding: .12rem .45rem; border-radius: 999px; font-size: .74rem; font-weight: 700; background: var(--raised); color: var(--ink-soft); }
+.acc-tbl .acc-plate { font-weight: 800; color: var(--brand-dark); }
+.acc-tbl .acc-vin { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .74rem; color: var(--ink-soft); }
+/* ونماذجُ الصفّ تنزع بطاقةَ النماذج كـ`.ex-inline` — القاعدةُ العامّة
+   `form {…}` تُلبسها كلَّ `<form>` في اللوحة، فيصير الزرُّ داخل مربّع. */
+.acc-tbl td.actions { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: center; align-items: center; grid-template-columns: none; }
+/* بطاقةُ الإجراء الجماعيّ — كـ v1: عنوانٌ صغير فوق زرٍّ عريضٍ في الوسط. */
+.acc-bulk { text-align: center; padding: .9rem; margin: 0 0 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.acc-bulk__label { margin: 0 0 .5rem; font-size: .8rem; font-weight: 800; color: var(--muted); }
+.acc-bulk__form { display: flex; justify-content: center; margin: 0; padding: 0; max-width: none; background: none; border: 0; box-shadow: none; }
+.acc-bulk__note { margin: .55rem 0 0; font-size: .74rem; color: var(--muted); }
+
+/* ===========================================================================
+   أرقامُ المنصّة: ثلاثةٌ في السطر
+   ---------------------------------------------------------------------------
+   «الستّ مربّعات اللي في الأول دول خلّي كل تلاتة في سطر بتنظيم».
+
+   كانت أربعةً ثم اثنتين — صفٌّ تامٌّ وصفٌّ نصفُه فراغ. وثلاثةٌ وثلاثةٌ صفّان
+   تامّان، والبطاقةُ تتّسع فيقلّ التفافُ الأسماء الطويلة («مركبات تنتظر
+   قراراً»، «إجمالي التأمين»).
+
+   والعددُ مكتوبٌ رقماً لا `auto-fit`: العددُ هنا **قرارٌ** لا نتيجةَ حسابٍ
+   في عرضٍ ما — و`auto-fit` تُعطي خمسةً على شاشةٍ عريضةٍ وأربعةً على أخرى،
+   فيتغيّر تقسيمُ الصفوف بتغيّر نافذةٍ لا بتغيّر البيانات.
+   ======================================================================== */
+
+/* `:not(--compact)`: الصياغةُ المضغوطة تُستعمل في ستِّ شاشاتٍ أخرى بأعدادٍ
+   مختلفة (٣ و٤ و٥)، وفرضُ الثلاثة عليها كسر صفوفَها — «إدارة المستخدمين»
+   صارت ٣ + ٢ بعد هذا التغيير. وهذا هو العطلُ الذي كشفه المالك بعد النشر. */
+@media (min-width: 62rem) {
+  .board-stats:not(.board-stats--compact) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 40rem) and (max-width: 61.999rem) {
+  .board-stats:not(.board-stats--compact) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ===========================================================================
+   الصياغةُ المضغوطة: عددُ الأعمدة = عددُ البطاقات
+   ---------------------------------------------------------------------------
+   «خلّي الخمس مربّعات دول في سطر واحد».
+
+   و`auto-fit` لا تفعلها: الحدُّ الأدنى 11.5rem أي 184px، وخمسٌ منها مع أربع
+   فجواتٍ بـ11.2px تساوي 964.8px — والحاويةُ 962px بالقياس. فتسقط الخامسةُ
+   إلى سطرٍ ثانٍ لأجل **2.8 بكسل**، وتُقرأ الشاشةُ صفّاً وبقيّةً.
+
+   فالعددُ يُكتب من عدد البطاقات نفسِه: `:has(> .stat:nth-child(N):last-child)`
+   تعني «الشبكةُ التي فيها N بطاقةً بالضبط». وهي تتبع الصلاحيات تلقائياً —
+   مَن لا يرى «حسابات محظورة» تصير شبكتُه أربعةً في سطر، بلا صفٍّ في أي قالب.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .board-stats--compact:has(> .stat:nth-child(3):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(4):last-child) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(5):last-child) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .board-stats--compact:has(> .stat:nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* ===========================================================================
+   استمارةُ المركبة في نافذة — أعمدةٌ تتبع الصندوقَ لا الشاشة
+   ---------------------------------------------------------------------------
+   «خلّي المربّع ده منظّم بشكل أفضل».
+
+   **العطلُ الأول: الاستفهامُ عن الشاشة والحقولُ في نافذة.** أعمدةُ
+   `.auction-form .form-grid` ثلاثةٌ، وتتراجع إلى عمودين عند `max-width: 960px`
+   — و`@media` تسأل **نافذةَ المتصفّح**. والنافذةُ هنا 1366px، فتبقى الأعمدةُ
+   ثلاثةً داخل صندوقٍ عرضُه 46rem (736px) ناقصاً حشوته. فثلاثةُ حقولٍ في صفٍّ
+   بعرض ~200px لكلٍّ، و«الموديل» وحدَه في صفٍّ لأن الخمسةَ لا تقسم على ثلاثة.
+
+   فصار السؤالُ عن **القسم نفسِه** بـ`@container`: عمودان تحت 46rem وعمودٌ
+   تحت 26rem. فالصفحةُ الكاملة تبقى ثلاثةً كما بُنيت، والنافذةُ تصير عمودين
+   بلا سطرٍ أعرجَ — خمسةُ حقولٍ تصير 1 عريض + 2 + 2.
+
+   **والعطلُ الثاني: صناديقُ داخل صندوق.** كلُّ قسمٍ بطاقةٌ بحدٍّ وأرضيّةٍ
+   وظلّ، وأربعتُها داخل نافذةٍ هي نفسُها بطاقةٌ بحدٍّ وأرضيّة. فتُقرأ الاستمارةُ
+   علباً في علبة. وداخل النافذة يُلغى الإطارُ وتبقى **العناوينُ وخطوطُها** —
+   وهي وحدَها ما يفصل الأقسام حقاً.
+   ======================================================================== */
+
+.form-section { container-type: inline-size; }
+
+@container (max-width: 46rem) {
+  .auction-form .form-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@container (max-width: 26rem) {
+  .auction-form .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- داخل النافذة: أقسامٌ بلا علب ---------------------------------------- */
+
+.cmodal .form-section {
+  margin-block-end: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.cmodal .form-section:last-of-type { margin-block-end: 1.1rem; }
+
+/* العنوانُ يصير فاصلَ القسم: خطٌّ بعرض الاستمارة تحته، وشرطةٌ ملوّنةٌ قبله. */
+.cmodal .form-section__title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .85rem;
+  padding-block-end: .55rem;
+  border-block-end: 1px solid var(--line);
+  font-size: .88rem;
+}
+.cmodal .form-section__title::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 1.1em;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+/* الحقولُ محفورةٌ كحقول الفلاتر: أبيضُ داخل أبيضَ لا يُرى إلا بحدّه. */
+.cmodal .form-grid .field input:not([type="checkbox"]):not([type="radio"]),
+.cmodal .form-grid .field select,
+.cmodal .form-grid .field textarea { background: var(--ground); }
+.cmodal .form-grid .field input:focus,
+.cmodal .form-grid .field select:focus,
+.cmodal .form-grid .field textarea:focus { background: var(--panel); }
+
+/* صفُّ الأزرار يلتصق بقاع النافذة: استمارةٌ بأربعةٍ وعشرين حقلاً تُمرَّر،
+   وزرُّ الحفظ تحت الحافة لا يُعرف أنه هناك. */
+.cmodal .form-actions {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  gap: .6rem;
+  margin-block-start: .2rem;
+  padding-block: .9rem;
+  background: var(--panel);
+  border-block-start: 1px solid var(--line);
+}
+
+/* ===========================================================================
+   شريطُ الفلاتر يلتفّ، والكلامُ في البطاقات يظهر كاملاً
+   ---------------------------------------------------------------------------
+   «خلّي مربّع البحث ده منظّم أكتر، وكل الكلام اللي في المربّعات جوّاه واضح».
+
+   ---- الفلاتر -------------------------------------------------------------
+   `.filters--row` تحشر **سبعةَ** عناصر في سطرٍ واحدٍ بـ`nowrap`: بحثٌ وخمسُ
+   قوائمَ وزرّ. فتنال كلُّ قائمةٍ ~120px، وخيارُها المختار يُقصّ في منتصف
+   الكلمة — «كل المزادا»، «سداد الشه»، «تسويق: ال»، «50 في الد». والقائمةُ
+   التي لا يُقرأ خيارُها لا تقول شيئاً؛ هي زينةٌ تشغل مكاناً.
+
+   والسطرُ الواحد كان قرارَ المالك يومَها («يريدها سطراً واحداً منظّماً»)
+   — وقد نقضه اليوم بنفسه: «منظّم أكتر». فصارت **شبكةً**: البحثُ يمتدّ
+   العرضَ كلَّه (هو أطولُ ما يُكتب فيه: ستُّ كلماتٍ في `placeholder`)،
+   والقوائمُ الخمسُ والزرُّ في صفٍّ تحته بأربعة أعمدةٍ متساوية — ~230px
+   للقائمة بدل 120، أي ضِعف.
+
+   ---- البطاقات ------------------------------------------------------------
+   `-webkit-line-clamp: 2` على `.stat__detail` كُتبت لبطاقةٍ بعرض 15rem في
+   شبكةٍ من أربع. وهي اليوم 183px في شبكةٍ من خمس، فسطران يقصّان الجملةَ في
+   منتصفها: «محسوبٌ من الدفعات لا من كلم…». والقصُّ كان ليمنع بطاقةً واحدةً
+   أن ترفع الصفَّ كلَّه — وذلك ثمنٌ مقبولٌ لسطرٍ زائد، وغيرُ مقبولٍ لجملةٍ
+   لا تُفهم. فيُرفع القصُّ في الصياغة المضغوطة وحدَها.
+   ======================================================================== */
+
+/* ---- الفلاتر: شبكةٌ لا سطر ---------------------------------------------- */
+
+@media (min-width: 62rem) {
+  .filters--row .filters__main {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .6rem .7rem;
+    flex-wrap: initial;
+    align-items: center;
+  }
+  /* البحثُ يمتدّ العرضَ **إن كان تحته قوائم**. وفي «الخروج ونقل الملكية»
+     لا قوائمَ أصلاً — بحثٌ وزرّان — فامتدادُه يدفع الزرّين إلى سطرٍ ثانٍ
+     نصفُه فارغ، ويبعدهما عن الحقل الذي يعملان عليه. فبلا قوائمَ: عمودٌ
+     يتمدّد للحقل وأعمدةٌ بمقاس محتواها للأزرار، في سطرٍ واحد. */
+  /* **الشرطُ ثلاثُ قوائمَ فأكثر** لا وجودُ قائمة. الامتدادُ كُتب لشريطٍ فيه
+     خمسُ قوائم: حشرُها مع البحث في سطرٍ يقصّ خياراتِها. وشريطٌ فيه قائمةٌ
+     واحدة («أرشيف المزادات») أو لا قائمة («الخروج ونقل الملكية») يتّسع لها
+     جميعاً في سطر — وامتدادُ البحث فيه يدفع البقيّةَ إلى سطرٍ ثانٍ نصفُه
+     فارغ، ويبعد الزرَّ عن الحقل الذي يعمل عليه.
+
+     و`select:nth-of-type(3)` تعني «القائمةُ الثالثة موجودة»، أي ثلاثٌ فأكثر. */
+  .filters--row .filters__main:has(select:nth-of-type(3)) input[type="search"] { grid-column: 1 / -1; }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) {
+    grid-template-columns: minmax(0, 1fr) repeat(4, auto);
+  }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) select { min-inline-size: 11rem; }
+  .filters--row .filters__main:not(:has(select:nth-of-type(3))) .btn-primary { min-inline-size: 6.5rem; }
+  /* الزرُّ ورابطُ الإلغاء يلتصقان في آخر الصفّ لا يتمدّدان بعرض عمود. */
+  .filters--row .filters__main .btn-primary { justify-self: start; min-inline-size: 7rem; }
+  .filters--row .filters__reset { justify-self: start; }
+}
+
+/* ---- البطاقات: الجملةُ كاملةً ------------------------------------------- */
+
+.board-stats--compact .stat__detail {
+  display: block;
+  -webkit-line-clamp: none;
+  overflow: visible;
+}
+
+/* ===========================================================================
+   سطرُ التعريف بعرض الصفحة، وسبعُ بطاقاتٍ بلا فراغ
+   ---------------------------------------------------------------------------
+   «خلّي الكلام اللي تحت العنوان موزّع بعرض الصفحة… ونظّم المربّعات دي بحيث
+   ميكونش فيه فاضي».
+
+   ---- السطر ---------------------------------------------------------------
+   `max-inline-size: 62ch` كان **مقياسَ قراءةٍ مقصوداً**: سطرٌ أطولُ من ذلك
+   تتعب العينُ في العودة إلى أوّله. وثمنُه هنا أن الجملةَ تلتفّ في نصف الشاشة
+   ويبقى نصفُها الآخرُ أبيضَ تحت عنوانٍ يمتدّ العرضَ كلَّه — وقد رآه المالك
+   فأمر بالعرض الكامل. والثمنُ يُقال ولا يُخفى: ٣ أسطرٍ بعرض 100ch بدل ٥ بعرض
+   62ch، أي عودةٌ أطولُ للعين في كل سطر.
+
+   ---- السبع بطاقات --------------------------------------------------------
+   «القرارات المنتهية» فيها **سبع** بطاقات، والسبعةُ عددٌ أوّليّ: لا شبكةَ
+   متساويةُ الأعمدة تقسمه. فكانت `auto-fit` تعطي ٥ + ٢، ويبقى عرضُ ثلاث
+   بطاقاتٍ أبيضَ في السطر الثاني.
+
+   فشبكةٌ من **اثني عشر** عموداً: أربعٌ بعرض ٣ أعمدةٍ (4 × 3 = 12)، وثلاثٌ
+   بعرض ٤ (3 × 4 = 12). صفّان تامّان بلا بكسلٍ فارغ، وبطاقاتُ الصفّ الثاني
+   أعرضُ قليلاً — وهي التي نصُّها أطول.
+   ======================================================================== */
+
+.lede { max-inline-size: none; }
+
+@media (min-width: 62rem) {
+  .board-stats--compact:has(> .stat:nth-child(7):last-child) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .board-stats--compact:has(> .stat:nth-child(7):last-child) > .stat { grid-column: span 3; }
+  .board-stats--compact:has(> .stat:nth-child(7):last-child) > .stat:nth-child(n+5) { grid-column: span 4; }
+}
+
+/* سطرُ التعريف لا يلامس زرَّ الرأس. صار بعرض الصفحة، فأوّلُ سطرٍ منه يمرّ
+   تحت منطقة الأفعال في الحافة المقابلة — والقياسُ يقول إنه **يتراكب** معها
+   بـ5.6px لا يقاربها: قاعدةٌ قديمة تسحبه لأعلى بهامشٍ سالب، وكانت مأمونةً
+   يوم كان محدوداً بـ62ch فلا يصل إلى هناك أصلاً.
+
+   والهامشُ يُزاد على الصفحات ذات الأفعال وحدَها (`:has`): إزاحةُ الباقي لأجل
+   عطلٍ لا يقع فيها تُبعد السطرَ عن عنوانه بلا سبب. */
+/* **والمقدارُ محسوبٌ لا مذوَّق.** أقلُّ زيادةٍ تُنهي التراكبَ هي 5.6px؛ وما
+   دونها يعود السطرُ تحت الزرّ. و0.55rem (8.8px) تُبقي فجوةً موجبةً بـ3.2px
+   فوق حدّ التماسّ — وهي أعلى ما يُرفع إليه السطرُ بلا عودة العطل. */
+.page:has(.page__actions) + .lede { margin-block-start: .55rem; }
+
+/* ===========================================================================
+   «ملخّص المقبولة» — ستُّ قيمٍ في بطاقات لا في جدول
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل أفضل ومنظّم».
+
+   كانت الشاشةُ ثلاثةَ أشياءٍ عاريةٍ من كلّ صنف: استمارةٌ بلا `.filters` فتأخذ
+   هيئةَ `form[method="get"]` العامّة (حقولٌ في الهواء)، وجدولٌ صفوفُه «عنوانٌ ·
+   قيمة»، ورابطٌ مسطورٌ في فقرة.
+
+   **والجدولُ كان أسوأَها.** جدولٌ لبياناتٍ ليست جدولاً: لا أعمدةَ تُقارَن ولا
+   صفوفَ تُفرَز — ستُّ قيمٍ منفردة. وثمنُه في الشاشة أن العنوان يقف على حافةٍ
+   والقيمةُ في منتصف الصفّ، بينهما عرضُ شاشةٍ فارغ، فتقفز العينُ بين الاثنين
+   ستَّ مرّات.
+
+   فبطاقاتٌ: القيمةُ تحت عنوانها مباشرةً. وثلاثةُ أعدادٍ في صفٍّ وثلاثةُ مبالغَ
+   في صفّ — والفرزُ بالشريط الجانبي لا بترتيبٍ يُحفظ.
+
+   و«رست ولم تُفوتَر بعد» بلون التنبيه وفي طرف صفِّ الأعداد لا في ذيل الستّة:
+   هي ما تُفتح الشاشةُ لأجله — عملٌ ينتظر، وقد كانت الصفَّ الأخير.
+   ======================================================================== */
+
+.sum-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+  margin-block-end: 1.2rem;
+}
+
+.sum {
+  position: relative;
+  padding: 1rem 1.1rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* الشريطُ على حافة البداية — منطقيّةٌ لا يمنى فتنقلب مع الاتجاه. */
+.sum::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--brand);
+}
+.sum--money::before { background: var(--money); }
+.sum--wait::before  { background: var(--warn); }
+
+.sum__label {
+  margin: 0 0 .35rem;
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.sum__value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  /* `ltr` ليستقيم ترتيبُ الفاصلة والنقطة في المبلغ، و`end` داخلَه هي حافةُ
+     البداية في صفحةٍ RTL — أي تحت العنوان تماماً لا على الحافة المقابلة. */
+  direction: ltr;
+  text-align: end;
+}
+.sum--wait .sum__value { color: var(--warn); }
+
+/* «محجوب» كلمةٌ لا رقم: بحجم النصّ ووزنه، وإلا قُرئت قيمةً. */
+.sum__value--hidden {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--muted);
+  direction: rtl;
+  text-align: start;
+  padding-block: .5rem;
+}
+
+.sum__note {
+  margin: .45rem 0 0;
+  font-size: .76rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.sum-more { margin: 0; }
+
+@media (max-width: 62rem) { .sum-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40rem) { .sum-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* `.btn-primary` صنفٌ بلا قاعدةٍ خاصّةٍ به: هيئةُ الأزرار مكتوبةٌ على عنصر
+   `button` نفسِه، فوسمُ `<a>` يحمله يخرج رابطاً مسطوراً. وهذا ما وقع لزرّ
+   «افتح الصفوف». فتُكتب هيئتُه هنا صراحةً. */
+.sum-more .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid var(--brand-solid);
+  border-radius: var(--radius);
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .86rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.sum-more .btn-primary::after { content: "←"; font-weight: 800; }
+.sum-more .btn-primary:hover {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
+
+/* ===========================================================================
+   «منصّة الملاك» — البطاقةُ هي الرابط، والقائمةُ بلاطات
+   ---------------------------------------------------------------------------
+   «عايزة الصفحة دي بشكل احترافي أكتر ومنظّم».
+
+   كانت جدولاً بثلاثة أعمدة: «الرقم · القيمة · من أين». وهو ليس جدولاً — لا
+   أعمدةَ تُقارَن ولا صفوفَ تُفرَز — وعمودُه الثالثُ كلُّه رابطٌ مكرَّر «←
+   اسمُ الشاشة»، أي أن ثلثَ عرض الشاشة يحمل السهمَ نفسَه سبعَ مرّات.
+
+   فكلُّ صفٍّ صار **بطاقةً هي نفسُها الرابط**: الرقمُ وعنوانُه ووجهتُه كتلةٌ
+   تُنقر كلُّها. فلا عمودَ ثالث، وهدفُ النقر يكبر من كلمةٍ إلى بطاقة.
+
+   وسبعةٌ عددٌ أوّليّ: شبكةٌ من اثني عشر عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤
+   — فصفّان تامّان بلا فراغ. (القاعدةُ نفسُها في «القرارات المنتهية».)
+
+   و«ما يُفتح من هنا» كانت `<ul>` عارية: سبعةُ روابطَ مسطورةٍ وشرحُ كلٍّ بعد
+   شرطةٍ في سطره، فيُقرأ الاسمُ والشرحُ كتلةً واحدة ولا هدفَ نقرٍ إلا الكلمة.
+   فصارت بلاطاتٍ: اسمٌ فوقَ شرحه، والبلاطةُ كلُّها تُنقر.
+   ======================================================================== */
+
+/* ---- البطاقاتُ روابط ---------------------------------------------------- */
+
+.sum-grid--links { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.sum-grid--links > .sum { grid-column: span 3; }
+.sum-grid--links > .sum:nth-child(n+5) { grid-column: span 4; }
+
+a.sum {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+a.sum:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+  box-shadow: var(--shadow-lift, 0 10px 26px rgb(23 32 51 / .10));
+}
+a.sum:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* سطرُ الوجهة يصير سطرَ فعلٍ بسهم — والسهمُ يتحرّك عند المرور فيقول «تُفتح». */
+a.sum .sum__note {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  color: var(--brand-dark);
+  font-weight: 700;
+}
+a.sum .sum__note::after { content: "←"; transition: transform .16s ease; }
+a.sum:hover .sum__note::after { transform: translateX(-3px); }
+
+.sum--live::before { background: var(--auction); }
+
+/* عنوانُ القسم الثاني. */
+.owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
+
+/* ---- بلاطاتُ «ما يُفتح من هنا» ------------------------------------------ */
+
+.owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
+
+/* سبعُ بلاطاتٍ كسبع بطاقات: اثنا عشرَ عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤ —
+   فلا تبقى خانةٌ فارغةٌ في ذيل الصفّ الثاني. */
+.open-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: .7rem;
+  margin-block-end: 1.3rem;
+}
+.open-grid > .open { grid-column: span 3; }
+.open-grid > .open:nth-child(n+5) { grid-column: span 4; }
+
+.open {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .8rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.open:hover { background: var(--brand-soft); border-color: var(--brand); }
+.open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.open__name { font-size: .88rem; font-weight: 800; color: var(--ink); }
+.open__why  { font-size: .74rem; line-height: 1.5; color: var(--muted); }
+
+.owners-note { margin: 0; }
+
+@media (max-width: 62rem) {
+  .sum-grid--links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sum-grid--links > .sum,
+  .sum-grid--links > .sum:nth-child(n+5) { grid-column: auto; }
+}
+@media (max-width: 40rem) {
+  .sum-grid--links { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ===========================================================================
+   بلاطاتُ «ما يُفتح من هنا»: زرُّ «عرض» في كلٍّ منها
+   ---------------------------------------------------------------------------
+   «خلّي الجزء ده احترافي أكتر ويوجد زرّ عرض في كل مربّع».
+
+   والزرُّ `<span>` لا `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ تفاعليٌّ داخل
+   تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل لقارئ الشاشة هدفين
+   لوجهةٍ واحدة. فهيئةُ زرٍّ بلا سلوكه، والنقرُ يقع على البلاطة كما كان.
+   و`aria-hidden` عليه: «عرض» لا تضيف شيئاً إلى اسم الرابط المقروء.
+
+   والبلاطةُ صارت ثلاثةَ أسطرٍ بإيقاعٍ واحد: اسمٌ، فشرحٌ، فخطٌّ يليه الزرّ في
+   القاع — و`margin-block-start: auto` عليه فتستوي الأزرارُ في صفٍّ واحدٍ مهما
+   اختلف طولُ الشروح.
+   ======================================================================== */
+
+.open {
+  gap: .25rem;
+  padding: .85rem .95rem .8rem;
+  min-block-size: 100%;
+}
+
+.open__go {
+  margin-block-start: auto;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+.open__go::after { content: "←"; transition: transform .16s ease; }
+.open:hover .open__go::after { transform: translateX(-3px); }
+
+/* الحدُّ العلويُّ للزرّ يخفّ على الأرضيّة الملوّنة عند المرور، وإلا قُرئ
+   خطّاً أغمقَ مما حوله. */
+.open:hover .open__go { border-block-start-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+
+/* ===========================================================================
+   «الاستردادات» — الحالاتُ بطاقاتٌ لا جدولٌ ثالثُ أعمدته فارغ
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   كان أعلى الشاشة جدولاً بثلاثة أعمدة: «الحالة · العدد · حبّةُ ما زال
+   مفتوحاً» — وهو ليس جدولاً (لا صفوفَ تُفرَز ولا أعمدةَ تُقارَن، ستُّ قيمٍ
+   منفردة)، وعمودُه الثالثُ **فارغٌ في أربعةِ صفوفٍ من ستّة**. وتحته جدولٌ
+   حقيقيٌّ بسبعة أعمدة، فتُقرأ الشاشةُ جدولين والأولُ ليس منهما.
+
+   فبطاقات: العددُ تحت اسم حالته، و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافة
+   البطاقة لا حبّةٌ في عمودٍ ثالث.
+
+   وعددُ الحالات يأتي من `RefundRequestState` لا من القالب، فقد يتغيّر. ولذلك
+   `--tight` تُحسب أعمدتُها من عدد البطاقات نفسِه (`:has`) — كما في «القرارات
+   المنتهية» و«منصّة الملاك» — فلا يبقى في الصفّ الأخير فراغٌ مهما صار العدد.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .sum-grid--tight { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+  /* الافتراضيّ: أربعةٌ في السطر. */
+  .sum-grid--tight > .sum { grid-column: span 3; }
+
+  /* خمسٌ: ثلاثٌ بعرض ٤ ثم اثنتان بعرض ٦. */
+  .sum-grid--tight:has(> .sum:nth-child(5):last-child) > .sum { grid-column: span 4; }
+  .sum-grid--tight:has(> .sum:nth-child(5):last-child) > .sum:nth-child(n+4) { grid-column: span 6; }
+
+  /* ستٌّ: ثلاثٌ وثلاث. */
+  .sum-grid--tight:has(> .sum:nth-child(6):last-child) > .sum { grid-column: span 4; }
+
+  /* سبعٌ: أربعٌ بعرض ٣ ثم ثلاثٌ بعرض ٤. */
+  .sum-grid--tight:has(> .sum:nth-child(7):last-child) > .sum { grid-column: span 3; }
+  .sum-grid--tight:has(> .sum:nth-child(7):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
+
+  /* ثمانٍ: أربعٌ وأربع. */
+  .sum-grid--tight:has(> .sum:nth-child(8):last-child) > .sum { grid-column: span 3; }
+}
+
+/* بطاقاتُ الحالات أقصرُ: أرقامُها أعدادٌ صغيرةٌ لا مبالغ، وسطرُها الثالثُ
+   كلمتان. فحجمُ البطاقة يتبع ما فيها. */
+.sum-grid--tight .sum { padding: .85rem .95rem .8rem; }
+.sum-grid--tight .sum__value { font-size: 1.5rem; }
+.sum-grid--tight .sum__note { margin-block-start: .3rem; font-size: .72rem; }
+
+@media (max-width: 62rem) {
+  .sum-grid--tight { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sum-grid--tight > .sum { grid-column: auto; }
+}
+@media (max-width: 40rem) {
+  .sum-grid--tight { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* خانةُ «دفتره» زرٌّ لا رابطٌ مسطور — هي الفعلُ الوحيد في الصفّ، ورأسُ عمودها
+   كان فارغاً فيُقرأ عموداً بلا اسم. */
+.rf-act { width: 1%; white-space: nowrap; }
+.rf-go {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .75rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
+  border-radius: 999px;
+  color: var(--brand-dark);
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.rf-go::after { content: "←"; transition: transform .15s ease; }
+tbody tr:hover .rf-go { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+tbody tr:hover .rf-go::after { transform: translateX(-3px); }
+
+/* ===========================================================================
+   «الباقات» — العددان بطاقتان، والأنماطُ تخرج من القالب
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   ١) **العددان كانا مدفونَين في جملة**: «0 باقةً تُعرَض، و0 موقوفة» داخل فقرةِ
+      تنبيهٍ من سطرين مع قاعدة الحذف. فالعينُ تقرأ الجملةَ كلَّها لتلتقط رقمين.
+      صارا بطاقتين، وبقيت القاعدةُ وحدَها في التنبيه — وهي الأهمّ.
+
+   ٢) **ثلاثةُ `style=` في القالب**: صفُّ الأزرار، وهامشُ النموذج، وهامشُ
+      الفقرة. والنمطُ في الوسم لا يُعاد استعماله ولا يتبع المظهر ولا يُغلَب
+      إلا بـ`!important` — فخرجت إلى أصنافٍ هنا.
+
+   ٣) **رأسُ عمود التحكّم فارغ** — عمودٌ بلا اسم — وصار «تحكّم».
+
+   ٤) **اسمُ الباقة ووصفُها بوزنٍ واحد**، وصنفُ الوصف `empty` وهو للحالات
+      الفارغة لا للنصّ الثانوي. فالاسمُ غليظٌ والوصفُ خافتٌ تحته.
+   ======================================================================== */
+
+.pk-acts { display: flex; gap: .4rem; align-items: center; }
+.pk-form { margin: 0; padding: 0; background: none; border: 0; box-shadow: none; max-inline-size: none; }
+
+.pk-name strong { font-weight: 700; color: var(--ink); }
+.pk-name small { display: block; margin-block-start: .15rem; font-size: .74rem; line-height: 1.5; color: var(--muted); }
+
+/* تنبيهٌ هادئ: هذا سطرُ مرجعٍ عن v1 لا تحذيرٌ يُفعَل بناءً عليه. */
+.notice--soft { background: var(--raised); border-color: var(--line); color: var(--ink-soft); }
+.pk-foot { margin-block-start: .9rem; font-size: .82rem; line-height: 1.7; }
+
+/* فقرةُ الشرح بعد الجدول تنكسر: `.scroller + p` (سطر 2593) تجعل كلَّ فقرةٍ
+   تلي غلافَ الجدول **صفَّ فلكس** — وهي مكتوبةٌ لذيل الصفحات («٢٤ طلباً ·
+   صفحة ١ من ٢»)، حيث القطعُ عناصرُ مستقلّة. وفقرةُ نثرٍ فيها `<strong>` في
+   وسطها تصير عندئذٍ عنصرين: نصٌّ وكتلةٌ، فينقطع السطرُ عند الغليظ ويقفز إلى
+   الحافة المقابلة. رُئي على «لا شيء في v1 اليوم يقرأ هذا العمود».
+
+   والتخصيصُ على `.notice` وحدَها: ما بعد الجدول إمّا ذيلُ صفحاتٍ (لا صنفَ له)
+   أو تنبيهٌ نثريّ — والأول يبقى كما هو. */
+.scroller + p.notice, table + p.notice { display: block; }
+
+/* بطاقتان في الشبكة المضغوطة: نصفان لا ربعان. الافتراضيُّ `span 3` مكتوبٌ
+   لأربعٍ، فبطاقتان تتركان نصفَ الصفّ أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> .sum:nth-child(2):last-child) > .sum { grid-column: span 6; }
+  .sum-grid--tight:has(> .sum:nth-child(3):last-child) > .sum { grid-column: span 4; }
+}
+
+/* ===========================================================================
+   ذيلُ الجدول جملةٌ لا صفَّ فلكس
+   ---------------------------------------------------------------------------
+   `.table-footer, .scroller + p, table + p { display: flex; justify-content:
+   space-between }` تجمع شكلين مختلفين تحت قاعدةٍ واحدة:
+
+   · `.table-footer` **كتلةٌ بطرفين** — عدّادٌ على حافةٍ وأزرارُ صفحاتٍ على
+     مقابلها. و`space-between` هي المطلوبة فيها.
+
+   · و`<p>` العاري **جملةٌ واحدة**: «0 دفعةً · صفحة 1 من 1». وفي الفلكس يصير
+     كلُّ ابنٍ عنصراً — والنصُّ العاري بينها عناصرُ مجهولة — فتُوزَّع سبعُ
+     قطعٍ على عرض الشاشة: «1» في حافة و«من» في وسط و«دفعة» في المقابلة. أي
+     أن الجملة تُفكَّك إلى كلماتٍ متباعدة.
+
+   فالفقرةُ تعود كتلةً، و`.table-footer` تبقى فلكس. والفرقُ ليس ذوقاً: أحدُهما
+   تخطيطٌ والآخرُ نصّ.
+
+   وهذا يُصلح سبعةَ قوالبَ معاً — كلَّ ما فيه هذا الذيل.
+   ======================================================================== */
+
+.scroller + p, table + p { display: block; }
+
+/* ===========================================================================
+   «إنشاء دفعة» — حقائقُ الفاتورة شبكةٌ، وحالةُ الفراغ لوحة
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   ١) حقائقُ الفاتورة كانت جدولاً صفوفُه «عنوانٌ · قيمة» — سبعُ قيمٍ منفردةٍ
+      عن فاتورةٍ واحدة، لا أعمدةَ تُقارَن. وثمنُه أن العنوان يقف على حافةٍ
+      والقيمةُ على مقابلها بعرض الشاشة بينهما.
+
+   ٢) حالتا الفراغ («ابحث عن الفاتورة…» و«لا فاتورة تطابق…») كانتا سطراً
+      رماديّاً في الهواء — وهما الشاشةُ **كلُّها** قبل البحث.
+
+   ٣) وسطرُ التعريف كان صنفُه `empty`، وهو صنفُ «لا نتائج»: فالنصُّ الرئيسُ
+      في الشاشة يُرسم بهيئة حالةِ فراغ.
+   ======================================================================== */
+
+/* ---- شبكةُ الحقائق ------------------------------------------------------ */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: .7rem;
+  margin: 0 0 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.fact { display: flex; flex-direction: column; gap: .2rem; min-inline-size: 0; }
+.fact__k { font-size: .76rem; font-weight: 700; color: var(--muted); }
+.fact__v {
+  font-size: .98rem;
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* «الباقي» أكبرُها: هو الرقمُ الذي يُكتب في الحقل تحته. */
+.fact--lead { padding-inline-start: .7rem; border-inline-start: 3px solid var(--brand); }
+.fact--lead .fact__v { font-size: 1.3rem; color: var(--brand-dark); }
+
+/* ---- حالةُ الفراغ ------------------------------------------------------- */
+
+.blank {
+  padding: 2.2rem 1.2rem;
+  text-align: center;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+}
+.blank__say { margin: 0; font-size: .95rem; font-weight: 700; color: var(--ink-soft); }
+.blank__hint { margin: .4rem 0 0; font-size: .82rem; color: var(--muted); }
+
+/* ===========================================================================
+   ثلاثُ شاشاتٍ ماليّة: «صحّة المال» و«ليه ما يقدرش يزايد» و«شحن يدوي»
+   ---------------------------------------------------------------------------
+   «خلّي التلات صفحات دي بشكل احترافي أكتر». وعلّتُهنّ واحدة: كُتبن قبل أن
+   تستقرّ هيئةُ اللوحة، فبقين بوسمٍ عارٍ من كلّ صنف.
+
+   ١) **استماراتٌ بلا لوحة** — `<form method="get">` بحقلٍ وزرٍّ في الهواء،
+      في الثلاثة. صارت `filters--row`.
+
+   ٢) **`class="empty"` على نصٍّ ليس فارغاً**. الصنفُ لحالة «لا نتائج»،
+      واستُعمل على **سطور الشرح** تحت العناوين وعلى سطر التعريف في الشاشة —
+      فالنصُّ الذي يشرح الشاشة يُرسم بلون «لا شيء هنا». ستُّ مرّاتٍ في «صحّة
+      المال» وحدها.
+
+   ٣) **عشرةُ أعمدةٍ بلا `scroller--wide`** في «ليه ما يقدرش يزايد»: كلُّ خانةٍ
+      تلفّ فيقارب ارتفاعُ الصفّ مئةَ بكسل.
+
+   ٤) **جدولُ الأرصدة الثلاثة** في «شحن يدوي» — ثلاثُ قيمٍ عن محفظةٍ واحدة في
+      جدولٍ بعمودين، والعنوانُ على حافةٍ والقيمةُ على مقابلها. صار شبكةَ حقائق.
+   ======================================================================== */
+
+/* ---- «صحّة المال»: رأسُ قسمٍ برقمٍ في قرص ------------------------------- */
+
+.mh-head {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: 1.8rem 0 .45rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.mh-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 1.65rem;
+  block-size: 1.65rem;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  font-size: .82rem;
+  font-weight: 800;
+}
+.mh-head .count { margin-inline-start: auto; }
+
+/* سطرُ شرح القسم: نصٌّ ثانويٌّ لا حالةُ فراغ. */
+.mh-say {
+  margin: 0 0 .7rem;
+  font-size: .84rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+/* ---- «ليه ما يقدرش يزايد»: سطرُ العميل --------------------------------- */
+
+.wnb-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .8rem;
+  padding: .7rem 1rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: .9rem;
+}
+.wnb-who strong { color: var(--ink); font-weight: 800; }
+
+/* ===========================================================================
+   «خصم مباشر من التأمين» — المقدّمةُ كانت في الذيل
+   ---------------------------------------------------------------------------
+   «عايزة الصفحة دي بشكل أفضل».
+
+   **والعطلُ ترتيبٌ لا لون**: الفقرةُ التي تشرح لماذا لا خانةَ مبلغٍ في الشاشة
+   كانت في **ذيلها**، وبصنف `empty`. ومن يفتح الشاشة يبحث عن خانة المبلغ فلا
+   يجدها، فيقرأ الجوابَ بعد أن ينزل إلى آخر الصفحة — إن نزل. وهي أهمُّ ما
+   فيها: بها يُفهَم أن الثلاثة المعروضة هي كلُّ الطرق التي يخرج بها مالٌ من
+   رصيد عميل. فصارت في الأعلى وبصنف `notice`.
+
+   ومعها: استمارةٌ عاريةٌ صارت لوحةً، وجدولُ الأرصدة الثلاثة صار شبكةَ حقائق،
+   وعمودا الإجراء كان رأساهما فارغين، والروابطُ المسطورةُ صارت أزراراً.
+   ======================================================================== */
+
+.dd-why { border-inline-start: 4px solid var(--warn); }
+
+/* اسمُ العميل ورقمُه: رأسُ كتلةٍ لا عنوانُ صفحة. */
+.dd-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 1.4rem 0 .7rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.dd-who small { font-size: .82rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* عنوانُ القسم وشرحُه في سطرٍ واحد: كانا مفصولين بشرطةٍ في النصّ. */
+.dd-sec {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 1.2rem 0 .5rem;
+  font-size: .92rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.dd-sec small { font-size: .78rem; font-weight: 600; color: var(--muted); }
+
+/* «الفواتير»: رقمُ الفاتورة مفتاحُ الصفّ فيُقرأ مفتاحاً، والمتبقّي هو جوابُ
+   «ما الذي لنا» فيسبق أخوَيه في الوزن — وكانت الأعمدةُ الثلاثة (المبلغ
+   والمسدَّد والمتبقّي) متساويةً تماماً، فتُقرأ ثلاثةَ أرقامٍ تُجمع بالعين. */
+.inv-no a { font-weight: 800; color: var(--brand-dark); text-decoration: none; font-variant-numeric: tabular-nums; }
+.inv-no a:hover { text-decoration: underline; }
+.inv-due { font-weight: 800; color: var(--ink); }
+
+/* بطاقةٌ واحدةٌ في الشبكة المضغوطة تأخذ العرضَ كلَّه لا ربعَه: الافتراضيُّ
+   `span 3` مكتوبٌ لأربعٍ، وبطاقةٌ وحدَها تترك ثلاثةَ أرباع الصفّ أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> .sum:only-child) > .sum { grid-column: span 12; }
+}
+
+/* لوحةُ فلاترٍ بثلاثة حقول: ثلاثةُ أعمدةٍ لا أربعة. القاعدةُ الأصليّة مكتوبةٌ
+   لستّة حقول (البحثُ والحالةُ يمتدّان عمودين ثم أربعةُ تواريخ)، وثلاثةُ حقولٍ
+   فيها تصير 2+1 ويبقى نصفُ الصفّ الثاني أبيض. رُئي في «تصدير الفواتير». */
+@media (min-width: 62rem) {
+  /* و`:last-of-type` لا تصلح للعدّ هنا: `nth-of-type` تعدّ الـ`div` لا الصنف،
+     وآخرُ `div` في الاستمارة هو صفُّ الأفعال لا آخرُ حقل. فالشرطُ: الحقلُ
+     الثالثُ موجودٌ والرابعُ ليس. (قِيس: القاعدةُ بـ`last-of-type` لم تُطبَّق
+     أصلاً، وبقيت الشبكةُ 2+1.) */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(3)):not(:has(> .cat-filters__field:nth-of-type(4))) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(3)):not(:has(> .cat-filters__field:nth-of-type(4))) > .cat-filters__field { grid-column: auto; }
+}
+
+/* ===========================================================================
+   «القيمة الحالية» — الشرطُ في البطاقة لا تحتها
+   ---------------------------------------------------------------------------
+   الرقمُ الأكبرُ في «إحصائيات المزاد النشط»، وكان في جدولٍ بصفٍّ واحدٍ وشرطُه
+   في فقرتين تحته بصنف `empty`. وبلا شرطه يُقرأ **مبيعاتٍ وقعت** — وهو ليس
+   كذلك: المزايدةُ قد تُعلى، والمالكُ قد يرفض ما دون سعر الوقوف.
+
+   فصار بطاقةً واحدةً عريضة، شرطُها **داخلها** تحت الرقم مباشرةً، بأرضيّةٍ من
+   عائلة الأساسيّ تفصله عن البطاقات العاديّة فوقه — فلا يُقرأ ثامناً في صفّها.
+   ======================================================================== */
+
+.aa-now {
+  margin: 0 0 1rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, var(--panel)), var(--panel) 62%);
+  border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--line));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.aa-now__k { margin: 0; font-size: .82rem; font-weight: 800; color: var(--ink-soft); }
+.aa-now__v {
+  margin: .2rem 0 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--brand-dark);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  text-align: end;
+}
+.aa-now__say {
+  margin: .6rem 0 0;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+  font-size: .8rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+/* ستُّ بطاقاتٍ رابطة: ثلاثٌ وثلاث. القاعدةُ الأصليّة مكتوبةٌ لسبعٍ (4×3 ثم
+   3×4)، وستٌّ فيها تصير 4 + 2 ويبقى ثلثُ الصفّ الثاني أبيض. */
+@media (min-width: 62rem) {
+  .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum,
+  .sum-grid--links:has(> .sum:nth-child(6):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
+}
+
+/* بطاقةٌ واحدةٌ رابطةٌ في شبكةٍ مضغوطة تبقى بعرض ثلثٍ لا بعرض الصفّ: هي
+   عدّادٌ واحدٌ لا لوحةٌ عريضة، والعرضُ الكاملُ يجعلها تُقرأ عنواناً. */
+@media (min-width: 62rem) {
+  .sum-grid--tight:has(> a.sum:only-child) > .sum { grid-column: span 4; }
+}
+
+/* ===========================================================================
+   لوحةُ الفلاتر: عددُ الأعمدة يتبع عددَ الحقول
+   ---------------------------------------------------------------------------
+   القاعدةُ الأصليّة مكتوبةٌ لستّة حقول (اثنان يمتدّان عمودين ثم أربعةُ
+   تواريخ). وأيُّ عددٍ آخر يخرج أعرج: خمسةٌ تصير 2+3 ويبقى ربعُ الصفّ الثاني
+   أبيض (رُئي في «تقرير المزايدات»)، وأربعةٌ تصير 2+2 في صفّين وهي تسع صفّاً.
+
+   والعدّ بـ`nth-of-type` على الـ`div`: آخرُ `div` في الاستمارة صفُّ الأفعال،
+   فالشرطُ «الحقلُ N موجودٌ وN+1 ليس» لا `:last-of-type`.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  /* أربعةٌ: صفٌّ واحدٌ تامّ. */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(4)):not(:has(> .cat-filters__field:nth-of-type(5))) > .cat-filters__field { grid-column: auto; }
+
+  /* خمسةٌ: اثنا عشرَ عموداً — ثلاثةٌ بعرض ٤ ثم اثنان بعرض ٦. */
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) > .cat-filters__field { grid-column: span 4; }
+  form.cat-filters:has(> .cat-filters__field:nth-of-type(5)):not(:has(> .cat-filters__field:nth-of-type(6))) > .cat-filters__field:nth-of-type(n+4) { grid-column: span 6; }
+}
+
+/* ===========================================================================
+   ألوانُ التصنيف: عائلةٌ واحدةٌ لا ثلاثةُ ألوانٍ متجاورة
+   ---------------------------------------------------------------------------
+   «درجات الألوان مش متناسقة مع بعض، خلّي فيه تناسق أكتر وباحترافيّة».
+
+   **والعلّةُ ليست في الإضاءة**: قِيست الثلاثةُ فوُجدت في نطاقٍ واحدٍ بالفعل —
+   `L*` = 39.5 و42.4 و42.3، وتباينُها على الأبيض 6.57 و5.91 و5.93. فالمشكلةُ
+   في **التشبّع والدرجة**:
+
+   · `--people: #8a5a00` كهرمانيٌّ منخفضُ التشبّع — يُقرأ **بنّيّاً موحلاً** لا
+     كهرمانيّاً، وبجوار بنفسجيٍّ وفيروزيٍّ يبدو باهتاً متّسخاً. وحبّتُه
+     `#fbf2e0` بيجيّةٌ تُقرأ «ورقٌ قديم».
+   · و`--auction: #0f6f75` فيروزيٌّ غامقٌ بعيدٌ عن عائلة الأزرق الأساسيّ، فلا
+     يُقرأ أخاً له.
+
+   فالثلاثةُ الجديدةُ ثالوثٌ متساوي الإضاءة والتشبّع، ودرجاتُه موزّعةٌ على
+   الدائرة: بنفسجيٌّ ٢٦٠° وسماويٌّ ١٩٥° وكهرمانيٌّ ٢٥°. وحبّاتُها كلُّها خلطُ
+   9% في الأبيض — نسبةٌ واحدةٌ لا ثلاثُ نسبٍ مذوَّقة، فتُقرأ عائلةً.
+
+   والتصنيفُ نفسُه لا يتغيّر: المالُ بنفسجيّ، والمزادُ سماويّ، والناسُ
+   كهرمانيّ — والقاعدةُ المكتوبةُ أعلاه باقية: لا تتبع اللونَ الأساسيَّ الذي
+   يختاره المالك، وإلا صارت بطاقةُ المال بلون بطاقة المزاد عند اختيارٍ بعينه.
+
+   التباينات على الأبيض: 6.62 و5.62 و5.43 — كلُّها فوق 4.5.
+   وفي الداكن على `#171d2b`: 9.10 و10.18 و10.89.
+   ======================================================================== */
+
+:root {
+  --money: #6941c6;
+  --money-soft: #f2eefa;
+  --auction: #0e7090;
+  --auction-soft: #e9f2f5;
+  --people: #b54708;
+  --people-soft: #f8eee9;
+}
+
+:root[data-scheme="dark"] {
+  --money: #c3b5fd;
+  --money-soft: #363851;
+  --auction: #7cd4fd;
+  --auction-soft: #293e51;
+  --people: #fec84b;
+  --people-soft: #413c31;
+}

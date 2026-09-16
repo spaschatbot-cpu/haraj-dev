@@ -17,66 +17,146 @@
 {% block heading %}منصة الملاك{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-    <thead><tr><th>الرقم</th><th>القيمة</th><th>من أين</th></tr></thead>
-    <tbody>
-      <tr>
-        <th>المشرفون</th>
-        <td class="count">{{ staff|unlocalize }}</td>
-        <td><a href="{% url 'console:admins' %}">إدارة المشرفين ←</a></td>
-      </tr>
-      <tr>
-        <th>المستخدمون</th>
-        <td class="count">{{ customers|unlocalize }}</td>
-        <td><a href="{% url 'console:customers' %}">المستخدمون ←</a></td>
-      </tr>
-      <tr>
-        <th>المزادات</th>
-        <td class="count">{{ auctions|unlocalize }}</td>
-        <td><a href="{% url 'console:auctions' %}">قائمة المزادات ←</a></td>
-      </tr>
-      <tr>
-        <th>الجاري الآن</th>
-        <td class="count">{{ live|unlocalize }}</td>
-        <td><a href="{% url 'console:active-auction' %}">احصائيات المزاد النشط ←</a></td>
-      </tr>
-      {% comment %} الوحيدُ الذي مبلغٌ بين ستّةِ أعداد — ومبلغُ **دفتر
-         المحفظة**، فقدرتُه «عرض دفتر التأمينات والحركات» (`money.view`) لا
-         قدرةُ الفواتير. وهو الرقمُ الذي تحرسه تلك القدرةُ في «تقرير المحفظة»
-         التي يفتحها الرابطُ بجواره وبالدالّة ذاتها (`analytics.py`). {% endcomment %}
-      <tr>
-        <th>إجمالي التأمين</th>
-        {% if show_wallet %}<td class="money">{{ insurance|unlocalize }}</td>
-        {% else %}<td class="empty" title="دفترُ التأمينات خلف صلاحية «عرض دفتر التأمينات والحركات»">محجوب</td>{% endif %}
-        <td><a href="{% url 'console:insurance-report' %}">تقرير المحفظة ←</a></td>
-      </tr>
-      <tr>
-        <th>المزايدون</th>
-        <td class="count">{{ bidders|unlocalize }}</td>
-        <td><a href="{% url 'console:analytics-bids' %}">تحليل المزايدات ←</a></td>
-      </tr>
-      <tr>
-        <th>مركبات رست</th>
-        <td class="count">{{ awarded|unlocalize }}</td>
-        <td><a href="{% url 'console:accepted-bids' %}">المزايدات المقبولة ←</a></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} سطرُ تعريفٍ كبقيّة الشاشات — الشاشةُ كانت تبدأ برأس جدولٍ
+     مباشرةً، فلا تقول ما هي ولا لمن. {% endcomment %}
+  <p class="lede">
+    أرقامُ المنصّة السبعةُ في لمحة، وكلُّ رقمٍ يفتح الشاشةَ التي يُقرأ منها —
+    <strong>لا استعلامٌ ثانٍ ولا عمودٌ مخزَّن</strong>، بل الدالّةُ نفسُها التي
+    تعدّها تلك الشاشة. وتحتها أبوابُ الإدارة العليا.
+  </p>
 
-  <h2>ما يُفتح من هنا</h2>
-  <ul>
-    <li><a href="{% url 'console:partner-decisions' %}">اتخاذ القرار</a> — ما ينتظر قرار المالك</li>
-    <li><a href="{% url 'console:ended-decisions' %}">القرارات المنتهية</a> — ما حُسم</li>
-    <li><a href="{% url 'console:auction-archive' %}">أرشيف المزادات</a></li>
-    <li><a href="{% url 'console:analytics' %}">لوحة التقارير</a></li>
-    <li><a href="{% url 'console:profit-report' %}">تقرير الأرباح</a></li>
-    <li><a href="{% url 'console:money-health' %}">صحّة المال</a></li>
-    <li><a href="{% url 'console:audit' %}">سجل التدقيق</a></li>
-  </ul>
+  {% comment %} كان جدولاً بثلاثة أعمدة: «الرقم · القيمة · من أين». وهو ليس
+     جدولاً — لا أعمدةَ تُقارَن ولا صفوفَ تُفرَز — والعمودُ الثالثُ كلُّه رابطٌ
+     مكرَّر «← اسم الشاشة»، أي أن ثلثَ عرض الشاشة يحمل كلمةً واحدةً سبعَ مرّات.
 
-  <p class="empty">
+     فكلُّ صفٍّ صار **بطاقةً هي نفسُها الرابط**: الرقمُ وعنوانُه ووجهتُه في
+     كتلةٍ واحدة تُنقر كلُّها، فلا عمودَ ثالثَ ولا سهمَ يُقرأ سبعاً. {% endcomment %}
+  <section class="sum-grid sum-grid--links" aria-label="أرقام المنصّة">
+
+    <a class="sum" href="{% url 'console:admins' %}">
+      <p class="sum__label">المشرفون</p>
+      <p class="sum__value">{{ staff|unlocalize }}</p>
+      <p class="sum__note">إدارة المشرفين</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:customers' %}">
+      <p class="sum__label">المستخدمون</p>
+      <p class="sum__value">{{ customers|unlocalize }}</p>
+      <p class="sum__note">حسابات الأفراد والشركات</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:auctions' %}">
+      <p class="sum__label">المزادات</p>
+      <p class="sum__value">{{ auctions|unlocalize }}</p>
+      <p class="sum__note">قائمة المزادات</p>
+    </a>
+
+    <a class="sum sum--live" href="{% url 'console:active-auction' %}">
+      <p class="sum__label">الجاري الآن</p>
+      <p class="sum__value">{{ live|unlocalize }}</p>
+      <p class="sum__note">إحصائيات المزاد النشط</p>
+    </a>
+
+    {% comment %} الوحيدُ الذي مبلغٌ بين ستّةِ أعداد — ومبلغُ **دفتر المحفظة**،
+       فقدرتُه «عرض دفتر التأمينات والحركات» (`money.view`) لا قدرةُ الفواتير.
+       وهو الرقمُ الذي تحرسه تلك القدرةُ في «تقرير المحفظة» التي يفتحها
+       الرابطُ وبالدالّة ذاتها (`analytics.py`). {% endcomment %}
+    <a class="sum sum--money" href="{% url 'console:insurance-report' %}">
+      <p class="sum__label">إجمالي التأمين</p>
+      {% if show_wallet %}
+        <p class="sum__value money">{{ insurance|unlocalize }}</p>
+      {% else %}
+        <p class="sum__value sum__value--hidden" title="دفترُ التأمينات خلف صلاحية «عرض دفتر التأمينات والحركات»">محجوب</p>
+      {% endif %}
+      <p class="sum__note">تقرير المحفظة</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:analytics-bids' %}">
+      <p class="sum__label">المزايدون</p>
+      <p class="sum__value">{{ bidders|unlocalize }}</p>
+      <p class="sum__note">تحليل المزايدات</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:accepted-bids' %}">
+      <p class="sum__label">مركبات رست</p>
+      <p class="sum__value">{{ awarded|unlocalize }}</p>
+      <p class="sum__note">المزايدات المقبولة</p>
+    </a>
+
+  </section>
+
+  {% comment %} كانت قائمةَ `<ul>` عاريةً: سبعةُ روابطَ مسطورةٍ تحت بعضها،
+     وشرحُ كلٍّ بعد شرطةٍ في السطر نفسِه. فيُقرأ الاسمُ والشرحُ كتلةً واحدة،
+     ولا هدفَ نقرٍ إلا الكلمةَ نفسَها. فصارت بلاطاتٍ: الاسمُ سطرٌ والشرحُ
+     تحته، والبلاطةُ كلُّها تُنقر. {% endcomment %}
+  <h2 class="owners-head">ما يُفتح من هنا</h2>
+  <div class="open-grid">
+    <a class="open" href="{% url 'console:partner-decisions' %}">
+      <span class="open__name">اتخاذ القرار</span>
+      <span class="open__why">ما ينتظر قرار المالك</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:ended-decisions' %}">
+      <span class="open__name">القرارات المنتهية</span>
+      <span class="open__why">ما حُسم</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:auction-archive' %}">
+      <span class="open__name">أرشيف المزادات</span>
+      <span class="open__why">المزادات المنتهية وأرقامها</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:analytics' %}">
+      <span class="open__name">لوحة التقارير</span>
+      <span class="open__why">التحليلات والإحصائيات</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:profit-report' %}">
+      <span class="open__name">تقرير الأرباح</span>
+      <span class="open__why">ما دخل وما خرج</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:money-health' %}">
+      <span class="open__name">صحّة المال</span>
+      <span class="open__why">اتّساق الدفتر مع الفواتير</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+    <a class="open" href="{% url 'console:audit' %}">
+      <span class="open__name">سجل التدقيق</span>
+      <span class="open__why">من فعل ماذا ومتى</span>
+      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
+         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
+         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
+         يقع على البلاطة كما كان. {% endcomment %}
+      <span class="open__go" aria-hidden="true">عرض</span>
+    </a>
+  </div>
+
+  <p class="notice owners-note">
     <strong>ولا «تعديل مزايدة» هنا.</strong> شاشة v1 تعرض كرتاً بهذا الاسم
     («تعديل مبلغ مزايدة معيّنة»)، وتعديلُ مبلغِ مزايدةٍ بعد وقوعها أخطرُ ما في
     اللوحة بعد الخصم المباشر — المزايدة <strong>عرضٌ قانونيّ</strong>، ومن

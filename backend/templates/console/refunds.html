@@ -12,42 +12,60 @@
 {% endcomment %}
 {% block title %}الاستردادات{% endblock %}
 {% block heading %}الاستردادات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-    <thead><tr><th>الحالة</th><th>العدد</th><th></th></tr></thead>
-    <tbody>
-      {% for row in counts %}
-        <tr>
-          <th>{{ row.label }}</th>
-          <td class="count">{{ row.count|unlocalize }}</td>
-          {% comment %} «ما زال يكلّفنا» ليست تصنيفاً بل مجموعةٌ مسمّاة
-             (`RefundRequestState.open_states`) يقرأها القيدُ في القاعدة
-             وهذه الشاشة معاً. {% endcomment %}
-          <td>{% if row.open %}<span class="pill" data-tone="warn">ما زال مفتوحاً</span>{% endif %}</td>
-        </tr>
-      {% endfor %}
-      <tr>
-        <th>ما زال يكلّفنا</th>
-        <td class="count">{{ open_count|unlocalize }}</td>
-        <td class="money">{{ open_value|unlocalize }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} سطرُ تعريفٍ يقول لماذا هذه الشاشةُ موجودةٌ أصلاً — وهو
+     مكتوبٌ في تعليق الملفّ أعلاه ولا يراه أحدٌ إلا من يفتح القالب. {% endcomment %}
+  <p class="lede">
+    كلُّ طلب استردادٍ وحالتُه. <strong>وفي v1 ثلاثةُ أرقامٍ لشيءٍ واحد</strong>
+    — «لوحة التقارير» تقول ٣٬٣٤٢، و«إدارة الطلبات» تقول ٥٠٠، و«الاستردادات»
+    تقول ٠ — ولا واحدةٌ منها تقول أيَّ مرشِّحٍ تطبّق. وهنا مصدرٌ واحدٌ وحالاتٌ
+    مسمّاة، فالسؤالُ «كم مُقدَّماً وكم نُفِّذ» له جوابٌ واحد.
+  </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو جواله أو المرجع">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for row in counts %}
-        <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  {% comment %} كان جدولاً بثلاثة أعمدة: «الحالة · العدد · حبّةُ ما زال
+     مفتوحاً». وهو ليس جدولاً — لا صفوفَ تُفرَز ولا أعمدةَ تُقارَن، ستُّ قيمٍ
+     منفردةٍ يقرؤها الموظّفُ في لمحةٍ ثم ينزل إلى الجدول الحقيقيّ تحتها.
+     وعمودُه الثالثُ كان فارغاً في أربعةِ صفوفٍ من ستّة.
+
+     فبطاقات: العددُ تحت اسم حالته، و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافة
+     البطاقة لا حبّةٌ في عمودٍ ثالث. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="الاستردادات بحالاتها">
+    {% for row in counts %}
+      <div class="sum{% if row.open %} sum--wait{% endif %}">
+        <p class="sum__label">{{ row.label }}</p>
+        <p class="sum__value">{{ row.count|unlocalize }}</p>
+        <p class="sum__note">{% if row.open %}ما زال مفتوحاً{% else %}حالةٌ مُغلَقة{% endif %}</p>
+      </div>
+    {% endfor %}
+
+    {% comment %} «ما زال يكلّفنا» ليست تصنيفاً بل مجموعةٌ مسمّاة
+       (`RefundRequestState.open_states`) يقرأها القيدُ في القاعدة وهذه الشاشة
+       معاً. ولها بطاقةٌ بلون المال لأنها الوحيدةُ التي تحمل مبلغاً. {% endcomment %}
+    <div class="sum sum--money">
+      <p class="sum__label">ما زال يكلّفنا</p>
+      <p class="sum__value money">{{ open_value|unlocalize }}</p>
+      <p class="sum__note">{{ open_count|unlocalize }} طلباً مفتوحاً.</p>
+    </div>
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلان وزرٌّ في الهواء بلا لوحةٍ
+     تجمعها. وهي دون عتبةِ القوائم الثلاث، فتقع في سطرٍ واحد. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم العميل أو جواله أو المرجع" aria-label="بحث">
+      <select name="state" aria-label="الحالة">
+        <option value="">كل الحالات</option>
+        {% for row in counts %}
+          <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
+
 
   <div class="scroller">
     <table>
@@ -59,7 +77,8 @@
         <th>المبلغ</th>
         <th>الحالة</th>
         <th>قُدِّم</th>
-        <th></th>
+        {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم؛ والعمودُ له اسمٌ فعلاً. {% endcomment %}
+        <th>الدفتر</th>
       </tr>
     </thead>
     <tbody>
@@ -71,7 +90,7 @@
           <td class="money">{{ row.amount|unlocalize }}</td>
           <td>{{ row.get_state_display }}</td>
           <td>{{ row.created_at }}</td>
-          <td><a href="{% url 'console:money-customer' row.user.pk %}">دفتره ←</a></td>
+          <td class="rf-act"><a class="rf-go" href="{% url 'console:money-customer' row.user.pk %}">دفتره</a></td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="empty">لا طلبات استرداد مطابقة.</td></tr>
