@@ -10430,3 +10430,43 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   }
   form.cat-filters:has(> .cat-filters__field:nth-of-type(3)):not(:has(> .cat-filters__field:nth-of-type(4))) > .cat-filters__field { grid-column: auto; }
 }
+
+/* ===========================================================================
+   «القيمة الحالية» — الشرطُ في البطاقة لا تحتها
+   ---------------------------------------------------------------------------
+   الرقمُ الأكبرُ في «إحصائيات المزاد النشط»، وكان في جدولٍ بصفٍّ واحدٍ وشرطُه
+   في فقرتين تحته بصنف `empty`. وبلا شرطه يُقرأ **مبيعاتٍ وقعت** — وهو ليس
+   كذلك: المزايدةُ قد تُعلى، والمالكُ قد يرفض ما دون سعر الوقوف.
+
+   فصار بطاقةً واحدةً عريضة، شرطُها **داخلها** تحت الرقم مباشرةً، بأرضيّةٍ من
+   عائلة الأساسيّ تفصله عن البطاقات العاديّة فوقه — فلا يُقرأ ثامناً في صفّها.
+   ======================================================================== */
+
+.aa-now {
+  margin: 0 0 1rem;
+  padding: 1.1rem 1.25rem;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, var(--panel)), var(--panel) 62%);
+  border: 1px solid color-mix(in srgb, var(--brand) 32%, var(--line));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.aa-now__k { margin: 0; font-size: .82rem; font-weight: 800; color: var(--ink-soft); }
+.aa-now__v {
+  margin: .2rem 0 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -.02em;
+  color: var(--brand-dark);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  text-align: end;
+}
+.aa-now__say {
+  margin: .6rem 0 0;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+  font-size: .8rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
