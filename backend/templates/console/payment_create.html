@@ -14,22 +14,35 @@ v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا
 {% block heading %}إنشاء دفعة على فاتورة{% endblock %}
 
 {% block content %}
-  <p class="empty">
+  {% comment %} `lede` لا `empty`: هذا سطرُ تعريف الشاشة، و`empty` صنفُ
+     «لا نتائج» — فكان النصُّ الرئيسُ يُرسم بهيئة حالةِ فراغ. {% endcomment %}
+  <p class="lede">
     قيدُ سدادٍ <strong>نقداً أو تحويلاً بنكياً</strong> على فاتورةٍ غير مسدَّدة.
     والسدادُ من رصيد العميل فعلٌ آخر بابُه «الخصم المباشر»، والبطاقةُ لا تُسدَّد
     بها سيّارة — يرفضها الدفترُ نفسُه لا هذه الشاشة.
   </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="رقم الفاتورة أو اسم العميل أو جوّاله أو لوحة المركبة">
-    <button type="submit">بحث</button>
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="رقم الفاتورة أو اسم العميل أو جوّاله أو لوحة المركبة" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
+  {% comment %} حالتا الفراغ كانتا سطراً رماديّاً في الهواء. وهما الشاشةُ
+     كلُّها قبل البحث، فتُرسمان لوحةً تقول ما يُفعل. {% endcomment %}
   {% if not searched %}
-    <p class="empty">ابحث عن الفاتورة لعرضها وتقييد الدفعة عليها.</p>
+    <div class="blank">
+      <p class="blank__say">ابحث عن الفاتورة لعرضها وتقييد الدفعة عليها.</p>
+      <p class="blank__hint">برقم الفاتورة، أو اسم العميل، أو جوّاله، أو لوحة المركبة.</p>
+    </div>
   {% elif not rows %}
-    <p class="empty">لا فاتورةَ غيرَ مسدَّدةٍ تطابق ما كتبت.</p>
+    <div class="blank">
+      <p class="blank__say">لا فاتورةَ غيرَ مسدَّدةٍ تطابق ما كتبت.</p>
+      <p class="blank__hint">المسدَّدةُ بالكامل لا تظهر هنا — هذه الشاشةُ لما بقي عليه شيء.</p>
+    </div>
   {% else %}
     {% for row in rows %}
       <h2>
@@ -37,27 +50,26 @@ v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا
         <small>{{ row.name }}{% if row.phone %} · {{ row.phone|unlocalize }}{% endif %}</small>
       </h2>
 
-      <div class="scroller">
-        <table>
-          <tbody>
-            <tr><th>إجمالي الفاتورة</th><td class="money">{{ row.invoice.amount|unlocalize }}</td></tr>
-            <tr><th>المسدَّد</th><td class="money">{{ row.invoice.amount_paid|unlocalize }}</td></tr>
-            <tr><th>الباقي</th><td class="money"><strong>{{ row.invoice.outstanding|unlocalize }}</strong></td></tr>
-            <tr><th>الحالة</th><td>{{ row.invoice.get_state_display }}</td></tr>
-            {% if row.invoice.vehicle %}
-              <tr>
-                <th>المركبة</th>
-                <td>لوت {{ row.invoice.vehicle.lot_number }} · {{ row.invoice.vehicle.plate_number }}</td>
-              </tr>
-            {% endif %}
-            {% if row.wallet %}
-              {% comment %} دفترُ التأمينات خلف `money.view` — يُعرَض لمن يملكها
-                 وحده، لأن سؤاله هنا «أله رصيدٌ يكفي بدل النقد؟». {% endcomment %}
-              <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
-              <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
+      {% comment %} كان جدولاً صفوفُه «عنوانٌ · قيمة» — سبعُ قيمٍ منفردةٍ عن
+         فاتورةٍ واحدة، لا أعمدةَ تُقارَن ولا صفوفَ تُفرَز. وثمنُه أن العنوان
+         يقف على حافةٍ والقيمةُ على مقابلها بعرض الشاشة بينهما.
+
+         فصارت شبكةَ حقائق: القيمةُ تحت اسمها، و«الباقي» أكبرُها لأنه الرقمُ
+         الذي يُكتب في الحقل تحته. {% endcomment %}
+      <div class="facts">
+        <div class="fact"><span class="fact__k">إجمالي الفاتورة</span><span class="fact__v money">{{ row.invoice.amount|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">المسدَّد</span><span class="fact__v money">{{ row.invoice.amount_paid|unlocalize }}</span></div>
+        <div class="fact fact--lead"><span class="fact__k">الباقي</span><span class="fact__v money">{{ row.invoice.outstanding|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">الحالة</span><span class="fact__v">{{ row.invoice.get_state_display }}</span></div>
+        {% if row.invoice.vehicle %}
+          <div class="fact"><span class="fact__k">المركبة</span><span class="fact__v">لوت {{ row.invoice.vehicle.lot_number }} · {{ row.invoice.vehicle.plate_number }}</span></div>
+        {% endif %}
+        {% if row.wallet %}
+          {% comment %} دفترُ التأمينات خلف `money.view` — يُعرَض لمن يملكها
+             وحده، لأن سؤاله هنا «أله رصيدٌ يكفي بدل النقد؟». {% endcomment %}
+          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
+          <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.wallet.insurance_locked.balance|unlocalize }}</span></div>
+        {% endif %}
       </div>
 
       <form method="post" class="form-card">
