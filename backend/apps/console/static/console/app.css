@@ -10403,3 +10403,10 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   color: var(--ink-soft);
 }
 .dd-sec small { font-size: .78rem; font-weight: 600; color: var(--muted); }
+
+/* «الفواتير»: رقمُ الفاتورة مفتاحُ الصفّ فيُقرأ مفتاحاً، والمتبقّي هو جوابُ
+   «ما الذي لنا» فيسبق أخوَيه في الوزن — وكانت الأعمدةُ الثلاثة (المبلغ
+   والمسدَّد والمتبقّي) متساويةً تماماً، فتُقرأ ثلاثةَ أرقامٍ تُجمع بالعين. */
+.inv-no a { font-weight: 800; color: var(--brand-dark); text-decoration: none; font-variant-numeric: tabular-nums; }
+.inv-no a:hover { text-decoration: underline; }
+.inv-due { font-weight: 800; color: var(--ink); }
