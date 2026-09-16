@@ -53,18 +53,18 @@
 
   {% if board.stats %}
     <h2 class="board-eyebrow" id="head-stats"><span>أرقام المنصّة</span></h2>
+    {% comment %} شبكةٌ **واحدة** لبطاقات الأرقام وبطاقات الرسم معاً. كانتا
+       شبكتين: الثانيةُ بعمودين للبطاقات ذات الرسم. وثمنُ الفصل أن ذيلَ
+       الأولى يبقى صفّاً ناقصاً ثم يبدأ صفٌّ بعمودين تحته — أي ستّةُ مربّعاتٍ
+       في ثلاثة صفوفٍ غيرِ متساوية.
+
+       والفرزُ يبقى في `dashboard.py` كما كان (`board.stats` و`board.charts`
+       حقلان منفصلان) — المتغيّرُ هنا أنهما يُرسمان في شبكةٍ واحدة، فتُقرأ
+       الكتلةُ صفوفاً متساوية. والقالبُ لا يفرز بيانات، إنما يعرضها. {% endcomment %}
     <section class="board-stats" aria-labelledby="head-stats">
       {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
+      {% for stat in board.charts %}{% include "console/_stat.html" %}{% endfor %}
     </section>
-    {% if board.charts %}
-      {% comment %} شبكةٌ ثانيةٌ بعمودين للبطاقات ذات الرسم — لا عنوانَ لها:
-         هي من «أرقام المنصّة» نفسِها، وعنوانٌ ثانٍ فوق صفٍّ واحد يقطع الكتلة
-         بلا أن يقول شيئاً جديداً. وفصلُها عن الشبكة الأولى في `dashboard.py`
-         لا هنا — القالبُ لا يفرز بيانات. {% endcomment %}
-      <section class="board-charts" aria-labelledby="head-stats">
-        {% for stat in board.charts %}{% include "console/_stat.html" %}{% endfor %}
-      </section>
-    {% endif %}
   {% else %}
     <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
   {% endif %}
