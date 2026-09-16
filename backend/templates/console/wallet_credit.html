@@ -15,30 +15,47 @@
 {% block heading %}شحن يدوي للمحفظة{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو رقم جواله">
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ تعريفٍ يقول ما في تعليق الملفّ ولا يراه إلا من يفتحه:
+     أن v1 يُخفي الصفوفَ الناقصة، وهنا تُبحَث ولا تُخفى. {% endcomment %}
+  <p class="lede">
+    شحنُ رصيد تأمينٍ لعميلٍ بيد الموظّف، بمرجعِ حوالةٍ وسببٍ مكتوب.
+    <strong>وشاشةُ v1 تُخفي السجلّاتِ غيرَ المكتملة</strong> — وهنا تُبحَث ولا
+    تُخفى: الصفُّ الذي يظهر هو الذي يُصلَح.
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم العميل أو رقم جواله" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   {% if not searched %}
-    <p class="empty">ابحث باسم العميل أو رقم جواله لعرض رصيده وإتمام الشحن.</p>
+    <div class="blank">
+      <p class="blank__say">ابحث باسم العميل أو رقم جوّاله لعرض رصيده وإتمام الشحن.</p>
+      <p class="blank__hint">الشحنُ يلزمه مرجعُ حوالةٍ وسببٌ مكتوبٌ ومبلغٌ موجب.</p>
+    </div>
   {% elif not rows %}
-    <p class="empty">لا عميل يطابق ما كتبت.</p>
+    <div class="blank">
+      <p class="blank__say">لا عميلَ يطابق ما كتبت.</p>
+      <p class="blank__hint">جرّب الاسمَ كاملاً أو رقمَ الجوّال بصيغته المسجَّلة.</p>
+    </div>
   {% else %}
     {% for row in rows %}
       <h2>
         {{ row.person.full_name }}
         <small>{{ row.person.phone|unlocalize }}</small>
       </h2>
-      <div class="scroller">
-        <table>
-        <tbody>
-          <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
-          <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
-          <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
-        </tbody>
-      </table>
-    </div>
+      {% comment %} كان جدولاً بثلاثة صفوفٍ «عنوانٌ · قيمة» — ثلاثُ قيمٍ عن
+         محفظةٍ واحدة، لا أعمدةَ تُقارَن. والعنوانُ على حافةٍ والقيمةُ على
+         مقابلها بعرض الشاشة بينهما. {% endcomment %}
+      <div class="facts">
+        <div class="fact fact--lead"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">محجوز لمزاد</span><span class="fact__v money">{{ row.wallet.insurance_held.balance|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.wallet.insurance_locked.balance|unlocalize }}</span></div>
+      </div>
 
       <form method="post" class="form-card">
         {% csrf_token %}
