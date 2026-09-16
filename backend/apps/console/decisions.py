@@ -50,6 +50,7 @@ from django.utils.http import urlencode
 from django.utils.timezone import localtime
 
 from apps.auctions.models import Vehicle
+from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.core import audit
 from apps.core.arabic import search_q
@@ -58,6 +59,7 @@ from apps.money import services as money
 from apps.money.models import Invoice
 
 from .exports import export_table, wants_export
+from .icons import path_of
 from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
@@ -74,6 +76,18 @@ PAGE_SIZE = 50
 #: للكلمة الواحدة يُصلَح أحدُهما ويُنسى الآخر. والاسمُ هنا يبقى لأن
 #: `analytics.py` يستورده باسمه.
 AWARDED = AWARDED_STATES
+
+
+#: رسومُ شريط التبويبات — من `icons.py` لا محارف. وv1 يضع `↩️ ⚖️ ✅ 🔴 🔍 🤝 📊`
+#: ويرسمها نظامُ التشغيل بأسلوبه، فتخرج سبعةُ رسومٍ بسبعة أساليب (T837).
+def _tab_icons() -> dict[str, str]:
+    return {
+        "live": path_of("eye"),
+        "accepted": path_of("gavel"),
+        "summary": path_of("sum"),
+        "ended": path_of("stamp"),
+        "owners": path_of("handshake"),
+    }
 
 
 def awarded(*, text: str = "", first: str = "", last: str = ""):
@@ -225,6 +239,11 @@ def accepted_bids(request):
             # بـ`auctions.view` لا يُفوتِر منه. ويُقرأ مرّةً هنا لا مرّةً لكلّ
             # صفّ في القالب.
             "can_invoice": can(request.user, Capability.MONEY_ACT),
+            "tab_icons": _tab_icons(),
+            "active": "accepted-bids",
+            # عددُ ما ينتظر فوترةً في **هذه النتائج** — يُكتب على زرّ الدفعة،
+            # فمن يضغطه يعرف كم سيُصدر قبل أن يضغط لا بعده.
+            "pending_invoices": rows.filter(state=VehicleState.AWARDED).count(),
             # المرشّحاتُ كما هي، ليعود إليها بعد الفوترة: الموظّفُ يفوتر من
             # نتيجةِ بحثٍ، وعودةٌ إلى الصفحة عاريةً تعني بحثاً جديداً بعد كلّ
             # فاتورة.
@@ -387,3 +406,60 @@ def _back(request) -> str:
     """
     query = request.POST.get("back", "")
     return f"/console/bids/accepted/?{query}" if query else "/console/bids/accepted/"
+
+
+def accepted_invoice_all(request):
+    """فوترةُ كلِّ ما رسا ولم يُفوتَر — نظيرُ «إرسال جميع الفواتير دفعة واحدة».
+
+    **وبتقريرٍ لا بصمت.** v1 يزرّ زرّاً واحداً ويقول «تمّ»، والفشلُ فيه يختفي:
+    عميلٌ بلا تأمينٍ كافٍ تُردّ فوترتُه، ومركبةٌ سبق أن فُوتِرت تُردّ كذلك —
+    ومن ضغط الزرَّ لا يعرف أيُّ الأربعين نجح. فهنا يُعدّ الناجحُ والمردودُ
+    وتُقال أسبابُ الردّ بأسمائها.
+
+    والحلقةُ **لا تقف عند أوّل رفض**: رفضُ مركبةٍ شأنُها وحدها، وإيقافُ الدفعة
+    لأجلها يترك تسعةً وثلاثين لم تُحاوَل ولا يُعرف لماذا. وكلُّ فاتورةٍ معاملةٌ
+    مستقلّة داخل `invoice_award`، فالفاشلةُ لا تُبطل الناجحة.
+
+    والمرشّحاتُ تُحترم: من فوتر نتيجةَ بحثٍ يقصد **ما يراه**، لا كلَّ ما في
+    القاعدة. فـ«الكلّ» هنا كلُّ ما تعرضه الشاشةُ الآن — وهو ما يقوله العدد
+    المكتوب على الزرّ نفسه.
+    """
+    if not can(request.user, Capability.MONEY_ACT):
+        messages.error(request, "إصدارُ الفواتير يحتاج صلاحية «الأفعال المالية الإدارية».")
+        return redirect("console:accepted-bids")
+    if request.method != "POST":
+        return redirect("console:accepted-bids")
+
+    rows = awarded(
+        text=request.POST.get("q", ""),
+        first=request.POST.get("from", ""),
+        last=request.POST.get("to", ""),
+    ).filter(state=VehicleState.AWARDED)
+
+    done, failed = 0, []
+    for vehicle in rows:
+        try:
+            invoice = settlement.invoice_award(vehicle)
+        except (ValueError, IntegrityError, money.MoneyError) as why:
+            failed.append(f"لوت {vehicle.lot_number}: {why}")
+            continue
+        done += 1
+        audit.record(
+            action="console.accepted_invoice",
+            entity=vehicle,
+            actor=request.user,
+            after={"invoice": invoice.number, "amount": str(invoice.amount)},
+            note="إصدار فاتورة ترسية (دفعة)",
+        )
+
+    if done:
+        messages.success(request, f"صدرت {done} فاتورة.")
+    if failed:
+        # أوّلُ ثلاثةٍ بأسبابها ثم العدد: رسالةٌ بأربعين سطراً لا تُقرأ، وعددٌ
+        # بلا سببٍ واحدٍ لا يُفيد. والسجلُّ يحمل البقيّة.
+        head = " · ".join(failed[:3])
+        rest = f" (و{len(failed) - 3} غيرها)" if len(failed) > 3 else ""
+        messages.error(request, f"تعذّرت {len(failed)}: {head}{rest}")
+    if not done and not failed:
+        messages.info(request, "لا مركبةَ رست بلا فاتورة في هذه النتائج.")
+    return redirect(_back(request))

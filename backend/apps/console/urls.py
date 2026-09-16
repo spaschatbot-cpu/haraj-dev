@@ -155,6 +155,11 @@ urlpatterns = [
         decisions.accepted_invoice,
         name="accepted-invoice",
     ),
+    path(
+        "bids/accepted/invoice-all/",
+        decisions.accepted_invoice_all,
+        name="accepted-invoice-all",
+    ),
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),

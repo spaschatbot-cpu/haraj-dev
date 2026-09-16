@@ -9563,3 +9563,44 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 /* الرموزُ أوضحُ على الكحليّ: 0.62 كانت مكتوبةً لخطٍّ داكنٍ على أبيض. */
 .nav__icon { opacity: .72; }
 .nav a.active .nav__icon { opacity: 1; }
+
+/* ===========================================================================
+   قرارات المزايدات — شريطُ التبويبات وجدولُ «المقبولة»
+
+   v1 يضع خمسَ شاشاتٍ صفّاً فوق الجدول لأنها **خمسةُ أسئلةٍ عن الشيء نفسه**،
+   لا خمسُ وجهاتٍ متجاورة. والقطعُ إلى الشريط الجانبيّ بين سؤالٍ وسؤالٍ يعني
+   بحثاً عن سطرٍ بين ستّةٍ وخمسين في كلّ مرّة.
+   ======================================================================== */
+.dec-tabs { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 1rem; border-block-end: 1px solid var(--line); }
+.dec-tab {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .5rem .8rem; font-size: .82rem; font-weight: 700;
+  color: var(--ink-soft); text-decoration: none;
+  border-block-end: 3px solid transparent;
+}
+.dec-tab:hover { color: var(--ink); background: var(--raised); }
+.dec-tab.is-on { color: var(--brand-dark); border-block-end-color: var(--brand-solid); }
+.dec-tabs svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
+
+/* الجدولُ بمقاييس v1: `padding: 8px 10px` و`font-size: 13px` و**وسطاً**.
+   خمسةَ عشرَ عموداً بحشوةِ `--cell-pad-x` العامّة (٧٫٢px) تجعل آخرَ كلمةٍ في
+   عمودٍ تلامس أوّلَ كلمةٍ في الذي يليه — وهي العلّةُ نفسُها التي قِيست في
+   جدول الخروج. والعمودان الأوّلان (المزاد واللوت) رقمان، فالوسطُ يناسبهما؛
+   و«المركبة» اسمٌ متغيّرُ الطول فيبقى إلى البداية. */
+.acc-tbl th, .acc-tbl td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
+.acc-tbl thead th { font-size: .74rem; }
+.acc-tbl tbody td:nth-child(3), .acc-tbl thead th:nth-child(3) { text-align: start; }
+/* شاراتُ v1: رقمُ المزاد ذهبيٌّ، واللوتُ رماديّ، واللوحةُ عريضةٌ بلون العلامة،
+   والشاصي أحاديُّ التباعد — أربعةُ حقولٍ يُفرَّق بينها بالنظر لا بالقراءة. */
+.acc-tbl .acc-auction { display: inline-block; padding: .12rem .45rem; border-radius: 999px; font-size: .74rem; font-weight: 800; background: var(--brand-soft); color: var(--brand-dark); }
+.acc-tbl .acc-lot { display: inline-block; padding: .12rem .45rem; border-radius: 999px; font-size: .74rem; font-weight: 700; background: var(--raised); color: var(--ink-soft); }
+.acc-tbl .acc-plate { font-weight: 800; color: var(--brand-dark); }
+.acc-tbl .acc-vin { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .74rem; color: var(--ink-soft); }
+/* ونماذجُ الصفّ تنزع بطاقةَ النماذج كـ`.ex-inline` — القاعدةُ العامّة
+   `form {…}` تُلبسها كلَّ `<form>` في اللوحة، فيصير الزرُّ داخل مربّع. */
+.acc-tbl td.actions { display: flex; flex-wrap: wrap; gap: .3rem; justify-content: center; align-items: center; grid-template-columns: none; }
+/* بطاقةُ الإجراء الجماعيّ — كـ v1: عنوانٌ صغير فوق زرٍّ عريضٍ في الوسط. */
+.acc-bulk { text-align: center; padding: .9rem; margin: 0 0 1rem; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+.acc-bulk__label { margin: 0 0 .5rem; font-size: .8rem; font-weight: 800; color: var(--muted); }
+.acc-bulk__form { display: flex; justify-content: center; margin: 0; padding: 0; max-width: none; background: none; border: 0; box-shadow: none; }
+.acc-bulk__note { margin: .55rem 0 0; font-size: .74rem; color: var(--muted); }

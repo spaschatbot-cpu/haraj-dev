@@ -19,6 +19,26 @@
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
+  {% include "console/_decision_tabs.html" %}
+
+  {% comment %} بطاقةُ الإجراء الجماعيّ — نظيرُ «إجراءات جماعية للمقبولين»
+     في v1. ولا تُبنى إلا حين يكون ثمّ ما يُفوتَر: بطاقةٌ بزرٍّ يقول «٠» تشغل
+     ربعَ الشاشة وتعلّم قارئَها تجاهُلَها. {% endcomment %}
+  {% if can_invoice and pending_invoices %}
+    <section class="acc-bulk">
+      <p class="acc-bulk__label">إجراءات جماعية للمقبولين</p>
+      <form method="post" action="{% url 'console:accepted-invoice-all' %}" class="acc-bulk__form">
+        {% csrf_token %}
+        <input type="hidden" name="q" value="{{ q }}">
+        <input type="hidden" name="from" value="{{ first }}">
+        <input type="hidden" name="to" value="{{ last }}">
+        <input type="hidden" name="back" value="{{ filters }}">
+        <button type="submit" class="btn-primary">إصدار فواتير كل ما رسا ولم يُفوتَر ({{ pending_invoices|unlocalize }})</button>
+      </form>
+      <p class="acc-bulk__note">تُصدَر لما تعرضه هذه النتائج وحدها، وكلُّ فاتورةٍ معاملةٌ مستقلّة — فالمردودةُ لا تُبطل الصادرة.</p>
+    </section>
+  {% endif %}
+
   <form method="get">
     <input type="search" name="q" value="{{ q }}"
            placeholder="لوحة أو شاصي أو اسم الفائز أو رقم مزاد">
@@ -28,7 +48,7 @@
   </form>
 
   <div class="scroller">
-    <table>
+    <table class="acc-tbl">
     <thead>
       <tr>
         <th>المزاد</th>
@@ -51,15 +71,15 @@
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.auction.number|unlocalize }}</td>
-          <td class="count">{{ row.lot_number|unlocalize }}</td>
+          <td><span class="acc-auction">مزاد {{ row.auction.number|unlocalize }}</span></td>
+          <td><span class="acc-lot">{{ row.lot_number|unlocalize }}</span></td>
           <td>
             <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
-          <td>{{ row.plate_number|default:"—" }}</td>
+          <td class="acc-plate">{{ row.plate_number|default:"—" }}</td>
           <td>{{ row.get_colour_display|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
+          <td class="acc-vin">{{ row.vin|default:"—" }}</td>
           {% comment %} `buyer_name`/`buyer_phone`/`award_price` من
              `sensitive.prepare` لا `row.awarded_to` من العلاقة: الشاشةُ
              `auctions.view` وحدَها، والاسمُ والجوّالُ خلف `users.view`

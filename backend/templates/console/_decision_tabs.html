@@ -1,0 +1,34 @@
+{% comment %}
+شريطُ تبويبات «قرارات المزايدات» — نظيرُ `partials/bills_nav.php` في v1.
+
+**لماذا شريطٌ وقد كانت الصفحاتُ في الشريط الجانبي أصلاً.** لأنها ليست خمسَ
+شاشاتٍ متجاورة، هي **خمسةُ أسئلةٍ عن الشيء نفسه**: ما يُزايَد عليه الآن، وما
+رسا، وإجماليُّه، وما حُسم، ومنصّةُ المالك. والموظّفُ الذي يفوتر مركبةً يسأل
+بعدها «وكم بقي؟» — فيقطع الشاشةَ كلَّها إلى الشريط الجانبيّ ثم يبحث عن سطرٍ
+بين ستّة وخمسين. وv1 يضعها صفّاً فوق الجدول لهذا بعينه.
+
+**وثلاثةٌ من سبعةٍ في v1 لا نظيرَ لها هنا** — «قرار المزايدات» و«حالات التعادل»
+و«التعاونية» لم تُبنَ بعد. ولا تُكتب أسماؤها هنا معطَّلةً: تبويبٌ لا يفتح
+شيئاً يُضغَط مرّةً ثم يُقرأ عطلاً، ويُنسى أنه وعدٌ لا شاشة. حين تُبنى تُضاف
+هنا بسطرٍ واحد.
+
+ويقرأ الشريطُ `active` من السياق — اسمَ المسار لا رقمَ التبويب، فإعادةُ
+ترتيبها لا تكسر أيّاً منها.
+{% endcomment %}
+<nav class="dec-tabs" aria-label="قرارات المزايدات">
+  <a href="{% url 'console:live-bids' %}" class="dec-tab{% if active == 'live-bids' %} is-on{% endif %}">
+    {% include "console/_act_icon.html" with path=tab_icons.live %}
+    <span>المزادات المباشرة</span></a>
+  <a href="{% url 'console:accepted-bids' %}" class="dec-tab{% if active == 'accepted-bids' %} is-on{% endif %}">
+    {% include "console/_act_icon.html" with path=tab_icons.accepted %}
+    <span>المزايدات المقبولة</span></a>
+  <a href="{% url 'console:accepted-summary' %}" class="dec-tab{% if active == 'accepted-summary' %} is-on{% endif %}">
+    {% include "console/_act_icon.html" with path=tab_icons.summary %}
+    <span>ملخّص المقبولة</span></a>
+  <a href="{% url 'console:ended-decisions' %}" class="dec-tab{% if active == 'ended-decisions' %} is-on{% endif %}">
+    {% include "console/_act_icon.html" with path=tab_icons.ended %}
+    <span>القرارات المنتهية</span></a>
+  <a href="{% url 'console:owners-console' %}" class="dec-tab{% if active == 'owners-console' %} is-on{% endif %}">
+    {% include "console/_act_icon.html" with path=tab_icons.owners %}
+    <span>منصة الملاك</span></a>
+</nav>
