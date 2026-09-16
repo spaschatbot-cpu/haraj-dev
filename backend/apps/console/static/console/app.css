@@ -10094,3 +10094,76 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
 /* الحدُّ العلويُّ للزرّ يخفّ على الأرضيّة الملوّنة عند المرور، وإلا قُرئ
    خطّاً أغمقَ مما حوله. */
 .open:hover .open__go { border-block-start-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+
+/* ===========================================================================
+   «الاستردادات» — الحالاتُ بطاقاتٌ لا جدولٌ ثالثُ أعمدته فارغ
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل احترافي أكتر».
+
+   كان أعلى الشاشة جدولاً بثلاثة أعمدة: «الحالة · العدد · حبّةُ ما زال
+   مفتوحاً» — وهو ليس جدولاً (لا صفوفَ تُفرَز ولا أعمدةَ تُقارَن، ستُّ قيمٍ
+   منفردة)، وعمودُه الثالثُ **فارغٌ في أربعةِ صفوفٍ من ستّة**. وتحته جدولٌ
+   حقيقيٌّ بسبعة أعمدة، فتُقرأ الشاشةُ جدولين والأولُ ليس منهما.
+
+   فبطاقات: العددُ تحت اسم حالته، و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافة
+   البطاقة لا حبّةٌ في عمودٍ ثالث.
+
+   وعددُ الحالات يأتي من `RefundRequestState` لا من القالب، فقد يتغيّر. ولذلك
+   `--tight` تُحسب أعمدتُها من عدد البطاقات نفسِه (`:has`) — كما في «القرارات
+   المنتهية» و«منصّة الملاك» — فلا يبقى في الصفّ الأخير فراغٌ مهما صار العدد.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .sum-grid--tight { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+  /* الافتراضيّ: أربعةٌ في السطر. */
+  .sum-grid--tight > .sum { grid-column: span 3; }
+
+  /* خمسٌ: ثلاثٌ بعرض ٤ ثم اثنتان بعرض ٦. */
+  .sum-grid--tight:has(> .sum:nth-child(5):last-child) > .sum { grid-column: span 4; }
+  .sum-grid--tight:has(> .sum:nth-child(5):last-child) > .sum:nth-child(n+4) { grid-column: span 6; }
+
+  /* ستٌّ: ثلاثٌ وثلاث. */
+  .sum-grid--tight:has(> .sum:nth-child(6):last-child) > .sum { grid-column: span 4; }
+
+  /* سبعٌ: أربعٌ بعرض ٣ ثم ثلاثٌ بعرض ٤. */
+  .sum-grid--tight:has(> .sum:nth-child(7):last-child) > .sum { grid-column: span 3; }
+  .sum-grid--tight:has(> .sum:nth-child(7):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
+
+  /* ثمانٍ: أربعٌ وأربع. */
+  .sum-grid--tight:has(> .sum:nth-child(8):last-child) > .sum { grid-column: span 3; }
+}
+
+/* بطاقاتُ الحالات أقصرُ: أرقامُها أعدادٌ صغيرةٌ لا مبالغ، وسطرُها الثالثُ
+   كلمتان. فحجمُ البطاقة يتبع ما فيها. */
+.sum-grid--tight .sum { padding: .85rem .95rem .8rem; }
+.sum-grid--tight .sum__value { font-size: 1.5rem; }
+.sum-grid--tight .sum__note { margin-block-start: .3rem; font-size: .72rem; }
+
+@media (max-width: 62rem) {
+  .sum-grid--tight { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sum-grid--tight > .sum { grid-column: auto; }
+}
+@media (max-width: 40rem) {
+  .sum-grid--tight { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* خانةُ «دفتره» زرٌّ لا رابطٌ مسطور — هي الفعلُ الوحيد في الصفّ، ورأسُ عمودها
+   كان فارغاً فيُقرأ عموداً بلا اسم. */
+.rf-act { width: 1%; white-space: nowrap; }
+.rf-go {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .3rem .75rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
+  border-radius: 999px;
+  color: var(--brand-dark);
+  font-size: .78rem;
+  font-weight: 800;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.rf-go::after { content: "←"; transition: transform .15s ease; }
+tbody tr:hover .rf-go { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+tbody tr:hover .rf-go::after { transform: translateX(-3px); }
