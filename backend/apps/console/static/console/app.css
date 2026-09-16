@@ -10360,3 +10360,46 @@ tbody tr:hover .rf-go::after { transform: translateX(-3px); }
   font-size: .9rem;
 }
 .wnb-who strong { color: var(--ink); font-weight: 800; }
+
+/* ===========================================================================
+   «خصم مباشر من التأمين» — المقدّمةُ كانت في الذيل
+   ---------------------------------------------------------------------------
+   «عايزة الصفحة دي بشكل أفضل».
+
+   **والعطلُ ترتيبٌ لا لون**: الفقرةُ التي تشرح لماذا لا خانةَ مبلغٍ في الشاشة
+   كانت في **ذيلها**، وبصنف `empty`. ومن يفتح الشاشة يبحث عن خانة المبلغ فلا
+   يجدها، فيقرأ الجوابَ بعد أن ينزل إلى آخر الصفحة — إن نزل. وهي أهمُّ ما
+   فيها: بها يُفهَم أن الثلاثة المعروضة هي كلُّ الطرق التي يخرج بها مالٌ من
+   رصيد عميل. فصارت في الأعلى وبصنف `notice`.
+
+   ومعها: استمارةٌ عاريةٌ صارت لوحةً، وجدولُ الأرصدة الثلاثة صار شبكةَ حقائق،
+   وعمودا الإجراء كان رأساهما فارغين، والروابطُ المسطورةُ صارت أزراراً.
+   ======================================================================== */
+
+.dd-why { border-inline-start: 4px solid var(--warn); }
+
+/* اسمُ العميل ورقمُه: رأسُ كتلةٍ لا عنوانُ صفحة. */
+.dd-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 1.4rem 0 .7rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+.dd-who small { font-size: .82rem; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* عنوانُ القسم وشرحُه في سطرٍ واحد: كانا مفصولين بشرطةٍ في النصّ. */
+.dd-sec {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .5rem;
+  margin: 1.2rem 0 .5rem;
+  font-size: .92rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.dd-sec small { font-size: .78rem; font-weight: 600; color: var(--muted); }

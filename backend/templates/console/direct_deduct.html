@@ -16,36 +16,57 @@
 {% block heading %}خصم مباشر من التأمين{% endblock %}
 
 {% block content %}
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="اسم العميل أو رقم جواله">
-    <button type="submit">بحث</button>
+  {% comment %} هذه الفقرةُ كانت في **ذيل** الشاشة وبصنف `empty`. وهي
+     مقدّمتُها لا حاشيتُها: من يفتح الشاشة يبحث عن خانة مبلغٍ فلا يجدها، فيقرأ
+     الجوابَ بعد أن يكون قد نزل إلى آخر الصفحة — إن نزل. وصنفُ `empty` يرسمها
+     بلون «لا شيء هنا»، وهي أهمُّ ما فيها. {% endcomment %}
+  <p class="notice dd-why">
+    <strong>لا خانةَ مبلغٍ حرّة هنا، وذلك مقصود.</strong> المال لا «يُخصَم» —
+    ينتقل من حسابٍ إلى حساب، والسؤال إلى أين: إلى إيرادات المنصّة
+    (<strong>مصادرة</strong>، بسببٍ مكتوب وعلى حجزٍ بعينه)، أو إلى سداد فاتورة
+    (<strong>من الرصيد</strong>، ولا تأخذ أكثر من المستحقّ)، أو إلى العميل
+    (<strong>استرداد</strong>). ورقمٌ يُكتب بيدٍ بلا شيءٍ يقابله هو ما أنتج في
+    v1 «خرج 29,990 مقابل مدفوع 20,000».
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم العميل أو رقم جواله" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   {% if not searched %}
-    <p class="empty">ابحث باسم العميل أو رقم جواله.</p>
+    <div class="blank">
+      <p class="blank__say">ابحث باسم العميل أو رقم جوّاله.</p>
+      <p class="blank__hint">تظهر أرصدتُه وحجوزُه القائمة ومستحقّاتُه، ومن كلٍّ منها بابُه.</p>
+    </div>
   {% elif not rows %}
-    <p class="empty">لا عميل يطابق ما كتبت.</p>
+    <div class="blank">
+      <p class="blank__say">لا عميلَ يطابق ما كتبت.</p>
+      <p class="blank__hint">جرّب الاسمَ كاملاً أو رقمَ الجوّال بصيغته المسجَّلة.</p>
+    </div>
   {% else %}
     {% for row in rows %}
-      <h2>
+      <h2 class="dd-who">
         {{ row.name }}
         <small>{{ row.person.phone|unlocalize }}</small>
       </h2>
-      <div class="scroller">
-        <table>
-        <tbody>
-          <tr><th>تأمين متاح</th><td class="money">{{ row.wallet.insurance_free.balance|unlocalize }}</td></tr>
-          <tr><th>محجوز لمزاد</th><td class="money">{{ row.wallet.insurance_held.balance|unlocalize }}</td></tr>
-          <tr><th>مقفول لمستحقات</th><td class="money">{{ row.wallet.insurance_locked.balance|unlocalize }}</td></tr>
-        </tbody>
-      </table>
-    </div>
+      {% comment %} ثلاثُ قيمٍ عن محفظةٍ واحدة في جدولٍ بعمودين: العنوانُ على
+         حافةٍ والقيمةُ على مقابلها بعرض الشاشة بينهما. {% endcomment %}
+      <div class="facts">
+        <div class="fact fact--lead"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">محجوز لمزاد</span><span class="fact__v money">{{ row.wallet.insurance_held.balance|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.wallet.insurance_locked.balance|unlocalize }}</span></div>
+      </div>
 
-      <h3>حجوزٌ قائمة — تُصادَر بسببٍ مكتوب</h3>
+      <h3 class="dd-sec">حجوزٌ قائمة <small>تُصادَر بسببٍ مكتوب</small></h3>
       <div class="scroller">
         <table>
         <thead>
-          <tr><th>الحجز</th><th>ما يضمنه</th><th>المبلغ</th><th></th></tr>
+          <tr><th>الحجز</th><th>ما يضمنه</th><th>المبلغ</th><th>الإجراء</th></tr>
         </thead>
         <tbody>
           {% for hold in row.holds %}
@@ -60,7 +81,7 @@
               {% comment %} المصادرة لا تُطلَق من هنا: صفحةُ أفعال العميل تعرض
                  الحجز بما يضمنه وتطلب السبب — و«صادر الحجز 4102» ليست جملةً
                  يستطيع أحدٌ التحقّق منها قبل الضغط. {% endcomment %}
-              <td><a href="{% url 'console:money-actions' row.person.pk %}">افتح أفعاله ←</a></td>
+              <td class="rf-act"><a class="rf-go" href="{% url 'console:money-actions' row.person.pk %}">افتح أفعاله</a></td>
             </tr>
           {% empty %}
             <tr><td colspan="4" class="empty">لا حجوز قائمة.</td></tr>
@@ -69,11 +90,11 @@
       </table>
     </div>
 
-      <h3>مستحقّات — تُسدَّد من رصيده</h3>
+      <h3 class="dd-sec">مستحقّات <small>تُسدَّد من رصيده</small></h3>
       <div class="scroller">
         <table>
         <thead>
-          <tr><th>الفاتورة</th><th>المبلغ</th><th>المتبقّي</th><th></th></tr>
+          <tr><th>الفاتورة</th><th>المبلغ</th><th>المتبقّي</th><th>الإجراء</th></tr>
         </thead>
         <tbody>
           {% for invoice in row.dues %}
@@ -81,7 +102,7 @@
               <td>{{ invoice.number }}</td>
               <td class="money">{{ invoice.amount|unlocalize }}</td>
               <td class="money">{{ invoice.outstanding|unlocalize }}</td>
-              <td><a href="{% url 'console:invoice-detail' invoice.pk %}">افتح الفاتورة ←</a></td>
+              <td class="rf-act"><a class="rf-go" href="{% url 'console:invoice-detail' invoice.pk %}">افتح الفاتورة</a></td>
             </tr>
           {% empty %}
             <tr><td colspan="4" class="empty">لا مستحقّات.</td></tr>
@@ -90,16 +111,8 @@
       </table>
     </div>
 
-      <p><a href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل ←</a></p>
+      <p class="sum-more"><a class="btn-primary" href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل</a></p>
     {% endfor %}
   {% endif %}
 
-  <p class="empty">
-    <strong>لا خانةَ مبلغٍ حرّة هنا، وذلك مقصود.</strong> المال لا «يُخصَم» —
-    ينتقل من حسابٍ إلى حساب، والسؤال إلى أين: إلى إيرادات المنصّة
-    (<strong>مصادرة</strong>، بسببٍ مكتوب وعلى حجزٍ بعينه)، أو إلى سداد فاتورة
-    (<strong>من الرصيد</strong>، ولا تأخذ أكثر من المستحقّ)، أو إلى العميل
-    (<strong>استرداد</strong>). ورقمٌ يُكتب بيدٍ بلا شيءٍ يقابله هو ما أنتج في
-    v1 «خرج 29,990 مقابل مدفوع 20,000».
-  </p>
 {% endblock %}
