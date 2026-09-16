@@ -1,8 +1,10 @@
+import '../../domain/bidding/entities/bid_quote.dart';
 import '../../domain/bidding/entities/live_bids_update.dart';
 import '../../domain/bidding/entities/placed_bid.dart';
 import '../../domain/common/money.dart';
 import '../api/generated/models/bid.dart' as api;
 import '../api/generated/models/bid_page.dart' as api;
+import '../api/generated/models/bid_quote.dart' as api;
 import '../wallet/wallet_mapper.dart' show walletCurrency;
 
 extension BidMapper on api.Bid {
@@ -51,5 +53,14 @@ LiveStandingBid? liveBidFrom(Object? row) {
     amount: amount,
     isWithdrawn: row['is_withdrawn'] == true,
     isSuperseded: row['is_superseded'] == true,
+  );
+}
+
+/// عرضُ السعر كما حسبه الخادم — ثلاثةُ أرقامٍ نصّاً كما يخزّنها الدفتر.
+extension BidQuoteMapper on api.BidQuote {
+  BidQuote toDomain() => BidQuote(
+    amount: Money(amount: amount, currency: walletCurrency),
+    tax: Money(amount: tax, currency: walletCurrency),
+    total: Money(amount: total, currency: walletCurrency),
   );
 }

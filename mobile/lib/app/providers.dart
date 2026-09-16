@@ -28,6 +28,7 @@ import '../data/local/cache/response_cache.dart';
 import '../data/local/secure/secure_token_store.dart';
 import '../data/notifications/device_registry_impl.dart';
 import '../data/notifications/unconfigured_push_service.dart';
+import '../data/profile/gallery_image_picker.dart';
 import '../data/profile/profile_repository_impl.dart';
 import '../data/wallet/url_checkout_launcher.dart';
 import '../data/wallet/wallet_repository_impl.dart';
@@ -44,6 +45,7 @@ import '../domain/auth/usecases/sign_out.dart';
 import '../domain/bidding/repositories/bidding_repository.dart';
 import '../domain/bidding/usecases/load_my_bids.dart';
 import '../domain/bidding/usecases/place_bid.dart';
+import '../domain/bidding/usecases/quote_bid.dart';
 import '../domain/bidding/usecases/watch_live_bids.dart';
 import '../domain/bidding/usecases/withdraw_bid.dart';
 import '../domain/catalog/entities/auction_summary.dart';
@@ -60,8 +62,10 @@ import '../domain/notifications/repositories/push_service.dart';
 import '../domain/notifications/usecases/forget_this_device.dart';
 import '../domain/notifications/usecases/register_this_device.dart';
 import '../domain/notifications/usecases/resolve_push_destination.dart';
+import '../domain/profile/gateways/image_source_picker.dart';
 import '../domain/profile/repositories/profile_repository.dart';
 import '../domain/profile/usecases/manage_profile.dart';
+import '../domain/profile/usecases/upload_document.dart';
 import '../domain/wallet/gateways/checkout_launcher.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/cancel_card_top_up.dart';
@@ -147,6 +151,7 @@ final authRepositoryProvider = Provider<AuthRepository>(
 final profileRepositoryProvider = Provider<ProfileRepository>(
   (ref) => ProfileRepositoryImpl(
     api: ref.watch(apiClientProvider).profile,
+    dio: ref.watch(_authenticatedDioProvider),
     cache: ref.watch(responseCacheProvider),
   ),
 );
@@ -248,6 +253,17 @@ final changePhoneNumberProvider = Provider<ChangePhoneNumber>(
 
 final manageProfileProvider = Provider<ManageProfile>(
   (ref) => ManageProfile(ref.watch(profileRepositoryProvider)),
+);
+
+final imagePickerProvider = Provider<ImageSourcePicker>(
+  (ref) => GalleryImagePicker(),
+);
+
+final uploadDocumentProvider = Provider<UploadDocument>(
+  (ref) => UploadDocument(
+    ref.watch(profileRepositoryProvider),
+    ref.watch(imagePickerProvider),
+  ),
 );
 
 /// الخروج يمرّ من هنا وحده.
@@ -409,6 +425,10 @@ final readTopUpStatusProvider = Provider<ReadTopUpStatus>(
 
 final placeBidProvider = Provider<PlaceBid>(
   (ref) => PlaceBid(ref.watch(biddingRepositoryProvider)),
+);
+
+final quoteBidProvider = Provider<QuoteBid>(
+  (ref) => QuoteBid(ref.watch(biddingRepositoryProvider)),
 );
 
 final withdrawBidProvider = Provider<WithdrawBid>(

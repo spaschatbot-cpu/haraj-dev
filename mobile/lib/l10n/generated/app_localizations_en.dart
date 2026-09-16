@@ -1285,4 +1285,10 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get refundIbanUploaded => 'The IBAN image was uploaded.';
+
+  @override
+  String get refundIbanUploading => 'Uploading…';
 }

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
 import '../../../app/theme.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
+import '../../../domain/common/failure.dart';
 import '../../../domain/common/money.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../bidding/bidding_controllers.dart';
@@ -166,18 +170,71 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
 
   VehicleSummary get vehicle => widget.vehicle;
 
+  /// جوابُ الخادم عن «كم يصير بعد الضريبة» — و`null` قبل أن يُسأل أو حين
+  /// يصمت.
+  Money? _quotedTotal;
+
+  /// ما سُئل عنه آخرَ مرّة. به تُهمَل الأجوبةُ المتأخّرة: من كتب «٦٠٠٠٠» ثم
+  /// «٧٠٠٠٠» قد يصل جوابُ الأوّل بعد الثاني، فيرى ضريبةَ مبلغٍ غيرِ المكتوب.
+  String _quotedFor = '';
+
+  Timer? _quoteDebounce;
+
   @override
   void initState() {
     super.initState();
     // إعادةُ البناء عند كل حرف: «السعر + الضريبة» تحته يتبع ما يُكتب فوقه،
     // وحقلٌ يتغيّر ومجموعٌ لا يتغيّر معه يُقرأ عطلاً.
-    _price.addListener(() => setState(() {}));
+    _price.addListener(_onPriceChanged);
   }
 
   @override
   void dispose() {
-    _price.dispose();
+    _quoteDebounce?.cancel();
+    _price
+      ..removeListener(_onPriceChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  /// كلُّ حرفٍ يُعيد البناء، **والخادمُ يُسأل بعد سكوتِ نصفِ ثانية**.
+  ///
+  /// نداءٌ لكل حرفٍ يُغرق الشبكةَ ويُنتج سباقاً على الجواب؛ وسؤالٌ عند الإرسال
+  /// وحدَه يجعل الرقمَ الذي يقرؤه العميل قبل الضغط رقماً لم يقله الخادم.
+  void _onPriceChanged() {
+    setState(() {});
+    final typed = _price.text.trim();
+    _quoteDebounce?.cancel();
+    if (typed.isEmpty) {
+      setState(() {
+        _quotedTotal = null;
+        _quotedFor = '';
+      });
+      return;
+    }
+    _quoteDebounce = Timer(const Duration(milliseconds: 500), () {
+      unawaited(_quote(typed));
+    });
+  }
+
+  Future<void> _quote(String typed) async {
+    try {
+      final quote = await ref.read(quoteBidProvider)(typed);
+      if (!mounted || _price.text.trim() != typed) return;
+      setState(() {
+        _quotedTotal = quote.total;
+        _quotedFor = typed;
+      });
+    } on Failure {
+      // **شرطةٌ لا رقمٌ من عندنا.** الخادمُ لم يُجب، فحسابُ الضريبة هنا
+      // قاعدةٌ ثانية تفترق عنه في أوّل يومٍ تتغيّر فيه — ورقمٌ خاطئٌ قبل
+      // الالتزام أسوأُ من غيابه.
+      if (!mounted || _price.text.trim() != typed) return;
+      setState(() {
+        _quotedTotal = null;
+        _quotedFor = '';
+      });
+    }
   }
 
   @override
@@ -286,6 +343,9 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
               palette: palette,
               l10n: l10n,
               priceController: _price,
+              quotedTotal: _quotedFor == _price.text.trim()
+                  ? _quotedTotal
+                  : null,
               // **معطَّلٌ بلا مبلغ**: زرٌّ يستجيب ولا يرسل شيئاً يُقرأ عطلاً،
               // وزرٌّ يرسل بلا مبلغٍ مزايدةٌ بالخطأ.
               onPlaceBid: _price.text.trim().isEmpty ? null : _placeBid,
@@ -516,6 +576,7 @@ class _BidPanel extends StatelessWidget {
     required this.palette,
     required this.l10n,
     required this.priceController,
+    required this.quotedTotal,
     required this.onPlaceBid,
     required this.submitting,
   });
@@ -524,6 +585,9 @@ class _BidPanel extends StatelessWidget {
   final HarajPalette palette;
   final AppLocalizations l10n;
   final TextEditingController priceController;
+
+  /// المجموعُ بعد الضريبة **كما قاله الخادم**، أو `null` قبل أن يُسأل.
+  final Money? quotedTotal;
 
   /// `null` حين لا مبلغَ مكتوب — الزرُّ معطَّل حينها.
   final VoidCallback? onPlaceBid;
@@ -538,23 +602,6 @@ class _BidPanel extends StatelessWidget {
   /// تُحسب في الشاشة نسخةٌ ثانية تفترق عن الأصل. وهذا الرقمُ ليس منها — هو
   /// معاينةُ ما كتبه العميلُ للتوّ، لا قيدَ له ولا يُرسَل إلى أحد. وv1 تعرضه.
   ///
-  /// **ونسبةُ الضريبة تُشتقّ ولا تُكتب**: `adminFeeWithVat ÷ adminFee` كما
-  /// أرسلهما الخادم. و«١٥٪» مكتوبةً في التطبيق هي بعينها القاعدةُ الثانية
-  /// التي يمنعها الدستور — تفترق عن الخادم في أوّل يومٍ تتغيّر فيه.
-  ///
-  /// **ولا `double` في المسار**: الهللةُ عددٌ صحيح، والقسمةُ `~/` بجبرِ نصفٍ
-  /// للتقريب لأقرب هللة.
-  String? get _priceWithVat {
-    final price = _halalas(priceController.text);
-    final fee = _halalas(vehicle.adminFee.amount);
-    final feeWithVat = _halalas(vehicle.adminFeeWithVat.amount);
-    if (price == null || fee == null || feeWithVat == null || fee == 0) {
-      return null;
-    }
-    final total = (price * feeWithVat + fee ~/ 2) ~/ fee;
-    return '${total ~/ 100}.${(total % 100).toString().padLeft(2, '0')}';
-  }
-
   /// نسبةُ الضريبة كما تقولها أرقامُ الخادم — تُلحَق بالتسمية «(١٥٪)».
   ///
   /// **مشتقّةٌ لا مكتوبة**: `(withVat − fee) ÷ fee`. و«١٥٪» مكتوبةً في
@@ -586,7 +633,12 @@ class _BidPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final withVat = _priceWithVat;
+    // **المجموعُ من الخادم لا من ضربٍ هنا.** كان يُحسب محلّياً
+    // (`price × feeWithVat ÷ fee`) وكُتب تحته أن «١٥٪ مكتوبةً في التطبيق
+    // قاعدةٌ ثانية» — والاشتقاقُ نفسُه قاعدةٌ ثانية، يفترق عن الخادم يوم
+    // تتغيّر قاعدةُ الضريبة أو يُستثنى صنفٌ منها. والممرُّ `/bids/quote/`
+    // موجودٌ منذ فيز ٦ ولا يناديه التطبيق.
+    final withVat = quotedTotal;
     final vat = _vatNote;
 
     return Container(
@@ -669,14 +721,9 @@ class _BidPanel extends StatelessWidget {
                   child: _MoneyBox(
                     label: l10n.vehiclePriceWithVat,
                     note: vat,
-                    // **شرطةٌ قبل أن يُكتب سعر، لا صفر**: «٠ ر.س» جوابٌ عن
-                    // سؤالٍ لم يُسأل بعد.
-                    amount: withVat == null
-                        ? null
-                        : Money(
-                            amount: withVat,
-                            currency: vehicle.adminFee.currency,
-                          ),
+                    // **شرطةٌ قبل أن يُجيب الخادم، لا صفر**: «٠ ر.س» جوابٌ
+                    // عن سؤالٍ لم يُسأل بعد، ورقمٌ من عندنا التزامٌ لا نملكه.
+                    amount: withVat,
                     palette: palette,
                     emphasised: true,
                   ),

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
+
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../domain/profile/entities/customer_profile.dart';
@@ -18,15 +20,46 @@ import 'profile_mapper.dart';
 final class ProfileRepositoryImpl implements ProfileRepository {
   ProfileRepositoryImpl({
     required ProfileApi api,
+    required Dio dio,
     required ResponseCache cache,
     DateTime Function()? clock,
   }) : _api = api,
+       _dio = dio,
        _cache = cache,
        _clock = clock ?? DateTime.now;
 
   final ProfileApi _api;
+
+  /// **`Dio` مباشرةً لرفع الملفّ وحدَه، وهو استثناءٌ بسبب.**
+  ///
+  /// العميلُ المولَّد يُعلن `@Part(name: 'file') required String file` —
+  /// نصّاً لا ملفّاً، لأن `swagger_parser` يترجم `type: string, format: binary`
+  /// إلى `String`. وإرسالُ نصٍّ في خانةِ ملفٍّ يصل الخادمَ كحقلٍ نصّيّ فيردّ
+  /// «هذا الحقل مطلوب» على `file` — رفضٌ لا يشي بسببه.
+  ///
+  /// فالرفعُ هنا بـ`MultipartFile`، والمسارُ مكتوبٌ حرفاً في هذا الموضع
+  /// وحدَه. وما عداه يبقى على العميل المولَّد.
+  final Dio _dio;
   final ResponseCache _cache;
   final DateTime Function() _clock;
+
+  @override
+  Future<void> uploadDocument({
+    required String kind,
+    required String fileName,
+    required List<int> bytes,
+  }) async {
+    final form = FormData.fromMap(<String, Object>{
+      'kind': kind,
+      'file': MultipartFile.fromBytes(bytes, filename: fileName),
+    });
+    await callApi(
+      () => _dio.post<Object?>('/api/v1/profile/documents/', data: form),
+    );
+    // وثيقةٌ جديدةٌ تُبطل صورةَ الملفّ المحفوظة: شاشةُ الاسترداد تقرأ منها
+    // «هل رُفع الآيبان؟».
+    await _cache.remove(CacheKeys.profile);
+  }
 
   @override
   Future<Snapshot<CustomerProfile>> load() async {

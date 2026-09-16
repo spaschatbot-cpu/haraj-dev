@@ -1,5 +1,6 @@
 import '../../common/snapshot.dart';
 import '../entities/bid_outcome.dart';
+import '../entities/bid_quote.dart';
 import '../entities/live_bids_update.dart';
 import '../entities/placed_bid.dart';
 
@@ -35,6 +36,13 @@ abstract interface class BiddingRepository {
   /// `Snapshot` لا قائمة مجرّدة: العرض يحتاج أن يعرف إن كانت هذه آخر نسخة من
   /// الخادم أم محفوظة، ومتى جُلبت (معيار H5).
   Future<Snapshot<List<PlacedBid>>> myBids();
+
+  /// كم يصير هذا المبلغ بعد الضريبة؟ — سؤالٌ للخادم قبل الالتزام.
+  ///
+  /// **قراءةٌ لا فعل**: لا يُنشئ مزايدةً ولا يحجز شيئاً، فلا كاشَ له ولا
+  /// `Snapshot` — جوابُه صالحٌ للحظته وحدَها، وعرضُ جوابٍ قديمٍ على مبلغٍ
+  /// جديد أسوأُ من عرض شرطة.
+  Future<BidQuote> quote(String amount);
 
   /// بثّ حالة مزايدات العميل.
   ///

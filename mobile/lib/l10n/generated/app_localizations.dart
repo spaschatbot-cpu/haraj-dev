@@ -2263,6 +2263,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{count, plural, =1{سُدِّدت فاتورة.} other{سُدِّدت {count} فواتير.}}'**
   String purchasesPaid(int count);
+
+  /// No description provided for @refundIbanUploaded.
+  ///
+  /// In ar, this message translates to:
+  /// **'رُفعت صورة الآيبان.'**
+  String get refundIbanUploaded;
+
+  /// No description provided for @refundIbanUploading.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ الرفع…'**
+  String get refundIbanUploading;
 }
 
 class _AppLocalizationsDelegate

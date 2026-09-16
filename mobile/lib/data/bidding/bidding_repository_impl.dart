@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../../domain/bidding/entities/bid_outcome.dart';
+import '../../domain/bidding/entities/bid_quote.dart';
 import '../../domain/bidding/entities/live_bids_update.dart';
 import '../../domain/bidding/entities/placed_bid.dart';
 import '../../domain/bidding/repositories/bidding_repository.dart';
@@ -112,6 +113,15 @@ final class BiddingRepositoryImpl implements BiddingRepository {
   static String? _text(Map<String, Object?>? detail, String key) {
     final value = detail?[key];
     return value is String && value.isNotEmpty ? value : null;
+  }
+
+  @override
+  Future<BidQuote> quote(String amount) async {
+    // **بلا مركبة**: العقد يأخذ المبلغ وحدَه، لأن الضريبة دالّةٌ في المبلغ لا
+    // في السيّارة. وإرسالُ حقلٍ لا يقرؤه الخادمُ يوهم قارئَ الكود بقاعدةٍ
+    // ليست موجودة.
+    final quote = await callApi(() => _api.bidsQuote(amount: amount));
+    return quote.toDomain();
   }
 
   @override

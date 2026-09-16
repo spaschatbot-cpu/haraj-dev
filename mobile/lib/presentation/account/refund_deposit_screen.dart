@@ -56,13 +56,37 @@ class _RefundDepositScreenState extends ConsumerState<RefundDepositScreen> {
       )
       .toList(growable: false);
 
-  /// ما لم يُبنَ بعد: إرفاقُ صورة الآيبان. لا مسارَ له في العقد، فيُقال
-  /// صراحةً بدل أن يبدو الزرُّ معطّلاً بلا سبب.
-  void _soon(AppLocalizations l10n) => ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(l10n.refundSubmitSoon)));
-
   bool _sending = false;
+  bool _uploading = false;
+
+  /// يفتح المعرضَ ويرفع ما اختاره العميل صورةَ آيبان.
+  ///
+  /// **والرفعُ شرطٌ لا زينة**: `request_refund` في الخلفية ترفض الطلبَ بلا
+  /// هذه الصورة (`missing_document: iban`). فكان الزرُّ يقول «لم يُفعَّل بعد»
+  /// وكان الاستردادُ مستحيلاً من التطبيق أصلاً لا بطيئاً.
+  Future<void> _pickIban(AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _uploading = true);
+    try {
+      final done = await ref.read(uploadDocumentProvider)(kind: 'iban');
+      if (!mounted) return;
+      // **الإلغاءُ صمتٌ**: من فتح المعرضَ وعدل لا يحتاج رسالةً تقول له ذلك.
+      if (!done) return;
+      ref.invalidate(profileControllerProvider);
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(l10n.refundIbanUploaded)));
+    } on Failure catch (failure) {
+      if (!mounted) return;
+      messenger
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(content: Text(failureMessage(context, failure))),
+        );
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
 
   /// يُرسل الطلب.
   ///
@@ -158,7 +182,8 @@ class _RefundDepositScreenState extends ConsumerState<RefundDepositScreen> {
             amount: _amount,
             iban: _iban,
             notes: _notes,
-            onChooseFile: () => _soon(l10n),
+            onChooseFile: _uploading ? null : () => _pickIban(l10n),
+            uploading: _uploading,
             onSubmit: _sending ? null : () => _submit(l10n),
           ),
           const SizedBox(height: 16),
@@ -320,6 +345,7 @@ class _FormCard extends StatelessWidget {
     required this.iban,
     required this.notes,
     required this.onChooseFile,
+    required this.uploading,
     required this.onSubmit,
   });
 
@@ -327,7 +353,11 @@ class _FormCard extends StatelessWidget {
   final TextEditingController amount;
   final TextEditingController iban;
   final TextEditingController notes;
-  final VoidCallback onChooseFile;
+
+  /// `null` أثناء الرفع: ضغطتان تفتحان معرضين.
+  final VoidCallback? onChooseFile;
+
+  final bool uploading;
 
   /// `null` أثناء الإرسال: ضغطتان على طلبِ استردادٍ طلبان.
   final VoidCallback? onSubmit;
@@ -385,7 +415,12 @@ class _FormCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _FilePickerRow(l10n: l10n, onTap: onChooseFile, palette: palette),
+          _FilePickerRow(
+            l10n: l10n,
+            onTap: onChooseFile,
+            uploading: uploading,
+            palette: palette,
+          ),
           const SizedBox(height: 16),
 
           TextField(
@@ -415,11 +450,13 @@ class _FilePickerRow extends StatelessWidget {
   const _FilePickerRow({
     required this.l10n,
     required this.onTap,
+    required this.uploading,
     required this.palette,
   });
 
   final AppLocalizations l10n;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool uploading;
   final HarajPalette palette;
 
   @override
@@ -460,7 +497,9 @@ class _FilePickerRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              l10n.refundNoFile,
+              // أثناء الرفع يُقال ذلك مكان «لم يُختَر ملف» — فالسطرُ نفسُه
+              // يجيب عن «ماذا يحدث الآن؟».
+              uploading ? l10n.refundIbanUploading : l10n.refundNoFile,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

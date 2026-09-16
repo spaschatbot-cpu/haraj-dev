@@ -600,5 +600,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "refundIbanUploaded": "The IBAN image was uploaded.",
+  "@refundIbanUploaded": {},
+  "refundIbanUploading": "Uploading…",
+  "@refundIbanUploading": {}
 }

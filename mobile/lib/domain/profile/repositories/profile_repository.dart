@@ -23,4 +23,14 @@ abstract interface class ProfileRepository {
   Future<CompanyProfile?> loadCompany();
 
   Future<CompanyProfile> saveCompany(CompanyProfile company);
+
+  /// يرفع وثيقةً واحدة — صورةَ آيبانٍ أو هويّة.
+  ///
+  /// **فعلٌ لا قراءة**: لا `Snapshot` ولا كاش. وصمتُ الخادم بعد إرسال
+  /// البايتات ليس «لم يُرفع» — قد تكون وصلت، فيُرمى العطلُ وتقرّره الشاشة.
+  Future<void> uploadDocument({
+    required String kind,
+    required String fileName,
+    required List<int> bytes,
+  });
 }

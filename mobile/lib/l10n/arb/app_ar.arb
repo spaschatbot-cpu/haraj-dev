@@ -1154,5 +1154,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "refundIbanUploaded": "رُفعت صورة الآيبان.",
+  "@refundIbanUploaded": {},
+  "refundIbanUploading": "جارٍ الرفع…",
+  "@refundIbanUploading": {}
 }

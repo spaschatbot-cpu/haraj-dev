@@ -1286,4 +1286,10 @@ class AppLocalizationsAr extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get refundIbanUploaded => 'رُفعت صورة الآيبان.';
+
+  @override
+  String get refundIbanUploading => 'جارٍ الرفع…';
 }
