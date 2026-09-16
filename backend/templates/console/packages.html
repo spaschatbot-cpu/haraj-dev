@@ -24,11 +24,26 @@
     <a href="{% url 'console:audit' %}">سجلّ التدقيق</a>.
   </p>
 
+  {% comment %} العددان كانا داخل فقرةِ تنبيهٍ مع قاعدةِ الحذف: رقمان
+     مدفونان في جملةٍ من سطرين، والعينُ تقرأ الجملةَ كلَّها لتلتقطهما. فصارا
+     بطاقتين، وبقيت القاعدةُ وحدَها في التنبيه — وهي الأهمّ: الحذفُ يترك
+     مشترِكاً بلا باقة. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام الباقات">
+    <div class="sum">
+      <p class="sum__label">باقاتٌ تُعرَض</p>
+      <p class="sum__value">{{ offered|unlocalize }}</p>
+      <p class="sum__note">تُسنَد إلى مشترِكٍ جديد.</p>
+    </div>
+    <div class="sum sum--wait">
+      <p class="sum__label">موقوفة</p>
+      <p class="sum__value">{{ stopped|unlocalize }}</p>
+      <p class="sum__note">تبقى صفّاً ولا تُسنَد من جديد.</p>
+    </div>
+  </section>
+
   <p class="notice">
-    <strong>{{ offered|unlocalize }}</strong> باقةً تُعرَض،
-    و<strong>{{ stopped|unlocalize }}</strong> موقوفة.
-    والموقوفةُ تبقى صفّاً ولا تُسنَد من جديد — <strong>ولا تُحذف</strong>: مشترِكٌ
-    يشير إليها يصير بلا باقةٍ إن حُذفت، فيُطلَب منه تأمينٌ قد دفعه.
+    <strong>والموقوفةُ لا تُحذف.</strong> مشترِكٌ يشير إليها يصير بلا باقةٍ إن
+    حُذفت، فيُطلَب منه تأمينٌ قد دفعه.
   </p>
 
   <div class="scroller">
@@ -40,15 +55,16 @@
           <th>حصّة المزادات</th>
           <th>المدّة</th>
           <th>الحالة</th>
-          <th></th>
+          {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
+          <th>تحكّم</th>
         </tr>
       </thead>
       <tbody>
         {% for row, edit_form in pairs %}
           <tr>
-            <td>
-              {{ row.name }}
-              {% if row.description %}<small class="empty">{{ row.description|truncatechars:80 }}</small>{% endif %}
+            <td class="pk-name">
+              <strong>{{ row.name }}</strong>
+              {% if row.description %}<small>{{ row.description|truncatechars:80 }}</small>{% endif %}
             </td>
             {% comment %} `unlocalize` وحدها كبقيّة اللوحة (`invoices.html`):
                `floatformat` يُطبّق تنسيق العربية فيخرج «12000,00» بفاصلةٍ
@@ -74,9 +90,9 @@
             {% comment %} صفٌّ مرن لا `display:inline`: الثاني كان ينزل سطراً
                ويُركب على الأوّل. رُئي على شاشة «شريط الأخبار». {% endcomment %}
             <td>
-              <div style="display:flex; gap:.4rem; align-items:center;">
+              <div class="pk-acts">
                 <button type="button" class="btn-sm" data-opens="packageEdit{{ row.pk|unlocalize }}">تعديل</button>
-                <form method="post" style="margin:0">
+                <form method="post" class="pk-form">
                   {% csrf_token %}
                   <input type="hidden" name="op" value="toggle">
                   <input type="hidden" name="pk" value="{{ row.pk|unlocalize }}">
@@ -95,7 +111,7 @@
   {% comment %} بلا `<code>` ولا أرقامٍ لاتينيّة داخل الجملة: خلطُ اتّجاهين
      في سطرٍ `rtl` يقلب ترتيب القطع على الشاشة فيُقرأ كلاماً مبعثراً. رُئي
      على هذه الفقرة بعينها. {% endcomment %}
-  <p class="empty" style="margin-block-start:.8rem">
+  <p class="notice notice--soft pk-foot">
     «المدّة» هي عمودُ النوع في جدول باقات v1، وأسماؤها من قاموس v1 نفسِه:
     شهرٌ واحد، وثلاثةُ أشهر، وستّة. غير أن
     <strong>لا شيء في v1 اليوم يقرأ هذا العمود</strong> — لا حسبةَ انتهاءٍ ولا
