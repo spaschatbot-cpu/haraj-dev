@@ -10837,3 +10837,35 @@ a.stat:hover .stat__action-text,
 a.stat:focus-visible .stat__action-text,
 a.stat:hover .stat__go,
 a.stat:focus-visible .stat__go { color: inherit; }
+
+/* ===========================================================================
+   زرُّ البطاقة في المظهر الداكن — كان أغمقَ من بطاقته
+   ---------------------------------------------------------------------------
+   «عايزة كل الثيمات دي شغّالة».
+
+   **والعطلُ من 91ad8c9**: `--stat-btn` كُتب لوناً واحداً ثابتاً (#0b1e3d) بلا
+   نظيرٍ للداكن. فالبطاقاتُ ذاتُ التصنيف (مال ومزاد وناس) نجت — لها استثناءٌ
+   يعيد لونَ تصنيفها في الداكن — و**البطاقاتُ بلا تصنيف** (`plain`، `brand`،
+   `ok`) بقيت على الكحليّ: قِيس زرُّها في المظهر الداكن `rgb(11,30,61)`
+   وبطاقتُه `rgb(23,29,43)` — أي زرٌّ **أغمقُ من اللوح الذي يقف عليه**، فيختفي.
+
+   فصار للّون نظيرٌ داكن: أرضيّةٌ فاتحةٌ وحبرٌ داكن، كبقيّة أزرار الداكن.
+   التباين على `#171d2b`: 11.44 للزرّ، و12.6 للنصّ على الزرّ.
+   ======================================================================== */
+
+:root { --stat-btn-ink: #fff; }
+:root[data-scheme="dark"] { --stat-btn: #cbd8ef; --stat-btn-ink: #0e131e; }
+
+.stat--money .stat__btn,
+.stat--auction .stat__btn,
+.stat--people .stat__btn,
+.stat--ok .stat__btn,
+.stat--brand .stat__btn,
+.stat .stat__btn { background: var(--stat-btn); color: var(--stat-btn-ink); }
+
+a.stat:hover .stat__btn,
+a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn { background: #16325e; color: #fff; }
+:root[data-scheme="dark"] a.stat:hover .stat__btn,
+:root[data-scheme="dark"] a.stat:focus-visible .stat__btn { background: #e3ebf8; color: #0e131e; }
