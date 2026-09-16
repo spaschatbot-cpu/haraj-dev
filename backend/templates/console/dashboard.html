@@ -112,47 +112,58 @@
            **مشتقٌّ من الأرقام نفسِها** لا حشوٌ يُكتب: الإجماليُّ، وأكثرُ
            الحالات (`max` في `dashboard.py` لا حلقةٌ في القالب)، وعددُ
            الحالات المرصودة، ومن أين تُقرأ. {% endcomment %}
-        {% comment %} **شريطٌ مقسومٌ بعرض اللوح، ومفتاحٌ تحته.** وكانت
-           حلقةً لكلّ حالة — اختارها المالكُ من أربعة أشكالٍ رُسمت له — ونقضها
-           اليوم بعد أن رآها على الإنتاج: كلُّ مزاداته «منتهٍ»، فحالةٌ واحدةٌ
-           تعني حلقةً واحدةً في عمودٍ معمولٍ لستّ، ونصفُ اللوح أبيض.
+        <div class="states">
+          <div class="states__brief">
+            <p class="states__lead">
+              <strong>{{ board.auction_total }}</strong>
+              <span>مزاد في الدفتر</span>
+            </p>
 
-           والشريطُ يملأ العرضَ سواءٌ كانت الحالةُ واحدةً أو ستّاً: قطعةٌ واحدةٌ
-           بعرض اللوح تقول «كلُّها حالةٌ واحدة» بوضوحٍ لا تقوله حلقةٌ بـ100%.
-
-           والمفتاحُ تحته يحمل الاسمَ والعددَ والنسبة — ثلاثتُها مكتوبةٌ لا
-           مُستنتَجةٌ من مساحةٍ ملوّنة. {% endcomment %}
-        <div class="states2">
-          <p class="states2__lead">
-            <b>{{ board.auction_total }}</b>
-            <span>مزاد في الدفتر</span>
-          </p>
-
-          <div class="states2__bar" role="img"
-               aria-label="توزيع حالات المزادات على {{ board.auction_total }} مزاداً">
-            {% for label, count, share in board.auction_states %}
-              <span class="states2__seg" data-slice="{{ forloop.counter0 }}"
-                    style="--share: {{ share }}%" title="{{ label }} — {{ count }} ({{ share }}%)"></span>
-            {% endfor %}
+            {% comment %} شبكةُ خانات، لا قائمةَ سطورٍ عريضة. وكان كلُّ
+               سطرٍ يمدّ اسمَه على حافةٍ وقيمتَه على مقابلها بفراغٍ من أربعمئة
+               بكسل بينهما — فتُقرأ القيمةُ ولا يُعرف لأيّ اسمٍ هي إلا بعودةٍ
+               بالعين. والخانةُ تضع الاسمَ فوق قيمته فتُقرآن معاً. {% endcomment %}
+            <dl class="brief">
+              <div class="brief__cell brief__cell--brand">
+                <dt>حالات مرصودة</dt>
+                <dd>{{ board.auction_states|length }}</dd>
+              </div>
+              {% if board.auction_top %}
+                <div class="brief__cell">
+                  <dt>الحالة الأكثر</dt>
+                  {% comment %} القيمةُ بلون حلقتها — `data-slice` من الرتبة
+                     المحسوبة في `dashboard.py`. فالعينُ تربط السطرَ بحلقته
+                     بلا أن تقرأ الاسمَ مرّتين. {% endcomment %}
+                  <dd data-slice="{{ board.auction_top.2 }}">
+                    <span class="brief__dot" aria-hidden="true"></span>{{ board.auction_top.0 }} <b>{{ board.auction_top.1 }}</b>
+                  </dd>
+                </div>
+              {% endif %}
+              <div class="brief__cell brief__cell--wide">
+                <dt>المصدر</dt>
+                <dd>عمودُ الحالة في جدول المزادات — يُقرأ عند فتح الصفحة</dd>
+              </div>
+            </dl>
           </div>
 
-          <ul class="states2__key">
-            {% for label, count, share in board.auction_states %}
-              <li data-slice="{{ forloop.counter0 }}">
-                <span class="states2__dot" aria-hidden="true"></span>
-                <span class="states2__name">{{ label }}</span>
-                <b class="states2__n">{{ count }}</b>
-                <span class="states2__pc">{{ share }}%</span>
-              </li>
-            {% endfor %}
+          <ul class="rings">
+          {% for label, count, share in board.auction_states %}
+            <li class="rings__one">
+              {% comment %} `conic-gradient` بحدٍّ حادٍّ لا متدرّج: النسبةُ
+                 تنتهي عند رقمها بالضبط، وتدرّجٌ عندها يجعل الحدَّ يُقرأ
+                 «نحو الثمانين» لا «ثمانين». وما بقي بلون المسار الخافت
+                 لا شفّافاً — الشفّافُ على لوحٍ أبيض يجعل الحلقةَ قوساً
+                 معلّقاً لا حلقةً ناقصة. {% endcomment %}
+              <span class="rings__ring" data-slice="{{ forloop.counter0 }}"
+                    style="--share: {{ share }}%"
+                    role="img" aria-label="{{ label }} — {{ count }} من {{ board.auction_total }}، {{ share }}%">
+                <span class="rings__hole">{{ count }}</span>
+              </span>
+              <span class="rings__name">{{ label }}</span>
+              <span class="rings__share">{{ share }}%</span>
+            </li>
+          {% endfor %}
           </ul>
-
-          {% comment %} حاشيتان: كم حالةً رُصدت، ومن أين تُقرأ. وهما ما لا
-             يقوله الشريطُ ولا مفتاحُه. {% endcomment %}
-          <p class="states2__foot">
-            <span><b>{{ board.auction_states|length }}</b> حالةً مرصودة</span>
-            <span class="states2__src">المصدر: عمودُ الحالة في جدول المزادات — يُقرأ عند فتح الصفحة</span>
-          </p>
         </div>
       </section>
     {% endif %}
