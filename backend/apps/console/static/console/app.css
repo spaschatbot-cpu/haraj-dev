@@ -10007,37 +10007,8 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
 
 .sum--live::before { background: var(--auction); }
 
-/* ---- بلاطاتُ «ما يُفتح من هنا» ------------------------------------------ */
-
+/* عنوانُ القسم الثاني. */
 .owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
-
-/* سبعُ بلاطاتٍ كسبع بطاقات: اثنا عشرَ عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤ —
-   فلا تبقى خانةٌ فارغةٌ في ذيل الصفّ الثاني. */
-.open-grid {
-  display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: .7rem;
-  margin-block-end: 1.3rem;
-}
-.open-grid > .open { grid-column: span 3; }
-.open-grid > .open:nth-child(n+5) { grid-column: span 4; }
-
-.open {
-  display: flex;
-  flex-direction: column;
-  gap: .2rem;
-  padding: .8rem .95rem;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  text-decoration: none;
-  transition: background .15s ease, border-color .15s ease;
-}
-.open:hover { background: var(--brand-soft); border-color: var(--brand); }
-.open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-
-.open__name { font-size: .88rem; font-weight: 800; color: var(--ink); }
-.open__why  { font-size: .74rem; line-height: 1.5; color: var(--muted); }
 
 .owners-note { margin: 0; }
 
@@ -10045,50 +10016,53 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
   .sum-grid--links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .sum-grid--links > .sum,
   .sum-grid--links > .sum:nth-child(n+5) { grid-column: auto; }
-  .open-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .open-grid > .open,
-  .open-grid > .open:nth-child(n+5) { grid-column: auto; }
 }
 @media (max-width: 40rem) {
   .sum-grid--links { grid-template-columns: minmax(0, 1fr); }
-  .open-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ===========================================================================
-   بلاطاتُ «ما يُفتح من هنا»: زرُّ «عرض» في كلٍّ منها
+   «ما يُفتح من هنا» — جدولٌ بعمود فعل
    ---------------------------------------------------------------------------
-   «خلّي الجزء ده احترافي أكتر ويوجد زرّ عرض في كل مربّع».
+   بأمر المالك: «اعمل الجزء ده في جدول». وهو يصلح هنا — بخلاف جدولَي «منصّة
+   الملاك» و«ملخّص المقبولة» اللذين أُلغيا اليوم: هناك ستُّ قيمٍ **منفردة**
+   بلا ما يُقارَن، وهنا سبعةُ صفوفٍ بحقلين متطابقَي المعنى (اسمُ الشاشة وما
+   فيها) — أي أعمدةٌ تُقارَن حقّاً.
 
-   والزرُّ `<span>` لا `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ تفاعليٌّ داخل
-   تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل لقارئ الشاشة هدفين
-   لوجهةٍ واحدة. فهيئةُ زرٍّ بلا سلوكه، والنقرُ يقع على البلاطة كما كان.
-   و`aria-hidden` عليه: «عرض» لا تضيف شيئاً إلى اسم الرابط المقروء.
-
-   والبلاطةُ صارت ثلاثةَ أسطرٍ بإيقاعٍ واحد: اسمٌ، فشرحٌ، فخطٌّ يليه الزرّ في
-   القاع — و`margin-block-start: auto` عليه فتستوي الأزرارُ في صفٍّ واحدٍ مهما
-   اختلف طولُ الشروح.
+   والصفُّ هدفُ نقرٍ واحدٌ لا اثنان: الاسمُ رابطٌ والزرُّ إلى الوجهة نفسِها،
+   فالزرُّ خارج ترتيب المفاتيح وخارج شجرة الوصول (`tabindex="-1"` و
+   `aria-hidden` في القالب). فمن ينظر يرى زرّاً في عمودٍ مستقيم، ومن يتنقّل
+   بالمفاتيح يمرّ بسبعةِ أهدافٍ لا أربعةَ عشر.
    ======================================================================== */
 
-.open {
-  gap: .25rem;
-  padding: .85rem .95rem .8rem;
-  min-block-size: 100%;
-}
+.open-t th[scope="row"] { font-weight: 800; }
+.open-t th[scope="row"] a { color: var(--ink); text-decoration: none; }
+.open-t th[scope="row"] a:hover { color: var(--brand-dark); text-decoration: underline; }
+.open-t td.muted { font-size: .82rem; }
 
-.open__go {
-  margin-block-start: auto;
-  padding-block-start: .6rem;
-  border-block-start: 1px solid var(--line-soft);
-  display: flex;
+/* عمودُ الفعل بمقاس محتواه، والزرُّ في أوّله فتستقيم الأزرارُ عموداً. */
+.open-t__act { width: 1%; white-space: nowrap; }
+
+.open-t__go {
+  display: inline-flex;
   align-items: center;
   gap: .35rem;
+  padding: .32rem .8rem;
+  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--brand-dark);
   font-size: .78rem;
   font-weight: 800;
-  color: var(--brand-dark);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
-.open__go::after { content: "←"; transition: transform .16s ease; }
-.open:hover .open__go::after { transform: translateX(-3px); }
+.open-t__go::after { content: "←"; transition: transform .15s ease; }
 
-/* الحدُّ العلويُّ للزرّ يخفّ على الأرضيّة الملوّنة عند المرور، وإلا قُرئ
-   خطّاً أغمقَ مما حوله. */
-.open:hover .open__go { border-block-start-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+/* السطرُ كلُّه يُبرز الزرَّ عند المرور — الهدفُ هو الصفّ لا الزرّ وحدَه. */
+.open-t tbody tr:hover .open-t__go {
+  background: var(--brand-solid);
+  border-color: var(--brand-solid);
+  color: #fff;
+}
+.open-t tbody tr:hover .open-t__go::after { transform: translateX(-3px); }
