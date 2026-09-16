@@ -9604,3 +9604,24 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 .acc-bulk__label { margin: 0 0 .5rem; font-size: .8rem; font-weight: 800; color: var(--muted); }
 .acc-bulk__form { display: flex; justify-content: center; margin: 0; padding: 0; max-width: none; background: none; border: 0; box-shadow: none; }
 .acc-bulk__note { margin: .55rem 0 0; font-size: .74rem; color: var(--muted); }
+
+/* ===========================================================================
+   أرقامُ المنصّة: ثلاثةٌ في السطر
+   ---------------------------------------------------------------------------
+   «الستّ مربّعات اللي في الأول دول خلّي كل تلاتة في سطر بتنظيم».
+
+   كانت أربعةً ثم اثنتين — صفٌّ تامٌّ وصفٌّ نصفُه فراغ. وثلاثةٌ وثلاثةٌ صفّان
+   تامّان، والبطاقةُ تتّسع فيقلّ التفافُ الأسماء الطويلة («مركبات تنتظر
+   قراراً»، «إجمالي التأمين»).
+
+   والعددُ مكتوبٌ رقماً لا `auto-fit`: العددُ هنا **قرارٌ** لا نتيجةَ حسابٍ
+   في عرضٍ ما — و`auto-fit` تُعطي خمسةً على شاشةٍ عريضةٍ وأربعةً على أخرى،
+   فيتغيّر تقسيمُ الصفوف بتغيّر نافذةٍ لا بتغيّر البيانات.
+   ======================================================================== */
+
+@media (min-width: 62rem) {
+  .board-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 40rem) and (max-width: 61.999rem) {
+  .board-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
