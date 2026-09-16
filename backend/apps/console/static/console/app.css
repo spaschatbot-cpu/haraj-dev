@@ -10759,3 +10759,69 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   }
   .board-stats:has(> .stat:nth-child(5):last-child) .stat__btn { padding-inline: .6rem; font-size: .74rem; }
 }
+
+/* ===========================================================================
+   نصُّ زرّ البطاقة أبيضُ عند المرور أيضاً
+   ---------------------------------------------------------------------------
+   «خلّي لمّا أقف عليهم يفضل الكلام لونه أبيض ما يتغيّرش».
+
+   الخلفيّةُ صارت كحليّةً واحدةً لكلّ الأزرار (91ad8c9)، لكن قواعدَ التحويم
+   القديمةَ لكلّ تصنيفٍ ما زالت تكتب `color` معها — وهي أعلى تخصيصاً من قاعدة
+   اللون الموحَّد. فالنصُّ يقفز لوناً عند المرور بلا سبب: الخلفيّةُ تتغيّر
+   درجةً واحدة، والنصُّ يتغيّر كلَّه.
+
+   فالأبيضُ يُثبَّت على الحالات الثلاث بمحدِّدٍ يكافئ أعلاها.
+   ======================================================================== */
+
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--money:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--auction:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--people:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--ok:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--warn:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat--alarm:hover .stat__btn { color: #fff; }
+
+/* ===========================================================================
+   لوحُ «حالات المزادات» — الخانات تستوي، والمصدرُ يصير تذييلاً
+   ---------------------------------------------------------------------------
+   «خلّي المربّع ده بشكل احترافي أكتر». والهيئةُ نفسُها لا تُمسّ — اختارها
+   المالك من أربعةٍ بعد ستّ محاولات — والمسُّ في ثلاثة مواضعَ صغيرة:
+
+   ١) **خانتا «حالات مرصودة» و«الحالة الأكثر» غيرُ متساويتين**: الأولى ملوّنةٌ
+      والثانيةُ بيضاء، وعرضُهما يتبع نصَّهما فتُقرآن خانةً وملحقاً. صارتا
+      عمودين متساويين بأرضيّةٍ واحدة، والتمييزُ في النصّ لا في اللون.
+
+   ٢) **«المصدر» خانةٌ ثالثة** وهو ليس قيمةً تُقرأ مع القيمتين — هو حاشيةٌ
+      تقول من أين الرقم. صار تذييلاً خلف خطٍّ رفيع.
+
+   ٣) **الحلقةُ الواحدةُ تتوسّط عمودَها**: حين تكون الحالةُ واحدةً (كإنتاجٍ
+      كلُّ مزاداته منتهية) تقف الحلقةُ في طرفٍ والفراغُ في الآخر.
+   ======================================================================== */
+
+.brief { align-items: stretch; }
+.brief__cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .25rem;
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+}
+.brief__cell--brand { background: var(--raised); }
+.brief__cell--brand dd { color: var(--ink); }
+
+.brief__cell--wide {
+  background: none;
+  border: 0;
+  border-block-start: 1px solid var(--line);
+  border-radius: 0;
+  padding: .7rem 0 0;
+  margin-block-start: .2rem;
+}
+.brief__cell--wide dt { font-size: .7rem; letter-spacing: .04em; }
+.brief__cell--wide dd { font-size: .78rem; line-height: 1.6; color: var(--muted); font-weight: 600; }
+
+/* حلقةٌ واحدةٌ تتوسّط عمودَها بدل أن تقف في طرفه. */
+.rings:has(> .rings__one:only-child) { justify-content: center; align-content: center; }
