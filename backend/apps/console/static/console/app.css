@@ -9837,3 +9837,120 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
    والهامشُ يُزاد على الصفحات ذات الأفعال وحدَها (`:has`): إزاحةُ الباقي لأجل
    عطلٍ لا يقع فيها تُبعد السطرَ عن عنوانه بلا سبب. */
 .page:has(.page__actions) + .lede { margin-block-start: 1.05rem; }
+
+/* ===========================================================================
+   «ملخّص المقبولة» — ستُّ قيمٍ في بطاقات لا في جدول
+   ---------------------------------------------------------------------------
+   «خلّي الصفحة دي بشكل أفضل ومنظّم».
+
+   كانت الشاشةُ ثلاثةَ أشياءٍ عاريةٍ من كلّ صنف: استمارةٌ بلا `.filters` فتأخذ
+   هيئةَ `form[method="get"]` العامّة (حقولٌ في الهواء)، وجدولٌ صفوفُه «عنوانٌ ·
+   قيمة»، ورابطٌ مسطورٌ في فقرة.
+
+   **والجدولُ كان أسوأَها.** جدولٌ لبياناتٍ ليست جدولاً: لا أعمدةَ تُقارَن ولا
+   صفوفَ تُفرَز — ستُّ قيمٍ منفردة. وثمنُه في الشاشة أن العنوان يقف على حافةٍ
+   والقيمةُ في منتصف الصفّ، بينهما عرضُ شاشةٍ فارغ، فتقفز العينُ بين الاثنين
+   ستَّ مرّات.
+
+   فبطاقاتٌ: القيمةُ تحت عنوانها مباشرةً. وثلاثةُ أعدادٍ في صفٍّ وثلاثةُ مبالغَ
+   في صفّ — والفرزُ بالشريط الجانبي لا بترتيبٍ يُحفظ.
+
+   و«رست ولم تُفوتَر بعد» بلون التنبيه وفي طرف صفِّ الأعداد لا في ذيل الستّة:
+   هي ما تُفتح الشاشةُ لأجله — عملٌ ينتظر، وقد كانت الصفَّ الأخير.
+   ======================================================================== */
+
+.sum-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .8rem;
+  margin-block-end: 1.2rem;
+}
+
+.sum {
+  position: relative;
+  padding: 1rem 1.1rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* الشريطُ على حافة البداية — منطقيّةٌ لا يمنى فتنقلب مع الاتجاه. */
+.sum::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 4px;
+  background: var(--brand);
+}
+.sum--money::before { background: var(--money); }
+.sum--wait::before  { background: var(--warn); }
+
+.sum__label {
+  margin: 0 0 .35rem;
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.sum__value {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  /* `ltr` ليستقيم ترتيبُ الفاصلة والنقطة في المبلغ، و`end` داخلَه هي حافةُ
+     البداية في صفحةٍ RTL — أي تحت العنوان تماماً لا على الحافة المقابلة. */
+  direction: ltr;
+  text-align: end;
+}
+.sum--wait .sum__value { color: var(--warn); }
+
+/* «محجوب» كلمةٌ لا رقم: بحجم النصّ ووزنه، وإلا قُرئت قيمةً. */
+.sum__value--hidden {
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--muted);
+  direction: rtl;
+  text-align: start;
+  padding-block: .5rem;
+}
+
+.sum__note {
+  margin: .45rem 0 0;
+  font-size: .76rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.sum-more { margin: 0; }
+
+@media (max-width: 62rem) { .sum-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 40rem) { .sum-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* `.btn-primary` صنفٌ بلا قاعدةٍ خاصّةٍ به: هيئةُ الأزرار مكتوبةٌ على عنصر
+   `button` نفسِه، فوسمُ `<a>` يحمله يخرج رابطاً مسطوراً. وهذا ما وقع لزرّ
+   «افتح الصفوف». فتُكتب هيئتُه هنا صراحةً. */
+.sum-more .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .6rem 1.1rem;
+  border: 1px solid var(--brand-solid);
+  border-radius: var(--radius);
+  background: var(--brand-solid);
+  color: #fff;
+  font-size: .86rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.sum-more .btn-primary::after { content: "←"; font-weight: 800; }
+.sum-more .btn-primary:hover {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
