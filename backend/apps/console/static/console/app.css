@@ -10053,3 +10053,42 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
   .sum-grid--links { grid-template-columns: minmax(0, 1fr); }
   .open-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ===========================================================================
+   بلاطاتُ «ما يُفتح من هنا»: زرُّ «عرض» في كلٍّ منها
+   ---------------------------------------------------------------------------
+   «خلّي الجزء ده احترافي أكتر ويوجد زرّ عرض في كل مربّع».
+
+   والزرُّ `<span>` لا `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ تفاعليٌّ داخل
+   تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل لقارئ الشاشة هدفين
+   لوجهةٍ واحدة. فهيئةُ زرٍّ بلا سلوكه، والنقرُ يقع على البلاطة كما كان.
+   و`aria-hidden` عليه: «عرض» لا تضيف شيئاً إلى اسم الرابط المقروء.
+
+   والبلاطةُ صارت ثلاثةَ أسطرٍ بإيقاعٍ واحد: اسمٌ، فشرحٌ، فخطٌّ يليه الزرّ في
+   القاع — و`margin-block-start: auto` عليه فتستوي الأزرارُ في صفٍّ واحدٍ مهما
+   اختلف طولُ الشروح.
+   ======================================================================== */
+
+.open {
+  gap: .25rem;
+  padding: .85rem .95rem .8rem;
+  min-block-size: 100%;
+}
+
+.open__go {
+  margin-block-start: auto;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid var(--line-soft);
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .78rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+.open__go::after { content: "←"; transition: transform .16s ease; }
+.open:hover .open__go::after { transform: translateX(-3px); }
+
+/* الحدُّ العلويُّ للزرّ يخفّ على الأرضيّة الملوّنة عند المرور، وإلا قُرئ
+   خطّاً أغمقَ مما حوله. */
+.open:hover .open__go { border-block-start-color: color-mix(in srgb, var(--brand) 30%, transparent); }
