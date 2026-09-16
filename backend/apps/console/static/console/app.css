@@ -9649,3 +9649,84 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   .board-stats--compact:has(> .stat:nth-child(5):last-child) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .board-stats--compact:has(> .stat:nth-child(6):last-child) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ===========================================================================
+   استمارةُ المركبة في نافذة — أعمدةٌ تتبع الصندوقَ لا الشاشة
+   ---------------------------------------------------------------------------
+   «خلّي المربّع ده منظّم بشكل أفضل».
+
+   **العطلُ الأول: الاستفهامُ عن الشاشة والحقولُ في نافذة.** أعمدةُ
+   `.auction-form .form-grid` ثلاثةٌ، وتتراجع إلى عمودين عند `max-width: 960px`
+   — و`@media` تسأل **نافذةَ المتصفّح**. والنافذةُ هنا 1366px، فتبقى الأعمدةُ
+   ثلاثةً داخل صندوقٍ عرضُه 46rem (736px) ناقصاً حشوته. فثلاثةُ حقولٍ في صفٍّ
+   بعرض ~200px لكلٍّ، و«الموديل» وحدَه في صفٍّ لأن الخمسةَ لا تقسم على ثلاثة.
+
+   فصار السؤالُ عن **القسم نفسِه** بـ`@container`: عمودان تحت 46rem وعمودٌ
+   تحت 26rem. فالصفحةُ الكاملة تبقى ثلاثةً كما بُنيت، والنافذةُ تصير عمودين
+   بلا سطرٍ أعرجَ — خمسةُ حقولٍ تصير 1 عريض + 2 + 2.
+
+   **والعطلُ الثاني: صناديقُ داخل صندوق.** كلُّ قسمٍ بطاقةٌ بحدٍّ وأرضيّةٍ
+   وظلّ، وأربعتُها داخل نافذةٍ هي نفسُها بطاقةٌ بحدٍّ وأرضيّة. فتُقرأ الاستمارةُ
+   علباً في علبة. وداخل النافذة يُلغى الإطارُ وتبقى **العناوينُ وخطوطُها** —
+   وهي وحدَها ما يفصل الأقسام حقاً.
+   ======================================================================== */
+
+.form-section { container-type: inline-size; }
+
+@container (max-width: 46rem) {
+  .auction-form .form-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@container (max-width: 26rem) {
+  .auction-form .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- داخل النافذة: أقسامٌ بلا علب ---------------------------------------- */
+
+.cmodal .form-section {
+  margin-block-end: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.cmodal .form-section:last-of-type { margin-block-end: 1.1rem; }
+
+/* العنوانُ يصير فاصلَ القسم: خطٌّ بعرض الاستمارة تحته، وشرطةٌ ملوّنةٌ قبله. */
+.cmodal .form-section__title {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin: 0 0 .85rem;
+  padding-block-end: .55rem;
+  border-block-end: 1px solid var(--line);
+  font-size: .88rem;
+}
+.cmodal .form-section__title::before {
+  content: "";
+  flex: none;
+  inline-size: 3px;
+  block-size: 1.1em;
+  border-radius: 2px;
+  background: var(--brand);
+}
+
+/* الحقولُ محفورةٌ كحقول الفلاتر: أبيضُ داخل أبيضَ لا يُرى إلا بحدّه. */
+.cmodal .form-grid .field input:not([type="checkbox"]):not([type="radio"]),
+.cmodal .form-grid .field select,
+.cmodal .form-grid .field textarea { background: var(--ground); }
+.cmodal .form-grid .field input:focus,
+.cmodal .form-grid .field select:focus,
+.cmodal .form-grid .field textarea:focus { background: var(--panel); }
+
+/* صفُّ الأزرار يلتصق بقاع النافذة: استمارةٌ بأربعةٍ وعشرين حقلاً تُمرَّر،
+   وزرُّ الحفظ تحت الحافة لا يُعرف أنه هناك. */
+.cmodal .form-actions {
+  position: sticky;
+  inset-block-end: 0;
+  display: flex;
+  gap: .6rem;
+  margin-block-start: .2rem;
+  padding-block: .9rem;
+  background: var(--panel);
+  border-block-start: 1px solid var(--line);
+}
