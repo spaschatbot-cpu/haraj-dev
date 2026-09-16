@@ -9812,3 +9812,12 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   .board-stats--compact:has(> .stat:nth-child(7):last-child) > .stat { grid-column: span 3; }
   .board-stats--compact:has(> .stat:nth-child(7):last-child) > .stat:nth-child(n+5) { grid-column: span 4; }
 }
+
+/* سطرُ التعريف لا يلامس زرَّ الرأس. صار بعرض الصفحة، فأوّلُ سطرٍ منه يمرّ
+   تحت منطقة الأفعال في الحافة المقابلة — والقياسُ يقول إنه **يتراكب** معها
+   بـ5.6px لا يقاربها: قاعدةٌ قديمة تسحبه لأعلى بهامشٍ سالب، وكانت مأمونةً
+   يوم كان محدوداً بـ62ch فلا يصل إلى هناك أصلاً.
+
+   والهامشُ يُزاد على الصفحات ذات الأفعال وحدَها (`:has`): إزاحةُ الباقي لأجل
+   عطلٍ لا يقع فيها تُبعد السطرَ عن عنوانه بلا سبب. */
+.page:has(.page__actions) + .lede { margin-block-start: 1.05rem; }
