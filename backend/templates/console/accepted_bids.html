@@ -45,6 +45,7 @@
         <th>الفاتورة</th>
         <th>الضريبة</th>
         <th>الإجمالي</th>
+        <th>إجراء</th>
       </tr>
     </thead>
     <tbody>
@@ -114,9 +115,26 @@
           {% else %}
             <td class="empty" colspan="3">بلا فاتورة — لا ضريبة على مبلغٍ لم يُفوتَر</td>
           {% endif %}
+          {% comment %} عمودُ «إجراء» — نظيرُ v1. والزرُّ يظهر لثلاثةٍ معاً:
+             صلاحيةُ الأفعال المالية، ومركبةٌ حالتُها «رست» (وحدها ما تقبله
+             `invoice_award`)، ولا فاتورةَ حيّةً عليها. وغيابُه عن الصفّ يقول
+             «لا عملَ هنا»، وهو أصدقُ من زرٍّ يُضغَط فيرفض. {% endcomment %}
+          <td class="actions">
+            {% if can_invoice and row.state == "awarded" and not row.money.invoice %}
+              <form method="post" action="{% url 'console:accepted-invoice' row.pk %}" class="ex-inline">
+                {% csrf_token %}
+                <input type="hidden" name="back" value="{{ filters }}">
+                <button type="submit" class="btn-primary-sm">إنشاء فاتورة</button>
+              </form>
+            {% elif row.money.invoice %}
+              <span class="empty">فُوتِرت</span>
+            {% else %}
+              <span class="empty">—</span>
+            {% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="12" class="empty">لا مركبات مرساة مطابقة.</td></tr>
+        <tr><td colspan="15" class="empty">لا مركبات مرساة مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

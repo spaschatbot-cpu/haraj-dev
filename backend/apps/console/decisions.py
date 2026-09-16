@@ -41,13 +41,19 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from django.shortcuts import render
+from django.db.utils import IntegrityError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.http import urlencode
 from django.utils.timezone import localtime
 
 from apps.auctions.models import Vehicle
+from apps.bidding import settlement
+from apps.core import audit
 from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 from apps.money import services as money
 from apps.money.models import Invoice
 
@@ -215,6 +221,21 @@ def accepted_bids(request):
             "q": request.GET.get("q", ""),
             "first": request.GET.get("from", ""),
             "last": request.GET.get("to", ""),
+            # زرُّ الفوترة وراء قدرته هو، لا وراء قدرة الشاشة: من يقرأ الجدول
+            # بـ`auctions.view` لا يُفوتِر منه. ويُقرأ مرّةً هنا لا مرّةً لكلّ
+            # صفّ في القالب.
+            "can_invoice": can(request.user, Capability.MONEY_ACT),
+            # المرشّحاتُ كما هي، ليعود إليها بعد الفوترة: الموظّفُ يفوتر من
+            # نتيجةِ بحثٍ، وعودةٌ إلى الصفحة عاريةً تعني بحثاً جديداً بعد كلّ
+            # فاتورة.
+            "filters": urlencode(
+                {
+                    "q": request.GET.get("q", ""),
+                    "from": request.GET.get("from", ""),
+                    "to": request.GET.get("to", ""),
+                    "page": request.GET.get("page", ""),
+                }
+            ),
         },
     )
 
@@ -289,3 +310,80 @@ def accepted_summary(request):
             "last": last,
         },
     )
+
+
+def accepted_invoice(request, pk: int):
+    """أصدِر فاتورةَ الترسية لمركبةٍ رست — نظيرُ «إنشاء فاتورة» في v1.
+
+    **ولماذا صارت هذه الشاشةُ بابَ فعلٍ بعد أن كانت قراءةً محضة.** كان مكتوباً
+    في رأس هذه الوحدة: «شاشةٌ تعرض ما وقع لا يجوز أن تكون بابَ تغييرٍ فيه».
+    والقاعدةُ معقولةٌ في ذاتها، لكنّها تركت الفوترةَ **بلا بابٍ في اللوحة
+    إطلاقاً**: `invoice_award` موجودةٌ وسليمة، ولا يستدعيها إلا `seed_demo` —
+    أي أن مركبةً ترسو في الإنتاج لا سبيلَ إلى فوترتها من أيّ شاشة.
+
+    وقرارُ المالكة (١٦ سبتمبر ٢٠٢٦) مطابقةُ v1، وهذه الشاشةُ **وظيفتُها هناك
+    الفوترة** لا العرض. والموظّفُ الذي يفوتر أربعين سيارةً لا يفتح أربعين صفحةَ
+    تفصيل.
+
+    والقاعدةُ القديمة تبقى صحيحةً في نصفها الذي يهمّ: **المنطق ليس هنا.**
+    الفاتورةُ تُبنى في `bidding.settlement.invoice_award` بمعاملةٍ واحدة تربطها
+    بحجز الفائز، وهذه الدالّة تنادي وتعرض الجواب — لا تحسب مبلغاً ولا ضريبة.
+
+    وثلاثةُ حرّاسٍ تحت الزرّ، ولا واحدَ منها تجميليّ:
+
+    * `money.act` — إصدارُ فاتورةٍ فعلٌ ماليّ، لا `auctions.view` التي تفتح
+      الشاشة. فمن يقرأ الجدولَ لا يُفوتِر منه.
+    * `POST` وحده: `GET` يُصدِر فاتورةً بزيارةِ رابطٍ — ومُسبِّقُ المتصفّح
+      يزور الروابط.
+    * وقيدُ القاعدة `one_live_invoice_per_vehicle` هو الضمانةُ الأخيرة: ضغطتان
+      متتاليتان لا تُنتجان فاتورتين، والثانيةُ ترتدّ برسالةٍ لا بصفٍّ ثانٍ.
+    """
+    if not can(request.user, Capability.MONEY_ACT):
+        messages.error(request, "إصدارُ الفواتير يحتاج صلاحية «الأفعال المالية الإدارية».")
+        return redirect("console:accepted-bids")
+    if request.method != "POST":
+        return redirect("console:accepted-bids")
+
+    vehicle = get_object_or_404(
+        Vehicle.objects.select_related("auction", "awarded_to"), pk=pk
+    )
+    try:
+        invoice = settlement.invoice_award(vehicle)
+    except (ValueError, IntegrityError, money.MoneyError) as why:
+        # ثلاثةُ أسبابٍ للرفض، وكلُّها **قواعدُ عملٍ لا أعطال**، فتُعرض جملةً
+        # للموظّف لا صفحةَ خطأٍ بيضاء:
+        #
+        # * `ValueError` من الخدمة: المركبةُ ليست مرسّاة، أو بلا فائزٍ أو سعر.
+        # * `IntegrityError` من قيد «فاتورةٌ حيّةٌ واحدة لكلّ مركبة»: ضغطتان
+        #   متتاليتان لا تُنتجان فاتورتين.
+        # * `MoneyError` من `lock_for_invoice`: **الفوترةُ تُثبّت تأمينَ الفائز
+        #   على الفاتورة في المعاملة نفسها**، فمن لا تأمينَ له لا تصدر له
+        #   فاتورة. وهذا فرقٌ جوهريّ عن v1 — هناك تصدر الفاتورةُ وحدها ويبقى
+        #   الحجزُ سؤالاً بلا جواب. وقعت الرسالةُ في التجربة حرفيّاً: «المتاح
+        #   0.00 والمطلوب 34,270.00».
+        messages.error(request, f"تعذّر إصدارُ الفاتورة: {why}")
+        return redirect(_back(request))
+
+    audit.record(
+        action="console.accepted_invoice",
+        entity=vehicle,
+        actor=request.user,
+        after={"invoice": invoice.number, "amount": str(invoice.amount)},
+        note="إصدار فاتورة ترسية",
+    )
+    messages.success(
+        request,
+        f"صدرت الفاتورة {invoice.number} لـ{vehicle.make} {vehicle.model} "
+        f"(لوت {vehicle.lot_number}).",
+    )
+    return redirect(_back(request))
+
+
+def _back(request) -> str:
+    """يعود إلى القائمة بمرشّحاتها — لا إلى رأسها.
+
+    الموظّفُ يفوتر من نتيجةِ بحثٍ أو مدى مزادات، وعودةٌ إلى الصفحة عاريةً تعني
+    أن يبحث من جديد بعد كلّ فاتورة.
+    """
+    query = request.POST.get("back", "")
+    return f"/console/bids/accepted/?{query}" if query else "/console/bids/accepted/"

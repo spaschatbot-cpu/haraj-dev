@@ -150,6 +150,11 @@ urlpatterns = [
         name="vehicle-bid-list",
     ),
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
+    path(
+        "bids/accepted/<int:pk>/invoice/",
+        decisions.accepted_invoice,
+        name="accepted-invoice",
+    ),
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
