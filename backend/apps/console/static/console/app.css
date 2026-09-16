@@ -10013,6 +10013,38 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
 /* عنوانُ القسم الثاني. */
 .owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
 
+/* ---- بلاطاتُ «ما يُفتح من هنا» ------------------------------------------ */
+
+.owners-head { margin: 1.6rem 0 .8rem; font-size: 1rem; font-weight: 800; color: var(--ink); }
+
+/* سبعُ بلاطاتٍ كسبع بطاقات: اثنا عشرَ عموداً — أربعٌ بعرض ٣ وثلاثٌ بعرض ٤ —
+   فلا تبقى خانةٌ فارغةٌ في ذيل الصفّ الثاني. */
+.open-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: .7rem;
+  margin-block-end: 1.3rem;
+}
+.open-grid > .open { grid-column: span 3; }
+.open-grid > .open:nth-child(n+5) { grid-column: span 4; }
+
+.open {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .8rem .95rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease;
+}
+.open:hover { background: var(--brand-soft); border-color: var(--brand); }
+.open:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.open__name { font-size: .88rem; font-weight: 800; color: var(--ink); }
+.open__why  { font-size: .74rem; line-height: 1.5; color: var(--muted); }
+
 .owners-note { margin: 0; }
 
 @media (max-width: 62rem) {
@@ -10025,85 +10057,40 @@ a.sum:hover .sum__note::after { transform: translateX(-3px); }
 }
 
 /* ===========================================================================
-   «ما يُفتح من هنا» — جدولٌ بعمود فعل
+   بلاطاتُ «ما يُفتح من هنا»: زرُّ «عرض» في كلٍّ منها
    ---------------------------------------------------------------------------
-   بأمر المالك: «اعمل الجزء ده في جدول». وهو يصلح هنا — بخلاف جدولَي «منصّة
-   الملاك» و«ملخّص المقبولة» اللذين أُلغيا اليوم: هناك ستُّ قيمٍ **منفردة**
-   بلا ما يُقارَن، وهنا سبعةُ صفوفٍ بحقلين متطابقَي المعنى (اسمُ الشاشة وما
-   فيها) — أي أعمدةٌ تُقارَن حقّاً.
+   «خلّي الجزء ده احترافي أكتر ويوجد زرّ عرض في كل مربّع».
 
-   والصفُّ هدفُ نقرٍ واحدٌ لا اثنان: الاسمُ رابطٌ والزرُّ إلى الوجهة نفسِها،
-   فالزرُّ خارج ترتيب المفاتيح وخارج شجرة الوصول (`tabindex="-1"` و
-   `aria-hidden` في القالب). فمن ينظر يرى زرّاً في عمودٍ مستقيم، ومن يتنقّل
-   بالمفاتيح يمرّ بسبعةِ أهدافٍ لا أربعةَ عشر.
+   والزرُّ `<span>` لا `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ تفاعليٌّ داخل
+   تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل لقارئ الشاشة هدفين
+   لوجهةٍ واحدة. فهيئةُ زرٍّ بلا سلوكه، والنقرُ يقع على البلاطة كما كان.
+   و`aria-hidden` عليه: «عرض» لا تضيف شيئاً إلى اسم الرابط المقروء.
+
+   والبلاطةُ صارت ثلاثةَ أسطرٍ بإيقاعٍ واحد: اسمٌ، فشرحٌ، فخطٌّ يليه الزرّ في
+   القاع — و`margin-block-start: auto` عليه فتستوي الأزرارُ في صفٍّ واحدٍ مهما
+   اختلف طولُ الشروح.
    ======================================================================== */
 
-.open-t th[scope="row"] { font-weight: 800; }
-.open-t th[scope="row"] a { color: var(--ink); text-decoration: none; }
-.open-t th[scope="row"] a:hover { color: var(--brand-dark); text-decoration: underline; }
-.open-t td.muted { font-size: .82rem; }
+.open {
+  gap: .25rem;
+  padding: .85rem .95rem .8rem;
+  min-block-size: 100%;
+}
 
-/* عمودُ الفعل بمقاس محتواه، والزرُّ في أوّله فتستقيم الأزرارُ عموداً. */
-.open-t__act { width: 1%; white-space: nowrap; }
-
-.open-t__go {
-  display: inline-flex;
+.open__go {
+  margin-block-start: auto;
+  padding-block-start: .6rem;
+  border-block-start: 1px solid var(--line-soft);
+  display: flex;
   align-items: center;
   gap: .35rem;
-  padding: .32rem .8rem;
-  border: 1px solid color-mix(in srgb, var(--brand) 42%, var(--line));
-  border-radius: 999px;
-  background: var(--panel);
-  color: var(--brand-dark);
   font-size: .78rem;
   font-weight: 800;
-  text-decoration: none;
-  transition: background .15s ease, border-color .15s ease, color .15s ease;
+  color: var(--brand-dark);
 }
-.open-t__go::after { content: "←"; transition: transform .15s ease; }
+.open__go::after { content: "←"; transition: transform .16s ease; }
+.open:hover .open__go::after { transform: translateX(-3px); }
 
-/* السطرُ كلُّه يُبرز الزرَّ عند المرور — الهدفُ هو الصفّ لا الزرّ وحدَه. */
-.open-t tbody tr:hover .open-t__go {
-  background: var(--brand-solid);
-  border-color: var(--brand-solid);
-  color: #fff;
-}
-.open-t tbody tr:hover .open-t__go::after { transform: translateX(-3px); }
-
-/* ===========================================================================
-   جدولُ «ما يُفتح من هنا» — الأعمدةُ بمقاس ما فيها
-   ---------------------------------------------------------------------------
-   «خلّي الجدول بشكل وتنظيم احترافي أكتر».
-
-   العطلُ فجوةٌ داخل العمود الأول لا بينه وبين ما يليه: `table { width: 100% }`
-   يقسم العرضَ على ثلاثة، فعمودُ الاسم ينال ثلثاً (~350px) و«اتخاذ القرار»
-   تشغل ثمانين منها — فيبقى 270 بكسلاً بيضاءَ بين الاسم وشرحه، والعينُ تقطعها
-   سبعَ مرّات لتصل من اسمٍ إلى معناه.
-
-   فالعمودان الطرفيّان بمقاس محتواهما (`width: 1%` مع `nowrap` — الحيلةُ
-   المعروفة: الجدولُ يوسّع ما لا يتّسع، فالنسبةُ الصغيرة تعني «أضيقَ ما يمكن»)،
-   وعمودُ الشرح يأخذ الباقي كلَّه. فيلتصق الشرحُ باسمه.
-
-   ومسافةٌ صريحةٌ بينهما (`padding-inline-end`) لئلا يلتحما.
-   ======================================================================== */
-
-.open-t th[scope="row"] {
-  width: 1%;
-  white-space: nowrap;
-  padding-inline-end: 2.2rem;
-  vertical-align: middle;
-}
-.open-t td { vertical-align: middle; }
-
-/* عمودُ الشرح يبتلع الباقي، فالجدولُ لا يوزّع الفراغَ على الثلاثة. */
-.open-t td.muted { width: 100%; }
-
-/* رأسُ عمود الفعل يُحاذي زرَّه — عنوانٌ في وسطٍ وزرٌّ على حافةٍ يُقرآن عمودين. */
-.open-t thead th:last-child { text-align: start; }
-
-/* صفٌّ أوضحُ عند المرور: أرضيّةٌ من عائلة الأساسيّ لا رماديّةٌ محايدة —
-   الصفُّ كلُّه هدفُ نقر، والرماديُّ يقول «مُحدَّد» لا «يُفتح». */
-.open-t tbody tr:hover, .open-t tbody tr:hover td, .open-t tbody tr:hover th {
-  background: var(--brand-soft);
-}
-.open-t tbody tr:hover th[scope="row"] a { color: var(--brand-dark); }
+/* الحدُّ العلويُّ للزرّ يخفّ على الأرضيّة الملوّنة عند المرور، وإلا قُرئ
+   خطّاً أغمقَ مما حوله. */
+.open:hover .open__go { border-block-start-color: color-mix(in srgb, var(--brand) 30%, transparent); }
