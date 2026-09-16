@@ -14,27 +14,46 @@ T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَ�
 {% endcomment %}
 {% block title %}تقرير المحفظة{% endblock %}
 {% block heading %}تقرير المحفظة{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>عملاء لهم تأمين</th><td class="count">{{ customers|unlocalize }}</td></tr>
-      <tr><th>إجمالي مبالغ التأمين</th><td class="money">{{ total|unlocalize }}</td></tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} سطرُ تعريفٍ يقول ما في تعليق الملفّ ولا يراه إلا من يفتحه:
+     أن v1 يقرأ هذا الرقمَ من عمودٍ مشتقٍّ محذَّرٍ منه في كوده. {% endcomment %}
+  <p class="lede">
+    مجموعُ أرصدة التأمين ومن يحملها. <strong>ويُجمَع من قيود الدفتر عند كل
+    عرض</strong> — وv1 يقرؤه من عمودٍ مخزَّنٍ لا يُحدَّث بانتظام، فاختلافُهما
+    يومَ التحويل هو الجوابُ لا المشكلة.
+  </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال">
-    <input type="number" step="0.01" name="low" value="{{ low }}" placeholder="من مبلغ">
-    <input type="number" step="0.01" name="high" value="{{ high }}" placeholder="إلى مبلغ">
-    <select name="order">
-      <option value="">الأعلى أولاً</option>
-      <option value="asc" {% if order == "asc" %}selected{% endif %}>الأقل أولاً</option>
-    </select>
-    <button type="submit">تطبيق</button>
+  {% comment %} كان جدولاً بصفّين «عنوانٌ · قيمة» — قيمتان منفردتان لا
+     تُقارَنان ولا تُفرَزان، والعنوانُ على حافةٍ والقيمةُ على مقابلها بعرض
+     الشاشة بينهما. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام المحفظة">
+    <div class="sum">
+      <p class="sum__label">عملاء لهم تأمين</p>
+      <p class="sum__value">{{ customers|unlocalize }}</p>
+      <p class="sum__note">يحملون رصيداً في الدفتر.</p>
+    </div>
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي مبالغ التأمين</p>
+      <p class="sum__value money">{{ total|unlocalize }}</p>
+      <p class="sum__note">مجموعُ أرصدتهم كلِّها.</p>
+    </div>
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. وهي أربعةُ حقولٍ وزرّ — قائمةٌ
+     واحدةٌ فقط، أي دون عتبةِ الثلاث — فتقع في سطرٍ واحد. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}" placeholder="الاسم أو الجوال" aria-label="بحث">
+      <input type="number" step="0.01" name="low" value="{{ low }}" placeholder="من مبلغ" aria-label="من مبلغ">
+      <input type="number" step="0.01" name="high" value="{{ high }}" placeholder="إلى مبلغ" aria-label="إلى مبلغ">
+      <select name="order" aria-label="الترتيب">
+        <option value="">الأعلى أولاً</option>
+        <option value="asc" {% if order == "asc" %}selected{% endif %}>الأقل أولاً</option>
+      </select>
+      <button type="submit" class="btn-primary">تطبيق</button>
+    </div>
   </form>
 
   <div class="scroller">

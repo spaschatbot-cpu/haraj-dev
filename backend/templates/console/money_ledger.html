@@ -17,14 +17,34 @@ registered buries the four people the operator could have meant.
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}"
-           placeholder="رقم الجوال أو الاسم" autofocus>
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ تعريفٍ: الشاشةُ كانت تبدأ بحقلِ بحثٍ عارٍ، فلا تقول ما
+     الذي يُبحَث فيه ولا ما يظهر بعده. {% endcomment %}
+  <p class="lede">
+    أرصدةُ التأمين عند العملاء — <strong>مجموعُ ما دفعه كلٌّ منهم وما هو محجوزٌ
+    له الآن</strong>. والرقمُ مجموعٌ من قيود الدفتر عند كل عرض، لا عمودٌ مخزَّن.
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="رقم الجوال أو الاسم" aria-label="بحث" autofocus>
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   {% if missing %}
-    <p class="empty">لا يوجد عميل بهذا الرقم ({{ missing|unlocalize }}).</p>
+    <p class="notice">لا يوجد عميلٌ بهذا الرقم ({{ missing|unlocalize }}).</p>
+  {% endif %}
+
+  {% comment %} كان الجدولُ كلُّه داخل `{% if page %}`، فالشاشةُ قبل البحث
+     تظهر **فارغةً تماماً** — حقلُ بحثٍ وبياضٌ تحته، بلا كلمةٍ تقول ما يُفعل.
+     فحالةُ الفراغ تُكتب صراحةً. {% endcomment %}
+  {% if not page %}
+    <div class="blank">
+      <p class="blank__say">ابحث برقم الجوّال أو الاسم لعرض رصيد العميل.</p>
+      <p class="blank__hint">أو اترك الحقلَ فارغاً واضغط «بحث» لعرض كلّ من يحمل رصيداً.</p>
+    </div>
   {% endif %}
 
   {% if page %}
