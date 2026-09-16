@@ -10684,8 +10684,14 @@ a.stat--alarm:hover .stat__btn, a.stat--alarm:focus-visible .stat__btn { backgro
   }
   .board-stats:not(.board-stats--compact) > .stat { grid-column: span 3; }
 
-  /* خمسٌ: أربعٌ ثم واحدةٌ بعرض الصفّ. */
-  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(5) { grid-column: span 12; }
+  /* ثلاثٌ: صفٌّ تامّ. */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(3):last-child) > .stat { grid-column: span 4; }
+
+  /* خمسٌ: **ثلاثٌ ثم اثنتان** لا أربعٌ ثم واحدة. والواحدةُ الممدودةُ على
+     الصفّ كلِّه تُقرأ لافتةً لا بطاقة — تُعطي وزنَ عنوانٍ لرقمٍ ليس أهمَّ من
+     أخواته. رُئي على «مزايدات مرفوضة اليوم». */
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat { grid-column: span 4; }
+  .board-stats:not(.board-stats--compact):has(> .stat:nth-child(5):last-child) > .stat:nth-child(n+4) { grid-column: span 6; }
 
   /* ستٌّ: أربعٌ ثم اثنتان بالنصف. */
   .board-stats:not(.board-stats--compact):has(> .stat:nth-child(6):last-child) > .stat:nth-child(n+5) { grid-column: span 6; }

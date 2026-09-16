@@ -52,20 +52,28 @@
   {% endif %}
 
   {% if board.stats %}
-    <h2 class="board-eyebrow" id="head-stats"><span>أرقام المنصّة</span></h2>
-    {% comment %} شبكةٌ **واحدة** لبطاقات الأرقام وبطاقات الرسم معاً. كانتا
-       شبكتين: الثانيةُ بعمودين للبطاقات ذات الرسم. وثمنُ الفصل أن ذيلَ
-       الأولى يبقى صفّاً ناقصاً ثم يبدأ صفٌّ بعمودين تحته — أي ستّةُ مربّعاتٍ
-       في ثلاثة صفوفٍ غيرِ متساوية.
-
-       والفرزُ يبقى في `dashboard.py` كما كان (`board.stats` و`board.charts`
-       حقلان منفصلان) — المتغيّرُ هنا أنهما يُرسمان في شبكةٍ واحدة، فتُقرأ
-       الكتلةُ صفوفاً متساوية. والقالبُ لا يفرز بيانات، إنما يعرضها. {% endcomment %}
+    <h2 class="board-eyebrow" id="head-stats"><span>المال</span></h2>
+    {% comment %} كتلتان بعنوانين: «المال» و«الحركة». وكانت واحدةً بعنوان
+       «أرقام المنصّة» — وهو عنوانٌ لا يقول شيئاً: كلُّ ما في الشاشة أرقامُ
+       المنصّة. والفرزُ في `dashboard.py` بالقاعدة (اللون) لا بالترتيب،
+       فالقالبُ يعرض ولا يفرز. {% endcomment %}
     <section class="board-stats" aria-labelledby="head-stats">
       {% for stat in board.stats %}{% include "console/_stat.html" %}{% endfor %}
       {% for stat in board.charts %}{% include "console/_stat.html" %}{% endfor %}
     </section>
-  {% else %}
+  {% endif %}
+
+  {% if board.flow %}
+    {% comment %} عنوانٌ ثانٍ بين الكتلتين — بأمر المالك. والفصلُ بينهما
+       بالقاعدة لا بالترتيب: المالُ فوق (رصيدٌ وحجزٌ وفاتورة)، والحركةُ تحت
+       (مزادٌ ومزايدةٌ وناسٌ وما ينتظر قراراً). {% endcomment %}
+    <h2 class="board-eyebrow" id="head-flow"><span>الحركة</span></h2>
+    <section class="board-stats" aria-labelledby="head-flow">
+      {% for stat in board.flow %}{% include "console/_stat.html" %}{% endfor %}
+    </section>
+  {% endif %}
+
+  {% if not board.stats and not board.flow %}
     <p class="notice">لا أرقام تُعرض لك هنا — صلاحياتك لا تشمل أياً منها.</p>
   {% endif %}
 
