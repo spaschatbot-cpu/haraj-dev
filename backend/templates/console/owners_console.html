@@ -89,71 +89,95 @@
      وشرحُ كلٍّ بعد شرطةٍ في السطر نفسِه. فيُقرأ الاسمُ والشرحُ كتلةً واحدة،
      ولا هدفَ نقرٍ إلا الكلمةَ نفسَها. فصارت بلاطاتٍ: الاسمُ سطرٌ والشرحُ
      تحته، والبلاطةُ كلُّها تُنقر. {% endcomment %}
+  {% comment %} جدولٌ لا بلاطات — بأمر المالك. وهو يصلح هنا: سبعةُ صفوفٍ
+     بحقلين متطابقَي المعنى (اسمُ الشاشة وما فيها)، أي **أعمدةٌ تُقارَن**
+     حقّاً لا قيمٌ منفردة. وعمودُ «عرض» زرٌّ في كل صفٍّ كما طلب. {% endcomment %}
   <h2 class="owners-head">ما يُفتح من هنا</h2>
-  <div class="open-grid">
-    <a class="open" href="{% url 'console:partner-decisions' %}">
-      <span class="open__name">اتخاذ القرار</span>
-      <span class="open__why">ما ينتظر قرار المالك</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:ended-decisions' %}">
-      <span class="open__name">القرارات المنتهية</span>
-      <span class="open__why">ما حُسم</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:auction-archive' %}">
-      <span class="open__name">أرشيف المزادات</span>
-      <span class="open__why">المزادات المنتهية وأرقامها</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:analytics' %}">
-      <span class="open__name">لوحة التقارير</span>
-      <span class="open__why">التحليلات والإحصائيات</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:profit-report' %}">
-      <span class="open__name">تقرير الأرباح</span>
-      <span class="open__why">ما دخل وما خرج</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:money-health' %}">
-      <span class="open__name">صحّة المال</span>
-      <span class="open__why">اتّساق الدفتر مع الفواتير</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:audit' %}">
-      <span class="open__name">سجل التدقيق</span>
-      <span class="open__why">من فعل ماذا ومتى</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
+  <div class="scroller">
+    <table class="open-t">
+      <thead>
+        <tr><th>الشاشة</th><th>ماذا فيها</th><th>عرض</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><a href="{% url 'console:partner-decisions' %}">اتخاذ القرار</a></th>
+          <td class="muted">ما ينتظر قرار المالك</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:partner-decisions' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:ended-decisions' %}">القرارات المنتهية</a></th>
+          <td class="muted">ما حُسم — رست أو رفضها المالك</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:ended-decisions' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:auction-archive' %}">أرشيف المزادات</a></th>
+          <td class="muted">المزادات المنتهية وأرقامها</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:auction-archive' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:analytics' %}">لوحة التقارير</a></th>
+          <td class="muted">التحليلات والإحصائيات</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:analytics' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:profit-report' %}">تقرير الأرباح</a></th>
+          <td class="muted">ما دخل وما خرج</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:profit-report' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:money-health' %}">صحّة المال</a></th>
+          <td class="muted">اتّساق الدفتر مع الفواتير</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:money-health' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><a href="{% url 'console:audit' %}">سجل التدقيق</a></th>
+          <td class="muted">من فعل ماذا ومتى</td>
+          <td class="open-t__act">
+            {% comment %} الاسمُ في الخانة الأولى رابطٌ أيضاً، وهذا الزرُّ إلى
+               الوجهة نفسِها. فـ`tabindex="-1"` و`aria-hidden` عليه: من يتنقّل
+               بالمفاتيح أو بقارئ شاشةٍ يجد **هدفاً واحداً** لكلّ سطرٍ لا
+               اثنين، ومن ينظر يجد زرّاً في عمودٍ مستقيم. {% endcomment %}
+            <a class="open-t__go" href="{% url 'console:audit' %}" tabindex="-1" aria-hidden="true">عرض</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <p class="notice owners-note">
