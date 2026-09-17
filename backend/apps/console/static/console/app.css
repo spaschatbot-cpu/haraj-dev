@@ -11543,3 +11543,16 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
    فلا استثناءَ لها. وبطاقةٌ بلا وجهةٍ بينها (`div` لا `a`) تبقى بهيئتها بلا
    سهمٍ ولا تحويم: ما لا يُفتح لا يُوعَد بأنه يُفتح. */
 .sum-grid--links > div.sum .sum__note::after { content: none; }
+
+/* ---- «كل سيارات الشريك»: صفٌّ في سطر ------------------------------------ */
+
+/* اسمُ السيارة سطرٌ والسنةُ تحته، والسلاسلُ الأحاديّةُ أصغرُ وأخفت — سلسلةُ
+   17 محرفاً تُطابَق ولا تُقرأ، فوزنُها البصريُّ أقلُّ ما يمكن. */
+.pv-table td strong, .pv-table td a { font-weight: 700; }
+.pv-table td small { display: block; margin-block-start: .1rem; font-size: .72rem; color: var(--muted); }
+.pv-table td.mono { font-size: .76rem; color: var(--ink-soft); letter-spacing: -.01em; }
+.pv-table td { vertical-align: middle; }
+
+/* زرّا الحكم في صفٍّ لا يلتفّ: كانا `display:inline` على النموذج فينزل
+   الثاني سطراً ويُركب على جاره. */
+.pv-rule { display: flex; gap: .35rem; }

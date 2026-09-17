@@ -13,28 +13,59 @@
 {% endcomment %}
 {% block title %}كل سيارات الشريك{% endblock %}
 {% block heading %}كل سيارات الشريك{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  <form method="get">
-    {% include "console/_partner_pick.html" %}
-    <select name="which">
-      <option value="">الكل</option>
-      <option value="sold" {% if which == "sold" %}selected{% endif %}>مباعة</option>
-      <option value="unsold" {% if which == "unsold" %}selected{% endif %}>غير مباعة</option>
-      <option value="deciding" {% if which == "deciding" %}selected{% endif %}>بانتظار قرار المالك</option>
-    </select>
-    <input type="search" name="q" value="{{ q }}" placeholder="لوحة أو شاصي أو اسم أو لوت">
-    <button type="submit">بحث</button>
-  </form>
-
-  <p>
-    {{ totals.won|unlocalize }} مباعة من {{ totals.vehicles|unlocalize }} ·
-    إجمالي الترسية {{ totals.won_value|unlocalize }}
+  {% comment %} سطرُ تعريفٍ يحمل ما في تعليق الملفّ: عمودُ «سعر الوقوف» في
+     v1 يقول `0.00` في الصفوف الأربعةِ والسبعين وثلاثمئة كلِّها — وهي جملةٌ
+     يقرأها من يقرّر قبولَ العرض أو رفضه. {% endcomment %}
+  <p class="lede">
+    كلُّ سيارةٍ للشريك ونتيجتُها. <strong>و«سعر الوقوف» هو الحقيقيُّ لا صفر</strong>
+    — يقول v1 `0.00` في كلّ صفّ، فيقرأ الشريكُ أن سيارته بدأت من الصفر وهو
+    يقرّر بناءً على ذلك. و«—» تعني «لم يُحدَّد» لا «مجّاناً».
   </p>
 
-  <div class="scroller">
-    <table>
+  {% comment %} ثلاثةُ أرقامٍ كانت في سطرٍ واحدٍ عارٍ يفصلها نقاطٌ وسطى، فتُقرأ
+     جملةً لا أرقاماً. وهي من **المرشَّح نفسِه** تحتها. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام الشريك">
+    <div class="sum">
+      <p class="sum__label">سيارات مطابقة</p>
+      <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
+      <p class="sum__note">في المرشّح الحالي.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مباعة منها</p>
+      <p class="sum__value">{{ totals.won|unlocalize }}</p>
+      <p class="sum__note">رست على مزايد.</p>
+    </div>
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي الترسية</p>
+      <p class="sum__value money">{{ totals.won_value|unlocalize }}</p>
+      <p class="sum__note">مجموعُ أسعار ما رسا.</p>
+    </div>
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمتان وحقلٌ وزرّ. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      {% include "console/_partner_pick.html" %}
+      <select name="which" aria-label="النتيجة">
+        <option value="">الكل</option>
+        <option value="sold" {% if which == "sold" %}selected{% endif %}>مباعة</option>
+        <option value="unsold" {% if which == "unsold" %}selected{% endif %}>غير مباعة</option>
+        <option value="deciding" {% if which == "deciding" %}selected{% endif %}>بانتظار قرار المالك</option>
+      </select>
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="لوحة أو شاصي أو اسم أو لوت" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
+  </form>
+
+  {% comment %} أحدَ عشرَ عموداً في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفّ —
+     واسمُ السيارة يأخذ ثلاثةَ أسطر. `scroller--wide` تمنع اللفَّ وتُمرّر
+     أفقياً، كما في «ما بعد البيع» و«كتالوج السيارات». {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="pv-table">
     <thead>
       <tr>
         <th>#</th>
@@ -53,15 +84,15 @@
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.pk|unlocalize }}</td>
+          <td class="count">{{ row.pk|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
           <td>
             <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
-          <td>{{ row.plate_number|default:"—" }}</td>
-          <td>{{ row.vin|default:"—" }}</td>
-          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="mono">{{ row.plate_number|default:"—" }}</td>
+          <td class="mono">{{ row.vin|default:"—" }}</td>
+          <td class="count">{{ row.auction.number|unlocalize }}</td>
           {% comment %} سعرُ الوقوف الحقيقي: في v1 هذا العمود `0.00` في كل
              صفّ، فيقرأ الشريك أن سيارته بدأت من الصفر. {% endcomment %}
           <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
@@ -82,7 +113,7 @@
             {% elif row.partner_decided_at %}
               <span class="pill" data-tone="plain">{{ row.get_partner_decision_display }}</span>
             {% else %}
-              <form method="post" action="{% url 'console:partner-rule' row.pk %}" style="display:inline">
+              <form method="post" action="{% url 'console:partner-rule' row.pk %}" class="pk-form pv-rule">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <button type="submit" name="decision" value="accepted" class="btn-sm">قبِل</button>
