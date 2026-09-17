@@ -11568,3 +11568,26 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 
 /* رابطُ «اعرض كل المزادات» داخل تنبيه: زرٌّ صغيرٌ لا كلمةٌ مسطورةٌ في الجملة. */
 .notice .rf-go { margin-inline-start: .5rem; vertical-align: .1em; }
+
+/* ---- «تسوية الشريك»: طابوران يُقرآن تبويباً ------------------------------ */
+
+/* البطاقةُ المفتوحةُ تُرى مفتوحة: حدٌّ بلون الأساسيّ وأرضيّةٌ منه. ورابطان
+   مسطوران تفصلهما نقطةٌ وسطى لا يقولان أيُّهما المعروضُ الآن. */
+.st-queues .sum--on {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.st-queues .sum--on .sum__label,
+.st-queues .sum--on .sum__value { color: var(--brand-dark); }
+.st-queues .sum--on .sum__note::after { content: none; }
+.st-queues .sum--on .sum__note { color: var(--brand-dark); font-weight: 800; }
+
+/* «رست ولم تُفوتَر بعد» تمتدّ على ثلاث خاناتٍ: جملةٌ تُقال لا خانةٌ فارغة،
+   وصنفُها كان `empty` وهو للحالات الفارغة — وهذه حالةٌ لها اسم. */
+.ps-nobill {
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--warn);
+  background: var(--warn-soft);
+}

@@ -56,6 +56,7 @@ from apps.money.models import Invoice, InvoiceState
 from .archive import ARCHIVED
 from .exports import export, wants_export
 from .tones import with_tones
+from .after_sales import state_label
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -386,6 +387,11 @@ def _settlement_screen(request, paid: bool):
         )
         vehicle.invoice = invoice
         vehicle.invoice_state = money.derive_invoice_state(invoice) if invoice else ""
+        # **الاسمُ العربيُّ لا القيمة.** كان القالبُ يطبع `invoice_state`
+        # نفسَها، فيقرأ الموظّفُ `open` و`partial` في شاشةٍ عربيّةٍ كلِّها —
+        # وهو العطلُ نفسُه الذي أُصلح في «ما بعد البيع» بـ`state_label`.
+        # والقيمةُ تبقى كما هي لمن يرشّح بها.
+        vehicle.invoice_label = state_label(vehicle.invoice_state)
 
     return render(
         request,
