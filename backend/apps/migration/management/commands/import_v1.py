@@ -70,6 +70,17 @@ AUCTION_STATE = {
 SHOWCASE = {"later": "later", "upcoming": "upcoming", "soon": "soon"}
 
 #: حالةُ سيارةٍ في v1 ⟶ عندنا.
+#: **وهذه تصف العرضَ لا النتيجة.** قيمُ ``auction_vehicles.status`` الستُّ في
+#: لقطة الإنتاج (٢٠٢٦-٠٩-٠٥): ``not_active`` ١١٬٩١٥ · ``active`` ٤٠٥ ·
+#: ``coming`` ٣٦٣ · ``ended`` ٢٨٨ · ``later`` ١٠٧ · ``soon`` ١ — **ولا
+#: ``sold`` ولا ``won`` فيها إطلاقاً**، والصفّان أدناه يقابلان قيمتين لا
+#: تَرِدان. فكلُّ مركبةٍ تخرج من هنا `draft` أو `listed` أو `rejected`،
+#: وصفرُ مركبةٍ تخرج مرسّاة.
+#:
+#: والترسيةُ في عمودٍ آخرَ من الجدول نفسِه: ``winner_user_id`` مملوءٌ في
+#: **٦٬١١٧** صفّاً ومعه ``winning_bid_id`` و``winner_paid_at``. يقرؤها
+#: `backfill_awards` (T928) — ولا تُقرأ هنا لأن الجسرَ يكتب بـ
+#: `ignore_conflicts`، فما يُضاف هنا لا يصل قاعدةً مبنيّة.
 VEHICLE_STATE = {
     "active": VehicleState.LISTED,
     "soon": VehicleState.LISTED,

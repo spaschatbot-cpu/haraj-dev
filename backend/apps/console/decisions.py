@@ -43,13 +43,13 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q, Sum
+from django.db.models import Count, Max, Q, Sum
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import urlencode
 from django.utils.timezone import localtime
 
-from apps.auctions.models import Vehicle
+from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.core import audit
@@ -77,7 +77,7 @@ PAGE_SIZE = 50
 AWARDED = AWARDED_STATES
 
 
-def awarded(*, text: str = "", first: str = "", last: str = ""):
+def awarded(*, text: str = "", auction: str = ""):
     """المركبات التي رست، الأحدث ترسيةً أولاً — صفٌّ واحدٌ لكلٍّ منها.
 
     مفصولةٌ عن العرض ليسألها الاختبار والملخّصُ **الاستعلام نفسه**: ادّعاءُ أن
@@ -109,16 +109,46 @@ def awarded(*, text: str = "", first: str = "", last: str = ""):
             matches |= Q(auction__number=int(text)) | Q(lot_number=int(text))
         rows = rows.filter(matches)
 
-    # مدى أرقام المزادات كما في v1 («من رقم مزاد» / «إلى رقم مزاد»). والقيمة
-    # غيرُ الرقمية تُهمَل ولا تُسقِط الصفحة: خانةٌ يكتب فيها موظّفٌ حرفاً
-    # فتُرمى 500 هي خانةٌ لا تُستعمل مرّةً ثانية.
-    if (first or "").strip().isdigit():
-        rows = rows.filter(auction__number__gte=int(first))
-    if (last or "").strip().isdigit():
-        rows = rows.filter(auction__number__lte=int(last))
+    # **مزادٌ واحدٌ يُختار من قائمة، لا مدىً يُكتب رقمين.** كان هنا «من رقم
+    # مزاد / إلى رقم مزاد» نقلاً عن v1، وحُذف بقرار المالك في ١٧ سبتمبر
+    # ٢٠٢٦: «دي لا، الغي — أنا عايز مزاد كذا، هختار فلتر المزاد كذا».
+    #
+    # والمدى كان يطلب من الموظّف أن **يحفظ أرقام المزادات** ليكتبها، وهي
+    # أربعةٌ وخمسون رقماً بلا نظامٍ يُتذكَّر (١…٤٠ ثم ١٠٠٠ و١٠٠٤…١٠١٨).
+    # والقائمةُ تعرض الرقمَ والاسمَ معاً، فيُختار ما يُقرأ لا ما يُحفظ.
+    if (auction or "").strip().isdigit():
+        rows = rows.filter(auction_id=int(auction))
 
-    return rows
+    # عددُ مزايدات المركبة وأعلاها — بالاستعلام نفسِه لا باستعلامٍ لكل صفّ.
+    #
+    # **والأعلى من القائمة وحدَها**: المسحوبةُ فعلُ صاحبها والمتجاوَزةُ أثرُ
+    # فعله، وكلتاهما لم تعد قائمة. ولو حُسب الأعلى منهما لقرأ الموظّفُ مبلغاً
+    # أعلى من سعر الترسية على مركبةٍ رست بأقلّ منه، فيسأل عن فرقٍ لا وجود له.
+    return rows.annotate(
+        bid_count=Count("bids", distinct=True),
+        top_bid=Max(
+            "bids__amount",
+            filter=Q(bids__is_withdrawn=False, bids__is_superseded=False),
+        ),
+    )
 
+
+
+def auction_choices():
+    """المزاداتُ التي فيها ما رسا، لمرشّح الشاشة — الأحدثُ رقماً أوّلاً.
+
+    **وما لا ترسو فيه مركبةٌ لا يُعرض**: الشاشةُ تعرض المرساة، ومزادٌ في
+    القائمة يُختار فيُفرِغ الجدولَ هو وعدٌ كاذب. والعدُّ بجانب الاسم يقول
+    كم سيجد قبل أن يختار.
+    """
+    return (
+        Auction.objects.filter(
+            vehicles__state__in=AWARDED, vehicles__awarded_to__isnull=False
+        )
+        .annotate(awarded_count=Count("vehicles", distinct=True))
+        .order_by("-number")
+        .values("id", "number", "title", "awarded_count")
+    )
 
 def money_of(vehicle: Vehicle) -> dict:
     """ما تحمله هذه الترسية من مالٍ — **من فاتورتها إن وُجدت**.
@@ -145,11 +175,8 @@ def money_of(vehicle: Vehicle) -> dict:
 @console_page("console:accepted-bids")
 def accepted_bids(request):
     """المزايدات المقبولة: صفٌّ لكل مركبةٍ رست، ومالُها من فاتورتها."""
-    rows = awarded(
-        text=request.GET.get("q", ""),
-        first=request.GET.get("from", ""),
-        last=request.GET.get("to", ""),
-    )
+    chosen = request.GET.get("auction", "")
+    rows = awarded(text=request.GET.get("q", ""), auction=chosen)
 
     # الشاشةُ `auctions.view`، والفائزُ وجوّالُه ومبالغُه ليسوا منها. وكانت
     # الصفحةُ تضع في **مصدرها** ثمانيةَ جوّالاتٍ واثنين وعشرين مبلغاً لمن يملك
@@ -172,6 +199,10 @@ def accepted_bids(request):
                     ("رقم الهيكل", lambda row: row.vin, None),
                     ("الفائز", lambda row: row.awarded_to.full_name, CUSTOMER),
                     ("الجوال", lambda row: row.awarded_to.phone, CUSTOMER),
+                    # العمودان نفسُهما في الملفّ: من صدّر ليراجع يريد أن
+                    # يرى كم زايد على السيارة وبكم — لا سعرَ الترسية وحدَه.
+                    ("المزايدات", lambda row: row.bid_count, None),
+                    ("أعلى مزايدة", lambda row: row.top_bid or ZERO, MONEY),
                     ("سعر الترسية", lambda row: row.awarded_price or ZERO, MONEY),
                     (
                         "تاريخ الانتهاء",
@@ -220,8 +251,8 @@ def accepted_bids(request):
             "show_money": seen.money,
             "show_customer": seen.customer,
             "q": request.GET.get("q", ""),
-            "first": request.GET.get("from", ""),
-            "last": request.GET.get("to", ""),
+            "chosen": chosen,
+            "auctions": auction_choices(),
             # زرُّ الفوترة وراء قدرته هو، لا وراء قدرة الشاشة: من يقرأ الجدول
             # بـ`auctions.view` لا يُفوتِر منه. ويُقرأ مرّةً هنا لا مرّةً لكلّ
             # صفّ في القالب.
@@ -235,8 +266,7 @@ def accepted_bids(request):
             "filters": urlencode(
                 {
                     "q": request.GET.get("q", ""),
-                    "from": request.GET.get("from", ""),
-                    "to": request.GET.get("to", ""),
+                    "auction": chosen,
                     "page": request.GET.get("page", ""),
                 }
             ),
@@ -259,7 +289,7 @@ def _cell(vehicle: Vehicle, key: str):
     return split["invoice"].number if key == "number" else split[key]
 
 
-def summary(*, text: str = "", first: str = "", last: str = "") -> dict:
+def summary(*, text: str = "", auction: str = "") -> dict:
     """أرقام الملخّص — من `awarded()` نفسها التي تبني القائمة.
 
     و«قبل الضريبة» هنا هو **مجموع أسعار الترسية**، و«بعد الضريبة» مجموعُ
@@ -267,7 +297,7 @@ def summary(*, text: str = "", first: str = "", last: str = "") -> dict:
     لهما ذلك: الفرق هو ما رسا ولم يُفوتَر بعد، وهو رقمٌ يُقرأ — لا فجوةٌ
     تُخبَّأ بضربِ الأول في النسبة.
     """
-    rows = awarded(text=text, first=first, last=last)
+    rows = awarded(text=text, auction=auction)
 
     awarded_total = rows.aggregate(t=Sum("awarded_price"))["t"] or ZERO
 
@@ -294,8 +324,7 @@ def summary(*, text: str = "", first: str = "", last: str = "") -> dict:
 def accepted_summary(request):
     """ملخّص المقبولة: ثلاثةُ أرقامٍ، وكلٌّ منها بابٌ إلى صفوفه."""
     text = request.GET.get("q", "")
-    first = request.GET.get("from", "")
-    last = request.GET.get("to", "")
+    chosen = request.GET.get("auction", "")
 
     # ثلاثةُ أرقامٍ من الستّة مبالغُ مجموعة، **ومبلغٌ مجموعٌ على آلاف الصفوف
     # ليس أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر** — الحجّةُ نفسُها
@@ -307,11 +336,11 @@ def accepted_summary(request):
         request,
         "console/accepted_summary.html",
         {
-            "totals": summary(text=text, first=first, last=last),
+            "totals": summary(text=text, auction=chosen),
             "show_money": seen.money,
             "q": text,
-            "first": first,
-            "last": last,
+            "chosen": chosen,
+            "auctions": auction_choices(),
         },
     )
 
@@ -417,8 +446,7 @@ def accepted_invoice_all(request):
 
     rows = awarded(
         text=request.POST.get("q", ""),
-        first=request.POST.get("from", ""),
-        last=request.POST.get("to", ""),
+        auction=request.POST.get("auction", ""),
     ).filter(state=VehicleState.AWARDED)
 
     done, failed = 0, []

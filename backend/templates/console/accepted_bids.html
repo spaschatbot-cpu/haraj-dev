@@ -38,8 +38,7 @@
       <form method="post" action="{% url 'console:accepted-invoice-all' %}" class="acc-bulk__form">
         {% csrf_token %}
         <input type="hidden" name="q" value="{{ q }}">
-        <input type="hidden" name="from" value="{{ first }}">
-        <input type="hidden" name="to" value="{{ last }}">
+        <input type="hidden" name="auction" value="{{ chosen }}">
         <input type="hidden" name="back" value="{{ filters }}">
         <button type="submit" class="btn-primary">إصدار فواتير كل ما رسا ولم يُفوتَر ({{ pending_invoices|unlocalize }})</button>
       </form>
@@ -47,11 +46,22 @@
     </section>
   {% endif %}
 
+  {% comment %} **مزادٌ يُختار من قائمة، لا مدىً يُكتب رقمين.** كانت هنا
+     «من مزاد» و«إلى مزاد» نقلاً عن v1، وحُذفتا بقرار المالك: المدى يطلب من
+     الموظّف أن يحفظ أرقام أربعةٍ وخمسين مزاداً بلا نظامٍ يُتذكَّر
+     (١…٤٠ ثم ١٠٠٠ و١٠٠٤…١٠١٨)، والقائمةُ تعرض الرقمَ والاسمَ وكم رسا فيه
+     — فيُختار ما يُقرأ لا ما يُحفظ. {% endcomment %}
   <form method="get">
     <input type="search" name="q" value="{{ q }}"
-           placeholder="لوحة أو شاصي أو اسم الفائز أو رقم مزاد">
-    <input type="number" name="from" value="{{ first }}" placeholder="من مزاد">
-    <input type="number" name="to" value="{{ last }}" placeholder="إلى مزاد">
+           placeholder="لوحة أو شاصي أو اسم الفائز">
+    <select name="auction" aria-label="المزاد">
+      <option value="">كلُّ المزادات</option>
+      {% for row in auctions %}
+        <option value="{{ row.id|unlocalize }}"{% if chosen == row.id|stringformat:"s" %} selected{% endif %}>
+          مزاد {{ row.number|unlocalize }} — {{ row.title }} ({{ row.awarded_count|unlocalize }})
+        </option>
+      {% endfor %}
+    </select>
     <button type="submit">بحث</button>
   </form>
 
@@ -67,6 +77,8 @@
         <th>رقم الهيكل</th>
         <th>الفائز</th>
         <th>الجوال</th>
+        <th>المزايدات</th>
+        <th>أعلى مزايدة</th>
         <th>سعر الترسية</th>
         <th>تاريخ الانتهاء</th>
         <th>الحالة</th>
@@ -108,6 +120,23 @@
           <td>
             {% if show_customer %}{{ row.buyer_phone|unlocalize }}
             {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          {% comment %} عددُ مزايدات المركبة — ورابطٌ إلى صفحتها، فمن أراد
+             «كلَّ مزايدات هذه السيارة» يصل إليها بنقرة. والصفرُ لا يُربط:
+             رابطٌ إلى جدولٍ فارغ نقرةٌ تُهدَر. {% endcomment %}
+          <td class="acc-bids">
+            {% if row.bid_count %}
+              <a href="{% url 'console:vehicle-bid-list' row.pk %}">{{ row.bid_count|unlocalize }}</a>
+            {% else %}<span class="empty">٠</span>{% endif %}
+          </td>
+          {% comment %} **أعلى مزايدةٍ قائمة** — لا أعلى ما وقع. المسحوبةُ
+             والمتجاوَزةُ لم تعودا قائمتين، وحسابُهما يُظهر مبلغاً أعلى من
+             سعر الترسية على مركبةٍ رست بأقلّ منه فيُسأل عن فرقٍ لا وجود له.
+             ومبلغٌ، فخلف `invoices.view` كبقيّة المبالغ. {% endcomment %}
+          <td class="money">
+            {% if not show_money %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
+            {% elif row.top_bid %}{{ row.top_bid|unlocalize }}
+            {% else %}<span class="empty">—</span>{% endif %}
           </td>
           <td class="money">
             {% if show_money %}{{ row.award_price|default:"—"|unlocalize }}
@@ -169,5 +198,5 @@
 </div>
 
   <p>{{ page.paginator.count|unlocalize }} مركبةً مرساة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
-  <p><a href="{% url 'console:accepted-summary' %}?q={{ q }}&amp;from={{ first }}&amp;to={{ last }}">ملخّص هذه النتائج ←</a></p>
+  <p><a href="{% url 'console:accepted-summary' %}?q={{ q }}&amp;auction={{ chosen }}">ملخّص هذه النتائج ←</a></p>
 {% endblock %}
