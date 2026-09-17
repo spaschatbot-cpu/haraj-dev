@@ -43,6 +43,7 @@ import json
 
 from django.contrib import messages as flash
 from django.core.paginator import Paginator
+from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.core import audit
@@ -140,11 +141,24 @@ def inbox(request):
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
+    # عدٌّ على **المرشَّح نفسِه**، و`order_by()` فارغةٌ قبل التجميع: جانغو
+    # تُضيف حقولَ الترتيب إلى `GROUP BY`، فتجميعٌ على قائمةٍ مرتَّبةٍ بالتاريخ
+    # يخرج صفّاً لكلّ (حالة، تاريخ) لا صفّاً لكلّ حالة. وقع هذا في «سجل
+    # الإشعارات» فقالت البطاقةُ «2» والجدولُ تحتها أربعة.
+    tally = dict(rows.order_by().values_list("state").annotate(n=Count("id")))
+    counts = {
+        "all": sum(tally.values()),
+        "failed": tally.get(InboundState.FAILED, 0),
+        "received": tally.get(InboundState.RECEIVED, 0),
+        "processed": tally.get(InboundState.PROCESSED, 0),
+    }
+
     return render(
         request,
         "console/odoo_inbox.html",
         {
             "page": page,
+            "counts": counts,
             "states": InboundState.choices,
             "state": state,
             "source": source,
