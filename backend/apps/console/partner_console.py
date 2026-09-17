@@ -201,6 +201,11 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
             # شاشةٍ مرشَّحةٍ بالفعل، ويختار منها الموظّفُ فلا يقع شيء.
             # وخانةٌ لا تفعل شيئاً أسوأُ من غيابها: تُقرأ عطلاً.
             "may_pick_state": screen is None,
+            # **هل اختير شريك؟** بلا شريكٍ يصير `mine` عدَّ مركبات المزاد
+            # كلِّها (`Q()` فارغةٌ لا تُرشّح شيئاً)، فعمودٌ عنوانُه «سياراته»
+            # يعرض ٣٨٦ وهي سياراتُ المزاد لا سياراتِ أحد — أي أن الشاشةَ
+            # تناقض السطرَ الذي تحذّر به من هذا الخلط بعينه.
+            "picked": str(partner).strip().isdigit(),
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
