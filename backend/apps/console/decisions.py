@@ -172,6 +172,35 @@ def money_of(vehicle: Vehicle) -> dict:
     }
 
 
+def awarded_page(request, rows, seen):
+    """صفحةٌ من الصفوف، مُهيّأةً للعرض — **لشاشتين تستعملان الجدولَ نفسَه**.
+
+    كانت هذه الأسطرُ في `accepted_bids` وحدَها، ثم صار «ملخّص المقبولة» يعرض
+    الصفوفَ تحت أرقامه (T929). ونسخُها هناك يعني حارسَ الحسّاس مرّتين —
+    والدرسُ مكتوبٌ بعدده في T922: جدولان لشيءٍ واحد يفترقان، والحجبُ يُطبَّق
+    في أحدهما ويُنسى في الآخر.
+    """
+    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    with_tones(page.object_list)
+
+    # الفاتورة تُقرأ لصفحةٍ واحدة لا للاستعلام كلّه: `money_of` استعلامٌ لكل
+    # صفّ، وخمسون منها مقبولةٌ في صفحة، وأربعةُ آلافٍ في تصدير ليست كذلك —
+    # ولذلك التصدير يمرّ بـ`_cell` التي تقرأ الفاتورة مرّةً لكلّ صفّ وتحفظها
+    # عليه، فأربعةُ أعمدةٍ ماليّةٍ لا تعني أربعةَ استعلامات.
+    for vehicle in page.object_list:
+        vehicle.money = money_of(vehicle)
+        # الثلاثةُ تُمحى من الصفّ قبل أن يصل القالبَ، لا تُخفى فيه: «قبل
+        # الضريبة» و«الضريبة» و«الإجمالي» مبالغُ فاتورةٍ بعينها. ورقمُ
+        # الفاتورة ورابطُها يبقيان، وهما ما يبقى في v1 نفسِه.
+        if not seen.money:
+            vehicle.money |= {"base": None, "tax": None, "total": None}
+
+    # اسمُ الفائز وجوّالُه إلى `buyer_name`/`buyer_phone`، وسعرُ الترسية إلى
+    # `award_price` — بالدالّة نفسها التي تحرس الكتالوج وكارت الأرشيف.
+    prepare(page.object_list, seen)
+    return page
+
+
 @console_page("console:accepted-bids")
 def accepted_bids(request):
     """المزايدات المقبولة: صفٌّ لكل مركبةٍ رست، ومالُها من فاتورتها."""
@@ -224,24 +253,7 @@ def accepted_bids(request):
             ),
         )
 
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
-
-    # الفاتورة تُقرأ لصفحةٍ واحدة لا للاستعلام كلّه: `money_of` استعلامٌ لكل
-    # صفّ، وخمسون منها مقبولةٌ في صفحة، وأربعةُ آلافٍ في تصدير ليست كذلك —
-    # ولذلك التصدير يمرّ بـ`_cell` التي تقرأ الفاتورة مرّةً لكلّ صفّ وتحفظها
-    # عليه، فأربعةُ أعمدةٍ ماليّةٍ لا تعني أربعةَ استعلامات.
-    for vehicle in page.object_list:
-        vehicle.money = money_of(vehicle)
-        # الثلاثةُ تُمحى من الصفّ قبل أن يصل القالبَ، لا تُخفى فيه: «قبل
-        # الضريبة» و«الضريبة» و«الإجمالي» مبالغُ فاتورةٍ بعينها. ورقمُ
-        # الفاتورة ورابطُها يبقيان، وهما ما يبقى في v1 نفسِه.
-        if not seen.money:
-            vehicle.money |= {"base": None, "tax": None, "total": None}
-
-    # اسمُ الفائز وجوّالُه إلى `buyer_name`/`buyer_phone`، وسعرُ الترسية إلى
-    # `award_price` — بالدالّة نفسها التي تحرس الكتالوج وكارت الأرشيف.
-    prepare(page.object_list, seen)
+    page = awarded_page(request, rows, seen)
 
     return render(
         request,
@@ -332,12 +344,24 @@ def accepted_summary(request):
     # رست وكم منها فُوتِرت» سؤالُ تشغيلٍ يجيبه عدّ، وهو سببُ فتح الشاشة.
     seen = shown_to(request.user)
 
+    # **والصفوفُ تحت الأرقام، لا خلف زرّ.** كان في ذيل الشاشة «افتح الصفوف
+    # التي خلف هذه الأرقام» يقود إلى شاشةٍ ثانية — أي أن من يقرأ «٣٠٦ مركبة»
+    # ويريد أن يرى أيَّها ينتقل ويفقد سياق الرقم. وقرارُ المالك في ١٧ سبتمبر
+    # ٢٠٢٦: «الداتا تتعرض على طول». والجدولُ هو جدولُ «المزايدات المقبولة»
+    # نفسُه — قالبٌ واحدٌ ودالّةٌ واحدة، لا نسخةٌ ثانية تفترق.
+    rows = awarded(text=text, auction=chosen)
+
     return render(
         request,
         "console/accepted_summary.html",
         {
             "totals": summary(text=text, auction=chosen),
+            "page": awarded_page(request, rows, seen),
             "show_money": seen.money,
+            "show_customer": seen.customer,
+            # زرُّ الفوترة لا يُعرض هنا: الشاشةُ شاشةُ قراءة، والفعلُ بابُه
+            # «المزايدات المقبولة». والقالبُ المشترَك يقرأ المتغيّر فيلزم.
+            "can_invoice": False,
             "q": text,
             "chosen": chosen,
             "auctions": auction_choices(),

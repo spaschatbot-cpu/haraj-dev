@@ -1,0 +1,145 @@
+{% load l10n %}
+{% comment %}
+جدولُ ما رسا — **قالبٌ واحدٌ لشاشتين**: «المزايدات المقبولة» و«ملخّص
+المقبولة». T929
+
+ولماذا مشترَكٌ لا منسوخ: الدرسُ مكتوبٌ في هذا المستودع بعدده (T922). كان
+جدولُ «ما بعد البيع» وجدولُ «القرارات المنتهية» نسختين لجدولٍ واحدٍ في v1،
+فافترقا: البحثُ العربيُّ أُصلح في أحدهما وبقي حرفياً في الآخر، وحجبُ الجوّال
+والمبلغ طُبِّق هنا ولم يصل هناك. وهذا الجدولُ أربعةَ عشرَ عموداً فيها أربعةُ
+حرّاسٍ للحسّاس — نسخُه يعني أربعةَ حرّاسٍ يُصانون مرّتين.
+
+والمتغيّراتُ التي يقرؤها: `page` · `show_money` · `show_customer` ·
+`can_invoice` · `filters`.
+{% endcomment %}
+  <div class="scroller">
+    <table class="acc-tbl">
+    <thead>
+      <tr>
+        <th>المزاد</th>
+        <th>اللوت</th>
+        <th>المركبة</th>
+        <th>اللوحة</th>
+        <th>اللون</th>
+        <th>رقم الهيكل</th>
+        <th>الفائز</th>
+        <th>الجوال</th>
+        <th>المزايدات</th>
+        <th>أعلى مزايدة</th>
+        <th>سعر الترسية</th>
+        <th>تاريخ الانتهاء</th>
+        <th>الحالة</th>
+        <th>الفاتورة</th>
+        <th>الضريبة</th>
+        <th>الإجمالي</th>
+        <th>إجراء</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in page %}
+        <tr>
+          <td><span class="acc-auction">مزاد {{ row.auction.number|unlocalize }}</span></td>
+          <td><span class="acc-lot">{{ row.lot_number|unlocalize }}</span></td>
+          <td>
+            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+            <small>{{ row.year|unlocalize }}</small>
+          </td>
+          <td class="acc-plate">{{ row.plate_number|default:"—" }}</td>
+          <td>{{ row.get_colour_display|default:"—" }}</td>
+          <td class="acc-vin">{{ row.vin|default:"—" }}</td>
+          {% comment %} `buyer_name`/`buyer_phone`/`award_price` من
+             `sensitive.prepare` لا `row.awarded_to` من العلاقة: الشاشةُ
+             `auctions.view` وحدَها، والاسمُ والجوّالُ خلف `users.view`
+             والمبلغُ خلف `invoices.view`. والحقلُ المحجوب **لا يصل القالبَ
+             أصلاً** — لا مخفيٌّ فيه بـCSS.
+
+             والرابطُ إلى ملفّ العميل يسقط مع الاسم: صفحتُه `users.view`
+             أصلاً، فرابطٌ إليها من هنا وعدٌ بـ`403`.
+
+             و«—» تبقى «—» لمن يملك الصلاحية: أسماءُ المزايدين المرحَّلين
+             فارغةٌ في القاعدة، وكتابةُ «محجوب» مكان اسمٍ فارغٍ لمن يراه
+             عطلٌ وقع فعلاً وأُصلح. {% endcomment %}
+          <td>
+            {% if row.buyer_name %}<a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.buyer_name }}</a>
+            {% elif show_customer %}<span class="empty">—</span>
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          <td>
+            {% if show_customer %}{{ row.buyer_phone|unlocalize }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+          </td>
+          {% comment %} عددُ مزايدات المركبة — ورابطٌ إلى صفحتها، فمن أراد
+             «كلَّ مزايدات هذه السيارة» يصل إليها بنقرة. والصفرُ لا يُربط:
+             رابطٌ إلى جدولٍ فارغ نقرةٌ تُهدَر. {% endcomment %}
+          <td class="acc-bids">
+            {% if row.bid_count %}
+              <a href="{% url 'console:vehicle-bid-list' row.pk %}">{{ row.bid_count|unlocalize }}</a>
+            {% else %}<span class="empty">٠</span>{% endif %}
+          </td>
+          {% comment %} **أعلى مزايدةٍ قائمة** — لا أعلى ما وقع. المسحوبةُ
+             والمتجاوَزةُ لم تعودا قائمتين، وحسابُهما يُظهر مبلغاً أعلى من
+             سعر الترسية على مركبةٍ رست بأقلّ منه فيُسأل عن فرقٍ لا وجود له.
+             ومبلغٌ، فخلف `invoices.view` كبقيّة المبالغ. {% endcomment %}
+          <td class="money">
+            {% if not show_money %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
+            {% elif row.top_bid %}{{ row.top_bid|unlocalize }}
+            {% else %}<span class="empty">—</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if show_money %}{{ row.award_price|default:"—"|unlocalize }}
+            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
+          {% comment %} تاريخُ انتهاء المزاد — عمودُ v1 «تاريخ الانتهاء».
+             وهو **تاريخُ المزاد لا تاريخُ الترسية**: المزادُ ينتهي مرّةً
+             واحدةً لكلّ مركباته، والترسيةُ تقع بعده بساعاتٍ أو بيوم. ومن قرأه
+             تاريخَ ترسيةٍ حسب المهلةَ من يومٍ خطأ. {% endcomment %}
+          <td>{{ row.auction.ends_at|date:"Y-m-d"|default:"—" }}</td>
+          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          {% comment %} الثلاثة الأخيرة من الفاتورة أو لا شيء. و«بلا فاتورة»
+             مكتوبةٌ نصّاً لا خانةً فارغة: الفارغة تُقرأ «لم يُحسب» وهذه تقول
+             «لم يُفوتَر» — والفرق هو ما ينتظر عملاً. {% endcomment %}
+          {% comment %} ورقمُ الفاتورة يبقى بـ`auctions.view` ومبلغُها لا:
+             «أفُوتِرت؟» سؤالُ تشغيل، و«بكم؟» سؤالُ مال — الفصلُ نفسُه الذي
+             في `sensitive.py` وفي v1 (`catalog.php` يضع الرقم وحده ثم يجلب
+             البقيّةَ عند الضغط). {% endcomment %}
+          {% if row.money.invoice %}
+            <td>
+              {% comment %} والرقمُ نصٌّ بلا رابطٍ لمن لا يملك المال: صفحةُ
+                 الفاتورة `invoices.view` أصلاً، فرابطٌ إليها من هنا وعدٌ
+                 بـ`403` — وهو ما فعله كارتُ الأرشيف والكتالوج قبله. {% endcomment %}
+              {% if show_money %}<a href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
+              {% else %}<span class="mono">{{ row.money.invoice.number }}</span>{% endif %}
+            </td>
+            {% if show_money %}
+              <td class="money">{{ row.money.tax|unlocalize }}</td>
+              <td class="money">{{ row.money.total|unlocalize }}</td>
+            {% else %}
+              <td class="empty" colspan="2" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</td>
+            {% endif %}
+          {% else %}
+            <td class="empty" colspan="3">بلا فاتورة — لا ضريبة على مبلغٍ لم يُفوتَر</td>
+          {% endif %}
+          {% comment %} عمودُ «إجراء» — نظيرُ v1. والزرُّ يظهر لثلاثةٍ معاً:
+             صلاحيةُ الأفعال المالية، ومركبةٌ حالتُها «رست» (وحدها ما تقبله
+             `invoice_award`)، ولا فاتورةَ حيّةً عليها. وغيابُه عن الصفّ يقول
+             «لا عملَ هنا»، وهو أصدقُ من زرٍّ يُضغَط فيرفض. {% endcomment %}
+          <td class="actions">
+            {% if can_invoice and row.state == "awarded" and not row.money.invoice %}
+              <form method="post" action="{% url 'console:accepted-invoice' row.pk %}" class="ex-inline">
+                {% csrf_token %}
+                <input type="hidden" name="back" value="{{ filters }}">
+                <button type="submit" class="btn-primary-sm">إنشاء فاتورة</button>
+              </form>
+            {% elif row.money.invoice %}
+              <span class="empty">فُوتِرت</span>
+            {% else %}
+              <span class="empty">—</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="15" class="empty">لا مركبات مرساة مطابقة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

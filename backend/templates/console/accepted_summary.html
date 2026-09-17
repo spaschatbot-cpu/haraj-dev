@@ -111,9 +111,11 @@
 
   </section>
 
-  {% comment %} كان رابطاً مسطوراً في فقرة؛ وهو الفعلُ الوحيد في الشاشة —
-     «افتح الصفوف التي خلف هذه الأرقام» — فيُكتب زرّاً. {% endcomment %}
-  <p class="sum-more">
-    <a class="btn-primary" href="{% url 'console:accepted-bids' %}?q={{ q }}&amp;auction={{ chosen }}">افتح الصفوف التي خلف هذه الأرقام</a>
-  </p>
+  {% comment %} **الصفوفُ تحت أرقامها، لا خلف زرّ.** كان هنا «افتح الصفوف
+     التي خلف هذه الأرقام» يقود إلى شاشةٍ ثانية — فمن قرأ «٣٠٦ مركبة» وأراد
+     أن يرى أيَّها ينتقل ويفقد سياق الرقم. وهو جدولُ «المزايدات المقبولة»
+     نفسُه بقالبه المشترَك، فلا نسختان تفترقان (درسُ T922). {% endcomment %}
+  <h2 class="sum-rows__head">الصفوفُ خلف هذه الأرقام</h2>
+  {% include "console/_accepted_table.html" %}
+  <p>{{ page.paginator.count|unlocalize }} مركبةً مرساة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
 {% endblock %}
