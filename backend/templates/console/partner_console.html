@@ -11,59 +11,83 @@
 {% block heading %}لوحة الشريك{% endblock %}
 
 {% block content %}
-  <form method="get">
-    {% include "console/_partner_pick.html" %}
-    <button type="submit">اعرض</button>
+  {% comment %} سطرُ تعريفٍ يقول الفرقَ الذي تُبنى عليه الشاشةُ كلُّها —
+     وهو مكتوبٌ في تعليق الملفّ ولا يراه إلا من يفتحه. {% endcomment %}
+  <p class="lede">
+    أرقامُ شريكٍ واحد، <strong>كلُّها من الفاتورة لا من جدولٍ مرفوع</strong>.
+    وشاشةُ v1 تقرأ ملفَّ إكسل وتقول بنفسها إن «الشريك لا يرى أيَّ حالة سداد من
+    النظام المحاسبي» — فللسداد هناك حقيقتان ولا شيءَ يوفّق بينهما.
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمةٌ وزرٌّ في الهواء. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      {% include "console/_partner_pick.html" %}
+      <button type="submit" class="btn-primary">اعرض</button>
+    </div>
   </form>
 
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr>
-        <th>مزادات فيها سياراته</th>
-        <td class="count">{{ totals.auctions|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-auctions' %}?partner={{ partner }}">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>سياراته</th>
-        <td class="count">{{ totals.vehicles|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>ما بيع منها</th>
-        <td class="count">{{ totals.won|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=sold">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>ما لم يُبع</th>
-        <td class="count">{{ totals.unsold|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=unsold">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>إجمالي أسعار الترسية</th>
-        <td class="money">{{ totals.won_value|unlocalize }}</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th>غير مسدَّدة</th>
-        <td class="count">{{ totals.unpaid|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>مسدَّدة</th>
-        <td class="count">{{ totals.paid|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-paid' %}?partner={{ partner }}">افتحها ←</a></td>
-      </tr>
-      <tr>
-        <th>ما وصل من مالها</th>
-        <td class="money">{{ totals.paid_value|unlocalize }}</td>
-        <td><a href="{% url 'console:partner-payments' %}?partner={{ partner }}">سجل الدفعات ←</a></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} كان جدولاً بثلاثة أعمدة: «الاسم · القيمة · افتحها ←» — وعمودُه
+     الثالثُ كلُّه رابطٌ مكرَّرٌ بالكلمة نفسِها ثمانيَ مرّات، أي ثلثُ عرض
+     الشاشة يحمل «افتحها» وحدَها. وهو ليس جدولاً: ثمانِ قيمٍ منفردةٍ لا تُفرَز
+     ولا تُقارَن.
 
-  <p class="empty">
+     فكلُّ صفٍّ صار بطاقةً هي نفسُها الرابط، كما في «منصّة الملاك» و«لوحة
+     التقارير». و«إجمالي أسعار الترسية» بلا وجهةٍ فيبقى بطاقةً لا تُنقر —
+     وهو الصفُّ الذي كانت خانتُه الثالثةُ فارغةً في الجدول. {% endcomment %}
+  <section class="sum-grid sum-grid--links" aria-label="أرقام الشريك">
+
+    <a class="sum" href="{% url 'console:partner-auctions' %}?partner={{ partner }}">
+      <p class="sum__label">مزادات فيها سياراته</p>
+      <p class="sum__value">{{ totals.auctions|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">
+      <p class="sum__label">سياراته</p>
+      <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=sold">
+      <p class="sum__label">ما بيع منها</p>
+      <p class="sum__value">{{ totals.won|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=unsold">
+      <p class="sum__label">ما لم يُبع</p>
+      <p class="sum__value">{{ totals.unsold|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي أسعار الترسية</p>
+      <p class="sum__value money">{{ totals.won_value|unlocalize }}</p>
+      <p class="sum__note">ما رسا — قبل أيّ سداد.</p>
+    </div>
+
+    <a class="sum sum--wait" href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">
+      <p class="sum__label">غير مسدَّدة</p>
+      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <a class="sum" href="{% url 'console:partner-paid' %}?partner={{ partner }}">
+      <p class="sum__label">مسدَّدة</p>
+      <p class="sum__value">{{ totals.paid|unlocalize }}</p>
+      <p class="sum__note">افتحها</p>
+    </a>
+
+    <a class="sum sum--money" href="{% url 'console:partner-payments' %}?partner={{ partner }}">
+      <p class="sum__label">ما وصل من مالها</p>
+      <p class="sum__value money">{{ totals.paid_value|unlocalize }}</p>
+      <p class="sum__note">سجل الدفعات</p>
+    </a>
+
+  </section>
+
+  <p class="notice notice--soft">
     «مسدَّدة» هنا تعني <strong>فاتورةً مسدَّدة</strong>، والحالة محسوبةٌ من
     الدفعات المسجَّلة. ولا يُرفع ملفٌّ ليقول إن سيارةً سُدِّدت — فلو رُفع
     مرّتين لسُجّلت الدفعة مرّتين، وهو ما تحذّر منه شاشةُ v1 بدل أن تمنعه.
