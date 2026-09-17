@@ -10,7 +10,7 @@ audit entry is worth reading during a dispute.
 {% endcomment %}
 {% block title %}سجل التدقيق{% endblock %}
 {% block heading %}سجل التدقيق{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
@@ -18,38 +18,75 @@ audit entry is worth reading during a dispute.
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  <form method="get">
-    <input type="search" name="actor" value="{{ actor }}" placeholder="المنفّذ: جوال أو اسم">
-    <input type="search" name="entity" value="{{ entity }}" placeholder="الكيان: money.hold:41">
-    <select name="action">
-      <option value="">كل الأفعال</option>
-      {% for value in actions %}
-        <option value="{{ value }}" {% if value == action %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-    <input type="date" name="since" value="{{ since }}">
-    <input type="date" name="until" value="{{ until }}">
-    <button type="submit">بحث</button>
+  {% comment %} سطرُ تعريفٍ يقول ما في تعليق الملفّ ولا يراه إلا من يفتحه:
+     القيمُ تُعرض كما خُزّنت، وهي الصورةُ الوحيدةُ التي يصلح قيدُ تدقيقٍ أن
+     يُقرأ بها في خلاف. {% endcomment %}
+  <p class="lede">
+    من فعل ماذا ومتى ولماذا. <strong>و«قبل» و«بعد» تُعرضان كما خُزّنتا</strong> —
+    بلا تنسيقٍ ولا تقريب: الخلافُ يُحسم بما في العمود لا بما يُعاد رسمُه.
+    <strong>ولا شيء هنا يُعدَّل أو يُحذف.</strong>
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف، وحقلا التاريخ بلا لصيقةٍ
+     مرئيّة — مربّعان متطابقان يقولان `mm/dd/yyyy` ولا يُعرف أيُّهما المدى
+     الأدنى. وهو العطلُ نفسُه المُصلَح في «تصدير الفواتير» و«تقرير الأرباح»
+     و«تحليل المزايدات» و«تقرير المزايدات». {% endcomment %}
+  <form method="get" class="cat-filters">
+    <div class="cat-filters__field">
+      <label for="adActor">المنفّذ</label>
+      <input id="adActor" type="search" name="actor" value="{{ actor }}" placeholder="جوّال أو اسم">
+    </div>
+    <div class="cat-filters__field">
+      <label for="adEntity">الكيان</label>
+      <input id="adEntity" type="search" name="entity" value="{{ entity }}" placeholder="money.hold:41">
+    </div>
+    <div class="cat-filters__field">
+      <label for="adAction">الفعل</label>
+      <select id="adAction" name="action">
+        <option value="">كل الأفعال</option>
+        {% for value in actions %}
+          <option value="{{ value }}" {% if value == action %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="cat-filters__field">
+      <label for="adSince">من تاريخ</label>
+      <input id="adSince" type="date" name="since" value="{{ since }}">
+    </div>
+    <div class="cat-filters__field">
+      <label for="adUntil">إلى تاريخ</label>
+      <input id="adUntil" type="date" name="until" value="{{ until }}">
+    </div>
+    <div class="cat-filters__actions">
+      <button type="submit" class="btn-primary">بحث</button>
+      {% if actor or entity or action or since or until %}
+        <a href="{% url 'console:audit' %}" class="btn-ghost">مسح الفلاتر</a>
+      {% endif %}
+    </div>
   </form>
 
-  <div class="scroller">
-    <table>
+  {% comment %} سبعةُ أعمدةٍ فيها عمودا لقطةٍ (`قبل` و`بعد`) قد يطولان.
+     `scroller--wide` تمنع اللفَّ وتُمرّر أفقياً. {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="audit">
     <thead>
       <tr><th>متى</th><th>المنفّذ</th><th>الفعل</th><th>الكيان</th><th>قبل</th><th>بعد</th><th>السبب</th></tr>
     </thead>
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.at }}</td>
+          <td class="rm-when">{{ row.at }}</td>
           {% comment %} NULL means the platform did it by itself — a cron, a webhook. That
              is information, not a missing value, so it is said rather than left
              as an empty cell. {% endcomment %}
           <td>{{ row.actor|default:"النظام" }}</td>
-          <td>{{ row.action }}</td>
-          <td>{{ row.entity_type }}:{{ row.entity_id }}</td>
-          <td><pre>{{ row.before|default:"—" }}</pre></td>
-          <td><pre>{{ row.after|default:"—" }}</pre></td>
-          <td>{{ row.note|default:"—" }}</td>
+          <td><span class="au-act" dir="ltr">{{ row.action }}</span></td>
+          {% comment %} المعرّفُ لاتينيٌّ في خانةٍ `rtl` — و`dir="ltr"` تمنع
+             قلبَ النقطتين والرقم. {% endcomment %}
+          <td><span class="au-ent" dir="ltr">{{ row.entity_type }}:{{ row.entity_id }}</span></td>
+          <td><pre class="au-snap" dir="ltr">{{ row.before|default:"—" }}</pre></td>
+          <td><pre class="au-snap" dir="ltr">{{ row.after|default:"—" }}</pre></td>
+          <td class="au-why">{{ row.note|default:"—" }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="empty">لا قيود مطابقة.</td></tr>
