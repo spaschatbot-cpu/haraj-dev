@@ -10,50 +10,66 @@
 
 وثلاث جملٍ من v1 صارت بناءً: بصمةُ الملفّ بدل «تجنّب رفعه مرتين»، وعكسُ القيد
 بدل زرّ «حذف»، ولا «فارغ = أعلى عرض».
+
+والهيئة: الرقمان في الأعلى كانا جدولاً بصفّين — وهما قيمتان منفردتان لا
+أعمدةٌ تُقارَن، فيقف العنوانُ على حافةٍ وقيمتُه على مقابلها بعرض الشاشة.
+وقواعدُ الملفّ الثلاث كان صنفُها `empty` وهو صنفُ «لا نتائج»: فشرحُ الشاشة
+يُرسم بهيئة حالةِ فراغ.
 {% endcomment %}
 {% block title %}اعتماد مدفوعات الشريك{% endblock %}
 {% block heading %}اعتماد مدفوعات الشريك{% endblock %}
 
 {% block content %}
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>إجمالي ما قُيّد على سيارات الشركاء</th><td class="money">{{ total|unlocalize }}</td></tr>
-      <tr><th>فواتير وصل منها مال</th><td class="count">{{ count|unlocalize }}</td></tr>
-    </tbody>
-  </table>
-</div>
+  <p class="lede">
+    كلُّ صفٍّ في الملفّ دفعةٌ تُقيَّد على فاتورة المركبة — فتُقرأ هنا وفي حساب
+    العميل وفي صحّة المال وفي صفحات الشريك رقماً واحداً.
+  </p>
 
-  <h2>رفع ملفّ الدفعات</h2>
-  <form method="post" enctype="multipart/form-data" class="form-card">
+  <section class="sum-grid sum-grid--tight" aria-label="ما قُيّد حتى الآن">
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي ما قُيّد على سيارات الشركاء</p>
+      <p class="sum__value">{{ total|unlocalize }}</p>
+      <p class="sum__note">مجموعُ الدفعات المقيَّدة بالريال.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">فواتير وصل منها مال</p>
+      <p class="sum__value">{{ count|unlocalize }}</p>
+      <p class="sum__note">فاتورةً عليها دفعةٌ واحدةٌ على الأقل.</p>
+    </div>
+  </section>
+
+  <h2 class="dd-sec">رفع ملفّ الدفعات <small>التعرّف على المحتوى لا على الامتداد · حتى خمسة ميجابايت</small></h2>
+
+  <form method="post" enctype="multipart/form-data" class="form-card pa-up">
     {% csrf_token %}
-    <p>
+    <div class="pa-up__field">
       <label for="sheet">ملفّ الجدول (إكسل أو CSV)</label>
       <input id="sheet" type="file" name="sheet" required>
-      <small>التعرّف على المحتوى لا على الامتداد. حتى خمسة ميجابايت.</small>
-    </p>
-    <button type="submit">ارفع واعتمد</button>
+    </div>
+    <button type="submit" class="pa-up__go">ارفع واعتمد</button>
   </form>
 
-  <p class="empty">
-    <strong>الأعمدة المطلوبة:</strong> مفتاحٌ واحد — رقم المطالبة أو رقم
-    السيارة أو اللوحة أو الشاصي أو اللوط — و<strong>المبلغ</strong>. وملاحظات
-    اختيارية.
-  </p>
-  <p class="empty">
-    كلُّ صفٍّ يُقيَّد دفعةً على فاتورة المركبة. وصفٌّ لا يطابق مركبةً مرساةً
-    واحدةً يُتخطّى <strong>ويُذكر لك سببُه</strong>. والمبلغ مكتوبٌ في الصفّ أو
-    يُرفض الصفّ — لا «فارغ يعني أعلى عرض»: دفعةٌ تُقيَّد على رقمٍ لم يكتبه أحد
-    هي ما يُنتج فرقاً لا يُفسَّر.
-  </p>
-  <p class="empty">
-    ورفعُ الملفّ نفسه مرّتين <strong>يُرفض</strong>: بصمتُه مفتاحٌ فريد، لا
-    تحذيرٌ يُقرأ. وتصحيحُ قيدٍ يكون بعكسه لا بحذفه — فيبقى الاثنان ومعهما من
-    عكس ولماذا.
-  </p>
+  <div class="pa-rules">
+    <p>
+      <strong>الأعمدة المطلوبة</strong>
+      مفتاحٌ واحد — رقم المطالبة أو رقم السيارة أو اللوحة أو الشاصي أو اللوط —
+      و<b>المبلغ</b>. وملاحظاتٌ اختيارية.
+    </p>
+    <p>
+      <strong>الصفُّ دفعةٌ على فاتورة</strong>
+      وصفٌّ لا يطابق مركبةً مرساةً واحدةً يُتخطّى <b>ويُذكر لك سببُه</b>.
+      والمبلغ مكتوبٌ في الصفّ أو يُرفض الصفّ — لا «فارغ يعني أعلى عرض»: دفعةٌ
+      تُقيَّد على رقمٍ لم يكتبه أحدٌ هي ما يُنتج فرقاً لا يُفسَّر.
+    </p>
+    <p>
+      <strong>ولا يُرفع الملفّ نفسه مرّتين</strong>
+      بصمتُه مفتاحٌ فريد، لا تحذيرٌ يُقرأ. وتصحيحُ قيدٍ يكون بعكسه لا بحذفه —
+      فيبقى الاثنان ومعهما من عكس ولماذا.
+    </p>
+  </div>
 
-  <h2>الملفّات المرفوعة</h2>
-  <div class="scroller">
+  <h2 class="dd-sec">الملفّات المرفوعة <small>البصمةُ تحت اسم الملفّ، وهي ما يمنع رفعَه ثانيةً</small></h2>
+  <div class="scroller scroller--wide">
     <table>
     <thead>
       <tr>
@@ -69,15 +85,15 @@
     <tbody>
       {% for sheet in sheets %}
         <tr>
-          <td>
-            {{ sheet.filename|default:"—" }}
-            <small>{{ sheet.digest|slice:":12" }}</small>
+          <td class="pa-file">
+            <strong>{{ sheet.filename|default:"—" }}</strong>
+            <small dir="ltr">{{ sheet.digest|slice:":12" }}</small>
           </td>
           <td>{{ sheet.uploaded_by.full_name }}</td>
           <td>{{ sheet.uploaded_at }}</td>
           <td class="count">{{ sheet.rows_read|unlocalize }}</td>
-          <td class="count">{{ sheet.rows_posted|unlocalize }}</td>
-          <td class="count">{{ sheet.rows_skipped|unlocalize }}</td>
+          <td class="count pa-ok">{{ sheet.rows_posted|unlocalize }}</td>
+          <td class="count{% if sheet.rows_skipped %} pa-skip{% endif %}">{{ sheet.rows_skipped|unlocalize }}</td>
           <td class="money">{{ sheet.total|unlocalize }}</td>
         </tr>
       {% empty %}
