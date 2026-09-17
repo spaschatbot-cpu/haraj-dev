@@ -11398,3 +11398,23 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
    شبكةٍ عرضُها 916 — أي أنها لا تتمدّد، بينما خانةُ «العنوان» تتمدّد. فالعرضُ
    يُكتب على الخانة لا على الحقل وحدَه. */
 .bc-msg > .cat-filters__field { inline-size: 100%; }
+
+/* ---- «سجل الإشعارات»: الصفُّ يقول ما وقع ولماذا -------------------------- */
+
+.nt-msg { min-inline-size: 22rem; }
+.nt-body { display: block; white-space: normal; line-height: 1.6; }
+.nt-tpl { display: block; margin-block-start: .2rem; font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* سببُ الفشل تحت الحبّة لا بجوارها: هو الجملةُ التي تُفتح الشاشةُ لأجلها،
+   وسطرٌ أحمرُ تحت حبّةٍ حمراء يُقرأ معها لا بعدها. */
+.nt-err {
+  display: block;
+  margin-block-start: .3rem;
+  font-size: .74rem;
+  font-weight: 700;
+  line-height: 1.55;
+  color: var(--danger);
+  white-space: normal;
+}
+
+.nt-when { font-variant-numeric: tabular-nums; font-size: .8rem; }
