@@ -11476,3 +11476,34 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   font-size: .82rem;
 }
 .pw-rules ul li { margin-block-end: .15rem; }
+
+/* ---- «سجل التدقيق»: لقطتان تُقرآن كما خُزّنتا --------------------------- */
+
+/* الفعلُ والكيانُ معرّفان لاتينيّان في خانةٍ `rtl`: بلا `dir="ltr"` تنقلب
+   النقطتان والرقمُ إلى أوّل السلسلة، فيُقرأ `41:money.hold`. */
+.au-act, .au-ent {
+  display: inline-block;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: .76rem;
+  white-space: nowrap;
+}
+.au-act { font-weight: 700; color: var(--brand-dark); }
+.au-ent { color: var(--ink-soft); }
+
+/* اللقطتان: صندوقٌ بسقفٍ يُمرَّر — قيدٌ فيه عشرون حقلاً كان يمدّ الصفَّ
+   مئاتِ البكسلات، فيصير الجدولُ صفّاً واحداً في الشاشة. */
+.au-snap {
+  margin: 0;
+  max-block-size: 7rem;
+  max-inline-size: 22rem;
+  overflow: auto;
+  padding: .45rem .6rem;
+  background: var(--raised);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  font-size: .72rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.au-why { max-inline-size: 18rem; white-space: normal; font-size: .8rem; line-height: 1.6; }
