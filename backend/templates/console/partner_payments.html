@@ -12,15 +12,41 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
 {% block heading %}سجل دفعات الشريك{% endblock %}
 
 {% block content %}
-  <form method="get">
-    {% include "console/_partner_pick.html" %}
-    <button type="submit">اعرض</button>
+  {% comment %} سطرُ تعريفٍ يحمل ما في تعليق الملفّ: v1 يعرض هنا ما رُفع
+     بإكسل، ويقول في شاشته الأخرى «تجنّب رفع الملف نفسه مرتين حتى لا تُسجَّل
+     الدفعة مرتين» — أي أن التفرُّد تذكيرٌ لا مفتاح. {% endcomment %}
+  <p class="lede">
+    الفواتيرُ التي وصل منها مالٌ على سيارات الشريك. <strong>والصفُّ دفعةٌ
+    مسجَّلةٌ في الدفتر لا صفَّ ملفٍّ مرفوع</strong> — فالرقمُ هنا هو نفسُه الذي
+    في حساب العميل وفي صحّة المال، لا رقمٌ للمحاسبة ورقمٌ يراه الشريك.
+  </p>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      {% include "console/_partner_pick.html" %}
+      <button type="submit" class="btn-primary">اعرض</button>
+    </div>
   </form>
 
-  <p>إجمالي ما وصل: <strong>{{ total|unlocalize }}</strong></p>
+  {% comment %} الرقمان كانا سطرين عاريين: «إجمالي ما وصل» فوق الجدول و«كم
+     فاتورة» في ذيله — بينهما جدولٌ كامل، وهما جوابا سؤالٍ واحد. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام الدفعات">
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي ما وصل</p>
+      <p class="sum__value money">{{ total|unlocalize }}</p>
+      <p class="sum__note">مجموعُ ما سُدِّد من هذه الفواتير.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">فواتير وصل منها مال</p>
+      <p class="sum__value">{{ page.paginator.count|unlocalize }}</p>
+      <p class="sum__note">هي صفوفُ الجدول تحت.</p>
+    </div>
+  </section>
 
-  <div class="scroller">
-    <table>
+  {% comment %} ثمانيةُ أعمدةٍ في غلافٍ بعرض الشاشة تلفُّ كلُّ خانةٍ فيها. {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="pv-table">
     <thead>
       <tr>
         <th>الفاتورة</th>
@@ -36,18 +62,20 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
     <tbody>
       {% for row in page %}
         <tr>
-          <td><a href="{% url 'console:invoice-detail' row.pk %}">{{ row.number }}</a></td>
-          <td>{{ row.issued_at }}</td>
+          <td class="inv-no"><a href="{% url 'console:invoice-detail' row.pk %}">{{ row.number }}</a></td>
+          <td class="rm-when">{{ row.issued_at|date:"Y-m-d H:i" }}</td>
           <td>
             {% if row.vehicle %}
               <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}">{{ row.vehicle.make }} {{ row.vehicle.model }}</a>
             {% else %}—{% endif %}
           </td>
-          <td>{% if row.vehicle %}{{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
+          <td class="count">{% if row.vehicle %}{{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
           <td><a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name }}</a></td>
           <td class="money">{{ row.amount|unlocalize }}</td>
-          <td class="money">{{ row.amount_paid|unlocalize }}</td>
-          <td>{{ row.get_state_display }}</td>
+          {% comment %} «ما وصل منها» هو سببُ الشاشة، فيُقرأ أثقلَ من قيمة
+             الفاتورة بجواره. {% endcomment %}
+          <td class="money inv-due">{{ row.amount_paid|unlocalize }}</td>
+          <td><span class="pill" data-tone="{{ row.tone|default:'plain' }}">{{ row.get_state_display }}</span></td>
         </tr>
       {% empty %}
         <tr><td colspan="8" class="empty">لا دفعات على سيارات هذا الشريك بعد.</td></tr>
@@ -56,9 +84,9 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
   </table>
 </div>
 
-  <p>{{ page.paginator.count|unlocalize }} فاتورةً وصل منها مال · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> فاتورةً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
 
-  <p class="empty">
+  <p class="notice notice--soft">
     لا رفعَ ملفٍّ هنا. الدفعة تُسجَّل على فاتورتها في الدفتر، فتظهر في هذه
     الشاشة وفي حساب العميل وفي صحّة المال — <strong>رقمٌ واحد</strong>، لا
     رقمٌ للمحاسبة ورقمٌ يراه الشريك.
