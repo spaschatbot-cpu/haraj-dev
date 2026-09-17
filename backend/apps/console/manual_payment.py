@@ -136,7 +136,7 @@ def _amount(raw: str) -> Decimal | None:
 def payment_create(request):
     """ابحث عن فاتورةٍ غير مسدَّدة، ثمّ قيّد عليها دفعةً بمرجعٍ وسبب."""
     if request.method == "POST":
-        return _record(request)
+        return record_payment(request)
 
     text = request.GET.get("q", "")
     found = find_invoices(text)
@@ -170,8 +170,13 @@ def payment_create(request):
     )
 
 
-def _record(request):
-    """القيدُ نفسه — يمرّ بالباب الواحد في `settlement` وحده."""
+def record_payment(request):
+    """القيدُ نفسه — يمرّ بالباب الواحد في `settlement` وحده.
+
+    **عامّةٌ لأن لها بابين**: صفحةُ «إنشاء دفعة» (بقيت لمن يفتح رابطها)،
+    ونافذةُ «إدارة المدفوعات» التي دُمجت فيها (T932). والمنطقُ واحدٌ في
+    الموضعين — والرفضُ والتدقيقُ والمرجعُ المانع من القيد مرّتين معه.
+    """
     back = f"{request.path}?q={request.POST.get('q', '')}"
     invoice = (
         Invoice.objects.select_related("customer", "vehicle")

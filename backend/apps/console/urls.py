@@ -34,7 +34,6 @@ from . import (
     manual_payment,
     money,
     news,
-    packages,
     partner_console,
     partner_payments,
     partners,
@@ -173,7 +172,6 @@ urlpatterns = [
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
     # مسارٌ واحدٌ للشاشة كلِّها، كـ«شريط الأخبار» — و`op` يميّز الفعل. T921
-    path("finance/packages/", packages.packages, name="packages"),
     # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
     path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
     path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),

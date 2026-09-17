@@ -23,9 +23,15 @@
 {% endcomment %}
 {% block title %}إدارة المدفوعات{% endblock %}
 {% block heading %}إدارة المدفوعات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}
+  {% if which == "recorded" and may_record %}
+    <button type="button" class="btn-primary-sm" data-opens="payCreate">+ قيِّد دفعة</button>
+  {% endif %}
+  <a href="{{ export_url }}">تصدير إلى إكسل</a>
+{% endblock %}
 
 {% block content %}
+<div{% if opens %} data-open-dialog="{{ opens }}"{% endif %}>
 
   {% comment %} تبويبان روابطُ لا أزرار: يُنسخان ويُفتحان في تبويبٍ جديد. {% endcomment %}
   <nav class="tabs" aria-label="نوع العرض">
@@ -161,4 +167,74 @@
 {% endif %}
 
   {% include "console/_pager.html" %}
+</div>
+
+{% if which == "recorded" and may_record %}
+  {% comment %} **نافذةُ القيد — خطوتان بلا جافاسكربت.** الاستمارةُ الأولى
+     `GET` تبحث عن الفاتورة، والصفحةُ تعود ومعها `data-open-dialog` فتُفتح
+     النافذةُ على نتيجتها؛ والثانيةُ `POST` تقيّد. وهو نفسُ مسلك «شريط
+     الأخبار» حين تُرفض استمارتُه (T921).
+
+     ولماذا نافذةٌ لا صفحة: القيدُ فعلٌ على جدولٍ يُقرأ، والخروجُ إلى صفحةٍ
+     ثانيةٍ ثم العودةُ يفقد المكانَ والمرشّح. وقرارُ المالك (١٨ سبتمبر ٢٠٢٦):
+     «زرار فوق في إدارة المدفوعات يعمل الدفعة». {% endcomment %}
+  <dialog class="modal modal--wide" id="payCreate">
+    <h2>قيِّد دفعةً على فاتورة</h2>
+
+    <form method="get">
+      <input type="hidden" name="which" value="recorded">
+      {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+      <label for="find">ابحث عن الفاتورة</label>
+      <input id="find" type="search" name="find" value="{{ looking }}"
+             placeholder="رقم الفاتورة · اسم العميل · جوّاله · لوحة المركبة" autofocus>
+      <div class="modal__buttons">
+        <button type="submit">بحث</button>
+        <button type="button" formnovalidate data-closes="payCreate">إغلاق</button>
+      </div>
+    </form>
+
+    {% if searched and not candidates %}
+      <p class="notice">لا فاتورةَ غيرَ مسدَّدةٍ تطابق ما كتبت. والمسدَّدةُ بالكامل لا تظهر — هذه للّتي بقي عليها شيء.</p>
+    {% endif %}
+
+    {% for row in candidates %}
+      <h3>
+        الفاتورة {{ row.invoice.number }}
+        <small>{{ row.name }}{% if row.phone %} · {{ row.phone|unlocalize }}{% endif %}</small>
+      </h3>
+      <div class="facts">
+        <div class="fact"><span class="fact__k">إجمالي الفاتورة</span><span class="fact__v money">{{ row.invoice.amount|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">المسدَّد</span><span class="fact__v money">{{ row.invoice.amount_paid|unlocalize }}</span></div>
+        <div class="fact fact--lead"><span class="fact__k">الباقي</span><span class="fact__v money">{{ row.invoice.outstanding|unlocalize }}</span></div>
+        {% if row.wallet %}
+          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
+        {% endif %}
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="invoice" value="{{ row.invoice.pk }}">
+        <input type="hidden" name="q" value="{{ looking }}">
+        <p>
+          <label for="amount-{{ row.invoice.pk }}">المبلغ المقيَّد</label>
+          <input id="amount-{{ row.invoice.pk }}" type="number" step="0.01" min="0.01"
+                 max="{{ row.invoice.outstanding|unlocalize }}" name="amount" required>
+          <small>لا يتجاوز الباقي — والدفترُ يرفض الزائد، لا القالب.</small>
+        </p>
+        <p>
+          <label for="ref-{{ row.invoice.pk }}">مرجع الإيصال أو الحوالة</label>
+          <input id="ref-{{ row.invoice.pk }}" type="text" name="reference" required>
+          <small>مفتاحُ التفرُّد: المرجعُ نفسُه لا يُقيَّد مرّتين مهما ضُغط الزرّ.</small>
+        </p>
+        <p>
+          <label for="reason-{{ row.invoice.pk }}">سبب القيد</label>
+          <input id="reason-{{ row.invoice.pk }}" type="text" name="reason" required
+                 placeholder="حوّل نقداً في الفرع · تصحيح دفعةٍ نُسبت لفاتورةٍ أخرى">
+          <small>إجباريّ، ويدخل مذكّرةَ القيد وسجلَّ التدقيق.</small>
+        </p>
+        <button type="submit" class="btn-primary">قيِّد الدفعة</button>
+      </form>
+    {% endfor %}
+  </dialog>
+{% endif %}
 {% endblock %}

@@ -34,12 +34,14 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
-from apps.accounts.services import find_by_phone
+from apps.accounts.services import display_name, find_by_phone
 from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 from apps.money.models import (
     Invoice,
     PaymentIntent,
@@ -47,8 +49,11 @@ from apps.money.models import (
     Transaction,
     TransactionKind,
 )
+from apps.money.services import wallet_snapshot
 
+from . import sensitive
 from .exports import export, wants_export
+from .manual_payment import find_invoices, record_payment
 from .paging import paged, pager
 from .tones import with_tones
 from .views import console_page
@@ -198,7 +203,14 @@ def decorate(page_rows) -> None:
 
 
 def _recorded_screen(request):
-    """التبويبُ الافتراضيّ: ما قُيِّد سداداً على الفواتير."""
+    """التبويبُ الافتراضيّ: ما قُيِّد سداداً على الفواتير.
+
+    **وقيدُ الدفعة من هنا، لا من صفحةٍ ثانية** (قرار المالك، ١٨ سبتمبر
+    ٢٠٢٦): «بدل ما أدخل على صفحة إنشاء دفعة، عايز زرار فوق في إدارة
+    المدفوعات يعمل الدفعة». والقيدُ خطوتان — بحثٌ عن فاتورةٍ ثم تقييدٌ
+    عليها — فالنافذةُ تحملهما: `find` يبحث والنافذةُ تُعاد مفتوحةً بنتيجته،
+    و`op=create` يقيّد. ولا جافاسكربت في أيٍّ منهما.
+    """
     text = request.GET.get("q", "")
     rows = recorded(text=text)
 
@@ -232,6 +244,11 @@ def _recorded_screen(request):
             ],
         )
 
+    # نافذةُ القيد: تُفتح بزرّ، وتُعاد مفتوحةً بنتيجة بحثها.
+    looking = request.GET.get("find", "")
+    found = find_invoices(looking) if looking else None
+    seen = sensitive.shown_to(request.user)
+
     page = paged(request, rows)
     decorate(page.object_list)
     return render(
@@ -239,6 +256,22 @@ def _recorded_screen(request):
         "console/payments.html",
         {
             "which": "recorded",
+            "may_record": can(request.user, Capability.PAYMENTS_RECORD),
+            "looking": looking,
+            "candidates": [
+                {
+                    "invoice": invoice,
+                    "name": display_name(invoice.customer),
+                    # الجوّالُ عَرَضٌ هنا لا موضوع — فيمرّ بحارسه.
+                    "phone": invoice.customer.phone if seen.customer else "",
+                    "wallet": (
+                        wallet_snapshot(invoice.customer) if seen.wallet else None
+                    ),
+                }
+                for invoice in (found or [])
+            ],
+            "searched": found is not None,
+            "opens": "payCreate" if looking else "",
             "page": page,
             "pager": pager(request, page, "دفعةً مقيَّدة"),
             "q": text,
@@ -255,6 +288,14 @@ def payments(request):
     `?which=intents`: هي جوابُ «دفعتُ ولم يصل»، ولا تُخلط بالمقيَّد لأن
     محاولةً فاشلةً ليست دفعة.
     """
+    # القيدُ من نافذة هذه الشاشة — والحارسُ هنا صراحةً: الصفحةُ تُفتح
+    # بـ`invoices.view`، والقيدُ يحتاج `payments.record`. فمن يقرأ الجدول لا
+    # يقيّد منه، ولو وصل إلى الاستمارة بيده.
+    if request.method == "POST":
+        if not can(request.user, Capability.PAYMENTS_RECORD):
+            raise PermissionDenied("payments.record غير مسموحة لهذا المستخدم")
+        return record_payment(request)
+
     which = request.GET.get("which", "")
     if which != "intents":
         return _recorded_screen(request)
