@@ -73,7 +73,6 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.db.models import Count, F, OuterRef, Q, Subquery, Sum
 from django.shortcuts import render
 from django.urls import reverse
@@ -83,6 +82,8 @@ from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 from apps.money.models import Invoice, InvoiceSource, InvoiceState, Transaction
+
+from . import paging
 
 #: حالاتُ المركبة التي تعني «بيعت» — من `catalog` نفسِها ولا تُكتب ثانيةً:
 #: قائمتان تنسى إحداهما `released` يوماً، فتختفي سيارةٌ خرجت من الشاشة
@@ -103,8 +104,11 @@ ZERO = Decimal("0.00")
 #: المقابلة (`admin3/bills/index.php`) تجلب الصفوفَ كلَّها بلا ترقيم وترشّح
 #: في المتصفّح، وأقربُ رقمٍ عنده ٢٥ في `admin3/bills/invoices_list.php:208-211`.
 #: فالخمسون قرارُنا نحن — ونصفُ الشاشة يُقرأ بلا تمرير.
-ROW_CHOICES = (10, 15, 25, 50, 100)
-DEFAULT_ROWS = 50
+#: **موحَّدةٌ مع بقيّة اللوحة** — `paging.ROW_CHOICES` (T930). كانت هنا
+#: `(10, 15, 25, 50, 100)` وحدَها، فصار للمقاس قائمتان: شاشةٌ تعرض «١٥» ولا
+#: تعرفها أختُها، ورابطٌ يُنسَخ بينهما يسقط إلى الافتراضيّ صامتاً.
+ROW_CHOICES = paging.ROW_CHOICES
+DEFAULT_ROWS = paging.DEFAULT_ROWS
 
 #: رسمُ كلِّ بطاقة، باسمه في `icons.py`. مكتوبٌ هنا لا في القالب: البطاقةُ
 #: تُبنى في بايثون فيبقى الرسمُ مع الرقم الذي يصفه.
@@ -302,12 +306,8 @@ def tallies(
     """
     extra = (
         {
-            "awarded": Count(
-                "pk", distinct=True, filter=~Q(state=VehicleState.REJECTED)
-            ),
-            "rejected": Count(
-                "pk", distinct=True, filter=Q(state=VehicleState.REJECTED)
-            ),
+            "awarded": Count("pk", distinct=True, filter=~Q(state=VehicleState.REJECTED)),
+            "rejected": Count("pk", distinct=True, filter=Q(state=VehicleState.REJECTED)),
         }
         if decided
         else {}
@@ -432,10 +432,8 @@ def covers(page_rows):
 
 
 def page_size(raw: str) -> int:
-    """مقاسُ الصفحة المطلوب، أو الافتراضيُّ لكل ما ليس في القائمة."""
-    if raw.isdigit() and int(raw) in ROW_CHOICES:
-        return int(raw)
-    return DEFAULT_ROWS
+    """مقاسُ الصفحة المطلوب — `paging.page_size` باسمها القديم."""
+    return paging.page_size(raw)
 
 
 def bid_counts(page_rows) -> None:
@@ -679,7 +677,7 @@ def sale_table(request, rows, *, chosen, sheet_ids, seen, screen, name, decided=
         )
 
     size = page_size(request.GET.get("per_page", ""))
-    page = Paginator(rows, size).get_page(request.GET.get("page"))
+    page = paging.paged(request, rows, size)
     with_tones(page.object_list)
     covers(page.object_list)
     decorate(page.object_list, sheet_ids, rejected_note=decided)
@@ -694,6 +692,7 @@ def sale_table(request, rows, *, chosen, sheet_ids, seen, screen, name, decided=
 
     return {
         "page": page,
+        "pager": paging.pager(request, page, "مركبة"),
         "rows": page.object_list,
         "cards": tallies(rows, sheet_ids, money=seen.money, decided=decided),
         "show_money": seen.money,

@@ -1,0 +1,61 @@
+{% load l10n %}
+{% comment %}
+ذيلُ الجدول: العدُّ، وأرقامُ الصفحات، ومقاسُ الصفحة. T930
+
+يقرأ `pager` وحدَه (من `apps.console.paging.pager`)، فإدخالُه في شاشةٍ سطران:
+واحدٌ في العرض وواحدٌ هنا.
+
+**والأرقامُ روابطُ `<a>` لا أزرارَ جافاسكربت**: تُفتح في تبويبٍ جديد بالوسط،
+وتُنسخ، وتعمل قبل أن يصل أيُّ سكربت. والصفحةُ الحالية `<span>` لا رابطاً إلى
+نفسها — ورابطٌ إلى الصفحة التي أنت فيها نقرةٌ تُهدَر و`aria-current` يقولها
+لقارئ الشاشة.
+{% endcomment %}
+<nav class="pager" aria-label="صفحات النتائج">
+  <p class="pager__count">
+    <strong>{{ pager.page.paginator.count|unlocalize }}</strong> {{ pager.noun }}
+    {% if pager.page.paginator.num_pages > 1 %}
+      · صفحة {{ pager.page.number|unlocalize }} من {{ pager.page.paginator.num_pages|unlocalize }}
+    {% endif %}
+  </p>
+
+  {% if pager.page.paginator.num_pages > 1 %}
+    <div class="pager__pages">
+      {% if pager.page.has_previous %}
+        <a class="pager__step" href="?{{ pager.keep }}page={{ pager.page.previous_page_number|unlocalize }}" rel="prev">السابق</a>
+      {% else %}
+        <span class="pager__step is-off">السابق</span>
+      {% endif %}
+
+      {% for number in pager.numbers %}
+        {% if number is None %}
+          <span class="pager__gap" aria-hidden="true">…</span>
+        {% elif number == pager.page.number %}
+          <span class="pager__num is-on" aria-current="page">{{ number|unlocalize }}</span>
+        {% else %}
+          <a class="pager__num" href="?{{ pager.keep }}page={{ number|unlocalize }}">{{ number|unlocalize }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if pager.page.has_next %}
+        <a class="pager__step" href="?{{ pager.keep }}page={{ pager.page.next_page_number|unlocalize }}" rel="next">التالي</a>
+      {% else %}
+        <span class="pager__step is-off">التالي</span>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% comment %} المقاسُ روابطُ لا قائمةٌ منسدلة: المنسدلةُ تحتاج زرَّ إرسالٍ
+     أو سكربتاً يراقب التغيير، والروابطُ تعمل بلا أيٍّ منهما — وهي خمسةٌ لا
+     خمسون. وكلُّها تعود إلى الصفحة الأولى بقصد (انظر `paging.pager`).
+  {% endcomment %}
+  <div class="pager__size">
+    <span class="pager__size-label">في الصفحة</span>
+    {% for choice in pager.choices %}
+      {% if choice == pager.size %}
+        <span class="pager__num is-on" aria-current="true">{{ choice|unlocalize }}</span>
+      {% else %}
+        <a class="pager__num" href="?{{ pager.resize }}per_page={{ choice|unlocalize }}">{{ choice|unlocalize }}</a>
+      {% endif %}
+    {% endfor %}
+  </div>
+</nav>

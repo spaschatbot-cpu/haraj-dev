@@ -67,6 +67,6 @@
 
   {% include "console/_accepted_table.html" %}
 
-  <p>{{ page.paginator.count|unlocalize }} مركبةً مرساة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  {% include "console/_pager.html" %}
   <p><a href="{% url 'console:accepted-summary' %}?q={{ q }}&amp;auction={{ chosen }}">ملخّص هذه النتائج ←</a></p>
 {% endblock %}

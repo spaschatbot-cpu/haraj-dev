@@ -117,5 +117,5 @@
      نفسُه بقالبه المشترَك، فلا نسختان تفترقان (درسُ T922). {% endcomment %}
   <h2 class="sum-rows__head">الصفوفُ خلف هذه الأرقام</h2>
   {% include "console/_accepted_table.html" %}
-  <p>{{ page.paginator.count|unlocalize }} مركبةً مرساة · صفحة {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}</p>
+  {% include "console/_pager.html" %}
 {% endblock %}

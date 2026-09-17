@@ -12034,3 +12034,65 @@ main { view-transition-name: console-main; }
    نفسَه هو ما تحته المؤشّر، بلا تلوين الصفّ كلِّه ثانية. */
 tbody tr:hover .pill { transform: scale(1.04); }
 .pill { transition: transform .16s cubic-bezier(.16, 1, .3, 1); }
+
+/* ===========================================================================
+   ذيلُ الجدول: أرقامٌ تُنقر ومقاسٌ يُختار — T930
+   ---------------------------------------------------------------------------
+   الرقمُ هدفُ نقرٍ قبل أن يكون نصّاً: ٢٫٢rem مربّعاً (أكبرُ من الحدّ الأدنى
+   ٢٤px الذي يُوصى به للإصبع)، وبينها فجوةٌ كي لا تُنقَر المجاورةُ خطأً.
+   ======================================================================== */
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  margin: .9rem 0 1.4rem;
+  padding: .55rem .7rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.pager__count { margin: 0; font-size: .82rem; color: var(--muted); }
+.pager__count strong { color: var(--ink); }
+
+.pager__pages, .pager__size { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.pager__size-label { font-size: .75rem; color: var(--muted); margin-inline-end: .2rem; }
+
+.pager__num, .pager__step {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 2.2rem;
+  block-size: 2.2rem;
+  padding-inline: .5rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+  transition: background .14s ease, border-color .14s ease, transform .12s ease;
+}
+a.pager__num:hover, a.pager__step:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+  transform: translateY(-1px);
+}
+/* الحاليّةُ ممتلئةٌ لا محدَّدةٌ بحدٍّ وحده: الحدُّ في صفٍّ من عشرة أرقامٍ
+   يُقرأ «مختارةٌ ربما»، والامتلاءُ لا يلتبس. */
+.pager__num.is-on {
+  background-image: var(--grad-solid);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+}
+.pager__step.is-off { opacity: .45; }
+.pager__gap { padding-inline: .2rem; color: var(--muted); }
+
+/* على الضيّق: العدُّ سطرٌ، والأرقامُ تحته تلتفّ. */
+@media (max-width: 40rem) {
+  .pager { justify-content: center; }
+  .pager__count { inline-size: 100%; text-align: center; }
+}

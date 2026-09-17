@@ -42,7 +42,6 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.contrib import messages
-from django.core.paginator import Paginator
 from django.db.models import Count, Max, Q, Sum
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
@@ -59,13 +58,14 @@ from apps.money import services as money
 from apps.money.models import Invoice
 
 from .exports import export_table, wants_export
+from .paging import paged, pager
 from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
 
 ZERO = Decimal("0.00")
 
-PAGE_SIZE = 50
+#: حُذف: المقاسُ صار من الرابط بقائمةٍ مغلقة (`paging.ROW_CHOICES`) — T930.
 
 #: المركبة التي رست. تُقرأ من الحالة لا من وجود `awarded_to`: الحالتان
 #: متلازمتان بقيدٍ في القاعدة، والقراءة من الحالة تُفهرَس.
@@ -180,7 +180,7 @@ def awarded_page(request, rows, seen):
     والدرسُ مكتوبٌ بعدده في T922: جدولان لشيءٍ واحد يفترقان، والحجبُ يُطبَّق
     في أحدهما ويُنسى في الآخر.
     """
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    page = paged(request, rows)
     with_tones(page.object_list)
 
     # الفاتورة تُقرأ لصفحةٍ واحدة لا للاستعلام كلّه: `money_of` استعلامٌ لكل
@@ -260,6 +260,7 @@ def accepted_bids(request):
         "console/accepted_bids.html",
         {
             "page": page,
+            "pager": pager(request, page, "مركبةً مرساة"),
             "show_money": seen.money,
             "show_customer": seen.customer,
             "q": request.GET.get("q", ""),
@@ -350,13 +351,15 @@ def accepted_summary(request):
     # ٢٠٢٦: «الداتا تتعرض على طول». والجدولُ هو جدولُ «المزايدات المقبولة»
     # نفسُه — قالبٌ واحدٌ ودالّةٌ واحدة، لا نسخةٌ ثانية تفترق.
     rows = awarded(text=text, auction=chosen)
+    page = awarded_page(request, rows, seen)
 
     return render(
         request,
         "console/accepted_summary.html",
         {
             "totals": summary(text=text, auction=chosen),
-            "page": awarded_page(request, rows, seen),
+            "page": page,
+            "pager": pager(request, page, "مركبةً مرساة"),
             "show_money": seen.money,
             "show_customer": seen.customer,
             # زرُّ الفوترة لا يُعرض هنا: الشاشةُ شاشةُ قراءة، والفعلُ بابُه

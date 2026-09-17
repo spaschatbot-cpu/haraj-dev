@@ -352,10 +352,9 @@
     </table>
   </div>
 
-  <p class="table-footer__count">
-    {{ page.paginator.count|unlocalize }} {% block count_noun %}مركبةً مباعة{% endblock %} · صفحة
-    {{ page.number|unlocalize }} من {{ page.paginator.num_pages|unlocalize }}
-  </p>
+  {% comment %} الأرقامُ تُنقر — كانت سطراً يقول «صفحة ١ من ١١٧» ولا يصل
+     أحدٌ إلى الثانية إلا بكتابة `?page=2` بيده. T930 {% endcomment %}
+  {% include "console/_pager.html" %}
   {% block footer_note %}{% endblock %}
 {% endblock %}
 
