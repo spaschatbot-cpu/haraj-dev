@@ -103,6 +103,7 @@ def _form(request, data, *, plan=None, token: str = "") -> dict:
         # حالةُ البوّابة معروضةٌ دائماً لا عند الرفض وحده: من يفتح الشاشة
         # ليرسل رسالةً نصّيّة يجب أن يعرف قبل أن يكتب نصّاً أن البوّابة مقفلة.
         "sms_refusal": service.gateway_refusal(Channel.SMS),
+        "sms_detail": service.gateway_detail(Channel.SMS),
         "unit_cost": service.unit_cost(),
     }
 

@@ -16,79 +16,99 @@
 
 {% block content %}
 
+  {% comment %} سطرُ تعريفٍ يقول الخطواتِ الثلاث — وهي ما يفرّق هذه الشاشةَ
+     عن نظيرتها في v1: هناك عنوانٌ ونصٌّ وضغطةٌ = بثٌّ إلى ٤٤ ألفاً بلا عدٍّ
+     ولا كلفةٍ معروضة. {% endcomment %}
+  <p class="lede">
+    <strong>ثلاثُ خطوات: تُوصَف، ثمّ تُعايَن بالعدد والكلفة، ثمّ تُنفَّذ.</strong>
+    وزرُّ الإرسال لا يُرسَم قبل المعاينة — والخانةُ التي لا تُرسَم لا تُرسَل.
+  </p>
+
   {% if sms_refusal %}
+    {% comment %} المعرّفُ التقنيُّ في سطرٍ `ltr` وحدَه لا داخل الجملة: خلطُ
+       الاتّجاهين يقلب ترتيبَ القطع فيُقرأ الكلامُ مبعثراً — رُئي على هذه
+       الفقرة بعينها في لقطةٍ من الإنتاج. {% endcomment %}
     <p class="alarm">
       <strong>بوّابةُ الرسائل مقفلة.</strong> {{ sms_refusal }}
-      <br><small>القناةُ داخل التطبيق تعمل — هي صفٌّ في جدولنا ولا تعبر بوّابة.</small>
+      {% if sms_detail %}<span class="bc-id" dir="ltr">{{ sms_detail }}</span>{% endif %}
+      <small>القناةُ داخل التطبيق تعمل — هي صفٌّ في جدولنا ولا تعبر بوّابة.</small>
     </p>
   {% endif %}
 
-  <form method="post" class="form-card">
+  <form method="post" class="form-card broadcast-form">
     {% csrf_token %}
     <input type="hidden" name="step" value="preview">
 
-    <h2>القناة</h2>
-    <p>
+    {% comment %} الاستمارةُ كانت عموداً واحداً من `<p>`: أحدَ عشرَ حقلاً
+       تحت بعضها في صفحةٍ تُمرَّر، والعناوينُ الثلاثةُ بينها بحجم عنوان الشاشة.
+       فصارت ثلاثَ كتلٍ معنونة، وحقولُها في شبكةٍ تملأ العرض. {% endcomment %}
+    <h3 class="dd-sec">القناة <small>وما تكلّفه</small></h3>
+    <div class="bc-radios">
       {% for value, label in channels %}
-        <label>
+        <label class="bc-radio">
           <input type="radio" name="channel" value="{{ value }}"
                  {% if form.channel == value %}checked{% endif %}>
-          {{ label }}
+          <span>{{ label }}</span>
         </label>
       {% endfor %}
-    </p>
+    </div>
 
-    <h2>الجمهور</h2>
-    <p>
-      <label for="account_type">نوع الحساب</label>
-      <select id="account_type" name="account_type">
-        {% for value, label in account_types %}
-          <option value="{{ value }}" {% if form.account_type == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </p>
-    <p>
-      <label for="status">حالة الحساب</label>
-      <select id="status" name="status">
-        {% for value, label in statuses %}
-          <option value="{{ value }}" {% if form.status == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </p>
-    <p>
-      <label for="auction">رقم المزاد</label>
-      <input id="auction" type="number" name="auction" value="{{ form.auction }}" min="1"
-             placeholder="اتركه فارغاً لتجاهل المزاد">
-      <select name="auction_link" aria-label="العلاقة بالمزاد">
-        {% for value, label in auction_links %}
-          <option value="{{ value }}" {% if form.auction_link == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </p>
-    <p>
-      <label>
-        <input type="checkbox" name="with_dues" value="1" {% if form.with_dues %}checked{% endif %}>
-        من عليه مستحقّات غير مسدَّدة
-      </label>
-    </p>
+    <h3 class="dd-sec">الجمهور <small>من يطابق هذه المرشّحات</small></h3>
+    <div class="cat-filters cat-filters--plain">
+      <div class="cat-filters__field">
+        <label for="account_type">نوع الحساب</label>
+        <select id="account_type" name="account_type">
+          {% for value, label in account_types %}
+            <option value="{{ value }}" {% if form.account_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cat-filters__field">
+        <label for="status">حالة الحساب</label>
+        <select id="status" name="status">
+          {% for value, label in statuses %}
+            <option value="{{ value }}" {% if form.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cat-filters__field">
+        <label for="auction">رقم المزاد</label>
+        <input id="auction" type="number" name="auction" value="{{ form.auction }}" min="1"
+               placeholder="اتركه فارغاً لتجاهل المزاد">
+      </div>
+      <div class="cat-filters__field">
+        <label for="auction_link">العلاقة بالمزاد</label>
+        <select id="auction_link" name="auction_link">
+          {% for value, label in auction_links %}
+            <option value="{{ value }}" {% if form.auction_link == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <label class="bc-check">
+      <input type="checkbox" name="with_dues" value="1" {% if form.with_dues %}checked{% endif %}>
+      <span>من عليه مستحقّات غير مسدَّدة</span>
+    </label>
 
-    <h2>الرسالة</h2>
-    <p>
-      <label for="title">العنوان</label>
-      <input id="title" type="text" name="title" value="{{ form.title }}" maxlength="120">
-      <small>يُقرأ داخل التطبيق. الرسالةُ النصّيّة تحمل النصَّ وحده.</small>
-    </p>
-    <p>
-      <label for="body">النصّ</label>
-      <textarea id="body" name="body" rows="4" required>{{ form.body }}</textarea>
-    </p>
-    <p>
-      <label for="reason">سبب البثّ</label>
-      <input id="reason" type="text" name="reason" value="{{ form.reason }}" required>
-      <small>إجباريّ، ويدخل سجلَّ التدقيق مع العدد والكلفة. v1 لا يسجّل من أرسل أصلاً.</small>
-    </p>
+    <h3 class="dd-sec">الرسالة <small>وسببُ بثّها</small></h3>
+    <div class="bc-msg">
+      <div class="cat-filters__field">
+        <label for="title">العنوان</label>
+        <input id="title" type="text" name="title" value="{{ form.title }}" maxlength="120">
+        <small class="bc-hint">يُقرأ داخل التطبيق. الرسالةُ النصّيّة تحمل النصَّ وحده.</small>
+      </div>
+      <div class="cat-filters__field">
+        <label for="body">النصّ</label>
+        <textarea id="body" name="body" rows="4" required>{{ form.body }}</textarea>
+      </div>
+      <div class="cat-filters__field">
+        <label for="reason">سبب البثّ</label>
+        <input id="reason" type="text" name="reason" value="{{ form.reason }}" required>
+        <small class="bc-hint">إجباريّ، ويدخل سجلَّ التدقيق مع العدد والكلفة. v1 لا يسجّل من أرسل أصلاً.</small>
+      </div>
+    </div>
 
-    <button type="submit">اعرض الجمهور والكلفة</button>
+    <div class="form-actions"><button type="submit" class="btn-primary">اعرض الجمهور والكلفة</button></div>
   </form>
 
   {% if plan %}

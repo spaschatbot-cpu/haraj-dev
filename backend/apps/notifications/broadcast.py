@@ -93,14 +93,20 @@ def gateway_refusal(channel: str) -> str:
     from apps.accounts.checks import CONSOLE_BACKEND, REAL_SMS_GATEWAYS
 
     backend = str(getattr(settings, "SMS_BACKEND", "") or "").strip()
+    # **بلا معرّفاتٍ لاتينيّةٍ داخل الجملة.** هذه الرسائلُ تُعرض في شاشةٍ
+    # عربيّةٍ (`broadcast.html`)، وسطرٌ `rtl` فيه `SMS_BACKEND=apps.accounts…`
+    # بين قوسين وشرطتين يقلب ترتيبَ قطعه على الشاشة فيُقرأ كلاماً مبعثراً —
+    # رُئي في لقطةٍ من الإنتاج. والعلّةُ نفسُها مكتوبةٌ في `packages.html`.
+    #
+    # فالجملةُ عربيّةٌ خالصة، والمعرّفُ يخرج في `gateway_detail()` ليُعرض
+    # وحدَه في سطرٍ `ltr`.
     if not backend:
-        return "لا بوّابةَ رسائل مضبوطة: `SMS_BACKEND` فارغ."
+        return "لا بوّابةَ رسائل مضبوطة — إعدادُ البوّابة فارغ."
     if backend == CONSOLE_BACKEND:
         return (
-            "بوّابةُ الرسائل في هذه البيئة هي بوّابةُ السجلّ "
-            f"(`SMS_BACKEND={backend}`): تكتب نصَّ الرسالة في سجلّ التطبيق "
-            "ولا تُرسلها إلى أحد. اضبط `SMS_BACKEND` على مزوّدٍ حقيقيّ "
-            "(`apps.accounts.sms.oursms_backend`) قبل البثّ."
+            "بوّابةُ الرسائل في هذه البيئة هي بوّابةُ السجلّ: تكتب نصَّ الرسالة "
+            "في سجلّ التطبيق ولا تُرسلها إلى أحد. اضبط البوّابةَ على مزوّدٍ "
+            "حقيقيّ قبل البثّ."
         )
     try:
         import_string(backend)
@@ -108,7 +114,7 @@ def gateway_refusal(channel: str) -> str:
         # نفسُ ما يمسكه `accounts.E005`: خطأٌ إملائيٌّ لا يظهر عند الإقلاع،
         # لأن `import_string` تُنادى **لحظةَ الإرسال** — أي بعد أن يكون
         # الموظّف قد ضغط وقُرئ له «تمّ».
-        return f"`SMS_BACKEND` هو {backend!r} ولا يمكن استيراده (accounts.E005)."
+        return "إعدادُ البوّابة يشير إلى وحدةٍ لا يمكن استيرادها (accounts.E005)."
 
     missing = [
         name
@@ -117,10 +123,22 @@ def gateway_refusal(channel: str) -> str:
     ]
     if missing:
         return (
-            f"البوّابة حقيقيّة ({backend}) و{'، '.join(missing)} فارغ "
-            "(accounts.E004) — أوّلُ إرسالٍ يرفع `SmsSendFailed` ولا تخرج رسالة."
+            "البوّابةُ حقيقيّةٌ ومفاتيحُها ناقصة (accounts.E004) — أوّلُ إرسالٍ "
+            "يفشل ولا تخرج رسالة."
         )
     return ""
+
+
+def gateway_detail(channel: str) -> str:
+    """المعرّفُ التقنيُّ وحدَه — يُعرض في سطرٍ `ltr` تحت الجملة العربيّة.
+
+    فصلُه عنها ليس تجميلاً: خلطُ الاتّجاهين في سطرٍ واحد يقلب ترتيبَ القطع،
+    فيقرأ الموظّفُ اسمَ البوّابة ملتصقاً بكلمةٍ ليست له.
+    """
+    if channel != Channel.SMS:
+        return ""
+    backend = str(getattr(settings, "SMS_BACKEND", "") or "").strip()
+    return backend
 
 
 # ---------------------------------------------------------------------------
