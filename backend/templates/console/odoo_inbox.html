@@ -10,7 +10,7 @@ question that actually brings people here half the time is «هل وصلتنا �
 {% endcomment %}
 {% block title %}صندوق وارد أودو{% endblock %}
 {% block heading %}صندوق وارد أودو{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
   {% comment %} I5: every list downloads as a real workbook, and the download carries the
@@ -18,37 +18,72 @@ question that actually brings people here half the time is «هل وصلتنا �
      parameter added, built in `apps.console.context` — so the filter comes
      along by construction and no template writes a path by hand. {% endcomment %}
 
-  {% comment %} The url is named even here: a query string hung off a bare `?` reads as
-     harmless until the console moves under another prefix and the link starts
-     re-filtering whatever page the browser happened to be on. {% endcomment %}
-  <p><a href="{% url 'console:odoo-inbox' %}?state={{ failed }}">عرض الفاشلة فقط</a></p>
+  {% comment %} سطرُ تعريفٍ يقول لماذا لا تُفتح الشاشةُ على الفاشلة وحدَها —
+     وهو مكتوبٌ في تعليق الملفّ ولا يراه إلا من يفتحه. {% endcomment %}
+  <p class="lede">
+    كلُّ رسالةٍ وصلتنا، بأيّ حالٍ وصلت. <strong>ولا تُفتح على الفاشلة
+    وحدَها</strong>: نصفُ من يأتي هنا يسأل «هل وصلتنا دفعتُه أصلاً؟» —
+    والمعالَجةُ والمتجاهَلةُ هما الجواب.
+  </p>
 
-  {% comment %} المنادي الوحيد لـ`money.retry_failed_gateway`: كانت مُعرَّفةً بلا زرٍّ
-     ولا نبضة، فطابورُ إعادةِ رسائل البوّابة لا يوقظه شيء. POST في نموذج لا
-     رابط — ضغطةٌ تُقيّد مالاً لا تُطلَق من سجلّ المتصفّح. {% endcomment %}
-  <form method="post" action="{% url 'console:gateway-retry' %}">
+  {% comment %} أربعةُ أعدادٍ من المرشَّح نفسِه — و«الفاشلة» بطاقةٌ تُنقر
+     فتُرشّح، بدل رابطٍ مسطورٍ فوق الشاشة كان يقول «عرض الفاشلة فقط». {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام الصندوق">
+    <div class="sum">
+      <p class="sum__label">رسائل مطابقة</p>
+      <p class="sum__value">{{ counts.all|unlocalize }}</p>
+      <p class="sum__note">في المرشّح الحالي.</p>
+    </div>
+    <a class="sum{% if counts.failed %} sum--wait{% endif %}" href="{% url 'console:odoo-inbox' %}?state={{ failed }}">
+      <p class="sum__label">فشلت</p>
+      <p class="sum__value">{{ counts.failed|unlocalize }}</p>
+      <p class="sum__note">اعرضها وحدَها</p>
+    </a>
+    <div class="sum">
+      <p class="sum__label">مستلَمة</p>
+      <p class="sum__value">{{ counts.received|unlocalize }}</p>
+      <p class="sum__note">وصلت ولم تُعالَج بعد.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">معالَجة</p>
+      <p class="sum__value">{{ counts.processed|unlocalize }}</p>
+      <p class="sum__note">قُرئت ووقع أثرُها.</p>
+    </div>
+  </section>
+
+  {% comment %} المنادي الوحيد لـ`money.retry_failed_gateway`: كانت مُعرَّفةً بلا
+     زرٍّ ولا نبضة، فطابورُ إعادةِ رسائل البوّابة لا يوقظه شيء. POST في نموذج لا
+     رابط — ضغطةٌ تُقيّد مالاً لا تُطلَق من سجلّ المتصفّح.
+
+     وكان الزرُّ في لوحٍ وحدَه بعرض الشاشة، وهو فعلٌ يُضغط مرّةً في اليوم. {% endcomment %}
+  <form method="post" action="{% url 'console:gateway-retry' %}" class="ob-retry">
     {% csrf_token %}
-    <button type="submit">إعادة تشغيل الفاشلة المستحقّة (بوّابة الدفع)</button>
+    <button type="submit" class="btn-ghost">إعادة تشغيل الفاشلة المستحقّة (بوّابة الدفع)</button>
+    <small>تُعيد محاولةَ ما فشل من رسائل بوّابة الدفع وحان موعدُ إعادته.</small>
   </form>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="رقم فاتورة أو دفعة">
-    <select name="state">
-      <option value="">كل الحالات</option>
-      {% for value, label in states %}
-        <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <select name="source">
-      <option value="">كل المصادر</option>
-      {% for value in sources %}
-        <option value="{{ value }}" {% if value == source %}selected{% endif %}>{{ value }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">بحث</button>
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="رقم فاتورة أو دفعة" aria-label="بحث">
+      <select name="state" aria-label="الحالة">
+        <option value="">كل الحالات</option>
+        {% for value, label in states %}
+          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="source" aria-label="المصدر">
+        <option value="">كل المصادر</option>
+        {% for value in sources %}
+          <option value="{{ value }}" {% if value == source %}selected{% endif %}>{{ value }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
-  <div class="scroller">
+  <div class="scroller scroller--wide">
     <table>
     <thead>
       <tr>
@@ -59,13 +94,14 @@ question that actually brings people here half the time is «هل وصلتنا �
     <tbody>
       {% for row in page %}
         <tr>
-          <td><a href="{% url 'console:odoo-message' row.pk %}">{{ row.received_at }}</a></td>
-          <td>{{ row.source }}</td>
-          <td>{{ row.event|default:"—" }}</td>
-          <td>{{ row.subject_ref|default:"—" }}</td>
+          <td class="rm-when"><a href="{% url 'console:odoo-message' row.pk %}">{{ row.received_at }}</a></td>
+          <td><span class="au-ent" dir="ltr">{{ row.source }}</span></td>
+          <td><span class="au-act" dir="ltr">{{ row.event|default:"—" }}</span></td>
+          <td><span class="au-ent" dir="ltr">{{ row.subject_ref|default:"—" }}</span></td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-          <td class="money">{{ row.attempts|unlocalize }}</td>
-          <td>{{ row.note|default:"—" }}</td>
+          {% comment %} `count` لا `money`: عددُ محاولاتٍ لا مبلغ. {% endcomment %}
+          <td class="count">{{ row.attempts|unlocalize }}</td>
+          <td class="au-why">{{ row.note|default:"—" }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="empty">لا رسائل مطابقة.</td></tr>

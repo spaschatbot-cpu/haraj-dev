@@ -11507,3 +11507,19 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   overflow-wrap: anywhere;
 }
 .au-why { max-inline-size: 18rem; white-space: normal; font-size: .8rem; line-height: 1.6; }
+
+/* صفُّ «إعادة التشغيل»: زرٌّ وسطرُ شرحٍ بجواره، لا لوحٌ بعرض الشاشة لفعلٍ
+   يُضغط مرّةً في اليوم. */
+.ob-retry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem .9rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  max-inline-size: none;
+}
+.ob-retry small { font-size: .78rem; line-height: 1.6; color: var(--muted); }
