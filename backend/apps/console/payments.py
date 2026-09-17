@@ -173,9 +173,9 @@ def decorate(page_rows) -> None:
     }
     found |= {
         ("number", invoice.number): invoice
-        for invoice in Invoice.objects.filter(
-            number__in=by_number
-        ).select_related("customer")
+        for invoice in Invoice.objects.filter(number__in=by_number).select_related(
+            "customer"
+        )
     }
 
     for row in page_rows:
@@ -194,9 +194,7 @@ def decorate(page_rows) -> None:
             if row.invoice is not None
             else (owned[0].owner if owned else None)
         )
-        row.amount = sum(
-            entry.amount for entry in row.entries.all() if entry.amount > 0
-        )
+        row.amount = sum(entry.amount for entry in row.entries.all() if entry.amount > 0)
 
 
 def _recorded_screen(request):
@@ -247,6 +245,7 @@ def _recorded_screen(request):
             "export_url": f"?which=recorded&q={text}&export=1",
         },
     )
+
 
 @console_page("console:payments")
 def payments(request):
