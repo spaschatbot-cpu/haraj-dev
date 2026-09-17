@@ -23,6 +23,7 @@
  *   شاشةٌ كاملة. يُضاف يوم يُقرَّر أنه يستحقّ ذلك الطلب، لا قبله.
  */
 
+import Image from "next/image";
 import Link from "next/link";
 
 //: المسارات كما هي في `app/`. مصفوفةٌ لا ستّة أسطر متكرّرة: صفٌّ يُنسى في
@@ -60,8 +61,21 @@ export function PageShell({
         <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-6 px-4 md:px-8 lg:px-12">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 whitespace-nowrap">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-on-primary">
-                ح
+              {/*
+                الشعارُ لا الحرف. والمربّعُ الملوّنُ يبقى تحته لأن الشعار أبيضُ
+                على شفّاف — بلا خلفيّةٍ يختفي على سطحٍ فاتح. و`alt=""` لأن
+                «حراج واحد» مكتوبةٌ نصّاً بجانبه: بديلٌ يقول الاسمَ ثانيةً
+                يجعل قارئَ الشاشة يقرؤه مرّتين.
+              */}
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                <Image
+                  src="/brand/logo-light.png"
+                  alt=""
+                  width={507}
+                  height={455}
+                  className="h-[68%] w-[68%] object-contain"
+                  priority
+                />
               </span>
               <span className="text-headline-sm tracking-tight">
                 حراج واحد{" "}
@@ -87,12 +101,20 @@ export function PageShell({
             </nav>
           </div>
 
+          {/*
+            رمزُ شخصٍ لا حرفُ «ح». هذا زرُّ **الحساب** لا العلامة، وحرفُ اسم
+            الشركة عليه يجعله علامةً ثانيةً بجانب الشعار في الرأس نفسِه —
+            فيُنقَر طلباً للرئيسية. و`aria-label` يقول «حسابي» كما كان.
+          */}
           <Link
             href="/account"
             aria-label="حسابي"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-label-sm text-on-primary"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary"
           >
-            ح
+            <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="8" r="3.4" />
+              <path d="M5 20a7 7 0 0 1 14 0" />
+            </svg>
           </Link>
         </div>
 

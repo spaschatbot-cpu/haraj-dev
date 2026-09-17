@@ -11667,3 +11667,110 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
    — وصفرُ التخطّي رقمٌ عاديٌّ لا تحذير. */
 .pa-ok { font-weight: 800; color: var(--ok); }
 .pa-skip { font-weight: 800; color: var(--warn); }
+
+/* ===========================================================================
+   المطويّ يُفتَح بالمرور، ويعود بالخروج — T925
+   ---------------------------------------------------------------------------
+   بطلب المالك: الشريطُ رموزٌ وحدَها، فإذا مرّ عليه المؤشّر انفتح بأسمائه، وإذا
+   خرج منه عاد رموزاً.
+
+   **وينفتح فوق المحتوى لا بجانبه.** الشريطُ عضوٌ في `flex` الصفحة، فتوسيعُه
+   يزيح الصدفةَ كلَّها — أي أن كلَّ مرورٍ عابرٍ بالمؤشّر يُحرّك الجدولَ الذي
+   يقرؤه الموظّف تحت عينه. فالحلُّ هامشٌ سالبٌ في النهاية يساوي فرقَ العرضين:
+   الصندوقُ يُرسَم بعرضه الكامل، **وخانتُه في الصفّ تبقى ٤٫٦rem**. فلا يتحرّك
+   شيءٌ غيرُه، ولا يخرج من التدفّق فيفقد `sticky`.
+
+   و`:focus-within` مع `:hover`: من يتنقّل بلوحة المفاتيح يصل إلى رابطٍ في
+   شريطٍ مطويّ فيجب أن يقرأ أين هو — والسمةُ `title` وحدَها لا تكفي، فهي تنتظر
+   توقّفاً بالمؤشّر لا وصولاً بالمفتاح.
+
+   و`(hover: hover)` لأن اللمسَ لا «يمرّ»: على الجوّال يعني `:hover` الثابتَ
+   بعد النقرة — أي شريطٌ يبقى مفتوحاً بلا أن يُطلَب إغلاقُه. وعلى الضيّق
+   (دون 56rem) الشريطُ درجٌ منزلق أصلاً ولا «مطويّ» فيه، فالقاعدةُ مقصورةٌ
+   على العريض.
+   ======================================================================== */
+
+@media (min-width: 56.01rem) and (hover: hover) {
+  :root[data-nav="mini"] .sidebar:hover,
+  :root[data-nav="mini"] .sidebar:focus-within {
+    width: var(--sidebar-w);
+    /* الخانةُ تبقى بعرض المطويّ، والزيادةُ تُرسَم فوق المحتوى. */
+    margin-inline-end: calc(var(--sidebar-w-mini) - var(--sidebar-w));
+    padding-inline: .8rem;
+    /* ظلٌّ يقول إنه **فوق** لا بجانب — بلا حافّةٍ يبدو النصّان طبقةً واحدة. */
+    box-shadow: -18px 0 44px rgb(9 13 21 / .28);
+    z-index: 30;
+  }
+
+  /* الأسماءُ تعود، والصفوفُ ترجع إلى محاذاة البداية. */
+  :root[data-nav="mini"] .sidebar:hover .brand__words,
+  :root[data-nav="mini"] .sidebar:focus-within .brand__words,
+  :root[data-nav="mini"] .sidebar:hover .nav__text,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__text,
+  :root[data-nav="mini"] .sidebar:hover .nav__tag,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__tag { display: revert; }
+
+  :root[data-nav="mini"] .sidebar:hover .brand,
+  :root[data-nav="mini"] .sidebar:focus-within .brand,
+  :root[data-nav="mini"] .sidebar:hover .nav a,
+  :root[data-nav="mini"] .sidebar:focus-within .nav a,
+  :root[data-nav="mini"] .sidebar:hover .nav__soon,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__soon,
+  :root[data-nav="mini"] .sidebar:hover .nav-out button,
+  :root[data-nav="mini"] .sidebar:focus-within .nav-out button {
+    justify-content: flex-start;
+    padding-inline: .6rem;
+  }
+
+  /* عنوانُ القسم كان خطّاً بارتفاع بكسل (`text-indent: -100vw`) — يعود كلاماً. */
+  :root[data-nav="mini"] .sidebar:hover .nav-sec,
+  :root[data-nav="mini"] .sidebar:focus-within .nav-sec {
+    overflow: revert;
+    text-indent: 0;
+    height: auto;
+    border-top: 0;
+    margin: 1.1rem .55rem .35rem;
+  }
+
+  :root[data-nav="mini"] .sidebar:hover .nav a.active::before,
+  :root[data-nav="mini"] .sidebar:focus-within .nav a.active::before {
+    inset-inline-start: -.8rem;
+  }
+
+  /* **والفقاعةُ تُطفأ وهو مفتوح.** هي بديلُ الاسم حين لا مكانَ له؛ وبقاؤها
+     تعني اسماً مكتوباً في الصفّ ونسخةً منه تطفو بجانبه. */
+  :root[data-nav="mini"] .sidebar:hover .nav a::after,
+  :root[data-nav="mini"] .sidebar:focus-within .nav a::after { content: none; }
+
+  /* الانتقالُ على العرض والهامش معاً وإلا انزلق أحدُهما وقفز الآخر. والظلُّ
+     يتلاشى معهما. ومن أطفأ الحركة تُطفأ عنده بقاعدتَي آخر الملفّ. */
+  :root[data-nav="mini"] .sidebar {
+    transition:
+      width .2s cubic-bezier(.2, .7, .3, 1),
+      margin-inline-end .2s cubic-bezier(.2, .7, .3, 1),
+      box-shadow .2s ease;
+  }
+}
+
+/* ===========================================================================
+   الشعار مكانَ الحرف — T925
+   ---------------------------------------------------------------------------
+   كان المربّعان يحملان الحرف «ح» نصّاً. والحرفُ نائبٌ عن شعارٍ لم يكن في
+   المستودع؛ والشعارُ موجودٌ (`mobile/assets/images/logo.png`) ولم يكن يصل
+   الويبَ ولا اللوحة.
+
+   **وهو أبيضُ على شفّاف** — أي لا يُرى على خلفيّةٍ فاتحة. ولذلك يبقى المربّعُ
+   الملوّن تحته كما كان: الشعارُ أبيضُ فوق الأساسيّ في المظهرين معاً، فلا
+   نسختان تُختاران بالمظهر ولا لونٌ يُقاس مرّتين. (والنسخةُ الحبريّة
+   `logo-ink.png` مولَّدةٌ ومحفوظةٌ لمن يحتاج الشعارَ بلا مربّع.)
+   ======================================================================== */
+
+.brand__mark img,
+.login-mark img {
+  /* `contain` لا `cover`: الشعارُ ليس مربّعاً (٥٠٧×٤٥٥ بعد قصّ الهامش)،
+     و`cover` كان سيقصّ حافّته العليا والسفلى. */
+  inline-size: 68%;
+  block-size: 68%;
+  object-fit: contain;
+  display: block;
+}

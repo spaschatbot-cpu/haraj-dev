@@ -38,8 +38,13 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   {% comment %} ورقةُ الخطوط قبل الورقة الرئيسية، ومنفصلةٌ عنها: هي ثابتةٌ
      لا تتغيّر مع كل صقلٍ في الشكل، فكاشُها لا يُكسَر معه — و٢٥٧ ك.ب تُحمَّل
      مرّةً واحدة لا مع كل رقمٍ جديد في `?v=`. {% endcomment %}
+  {% comment %} أيقونةُ التبويب — شعارُ حراج على مربّعٍ داكن. والمربّعُ لأن
+     الشعار أبيضُ على شفّاف: بلا خلفيّةٍ يختفي في شريطِ تبويبٍ فاتح.
+     وكان `/favicon.ico` يردّ ٤٠٤ في كل تحميلِ صفحة. {% endcomment %}
+  <link rel="icon" href="{% static 'console/brand/favicon.ico' %}" sizes="any">
+  <link rel="apple-touch-icon" href="{% static 'console/brand/icon-180.png' %}">
   <link rel="stylesheet" href="{% static 'console/fonts.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1144">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1118">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
@@ -52,7 +57,12 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <div class="layout">
     <aside class="sidebar">
       <a class="brand" href="{% url 'console:home' %}">
-        <span class="brand__mark" aria-hidden="true">ح</span>
+        {% comment %} الشعارُ لا الحرف. و`aria-hidden` لأن الاسم مكتوبٌ
+           بجانبه نصّاً — صورةٌ لها بديلٌ يقول «حراج» تُقرأ مرّتين.
+           والنسخةُ البيضاء لأن المربّع ملوّنٌ بالأساسيّ في المظهرين. {% endcomment %}
+        <span class="brand__mark" aria-hidden="true">
+          <img src="{% static 'console/brand/logo-light.png' %}" alt="" width="512" height="455">
+        </span>
         <span class="brand__words">
           <strong>لوحة حراج</strong>
           <small>إدارة المزادات والمال</small>

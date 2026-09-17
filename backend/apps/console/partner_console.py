@@ -53,10 +53,10 @@ from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
+from .after_sales import state_label
 from .archive import ARCHIVED
 from .exports import export, wants_export
 from .tones import with_tones
-from .after_sales import state_label
 from .views import console_page
 
 ZERO = Decimal("0.00")

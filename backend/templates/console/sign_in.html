@@ -60,7 +60,9 @@ Staff sign-in, in the console's own clothes. T819، وأُعيد شكلها في
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>دخول الموظفين — لوحة حراج</title>
-  <link rel="stylesheet" href="{% static 'console/app.css' %}">
+  <link rel="icon" href="{% static 'console/brand/favicon.ico' %}" sizes="any">
+  <link rel="apple-touch-icon" href="{% static 'console/brand/icon-180.png' %}">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1118">
   <script src="{% static 'console/theme.js' %}"></script>
 </head>
 <body class="login-page">
@@ -73,7 +75,9 @@ Staff sign-in, in the console's own clothes. T819، وأُعيد شكلها في
        ومن يتنقّل بقارئ شاشة يصل إلى النموذج أوّلاً لأنه `main`. {% endcomment %}
     <aside class="login-side">
       <div class="login-side__brand">
-        <span class="login-mark" aria-hidden="true">ح</span>
+        <span class="login-mark" aria-hidden="true">
+          <img src="{% static 'console/brand/logo-light.png' %}" alt="" width="512" height="455">
+        </span>
         <span>
           <strong>حراج واحد</strong>
           <small>لوحة تشغيل المزادات والمال</small>
