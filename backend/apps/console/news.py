@@ -194,6 +194,13 @@ def news(request):
             "form": create_form,
             "showing": sum(1 for row in rows if row.is_showing),
             "stopped": sum(1 for row in rows if not row.is_active),
+            # «مفعّلةٌ خارج نافذتها» حالةٌ ثالثة، وكانت تُعدّ في لا شيء:
+            # الترويسةُ تقول «تُعرَض» و«موقوفة» فيُقرأ ما بينهما صفراً وهو ليس
+            # كذلك. والعمودُ في الجدول يسمّيها منذ البداية.
+            "waiting": sum(
+                1 for row in rows if row.is_active and not row.is_showing
+            ),
+            "total": len(rows),
             "opens": opens,
         },
     )

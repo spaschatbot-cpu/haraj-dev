@@ -11418,3 +11418,14 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 }
 
 .nt-when { font-variant-numeric: tabular-nums; font-size: .8rem; }
+
+/* ---- «شريط الأخبار»: النصُّ هو الصفّ، والباقي سياقُه ---------------------- */
+
+/* النصُّ العربيُّ غليظٌ والإنجليزيُّ تحته خافتٌ بـ`dir="ltr"`: سطرٌ لاتينيٌّ
+   في خانةٍ `rtl` تُقلب علاماتُه الطرفيّة — والوسمُ يُنهي ذلك بلا حيلة.
+   وصنفُه كان `empty` وهو للحالات الفارغة لا للنصّ الثانوي. */
+.nw-text { min-inline-size: 20rem; }
+.nw-text strong { display: block; font-weight: 700; line-height: 1.6; color: var(--ink); }
+.nw-text small { display: block; margin-block-start: .2rem; font-size: .76rem; line-height: 1.5; color: var(--muted); }
+
+.nw-when { font-variant-numeric: tabular-nums; font-size: .8rem; line-height: 1.6; }
