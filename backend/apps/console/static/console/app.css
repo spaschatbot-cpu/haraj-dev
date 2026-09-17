@@ -11691,14 +11691,17 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
    ======================================================================== */
 
 @media (min-width: 56.01rem) and (hover: hover) {
+  /* **يدفع المحتوى ولا يطفو فوقه** — قرارُ المالك في ١٧ سبتمبر ٢٠٢٦.
+     كان هنا `margin-inline-end` سالبٌ يُبقي الخانةَ بعرض المطويّ فيُرسَم
+     الشريطُ فوق الصفحة. وأُزيل: الشريطُ عضوٌ في `flex`، فعرضُه وحدَه يزيح
+     `.shell` — والإزاحةُ هي المطلوبة. وثمنُها مقبولٌ بقرارِ صاحبها: الجدولُ
+     يضيق ٢٤٦ بكسلاً ما دام المؤشّرُ على الشريط، ويعود بخروجه. */
   :root[data-nav="mini"] .sidebar:hover,
   :root[data-nav="mini"] .sidebar:focus-within {
     width: var(--sidebar-w);
-    /* الخانةُ تبقى بعرض المطويّ، والزيادةُ تُرسَم فوق المحتوى. */
-    margin-inline-end: calc(var(--sidebar-w-mini) - var(--sidebar-w));
     padding-inline: .8rem;
-    /* ظلٌّ يقول إنه **فوق** لا بجانب — بلا حافّةٍ يبدو النصّان طبقةً واحدة. */
-    box-shadow: -18px 0 44px rgb(9 13 21 / .28);
+    /* الظلُّ يبقى: حافّةٌ تفصل العمودَ عمّا يُدفَع بجانبه. */
+    box-shadow: -18px 0 44px rgb(9 13 21 / .18);
     z-index: 30;
   }
 
@@ -11774,3 +11777,260 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   object-fit: contain;
   display: block;
 }
+
+/* ===========================================================================
+   لونُ البحر، وحركةٌ تنساب — T926
+   ======================================================================== */
+
+/* الأزرقُ الفاتح — «بيبي بلو شبه لون البحر» بطلب المالك.
+ *
+ * والقيمُ مقيسةٌ لا مختارةٌ بالعين: الحارسُ الذي كان يقيس التوليفات حُذف مع
+ * حزمة الاختبارات، فقيست الأدوارُ الستّة بيدٍ قبل الكتابة. وسقط مرشَّحان من
+ * ثلاثةٍ في دورٍ واحدٍ بعينه — `--a500` حدّاً على الأرضية: ٢٫٩٦ و٢٫٨٧ مقابل
+ * حدٍّ ٣، أي فرقٌ لا تراه العين ويراه من يقرأ على شاشةٍ باهتة.
+ *
+ * والمعتمَد يقرأ: الحدُّ على الأرضية ٣٫٠٩ · الزرُّ بنصٍّ أبيض ٥٫٦٢ · النصُّ
+ * على البطاقة ٥٫٦٢ · الفاتحُ نصّاً في الداكن ٩٫٦١ · الحبرُ على الفاتح ١٤٫٢٩. */
+:root[data-accent="sea"] {
+  --a050: #e2f3fb; --a300: #7ecfe9; --a500: #1f97c4; --a700: #0b6f97; --a-dim: #0c2836;
+}
+.themer__swatch[data-accent="sea"] { --swatch: #1f97c4; }
+
+/* ---------------------------------------------------------------------------
+   الانسياب — ولماذا منحنىً لا خطّ
+   ---------------------------------------------------------------------------
+   الشريطُ كان ينفتح بـ`cubic-bezier(.2,.7,.3,1)` في ٢٠٠ms: صحيحٌ وسريع، غير
+   أنه يبدأ بأقصى سرعةٍ وينتهي فجأةً — فتُقرأ الحركةُ «قفزة». والمنحنى هنا
+   أُسّيٌّ (`.16,1,.3,1`): ينطلق بقوّةٍ ويهدأ في آخره، فتنتهي الحركةُ قبل أن
+   تنتبه العينُ إلى نهايتها. والمدّةُ ٣٤٠ms لا ٢٠٠: أطولُ من أن تُقطع، وأقصرُ
+   من أن تُنتظَر (الحدُّ الذي يبدأ عنده الانتظارُ محسوساً ~٤٠٠ms).
+
+   **والأسماءُ تنزلق ولا تظهر فجأة.** كانت `display: none ⇐ revert` — قفزةٌ
+   لا تُحرَّك أصلاً، فيتمدّد الصندوقُ في ٣٤٠ms والنصُّ يظهر في الصفر. و
+   `allow-discrete` مع `@starting-style` يجعلان القفزةَ انسياباً: النصُّ يدخل
+   شفّافاً مزاحاً ويستقرّ. ومتصفّحٌ لا يعرفهما يُهملهما ويعود إلى الظهور
+   الفوريّ — أي أن الأسوأ هو ما كان.
+   ------------------------------------------------------------------------ */
+@media (min-width: 56.01rem) and (hover: hover) {
+  :root[data-nav="mini"] .sidebar {
+    transition:
+      width .34s cubic-bezier(.16, 1, .3, 1),
+      margin-inline-end .34s cubic-bezier(.16, 1, .3, 1),
+      box-shadow .34s ease;
+  }
+
+  /* النصُّ داخل الصفّ: انزلاقٌ من جهة الطيّ لا من جهةٍ عشوائيّة. */
+  /* **تتابعٌ لا ظهورٌ دفعةً واحدة.** ستّةٌ وخمسون سطراً تظهر في اللحظة نفسها
+     تُقرأ ومضةً؛ وتأخيرٌ صغيرٌ يتصاعد مع الترتيب (`--i` يكتبه القالب) يجعلها
+     تتوالى كما تُقرأ — من أعلى إلى أسفل. و`min` يسقّف التأخير عند ٢٢٠ms،
+     وإلا انتظر آخرُ سطرٍ في القائمة ثانيةً كاملة.
+
+     والخروجُ بلا تتابع (`transition-delay: 0s` في الحالة الساكنة): الدخولُ
+     عرضٌ يُشاهَد، والخروجُ إزاحةٌ يريدها من حرّك المؤشّر بعيداً — فتأخيرُها
+     يجعل الشريطَ يبدو عالقاً. */
+  :root[data-nav="mini"] .nav__text,
+  :root[data-nav="mini"] .brand__words,
+  :root[data-nav="mini"] .nav__tag {
+    transition:
+      opacity .24s ease,
+      translate .3s cubic-bezier(.16, 1, .3, 1),
+      display .3s allow-discrete;
+  }
+
+  :root[data-nav="mini"] .sidebar:hover .nav__text,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__text,
+  :root[data-nav="mini"] .sidebar:hover .nav__tag,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__tag {
+    transition-delay: min(calc(var(--i, 0) * 11ms), 220ms);
+  }
+
+  :root[data-nav="mini"] .sidebar:hover .nav__text,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__text,
+  :root[data-nav="mini"] .sidebar:hover .brand__words,
+  :root[data-nav="mini"] .sidebar:focus-within .brand__words,
+  :root[data-nav="mini"] .sidebar:hover .nav__tag,
+  :root[data-nav="mini"] .sidebar:focus-within .nav__tag {
+    opacity: 1;
+    translate: 0 0;
+
+    @starting-style {
+      opacity: 0;
+      /* موجبٌ في RTL أي **إلى اليمين** — من جهة الحافّة التي انفتح منها. */
+      translate: .75rem 0;
+    }
+  }
+
+  /* الرمزُ نفسُه يتزحزح قليلاً ليفسح للنصّ — حركةٌ واحدةٌ متّصلةٌ لا
+     صندوقٌ يتمدّد ورموزٌ تقف. */
+  :root[data-nav="mini"] .nav__icon {
+    transition: translate .34s cubic-bezier(.16, 1, .3, 1);
+  }
+}
+
+/* ===========================================================================
+   الأحمرُ للحذف وحدَه — ونغمةُ «انتهى إلى ما لا يُراد» تهدأ. T926
+   ---------------------------------------------------------------------------
+   بطلب المالك: «الأحمر الكتير ده مش ماشي مع اللون — خليه أحمر بس الحاجات
+   بتاعة الحذف، والباقي ظبط لونه».
+
+   **ومصدرُ «الأحمر الكتير» مقيسٌ لا مُخمَّن:** الحبّةُ الحمراء ليست تحذيراً
+   نادراً بل **حالةٌ شائعة**. في «القرارات المنتهية» ٢٨٨ صفّاً «رفضها المالك»
+   مقابل ٨ مُرساة — أي أن الشاشة كلَّها حمراء، وستّةُ صفوفٍ في `tones.py`
+   (`cancelled` · `rejected` · `failed` · `expired` · `disputed` ·
+   `rejected_signature`) تطلي جداولَ بأكملها.
+
+   وحين يصير كلُّ شيءٍ أحمرَ لا يبقى للأحمر معنى: الموظّفُ الذي يفتح شاشةً
+   نصفُها أحمرُ لا يرى الصفَّ الذي **يجب** أن يوقفه. فالأحمرُ يُحجز لما لا
+   رجعةَ فيه — الحذف — و«انتهى إلى ما لا يُراد» يأخذ **طينيّاً دافئاً**:
+   يُقرأ «ليس جيّداً» بلا أن يصرخ، ويقابل أزرقَ اللوحة بدل أن يزاحمه.
+
+   والقيمُ مقيسة: النصُّ على البطاقة ٦٫١٩ · على حبّته الفاتحة ٥٫٤١ · الفاتحُ
+   نصّاً في الداكن ٧٫٢١. (وحدُّ الحبّة ١٫٥٦ — وهو نطاقُ حدود الحبّات القائمة
+   نفسُه: الأحمرُ ١٫٧٢ والأخضرُ ١٫٤٩، فهي زينةٌ بجانب خلفيّةٍ مملوءة لا
+   حدُّ مكوّنٍ يُقاس بـ٣:١.)
+
+   **وما يبقى أحمرَ:** أزرارُ الحذف وتأكيداتُه (`.alarm`)، ورسائلُ الرفض
+   والخطأ (`.notice.error` وأخطاء الحقول) — تلك ليست «حالةً في جدول» بل
+   جوابٌ على فعلٍ وقع الآن، وإخفاؤه خلف لونٍ هادئ يجعله يمرّ.
+   ======================================================================== */
+
+:root {
+  --halt: #8a5340;
+  --halt-soft: #f7eee9;
+  --halt-line: #e3cabe;
+}
+
+/* في الداكن تُرفع الدرجةُ كما تُرفع بقيّةُ ألوان الحالة: الطينيُّ الغامق على
+   أرضيّةٍ كحليّة نصٌّ لا يُقرأ. */
+:root[data-scheme="dark"] {
+  --halt: #d79c86;
+  --halt-soft: #2c1f19;
+  --halt-line: #4a342a;
+}
+
+/* الحالةُ في جدولٍ أو بطاقة — هذه هي الجموع. */
+.pill[data-tone="bad"] {
+  background: var(--halt-soft);
+  color: var(--halt);
+}
+.cell-note[data-tone="bad"] { color: var(--halt); }
+
+/* و`critical` تبقى حمراءَ صريحةً: هي ليست حالةَ صفٍّ بل نداءٌ مقصودٌ نادر. */
+
+/* ===========================================================================
+   حركةُ اللوحة — من «تعمل» إلى «تُحَسّ». T926
+   ---------------------------------------------------------------------------
+   بطلب المالك: «مش simple كده — عايز effects في النافيجيشن والنوافذ، حاجات
+   في الخلفيّة تتحرّك، أكثر احترافاً».
+
+   **وثلاث قواعدَ تحكم كلَّ ما تحته، وإلّا صارت اللوحةُ لعبة:**
+
+   ١. لا شيء يتحرّك أكثرَ من **٤٠٠ms**. الموظّفُ هنا يفتح عشرين شاشةً في
+      الساعة، والحركةُ التي تُنتظَر تُكرَه في اليوم الثاني.
+   ٢. `transform` و`opacity` وحدهما — لا `width` ولا `top` على عناصرَ كثيرة:
+      الأوليان على بطاقة العرض (GPU)، والأخريان تُعيدان حساب التخطيط لكل
+      إطار. والجدولُ هنا يبلغ مئةَ صفّ.
+   ٣. ما يتحرّك **يدخل** ولا يهتزّ ولا يرتدّ: الارتدادُ يقول «انظر إليّ»،
+      وهذه شاشةُ عملٍ لا صفحةُ تسويق.
+
+   وكلُّه يسقط مع `prefers-reduced-motion` و`data-motion="off"` بقاعدتَي آخر
+   الملفّ — فمن أطفأ الحركة لا يرى منها شيئاً.
+   ======================================================================== */
+
+/* ---- النوافذ: تصعد وتتّضح، والخلفُ يغيم معها --------------------------- */
+/* كانت `.16s` بمنحنىً هادئ — صحيحةٌ وغيرُ محسوسة. والمدّةُ هنا ٢٦٠ms بمنحنىً
+   أُسّيّ: النافذةُ تصل قبل أن تُنتظَر، ويُقرأ وصولُها. والقياسُ من ٦ بكسل إلى
+   ١٠ ومن ٠٫٩٨ إلى ٠٫٩٦: أوضحُ بلا أن تصير قفزة. */
+dialog[open] {
+  animation: dialog-in .26s cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* والخلفُ المموّه كان يظهر دفعةً واحدة بينما النافذةُ تصعد — طبقتان
+   بإيقاعين. فصار يغيم معها. */
+dialog[open]::backdrop {
+  animation: backdrop-in .26s ease both;
+}
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---- الانتقال بين الصفحات: المحتوى ينزلق، والإطار يثبت ----------------- */
+/* كان الجذرُ كلُّه يتلاشى ويرتفع — أي أن الشريط العلويّ والجانبيّ يومضان مع
+   كل نقلة. والآن الجذرُ يتلاشى تلاشياً خفيفاً، و**المحتوى وحدَه** ينزلق من
+   جهة القراءة (يمينٌ في RTL) — فتُقرأ النقلةُ «صفحةٌ جديدة في الإطار نفسه». */
+main { view-transition-name: console-main; }
+
+::view-transition-old(root) { animation: fade .14s ease reverse both; }
+::view-transition-new(root) { animation: fade .2s ease both; }
+
+::view-transition-old(console-main) {
+  animation: page-leave .16s cubic-bezier(.4, 0, 1, 1) both;
+}
+::view-transition-new(console-main) {
+  animation: page-enter .32s cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes page-leave {
+  to { opacity: 0; transform: translateX(-10px); }
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- ما يظهر مع الصفحة: يدخل متتابعاً لا دفعةً واحدة ------------------- */
+/* البطاقاتُ والإحصاءاتُ صفٌّ من أربعةٍ أو ستّة. ظهورُها معاً ومضةٌ، ودخولُها
+   متتابعاً يقود العينَ من أوّل الصفّ إلى آخره — وهو ترتيبُ قراءتها أصلاً.
+   و`nth-child` لا `--i`: هذه شبكاتٌ قصيرةٌ معروفةُ الطول، ولا يستحقّ الأمرُ
+   سمةً في كل قالب. */
+.cards > *,
+.board-stats > *,
+.board-flow > *,
+.stats > *,
+.stat-grid > * {
+  animation: rise .42s cubic-bezier(.16, 1, .3, 1) both;
+}
+.cards > :nth-child(1), .board-stats > :nth-child(1), .board-flow > :nth-child(1), .stats > :nth-child(1), .stat-grid > :nth-child(1) { animation-delay: .02s; }
+.cards > :nth-child(2), .board-stats > :nth-child(2), .board-flow > :nth-child(2), .stats > :nth-child(2), .stat-grid > :nth-child(2) { animation-delay: .06s; }
+.cards > :nth-child(3), .board-stats > :nth-child(3), .board-flow > :nth-child(3), .stats > :nth-child(3), .stat-grid > :nth-child(3) { animation-delay: .1s; }
+.cards > :nth-child(4), .board-stats > :nth-child(4), .board-flow > :nth-child(4), .stats > :nth-child(4), .stat-grid > :nth-child(4) { animation-delay: .14s; }
+.cards > :nth-child(5), .board-stats > :nth-child(5), .board-flow > :nth-child(5), .stats > :nth-child(5), .stat-grid > :nth-child(5) { animation-delay: .18s; }
+.cards > :nth-child(6), .board-stats > :nth-child(6), .board-flow > :nth-child(6), .stats > :nth-child(6), .stat-grid > :nth-child(6) { animation-delay: .22s; }
+/* وما بعد السادس يدخل معه: التتابعُ يقود العين، ولا يُنتظَر به صفٌّ تاسع. */
+.cards > :nth-child(n+7), .board-stats > :nth-child(n+7), .board-flow > :nth-child(n+7), .stats > :nth-child(n+7), .stat-grid > :nth-child(n+7) { animation-delay: .24s; }
+
+/* **والجدولُ لا يتتابع.** مئةُ صفٍّ تدخل واحداً بعد واحدٍ تعني ثانيتين قبل أن
+   يُقرأ آخرُه — وهو ما يُفتح الجدولُ لأجله. فالجسمُ كلُّه يتّضح مرّةً. */
+.scroller > table { animation: fade .22s ease both; }
+
+/* ---- لمساتٌ صغيرة: الزرُّ والبطاقةُ تستجيبان لليد --------------------- */
+/* ارتفاعُ بكسلٍ واحدٍ عند المرور وظلٌّ يتّسع: يقول «هذا يُضغط» قبل الضغط.
+   و`:active` يعود إلى الأرض — الزرُّ الذي لا ينزل تحت الإصبع يبدو معطّلاً. */
+.card, .stat {
+  transition:
+    transform .2s cubic-bezier(.16, 1, .3, 1),
+    box-shadow .2s ease,
+    border-color .2s ease;
+}
+.card:hover, a.stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -12px rgb(9 13 21 / .28);
+}
+
+.btn-primary-sm, .btn-sm {
+  transition:
+    transform .14s cubic-bezier(.16, 1, .3, 1),
+    box-shadow .18s ease,
+    background .15s ease;
+}
+.btn-primary-sm:hover { transform: translateY(-1px); box-shadow: 0 6px 16px -8px var(--brand-solid); }
+.btn-primary-sm:active, .btn-sm:active { transform: translateY(1px); box-shadow: none; }
+
+/* الحبّةُ الملوّنة تكبر قليلاً عند المرور على صفّها — إشارةٌ إلى أن الصفّ
+   نفسَه هو ما تحته المؤشّر، بلا تلوين الصفّ كلِّه ثانية. */
+tbody tr:hover .pill { transform: scale(1.04); }
+.pill { transition: transform .16s cubic-bezier(.16, 1, .3, 1); }

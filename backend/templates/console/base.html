@@ -44,13 +44,13 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   <link rel="icon" href="{% static 'console/brand/favicon.ico' %}" sizes="any">
   <link rel="apple-touch-icon" href="{% static 'console/brand/icon-180.png' %}">
   <link rel="stylesheet" href="{% static 'console/fonts.css' %}?v=2">
-  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1118">
+  <link rel="stylesheet" href="{% static 'console/app.css' %}?v=1122">
   {% comment %} حاجزٌ بلا `defer` عن قصد: السمات يجب أن تكون على <html> قبل أول
      رسم، وإلا ومضت الصفحةُ فاتحةً في وجه من اختار الداكن. الملف صغير ولا يلمس
      الـDOM قبل `DOMContentLoaded` — السبب كاملاً في رأس الملف نفسه. {% endcomment %}
   {% comment %} `?v=` عليه كما على الورقة: كان بلا بصمةٍ، فبقي المتصفّحُ على
      نسختِه القديمة بعد تعديلٍ في المنطق — وضاع قياسٌ كامل على ذلك. {% endcomment %}
-  <script src="{% static 'console/theme.js' %}?v=939"></script>
+  <script src="{% static 'console/theme.js' %}?v=940"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -80,7 +80,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
                الجذر وحدها، فيراه الموظّف مرّةً في اليوم عند الدخول ثم لا
                يجده حين يحتاجه. الرمز `aria-hidden` لأنه تزيين: قارئ الشاشة
                يقرأ الاسم من داخل الرابط كما هو. {% endcomment %}
-            <a href="{{ page_href }}" data-label="{{ page.label }}" title="{{ page.label }} — {{ page.blurb }}"{% if request.path == page_href %} class="active" aria-current="page"{% endif %}>
+            <a href="{{ page_href }}" style="--i: {{ forloop.counter0 }}" data-label="{{ page.label }}" title="{{ page.label }} — {{ page.blurb }}"{% if request.path == page_href %} class="active" aria-current="page"{% endif %}>
               {% comment %} `<svg>` مضمَّن لا ملفٌّ يُطلب: لا شيء «قد لا يصل»،
                  ويرث `currentColor` فيتلوّن مع القسم الحالي وحده. والمسار من
                  `apps/console/icons.py` عبر `Page.icon_path`. {% endcomment %}
@@ -272,6 +272,7 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         (المال، المزاد، الناس) لا تتغيّر — هي تصنيفٌ لا زينة.</p>
       <div class="themer__swatches">
         <button type="button" class="themer__swatch" data-accent="azure" data-look="accent" data-value="azure" aria-pressed="false" aria-label="أزرق" title="أزرق"></button>
+        <button type="button" class="themer__swatch" data-accent="sea" data-look="accent" data-value="sea" aria-pressed="false" aria-label="أزرق بحري" title="أزرق بحري"></button>
         {% comment %} الذهبيّ: هويّةُ حراج نفسها، مضافةً لا بديلاً — والأزرق
            يبقى الافتراض حتى يقرّر المالك. {% endcomment %}
         <button type="button" class="themer__swatch" data-accent="gold" data-look="accent" data-value="gold" aria-pressed="false" aria-label="ذهبي" title="ذهبي"></button>

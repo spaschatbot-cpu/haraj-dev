@@ -59,7 +59,6 @@ from apps.money import services as money
 from apps.money.models import Invoice
 
 from .exports import export_table, wants_export
-from .icons import path_of
 from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
 from .views import console_page
@@ -76,18 +75,6 @@ PAGE_SIZE = 50
 #: للكلمة الواحدة يُصلَح أحدُهما ويُنسى الآخر. والاسمُ هنا يبقى لأن
 #: `analytics.py` يستورده باسمه.
 AWARDED = AWARDED_STATES
-
-
-#: رسومُ شريط التبويبات — من `icons.py` لا محارف. وv1 يضع `↩️ ⚖️ ✅ 🔴 🔍 🤝 📊`
-#: ويرسمها نظامُ التشغيل بأسلوبه، فتخرج سبعةُ رسومٍ بسبعة أساليب (T837).
-def _tab_icons() -> dict[str, str]:
-    return {
-        "live": path_of("eye"),
-        "accepted": path_of("gavel"),
-        "summary": path_of("sum"),
-        "ended": path_of("stamp"),
-        "owners": path_of("handshake"),
-    }
 
 
 def awarded(*, text: str = "", first: str = "", last: str = ""):
@@ -239,8 +226,6 @@ def accepted_bids(request):
             # بـ`auctions.view` لا يُفوتِر منه. ويُقرأ مرّةً هنا لا مرّةً لكلّ
             # صفّ في القالب.
             "can_invoice": can(request.user, Capability.MONEY_ACT),
-            "tab_icons": _tab_icons(),
-            "active": "accepted-bids",
             # عددُ ما ينتظر فوترةً في **هذه النتائج** — يُكتب على زرّ الدفعة،
             # فمن يضغطه يعرف كم سيُصدر قبل أن يضغط لا بعده.
             "pending_invoices": rows.filter(state=VehicleState.AWARDED).count(),
