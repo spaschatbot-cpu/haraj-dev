@@ -11556,3 +11556,15 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 /* زرّا الحكم في صفٍّ لا يلتفّ: كانا `display:inline` على النموذج فينزل
    الثاني سطراً ويُركب على جاره. */
 .pv-rule { display: flex; gap: .35rem; }
+
+/* ---- «قرارات الشركاء»: «منذ» هو الترتيبُ فيُقرأ أوّلاً ------------------- */
+
+.pv-name strong { display: block; font-weight: 700; color: var(--ink); }
+.pv-name small { display: block; margin-block-start: .1rem; font-size: .72rem; color: var(--muted); }
+
+/* الجدولُ مرتَّبٌ بأطولِ انتظار، فالعمودُ الذي يقوله أثقلُ من جيرانه — وإلا
+   قُرئ الجدولُ من أوّله كأيّ جدول، وترتيبُه هو خبرُه. */
+.pd-since { font-weight: 800; color: var(--ink); white-space: nowrap; }
+
+/* رابطُ «اعرض كل المزادات» داخل تنبيه: زرٌّ صغيرٌ لا كلمةٌ مسطورةٌ في الجملة. */
+.notice .rf-go { margin-inline-start: .5rem; vertical-align: .1em; }
