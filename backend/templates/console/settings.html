@@ -13,46 +13,52 @@
 {% block heading %}الإعدادات{% endblock %}
 
 {% block content %}
-  <p>الحساب، والصلاحيات، والمظهر — وما لكلٍّ منها من شاشة.</p>
+  <p class="lede">
+    الحساب، والصلاحيات، والمظهر — وما لكلٍّ منها من شاشة.
+  </p>
 
-  <h2>حسابك</h2>
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr><th>الاسم</th><td>{{ request.user.full_name }}</td></tr>
-      {% comment %} كان هذا السطر «الجوال — وهو اسم الدخول»، وصار كذباً يوم
-         فُصل البابان (T918): الموظّف يدخل باسمٍ، والجوّالُ قناةُ تواصلٍ
-         وسجلّ. وسطرٌ في شاشة الإعدادات يقول للموظّف بأيّ شيء يدخل هو أوّلُ
-         ما يُقرأ حين يُنسى — فلا يجوز أن يشير إلى الباب الخطأ. {% endcomment %}
-      <tr><th>اسم الدخول</th><td><span class="code-font" style="direction: ltr; unicode-bidi: isolate;">{{ request.user.username|default:"—" }}</span></td></tr>
-      <tr><th>الجوال — للتواصل لا للدخول</th><td>{{ request.user.phone|unlocalize }}</td></tr>
-      <tr><th>الدور</th><td>{{ role }}</td></tr>
-      <tr><th>آخر دخول</th><td>{{ request.user.last_login|default:"لم يُسجَّل بعد" }}</td></tr>
-      <tr>
-        <th>كلمة المرور</th>
-        <td><a href="{% url 'console:password-change' %}">تغييرها ←</a></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} كانت أربعةَ جداولٍ بعمودين «عنوانٌ · قيمة» متتالية. وهي ليست
+     جداول — لا صفوفَ تُفرَز ولا أعمدةَ تُقارَن — وثمنُها أن العنوان يقف على
+     حافةٍ والقيمةُ على مقابلها بعرض الشاشة بينهما، أربعَ مرّات. {% endcomment %}
+  <h3 class="dd-sec">حسابك</h3>
+  <div class="facts">
+    <div class="fact"><span class="fact__k">الاسم</span><span class="fact__v">{{ request.user.full_name }}</span></div>
+    {% comment %} كان هذا السطر «الجوال — وهو اسم الدخول»، وصار كذباً يوم
+       فُصل البابان (T918): الموظّف يدخل باسمٍ، والجوّالُ قناةُ تواصلٍ وسجلّ.
+       وسطرٌ في شاشة الإعدادات يقول للموظّف بأيّ شيء يدخل هو أوّلُ ما يُقرأ
+       حين يُنسى — فلا يجوز أن يشير إلى الباب الخطأ. {% endcomment %}
+    <div class="fact fact--lead">
+      <span class="fact__k">اسم الدخول</span>
+      <span class="fact__v st-id" dir="ltr">{{ request.user.username|default:"—" }}</span>
+    </div>
+    <div class="fact">
+      <span class="fact__k">الجوّال</span>
+      <span class="fact__v mono">{{ request.user.phone|unlocalize }}</span>
+      <span class="fact__note">للتواصل لا للدخول</span>
+    </div>
+    <div class="fact"><span class="fact__k">الدور</span><span class="fact__v">{{ role }}</span></div>
+    <div class="fact"><span class="fact__k">آخر دخول</span><span class="fact__v">{{ request.user.last_login|default:"لم يُسجَّل بعد" }}</span></div>
+    <div class="fact">
+      <span class="fact__k">كلمة المرور</span>
+      <span class="fact__v"><a class="rf-go" href="{% url 'console:password-change' %}">تغييرها</a></span>
+    </div>
+  </div>
 
-  <h2>الصلاحيات</h2>
-  <div class="scroller">
-    <table>
-    <tbody>
-      <tr>
-        <th>المشرفون</th>
-        <td><a href="{% url 'console:admins' %}">من يفتح اللوحة وبأي دور ←</a></td>
-      </tr>
-      <tr>
-        <th>صفحات المستخدمين</th>
-        <td><a href="{% url 'console:page-control' %}">التجاوزات فوق الأدوار ←</a></td>
-      </tr>
-    </tbody>
-  </table>
-</div>
+  {% comment %} الصلاحياتُ بابان إلى شاشتين — فبطاقتان تُنقران، لا صفّان في
+     جدولٍ رابطُهما في خانةٍ ثانية. {% endcomment %}
+  <h3 class="dd-sec">الصلاحيات</h3>
+  <section class="sum-grid sum-grid--tight st-doors" aria-label="أبواب الصلاحيات">
+    <a class="sum" href="{% url 'console:admins' %}">
+      <p class="sum__label">المشرفون</p>
+      <p class="sum__note">من يفتح اللوحة وبأيّ دور</p>
+    </a>
+    <a class="sum" href="{% url 'console:page-control' %}">
+      <p class="sum__label">صفحات المستخدمين</p>
+      <p class="sum__note">التجاوزات فوق الأدوار</p>
+    </a>
+  </section>
 
-  <h2>ما تملكه أنت</h2>
+  <h3 class="dd-sec">ما تملكه أنت <small>قدراتُك أنت لا المصفوفة كلُّها</small></h3>
   {% comment %} قائمةُ قدراتِ القارئ نفسه: أوضحُ جوابٍ عن «لماذا لا أرى هذه
      الصفحة؟»، وهو السؤال الذي يصل الدعمَ أكثر من غيره. وv1 لا يعرض هذا
      أبداً — يعرض المصفوفة كلّها لمن يملكها ولا شيء لمن لا يملكها. {% endcomment %}
@@ -78,20 +84,22 @@
   </table>
 </div>
 
-  <h2>المظهر</h2>
-  <p>
+  <h3 class="dd-sec">المظهر</h3>
+  <p class="notice notice--soft">
     المظهر والألوان وطيّ الشريط في درج «الهلال» أعلى الصفحة. والاختيار يُحفَظ في
     متصفّحك لا على الخادم: هو تفضيلُ جهازٍ لا تفضيلُ حساب — الشخص نفسه يريد
     الداكن على شاشته ليلاً والفاتح على شاشة الاستقبال.
   </p>
 
-  <h2>ما ليس هنا، ولماذا</h2>
-  <p class="empty">
+  <h3 class="dd-sec">ما ليس هنا، ولماذا</h3>
+  {% comment %} بلا `<code>` داخل الجملة: خلطُ اتّجاهين في سطرٍ `rtl` يقلب
+     ترتيبَ القطع — العلّةُ نفسُها المُصلَحة اليوم في أربع شاشات. {% endcomment %}
+  <p class="notice notice--soft">
     <strong>الحساب البنكي:</strong> لا حقلَ له في v2 بعد. وهو بيانات تُحوَّل
     إليها أموال، فلا يُضاف حقلاً نصّياً بلا تحقّقٍ من صيغة الآيبان السعودي
-    (<code>SA</code> ثم ٢٢ رقماً) كما هو في v1 — يحتاج قراراً ونموذجاً.
+    (حرفان ثم اثنان وعشرون رقماً) كما هو في v1 — يحتاج قراراً ونموذجاً.
   </p>
-  <p class="empty">
+  <p class="notice notice--soft">
     <strong>«إعدادات الحساب» في v1 ليست إعدادات حساب:</strong> خلفها تحريرُ
     محتوى واجهة العميل بثمانية أقسام، منها <strong>الشروط والأحكام</strong>.
     وتلك وثيقةٌ قانونية؛ تحريرُها من لوحةٍ بلا نسخٍ سابقة ولا سجلٍّ يقول من

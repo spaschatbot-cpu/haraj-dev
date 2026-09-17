@@ -11523,3 +11523,15 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   max-inline-size: none;
 }
 .ob-retry small { font-size: .78rem; line-height: 1.6; color: var(--muted); }
+
+/* ---- «الإعدادات»: حقائقُ الحساب وبابان ---------------------------------- */
+
+.fact__note { font-size: .72rem; line-height: 1.5; color: var(--muted); }
+
+/* اسمُ الدخول لاتينيٌّ في صفحةٍ عربيّة: `dir="ltr"` تمنع قلبَ محارفه، والخطُّ
+   الأحاديُّ يقول «هذا يُنسَخ كما هو». وكان النمطُ مكتوباً في الوسم. */
+.st-id { font-family: var(--mono, ui-monospace, monospace); letter-spacing: .01em; }
+
+/* بابا الصلاحيات: بطاقتان بلا رقم — الاسمُ والشرح وسهمٌ. */
+.st-doors .sum { padding-block: .9rem; }
+.st-doors .sum__label { font-size: .95rem; color: var(--ink); }
