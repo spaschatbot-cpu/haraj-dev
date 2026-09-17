@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 إدارة المدفوعات — تبويبان: ما قُيِّد، وما جرت محاولتُه. T931
 
@@ -189,7 +189,7 @@
              placeholder="رقم الفاتورة · اسم العميل · جوّاله · لوحة المركبة" autofocus>
       <div class="modal__buttons">
         <button type="submit">بحث</button>
-        <button type="button" formnovalidate data-closes="payCreate">إغلاق</button>
+        <button type="button" formnovalidate data-close>إغلاق</button>
       </div>
     </form>
 
@@ -237,4 +237,11 @@
     {% endfor %}
   </dialog>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% comment %} هو الذي يفتح النافذة ويغلقها، ويُعيد فتحَها بعد بحثٍ
+     (`data-open-dialog`). وبلا هذا السطر يكون الزرُّ زرّاً لا يفعل شيئاً —
+     وقع فعلاً، وبُلِّغ عنه: «قيد الدفعة مش شغال». {% endcomment %}
+  <script src="{% static 'console/storefront.js' %}" defer></script>
 {% endblock %}
