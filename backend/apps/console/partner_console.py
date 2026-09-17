@@ -161,7 +161,7 @@ def auctions_of(partner: str = "", state: str = ""):
     ).order_by("-starts_at", "-number")
 
 
-def _auctions_screen(request, state: str = "", *, only=None):
+def _auctions_screen(request, state: str = "", *, only=None, screen=None):
     """جسمُ شاشة مزادات الشريك — يشترك فيه أربعةُ مداخل.
 
     ولماذا أربعةُ **دوالّ** فوقه لا دالّةٌ واحدة بأربعة مسارات: `console_page`
@@ -186,6 +186,15 @@ def _auctions_screen(request, state: str = "", *, only=None):
             "partner": partner,
             "partners": partners(),
             "state": state,
+            # **العنوانُ يقول أيَّ المداخل الأربعة هذا.** القالبُ واحدٌ
+            # لأربعة صفوفٍ في الشريط الجانبي (كلُّ المزادات · القادمة ·
+            # الشغال · المنتهية)، وكان يكتب «مزادات الشريك» في الأربعة —
+            # فمن ضغط «المزاد الشغال» يقرأ العنوانَ نفسَه الذي قرأه قبل
+            # ضغطه، ولا يعرف أنَّ الترشيح وقع.
+            "screen": screen or {
+                "title": "مزادات الشريك",
+                "say": "كلُّ مزاداته، بلا ترشيحٍ على الحالة.",
+            },
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
@@ -202,7 +211,14 @@ def partner_auctions(request):
 @console_page("console:partner-soon")
 def partner_soon(request):
     """المزادات القادمة — المجدولة وحدها."""
-    return _auctions_screen(request, AuctionState.SCHEDULED)
+    return _auctions_screen(
+        request,
+        AuctionState.SCHEDULED,
+        screen={
+            "title": "المزادات القادمة",
+            "say": "المجدولةُ وحدَها — لم تُفتح للمزايدة بعد.",
+        },
+    )
 
 
 @console_page("console:partner-active")
@@ -213,13 +229,35 @@ def partner_active(request):
     ولم يُغلَق بعدُ ليس شغّالاً: لا مزايدةَ تُقبل فيه، وعرضُه هنا يقول للشريك
     إن سيارته ما زالت تُنافس عليها وهي لا تُنافس.
     """
-    return _auctions_screen(request, AuctionState.LIVE, only=engine.open_now())
+    return _auctions_screen(
+        request,
+        AuctionState.LIVE,
+        only=engine.open_now(),
+        screen={
+            "title": "المزاد الشغال",
+            "say": (
+                # بلا نجمتين: النصُّ يُخرَج مهرَّباً في القالب، فـ`**` تُرسم
+                # كما هي — رُئي «**بالساعة**» على الشاشة.
+                "الجاري الآن بالساعة لا بالعمود وحده: مزادٌ حالتُه «جارٍ» "
+                "وانتهى وقتُه ولم يُغلَق بعدُ ليس شغّالاً — لا مزايدةَ تُقبل "
+                "فيه، وعرضُه هنا يقول للشريك إن سيارته ما زالت تُنافَس عليها "
+                "وهي لا تُنافَس."
+            ),
+        },
+    )
 
 
 @console_page("console:partner-ended")
 def partner_ended(request):
     """المزادات المنتهية — بتعريف الأرشيف نفسه: منتهٍ ومُسوّى وملغى."""
-    return _auctions_screen(request, ARCHIVED)
+    return _auctions_screen(
+        request,
+        ARCHIVED,
+        screen={
+            "title": "المزادات المنتهية",
+            "say": "بتعريف الأرشيف نفسِه: منتهٍ ومُسوّى وملغى.",
+        },
+    )
 
 
 def vehicles_of(partner: str = "", which: str = "", text: str = ""):
