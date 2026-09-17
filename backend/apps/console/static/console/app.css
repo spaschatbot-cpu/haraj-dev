@@ -9267,12 +9267,17 @@ form.cat-filters .cat-filters__actions > .btn-ghost {
 }
 
 /* حقلُ البحث وحالةُ المزاد يملآن الصفَّ الأول (عمودان لكلٍّ)، والتواريخُ
-   الأربعةُ صفٌّ تامٌّ تحتهما — لا صفٌّ ناقصٌ بخانتين فارغتين كما كان. */
-.cat-filters__field:nth-of-type(1),
-.cat-filters__field:nth-of-type(2) { grid-column: span 2; }
+   الأربعةُ صفٌّ تامٌّ تحتهما — لا صفٌّ ناقصٌ بخانتين فارغتين كما كان.
+
+   **و`form.cat-filters >` لا `.cat-filters__field` وحدَها**: الصنفُ مستعملٌ
+   في شبكاتٍ أخرى (كتلةُ «الرسالة» في إرسال إشعار)، وقاعدةٌ بلا أبٍ تُلحق
+   `span 2` بأوّلِ حقلين فيها — فتصير الشبكةُ عمودين ضمناً ويخرج الحقلُ الثالث
+   بـ627px في لوحٍ عرضُه 916. قِيس، وكلّف ثلاثَ محاولاتٍ قبل أن يُرى. */
+form.cat-filters > .cat-filters__field:nth-of-type(1),
+form.cat-filters > .cat-filters__field:nth-of-type(2) { grid-column: span 2; }
 @media (max-width: 68rem) {
-  .cat-filters__field:nth-of-type(1),
-  .cat-filters__field:nth-of-type(2) { grid-column: span 1; }
+  form.cat-filters > .cat-filters__field:nth-of-type(1),
+  form.cat-filters > .cat-filters__field:nth-of-type(2) { grid-column: span 1; }
 }
 
 @media (max-width: 68rem) { form.cat-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -11298,3 +11303,98 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 .rm-form { margin: 0; padding: 0; background: none; border: 0; box-shadow: none; max-inline-size: none; display: inline; }
 .rm-go { padding: .35rem .8rem; font-size: .78rem; border-radius: var(--radius); white-space: nowrap; }
 .rm-when { font-variant-numeric: tabular-nums; font-size: .82rem; white-space: nowrap; }
+
+/* المعرّفُ التقنيُّ في «إرسال إشعار»: سطرٌ `ltr` وحدَه تحت الجملة العربيّة.
+   كان داخلها — `SMS_BACKEND=apps.accounts.sms.console_backend` بين قوسين في
+   سطرٍ `rtl` — فينقلب ترتيبُ قطعه على الشاشة ويُقرأ كلاماً مبعثراً. رُئي في
+   لقطةٍ من الإنتاج، وهي العلّةُ نفسُها المكتوبةُ في `packages.html`. */
+.bc-id {
+  display: block;
+  margin-block: .45rem .3rem;
+  padding: .3rem .55rem;
+  background: rgb(255 255 255 / .55);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--radius);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: .76rem;
+  overflow-wrap: anywhere;
+}
+.alarm small { display: block; margin-block-start: .35rem; }
+
+/* ---- «إرسال إشعار»: الاستمارةُ ثلاثُ كتلٍ لا عمودٌ من أحدَ عشرَ حقلاً ---- */
+
+/* شبكةُ الحقول بلا لوحةٍ حولها: هي داخل `form-card` أصلاً، ولوحٌ في لوحٍ
+   يُقرأ علبةً في علبة (العلّةُ نفسُها في نافذة «إضافة سيارة»). */
+/* `display: grid` مكتوبةٌ هنا صراحةً: قاعدةُ الشبكة الأصليّة على
+   `form.cat-filters` (عنصرٌ وصنف)، وهذه الكتلةُ `div` — فالحقولُ كانت تنزل
+   واحداً تحت واحدٍ بلا شبكة. رُئي في اللقطة. */
+.cat-filters--plain {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .9rem 1rem;
+  align-items: end;
+  padding: 0;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  margin-block-end: .9rem;
+}
+@media (max-width: 52rem) { .cat-filters--plain { grid-template-columns: minmax(0, 1fr); } }
+.cat-filters--plain::before { content: none; }
+
+.bc-radios { display: flex; flex-wrap: wrap; gap: .6rem; margin-block-end: 1rem; }
+.bc-radio {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: .86rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.bc-radio:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); }
+/* المختارُ يُرى مختاراً: حدٌّ بلون الأساسيّ وأرضيّةٌ منه — لا زرُّ راديو وحدَه
+   بقطرِ 13px في صفٍّ من خيارين. */
+.bc-radio:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.bc-check {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-block-end: 1rem;
+  font-size: .86rem;
+  font-weight: 600;
+}
+
+.bc-msg { display: grid; gap: .9rem; margin-block-end: 1rem; }
+.bc-msg textarea { inline-size: 100%; min-block-size: 6rem; }
+.bc-hint { display: block; margin-block-start: .3rem; font-size: .74rem; line-height: 1.6; color: var(--muted); }
+
+/* لوحُ الاستمارة هنا يأخذ عرضَ المحتوى: أحدَ عشرَ حقلاً في عمودٍ بعرض 34rem
+   يصير صفحةً تُمرَّر، ونصفُ الشاشة أبيضُ بجوارها. */
+.broadcast-form { max-inline-size: none; }
+
+/* وقاعدةُ «الحقلان الأوّلان يمتدّان عمودين» مكتوبةٌ لفلاتر الكتالوج (بحثٌ
+   وحالةٌ ثم أربعةُ تواريخ)، وهي هنا تجعل «نوع الحساب» و«حالة الحساب» بعرض
+   الصفّ كلِّه في شبكةٍ من عمودين. تُبطَل في اللوح العاري. */
+.cat-filters--plain > .cat-filters__field:nth-of-type(1),
+.cat-filters--plain > .cat-filters__field:nth-of-type(2),
+.cat-filters--plain > .cat-filters__field { grid-column: auto; }
+
+/* حقلُ النصّ يأخذ عرضَ اللوح: قاعدةٌ عامّةٌ تحدّ `textarea` بعرضٍ أصغر، وهو
+   هنا **الرسالةُ نفسُها** — أطولُ ما يُكتب في الشاشة. */
+.bc-msg textarea, .bc-msg input[type="text"] { inline-size: 100%; max-inline-size: none; }
+.bc-msg input[type="text"], .bc-msg input:not([type="checkbox"]):not([type="radio"]) { inline-size: 100%; max-inline-size: none; }
+
+/* وخانةُ الحقل نفسُها تأخذ عرضَ الشبكة: قِيس أن خانة «سبب البثّ» 627px داخل
+   شبكةٍ عرضُها 916 — أي أنها لا تتمدّد، بينما خانةُ «العنوان» تتمدّد. فالعرضُ
+   يُكتب على الخانة لا على الحقل وحدَه. */
+.bc-msg > .cat-filters__field { inline-size: 100%; }
