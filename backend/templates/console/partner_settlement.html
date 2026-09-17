@@ -15,18 +15,45 @@
 {% block heading %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% endblock %}
 
 {% block content %}
-  <p>
-    <a href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">غير المسدَّدة ({{ totals.unpaid|unlocalize }})</a> ·
-    <a href="{% url 'console:partner-paid' %}?partner={{ partner }}">المسدَّدة ({{ totals.paid|unlocalize }})</a>
+  {% comment %} سطرُ تعريفٍ يقول من أين الرقم — وهو الفرقُ الذي تُبنى عليه
+     الشاشةُ ومكتوبٌ في تعليق الملفّ ولا يراه أحد. {% endcomment %}
+  <p class="lede">
+    {% if paid %}سياراتُ الشريك التي سُدِّدت فواتيرها{% else %}سياراتُه التي
+    رستْ ولم تُسدَّد فاتورتُها بعد{% endif %} — <strong>والحالةُ محسوبةٌ من
+    الدفعات المسجَّلة</strong> لا من ملفٍّ يُرفع. ويعدّ v1 غيرَ المسدَّدة ٢٩١ في
+    شاشة الإدارة و٢٩٠ في صفحة الشريك، والفرقُ سيّارةٌ لم تُبع ولم يزايد عليها
+    أحد — ويعرض عليها زرَّ «اعتماد السداد».
   </p>
 
-  <form method="get">
-    {% include "console/_partner_pick.html" %}
-    <button type="submit">اعرض</button>
+  {% comment %} الطابوران كانا رابطين مسطورين تفصلهما نقطةٌ وسطى — تُقرأ سطرَ
+     نصٍّ لا تبويباً، ولا يُعرف أيُّهما المفتوح. فصارا بطاقتين: المفتوحةُ
+     مميّزةٌ والأخرى تُنقر. {% endcomment %}
+  <section class="sum-grid sum-grid--tight st-queues" aria-label="طابورا التسوية">
+    <a class="sum{% if not paid %} sum--on{% endif %}"
+       href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">
+      <p class="sum__label">غير المسدَّدة</p>
+      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
+      <p class="sum__note">{% if paid %}اعرضها{% else %}معروضةٌ الآن{% endif %}</p>
+    </a>
+    <a class="sum{% if paid %} sum--on{% endif %}"
+       href="{% url 'console:partner-paid' %}?partner={{ partner }}">
+      <p class="sum__label">المسدَّدة</p>
+      <p class="sum__value">{{ totals.paid|unlocalize }}</p>
+      <p class="sum__note">{% if paid %}معروضةٌ الآن{% else %}اعرضها{% endif %}</p>
+    </a>
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمةٌ وزرٌّ في الهواء. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      {% include "console/_partner_pick.html" %}
+      <button type="submit" class="btn-primary">اعرض</button>
+    </div>
   </form>
 
-  <div class="scroller">
-    <table>
+  {% comment %} تسعةُ أعمدةٍ في غلافٍ بعرض الشاشة تلفُّ كلُّ خانةٍ فيها. {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="pv-table">
     <thead>
       <tr>
         <th>المزاد</th>
@@ -43,10 +70,10 @@
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.auction.number|unlocalize }}</td>
+          <td class="count">{{ row.auction.number|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td><a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a></td>
-          <td>{{ row.plate_number|default:"—" }}</td>
+          <td class="pv-name"><a href="{% url 'console:vehicle-detail' row.pk %}"><strong>{{ row.make }} {{ row.model }}</strong></a></td>
+          <td class="mono">{{ row.plate_number|default:"—" }}</td>
           <td>
             {% if row.awarded_to %}
               <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
@@ -54,13 +81,13 @@
           </td>
           <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
           {% if row.invoice %}
-            <td><a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a></td>
-            <td>{{ row.invoice_state }}</td>
+            <td class="inv-no"><a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a></td>
+            <td>{{ row.invoice_label }}</td>
             <td class="money">{{ row.invoice.amount_paid|unlocalize }}</td>
           {% else %}
             {% comment %} «رست ولم تُفوتَر» ليست «مسدَّدة» ولا خانةً فارغة —
                هي عملٌ ينتظر، وتُقال. {% endcomment %}
-            <td class="empty" colspan="3">رست ولم تُفوتَر بعد</td>
+            <td class="ps-nobill" colspan="3">رست ولم تُفوتَر بعد</td>
           {% endif %}
         </tr>
       {% empty %}
