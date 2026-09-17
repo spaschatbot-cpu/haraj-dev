@@ -9987,7 +9987,10 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
 
 .sum-grid--links { grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .sum-grid--links > .sum { grid-column: span 3; }
-.sum-grid--links > .sum:nth-child(n+5) { grid-column: span 4; }
+/* **والسبعُ وحدَها** تأخذ الصفَّ الثاني بثلاثِ بطاقاتٍ بعرض ٤: كُتبت هذه
+   القاعدةُ لـ«منصّة الملاك» (سبعُ بطاقات) بلا شرطٍ على العدد، فأصابت «لوحة
+   الشريك» (ثمانٍ) فصارت 4 + 3 + 1 لا 4 + 4. رُئي في اللقطة. */
+.sum-grid--links:has(> .sum:nth-child(7):last-child) > .sum:nth-child(n+5) { grid-column: span 4; }
 
 a.sum {
   display: block;
@@ -11535,3 +11538,8 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 /* بابا الصلاحيات: بطاقتان بلا رقم — الاسمُ والشرح وسهمٌ. */
 .st-doors .sum { padding-block: .9rem; }
 .st-doors .sum__label { font-size: .95rem; color: var(--ink); }
+
+/* ثمانُ بطاقاتٍ رابطة: أربعٌ وأربع — وهو الافتراضيّ (`span 3` في اثني عشر)،
+   فلا استثناءَ لها. وبطاقةٌ بلا وجهةٍ بينها (`div` لا `a`) تبقى بهيئتها بلا
+   سهمٍ ولا تحويم: ما لا يُفتح لا يُوعَد بأنه يُفتح. */
+.sum-grid--links > div.sum .sum__note::after { content: none; }
