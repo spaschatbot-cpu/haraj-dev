@@ -50,6 +50,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -82,8 +83,27 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--dump", default=None, help="مسارُ نسخة mysqldump")
         parser.add_argument("--dry-run", action="store_true", help="اقرأ ولا تكتب")
+        parser.add_argument(
+            "--write-json",
+            default=None,
+            help="اكتب معرّفاتِ الترسية إلى ملفٍّ صغير بدل الكتابة في القاعدة",
+        )
+        parser.add_argument(
+            "--from-json",
+            default=None,
+            help="اقرأ المعرّفاتِ من ملفِّ `--write-json` بدل النسخة الكاملة",
+        )
 
     def handle(self, *args, **options):
+        # **ولماذا ملفُّ معرّفاتٍ أصلاً.** النسخةُ الكاملة ٣١٩ م.ب فيها أسماءُ
+        # ٤٤ ألف عميلٍ وجوّالاتُهم وبصماتُ كلماتِ مرورهم، وتُحذف من الخادم بعد
+        # الترحيل. وهذا الأمرُ يحتاج منها **أربعةَ أعمدةٍ لا غير**: معرّفَ
+        # المركبة ومعرّفَ الفائز ومبلغَ المزايدة الفائزة ووقتَها — أرقامٌ بلا
+        # اسمٍ ولا جوّال. فنقلُها وحدَها أخفُّ وأقلُّ تعرّضاً من إعادة الـ٣١٩.
+        source = options["from_json"]
+        if source:
+            return self._from_json(Path(source), options)
+
         raw = options["dump"] or os.environ.get("V1_DUMP_PATH")
         if not raw:
             self.stderr.write("لا نسخة: مرّر `--dump` أو اضبط `V1_DUMP_PATH`.")
@@ -95,17 +115,7 @@ class Command(BaseCommand):
         if dry:
             self.stdout.write("وضع القراءة فقط — لا يُكتب شيء")
 
-        # جسرا المعرّفات: مركبةُ v1 ⟶ مركبتُنا، وحسابُ v1 ⟶ حسابُنا.
-        vehicles = dict(
-            LegacyRef.objects.filter(model_label="auctions.vehicle").values_list(
-                "legacy_id", "object_id"
-            )
-        )
-        people = dict(
-            LegacyRef.objects.filter(model_label="accounts.user").values_list(
-                "legacy_id", "object_id"
-            )
-        )
+        vehicles, people = self._bridges()
         self.stdout.write(f"الجسر: {len(vehicles):,} مركبة · {len(people):,} حساب")
 
         # مبالغُ المزايدات الفائزة، مقروءةً مرّةً واحدة.
@@ -159,6 +169,75 @@ class Command(BaseCommand):
             if no_price:
                 self.stdout.write(f"  {no_price:>6,}  مزايدةٌ فائزةٌ بلا مبلغٍ صالح")
 
+        legacy_vehicle = {ours: v1 for v1, ours in vehicles.items()}
+        legacy_buyer = {ours: v1 for v1, ours in people.items()}
+        target = options["write_json"]
+        if target:
+            rows = [
+                {
+                    "v1_vehicle": legacy_vehicle[v.id],
+                    "v1_buyer": legacy_buyer[v.awarded_to_id],
+                    "price": str(v.awarded_price),
+                    "at": v.awarded_at if isinstance(v.awarded_at, str) else "",
+                }
+                for v in updates
+            ]
+            Path(target).write_text(
+                json.dumps(rows, ensure_ascii=False), encoding="utf8"
+            )
+            self.stdout.write(f"كُتب {len(rows):,} صفّاً إلى {target}")
+            return
+
+        self._apply(updates, dry=dry)
+
+    @staticmethod
+    def _bridges() -> tuple[dict[str, int], dict[str, int]]:
+        """جسرا المعرّفات: مركبةُ v1 ⟶ مركبتُنا، وحسابُ v1 ⟶ حسابُنا."""
+        return (
+            dict(
+                LegacyRef.objects.filter(model_label="auctions.vehicle").values_list(
+                    "legacy_id", "object_id"
+                )
+            ),
+            dict(
+                LegacyRef.objects.filter(model_label="accounts.user").values_list(
+                    "legacy_id", "object_id"
+                )
+            ),
+        )
+
+    def _from_json(self, source: Path, options):
+        """يقرأ معرّفاتِ الترسية من ملفٍّ صغيرٍ ويكتبها — بمعرّفاتنا نحن.
+
+        **والمعرّفاتُ في الملفّ معرّفاتُ v1 لا معرّفاتُنا**، وتُترجَم هنا
+        بجسر القاعدة التي تعمل عليها. ولو حُفظت بمعرّفاتنا لكانت خطأً صامتاً:
+        قاعدةُ الإنتاج كان فيها ١٬٧٦١ مركبةً قبل الترحيل، فعدّادُها بدأ من
+        رقمٍ أعلى — أي أن «المركبة ٤٠٠» عندها غيرُها في قاعدة البروفة،
+        والترسيةُ كانت ستُكتب على سيارةٍ أخرى.
+        """
+        rows = json.loads(source.read_text(encoding="utf8"))
+        vehicles, people = self._bridges()
+        self.stdout.write(f"من الملفّ: {len(rows):,} ترسية")
+
+        updates, lost = [], 0
+        for row in rows:
+            ours = vehicles.get(str(row["v1_vehicle"]))
+            buyer = people.get(str(row["v1_buyer"]))
+            if ours is None or buyer is None:
+                lost += 1
+                continue
+            updates.append(
+                Vehicle(
+                    id=ours,
+                    awarded_to_id=buyer,
+                    awarded_price=Decimal(row["price"]),
+                    awarded_at=row["at"] or timezone.now(),
+                )
+            )
+        self.stdout.write(f"طابق الجسرُ: {len(updates):,} · سقط: {lost:,}")
+        self._apply(updates, dry=options["dry_run"])
+
+    def _apply(self, updates: list[Vehicle], *, dry: bool = False):
         # ما سيُكتب فعلاً: الفارغُ وحدَه، وبلا ما قرّره إنسانٌ بعد الترحيل.
         ids = [v.id for v in updates]
         open_now = set(
@@ -170,7 +249,7 @@ class Command(BaseCommand):
         self.stdout.write(f"سيُكتب: {len(open_now):,} · يُترك كما هو: {skipped:,}")
 
         if dry or not open_now:
-            self.stdout.write("انتهى.")
+            self.stdout.write("انتهى — لا كتابة.")
             return
 
         # الحالةُ من المال: المسدَّدُ «مسدَّدة»، والمفوترُ «مفوترة»، والباقي
