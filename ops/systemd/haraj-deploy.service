@@ -1,0 +1,9 @@
+[Unit]
+Description=Haraj auto-deploy (pull main, migrate, restart)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/srv/haraj
+ExecStart=/usr/bin/flock -n /tmp/haraj-deploy.lock /srv/haraj/ops/deploy.sh

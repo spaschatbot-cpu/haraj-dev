@@ -18,3 +18,10 @@ web/lib/__tests__/__snapshots__/*.snap text eol=lf
 
 # المخطط نفسه: مصدر التوليد، فلو اختلفت نهاياته اختلف الناتج.
 backend/openapi/schema.yaml text eol=lf
+
+# سكربتاتُ الخادم ووحداتُه — تُقرأ على لينكس. وشِبانغٌ ينتهي بـCR
+# (`#!/usr/bin/env bash\r`) يجعل النواةَ تبحث عن مفسّرٍ اسمُه «bash\r» فتردّ
+# «no such file or directory» على ملفٍّ موجودٍ أمام العين. وقع مثلُه هنا في
+# اختصارِ `.cmd` وكلّف جلسة.
+ops/*.sh text eol=lf
+ops/systemd/* text eol=lf

@@ -1,0 +1,10 @@
+[Unit]
+Description=يسأل GitHub كل دقيقتين إن تغيّر main
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=Haraj customer web (Next.js)
+After=network.target haraj-backend.service
+Wants=haraj-backend.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/srv/haraj/web
+EnvironmentFile=/etc/haraj-web.env
+# ‏`-H 127.0.0.1` صراحةً: `next start` لا يقرأ `HOSTNAME` من البيئة، فكان
+# يستمع على `*:3000` — أي منفذٌ مفتوحٌ على الشبكة لا يحرسه إلا مجموعةُ أمان
+# AWS. والمنفذُ ليس بابَ الموقع؛ بابُه nginx على 443.
+ExecStart=/usr/bin/npm run start -- -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
