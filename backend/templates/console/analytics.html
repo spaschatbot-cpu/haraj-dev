@@ -38,18 +38,21 @@
       <p class="sum__note">المزايدات المقبولة</p>
     </a>
 
-    {% comment %} الوحيدُ الذي مبلغٌ بين خمسةِ أعداد — وهو بعينه الرقمُ المحجوب
-       في «ملخّص المقبولة» التي يفتحها الرابط. فإظهارُه هنا يُبطل حجبَه هناك
-       بنقرةٍ أقلّ، ولذلك يُحجب بالقدرة نفسِها (`analytics.reports`). {% endcomment %}
-    <a class="sum sum--money" href="{% url 'console:accepted-summary' %}">
+    {% comment %} الوحيدُ الذي مبلغٌ بين خمسةِ أعداد، ويُحجب بالقدرة نفسِها
+       (`analytics.reports`).
+
+       **وصار بلا رابط** بعد حذف «ملخّص المقبولة» في ١٧ سبتمبر ٢٠٢٦: كان
+       يفتحها، ولا وجهةَ له اليوم. و`<div>` لا `<a>` معطَّل — الرابطُ المعطّل
+       يبقى في ترتيب المفاتيح ويُنقَر بالوسط فيُفتح تبويبٌ فارغ. {% endcomment %}
+    <div class="sum sum--money">
       <p class="sum__label">إجمالي أسعار الترسية</p>
       {% if show_money %}
         <p class="sum__value money">{{ totals.awarded_value|unlocalize }}</p>
       {% else %}
         <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
       {% endif %}
-      <p class="sum__note">ملخّص المقبولة</p>
-    </a>
+      <p class="sum__note">إجماليُّ ما رسا</p>
+    </div>
 
     <a class="sum" href="{% url 'console:analytics-bids' %}">
       <p class="sum__label">إجمالي المزايدات</p>

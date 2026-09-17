@@ -16,13 +16,11 @@ v1 يفرّقهما كذلك: `BillController::activeBids` يعرض **أعلى �
 from __future__ import annotations
 
 from django.core.paginator import Paginator
-from django.db.models import Max, Q
+from django.db.models import Q
 from django.shortcuts import render
 
 from apps.accounts.models import User
-from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
-from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 
@@ -122,63 +120,6 @@ def _export_columns(seen):
         seen,
     )
 
-
-@console_page("console:live-bids")
-def live_bids(request):
-    """مزايدات المزاد الجاري الآن — الشاشة التي تُفتح والمزاد مفتوح.
-
-    «الجاري» من `engine.phase` لا من عمود الحالة وحده: عاملُ Celery قد يتأخّر،
-    ولا يحتمل الموظّف أن يفتح الشاشة فيراها فارغةً ومزادٌ يعمل منذ دقيقتين.
-    """
-    # نبضةُ دورة الحياة قبل القراءة — كما تفعل قائمةُ المزادات. عاملُ Celery
-    # يتوقّف، ولا يحتمل الموظّفُ أن يفتح «الجاري» فيراها فارغةً ومزادٌ حان
-    # وقتُه قبل دقيقتين. وهي تنادي `services` نفسها فالكاتبُ يبقى واحداً.
-    engine.tick()
-
-    candidates = list(
-        Auction.objects.filter(
-            state__in=(AuctionState.LIVE, AuctionState.SCHEDULED)
-        ).order_by("-starts_at")
-    )
-    live = [a for a in candidates if engine.phase(a) in engine.BIDDABLE_PHASES]
-
-    # ما تخلّف عنه العامل يُقال صراحةً: صفحةٌ فارغةٌ بلا سببٍ تُقرأ «لا مزايدات»،
-    # وهي في الحقيقة «مزادٌ كان يجب أن يبدأ ولم يبدأ».
-    late = [
-        (a, engine.phase(a))
-        for a in candidates
-        if engine.phase(a) in (engine.Phase.OVERDUE_START, engine.Phase.OVERDUE_END)
-    ]
-
-    search = request.GET.get("q", "")
-    rows = (
-        _rows(search=search).filter(vehicle__auction__in=live)
-        if live
-        else Bid.objects.none()
-    )
-
-    # جوّالُ المزايد خلف `users.view` هنا كما في كلّ جدولٍ آخر. ومبلغُه يبقى
-    # ظاهراً في المعتاد: مركباتُ مزادٍ **مفتوح** لم تَرسُ، ومزايدةٌ على مركبةٍ
-    # لم تَرسُ رقمُ سوقٍ لا مالُ أحد — و`cell_amount` تسأل المركبةَ لا الشاشة،
-    # فلو دخل الجدولَ صفٌّ لمركبةٍ رست حُجب مبلغُه وحدَه.
-    seen = shown_to(request.user)
-
-    if wants_export(request):
-        return export_table(rows, name="مزايدات-المزاد-الجاري",
-                            columns=_export_columns(seen))
-
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    person_on(page.object_list, seen, field="bidder")
-    amounts_on(page.object_list, seen)
-    return render(request, "console/live_bids.html", {
-        "page": page, "q": search, "live": live, "late": late,
-        "show_money": seen.money, "show_customer": seen.customer,
-        # روابطُ التصفّح تحمل البحث معها: «التالي» بدونه يعود بالجدول كلّه
-        # والقارئُ يظنّ نفسه داخل نتيجته.
-        "keep": f"q={search}&" if search else "",
-        "bidders": rows.values("bidder_id").distinct().count(),
-        "highest": rows.aggregate(top=Max("amount"))["top"],
-    })
 
 
 @console_page("console:vehicle-bids")

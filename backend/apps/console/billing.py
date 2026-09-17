@@ -53,14 +53,7 @@ from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Invoice, InvoiceState
 
-from .after_sales import (
-    chosen_filters,
-    sale_table,
-    sheet_settled_vehicle_ids,
-    sold_rows,
-)
 from .exports import export, wants_export
-from .sensitive import shown_to
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -215,63 +208,3 @@ def invoices_export(request):
             ],
         },
     )
-
-
-def decided(*, which: str = "", **filters):
-    """ما حُسم فيه قرار — مقبولاً أو مرفوضاً، **ببنّاء «ما بعد البيع»**. T922
-
-    ولماذا لا استعلامَ هنا
-    ======================
-    كان هنا استعلامٌ ثانٍ بأربعة حقولِ بحثٍ ومرشّحٍ واحد، بجوار استعلامِ «ما
-    بعد البيع» بتسعة حقولٍ وخمسة مرشّحات — **وهما في v1 استعلامٌ واحد**
-    (`AfterSalesController::listPage`، تستدعيه `index` و`decisions` معاً).
-    وثمنُ النسختين قُبض فعلاً: البحثُ هنا كان لا يطابق اسمَ مشترٍ ولا جوّالاً
-    ولا رقمَ مطالبةٍ ولا لوناً، وحجبُ `sensitive.py` لم يكن يمرّ على هذه
-    الشاشة أصلاً.
-
-    فالصفوفُ من :func:`~apps.console.after_sales.sold_rows` بمجموعةٍ أخرى،
-    و`which` وحده يبقى هنا — لأنه وحده لا معنى له هناك.
-    """
-    rows = sold_rows(states=DECIDED, **filters)
-
-    if which == "rejected":
-        rows = rows.filter(state=VehicleState.REJECTED)
-    elif which == "awarded":
-        rows = rows.exclude(state=VehicleState.REJECTED)
-    return rows
-
-
-@console_page("console:ended-decisions")
-def ended_decisions(request):
-    """القرارات المنتهية: ما حُسم، والمرفوضُ فيه كالمقبول.
-
-    وهي في v1 **للمالك وحده** (`AfterSalesController::decisions` ترفع ٤٠٣
-    لغيره). وهنا `auctions.view` كأختها، والحسّاسُ يُحجَب حقلاً حقلاً في
-    `sensitive.py` — وهو حكمُ المالك في ١٤ سبتمبر ٢٠٢٦: «تُحجب الأعمدةُ
-    الحسّاسة، والشاشةُ تبقى مفتوحة». فموظّفُ الساحة يرى القرارَ وعددَ
-    المزايدين، ولا يرى مشترياً ولا مبلغاً.
-    """
-    which = request.GET.get("which", "")
-    chosen = chosen_filters(request)
-    sheet_ids = sheet_settled_vehicle_ids()
-    rows = decided(which=which, sheet_ids=sheet_ids, **chosen)
-    seen = shown_to(request.user)
-
-    built = sale_table(
-        request,
-        rows,
-        chosen=chosen,
-        sheet_ids=sheet_ids,
-        seen=seen,
-        screen="console:ended-decisions",
-        name="القرارات-المنتهية",
-        decided=True,
-    )
-    if not isinstance(built, dict):
-        return built
-
-    built["which"] = which
-    # المرشّحُ السادس يدخل حسابَ «هل رُشِّحت الشاشة؟» — وإلّا اختفى زرُّ
-    # «إلغاء الفلترة» لمن رشّح به وحده، فبقي على «رفضها المالك» بلا مخرج.
-    built["filtered"] = built["filtered"] or bool(which)
-    return render(request, "console/ended_decisions.html", built)
