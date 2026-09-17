@@ -34,16 +34,22 @@
 
 from __future__ import annotations
 
-from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
 from apps.accounts.services import find_by_phone
 from apps.core.arabic import search_q
-from apps.money.models import PaymentIntent, PaymentIntentState
+from apps.money.models import (
+    Invoice,
+    PaymentIntent,
+    PaymentIntentState,
+    Transaction,
+    TransactionKind,
+)
 
 from .exports import export, wants_export
+from .paging import paged, pager
 from .tones import with_tones
 from .views import console_page
 
@@ -80,9 +86,180 @@ def search(*, text: str = "", state: str = ""):
     return rows.order_by("-created_at")
 
 
+#: أنواعُ القيود التي هي **سدادُ فاتورة** — لا كلُّ حركةِ مالٍ في الدفتر.
+#: شحنُ التأمين وفكُّ حجزه حركاتٌ لها شاشاتُها (سجل المحفظة)، وهذه الشاشة
+#: تجيب سؤالَ v1 وحدَه: «ماذا دُفع على الفواتير؟».
+PAYMENT_KINDS = (TransactionKind.INVOICE_PAYMENT,)
+
+#: بادئتا مفتاحِ المنع اللتان يكتبهما كودُنا لسدادِ فاتورة، ومنهما يُعرف
+#: **أيُّ فاتورةٍ** — `services.record_payment` يكتب `payment:<pk>:<ref>`،
+#: و`services.pay_invoice_from_balance` يكتب `invoice-payment:<number>:<ref>`.
+#:
+#: وقراءةُ المفتاح ليست تحليلَ نصٍّ حرّ: هو مفتاحٌ **نكتبه نحن** بشكلٍ ثابت،
+#: والبديلُ عمودُ فاتورةٍ على `Transaction` — أي هجرةٌ على ١٧ ألف صفٍّ لأجل
+#: عرض. ويوم يُبنى نموذجُ `Payment` الموعودُ في رأس هذه الوحدة يُقرأ منه.
+KEY_BY_PK = "payment:"
+KEY_BY_NUMBER = "invoice-payment:"
+
+
+def invoice_of(key: str) -> tuple[str, str | int | None]:
+    """من مفتاح المنع: بأيّ شكلٍ كُتب، وأيُّ فاتورةٍ يشير إليها."""
+    if key.startswith(KEY_BY_PK):
+        rest = key[len(KEY_BY_PK) :].split(":", 1)[0]
+        return ("pk", int(rest)) if rest.isdigit() else ("", None)
+    if key.startswith(KEY_BY_NUMBER):
+        return ("number", key[len(KEY_BY_NUMBER) :].split(":", 1)[0])
+    return ("", None)
+
+
+def source_of(key: str) -> str:
+    """مصدرُ الدفعة — عمودُ «المصدر» في v1، مشتقّاً لا مخزَّناً.
+
+    v1 يحمله عموداً (`payments_test` مقابل `payments_odoo`)، وعندنا يُقرأ من
+    مرجع الدفعة: ما جاء من الترحيل مرجعُه `v1-payment-…`، وما سُدِّد من
+    الرصيد مرجعُه `balance:…`، وما عداهما قيدُ موظّفٍ أو بوّابة.
+    """
+    tail = key.rsplit(":", 1)[-1]
+    if tail.startswith("v1-payment-"):
+        return "مُرحَّلة من v1"
+    if tail.startswith("balance:") or key.startswith("invoice-payment:"):
+        return "من رصيد العميل"
+    return "قيدُ موظّف"
+
+
+def recorded(*, text: str = ""):
+    """ما قُيِّد سداداً على فاتورة — الأحدثُ أوّلاً.
+
+    **وهذه هي شاشةُ «إدارة المدفوعات» في v1 حرفاً.** كانت هنا تعرض
+    `PaymentIntent` — أي **محاولاتِ** الدفع عبر البوّابة — وهي صفرٌ على
+    الإنتاج بينما في الدفتر ١٣٬٨٦٣ قيدَ سداد. فالموظّفُ يفتح الشاشةَ التي
+    اسمُها «إدارة المدفوعات» فيقرأ «لا دفعات»، وقد دُفعت.
+    """
+    rows = Transaction.objects.filter(kind__in=PAYMENT_KINDS).prefetch_related(
+        "entries__owner"
+    )
+    text = (text or "").strip()
+    if text:
+        matches = Q(idempotency_key__icontains=text) | search_q(text, "memo")
+        person = find_by_phone(text)
+        if person is not None:
+            matches |= Q(entries__owner=person)
+        else:
+            matches |= Q(entries__owner__full_name__icontains=text)
+        rows = rows.filter(matches).distinct()
+    return rows.order_by("-occurred_at", "-id")
+
+
+def decorate(page_rows) -> None:
+    """يعلّق على كلّ قيدٍ ما تعرضه الشاشة: العميلُ والفاتورةُ والمبلغ.
+
+    والفواتيرُ تُقرأ **باستعلامين للصفحة** لا باستعلامٍ لكل صفّ — الشاشةُ
+    تُفتح على خمسين صفّاً، وخمسون رحلةً إلى القاعدة لعمودٍ واحد هي ما يجعل
+    الصفحةَ تُحمَّل في ثانيتين بدل جزءٍ من ثانية.
+    """
+    by_pk, by_number = set(), set()
+    for row in page_rows:
+        shape, value = invoice_of(row.idempotency_key)
+        row.invoice_ref = (shape, value)
+        if shape == "pk":
+            by_pk.add(value)
+        elif shape == "number":
+            by_number.add(value)
+
+    # `select_related` على العميل: عمودُ «الاسم» يُقرأ منه — انظر أدناه.
+    found = {
+        ("pk", invoice.pk): invoice
+        for invoice in Invoice.objects.filter(pk__in=by_pk).select_related("customer")
+    }
+    found |= {
+        ("number", invoice.number): invoice
+        for invoice in Invoice.objects.filter(
+            number__in=by_number
+        ).select_related("customer")
+    }
+
+    for row in page_rows:
+        row.invoice = found.get(row.invoice_ref)
+        row.source = source_of(row.idempotency_key)
+        # المرجعُ هو «اسم الدفعة» في v1 — ذيلُ المفتاح بعد الفاتورة.
+        row.reference = row.idempotency_key.rsplit(":", 1)[-1]
+        # **العميلُ من فاتورته، لا من قيود الحركة.** كُتب أوّلاً أنه صاحبُ
+        # القيد الذي على حسابِ عميل — **وقِيس ففشل في مئتي صفٍّ من مئتين**:
+        # سدادُ فاتورةٍ بتحويلٍ بنكيّ يمرّ من `external_cash` إلى الإيراد،
+        # ولا يلمس محفظةَ العميل أصلاً، فلا قيدَ له مالك. والسدادُ من الرصيد
+        # وحدَه يخصم من محفظته — فهو الاستثناءُ الذي يُقرأ من القيد.
+        owned = [entry for entry in row.entries.all() if entry.owner_id]
+        row.customer = (
+            row.invoice.customer
+            if row.invoice is not None
+            else (owned[0].owner if owned else None)
+        )
+        row.amount = sum(
+            entry.amount for entry in row.entries.all() if entry.amount > 0
+        )
+
+
+def _recorded_screen(request):
+    """التبويبُ الافتراضيّ: ما قُيِّد سداداً على الفواتير."""
+    text = request.GET.get("q", "")
+    rows = recorded(text=text)
+
+    if wants_export(request):
+        page_rows = list(rows[:5000])
+        decorate(page_rows)
+        return export(
+            page_rows,
+            name="المدفوعات",
+            headers=[
+                "المعرّف",
+                "المصدر",
+                "رقم العميل",
+                "الاسم",
+                "الجوال",
+                "رقم الفاتورة",
+                "المبلغ",
+                "اسم الدفعة",
+                "التاريخ",
+            ],
+            cell=lambda row: [
+                row.pk,
+                row.source,
+                row.customer.pk if row.customer else "",
+                row.customer.full_name if row.customer else "",
+                row.customer.phone if row.customer else "",
+                row.invoice.number if row.invoice else "",
+                row.amount,
+                row.reference,
+                row.occurred_at,
+            ],
+        )
+
+    page = paged(request, rows)
+    decorate(page.object_list)
+    return render(
+        request,
+        "console/payments.html",
+        {
+            "which": "recorded",
+            "page": page,
+            "pager": pager(request, page, "دفعةً مقيَّدة"),
+            "q": text,
+            "export_url": f"?which=recorded&q={text}&export=1",
+        },
+    )
+
 @console_page("console:payments")
 def payments(request):
-    """سجل الدفعات، والفاشلةُ فيه مرئيّةٌ كالناجحة."""
+    """إدارة المدفوعات: ما قُيِّد سداداً، ومحاولاتُ البوّابة في تبويبٍ ثانٍ.
+
+    **والافتراضيُّ ما قُيِّد** — وهو ما تعرضه شاشةُ v1. والمحاولاتُ خلف
+    `?which=intents`: هي جوابُ «دفعتُ ولم يصل»، ولا تُخلط بالمقيَّد لأن
+    محاولةً فاشلةً ليست دفعة.
+    """
+    which = request.GET.get("which", "")
+    if which != "intents":
+        return _recorded_screen(request)
+
     rows = search(
         text=request.GET.get("q", ""),
         state=request.GET.get("state", ""),
@@ -120,14 +297,17 @@ def payments(request):
             ],
         )
 
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    page = paged(request, rows)
     with_tones(page.object_list)
 
     return render(
         request,
         "console/payments.html",
         {
+            "which": "intents",
             "page": page,
+            "pager": pager(request, page, "محاولةَ دفع"),
+            "export_url": "?which=intents&export=1",
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "states": PaymentIntent._meta.get_field("state").choices,

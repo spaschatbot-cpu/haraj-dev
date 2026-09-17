@@ -1,21 +1,107 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
+إدارة المدفوعات — تبويبان: ما قُيِّد، وما جرت محاولتُه. T931
+
 `unlocalize` على كل مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢) — وهذه الشاشة
-تُقارَن سطراً بسطر بكشف البوابة، فالتنسيق يجعل المقارنة مستحيلة.
+تُقارَن سطراً بسطر بكشف البنك أو بتقرير أودو، والتنسيق يجعل المقارنة مستحيلة.
 
-سجل الدفعات — والفاشلة معروضةٌ كالناجحة.
+**ولماذا تبويبان.** كانت الشاشةُ تعرض `PaymentIntent` وحدَها — أي **محاولاتِ**
+الدفع عبر البوّابة — واسمُها في الشريط «إدارة المدفوعات». وعلى الإنتاج:
+محاولاتٌ **صفر**، وفي الدفتر **١٣٬٨٦٣ قيدَ سداد**. فالموظّفُ يفتح الشاشةَ
+فيقرأ «لا دفعات» وقد دُفعت.
 
-عمود «الحركة» هو الجسر بين ما يقوله العميل وما يقوله الدفتر: دفعةٌ نجحت ولا
-حركة لها **خللٌ**، فتُقال هنا بالحرف لا تُترك خانةً فارغة يقرؤها الموظّف
-«لم يُحسب بعد».
+فالافتراضيُّ ما قُيِّد — وهو ما تعرضه شاشةُ v1 (`payments/index.php`)
+بأعمدتها: المصدر · رقم العميل · الاسم · رقم الفاتورة · المبلغ · اسم الدفعة ·
+الحالة. والمحاولاتُ تبويبٌ ثانٍ لأنها تجيب سؤالاً آخر — «دفعتُ ولم يصل» —
+ومحاولةٌ فاشلةٌ ليست دفعة، فخلطُها بالمقيَّد يجعل الجدولَ لا يُجمَع.
+
+**ولا تحكّمَ في الصفّ، وهو الفرقُ الوحيد عن v1 المقصود.** هناك «تحكم» يعدّل
+حالةَ الدفعة واسمَها ويحذفها — وهذه قيودُ دفترٍ مزدوج: تصحيحُها يكون **بقيدٍ
+عاكس** يُكتب باسم صاحبه، لا بتحرير صفٍّ قديم. وزرٌّ يعدّل مبلغاً مُقيَّداً هو
+بعينه ما يجعل الدفترَ لا يتّزن.
 {% endcomment %}
-{% block title %}سجل الدفعات{% endblock %}
-{% block heading %}سجل الدفعات{% endblock %}
+{% block title %}إدارة المدفوعات{% endblock %}
+{% block heading %}إدارة المدفوعات{% endblock %}
 {% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
+
+  {% comment %} تبويبان روابطُ لا أزرار: يُنسخان ويُفتحان في تبويبٍ جديد. {% endcomment %}
+  <nav class="tabs" aria-label="نوع العرض">
+    <a class="tab{% if which == 'recorded' %} is-on{% endif %}" href="?which=recorded">ما قُيِّد</a>
+    <a class="tab{% if which == 'intents' %} is-on{% endif %}" href="?which=intents">محاولات البوّابة</a>
+  </nav>
+
+{% if which == "recorded" %}
+
+  <p class="lede">
+    ما دخل الدفترَ سداداً على فاتورة. والتصحيحُ هنا <strong>بقيدٍ عاكس</strong>
+    لا بتعديل صفّ — الصفُّ المقيَّد جزءٌ من قيدٍ مزدوج، وتحريرُه يُخرج الدفترَ
+    عن التوازن.
+  </p>
+
   <form method="get">
+    <input type="hidden" name="which" value="recorded">
+    <input type="search" name="q" value="{{ q }}" placeholder="اسم الدفعة أو الاسم أو الجوال أو رقم الفاتورة">
+    <button type="submit">بحث</button>
+  </form>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>المصدر</th>
+          <th>رقم العميل</th>
+          <th>الاسم</th>
+          <th>رقم الفاتورة</th>
+          <th>المبلغ</th>
+          <th>اسم الدفعة</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td class="mono">{{ row.pk|unlocalize }}</td>
+            <td>{{ row.source }}</td>
+            {% comment %} رقمُ العميل واسمُه عمودان كما في v1: الرقمُ ما
+               يُلصَق في بحثٍ، والاسمُ ما يُقرأ. {% endcomment %}
+            <td class="mono">
+              {% if row.customer %}{{ row.customer.pk|unlocalize }}
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>
+              {% if row.customer %}
+                <a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name|default:row.customer.phone }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>
+              {% if row.invoice %}
+                <a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td class="money">{{ row.amount|unlocalize }}</td>
+            <td class="mono">{{ row.reference }}</td>
+            <td>{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="empty">لا دفعات مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+
+  <p class="lede">
+    ما جرت محاولتُه عبر البوّابة — <strong>والفاشلةُ معروضةٌ كالناجحة</strong>،
+    فهي الصفُّ الذي يُبحث عنه حين يقول العميل «دفعتُ ولم يصل».
+  </p>
+
+  <form method="get">
+    <input type="hidden" name="which" value="intents">
     <input type="search" name="q" value="{{ q }}" placeholder="المرجع أو الجوال أو الاسم">
     <select name="state">
       <option value="">كل الحالات</option>
@@ -28,49 +114,51 @@
 
   <div class="scroller">
     <table>
-    <thead>
-      <tr>
-        <th>المرجع</th>
-        <th>العميل</th>
-        <th>المبلغ</th>
-        <th>الغرض</th>
-        <th>المزاد</th>
-        <th>البوابة</th>
-        <th>الحالة</th>
-        <th>الحركة</th>
-        <th>متى</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
+      <thead>
         <tr>
-          <td class="money">{{ row.reference }}</td>
-          <td><a href="{% url 'console:customer-detail' row.user_id %}">{{ row.user.full_name }}</a></td>
-          <td class="money">{{ row.amount|unlocalize }} {{ row.currency }}</td>
-          <td>{{ row.get_purpose_display }}</td>
-          <td>
-            {% if row.auction_id %}
-              <a href="{% url 'console:auction-detail' row.auction_id %}">{{ row.auction.number|unlocalize }}</a>
-            {% else %}<span class="empty">—</span>{% endif %}
-          </td>
-          <td>{{ row.gateway|default:"—" }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-          <td>
-            {% comment %} لا فرعَ لـ«نجحت بلا قيد»: القاعدة تمنع الصفّ أصلاً
-               (`a_succeeded_intent_names_its_transaction`). فرعٌ لا يقع أبداً
-               يُقرأ حالةً ممكنة، ويُبقي في الذهن خوفاً لا محلَّ له. {% endcomment %}
-            {% if row.resulting_transaction_id %}
-              <span class="count">{{ row.resulting_transaction_id|unlocalize }}</span>
-            {% else %}<span class="empty">—</span>{% endif %}
-          </td>
-          <td>{{ row.created_at }}</td>
+          <th>المرجع</th>
+          <th>العميل</th>
+          <th>المبلغ</th>
+          <th>الغرض</th>
+          <th>المزاد</th>
+          <th>البوابة</th>
+          <th>الحالة</th>
+          <th>الحركة</th>
+          <th>متى</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="9" class="empty">لا دفعات مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td class="money">{{ row.reference }}</td>
+            <td><a href="{% url 'console:customer-detail' row.user_id %}">{{ row.user.full_name }}</a></td>
+            <td class="money">{{ row.amount|unlocalize }} {{ row.currency }}</td>
+            <td>{{ row.get_purpose_display }}</td>
+            <td>
+              {% if row.auction_id %}
+                <a href="{% url 'console:auction-detail' row.auction_id %}">{{ row.auction.number|unlocalize }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>{{ row.gateway|default:"—" }}</td>
+            <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+            <td>
+              {% comment %} لا فرعَ لـ«نجحت بلا قيد»: القاعدة تمنع الصفّ أصلاً
+                 (`a_succeeded_intent_names_its_transaction`). فرعٌ لا يقع أبداً
+                 يُقرأ حالةً ممكنة، ويُبقي في الذهن خوفاً لا محلَّ له. {% endcomment %}
+              {% if row.resulting_transaction_id %}
+                <span class="count">{{ row.resulting_transaction_id|unlocalize }}</span>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>{{ row.created_at }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="9" class="empty">لا محاولات مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> دفعة<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
+{% endif %}
+
+  {% include "console/_pager.html" %}
 {% endblock %}
