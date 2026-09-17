@@ -43,7 +43,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import urlencode
@@ -258,6 +258,62 @@ def _cell(vehicle: Vehicle, key: str):
         return ""
     return split["invoice"].number if key == "number" else split[key]
 
+
+def summary(*, text: str = "", first: str = "", last: str = "") -> dict:
+    """أرقام الملخّص — من `awarded()` نفسها التي تبني القائمة.
+
+    و«قبل الضريبة» هنا هو **مجموع أسعار الترسية**، و«بعد الضريبة» مجموعُ
+    إجماليّات الفواتير الصادرة عليها. والاثنان لا يتساويان بالضرورة ولا يُراد
+    لهما ذلك: الفرق هو ما رسا ولم يُفوتَر بعد، وهو رقمٌ يُقرأ — لا فجوةٌ
+    تُخبَّأ بضربِ الأول في النسبة.
+    """
+    rows = awarded(text=text, first=first, last=last)
+
+    awarded_total = rows.aggregate(t=Sum("awarded_price"))["t"] or ZERO
+
+    invoiced = Invoice.objects.filter(vehicle__in=rows)
+    invoiced_total = ZERO
+    invoiced_tax = ZERO
+    for invoice in invoiced.iterator():
+        split = money.tax_of(invoice)
+        invoiced_total += split.total
+        invoiced_tax += split.tax
+
+    count = rows.count()
+    return {
+        "count": count,
+        "awarded_total": awarded_total,
+        "invoiced_count": invoiced.count(),
+        "invoiced_total": invoiced_total,
+        "invoiced_tax": invoiced_tax,
+        "uninvoiced_count": count - invoiced.count(),
+    }
+
+
+@console_page("console:accepted-summary")
+def accepted_summary(request):
+    """ملخّص المقبولة: ثلاثةُ أرقامٍ، وكلٌّ منها بابٌ إلى صفوفه."""
+    text = request.GET.get("q", "")
+    first = request.GET.get("from", "")
+    last = request.GET.get("to", "")
+
+    # ثلاثةُ أرقامٍ من الستّة مبالغُ مجموعة، **ومبلغٌ مجموعٌ على آلاف الصفوف
+    # ليس أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر** — الحجّةُ نفسُها
+    # التي حجبت بطاقات أرشيف المزادات. والأعدادُ الثلاثةُ تبقى: «كم مركبةً
+    # رست وكم منها فُوتِرت» سؤالُ تشغيلٍ يجيبه عدّ، وهو سببُ فتح الشاشة.
+    seen = shown_to(request.user)
+
+    return render(
+        request,
+        "console/accepted_summary.html",
+        {
+            "totals": summary(text=text, first=first, last=last),
+            "show_money": seen.money,
+            "q": text,
+            "first": first,
+            "last": last,
+        },
+    )
 
 
 def accepted_invoice(request, pk: int):

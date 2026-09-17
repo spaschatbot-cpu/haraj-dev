@@ -143,6 +143,7 @@ urlpatterns = [
         reminders.reminder_send,
         name="reminder-send",
     ),
+    path("bids/live/", bids.live_bids, name="live-bids"),
     path("bids/vehicles/", bids.vehicle_bids, name="vehicle-bids"),
     path(
         "bids/vehicles/<int:pk>/list/",
@@ -160,6 +161,7 @@ urlpatterns = [
         decisions.accepted_invoice_all,
         name="accepted-invoice-all",
     ),
+    path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
     path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
@@ -210,6 +212,7 @@ urlpatterns = [
     path("vehicle-exit/<int:pk>/upload/", exits.exit_upload, name="exit-upload"),
     path("vehicle-exit/<int:pk>/edit/", exits.exit_edit, name="exit-edit"),
     path("vehicle-exit/<int:pk>/note/", exits.exit_note, name="exit-note"),
+    path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
     # الفواتير (T830ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
     path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),
     path("invoices/export/", billing.invoices_export, name="invoices-export"),

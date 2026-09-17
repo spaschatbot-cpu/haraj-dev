@@ -220,9 +220,7 @@
             {% else %}
               <p class="trend-none__last">ولا مزايدةَ في الدفتر أصلاً.</p>
             {% endif %}
-            {% comment %} كان يفتح «مزايدات المزاد الجاري» وحُذفت في ١٧
-               سبتمبر ٢٠٢٦؛ والوجهةُ الآن «المزايدات المقبولة». {% endcomment %}
-            <a class="trend-none__go" href="{% url 'console:accepted-bids' %}">افتح المزايدات <span aria-hidden="true">←</span></a>
+            <a class="trend-none__go" href="{% url 'console:live-bids' %}">افتح المزايدات <span aria-hidden="true">←</span></a>
           </div>
         {% endif %}
       </section>
