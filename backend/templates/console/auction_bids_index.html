@@ -14,11 +14,35 @@
 {% block heading %}مزايدات حسب المزاد{% endblock %}
 
 {% block content %}
-  <p>{{ total|unlocalize }} مزايدةً في المنصّة. اختر مزاداً لتفتح مزايداته.</p>
+  {% comment %} سطرُ تعريفٍ يقول ما تفعله الشاشةُ وما تفتحه — وكان سطراً
+     عارياً بلا صنف يحمل رقماً وأمراً معاً. {% endcomment %}
+  <p class="lede">
+    اختر مزاداً لتفتح مزايداته — <strong>بحالة كلّ مزايدة</strong>: قائمةً
+    ومستبدَلةً ومسحوبة. والمعروضُ هنا المزاداتُ التي فيها مزايدة.
+  </p>
 
-  <form method="get">
-    <input type="search" name="q" value="{{ q }}" placeholder="رقم المزاد أو اسمه">
-    <button type="submit">بحث</button>
+  {% comment %} العددُ كان في السطر نفسِه فيُقرأ مع الأمر؛ وهو رقمُ المنصّة
+     كلِّها لا رقمَ الجدول تحته، فيلزمه أن يُفرَز عنه. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام المزايدات">
+    <div class="sum">
+      <p class="sum__label">مزايدات في المنصّة</p>
+      <p class="sum__value">{{ total|unlocalize }}</p>
+      <p class="sum__note">في كلّ المزادات — لا في المعروض وحده.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مزادات فيها مزايدة</p>
+      <p class="sum__value">{{ page.paginator.count|unlocalize }}</p>
+      <p class="sum__note">هي صفوفُ الجدول تحت.</p>
+    </div>
+  </section>
+
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="رقم المزاد أو اسمه" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
   </form>
 
   <div class="scroller">
@@ -29,23 +53,24 @@
         <th>المزاد</th>
         <th>الحالة</th>
         <th>المركبات</th>
-        <th>المزايدات</th>
-        <th>المزايدون</th>
+        <th>مزايدات</th>
+        <th>مزايدون</th>
         <th>بدأ</th>
-        <th></th>
+        {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
+        <th>المزايدات</th>
       </tr>
     </thead>
     <tbody>
       {% for row in page %}
         <tr>
-          <td>{{ row.number|unlocalize }}</td>
+          <td class="count">{{ row.number|unlocalize }}</td>
           <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
-          <td>{{ row.get_state_display }}</td>
+          <td><span class="pill" data-tone="{% if row.state == "ended" %}mute{% else %}info{% endif %}">{{ row.get_state_display }}</span></td>
           <td class="count">{{ row.cars|unlocalize }}</td>
           <td class="count">{{ row.bids|unlocalize }}</td>
           <td class="count">{{ row.bidders|unlocalize }}</td>
-          <td>{{ row.starts_at }}</td>
-          <td><a href="{% url 'console:auction-bids' row.pk %}">المزايدات ←</a></td>
+          <td class="rm-when">{{ row.starts_at|date:"Y-m-d H:i" }}</td>
+          <td class="rf-act"><a class="rf-go" href="{% url 'console:auction-bids' row.pk %}">المزايدات</a></td>
         </tr>
       {% empty %}
         <tr><td colspan="8" class="empty">لا مزادات مطابقة.</td></tr>
