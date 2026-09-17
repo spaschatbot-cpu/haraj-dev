@@ -11591,3 +11591,79 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   color: var(--warn);
   background: var(--warn-soft);
 }
+
+/* ===========================================================================
+   «اعتماد مدفوعات الشريك» — الرفعُ سطرٌ واحد، والقواعدُ ليست حالةَ فراغ
+   ---------------------------------------------------------------------------
+   «عايزه الصفحة دي بشكل احترافي أكتر».
+
+   ١) رقما الأعلى كانا جدولاً بصفّين — قيمتان منفردتان لا أعمدةَ تُقارَن —
+      فيقف العنوانُ على حافةٍ وقيمتُه على المقابلة بعرض الشاشة بينهما. صارا
+      بطاقتين في `sum-grid--tight`، وقاعدةُ «بطاقتان = نصفان» مكتوبةٌ أصلاً.
+
+   ٢) قواعدُ الملفّ الثلاثُ كان صنفُها `empty` — صنفُ «لا نتائج» — فشرحُ
+      الشاشة يُرسم بهيئة حالةِ فراغ: رماديّاً في الهواء. وهي هنا **العقدُ**:
+      ما يُقبل وما يُرفض ولماذا. فلوحةٌ واحدةٌ لها، وعنوانُ كلِّ قاعدةٍ في
+      أوّل سطرها لا مبثوثٌ في وسطه.
+
+   ٣) وحقلُ الملفّ كان في `<p>` عارية وزرُّه تحته في سطرٍ ثالث — والفعلُ
+      واحد. فصارا صفّاً واحداً يلتفّ على الضيّق.
+   ======================================================================== */
+
+.pa-up {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: .75rem;
+  max-inline-size: none;
+}
+.pa-up__field { flex: 1 1 22rem; min-inline-size: 0; }
+.pa-up__field label {
+  display: block;
+  margin-block-end: .35rem;
+  font-size: .82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+.pa-up__field input[type="file"] { inline-size: 100%; margin: 0; }
+/* الزرُّ بارتفاع الحقل نفسِه، وإلا وقف على سطرٍ أعلى منه بنصف حرف. */
+.pa-up__go { flex: 0 0 auto; padding-block: .62rem; margin: 0; }
+
+/* ---- لوحةُ القواعد ------------------------------------------------------ */
+
+.pa-rules {
+  margin: 0 0 1.4rem;
+  padding: .95rem 1.1rem .5rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.pa-rules p {
+  margin: 0 0 .75rem;
+  font-size: .86rem;
+  line-height: 1.85;
+  color: var(--ink-soft);
+}
+/* عنوانُ القاعدة سطرٌ قائمٌ بذاته: القواعدُ ثلاثٌ تُمسح بالعين قبل أن تُقرأ. */
+.pa-rules strong {
+  display: block;
+  font-size: .8rem;
+  font-weight: 800;
+  color: var(--brand-dark);
+}
+.pa-rules b { font-weight: 800; color: var(--ink); }
+
+/* ---- جدولُ الملفّات ----------------------------------------------------- */
+
+.pa-file strong { font-weight: 700; color: var(--ink); }
+.pa-file small {
+  display: block;
+  margin-block-start: .15rem;
+  font-size: .72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+/* «قُيّد» و«تُخطّي» جوابا الرفعة: الأوّلُ أخضرُ والثاني كهرمانيٌّ **إن وُجد**
+   — وصفرُ التخطّي رقمٌ عاديٌّ لا تحذير. */
+.pa-ok { font-weight: 800; color: var(--ok); }
+.pa-skip { font-weight: 800; color: var(--warn); }
