@@ -43,10 +43,31 @@ def reminders(request):
         and a.sms_reminder_at <= now
         and a.starts_at > now
     ]
+    # العدُّ على الصفوف المعروضة نفسِها لا باستعلامٍ ثانٍ: رقمٌ في ترويسةٍ
+    # لا يتبع جدولَه هو كيف صار مركزُ تقارير v1 يقول غيرَ ما تقول شاشتُه.
+    shown = list(rows[:100])
+    counts = {
+        "queued": sum(1 for a in shown if a.reminder_sent_at is not None),
+        "due": sum(
+            1
+            for a in shown
+            if a.reminder_sent_at is None
+            and a.sms_reminder_at <= now
+            and a.starts_at > now
+        ),
+        "waiting": sum(
+            1 for a in shown if a.reminder_sent_at is None and a.sms_reminder_at > now
+        ),
+        "missed": sum(
+            1
+            for a in shown
+            if a.reminder_sent_at is None and a.starts_at <= now
+        ),
+    }
     return render(
         request,
         "console/reminders.html",
-        {"rows": rows[:100], "due": due, "now": now},
+        {"rows": shown, "due": due, "now": now, "counts": counts},
     )
 
 
