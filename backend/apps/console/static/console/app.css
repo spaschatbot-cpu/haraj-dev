@@ -11439,3 +11439,40 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
   border-color: var(--line);
   color: var(--ink-soft);
 }
+
+/* ---- «تغيير كلمة المرور»: حقولٌ بأيدينا لا `form.as_p` ------------------- */
+
+.pw-form { max-inline-size: 34rem; display: grid; gap: 1rem; }
+.pw-field input { inline-size: 100%; max-inline-size: none; block-size: 2.7rem; }
+
+.pw-rules { margin: 0; font-size: .82rem; line-height: 1.7; }
+.pw-rules strong { display: block; margin-block-end: .3rem; color: var(--ink); }
+.pw-rules ul { margin: 0; padding-inline-start: 1.1rem; color: var(--muted); }
+
+/* رسالةُ الرفض حمراءُ بجوار خانتها — لا قائمةُ شروطٍ تُرسم حمراءَ قبل الكتابة. */
+.pw-err {
+  margin: .35rem 0 0;
+  font-size: .78rem;
+  font-weight: 700;
+  line-height: 1.55;
+  color: var(--danger);
+}
+
+/* **و`form ul` حمراءُ بالكامل** (سطر 1121): قائمةٌ داخل استمارةٍ تعني عندها
+   «أخطاءُ النموذج» — وهي قاعدةٌ صحيحةٌ يوم كانت كلُّ قائمةٍ في استمارةٍ خطأً.
+   وقائمةُ شروط كلمة المرور قائمةٌ في استمارة، فخرجت حمراءَ قبل أن يكتب
+   الموظّفُ حرفاً: شروطٌ تُقرأ رفضاً. رُئي في اللقطة.
+
+   والتخصيصُ هنا يكافئها ويزيد، فتعود القائمةُ نصّاً هادئاً. */
+.pw-rules ul {
+  list-style: disc;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: 1.1rem;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--muted);
+  font-size: .82rem;
+}
+.pw-rules ul li { margin-block-end: .15rem; }
