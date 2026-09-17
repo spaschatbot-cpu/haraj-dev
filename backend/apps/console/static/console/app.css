@@ -11429,3 +11429,13 @@ a.stat:focus-visible .stat__btn { color: var(--stat-btn-ink); }
 .nw-text small { display: block; margin-block-start: .2rem; font-size: .76rem; line-height: 1.5; color: var(--muted); }
 
 .nw-when { font-variant-numeric: tabular-nums; font-size: .8rem; line-height: 1.6; }
+
+/* المعرّفُ التقنيُّ داخل لوحة الفراغ: صندوقٌ أحاديُّ العرض بلون اللوحة لا
+   بلون الخطر — `.bc-id` كُتبت أصلاً داخل تنبيهٍ أحمر. */
+.blank .bc-id {
+  display: inline-block;
+  margin-block-start: .6rem;
+  background: var(--raised);
+  border-color: var(--line);
+  color: var(--ink-soft);
+}

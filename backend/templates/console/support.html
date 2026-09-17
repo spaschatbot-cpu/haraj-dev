@@ -17,17 +17,29 @@
 {% block heading %}الدعم الفني{% endblock %}
 {% block html_attrs %} data-wide-table="1"{% endblock %}
 
+{% comment %} زرُّ التحديث يُرسَم حين يكون ثمّةَ ما يُحدَّث: بلا أقسامٍ لا
+   محادثاتٍ تصل، فزرٌّ يُعيد تحميلَ شاشةٍ فارغة يَعِد بما لا يقع. {% endcomment %}
 {% block actions %}
-  <a class="btn-sm" href="{% url 'console:support' %}?dept={{ current.code }}{% if term %}&q={{ term }}{% endif %}{% if state %}&status={{ state }}{% endif %}{% if conversation %}&conversation_id={{ conversation.pk|unlocalize }}{% endif %}">تحديث</a>
+  {% if departments %}
+    <a class="btn-ghost" href="{% url 'console:support' %}?dept={{ current.code }}{% if term %}&q={{ term }}{% endif %}{% if state %}&status={{ state }}{% endif %}{% if conversation %}&conversation_id={{ conversation.pk|unlocalize }}{% endif %}">تحديث</a>
+  {% endif %}
 {% endblock %}
 
 {% block content %}
 
 {% if not departments %}
-  <p class="notice">
-    لا أقسامَ دعمٍ بعد. القسمُ صفٌّ في <code>support.Department</code>، وبابُه
-    قدرةُ «فتحُ أقسام الدعم وإغلاقها».
-  </p>
+  {% comment %} حالةُ الفراغ كانت سطراً واحداً في تنبيه، وفيه معرّفٌ لاتينيٌّ
+     داخل جملةٍ عربيّة — وخلطُ الاتّجاهين يقلب ترتيبَ القطع فيُقرأ مبعثراً
+     (العلّةُ نفسُها المُصلَحة في «إرسال إشعار» و«الباقات»). وهي **الشاشةُ
+     كلُّها** على الإنتاج اليوم، فتُكتب لوحةً تقول ما يُفعل. {% endcomment %}
+  <div class="blank">
+    <p class="blank__say">لا أقسامَ دعمٍ بعد.</p>
+    <p class="blank__hint">
+      المحادثاتُ تصل إلى قسم، فحتى يُفتح أوّلُ قسمٍ لا شيءَ يَرِد. والقسمُ صفٌّ
+      في جدول الأقسام، وبابُه قدرةُ «فتحُ أقسام الدعم وإغلاقها».
+    </p>
+    <p class="blank__hint bc-id" dir="ltr">support.Department</p>
+  </div>
 {% else %}
 
 <div class="support">
