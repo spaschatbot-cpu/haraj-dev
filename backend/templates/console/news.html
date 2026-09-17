@@ -26,10 +26,36 @@
     <a href="{% url 'console:audit' %}">سجلّ التدقيق</a> بالنصّ قبلها وبعدها ومن كتبه.
   </p>
 
+  {% comment %} كانت الأرقامُ في جملةٍ داخل تنبيه: رقمان مدفونان في سطرين مع
+     قاعدةِ التداخل. والثالثةُ («مفعّلةٌ خارج نافذتها») لم تكن تُعدّ أصلاً —
+     فالترويسةُ تقول «تُعرَض» و«موقوفة» ويُقرأ ما بينهما صفراً وهو ليس كذلك.
+
+     فصارت بطاقات، وبقيت القاعدةُ وحدَها في التنبيه. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام الشريط">
+    <div class="sum">
+      <p class="sum__label">تُعرَض الآن</p>
+      <p class="sum__value">{{ showing|unlocalize }}</p>
+      <p class="sum__note">يقرؤها كلُّ زائر.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مفعّلة خارج نافذتها</p>
+      <p class="sum__value">{{ waiting|unlocalize }}</p>
+      <p class="sum__note">مفتاحُها مفتوحٌ ووقتُها لم يحن أو مضى.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">موقوفة</p>
+      <p class="sum__value">{{ stopped|unlocalize }}</p>
+      <p class="sum__note">مفتاحُها مُغلَق.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">في الشريط</p>
+      <p class="sum__value">{{ total|unlocalize }}</p>
+      <p class="sum__note">كلُّ ما كُتب، عاملاً كان أو لا.</p>
+    </div>
+  </section>
+
   <p class="notice">
-    <strong>{{ showing|unlocalize }}</strong> رسالةً تُعرَض على العميل الآن،
-    و<strong>{{ stopped|unlocalize }}</strong> موقوفة.
-    والمتداخلتان تمرّان معاً في الشريط — لا واحدةَ تحجب أختَها.
+    <strong>والمتداخلتان تمرّان معاً في الشريط</strong> — لا واحدةَ تحجب أختَها.
   </p>
 
   <div class="scroller">
@@ -40,20 +66,21 @@
           <th>النافذة</th>
           <th>الحالة</th>
           <th>آخر تعديل</th>
-          <th></th>
+          {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
+          <th>تحكّم</th>
         </tr>
       </thead>
       <tbody>
         {% for row, edit_form in pairs %}
           <tr>
-            <td>
-              {{ row.text_ar }}
-              {% if row.text_en %}<small class="empty">{{ row.text_en }}</small>{% endif %}
+            <td class="nw-text">
+              <strong>{{ row.text_ar }}</strong>
+              {% if row.text_en %}<small dir="ltr">{{ row.text_en }}</small>{% endif %}
             </td>
             {% comment %} «من … حتى …» كلاماً لا سهماً (`←`): اتّجاهُ السهم في
                صفحةٍ `dir="rtl"` يعتمد على المحرف لا على القراءة، فيلتبس أيُّ
                الطرفين البداية. والكلمتان لا تلتبسان. {% endcomment %}
-            <td>
+            <td class="nw-when">
               من {% if row.starts_at %}{{ row.starts_at|date:"Y-m-d H:i" }}{% else %}<span class="empty">الآن</span>{% endif %}
               حتى {% if row.ends_at %}{{ row.ends_at|date:"Y-m-d H:i" }}{% else %}<span class="empty">بلا نهاية</span>{% endif %}
             </td>
@@ -67,15 +94,15 @@
                 <span class="pill" data-tone="info">مفعّلة خارج نافذتها</span>
               {% endif %}
             </td>
-            <td>{{ row.updated_at|date:"Y-m-d H:i" }}</td>
+            <td class="nw-when">{{ row.updated_at|date:"Y-m-d H:i" }}</td>
             {% comment %} الزرّان في صفٍّ مرن: `display:inline` على النموذج
                كان يُنزل زرَّ الإيقاف سطراً ويُركبه على جاره. رُئي. {% endcomment %}
             <td>
-              <div style="display:flex; gap:.4rem; align-items:center;">
+              <div class="pk-acts">
                 <button type="button" class="btn-sm" data-opens="newsEdit{{ row.pk|unlocalize }}">تعديل</button>
                 {% comment %} الإيقافُ `POST` لا رابط: فعلٌ يغيّر ما يراه العملاء
                    لا يقع من سجلّ المتصفّح ولا من `<img src>`. {% endcomment %}
-                <form method="post" style="margin:0">
+                <form method="post" class="pk-form">
                   {% csrf_token %}
                   <input type="hidden" name="op" value="toggle">
                   <input type="hidden" name="pk" value="{{ row.pk|unlocalize }}">
