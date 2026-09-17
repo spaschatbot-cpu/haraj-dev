@@ -30,12 +30,12 @@
 from __future__ import annotations
 
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.shortcuts import render
 
 from apps.accounts.services import find_by_phone
 from apps.core.arabic import search_q
-from apps.notifications.models import Notification
+from apps.notifications.models import DeliveryState, Notification
 
 from .exports import export, wants_export
 from .tones import with_tones
@@ -121,11 +121,30 @@ def notifications(request):
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
+    # عدٌّ على **المرشَّح نفسِه** لا على الجدول كلِّه: رقمٌ في ترويسةٍ لا يتبع
+    # ما تحته هو كيف صار مركزُ تقارير v1 يقول غيرَ ما تقول شاشتُه. واستعلامٌ
+    # واحدٌ مجموعٌ بالحالة، لا استعلامٌ لكلّ حالة.
+    # **`order_by()` فارغةٌ قبل التجميع**: جانغو تُضيف حقولَ الترتيب إلى
+    # `GROUP BY`، و`rows` مرتَّبةٌ بالتاريخ — فالتجميعُ يخرج صفّاً لكلّ
+    # (حالة، تاريخ) لا صفّاً لكلّ حالة، و`dict()` تُبقي آخرَ صفٍّ لكلّ حالة
+    # فيضيع الباقي. قِيس: البطاقةُ قالت «2» والجدولُ تحتها أربعةُ صفوف.
+    tally = dict(rows.order_by().values_list("state").annotate(n=Count("id")))
+    counts = {
+        "all": sum(tally.values()),
+        "failed": tally.get(DeliveryState.FAILED, 0),
+        "queued": tally.get(DeliveryState.QUEUED, 0),
+        # «وصل» و«أُرسل» واحدٌ في هذه البطاقة: الفرقُ بينهما إقرارُ المزوّد،
+        # وهو تفصيلٌ يُقرأ في الصفّ لا رقمٌ يُعدّ في الترويسة.
+        "sent": tally.get(DeliveryState.SENT, 0)
+        + tally.get(DeliveryState.DELIVERED, 0),
+    }
+
     return render(
         request,
         "console/notifications.html",
         {
             "page": page,
+            "counts": counts,
             "q": request.GET.get("q", ""),
             "state": request.GET.get("state", ""),
             "channel": request.GET.get("channel", ""),
