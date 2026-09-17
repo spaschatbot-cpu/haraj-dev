@@ -26,12 +26,14 @@
   <form method="get" class="filters filters--row">
     <div class="filters__main">
       {% include "console/_partner_pick.html" %}
-      <select name="state" aria-label="الحالة">
-        <option value="">كل الحالات</option>
-        {% for value, label in states %}
-          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+      {% if may_pick_state %}
+        <select name="state" aria-label="الحالة">
+          <option value="">كل الحالات</option>
+          {% for value, label in states %}
+            <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
       <button type="submit" class="btn-primary">اعرض</button>
     </div>
   </form>

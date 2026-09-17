@@ -195,6 +195,12 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
                 "title": "مزادات الشريك",
                 "say": "كلُّ مزاداته، بلا ترشيحٍ على الحالة.",
             },
+            # **قائمةُ الحالة تُرسَم في مدخلٍ واحد.** المداخلُ الثلاثةُ
+            # الأخرى تُثبّت حالتَها في الدالّة (`AuctionState.LIVE` وأختاها)
+            # وتتجاهل ما يصل في `GET` — فقائمةٌ فيها تعرض «كل الحالات» على
+            # شاشةٍ مرشَّحةٍ بالفعل، ويختار منها الموظّفُ فلا يقع شيء.
+            # وخانةٌ لا تفعل شيئاً أسوأُ من غيابها: تُقرأ عطلاً.
+            "may_pick_state": screen is None,
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
