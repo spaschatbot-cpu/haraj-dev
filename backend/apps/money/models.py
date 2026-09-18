@@ -39,7 +39,8 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-from django.db.models import F, Q, Sum
+from django.db.models import Case, F, Q, Sum, Value, When
+from django.db.models.functions import Greatest
 
 from apps.core.uploads import bank_receipt_path
 
@@ -548,6 +549,27 @@ class Invoice(models.Model):
         if self.state == InvoiceState.CANCELLED:
             return ZERO
         return max(self.amount - self.amount_paid, ZERO)
+
+    @staticmethod
+    def outstanding_sql():
+        """توأمُ :meth:`outstanding` في لغة القاعدة — **مكتوبٌ بجوارها**. T936.
+
+        الخاصّيّةُ فوق تُقرأ صفّاً صفّاً، ولا تصلح لجمع اثني عشر ألف صفّ في
+        بطاقةٍ فوق الجدول. والبديلُ المغري `Sum(F("amount") - F("amount_paid"))`
+        — **وقد كُتب فعلاً وكان خطأً في اتّجاهين**: يعدّ فاتورةً **ملغاةً**
+        مبلغاً علينا استلامُه، ويطرح من المجموع فاتورةً سُدِّد فوق مستحقّها
+        (`max(…, 0)` في الخاصّيّة يمنع الثانية).
+
+        فالصفُّ كان يقول «٠٫٠٠» والبطاقةُ فوقه تعدّ ١١٬٢٧٠ من الصفّ نفسِه.
+        وهذا هو **الاشتقاقُ الثاني** الذي يحذّر منه `console/money.py`: يصحّ
+        يوم يخطئ الأول فيُقرأ الاختلافُ خللاً في القاعدة. فيُكتب هنا مرّةً،
+        ويُقرأ من هنا في كلّ تجميع.
+        """
+        return Case(
+            When(state=InvoiceState.CANCELLED, then=Value(ZERO)),
+            default=Greatest(F("amount") - F("amount_paid"), Value(ZERO)),
+            output_field=models.DecimalField(**MONEY),
+        )
 
 
 class PaymentMethod(models.TextChoices):

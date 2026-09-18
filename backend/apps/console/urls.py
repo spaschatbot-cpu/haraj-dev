@@ -203,9 +203,10 @@ urlpatterns = [
     path("vehicle-exit/<int:pk>/edit/", exits.exit_edit, name="exit-edit"),
     path("vehicle-exit/<int:pk>/note/", exits.exit_note, name="exit-note"),
     path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
-    # الفواتير (T830ز). «حالة فاتورة» قدرتُها أضيق: `invoices.lookup`.
+    # الفواتير — شاشةٌ واحدة (T936). و«حالة فاتورة» باقيةٌ بقدرتها الأضيق
+    # (`invoices.lookup`) وخارجَ الشريط: بحثُها دخل «مركز الفواتير»، ودمجُها
+    # دمجاً كاملاً كان يلغي القدرةَ التي تحرس الجواب الموجَّه إلى خارج الشركة.
     path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),
-    path("invoices/export/", billing.invoices_export, name="invoices-export"),
     # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830و).
     path("partner/", partner_console.partner_console, name="partner-console"),
     path("partner/auctions/", partner_console.partner_auctions, name="partner-auctions"),
@@ -310,8 +311,10 @@ urlpatterns = [
     path("admins/<int:pk>/delete/", staff.admin_delete, name="admin-delete"),
     path("admins/roles/<slug:slug>/edit/", staff.role_edit, name="role-edit"),
     path("admins/roles/<slug:slug>/delete/", staff.role_delete, name="role-delete"),
-    path("invoices/", people.invoices, name="invoices"),
-    path("invoices/<int:pk>/", people.invoice_detail, name="invoice-detail"),
+    # وحدتُهما `billing` لا `people` (T936): كُتبتا هناك أوّلاً، ووحدةُ
+    # الفواتير هي تلك.
+    path("invoices/", billing.invoices, name="invoices"),
+    path("invoices/<int:pk>/", billing.invoice_detail, name="invoice-detail"),
     path("payments/", payments.payments, name="payments"),
     # «إنشاء دفعة» — قيدٌ على فاتورةٍ بيد موظّف. صفحةٌ واحدة تبحث وتقيّد:
     # البحثُ `GET` والقيدُ `POST` على المسار نفسه، فلا عنوانٌ ثانٍ يُفتح بلا

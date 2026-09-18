@@ -1,70 +1,145 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-The filter offers the *derived* states. Odoo's word is not an option: it is
-evidence about what they think, and a filter on it would answer "what does Odoo
-say" when the question was "what are we owed".
+مركز الفواتير — ثلاثُ شاشاتٍ صارت واحدة. T936
+
+قرارُ المالك (١٨ سبتمبر ٢٠٢٦): «اجمع التلات شاشات — مركز الفواتير وحالة
+الفاتورة وتصدير الفواتير. هما بيردّوا نفس الـdata».
+
+**وما زيد من v1 بعد قراءة `InvoiceController.php`**: اللوحةُ والمركبةُ والمزادُ
+ومعرّفُ أودو وجوّالُ العميل في الجدول، وبطاقاتٌ فوقه. وكلُّها كانت في نماذجنا
+ولا تُعرَض.
+
+**وبطاقاتُنا خمسٌ لا أربع**، والخامسةُ «المتبقّي» — وهي جوابُ السؤال الذي
+تُفتح الشاشةُ لأجله: «كم لنا عند الناس؟». وv1 يجمع `amount` ولا يجمع ما بقي
+منه، فيُقرأ «إجمالي الفواتير ٤٢ مليوناً» ولا يُعرف كم منها وصل.
+
+**والبطاقاتُ على المرشَّح لا على الجدول كلِّه** — خلافاً لـv1: هناك
+`SELECT … FROM invoices_odoo` بلا `WHERE` فوق جدولٍ مرشَّح، فمن يرشّح بشهرٍ
+يقرأ فوقه إجماليَّ السنة ويظنّ الرقمين عن الشيء نفسه.
+
+`unlocalize` على كل مبلغٍ ورقم: يُعرض كما يخزّنه الدفتر (المادة ٣-٢) — الشاشةُ
+تُقارَن سطراً بسطر بتقرير أودو.
 {% endcomment %}
 
-{% block title %}الفواتير{% endblock %}
-{% block heading %}الفواتير{% endblock %}
+{% block title %}مركز الفواتير{% endblock %}
+{% block heading %}مركز الفواتير{% endblock %}
 {% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  {% comment %} I5: every list downloads as a real workbook, and the download carries the
-     filter that is on the screen. `export_url` is this very request with one
-     parameter added, built in `apps.console.context` — so the filter comes
-     along by construction and no template writes a path by hand. {% endcomment %}
-
-  {% comment %} سطرُ تعريفٍ يقول القرارَ المكتوبَ في تعليق الملفّ ولا يراه إلا
-     من يفتحه: أن الحالاتِ المعروضةَ **مشتقّةٌ من الدفعات** لا منقولةٌ عن أودو.
-     ومن يقرأ «مدفوعة» هنا ويراها غيرَها هناك يحتاج أن يعرف أيَّهما يُصدّق. {% endcomment %}
   <p class="lede">
     كلُّ فاتورةٍ وما سُدِّد منها وما بقي. <strong>والحالةُ محسوبةٌ من الدفعات
     المسجَّلة</strong> — لا من كلمة أودو: السؤالُ هنا «ما الذي لنا» لا «ماذا
-    يقول أودو».
+    يقول أودو». وابحث برقم الفاتورة أو رقمها في أودو أو اسم العميل أو جوّاله
+    أو <strong>لوحة المركبة أو شاصيها</strong>.
   </p>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. وهي حقلان وزرّ — دون عتبةِ
-     القوائم الثلاث — فتقع في سطرٍ واحد. {% endcomment %}
+  {% comment %} خمسُ بطاقاتٍ على **المرشَّح**: من رشّح بمدىً زمنيٍّ يقرأ
+     مجاميعَ ذلك المدى لا مجاميعَ الجدول كلِّه. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="مجاميع الفواتير">
+    <div class="sum">
+      <p class="sum__label">فواتير</p>
+      <p class="sum__value">{{ totals.count|unlocalize }}</p>
+      <p class="sum__note">{% if filtered %}بالمرشِّح المطبَّق.{% else %}في النظام كلِّه.{% endif %}</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مسدَّدة</p>
+      <p class="sum__value">{{ totals.settled|unlocalize }}</p>
+      <p class="sum__note">لم يبقَ عليها شيء.</p>
+    </div>
+    <div class="sum sum--wait">
+      <p class="sum__label">غير مسدَّدة</p>
+      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
+      <p class="sum__note">مستحقّةٌ أو مسدَّدةٌ جزئياً.</p>
+    </div>
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي المبالغ</p>
+      <p class="sum__value money">{{ totals.total_amount|unlocalize }}</p>
+      <p class="sum__note">المسدَّد منها {{ totals.total_collected|unlocalize }}.</p>
+    </div>
+    {% comment %} البطاقةُ التي ليست في v1، وهي جوابُ سؤال الشاشة. {% endcomment %}
+    <div class="sum sum--money">
+      <p class="sum__label">المتبقّي لنا</p>
+      <p class="sum__value money">{{ totals.total_outstanding|unlocalize }}</p>
+      <p class="sum__note">ما لم يصل بعد.</p>
+    </div>
+  </section>
+
+  {% comment %} المرشِّحاتُ الأربعة في سطرٍ واحد — وفيها مدى التاريخ الذي كان
+     شاشةً وحده («تصدير الفواتير»). {% endcomment %}
   <form method="get" class="filters filters--row">
     <div class="filters__main">
       <input type="search" name="q" value="{{ q }}"
-             placeholder="رقم الفاتورة أو اسم العميل" aria-label="بحث">
+             placeholder="رقم الفاتورة · رقم أودو · العميل · الجوال · اللوحة · الشاصي"
+             aria-label="بحث">
       <select name="state" aria-label="الحالة">
         <option value="">كل الحالات</option>
         {% for value, label in states %}
           <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
+      <input type="date" name="since" value="{{ since }}" aria-label="صدرت من">
+      <input type="date" name="until" value="{{ until }}" aria-label="صدرت إلى">
       <button type="submit" class="btn-primary">بحث</button>
+      {% if filtered %}<a class="btn-ghost" href="?">إلغاء الفلترة</a>{% endif %}
     </div>
   </form>
 
-  <div class="scroller">
+  {% comment %} ثلاثةَ عشرَ عموداً لا تسع عرضَ الشاشة بلا لفّ، و`scroller--wide`
+     تمنع اللفَّ وتُمرّر أفقياً — كما في «ما بعد البيع». وثمنُها صريح: من
+     يقرأ آخرَ الأعمدة يمرّر. {% endcomment %}
+  <div class="scroller scroller--wide">
     <table>
-    <thead>
-      <tr><th>الرقم</th><th>العميل</th><th>المبلغ</th><th>المسدَّد</th>
-          <th>المتبقّي</th><th>الحالة</th><th>صدرت</th></tr>
-    </thead>
-    <tbody>
-      {% for invoice in page %}
+      <thead>
         <tr>
-          <td class="inv-no"><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
-          <td>{{ invoice.customer.full_name }}</td>
-          <td class="money">{{ invoice.amount|unlocalize }}</td>
-          <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
-          {% comment %} المتبقّي هو جوابُ «ما الذي لنا»، فيُقرأ قبل أخوَيه. {% endcomment %}
-          <td class="money inv-due">{{ invoice.outstanding|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ invoice.tone }}">{{ invoice.get_state_display }}</span></td>
-          <td>{{ invoice.issued_at|date:"Y-m-d" }}</td>
+          <th>الرقم</th>
+          <th>رقم أودو</th>
+          <th>العميل</th>
+          {% if seen.customer %}<th>الجوال</th>{% endif %}
+          <th>المركبة</th>
+          <th>اللوحة</th>
+          <th>المزاد</th>
+          <th>المبلغ</th>
+          <th>المسدَّد</th>
+          <th>المتبقّي</th>
+          <th>الحالة</th>
+          <th>صدرت</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="7" class="empty">لا فواتير مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for invoice in page %}
+          <tr>
+            <td class="inv-no"><a href="{% url 'console:invoice-detail' invoice.pk %}">{{ invoice.number }}</a></td>
+            {% comment %} رقمُ أودو عمودٌ لا يُخلَط برقمنا: في v1 العمودُ واحدٌ
+               يحمل الشكلين (`317263` و`INV/2026/08267`)، فيُقرأ مُعرِّفا
+               نظامين على أنهما شيءٌ واحد. {% endcomment %}
+            <td class="mono">{{ invoice.odoo_invoice_id|default:"—" }}</td>
+            <td><a href="{% url 'console:customer-detail' invoice.customer_id %}">{{ invoice.customer.full_name|default:invoice.customer.phone }}</a></td>
+            {% if seen.customer %}<td class="money">{{ invoice.customer.phone|unlocalize }}</td>{% endif %}
+            <td>
+              {% if invoice.vehicle %}
+                <a href="{% url 'console:vehicle-detail' invoice.vehicle_id %}">{{ invoice.vehicle.make }} {{ invoice.vehicle.model }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td class="mono">{{ invoice.vehicle.plate_number|default:"—" }}</td>
+            <td>
+              {% if invoice.vehicle and invoice.vehicle.auction_id %}
+                <a href="{% url 'console:auction-detail' invoice.vehicle.auction_id %}">{{ invoice.vehicle.auction.number|unlocalize }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td class="money">{{ invoice.amount|unlocalize }}</td>
+            <td class="money">{{ invoice.amount_paid|unlocalize }}</td>
+            {% comment %} المتبقّي هو جوابُ «ما الذي لنا»، فيُقرأ قبل الحالة. {% endcomment %}
+            <td class="money inv-due">{{ invoice.outstanding|unlocalize }}</td>
+            <td><span class="pill" data-tone="{{ invoice.tone }}">{{ invoice.get_state_display }}</span></td>
+            <td>{{ invoice.issued_at|date:"Y-m-d" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="{% if seen.customer %}12{% else %}11{% endif %}" class="empty">لا فواتير مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p><b class="tf__n">{{ page.paginator.count }}</b> فاتورة<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b></p>
+  {% include "console/_pager.html" %}
 {% endblock %}

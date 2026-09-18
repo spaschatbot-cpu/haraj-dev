@@ -44,15 +44,12 @@ from apps.money.models import (
     Account,
     AccountKind,
     Invoice,
-    InvoiceState,
-    Transaction,
 )
 
 from .dashboard import Stat
 from .exports import export, wants_export
 from .forms import ReasonMixin
 from .icons import path_of
-from .tones import with_tones
 from .views import atomic_write, console_page, row_for_write
 
 PAGE_SIZE = 25
@@ -501,120 +498,12 @@ def company_edit(request, pk: int):
     )
 
 
-# ---------------------------------------------------------------------------
-# T809 — invoices, and what "paid" is allowed to mean
-# ---------------------------------------------------------------------------
-
-
-@console_page("console:invoices")
-def invoices(request):
-    """Every invoice, with its state derived from its own payments.
-
-    The filter offers the *derived* states. Odoo's word is not a filter option
-    at all: it is evidence about what they think, and a screen that let an
-    operator filter by it would be a screen that answers "what does Odoo say"
-    when the question was "what are we owed".
-    """
-    rows = Invoice.objects.select_related("customer", "vehicle").order_by("-issued_at")
-
-    state = request.GET.get("state", "")
-    if state in InvoiceState.values:
-        rows = rows.filter(state=state)
-
-    search = (request.GET.get("q") or "").strip()
-    if search:
-        digits = "".join(character for character in search if character.isdigit())
-        terms = search_q(search, "number", "customer__full_name")
-        if digits:
-            terms = terms | Q(customer__phone__contains=digits)
-        rows = rows.filter(terms)
-
-    if wants_export(request):
-        return export(
-            rows,
-            name="invoices",
-            headers=[
-                "الرقم",
-                "العميل",
-                "الجوال",
-                "المبلغ",
-                "المسدَّد",
-                "المتبقّي",
-                "الحالة",
-                "صدرت",
-            ],
-            cell=lambda i: [
-                i.number,
-                i.customer.full_name,
-                i.customer.phone,
-                i.amount,
-                i.amount_paid,
-                i.outstanding,
-                i.get_state_display(),
-                i.issued_at,
-            ],
-        )
-
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
-
-    return render(
-        request,
-        "console/invoices.html",
-        {
-            "page": page,
-            "states": InvoiceState.choices,
-            "state": state,
-            "q": search,
-        },
-    )
-
-
-@console_page("console:invoice-detail")
-def invoice_detail(request, pk: int):
-    """One invoice, its posted payments, and what Odoo happens to call it.
-
-    `derive_invoice_state` recomputes the state from the payments here rather
-    than reading the column, so a screen can never show a stale word: the column
-    is maintained by `record_payment`, and re-deriving on read is what proves
-    the two agree.
-
-    A bank transfer that Odoo is holding as a draft has no posted payment, so it
-    contributes nothing to `amount_paid` and the invoice reads open — which is
-    T809's whole acceptance criterion, and the state in which somebody released
-    a car in v1.
-    """
-    invoice = get_object_or_404(
-        Invoice.objects.select_related("customer", "vehicle"), pk=pk
-    )
-
-    # Posted payments only, found by their idempotency key rather than by a
-    # column on the entry: `record_payment` derives the key from the invoice, so
-    # this finds exactly the movements that were actually recorded against it —
-    # and nothing that merely mentions it.
-    payments = Transaction.objects.filter(
-        idempotency_key__startswith=f"payment:{invoice.pk}:"
-    ).order_by("-occurred_at")
-
-    return render(
-        request,
-        "console/invoice_detail.html",
-        {
-            "invoice": invoice,
-            "derived": money.derive_invoice_state(invoice),
-            "payments": payments,
-        },
-    )
-
-
 __all__ = [
     "CompanyForm",
     "CustomerForm",
     "company_edit",
     "customer_edit",
     "customers",
-    "invoice_detail",
-    "invoices",
 ]
 
 
