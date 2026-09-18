@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../domain/catalog/entities/auction_phase.dart';
 import '../../domain/catalog/entities/vehicle_feed.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/common/failure.dart';
@@ -345,8 +346,19 @@ class _LiveNumbersState extends ConsumerState<_LiveNumbers> {
     super.initState();
     // في `initState` لا في `build`: نداءٌ في البناء يُعاد مع كلّ حرفٍ يُكتب
     // في حقل الجوّال — أي طلبُ شبكةٍ لكلّ ضغطةِ مفتاح.
+    //
+    // **والطورُ مذكورٌ لا متروك**: عقدُ `loadVehicleFeed` يؤكّد
+    // `assert(phase != null)` — «طلبٌ بلا تبويب خطأُ استدعاء يجب أن ينكسر عند
+    // كاتبه». وكُتب هنا `VehicleQuery()` عارياً أوّلاً فانكسر التأكيدُ صامتاً
+    // في `FutureBuilder` **ولم يظهر صفُّ الأرقام إطلاقاً** — والحارسُ فعل
+    // ما بُني له. قِيس في المتصفّح ١٩ سبتمبر ٢٠٢٦.
+    //
+    // و`active` هو المذكور: العدّاداتُ الثلاثة تأتي مع أيّ تبويب، والنشطُ هو
+    // ما يهمّ من يقف على باب الدخول.
     _feed = ref
-        .read(loadVehicleFeedProvider)(const VehicleQuery())
+        .read(loadVehicleFeedProvider)(
+          const VehicleQuery(phase: AuctionPhase.active),
+        )
         .then((snapshot) => snapshot.value);
   }
 
