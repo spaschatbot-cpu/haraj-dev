@@ -5,11 +5,9 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
-import '../../domain/catalog/entities/auction_phase.dart';
-import '../../domain/catalog/entities/vehicle_feed.dart';
-import '../../domain/catalog/entities/vehicle_query.dart';
 import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../catalog/widgets/countdown_text.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
 import '../common/saudi_phone_field.dart';
@@ -151,7 +149,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     children: <Widget>[
                       _Brand(palette: palette, theme: theme),
                       const SizedBox(height: 18),
-                      const _LiveNumbers(),
+                      const _LiveAuctionStrip(),
                       const SizedBox(height: 14),
                       _Panel(
                         palette: palette,
@@ -326,138 +324,128 @@ class _Brand extends StatelessWidget {
   }
 }
 
-/// أرقامُ المنصّة الآن — **مجلوبةٌ لا مكتوبة**.
+/// **المزادُ الجاري** — لا ثلاثةُ عدّادات. T947
 ///
-/// تُقرأ من نقطة الكتالوج نفسِها التي تقرؤها الرئيسيّة (`PhaseCounts`)، فلا
-/// يقول هذا رقماً وتقول تلك غيرَه. وحين يتعذّر الجلبُ — خادمٌ نائمٌ أو شبكةٌ —
-/// **لا يُعرَض شيء**: صفرٌ في «تُزايَد الآن» يُقرأ «لا مزاد» وهو خطأُ شبكة.
-class _LiveNumbers extends ConsumerStatefulWidget {
-  const _LiveNumbers();
+/// كانت هنا ثلاثةُ صناديق: «تُزايَد الآن ٣٤ · قريباً ٠ · مزادات سابقة ١٠٣٧».
+/// وقرارُ المالك (١٩ سبتمبر ٢٠٢٦): «الغِ دول واستبدلهم بحاجة أحسن».
+///
+/// **وكانت أرقاماً لا خبراً.** «١٠٣٧ مزاداً سابقاً» ماضٍ لا يدعو أحداً إلى
+/// شيء، و«قريباً ٠» صفرٌ يُقرأ نقصاً وهو حقيقةٌ عاديّة بين مزادين. ومن يقف
+/// على باب الدخول يسأل سؤالاً واحداً: **«فيه إيه دلوقتي؟»**
+///
+/// فصار شريطاً واحداً يجيبه: اسمُ المزاد الجاري، وكم سيّارةً فيه، **وكم بقي
+/// على إغلاقه — عدّاداً يتحرّك**. وحين لا مزادَ جارياً يقول متى يبدأ القادم،
+/// وحين لا هذا ولا ذاك **لا يُعرَض شيء**: شريطٌ فارغٌ في بابِ الدخول أسوأُ من
+/// لا شريط.
+///
+/// والمصدرُ `homeAuctionsProvider` نفسُه الذي تقرؤه الرئيسيّة — فلا يقول هذا
+/// مزاداً وتقول تلك غيرَه.
+class _LiveAuctionStrip extends ConsumerWidget {
+  const _LiveAuctionStrip();
 
   @override
-  ConsumerState<_LiveNumbers> createState() => _LiveNumbersState();
-}
-
-class _LiveNumbersState extends ConsumerState<_LiveNumbers> {
-  late final Future<VehicleFeed> _feed;
-
-  @override
-  void initState() {
-    super.initState();
-    // في `initState` لا في `build`: نداءٌ في البناء يُعاد مع كلّ حرفٍ يُكتب
-    // في حقل الجوّال — أي طلبُ شبكةٍ لكلّ ضغطةِ مفتاح.
-    //
-    // **والطورُ مذكورٌ لا متروك**: عقدُ `loadVehicleFeed` يؤكّد
-    // `assert(phase != null)` — «طلبٌ بلا تبويب خطأُ استدعاء يجب أن ينكسر عند
-    // كاتبه». وكُتب هنا `VehicleQuery()` عارياً أوّلاً فانكسر التأكيدُ صامتاً
-    // في `FutureBuilder` **ولم يظهر صفُّ الأرقام إطلاقاً** — والحارسُ فعل
-    // ما بُني له. قِيس في المتصفّح ١٩ سبتمبر ٢٠٢٦.
-    //
-    // و`active` هو المذكور: العدّاداتُ الثلاثة تأتي مع أيّ تبويب، والنشطُ هو
-    // ما يهمّ من يقف على باب الدخول.
-    _feed = ref
-        .read(loadVehicleFeedProvider)(
-          const VehicleQuery(phase: AuctionPhase.active),
-        )
-        .then((snapshot) => snapshot.value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final palette = HarajPalette.of(context);
     final theme = Theme.of(context);
 
-    return FutureBuilder<VehicleFeed>(
-      future: _feed,
-      builder: (context, snapshot) {
-        final counts = snapshot.data?.counts;
-        if (counts == null) {
-          // ولا هيكلٌ وامضٌ ينتظر: الشاشةُ تعمل بلا هذا الصفّ أصلاً، وقفزةُ
-          // ارتفاعٍ عند وصول الأرقام أهونُ من صفٍّ يومض ثمّ يختفي.
-          return const SizedBox.shrink();
-        }
-        return Row(
-          children: <Widget>[
-            Expanded(
-              child: _Stat(
-                palette: palette,
-                theme: theme,
-                value: counts.active,
-                label: 'تُزايَد الآن',
-                tone: palette.goldOnDark,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _Stat(
-                palette: palette,
-                theme: theme,
-                value: counts.upcoming,
-                label: 'قريباً',
-                tone: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _Stat(
-                palette: palette,
-                theme: theme,
-                value: counts.ended,
-                label: 'مزادات سابقة',
-                tone: Colors.white,
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
+    // `asData` لا `when`: الشريطُ يظهر حين تصل البيانات ويغيب قبلها وعند
+    // الفشل — ولا رسالةَ خطأٍ في بابِ الدخول عن شيءٍ تزيينيّ.
+    final auctions = ref.watch(homeAuctionsProvider).asData?.value.value;
+    if (auctions == null) return const SizedBox.shrink();
 
-class _Stat extends StatelessWidget {
-  const _Stat({
-    required this.palette,
-    required this.theme,
-    required this.value,
-    required this.label,
-    required this.tone,
-  });
+    final running = auctions.running.isEmpty ? null : auctions.running.first;
+    final next = auctions.upcoming.isEmpty ? null : auctions.upcoming.first;
+    final shown = running ?? next;
+    if (shown == null) return const SizedBox.shrink();
 
-  final HarajPalette palette;
-  final ThemeData theme;
-  final int value;
-  final String label;
-  final Color tone;
+    final live = running != null;
+    final accent = live ? palette.goldOnDark : Colors.white;
 
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
       decoration: BoxDecoration(
-        color: palette.cardSurface.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.navInactive.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: <Color>[
+            palette.heroTop.withValues(alpha: 0.95),
+            palette.heroBottom.withValues(alpha: 0.95),
+          ],
+        ),
+        border: Border.all(
+          color: accent.withValues(alpha: live ? 0.45 : 0.22),
+        ),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          Row(
+            children: <Widget>[
+              // نقطةٌ تقول «حيّ» — ولا تُعرَض للمجدول، فالمجدولُ ليس حيّاً.
+              if (live) ...<Widget>[
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: palette.goldOnDark,
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: palette.goldOnDark.withValues(alpha: 0.7),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 7),
+              ],
+              Text(
+                live ? 'المزاد الجاري' : 'المزاد القادم',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: accent,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (shown.vehiclesCount != null)
+                Text(
+                  '${shown.vehiclesCount} سيّارة',
+                  textDirection: TextDirection.rtl,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 7),
           Text(
-            '$value',
-            // الرقمُ يُقرأ يساراً-يميناً مهما كان اتّجاه الصفحة.
-            textDirection: TextDirection.ltr,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: tone,
+            shown.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: palette.inkMuted,
-              height: 1.25,
-            ),
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Icon(
+                live ? Icons.timer_outlined : Icons.event_outlined,
+                size: 15,
+                color: Colors.white.withValues(alpha: 0.75),
+              ),
+              const SizedBox(width: 6),
+              // العدّادُ نفسُه الذي على كروت الرئيسيّة — لا نسخةٌ ثانية منه.
+              CountdownText(
+                at: live ? shown.endsAt : shown.startsAt,
+                target: live ? CountdownTarget.end : CountdownTarget.start,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
           ),
         ],
       ),
