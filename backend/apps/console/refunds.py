@@ -1,4 +1,4 @@
-"""الاستردادات، وطابور العجز، ومزايدات حسب المزاد. T826 · T830ل · T835.
+"""الاستردادات، وطابور العجز، ومزايدات حسب المزاد. T826 · T830ل · T835 · T933.
 
 شاشتان من قائمتين مختلفتين، وتجمعهما ملاحظةٌ واحدة: كلتاهما في v1 **تعرض
 رقماً لا يطابق شاشةً أخرى تعرض الشيء نفسه**.
@@ -20,6 +20,46 @@
 
 و«ما زال يكلّفنا» ليس تصنيفاً بل مجموعة: `RefundRequestState.open_states()`
 تُسمّيها مرّةً، ويقرأها القيدُ في القاعدة وهذه الشاشة معاً.
+
+تبويبان، لأن العطلَ هو عطلُ «إدارة المدفوعات» نفسُه. T933
+=========================================================
+الشاشةُ كانت تعرض `RefundRequest` وحدَه. وعلى الإنتاج (قِيس ١٨ سبتمبر ٢٠٢٦
+على `haraj2_v1`): **طلباتُ الاسترداد صفر، وفي الدفتر ١٬١٥٥ استرداداً
+منفَّذاً** — لأن الترحيل بنى أثرَ الاسترداد في الدفتر
+(`insurance_deposits.status='refunded'` ← `refund_insurance`) ولم يبنِ صفوفَ
+`refunds_requests` الثلاثةَ آلافٍ ومئتين وتسعةً وثمانين. فمن يفتح «الاستردادات»
+يقرأ جدولاً فارغاً وقد استُرِدَّ أحدَ عشرَ مليوناً ونصف.
+
+فتبويبان: **«طلباتُ الاسترداد»** وهو الطابورُ الذي يُعمَل عليه، و**«ما نُفِّذ»**
+وهو ما تحرّك في الدفتر فعلاً. وعددُ كلٍّ منهما مكتوبٌ على لسانِ تبويبه، فجدولٌ
+فارغٌ يُقرأ «صفر طلبات» لا «الصفحةُ معطوبة».
+
+وتبويبُ «ما نُفِّذ» يضمّ المصادرةَ مع الاسترداد لأن v1 يضمّهما: تبويبُ
+«المبالغ المخصومة» هناك يقرأ `status='deducted'` ويفرّق بينهما بـ`payment_code`
+وحده («استرداد التأمين كاش» و«مصادرة التأمين»). وهنا نوعُ القيد يفرّق، وهو
+عمودٌ في الجدول ومرشِّحٌ فوقه.
+
+والأفعال — وما لا يُنقل منها
+=============================
+v1 يعطي الصفَّ أربعةَ أزرار: موافقة، ورفض، وتعديل، وحذف. والأولان هنا فعلان:
+**«أرسِلْه للمحاسبة»** و**«ارفضه بسبب»** — يمرّان بـ
+:func:`apps.money.services.decide_refund` وحدَها، وهي التي تقفل الصفّ وتحكم
+الانتقال وتكتب من قرّر ومتى ولماذا.
+
+و**الحذفُ لا يُنقل**. `delete_refund.php` سطرٌ واحد: ``DELETE FROM
+refunds_requests WHERE id = ?`` — بلا صلاحيةٍ خاصّة وبلا أثر. وطلبُ استردادِ
+عشرةِ آلافٍ يختفي فلا يبقى ما يُسأل عنه: لا من حذفه ولا لماذا ولا أنه كان.
+ونظيرُه هنا الرفضُ بسببٍ مكتوب — يبقى الصفُّ ويبقى جوابُه.
+
+و**التعديلُ لا يُنقل كذلك**: `update_refund.php` يكتب المبلغَ والآيبان فوق
+القديم بلا أثر، ومبلغُ الطلب هو ما يُصرَف. فمن أراد مبلغاً آخر يرفض الطلبَ
+بسببٍ ويفتح العميلُ طلباً جديداً — خطوةٌ أطول، ولها سجلّ.
+
+و**«موافقة» ليست صرفاً**، وهذا الخلطُ عطلُ v1 الصامت: `approve` هناك كلمةٌ في
+عمود، ثمّ تُقرأ على أن المبلغ خرج. وهنا «أُرسل للمحاسبة» حالةٌ صريحة، والدفترُ
+لا يتحرّك إلا حين يؤكّد أودو الصرفَ عبر المسار الوارد
+(`apps.odoo.processing._close_refund_request`) — والقيدُ
+`a_confirmed_refund_names_its_transaction` يمنع «نُفِّذ» بلا حركة.
 
 مزايدات حسب المزاد
 ==================
@@ -52,19 +92,30 @@ from __future__ import annotations
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from apps.accounts.services import find_by_phone
 from apps.auctions.models import Auction
 from apps.bidding.models import Bid
 from apps.core import audit
 from apps.core.arabic import search_q
-from apps.money.models import RefundRequest, RefundRequestState
+from apps.core.permissions import Capability, can
+from apps.money import services as money
+from apps.money.models import (
+    RefundRequest,
+    RefundRequestState,
+    Transaction,
+    TransactionKind,
+)
 from apps.odoo.models import RefundShortfall
 
 from .exports import export, wants_export
+from .paging import paged, pager
+from .tones import with_tones
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -73,13 +124,13 @@ PAGE_SIZE = 50
 
 def refund_rows(*, text: str = "", state: str = ""):
     """طلبات الاسترداد — مصدرٌ واحد، وحالاتٌ مسمّاة."""
-    rows = RefundRequest.objects.select_related("user").order_by("-created_at", "-id")
+    rows = RefundRequest.objects.select_related(
+        "user", "decided_by", "outbox_message", "resulting_transaction"
+    ).order_by("-created_at", "-id")
 
     text = (text or "").strip()
     if text:
-        rows = rows.filter(
-            search_q(text, "user__full_name", "user__phone", "reference")
-        )
+        rows = rows.filter(search_q(text, "user__full_name", "user__phone", "reference"))
 
     if (state or "").strip() in RefundRequestState.values:
         rows = rows.filter(state=state)
@@ -109,9 +160,203 @@ def refund_counts() -> list[dict]:
     ]
 
 
+# -------------------------------------------------------------------------
+# ما نُفِّذ فعلاً — التبويب الثاني. T933
+# -------------------------------------------------------------------------
+
+#: أنواعُ القيود التي **يخرج فيها تأمينٌ من يد العميل**. والمصادرةُ معها لأن
+#: v1 يضمّهما في تبويبٍ واحد («المبالغ المخصومة») ويفرّق بينهما بـ
+#: `payment_code` وحده. وهنا `kind` عمودٌ يُقرأ ويُرشَّح به.
+OUTFLOW_KINDS = (
+    TransactionKind.INSURANCE_REFUND,
+    TransactionKind.INSURANCE_CONFISCATE,
+)
+
+
+def executed(*, text: str = "", kind: str = ""):
+    """ما تحرّك في الدفتر استرداداً أو مصادرة — الأحدثُ أوّلاً.
+
+    **وهذا هو الرقمُ الذي كانت الشاشةُ لا تعرضه.** على الإنتاج ١٬١٥٥ قيدَ
+    استرداد وصفرُ طلبات، لأن الترحيل بنى الأثرَ ولم يبنِ الطلب.
+    """
+    rows = (
+        Transaction.objects.filter(kind=kind)
+        if kind in OUTFLOW_KINDS
+        else Transaction.objects.filter(kind__in=OUTFLOW_KINDS)
+    )
+    rows = rows.prefetch_related("entries__owner")
+
+    text = (text or "").strip()
+    if text:
+        matches = Q(idempotency_key__icontains=text) | search_q(text, "memo")
+        person = find_by_phone(text)
+        if person is not None:
+            matches |= Q(entries__owner=person)
+        else:
+            matches |= Q(entries__owner__full_name__icontains=text)
+        rows = rows.filter(matches).distinct()
+    return rows.order_by("-occurred_at", "-id")
+
+
+def decorate(page_rows) -> None:
+    """يعلّق على كلّ قيدٍ ما تعرضه الشاشة: صاحبُه ومبلغُه ومرجعُه.
+
+    والقيودُ مجلوبةٌ بـ`prefetch_related` للصفحة كلّها، فلا رحلةَ إلى القاعدة
+    لكلّ صفّ — خمسون صفّاً وخمسون رحلةً هي الفرقُ بين جزءٍ من ثانيةٍ وثانيتين.
+    """
+    for row in page_rows:
+        entries = list(row.entries.all())
+        # صاحبُ الحركة هو صاحبُ القيد الذي على حسابِ عميل — والطرفُ الآخر
+        # حسابُ منصّة (`external_refund` أو `confiscated`) لا مالكَ له.
+        owned = [entry for entry in entries if entry.owner_id]
+        row.customer = owned[0].owner if owned else None
+        row.amount = sum(entry.amount for entry in entries if entry.amount > 0)
+        # المرجعُ ذيلُ مفتاح المنع: `refund:v1-refund-77` و`confiscate:912`.
+        row.reference = row.idempotency_key.rsplit(":", 1)[-1]
+        row.source = "مُرحَّل من v1" if row.reference.startswith("v1-") else "قرارٌ في اللوحة"
+
+
+# -------------------------------------------------------------------------
+# الشاشة
+# -------------------------------------------------------------------------
+
+
+def _decide(request):
+    """الفعلُ على طلبٍ — إرسالٌ للمحاسبة أو رفضٌ بسبب. لا يحرّك الدفتر.
+
+    والبابُ واحد: `money.decide_refund` هي التي تقفل وتحكم وتكتب وتُدقّق.
+    وهنا قراءةُ الاستمارة والجملةُ للموظّف، لا قاعدةُ مالٍ ثانية.
+    """
+    back = f"{request.path}?{request.POST.get('back', '')}"
+    refund = RefundRequest.objects.filter(pk=request.POST.get("refund")).first()
+    if refund is None:
+        messages.error(request, "لم يُختَر طلبُ استرداد.")
+        return redirect(back)
+
+    target = {
+        "send": RefundRequestState.SENT.value,
+        "reject": RefundRequestState.REJECTED.value,
+    }.get((request.POST.get("op") or "").strip())
+    if target is None:
+        messages.error(request, "فعلٌ غير معروف.")
+        return redirect(back)
+
+    try:
+        money.decide_refund(
+            refund=refund,
+            to=target,
+            by=request.user,
+            reason=request.POST.get("reason", ""),
+        )
+    except Exception as refusal:  # noqa: BLE001
+        # جملةُ الخدمة نفسها: هي تفرّق بين «الانتقال غير مسموح» و«السبب
+        # مطلوب»، وإعادةُ صياغتها هنا تُضيّع ذلك الفرق.
+        #
+        # و`user_message` قبل `str`: `DomainError.__init__` يمرّر النصَّ
+        # **الإنجليزيّ** إلى `Exception` حين يُعطى الاثنان، فـ`str(refusal)`
+        # يطبع `refund 2: rejection without a reason` في وجه الموظّف. قِيس في
+        # المتصفّح قبل أن يُصلَح.
+        messages.error(request, getattr(refusal, "user_message", "") or str(refusal))
+        return redirect(back)
+
+    messages.success(
+        request,
+        (
+            f"أُرسل طلبُ {refund.amount} ريال للمحاسبة — ولم يُصرف شيءٌ بعد."
+            if target == RefundRequestState.SENT.value
+            else f"رُفض طلبُ {refund.amount} ريال، والسببُ مكتوبٌ باسمك."
+        ),
+    )
+    return redirect(back)
+
+
+def _totals() -> dict:
+    """عددُ كلِّ تبويبٍ — يُكتب على لسانه.
+
+    وهو ما يمنع قراءةَ الجدول الفارغ على أن الشاشة معطوبة: «طلبات الاسترداد
+    (٠)» جملةٌ تامّة، وجدولٌ فارغٌ بلا رقمٍ فوقه ليس جملةً.
+    """
+    return {
+        "requests_total": RefundRequest.objects.count(),
+        "executed_total": Transaction.objects.filter(kind__in=OUTFLOW_KINDS).count(),
+    }
+
+
+def _executed_screen(request):
+    """تبويبُ «ما نُفِّذ»: القيودُ التي خرج فيها تأمينٌ من يد العميل."""
+    text = request.GET.get("q", "")
+    kind = request.GET.get("kind", "")
+    rows = executed(text=text, kind=kind)
+
+    if wants_export(request):
+        page_rows = list(rows[:5000])
+        decorate(page_rows)
+        return export(
+            page_rows,
+            name="الاستردادات-المنفذة",
+            headers=[
+                "المعرّف",
+                "النوع",
+                "المصدر",
+                "رقم العميل",
+                "الاسم",
+                "الجوال",
+                "المبلغ",
+                "المرجع",
+                "البيان",
+                "التاريخ",
+            ],
+            cell=lambda row: [
+                row.pk,
+                row.get_kind_display(),
+                row.source,
+                row.customer.pk if row.customer else "",
+                row.customer.full_name if row.customer else "",
+                row.customer.phone if row.customer else "",
+                row.amount,
+                row.reference,
+                row.memo,
+                row.occurred_at,
+            ],
+        )
+
+    page = paged(request, rows)
+    decorate(page.object_list)
+    return render(
+        request,
+        "console/refunds.html",
+        {
+            "which": "done",
+            "page": page,
+            "pager": pager(request, page, "قيداً"),
+            "q": text,
+            "kind": kind,
+            "kinds": [(value, TransactionKind(value).label) for value in OUTFLOW_KINDS],
+            "export_url": f"?which=done&q={text}&kind={kind}&export=1",
+            **_totals(),
+        },
+    )
+
+
 @console_page("console:refunds")
 def refunds(request):
-    """الاستردادات: كم طلباً وفي أي حالة — ومصدرٌ واحد لكلّها."""
+    """الاستردادات: طلباتٌ يُعمَل عليها، وما نُفِّذ منها في تبويبٍ ثانٍ.
+
+    **والافتراضيُّ الطلبات** — وهو تبويبُ v1 الأوّل، وهو الوحيدُ الذي يُعمَل
+    عليه. وما نُفِّذ خلف `?which=done`: قراءةٌ لا فعلَ فيها، وقيدُ الدفتر
+    يُصحَّح بقيدٍ عاكسٍ لا بتحريرِ صفّ.
+    """
+    # الفعلُ من هذه الشاشة، والحارسُ هنا صراحةً: الصفحةُ تُفتح بـ`money.view`،
+    # والقرارُ يحتاج `money.act`. فمن يقرأ الطابور — والدعمُ يقرؤه ليجيب «أين
+    # استردادي؟» — لا يقرّر فيه، ولو وصل إلى الاستمارة بيده.
+    if request.method == "POST":
+        if not can(request.user, Capability.MONEY_ACT):
+            raise PermissionDenied("money.act غير مسموحة لهذا المستخدم")
+        return _decide(request)
+
+    if request.GET.get("which", "") == "done":
+        return _executed_screen(request)
+
     text = request.GET.get("q", "")
     state = request.GET.get("state", "")
     rows = refund_rows(text=text, state=state)
@@ -120,30 +365,61 @@ def refunds(request):
         return export(
             rows,
             name="الاستردادات",
-            headers=["المرجع", "العميل", "الجوال", "المبلغ", "الحالة", "قُدِّم"],
+            headers=[
+                "المرجع",
+                "العميل",
+                "الجوال",
+                "المبلغ",
+                "الحالة",
+                "ملاحظة العميل",
+                "قُدِّم",
+                "من قرّر",
+                "متى",
+                "سببُ القرار",
+            ],
             cell=lambda row: [
                 row.reference,
                 row.user.full_name,
                 row.user.phone,
                 row.amount,
                 row.get_state_display(),
+                row.note,
                 row.created_at,
+                row.decided_by.full_name if row.decided_by_id else "",
+                row.decided_at or "",
+                row.decision_note,
             ],
         )
 
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     still_open = RefundRequest.objects.filter(state__in=RefundRequestState.open_states())
+
+    page = paged(request, rows)
+    with_tones(page.object_list)
+    # ما يجوز فعلُه بكلّ صفّ يُقرأ من الجدول نفسه الذي تحكم به الخدمة، ولا
+    # يُستنتَج في القالب: زرٌّ يظهر ثمّ يُرفض هو زرٌّ يُعلّم أن اللوحة معطوبة.
+    for row in page.object_list:
+        moves = money.STAFF_REFUND_MOVES.get(row.state, ())
+        row.may_send = RefundRequestState.SENT.value in moves
+        row.may_reject = RefundRequestState.REJECTED.value in moves
 
     return render(
         request,
         "console/refunds.html",
         {
+            "which": "requests",
             "page": page,
+            "pager": pager(request, page, "طلباً"),
             "counts": refund_counts(),
             "open_count": still_open.count(),
             "open_value": still_open.aggregate(t=Sum("amount"))["t"] or ZERO,
+            "may_act": can(request.user, Capability.MONEY_ACT),
+            # يُحمل في الاستمارة ليعود القرارُ إلى الصفحة والمرشّح نفسِه:
+            # من رشّح بحالةٍ ثمّ قرّر يجد نفسه في أوّل الجدول كلِّه بدونه.
+            "back": f"which=requests&q={text}&state={state}",
+            "export_url": f"?q={text}&state={state}&export=1",
             "q": text,
             "state": state,
+            **_totals(),
         },
     )
 

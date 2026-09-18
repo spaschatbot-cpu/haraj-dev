@@ -47,6 +47,8 @@ TONES: dict[str, str] = {
     "sent": "info",
     "scheduled": "info",
     "pending": "warn",
+    # طلبُ استردادٍ قُدِّم ولم يُقرَّر فيه — انتظارٌ يكلّف، فتحذير.
+    "requested": "warn",
     # -- معروضٌ في مزاد --------------------------------------------------
     "listed": "auction",
     "relisted": "auction",
@@ -64,6 +66,8 @@ TONES: dict[str, str] = {
     "succeeded": "ok",
     "processed": "ok",
     "ended": "ok",
+    # استردادٌ أكّدت المحاسبةُ صرفَه — ومعه حركةٌ في الدفتر بقيدِ القاعدة.
+    "confirmed": "ok",
     # -- انتهى إلى ما لا يُراد -------------------------------------------
     "cancelled": "bad",
     "rejected": "bad",

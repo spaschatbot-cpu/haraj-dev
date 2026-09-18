@@ -1576,6 +1576,87 @@ def request_refund(
     )
 
 
+#: ما يجوز أن يفعله **موظّفٌ** بطلبِ استرداد، من كلّ حالة. T933.
+#:
+#: و`confirmed` ليست فيها بحال: القيدُ `a_confirmed_refund_names_its_transaction`
+#: يشترط حركةً في الدفتر، والحركةُ تُكتب حين تؤكّد المحاسبةُ الصرفَ عبر المسار
+#: الوارد (`apps.odoo.processing`) — لا حين يضغط موظّفٌ زرّاً. وv1 يخلط
+#: الاثنين: `approve` هناك كلمةٌ في عمودٍ لا تعني أن ريالاً خرج، ثمّ يُقرأ
+#: العمودُ على أنه خرج.
+STAFF_REFUND_MOVES: dict[str, tuple[str, ...]] = {
+    RefundRequestState.REQUESTED.value: (
+        RefundRequestState.SENT.value,
+        RefundRequestState.REJECTED.value,
+    ),
+    # المُرسَل يُرفض ولا يُرسَل ثانيةً: الإرسالُ مرّتين طلبُ صرفٍ مرّتين.
+    RefundRequestState.SENT.value: (RefundRequestState.REJECTED.value,),
+}
+
+
+@db_transaction.atomic
+def decide_refund(*, refund: RefundRequest, to: str, by=None, reason: str = ""):
+    """انقل طلبَ استردادٍ إلى حالته التالية بيد موظّف — **ولا يتحرّك ريال**.
+
+    هذا نظيرُ `refunds_requests_update.php` في v1، وثلاثةُ فروقٍ مقصودة:
+
+    * **الصفُّ يُقفل قبل أن يُقرأ.** هناك ``UPDATE … WHERE id=?`` بلا قفلٍ ولا
+      شرطِ حالة، فموظّفان على الطابور نفسِه يكتبان فوق بعضهما: الأوّلُ يرفض
+      والثاني يوافق، والأخيرُ يفوز بلا أن يعلم أحدُهما.
+    * **الانتقالُ محكومٌ بجدول.** هناك أيُّ حالةٍ تصير أيَّ حالة، ومنها
+      «موافقة» على طلبٍ مرفوضٍ من قبل.
+    * **الرفضُ يقول لماذا**، ويُكتب اسمُ صاحبه ووقتُه في الصفّ نفسه — لا في
+      ملفِّ سجلٍّ ولا في لا مكان.
+
+    ولا تلمس هذه الدالّةُ حساباً: الدفترُ يتحرّك حين تؤكّد المحاسبةُ الصرف،
+    عبر المسار الوارد وحدَه.
+    """
+    to = (to or "").strip()
+    reason = (reason or "").strip()
+
+    # القفلُ أوّلاً، ثمّ القراءة: القرارُ أدناه والصفُّ الذي يكتبه يجب ألّا
+    # يتخلّلهما قرارٌ آخر على الصفّ نفسه.
+    locked = RefundRequest.objects.select_for_update().get(pk=refund.pk)
+
+    allowed = STAFF_REFUND_MOVES.get(locked.state, ())
+    if to not in allowed:
+        raise MoneyError(
+            f"refund {locked.pk}: {locked.state} -> {to} is not a staff move",
+            user_message=(
+                f"لا يمكن نقلُ طلبٍ حالتُه «{locked.get_state_display()}» إلى "
+                f"«{dict(RefundRequestState.choices).get(to, to)}»."
+            ),
+            detail={"state": locked.state, "requested": to, "allowed": list(allowed)},
+        )
+
+    if to == RefundRequestState.REJECTED.value and not reason:
+        # القيدُ `a_refused_refund_names_its_decision` يمنع الفارغ في القاعدة،
+        # لكنّ بلوغَه من شاشةٍ صفحةُ خطأ لا جملةٌ بجانب الخانة.
+        raise MoneyError(
+            f"refund {locked.pk}: rejection without a reason",
+            user_message="سببُ الرفض مطلوب — ويقرؤه من يسأل عن الطلب بعد شهر.",
+        )
+
+    audited = ("state", "decided_by_id", "decided_at", "decision_note")
+    before = audit.snapshot(locked, audited)
+
+    locked.state = to
+    locked.decided_by = by
+    locked.decided_at = timezone.now()
+    locked.decision_note = reason
+    locked.save(update_fields=["state", "decided_by", "decided_at", "decision_note"])
+
+    audit.record(
+        action=f"money.refund_{to}",
+        entity=locked,
+        actor=by,
+        before=before,
+        after=audit.snapshot(locked, audited),
+        note=f"{locked.amount} ريال · {locked.reference}"
+        + (f" · {reason}" if reason else ""),
+    )
+    return locked
+
+
 @db_transaction.atomic
 def start_bank_topup(*, user, amount: Decimal, receipt) -> BankTopupRequest:
     """افتح طلبَ شحن تأمينٍ بتحويلٍ بنكيّ مع إيصال. لا يحرّك الدفتر.

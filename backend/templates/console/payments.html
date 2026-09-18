@@ -35,8 +35,8 @@
 
   {% comment %} تبويبان روابطُ لا أزرار: يُنسخان ويُفتحان في تبويبٍ جديد. {% endcomment %}
   <nav class="tabs" aria-label="نوع العرض">
-    <a class="tab{% if which == 'recorded' %} is-on{% endif %}" href="?which=recorded">ما قُيِّد</a>
-    <a class="tab{% if which == 'intents' %} is-on{% endif %}" href="?which=intents">محاولات البوّابة</a>
+    <a class="tab{% if which == 'recorded' %} is-on{% endif %}" href="?which=recorded"{% if which == 'recorded' %} aria-current="page"{% endif %}>ما قُيِّد</a>
+    <a class="tab{% if which == 'intents' %} is-on{% endif %}" href="?which=intents"{% if which == 'intents' %} aria-current="page"{% endif %}>محاولات البوّابة</a>
   </nav>
 
 {% if which == "recorded" %}

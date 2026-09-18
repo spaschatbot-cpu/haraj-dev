@@ -229,7 +229,10 @@ def record_payment(request):
         # جملةُ الخدمة نفسها: هي تفرّق بين «الفاتورة ملغاة» و«المبلغ أكبر من
         # المستحقّ» و«البطاقة لا تُسدّد بها سيارة»، وإعادةُ صياغتها هنا
         # تُضيّع ذلك الفرق.
-        messages.error(request, str(refusal))
+        #
+        # و`user_message` قبل `str`: `DomainError` يمرّر النصَّ الإنجليزيّ إلى
+        # `Exception` حين يُعطى الاثنان، فيقرأ الموظّفُ سطرَ مطوِّرٍ لا جملةً.
+        messages.error(request, getattr(refusal, "user_message", "") or str(refusal))
         return redirect(back)
 
     invoice.refresh_from_db()

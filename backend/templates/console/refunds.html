@@ -1,22 +1,44 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-الاستردادات — العددُ لكل حالة، بدل رقمٍ واحدٍ لا يُعرف ما يعدّه.
+الاستردادات — تبويبان: طلباتٌ يُعمَل عليها، وما نُفِّذ في الدفتر. T933
 
-في إنتاج v1 ثلاثةُ أرقامٍ لشيءٍ واحد: «لوحة التقارير» تقول ٣٬٣٤٢، و«إدارة
-الطلبات ← استرداد» تقول ٥٠٠، و«الاستردادات» نفسها تقول ٠. ولا واحدةٌ منها
-تقول أي مرشّحٍ تطبّق.
+**لماذا تبويبان.** كانت الشاشة تعرض `RefundRequest` وحدَه، وعلى الإنتاج
+طلباتُ الاسترداد **صفر** وفي الدفتر **١٬١٥٥ استرداداً منفَّذاً** — لأن الترحيل
+بنى أثرَ الاسترداد ولم يبنِ صفوفَ الطلبات. فمن يفتح «الاستردادات» يقرأ جدولاً
+فارغاً وقد استُرِدّ أحد عشر مليوناً ونصف. وهو عطلُ «إدارة المدفوعات» نفسُه
+(T931) في شاشةٍ أخرى.
 
-وهنا مصدرٌ واحد وحالاتٌ مسمّاة، فالسؤال يصير «كم مُقدَّماً وكم نُفِّذ» وله
-جوابٌ واحد.
+**وعددُ كلِّ تبويبٍ مكتوبٌ على لسانه**: «طلبات الاسترداد (٠)» جملةٌ تامّة
+تُقرأ «لا طلبات»، وجدولٌ فارغٌ بلا رقمٍ فوقه يُقرأ «الصفحة معطوبة».
+
+`unlocalize` على كل مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢) — وهذه الشاشة
+تُقارَن سطراً بسطر بكشف البنك أو بتقرير أودو، والتنسيقُ يجعل المقارنة مستحيلة.
+
+**والأزرارُ استماراتٌ في الصفّ، بلا جافاسكربت.** نافذةٌ لكلّ صفٍّ تحتاج سكربتاً
+يفتحها، وسكربتٌ لم يُحمَّل هو زرٌّ لا يفعل شيئاً بلا رسالةِ خطأٍ في أي مكان —
+وقع ذلك في «إدارة المدفوعات» وبُلِّغ عنه («قيد الدفعة مش شغال»). والاستمارةُ
+في الصفّ تعمل قبل أن يصل أيُّ سكربت، ولا تظهر إلا للصفوف المفتوحة.
 {% endcomment %}
 {% block title %}الاستردادات{% endblock %}
 {% block heading %}الاستردادات{% endblock %}
 {% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  {% comment %} سطرُ تعريفٍ يقول لماذا هذه الشاشةُ موجودةٌ أصلاً — وهو
-     مكتوبٌ في تعليق الملفّ أعلاه ولا يراه أحدٌ إلا من يفتح القالب. {% endcomment %}
+
+  {% comment %} تبويبان روابطُ لا أزرار: يُنسخان ويُفتحان في تبويبٍ جديد. {% endcomment %}
+  <nav class="tabs" aria-label="نوع العرض">
+    <a class="tab{% if which == 'requests' %} is-on{% endif %}" href="?which=requests"{% if which == 'requests' %} aria-current="page"{% endif %}>
+      طلبات الاسترداد <span class="count">{{ requests_total|unlocalize }}</span>
+    </a>
+    <a class="tab{% if which == 'done' %} is-on{% endif %}" href="?which=done"{% if which == 'done' %} aria-current="page"{% endif %}>
+      ما نُفِّذ في الدفتر <span class="count">{{ executed_total|unlocalize }}</span>
+    </a>
+    <a class="tab" href="{% url 'console:refund-queue' %}">طابور العجز</a>
+  </nav>
+
+{% if which == "requests" %}
+
   <p class="lede">
     كلُّ طلب استردادٍ وحالتُه. <strong>وفي v1 ثلاثةُ أرقامٍ لشيءٍ واحد</strong>
     — «لوحة التقارير» تقول ٣٬٣٤٢، و«إدارة الطلبات» تقول ٥٠٠، و«الاستردادات»
@@ -24,13 +46,9 @@
     مسمّاة، فالسؤالُ «كم مُقدَّماً وكم نُفِّذ» له جوابٌ واحد.
   </p>
 
-  {% comment %} كان جدولاً بثلاثة أعمدة: «الحالة · العدد · حبّةُ ما زال
-     مفتوحاً». وهو ليس جدولاً — لا صفوفَ تُفرَز ولا أعمدةَ تُقارَن، ستُّ قيمٍ
-     منفردةٍ يقرؤها الموظّفُ في لمحةٍ ثم ينزل إلى الجدول الحقيقيّ تحتها.
-     وعمودُه الثالثُ كان فارغاً في أربعةِ صفوفٍ من ستّة.
-
-     فبطاقات: العددُ تحت اسم حالته، و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافة
-     البطاقة لا حبّةٌ في عمودٍ ثالث. {% endcomment %}
+  {% comment %} ستُّ قيمٍ منفردةٍ يقرؤها الموظّفُ في لمحةٍ ثم ينزل إلى الجدول
+     تحتها — بطاقاتٌ لا جدولٌ بثلاثة أعمدة، إذ لا صفوفَ تُفرَز ولا أعمدةَ
+     تُقارَن. و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافّة البطاقة. {% endcomment %}
   <section class="sum-grid sum-grid--tight" aria-label="الاستردادات بحالاتها">
     {% for row in counts %}
       <div class="sum{% if row.open %} sum--wait{% endif %}">
@@ -50,9 +68,8 @@
     </div>
   </section>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلان وزرٌّ في الهواء بلا لوحةٍ
-     تجمعها. وهي دون عتبةِ القوائم الثلاث، فتقع في سطرٍ واحد. {% endcomment %}
   <form method="get" class="filters filters--row">
+    <input type="hidden" name="which" value="requests">
     <div class="filters__main">
       <input type="search" name="q" value="{{ q }}"
              placeholder="اسم العميل أو جواله أو المرجع" aria-label="بحث">
@@ -66,38 +83,167 @@
     </div>
   </form>
 
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المرجع</th>
+          <th>العميل</th>
+          <th>الجوال</th>
+          <th>المبلغ</th>
+          <th>ما كتبه العميل</th>
+          <th>الحالة</th>
+          <th>صندوق أودو</th>
+          <th>الحركة</th>
+          <th>قُدِّم</th>
+          <th>القرار</th>
+          {% if may_act %}<th>تحكّم</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td class="mono">{{ row.reference }}</td>
+            <td><a href="{% url 'console:customer-detail' row.user.pk %}">{{ row.user.full_name|default:row.user.phone }}</a></td>
+            <td>{{ row.user.phone|unlocalize }}</td>
+            <td class="money">{{ row.amount|unlocalize }}</td>
+            {% comment %} ما كتبه العميلُ كما كتبه — الآيبانُ الذي يريد التحويل
+               إليه وما يوضّحه. وv1 يحمل `iban_account` عموداً و`iban_image`
+               صورةً؛ وعندنا الصورةُ مستندٌ في ملفّ العميل (`DocumentKind.IBAN`)
+               و`request_refund` ترفض الطلبَ بدونها أصلاً. {% endcomment %}
+            <td>{{ row.note|default:"—" }}</td>
+            <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+            <td>
+              {% if row.outbox_message_id %}
+                <span class="pill">{{ row.outbox_message.get_state_display }}</span>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>
+              {% if row.resulting_transaction_id %}
+                <span class="count">{{ row.resulting_transaction_id|unlocalize }}</span>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              {% if row.decided_by_id %}
+                {{ row.decided_by.full_name|default:row.decided_by.phone }}
+                <small>{{ row.decided_at|date:"Y-m-d H:i" }}</small>
+                {% if row.decision_note %}<small>{{ row.decision_note }}</small>{% endif %}
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+
+            {% if may_act %}
+              <td class="rf-act">
+                {% if row.may_send or row.may_reject %}
+                  <form method="post" class="rowact">
+                    {% csrf_token %}
+                    <input type="hidden" name="refund" value="{{ row.pk }}">
+                    <input type="hidden" name="back" value="{{ back }}">
+                    {% comment %} السببُ إجباريٌّ للرفض ويدخل الصفَّ وسجلَّ
+                       التدقيق — والقيدُ `a_refused_refund_names_its_decision`
+                       يمنع الفارغ في القاعدة. {% endcomment %}
+                    <input type="text" name="reason" maxlength="500"
+                           placeholder="سبب القرار" aria-label="سبب القرار">
+                    {% if row.may_send %}
+                      <button type="submit" name="op" value="send" class="btn-primary-sm">أرسِلْه للمحاسبة</button>
+                    {% endif %}
+                    {% if row.may_reject %}
+                      <button type="submit" name="op" value="reject" class="btn-danger-sm">ارفضه</button>
+                    {% endif %}
+                  </form>
+                {% else %}
+                  <span class="empty">قرارٌ نهائيّ</span>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="{% if may_act %}11{% else %}10{% endif %}" class="empty">
+              لا طلبات استرداد مطابقة.
+              {% if executed_total %}
+                و<a href="?which=done">{{ executed_total|unlocalize }} استرداداً نُفِّذ فعلاً</a> — الطلباتُ لم تُرحَّل من v1، والأثرُ رُحِّل.
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+{% else %}
+
+  <p class="lede">
+    ما خرج فعلاً من تأمين العملاء — <strong>وهو ما تحرّك في الدفتر</strong>، لا
+    ما طُلب. والمصادرةُ معه في جدولٍ واحدٍ كما في v1 («المبالغ المخصومة»)،
+    ونوعُ القيد يفرّق. والتصحيحُ هنا <strong>بقيدٍ عاكس</strong> لا بتعديل
+    صفّ: الصفُّ جزءٌ من قيدٍ مزدوج، وتحريرُه يُخرج الدفترَ عن التوازن.
+  </p>
+
+  <form method="get" class="filters filters--row">
+    <input type="hidden" name="which" value="done">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم العميل أو جواله أو المرجع" aria-label="بحث">
+      <select name="kind" aria-label="النوع">
+        <option value="">استرداداً ومصادرة</option>
+        {% for value, label in kinds %}
+          <option value="{{ value }}" {% if value == kind %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
+  </form>
 
   <div class="scroller">
     <table>
-    <thead>
-      <tr>
-        <th>المرجع</th>
-        <th>العميل</th>
-        <th>الجوال</th>
-        <th>المبلغ</th>
-        <th>الحالة</th>
-        <th>قُدِّم</th>
-        {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم؛ والعمودُ له اسمٌ فعلاً. {% endcomment %}
-        <th>الدفتر</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
+      <thead>
         <tr>
-          <td>{{ row.reference }}</td>
-          <td><a href="{% url 'console:customer-detail' row.user.pk %}">{{ row.user.full_name }}</a></td>
-          <td>{{ row.user.phone|unlocalize }}</td>
-          <td class="money">{{ row.amount|unlocalize }}</td>
-          <td>{{ row.get_state_display }}</td>
-          <td>{{ row.created_at }}</td>
-          <td class="rf-act"><a class="rf-go" href="{% url 'console:money-customer' row.user.pk %}">دفتره</a></td>
+          <th>#</th>
+          <th>النوع</th>
+          <th>المصدر</th>
+          <th>رقم العميل</th>
+          <th>الاسم</th>
+          <th>المبلغ</th>
+          <th>المرجع</th>
+          <th>البيان</th>
+          <th>التاريخ</th>
+          <th>الدفتر</th>
         </tr>
-      {% empty %}
-        <tr><td colspan="7" class="empty">لا طلبات استرداد مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+      </thead>
+      <tbody>
+        {% for row in page %}
+          <tr>
+            <td class="mono">{{ row.pk|unlocalize }}</td>
+            <td>{{ row.get_kind_display }}</td>
+            <td>{{ row.source }}</td>
+            <td class="mono">
+              {% if row.customer %}{{ row.customer.pk|unlocalize }}
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td>
+              {% if row.customer %}
+                <a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name|default:row.customer.phone }}</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td class="money">{{ row.amount|unlocalize }}</td>
+            <td class="mono">{{ row.reference }}</td>
+            <td>{{ row.memo|default:"—" }}</td>
+            <td>{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+            <td class="rf-act">
+              {% if row.customer %}
+                <a class="rf-go" href="{% url 'console:money-customer' row.customer.pk %}">دفتره</a>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="10" class="empty">لا قيود مطابقة.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 
-  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> طلباً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
+{% endif %}
+
+  {% include "console/_pager.html" %}
 {% endblock %}

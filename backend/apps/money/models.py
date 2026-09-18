@@ -765,6 +765,26 @@ class RefundRequest(models.Model):
     )
     note = models.TextField(blank=True)
 
+    #: **من قرّر، ومتى، وبأيّ كلمة.** T933.
+    #:
+    #: v1 لا يحمل واحداً من الثلاثة: `refunds_requests_update.php` يكتب
+    #: ``UPDATE refunds_requests SET status='approved' WHERE id=?`` — بلا
+    #: معرّف موظّفٍ ولا وقتٍ ولا سبب. فطلبُ استردادِ عشرةِ آلافٍ يُرفض، ثمّ
+    #: يسأل العميلُ بعد شهر، ولا يوجد في النظام كلِّه ما يقول من رفضه ولا
+    #: لماذا. وثلاثةُ أعمدةٍ هنا أرخصُ من سؤالٍ لا جواب له.
+    #:
+    #: و`SET_NULL` ليست خياراً: حسابُ موظّفٍ يُحذَف فيصير القرارُ بلا صاحب،
+    #: وهو نصفُ العطل الذي تُصلحه هذه الأعمدة أصلاً.
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="+",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decision_note = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -772,6 +792,21 @@ class RefundRequest(models.Model):
         constraints = [
             models.CheckConstraint(
                 condition=Q(amount__gt=ZERO), name="refund_request_is_positive"
+            ),
+            # رفضٌ يقول من ومتى ولماذا — نظيرُ
+            # `a_closed_shortfall_names_its_decision` وبالسبب نفسه: صفٌّ
+            # مرفوضٌ بلا قرارٍ مكتوب هو قرارٌ لا يُسأل عنه أحد.
+            #
+            # و`cancelled` **خارج القيد** عمداً: هي «ألغاه العميل» كما يقول
+            # اسمُها، ولا موظّفَ فيها ليُسمّى. وv1 يحذف الصفَّ حذفاً
+            # (`delete_refund.php`) فلا يبقى ما يُسأل عنه أصلاً؛ ونظيرُ ذلك
+            # الزرِّ هنا هو **الرفضُ بسبب**، لا حذفٌ ولا إلغاءٌ باسم العميل.
+            models.CheckConstraint(
+                condition=(
+                    ~Q(state="rejected")
+                    | (~Q(decision_note="") & Q(decided_by__isnull=False))
+                ),
+                name="a_refused_refund_names_its_decision",
             ),
             models.CheckConstraint(
                 condition=(
