@@ -54,7 +54,7 @@
     <a class="sum sum--live" href="{% url 'console:live-bids' %}">
       <p class="sum__label">الجاري الآن</p>
       <p class="sum__value">{{ live|unlocalize }}</p>
-      <p class="sum__note">إحصائيات المزاد النشط</p>
+      <p class="sum__note">أرقامُه ومزايداتُه</p>
     </a>
 
     {% comment %} الوحيدُ الذي مبلغٌ بين ستّةِ أعداد — ومبلغُ **دفتر المحفظة**،
@@ -71,8 +71,8 @@
       <p class="sum__note">سجل المحفظة</p>
     </a>
 
-    {% comment %} بطاقةٌ بلا وجهة منذ T939 — انظر نظيرتَها في
-       `analytics.html`. {% endcomment %}
+    {% comment %} بطاقةٌ بلا وجهة منذ T939: «تحليل المزايدات» حُذفت بطلب
+       المالك، ولا شاشةَ تقرأ هذا الرقمَ وتقسمه. {% endcomment %}
     <div class="sum">
       <p class="sum__label">المزايدون</p>
       <p class="sum__value">{{ bidders|unlocalize }}</p>
@@ -114,24 +114,6 @@
     <a class="open" href="{% url 'console:auction-archive' %}">
       <span class="open__name">أرشيف المزادات</span>
       <span class="open__why">المزادات المنتهية وأرقامها</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:analytics' %}">
-      <span class="open__name">لوحة التقارير</span>
-      <span class="open__why">التحليلات والإحصائيات</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:profit-report' %}">
-      <span class="open__name">تقرير الأرباح</span>
-      <span class="open__why">ما دخل وما خرج</span>
       {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
          تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
          لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ

@@ -39,22 +39,18 @@ from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
 
-from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Max, Q, Sum
+from django.db.models import Avg, Count, Max, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import User
 from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
-from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid, BidRefusal
 from apps.core.arabic import search_q
 from apps.money import services as money
-from apps.money.models import Invoice
 
 from .decisions import AWARDED as DECISION_AWARDED
 from .decisions import awarded
-from .exports import export, wants_export
 from .money import wallet_rows
 from .sensitive import shown_to
 from .views import console_page
@@ -100,26 +96,6 @@ def _rounded(value: Decimal | None) -> Decimal | None:
 # مستبدَلة) تُقرأ لكل مزادٍ في «المزاد الجاري» (T938) ولكل مركبةٍ في «مزايدات
 # المركبة». والمفقودُ حقّاً: **أكثرُ المزايدين نشاطاً** على المنصّة كلِّها،
 # و«كم رسا لكلّ مزايد» — وكانت شاشةُ `bids-report` تجيبه وحُذفت معها.
-
-def report_totals() -> dict:
-    """أرقام لوحة التقارير — كلٌّ منها **يستدعي مصدرَ شاشته** لا استعلاماً ثانياً.
-
-    في v1 يقول هذا المركز «المزايدات المقبولة 6,503» وتقول شاشتها `4,378`،
-    ويقول «طلبات الاسترداد 3,342» وتقول إدارة الطلبات `500` والاستردادات `0`.
-    ثلاثةُ أرقامٍ لشيءٍ واحد على ثلاث شاشات، ولا واحدةٌ تقول أي مرشّحٍ تطبّق.
-
-    فما هنا نداءاتٌ للدوالّ نفسها التي تبني تلك الشاشات — والرقم الذي يختلف
-    عن شاشته لا يمكن أن يُكتب من هنا.
-    """
-    return {
-        "awarded": awarded().count(),
-        "bids": Bid.objects.count(),
-        "refusals": BidRefusal.objects.count(),
-        "auctions": Auction.objects.count(),
-        "vehicles": Vehicle.objects.count(),
-        "awarded_value": awarded().aggregate(t=Sum("awarded_price"))["t"] or ZERO,
-    }
-
 
 def report_for(*, phone: str = "", name: str = "") -> dict | None:
     """تقريرُ مزايدات شخصٍ واحد، أو  حين لا يُسمّى أحد.
@@ -218,20 +194,6 @@ def user_bids(request):
     )
 
 
-@console_page("console:analytics")
-def reports(request):
-    """لوحة التقارير: خمسة أرقام، وكلٌّ منها بابٌ إلى شاشته."""
-    # خمسةٌ منها أعداد، والسادس **مبلغ**: «إجمالي أسعار الترسية» هو بعينه
-    # الرقمُ الذي حُجب في «ملخّص المقبولة» التي يشير إليها الرابطُ بجواره.
-    # فإظهارُه هنا يُبطل حجبَه هناك بنقرةٍ أقلّ. قِيس: `52000.00` كانت تُقرأ
-    # بـ`auctions.view` وحدَها على `haraj2_t307`.
-    return render(
-        request,
-        "console/analytics.html",
-        {"totals": report_totals(), "show_money": shown_to(request.user).money},
-    )
-
-
 # ---------------------------------------------------------------------------
 # أرقامُ المزاد الجاري — «لو أُغلق الآن». T830ح · T938
 # ---------------------------------------------------------------------------
@@ -290,130 +252,20 @@ def live_shape(auctions) -> dict | None:
 
 
 # ---------------------------------------------------------------------------
-# تقرير الأرباح — وقاعدةُ كسر التعادل تُقرأ من مكانها. T830ك
+# قسمُ «التقارير والتحليلات» كان هنا — وحُذف كلُّه. T940
 # ---------------------------------------------------------------------------
 #
-# عنوان شاشة v1 يحمل قاعدةً: «أعلى مزايد لكل مزاد، **مع كسر التعادل بـMIN(id)**».
-# والقاعدة صحيحة — الأسبقُ إدخالاً يفوز عند التساوي — **وموضعُها خطأ**: قاعدةٌ
-# تعيش في نصّ عنوانٍ تُنسى يوم تُعاد كتابة الشاشة.
+# قرارُ المالك (١٨ سبتمبر ٢٠٢٦): «احذف القسم كامل… الصفحات التانية بتعمل
+# وظيفته». وهو وصفٌ دقيق: كلُّ رقمٍ في «لوحة التقارير» كان **بابَ** شاشةٍ
+# أخرى تقرؤه من مصدره — بنصّ تعليقها: «كلُّ رقمٍ يُقرأ من مصدر شاشته لا من
+# استعلامٍ ثانٍ». فهي صفحةُ عبورٍ لا صفحةُ جواب، والأرقامُ نفسُها في
+# الرئيسية وفي «منصّة الملّاك» ومعها أبوابُها.
 #
-# وفي v2 هي في `apps/bidding/settlement.py`: `order_by("-amount", "placed_at")`،
-# ومعها `Bid.Meta.ordering` نفسه. فهذه الشاشة **تقرأ الترتيب من هناك** ولا
-# تعيد كتابته — ولو تغيّرت القاعدة يوماً تغيّر التقريرُ معها.
+# و«تقرير الأرباح» (`profit_base` · `profit_rows` · `profit_totals`) حُذف
+# معه. وما كان يجيبه — ما أنتجه كلُّ مزادٍ وما فُوتِر منه وما وصل — **يُفقد
+# فعلاً**: «مركز الفواتير» يجيب «كم لنا» على الفواتير كلِّها لا مزاداً مزاداً.
 #
-# و«رأس المال» في v1 حقلُ إدخالٍ يكتبه الموظّف في كل مرّة، والربحُ يُحسب عليه.
-# أي أن **الرقم الناتج لا يُعاد إنتاجه**: من يفتح التقرير غداً بقيمةٍ أخرى يرى
-# ربحاً آخر، ولا شيء يقول أيّهما كان. فهو ليس هنا — والتقرير يعرض ما وقع
-# (إيراد الترسية والمفوتَر والمحصَّل)، والمقارنةُ برأس مالٍ قرارٌ يُكتب في
-# مكانٍ يُراجَع لا خانةٌ تُملأ.
-
-
-def profit_base(*, first: str = "", last: str = "", state: str = ""):
-    """المزاداتُ المطلوبة **بلا تجميع** — أساسُ الإجماليّات.
-
-    تُفصَل عن `profit_rows` لأن الإجماليَّ المحسوبَ فوق طبقةِ التجميع يقتل
-    الخادم: ضمُّ `vehicles__bids` إلى استعلامٍ يحمل أربعةَ `Count/Sum` على
-    ضمِّ `vehicles` يُنتج حاصلَ ضربٍ ديكارتيّاً (١٢٬٩٨١ مركبةً × ١٦٣٬٢٨٣
-    مزايدة) يُغلَّف في `COUNT(*) FROM (SELECT DISTINCT …)`. قِيس على
-    `haraj2_t307`: **يتجاوز ٢٠ ثانية بحدٍّ زمنيّ، و١٠ دقائقَ بلا حدّ حتى
-    تموت عمليّةُ الخادم** فتسقط اللوحةُ كلُّها لا هذه الشاشةُ وحدها. والعدُّ
-    نفسُه على قاعدةٍ نظيفة: **٠٫٢٤ ثانية، والجواب ٢١**.
-    """
-    rows = Auction.objects.all()
-
-    if (first or "").strip().isdigit():
-        rows = rows.filter(number__gte=int(first))
-    if (last or "").strip().isdigit():
-        rows = rows.filter(number__lte=int(last))
-    if (state or "").strip() in AuctionState.values:
-        rows = rows.filter(state=state)
-
-    return rows
-
-
-def profit_rows(*, first: str = "", last: str = "", state: str = ""):
-    """كل مزادٍ وما أنتجه — من المركبات المرساة فيه لا من عمودٍ مخزَّن."""
-    rows = profit_base(first=first, last=last, state=state)
-
-    won = Q(vehicles__state__in=AWARDED_STATES)
-    return rows.annotate(
-        cars=Count("vehicles", distinct=True),
-        sold=Count("vehicles", filter=won, distinct=True),
-        revenue=Sum("vehicles__awarded_price", filter=won),
-        unsold=Count("vehicles", filter=~won, distinct=True),
-    ).order_by("-starts_at", "-number")
-
-
-def profit_totals(base) -> dict:
-    """الإجماليّات — والمفوتَرُ والمحصَّلُ من الفواتير لا من ضربٍ في نسبة.
-
-    v1 يعرض «مع الضريبة» و«بدون الضريبة» فيضرب الإجمالي في ١٫١٥. وهنا
-    «المفوتَر» مجموعُ الفواتير الصادرة فعلاً، و«المحصَّل» ما وصل منها —
-    والفرقُ بين الثلاثة هو ما يُقرأ.
-
-    ويأخذ **قاعدةً بلا تجميع** (`profit_base`) لا صفوفَ الشاشة: انظر ثمنَ
-    ذلك في `profit_base`.
-    """
-    invoices = Invoice.objects.filter(vehicle__auction__in=base)
-    return {
-        "auctions": base.count(),
-        "with_bids": base.filter(vehicles__bids__isnull=False).distinct().count(),
-        "revenue": base.aggregate(t=Sum("vehicles__awarded_price"))["t"] or ZERO,
-        "invoiced": invoices.aggregate(t=Sum("amount"))["t"] or ZERO,
-        "collected": invoices.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
-    }
-
-
-@console_page("console:profit-report")
-def profit_report(request):
-    """تقرير الأرباح: ما أنتجه كل مزاد، وما فُوتِر منه وما وصل."""
-    first = request.GET.get("from", "")
-    last = request.GET.get("to", "")
-    state = request.GET.get("state", "")
-    rows = profit_rows(first=first, last=last, state=state)
-
-    if wants_export(request):
-        return export(
-            rows,
-            name="تقرير-الأرباح",
-            headers=[
-                "المزاد",
-                "الاسم",
-                "الحالة",
-                "بدأ",
-                "المركبات",
-                "المباعة",
-                "غير المباعة",
-                "إيراد الترسية",
-            ],
-            cell=lambda row: [
-                row.number,
-                row.title,
-                row.get_state_display(),
-                row.starts_at,
-                row.cars,
-                row.sold,
-                row.unsold,
-                row.revenue or ZERO,
-            ],
-        )
-
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    return render(
-        request,
-        "console/profit_report.html",
-        {
-            "page": page,
-            "totals": profit_totals(profit_base(first=first, last=last, state=state)),
-            "first": first,
-            "last": last,
-            "state": state,
-            "states": [
-                (value, AuctionState(value).label) for value in AuctionState.values
-            ],
-        },
-    )
-
+# وحُذفت الدوالُّ مع شاشاتها لا بعدها، لسبب T939 نفسِه.
 
 # ---------------------------------------------------------------------------
 # منصة الملاك — روابطُ شاشاتٍ موجودة، وأرقامٌ من مصادرها. T830ك
