@@ -203,10 +203,9 @@ urlpatterns = [
     path("vehicle-exit/<int:pk>/edit/", exits.exit_edit, name="exit-edit"),
     path("vehicle-exit/<int:pk>/note/", exits.exit_note, name="exit-note"),
     path("ended-decisions/", billing.ended_decisions, name="ended-decisions"),
-    # الفواتير — شاشةٌ واحدة (T936). و«حالة فاتورة» باقيةٌ بقدرتها الأضيق
-    # (`invoices.lookup`) وخارجَ الشريط: بحثُها دخل «مركز الفواتير»، ودمجُها
-    # دمجاً كاملاً كان يلغي القدرةَ التي تحرس الجواب الموجَّه إلى خارج الشركة.
-    path("invoices/status/", billing.invoice_lookup, name="invoice-lookup"),
+    # الفواتير — شاشةٌ واحدة (T936 · T937). و«حالة فاتورة» و«تصدير الفواتير»
+    # حُذفتا: بحثُ الأولى بالشاصي واللوحة صار مدخلاً في «مركز الفواتير»،
+    # ومدى الثانية مرشِّحاً فيه.
     # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830و).
     path("partner/", partner_console.partner_console, name="partner-console"),
     path("partner/auctions/", partner_console.partner_auctions, name="partner-auctions"),

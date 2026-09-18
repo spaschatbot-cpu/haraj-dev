@@ -63,16 +63,16 @@ class Capability(models.TextChoices):
 
     INVOICES_VIEW = "invoices.view", "عرض الفواتير والمدفوعات"
 
-    #: **أضيق من `invoices.view` عمداً.** شاشة «حالة فاتورة» (T830ز) هي
-    #: الوحيدة في اللوحة التي يُفتَح جوابُها لقارئٍ من **خارج** الشركة —
-    #: شركةِ تأمينٍ أو جهةٍ تسأل عن مركبةٍ بعينها. فهي تُجيب عن مركبةٍ واحدة
-    #: بحالتها، ولا تعرض اسم المشتري ولا جوّاله ولا مبلغه ولا تسرد قائمة.
-    #:
-    #: وقدرةٌ منفصلة لأن المنح مختلف: من يجيب هاتفَ شركة التأمين لا يحتاج
-    #: قائمة الفواتير كلّها بمبالغها ومشتريها، ومنحُه `invoices.view` ليجيب
-    #: سؤالاً واحداً يفتح له الباقي كلّه. وهذا هو ما يفعله `StaffGrant`
-    #: النقيض: قدرةٌ صغيرة تُمنح وحدها.
-    INVOICE_LOOKUP = "invoices.lookup", "الاستعلام عن حالة فاتورة مركبة"
+    # ``INVOICE_LOOKUP = "invoices.lookup"`` كانت هنا، وحُذفت في ١٨ سبتمبر
+    # ٢٠٢٦ (T937) مع شاشتها «حالة فاتورة». كانت **أضيقَ من `invoices.view`
+    # عمداً** لتُجيب شركةَ تأمينٍ أو جهةً خارجَ الشركة عن مركبةٍ بعينها بلا
+    # مشترٍ ولا جوّالٍ ولا مبلغ — وقرارُ المالك: «شركة التأمين ملهاش أي علاقة
+    # نهائياً. الشغل كله عندي وأنا بخلّص وببيع وأحاسبهم».
+    #
+    # وحُذفت **معها** لا بعدها: قدرةٌ بلا صفحةٍ تحرسها ليست شيفرةً ميّتة، هي
+    # جملةٌ كاذبة في نموذج الصلاحيات — كما قيل عند حذف `invoices.manage` أدناه.
+    # ولا منحَ قائماً لها: قِيس على الإنتاج في ١٨ سبتمبر ٢٠٢٦، **صفرُ صفٍّ**
+    # في `StaffGrant` كلِّه.
 
     # `invoices.manage` كانت هنا، وكانت ممنوحةً للمالك والمالية، **ولا تحرس
     # صفحةً واحدة**: لا صفَّ لها في `navigation.PAGES` ولا `require()` يطلبها.
@@ -207,7 +207,6 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.PARTNERS_DECIDE,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
-            Capability.INVOICE_LOOKUP,
             Capability.DIAGNOSTICS_VIEW,
         }
     ),
@@ -217,7 +216,6 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.AUCTIONS_VIEW,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
-            Capability.INVOICE_LOOKUP,
             Capability.MONEY_VIEW,
             Capability.MONEY_ACT,
             Capability.DIAGNOSTICS_VIEW,
@@ -234,7 +232,6 @@ ROLE_CAPABILITIES: dict[str, frozenset[str]] = {
             Capability.AUCTIONS_VIEW,
             Capability.USERS_VIEW,
             Capability.INVOICES_VIEW,
-            Capability.INVOICE_LOOKUP,
             Capability.MONEY_VIEW,
             Capability.DIAGNOSTICS_VIEW,
             Capability.NOTIFICATIONS_VIEW,
