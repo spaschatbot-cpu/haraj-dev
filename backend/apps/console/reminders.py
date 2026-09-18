@@ -23,10 +23,16 @@ from apps.auctions.models import Auction
 
 from .views import console_page
 
+#: إلى أين يعود التذكيرُ بعد إدراجه — تبويبُه في «الإشعارات».
+BACK = "/console/notifications/?which=reminders"
 
-@console_page("console:reminders")
-def reminders(request):
-    """المزادات التي لها موعدُ تذكير — ما حان منها وما أُدرج."""
+
+def reminders(request, shell: dict | None = None):
+    """المزادات التي لها موعدُ تذكير — ما حان منها وما أُدرج.
+
+    **ليست صفحةً بعد T941**: دُمجت في «الإشعارات» تبويباً. والتذكيرُ إشعارٌ
+    يُدرَج في الطابور نفسِه ويظهر في السجلّ نفسِه، فشاشتُه كانت بابَه الثالث.
+    """
     now = timezone.now()
     rows = (
         Auction.objects.exclude(sms_reminder_at__isnull=True)
@@ -66,8 +72,14 @@ def reminders(request):
     }
     return render(
         request,
-        "console/reminders.html",
-        {"rows": shown, "due": due, "now": now, "counts": counts},
+        "console/notifications.html",
+        (shell or {"which": "reminders"})
+        | {
+            "rows": shown,
+            "due": due,
+            "now": now,
+            "counts": counts,
+        },
     )
 
 
@@ -75,7 +87,7 @@ def reminders(request):
 def reminder_send(request, pk: int):
     """أدرِج تذكيرَ مزادٍ في الطابور — مرّةً واحدة، بضغطة إنسان."""
     auction = get_object_or_404(Auction, pk=pk)
-    back = redirect("console:reminders")
+    back = redirect(BACK)
     if request.method != "POST":
         return back
 

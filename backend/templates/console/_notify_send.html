@@ -1,0 +1,228 @@
+{% load l10n %}
+{% comment %}
+إرسال إشعار.
+
+في v1 خيارُ «جميع المستخدمين» أوّلُ عنصرٍ في القائمة — أي المختارُ افتراضياً —
+واستعلامُه بلا `WHERE` ولا `LIMIT`. فعنوانٌ ونصٌّ وضغطةٌ = بثٌّ إلى ٤٤ ألفاً،
+بلا عدٍّ مسبقٍ ولا تأكيدٍ ولا كلفةٍ معروضة، والعددُ يظهر بعد التنفيذ.
+
+فهنا ثلاث خطوات: تُوصَف، ثمّ تُعاين بالعدد والكلفة وحالة البوّابة، ثمّ تُنفَّذ
+برمزٍ من المعاينة. وزرُّ الإرسال **لا يُرسَم قبل المعاينة** — لا معطّلاً ولا
+مخفيّاً بـCSS: الخانةُ التي لا تُرسَم لا تُرسَل.
+{% endcomment %}
+  {% comment %} سطرُ تعريفٍ يقول الخطواتِ الثلاث — وهي ما يفرّق هذه الشاشةَ
+     عن نظيرتها في v1: هناك عنوانٌ ونصٌّ وضغطةٌ = بثٌّ إلى ٤٤ ألفاً بلا عدٍّ
+     ولا كلفةٍ معروضة. {% endcomment %}
+  <p class="lede">
+    <strong>ثلاثُ خطوات: تُوصَف، ثمّ تُعايَن بالعدد والكلفة، ثمّ تُنفَّذ.</strong>
+    وزرُّ الإرسال لا يُرسَم قبل المعاينة — والخانةُ التي لا تُرسَم لا تُرسَل.
+  </p>
+
+  {% if sms_refusal %}
+    {% comment %} المعرّفُ التقنيُّ في سطرٍ `ltr` وحدَه لا داخل الجملة: خلطُ
+       الاتّجاهين يقلب ترتيبَ القطع فيُقرأ الكلامُ مبعثراً — رُئي على هذه
+       الفقرة بعينها في لقطةٍ من الإنتاج. {% endcomment %}
+    <p class="alarm">
+      <strong>بوّابةُ الرسائل مقفلة.</strong> {{ sms_refusal }}
+      {% if sms_detail %}<span class="bc-id" dir="ltr">{{ sms_detail }}</span>{% endif %}
+      <small>القناةُ داخل التطبيق تعمل — هي صفٌّ في جدولنا ولا تعبر بوّابة.</small>
+    </p>
+  {% endif %}
+
+  <form method="post" class="form-card broadcast-form">
+    {% csrf_token %}
+    <input type="hidden" name="step" value="preview">
+
+    {% comment %} الاستمارةُ كانت عموداً واحداً من `<p>`: أحدَ عشرَ حقلاً
+       تحت بعضها في صفحةٍ تُمرَّر، والعناوينُ الثلاثةُ بينها بحجم عنوان الشاشة.
+       فصارت ثلاثَ كتلٍ معنونة، وحقولُها في شبكةٍ تملأ العرض. {% endcomment %}
+    <h3 class="dd-sec">القناة <small>وما تكلّفه</small></h3>
+    <div class="bc-radios">
+      {% for value, label in channels %}
+        <label class="bc-radio">
+          <input type="radio" name="channel" value="{{ value }}"
+                 {% if form.channel == value %}checked{% endif %}>
+          <span>{{ label }}</span>
+        </label>
+      {% endfor %}
+    </div>
+
+    <h3 class="dd-sec">الجمهور <small>من يطابق هذه المرشّحات</small></h3>
+    <div class="cat-filters cat-filters--plain">
+      <div class="cat-filters__field">
+        <label for="account_type">نوع الحساب</label>
+        <select id="account_type" name="account_type">
+          {% for value, label in account_types %}
+            <option value="{{ value }}" {% if form.account_type == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cat-filters__field">
+        <label for="status">حالة الحساب</label>
+        <select id="status" name="status">
+          {% for value, label in statuses %}
+            <option value="{{ value }}" {% if form.status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="cat-filters__field">
+        <label for="auction">رقم المزاد</label>
+        <input id="auction" type="number" name="auction" value="{{ form.auction }}" min="1"
+               placeholder="اتركه فارغاً لتجاهل المزاد">
+      </div>
+      <div class="cat-filters__field">
+        <label for="auction_link">العلاقة بالمزاد</label>
+        <select id="auction_link" name="auction_link">
+          {% for value, label in auction_links %}
+            <option value="{{ value }}" {% if form.auction_link == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <label class="bc-check">
+      <input type="checkbox" name="with_dues" value="1" {% if form.with_dues %}checked{% endif %}>
+      <span>من عليه مستحقّات غير مسدَّدة</span>
+    </label>
+
+    <h3 class="dd-sec">الرسالة <small>وسببُ بثّها</small></h3>
+    <div class="bc-msg">
+      <div class="cat-filters__field">
+        <label for="title">العنوان</label>
+        <input id="title" type="text" name="title" value="{{ form.title }}" maxlength="120">
+        <small class="bc-hint">يُقرأ داخل التطبيق. الرسالةُ النصّيّة تحمل النصَّ وحده.</small>
+      </div>
+      <div class="cat-filters__field">
+        <label for="body">النصّ</label>
+        <textarea id="body" name="body" rows="4" required>{{ form.body }}</textarea>
+      </div>
+      <div class="cat-filters__field">
+        <label for="reason">سبب البثّ</label>
+        <input id="reason" type="text" name="reason" value="{{ form.reason }}" required>
+        <small class="bc-hint">إجباريّ، ويدخل سجلَّ التدقيق مع العدد والكلفة. v1 لا يسجّل من أرسل أصلاً.</small>
+      </div>
+    </div>
+
+    <div class="form-actions"><button type="submit" class="btn-primary">اعرض الجمهور والكلفة</button></div>
+  </form>
+
+  {% if plan %}
+    <h2>ما سيقع لو ضُغط الزرّ</h2>
+    <div class="scroller">
+      <table>
+        <tbody>
+          <tr>
+            <th>الجمهور</th>
+            <td>{{ plan.audience.describe }}</td>
+          </tr>
+          <tr>
+            <th>عدد المستلمين</th>
+            <td class="count"><strong>{{ plan.recipients|unlocalize }}</strong></td>
+          </tr>
+          {% if plan.costs_money %}
+            <tr>
+              <th>كلفة الرسالة</th>
+              <td class="money">
+                {% if plan.unit_cost %}{{ plan.unit_cost|unlocalize }} ريال{% else %}
+                  <span class="alarm">غير معروفة — <code>SMS_COST_PER_MESSAGE</code> بلا قيمة، وتنتظر رقماً من المالك.</span>
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <th>الكلفة المقدَّرة</th>
+              <td class="money">
+                {% if plan.estimated_cost %}<strong>{{ plan.estimated_cost|unlocalize }} ريال</strong>
+                {% else %}<span class="alarm">لا تُحسَب بلا كلفةِ رسالة — ولا يُخترع رقم.</span>{% endif %}
+              </td>
+            </tr>
+          {% else %}
+            <tr><th>الكلفة</th><td>لا شيء — صفٌّ في جدولنا لا يعبر بوّابة.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if plan.refusal %}
+      <p class="alarm"><strong>لا يُرسَل شيء.</strong> {{ plan.refusal }}</p>
+    {% elif not plan.recipients %}
+      <p class="empty">لا أحدَ يطابق هذا المرشّح — لا شيء يُدرَج.</p>
+    {% else %}
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="step" value="send">
+        {% comment %} الرمزُ هو هويّةُ الحدث ومنه يُشتقّ مفتاحُ التفرّد:
+           ضغطتان أو إعادةُ تحميلٍ بعد POST تحملانه فتصطدمان بالقيد في
+           القاعدة ولا تصيران بثّين. {% endcomment %}
+        <input type="hidden" name="token" value="{{ token }}">
+        <input type="hidden" name="channel" value="{{ form.channel }}">
+        <input type="hidden" name="account_type" value="{{ form.account_type }}">
+        <input type="hidden" name="status" value="{{ form.status }}">
+        <input type="hidden" name="auction" value="{{ form.auction }}">
+        <input type="hidden" name="auction_link" value="{{ form.auction_link }}">
+        {% if form.with_dues %}<input type="hidden" name="with_dues" value="1">{% endif %}
+        <input type="hidden" name="title" value="{{ form.title }}">
+        <textarea name="body" hidden>{{ form.body }}</textarea>
+        <input type="hidden" name="reason" value="{{ form.reason }}">
+
+        {% if plan.needs_confirmation %}
+          {% comment %} فوق الحدّ: الرقمُ يُكتَب في الطلب ويُقارَن على الخادم.
+             تأكيدٌ في الجافاسكربت يُلتفّ عليه بطلبٍ مباشر. {% endcomment %}
+          <p class="alarm">
+            <strong>{{ plan.recipients|unlocalize }} مستلماً — فوق حدّ التأكيد ({{ confirm_above|unlocalize }}).</strong>
+            أكبرُ جمهورٍ طبيعيٍّ في هذه القاعدة مزايدو مزادٍ واحد (٤٦٩)؛ وفوق ذلك
+            لا يكون الجمهورُ مجموعةً تُسمّى بل كلَّ من يطابق مرشّحاً.
+          </p>
+          <p>
+            <label for="confirmed">اكتب عدد المستلمين لتأكيد أنك قرأته</label>
+            <input id="confirmed" type="number" name="confirmed_count" required
+                   placeholder="{{ plan.recipients|unlocalize }}">
+          </p>
+        {% else %}
+          <input type="hidden" name="confirmed_count" value="{{ plan.recipients|unlocalize }}">
+        {% endif %}
+
+        <button type="submit">
+          أدرِج البثّ لـ{{ plan.recipients|unlocalize }} مستلماً
+        </button>
+        <small>
+          الإدراجُ يكتب صفَّ إشعارٍ لكلّ مستلم في مهمّةٍ مؤجَّلة. و**لا شيء في
+          هذا النظام يسلّم صفّاً مُدرَجاً إلى مزوّد بعد** — «أُدرج» ليست «وصل».
+        </small>
+      </form>
+    {% endif %}
+  {% endif %}
+
+  <h2>سجلّ البثّ</h2>
+  {% if not history %}
+    <p class="empty">لا بثَّ سابق.</p>
+  {% else %}
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>متى</th><th>من</th><th>القناة</th><th>الجمهور</th>
+            <th>المستلمون</th><th>أُدرج</th><th>الكلفة المقدَّرة</th><th>الحالة</th><th>السبب</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in history %}
+            <tr>
+              <td>{{ row.pk }}</td>
+              <td>{{ row.created_at }}</td>
+              {% comment %} الاسمُ الكامل فارغٌ على بعض حسابات الموظّفين (قيس
+                 على `haraj2_t307`: حسابُ `admin` بلا `full_name`)، وخليّةٌ
+                 فارغةٌ في عمود «من أرسل» تُقرأ «لا أحد» — وهي بالضبط الجملةُ
+                 التي بُني هذا السجلُّ ضدّها. فاسمُ الدخول يسدّ مكانها. {% endcomment %}
+              <td>{% if row.created_by %}{{ row.created_by.full_name|default:row.created_by.username }}{% else %}—{% endif %}</td>
+              <td>{{ row.get_channel_display }}</td>
+              <td>{{ row.audience_label }}</td>
+              <td class="count">{{ row.recipient_count|unlocalize }}</td>
+              <td class="count">{{ row.queued_count|unlocalize }}</td>
+              <td class="money">{% if row.estimated_cost %}{{ row.estimated_cost|unlocalize }}{% else %}—{% endif %}</td>
+              <td>{{ row.get_state_display }}{% if row.error %} <small class="alarm">{{ row.error }}</small>{% endif %}</td>
+              <td>{{ row.reason }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}

@@ -1,115 +1,48 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-`unlocalize` على الأرقام: الجوّال معرّفٌ يُنسَخ ويُلصَق في نظامٍ آخر، وفاصلةُ
-آلافٍ فيه تجعله رقماً لا يُطابِق شيئاً.
+الإشعارات — ثلاثُ شاشاتٍ صارت واحدة. T941
 
-سجل الإشعارات — وسبب الفشل في الصفّ لا خلف نقرة.
+قرارُ المالك (١٨ سبتمبر ٢٠٢٦): «ادمج دول في بعض». و«سجل الإشعارات» و«إرسال
+إشعار» و«تذكيرات المزادات» ثلاثتُها عن **الشيء نفسِه**: صفُّ `Notification`.
+الإرسالُ يُدرجه، والتذكيرُ يُدرجه، والسجلُّ يعرضه — والموظّفُ يرسل ثمّ يخرج
+إلى شاشةٍ أخرى ليرى أين وصل ما أرسله.
 
-من يفتح هذا السجلّ يفتحه بسبب فشل، فإخفاءُ نصّ الفشل خلف صفحةٍ ثانية يجعل
-الشاشة كلها خطوةً زائدة. و`data` (حمولة القالب) لا تُعرَض: `body` هو النصّ
-الذي وصل فعلاً، وهو ما يُقارَن بما يقوله العميل.
+**وv1 يجمعها كذلك**: `NotificationController` واحدةٌ فيها `index` (الإرسال
+الفردي والجماعي) و`log` (السجلّ) — شاشتان من وحدةٍ واحدة.
+
+**وثلاثُ صلاحياتٍ على شاشةٍ واحدة، والحارسُ على الفعل لا على الباب**:
+الصفحةُ تُفتح بـ`notifications.view` (يحملها الدعم)، والإرسالُ خلف
+`notifications.send`، والتذكيرُ خلف `auctions.manage`. فمن يقرأ لا يُنفق،
+والتبويبُ الذي لا يملكه لا يُعرَض له أصلاً — وهو نمطُ «إدارة المدفوعات»
+و«الاستردادات» نفسُه.
 {% endcomment %}
-{% block title %}سجل الإشعارات{% endblock %}
-{% block heading %}سجل الإشعارات{% endblock %}
-{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
+{% block title %}الإشعارات{% endblock %}
+{% block heading %}الإشعارات{% endblock %}
+{% block actions %}
+  {% if which == "log" %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endif %}
+{% endblock %}
 
 {% block content %}
-  {% comment %} سطرُ تعريفٍ يقول لماذا تُفتح هذه الشاشةُ أصلاً — وهو مكتوبٌ
-     في تعليق الملفّ ولا يراه إلا من يفتحه. {% endcomment %}
-  <p class="lede">
-    كلُّ إشعارٍ خرج ومصيرُه. <strong>وسببُ الفشل في الصفّ لا خلف نقرة</strong> —
-    من يفتح هذا السجلّ يفتحه بسبب فشل، وإخفاءُ نصّه في صفحةٍ ثانية يجعل الشاشةَ
-    كلَّها خطوةً زائدة.
-  </p>
 
-  {% comment %} أربعةُ أعدادٍ من **المرشَّح نفسِه** لا من الجدول كلِّه:
-     العدُّ في `alerts.py` باستعلامٍ واحدٍ مجموعٍ بالحالة. {% endcomment %}
-  <section class="sum-grid sum-grid--tight" aria-label="أرقام السجلّ">
-    <div class="sum">
-      <p class="sum__label">إشعارات مطابقة</p>
-      <p class="sum__value">{{ counts.all|unlocalize }}</p>
-      <p class="sum__note">في المرشّح الحالي.</p>
-    </div>
-    <div class="sum{% if counts.failed %} sum--wait{% endif %}">
-      <p class="sum__label">فشلت</p>
-      <p class="sum__value">{{ counts.failed|unlocalize }}</p>
-      <p class="sum__note">وسببُها مكتوبٌ في صفّها.</p>
-    </div>
-    <div class="sum">
-      <p class="sum__label">في الطابور</p>
-      <p class="sum__value">{{ counts.queued|unlocalize }}</p>
-      <p class="sum__note">لم تخرج بعد.</p>
-    </div>
-    <div class="sum">
-      <p class="sum__label">خرجت</p>
-      <p class="sum__value">{{ counts.sent|unlocalize }}</p>
-      <p class="sum__note">أُرسلت أو وصلت.</p>
-    </div>
-  </section>
+  {% comment %} تبويباتٌ روابطُ لا أزرار: تُنسخ وتُفتح في تبويبٍ جديد وتعمل
+     قبل أيّ سكربت. {% endcomment %}
+  <nav class="tabs" aria-label="الإشعارات">
+    <a class="tab{% if which == 'log' %} is-on{% endif %}" href="?which=log"{% if which == 'log' %} aria-current="page"{% endif %}>السجلّ</a>
+    {% if may_send %}
+      <a class="tab{% if which == 'send' %} is-on{% endif %}" href="?which=send"{% if which == 'send' %} aria-current="page"{% endif %}>إرسال إشعار</a>
+    {% endif %}
+    {% if may_remind %}
+      <a class="tab{% if which == 'reminders' %} is-on{% endif %}" href="?which=reminders"{% if which == 'reminders' %} aria-current="page"{% endif %}>تذكيرات المزادات</a>
+    {% endif %}
+  </nav>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وقائمتان وزرٌّ في الهواء. {% endcomment %}
-  <form method="get" class="filters filters--row">
-    <div class="filters__main">
-      <input type="search" name="q" value="{{ q }}"
-             placeholder="الجوال أو الاسم أو نصّ الرسالة" aria-label="بحث">
-      <select name="channel" aria-label="القناة">
-        <option value="">كل القنوات</option>
-        {% for value, label in channels %}
-          <option value="{{ value }}" {% if value == channel %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <select name="state" aria-label="الحالة">
-        <option value="">كل الحالات</option>
-        {% for value, label in states %}
-          <option value="{{ value }}" {% if value == state %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn-primary">بحث</button>
-    </div>
-  </form>
+{% if which == "send" %}
+  {% include "console/_notify_send.html" %}
+{% elif which == "reminders" %}
+  {% include "console/_notify_reminders.html" %}
+{% else %}
+  {% include "console/_notify_log.html" %}
+{% endif %}
 
-  <div class="scroller scroller--wide">
-    <table>
-    <thead>
-      <tr>
-        <th>العميل</th>
-        <th>الجوال</th>
-        <th>القناة</th>
-        <th>الرسالة</th>
-        <th>الحالة</th>
-        <th>التاريخ</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in page %}
-        <tr>
-          <td><a href="{% url 'console:customer-detail' row.user_id %}">{{ row.user.full_name }}</a></td>
-          {% comment %} `mono` لا `money`: هذا جوّالٌ يُنسَخ ويُلصَق، وصنفُ
-             المال يضع له فاصلةَ آلافٍ في العين وإن لم تُكتب. {% endcomment %}
-          <td class="mono">{{ row.user.phone }}</td>
-          <td>{{ row.get_channel_display }}</td>
-          <td class="nt-msg">
-            <span class="nt-body">{{ row.body }}</span>
-            <small class="nt-tpl">{{ row.template }}</small>
-          </td>
-          <td>
-            <span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span>
-            {% if row.error %}<span class="nt-err">{{ row.error }}</span>{% endif %}
-          </td>
-          <td class="nt-when">
-            {{ row.created_at }}
-            {% comment %} لحظة الإرسال تُقال حين تختلف عن لحظة الإنشاء: الفارق
-               بينهما هو زمن الطابور، وهو نصف الجواب على «تأخّرت». {% endcomment %}
-            {% if row.sent_at %}<small class="nt-tpl">أُرسلت {{ row.sent_at }}</small>{% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="6" class="empty">لا إشعارات مطابقة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-
-  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> إشعاراً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
 {% endblock %}

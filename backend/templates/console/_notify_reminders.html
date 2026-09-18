@@ -1,0 +1,90 @@
+{% load l10n %}
+{% comment %}
+تذكيراتُ انطلاق المزاد. الحقلُ موجودٌ في v1 منذ سنة ولا شيء يقرؤه — فهذه
+الشاشة هي الميزةُ التي وعد بها. والإدراجُ في الطابور لا إرسال: صفٌّ `QUEUED`
+لا يكلّف هللة، والتسليمُ شأنُ من يملك البوّابة.
+{% endcomment %}
+  {% comment %} سطرُ تعريفٍ يقول ما تفعله الشاشةُ ومن يصله التذكير. وكان
+     تنبيهاً (`notice`) يحمل الاثنين مع قاعدة «لا يُرسَل من هنا» — ثلاثةُ
+     أشياءٍ في كتلةٍ واحدةٍ ملوّنة، فتُقرأ تحذيراً كلُّها أو لا تُقرأ. {% endcomment %}
+  <p class="lede">
+    أيُّ مزادٍ حان تذكيرُه، وكم شخصاً سيصله، وهل أُدرج سلفاً.
+    <strong>والجمهور: من وضع سيارةً من هذا المزاد في مفضّلته.</strong>
+  </p>
+
+  {% comment %} أربعةُ أعداد من **الصفوف المعروضة نفسِها** لا باستعلامٍ ثانٍ. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام التذكيرات">
+    <div class="sum{% if counts.due %} sum--wait{% endif %}">
+      <p class="sum__label">حان ولم يُدرَج</p>
+      <p class="sum__value">{{ counts.due|unlocalize }}</p>
+      <p class="sum__note">ينتظر ضغطةَ إنسان.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">لم يحن بعد</p>
+      <p class="sum__value">{{ counts.waiting|unlocalize }}</p>
+      <p class="sum__note">موعدُه في المستقبل.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">أُدرج في الطابور</p>
+      <p class="sum__value">{{ counts.queued|unlocalize }}</p>
+      <p class="sum__note">خرج من هذه الشاشة.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">فات الأوان</p>
+      <p class="sum__value">{{ counts.missed|unlocalize }}</p>
+      <p class="sum__note">بدأ المزادُ قبل الإدراج.</p>
+    </div>
+  </section>
+
+  {% comment %} القاعدةُ وحدَها في التنبيه — وهي الأهمّ: لا إرسالَ من هنا،
+     وسببُه مالٌ لا يُسترد. {% endcomment %}
+  <p class="notice">
+    <strong>التذكيرُ يُدرَج في طابور الإشعارات ولا يُرسَل من هنا.</strong>
+    الإرسالُ يكلّف مالاً لا يُسترد، فلا يقع بلا عينٍ تراه.
+  </p>
+
+  <div class="scroller">
+    <table>
+      <thead>
+        <tr>
+          <th>المزاد</th><th>يبدأ</th><th>موعد التذكير</th>
+          <th>الجمهور</th><th>الحالة</th>
+          {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
+          <th>الإجراء</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in rows %}
+          <tr>
+            <td><a href="{% url 'console:auction-detail' a.pk %}">{{ a.number|unlocalize }} — {{ a.title }}</a></td>
+            <td class="rm-when">{{ a.starts_at|date:"Y-m-d H:i" }}</td>
+            <td class="rm-when">{{ a.sms_reminder_at|date:"Y-m-d H:i" }}</td>
+            <td class="count">{{ a.audience|unlocalize }}</td>
+            <td>
+              {% if a.reminder_sent_at %}
+                <span class="pill" data-tone="good">أُدرج {{ a.reminder_sent_at|date:"Y-m-d H:i" }}</span>
+              {% elif a.starts_at <= now %}
+                <span class="pill" data-tone="plain">فات الأوان — المزاد بدأ</span>
+              {% elif a.sms_reminder_at <= now %}
+                <span class="pill" data-tone="warn">حان ولم يُدرَج</span>
+              {% else %}
+                <span class="pill" data-tone="info">لم يحن بعد</span>
+              {% endif %}
+            </td>
+            <td>
+              {% comment %} الزرُّ لِما حان ولم يُدرَج ومزادُه لم يبدأ — وما سواه
+                 يُقرأ ولا يُضغط. والخدمةُ تُعيد فحصَ الشروط، فالزرُّ راحةٌ لا حارس. {% endcomment %}
+              {% if not a.reminder_sent_at and a.sms_reminder_at <= now and a.starts_at > now %}
+                <form method="post" action="{% url 'console:reminder-send' a.pk %}" class="rm-form">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-primary rm-go">أدرِج {{ a.audience|unlocalize }} تذكيراً</button>
+                </form>
+              {% else %}<span class="cat-nil">—</span>{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="empty">لا مزاد له موعدُ تذكير.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>

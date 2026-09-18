@@ -50,7 +50,8 @@ from apps.notifications.audience import (
 )
 from apps.notifications.models import Broadcast, Channel
 
-from .views import console_page
+#: إلى أين يعود الإرسالُ بعد كلّ قرار — تبويبُه في «الإشعارات».
+BACK = "/console/notifications/?which=send"
 
 #: القنواتُ التي تُعرَض للاختيار. `push` ليست منها اليوم **ولا تُعرض معطّلة**:
 #: جدولُ `Device` فارغٌ في هذه القاعدة (صفرُ جهاز)، وزرٌّ يبثُّ إلى صفرِ جهازٍ
@@ -108,11 +109,19 @@ def _form(request, data, *, plan=None, token: str = "") -> dict:
     }
 
 
-@console_page("console:broadcast")
-def broadcast(request):
-    """الشاشة: وصفٌ، ثمّ معاينةٌ بالعدد والكلفة، ثمّ تنفيذٌ برمز."""
+def broadcast(request, shell: dict | None = None):
+    """تبويبُ الإرسال: وصفٌ، ثمّ معاينةٌ بالعدد والكلفة، ثمّ تنفيذٌ برمز.
+
+    **ليست صفحةً بعد T941**: دُمجت في «الإشعارات» تبويباً، فالحارسُ صار على
+    الفعل لا على الباب (`apps.console.alerts`). والمنطقُ لم يُمسّ سطراً —
+    الخطواتُ الثلاث والرمزُ ومطابقةُ العدد كما هي.
+    """
+    shell = shell or {"which": "send", "may_send": True, "may_remind": False}
+
     if request.method != "POST":
-        return render(request, "console/broadcast.html", _form(request, request.GET))
+        return render(
+            request, "console/notifications.html", shell | _form(request, request.GET)
+        )
 
     step = (request.POST.get("step") or "").strip()
     audience = Audience.from_request(request.POST)
@@ -125,14 +134,14 @@ def broadcast(request):
         plan = service.plan(channel=channel, audience=audience)
         return render(
             request,
-            "console/broadcast.html",
-            _form(request, request.POST, plan=plan, token=uuid.uuid4().hex),
+            "console/notifications.html",
+            shell | _form(request, request.POST, plan=plan, token=uuid.uuid4().hex),
         )
 
     token = (request.POST.get("token") or "").strip()
     if not token:
         messages.error(request, "لا رمزَ معاينة — أعِد المعاينة قبل الإرسال.")
-        return redirect("console:broadcast")
+        return redirect(BACK)
 
     raw_confirmed = (request.POST.get("confirmed_count") or "").strip()
     confirmed = int(raw_confirmed) if raw_confirmed.isdigit() else None
@@ -152,8 +161,9 @@ def broadcast(request):
         messages.error(request, str(refusal))
         return render(
             request,
-            "console/broadcast.html",
-            _form(
+            "console/notifications.html",
+            shell
+            | _form(
                 request,
                 request.POST,
                 plan=service.plan(channel=channel, audience=audience),
@@ -168,7 +178,7 @@ def broadcast(request):
             request,
             f"هذا البثّ مسجَّلٌ من قبل (بثّ {row.pk}) — لم يُدرَج شيءٌ جديد.",
         )
-        return redirect("console:broadcast")
+        return redirect(BACK)
 
     audit.record(
         action="console.broadcast",
@@ -196,7 +206,7 @@ def broadcast(request):
             f"سُجّل البثّ {row.pk} وحُجز إدراجُه لـ{row.recipient_count} مستلماً "
             "— أُدرج في الطابور، ولم يصل أحداً بعد.",
         )
-    return redirect("console:broadcast")
+    return redirect(BACK)
 
 
 __all__ = ["broadcast"]

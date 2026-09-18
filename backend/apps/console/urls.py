@@ -19,7 +19,6 @@ from . import (
     audit,
     bids,
     billing,
-    broadcast,
     bulk,
     catalog,
     customer_file,
@@ -131,7 +130,9 @@ urlpatterns = [
     # `auctions.services` والفاتورة في `money.services`، ولا بابَ إليهما هنا.
     # مزايدات المزاد الجاري، وكلُّ المزايدات بمركباتها. T890
     # تذكيراتُ انطلاق المزاد — إدراجٌ في الطابور لا إرسال. T891
-    path("reminders/", reminders.reminders, name="reminders"),
+    #
+    # و«إرسال إشعار» و«تذكيرات المزادات» صارتا تبويبين في «الإشعارات» (T941).
+    # ويبقى إدراجُ تذكيرِ مزادٍ بعينه مساراً — فهو فعلٌ على صفٍّ لا عرضُ تبويب.
     path(
         "reminders/<int:pk>/send/",
         reminders.reminder_send,
@@ -339,7 +340,6 @@ urlpatterns = [
     # و`POST step=preview` يعدّ الجمهور ويقدّر الكلفة، و`POST step=send` ينفّذ
     # برمز المعاينة. ومسارٌ واحد لأن الخطوات الثلاث شيءٌ واحدٌ لا يُدخَل من
     # منتصفه: عنوانٌ للتنفيذ وحده هو عنوانٌ يُفتح بلا عدٍّ رآه أحد.
-    path("notifications/send/", broadcast.broadcast, name="broadcast"),
     # مسارٌ واحدٌ للشاشة كلِّها: الإضافةُ والتعديلُ والإيقاف `POST` عليه
     # يميّزها حقلُ `op`. ومسارٌ لكلّ فعلٍ كان يعني صفوفاً في `DETAIL_PAGES`
     # لصفحاتٍ لا تُفتح — كلُّها تُعيد التوجيه. T921.

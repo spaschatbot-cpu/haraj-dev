@@ -1,4 +1,30 @@
-"""سجل الإشعارات — ما أُرسل إلى من، ووصل أم لا. T835.
+"""الإشعارات: السجلُّ والإرسالُ وتذكيراتُ المزادات — شاشةٌ واحدة. T835 · T941.
+
+## ثلاثٌ صارت واحدة
+
+قرارُ المالك (١٨ سبتمبر ٢٠٢٦): «ادمج دول في بعض». وثلاثتُها عن **الشيء
+نفسِه**: صفُّ :class:`~apps.notifications.models.Notification`. «إرسال إشعار»
+يُدرجه، و«تذكيرات المزادات» تُدرجه، و«السجلّ» يعرضه — والموظّفُ كان يرسل ثمّ
+يخرج إلى شاشةٍ أخرى ليرى أين وصل ما أرسله.
+
+**وv1 يجمعها كذلك**: `NotificationController` واحدةٌ فيها `index` (الإرسالُ
+الفرديُّ والجماعيّ) و`log` (السجلّ).
+
+## وثلاثُ صلاحياتٍ على شاشةٍ واحدة — والحارسُ على الفعل لا على الباب
+
+هذا هو ثمنُ الدمج، ويُدفَع كما دُفع في «إدارة المدفوعات» و«الاستردادات»:
+
+* الصفحةُ تُفتح بـ``notifications.view`` — يحملها **الدعم**، وسؤالُه اليوميّ
+  «هل وصلته الرسالة؟».
+* والإرسالُ خلف ``notifications.send`` — وهي **إنفاقٌ لا يُسترد**: رسالةٌ
+  نصّيّةٌ إلى ٤٤ ألف عميلٍ تُحاسَب بالرسالة، ولا تراجُعَ عن واحدةٍ وصلت. فهي
+  للمالك وحده (انظر `apps/core/permissions.py`).
+* والتذكيرُ خلف ``auctions.manage``.
+
+**والتبويبُ الذي لا يملكه القارئُ لا يُعرَض له أصلاً**، وفعلُه محروسٌ في
+الخادم لا في القالب — فمن وصل إلى الاستمارة بيده يُرفَض.
+
+## سجل الإشعارات — ما أُرسل إلى من، ووصل أم لا. T835
 
 الشاشة من لوحة v1 (`/notifications/log`)، وأعمدتها هناك أربعة: المستخدم،
 والرسالة، والحالة، والتاريخ. وتُفتح لسؤالٍ واحدٍ يتكرّر في الدعم: «قال إنه لم
@@ -29,15 +55,19 @@
 
 from __future__ import annotations
 
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import render
 
 from apps.accounts.services import find_by_phone
 from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 from apps.notifications.models import DeliveryState, Notification
 
+from .broadcast import broadcast as broadcast_tab
 from .exports import export, wants_export
+from .reminders import reminders as reminders_tab
 from .tones import with_tones
 from .views import console_page
 
@@ -79,7 +109,34 @@ def search(*, text: str = "", state: str = "", channel: str = ""):
 
 @console_page("console:notifications")
 def notifications(request):
-    """سجل الإشعارات، وسببُ الفشل مكتوبٌ في الصفّ لا خلف نقرة."""
+    """الإشعارات: السجلُّ افتراضاً، والإرسالُ والتذكيراتُ تبويبان. T941.
+
+    **والافتراضيُّ السجلّ** لأنه ما يُفتح يومياً: «قال إنه لم تصله الرسالة»
+    سؤالُ الدعم المتكرّر، والإرسالُ فعلٌ يُقصَد قصداً.
+    """
+    which = (request.GET.get("which") or "").strip()
+    may_send = can(request.user, Capability.NOTIFICATIONS_SEND)
+    may_remind = can(request.user, Capability.AUCTIONS_MANAGE)
+
+    # الحارسُ على الفعل لا على الباب: الصفحةُ `notifications.view`، والتبويبان
+    # قدرتاهما أوسع. ومن كتب `?which=send` بيده بلا قدرةٍ يُرَدُّ إلى السجلّ —
+    # لا يُرفَض بـ403: التبويبُ ليس شيئاً «محظوراً» عليه، هو شيءٌ لا وجودَ له
+    # في شاشته.
+    # غلافُ الشاشة: أيُّ تبويبٍ مفتوحٌ وأيُّها يُعرَض أصلاً. يُحسب هنا مرّةً
+    # ويُمرَّر — لا يُعاد حسابُه في كلّ تبويب، ولا يُستنتَج في القالب.
+    shell = {"which": which or "log", "may_send": may_send, "may_remind": may_remind}
+
+    if which == "send" and may_send:
+        return broadcast_tab(request, shell)
+    if which == "reminders" and may_remind:
+        return reminders_tab(request, shell)
+    if request.method == "POST":
+        # استمارةُ الإرسال تُرسل إلى الصفحة نفسِها بلا `?which=`؛ والرفضُ هنا
+        # صريحٌ لأن هذه **كتابة** لا عرضُ تبويب.
+        if not may_send:
+            raise PermissionDenied("notifications.send غير مسموحة لهذا المستخدم")
+        return broadcast_tab(request, shell | {"which": "send"})
+
     rows = search(
         text=request.GET.get("q", ""),
         state=request.GET.get("state", ""),
@@ -143,6 +200,9 @@ def notifications(request):
         request,
         "console/notifications.html",
         {
+            "which": "log",
+            "may_send": may_send,
+            "may_remind": may_remind,
             "page": page,
             "counts": counts,
             "q": request.GET.get("q", ""),
