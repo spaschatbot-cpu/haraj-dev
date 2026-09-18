@@ -51,7 +51,7 @@ from apps.notifications.audience import (
 from apps.notifications.models import Broadcast, Channel
 
 #: إلى أين يعود الإرسالُ بعد كلّ قرار — تبويبُه في «الإشعارات».
-BACK = "/console/notifications/?which=send"
+BACK = "/console/notifications/"
 
 #: القنواتُ التي تُعرَض للاختيار. `push` ليست منها اليوم **ولا تُعرض معطّلة**:
 #: جدولُ `Device` فارغٌ في هذه القاعدة (صفرُ جهاز)، وزرٌّ يبثُّ إلى صفرِ جهازٍ
@@ -116,7 +116,12 @@ def broadcast(request, shell: dict | None = None):
     الفعل لا على الباب (`apps.console.alerts`). والمنطقُ لم يُمسّ سطراً —
     الخطواتُ الثلاث والرمزُ ومطابقةُ العدد كما هي.
     """
-    shell = shell or {"which": "send", "may_send": True, "may_remind": False}
+    shell = shell or {
+        "which": "log",
+        "may_send": True,
+        "may_remind": False,
+        "opens": "notifySend",
+    }
 
     if request.method != "POST":
         return render(

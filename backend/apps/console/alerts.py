@@ -126,8 +126,10 @@ def notifications(request):
     # ويُمرَّر — لا يُعاد حسابُه في كلّ تبويب، ولا يُستنتَج في القالب.
     shell = {"which": which or "log", "may_send": may_send, "may_remind": may_remind}
 
+    # `?which=send` لم يعد تبويباً (T942) — يُفتح بزرٍّ ونافذة. والرابطُ
+    # القديم يبقى عاملاً: يعرض السجلَّ **والنافذةَ مفتوحةً** عليه.
     if which == "send" and may_send:
-        return broadcast_tab(request, shell)
+        return broadcast_tab(request, shell | {"which": "log", "opens": "notifySend"})
     if which == "reminders" and may_remind:
         return reminders_tab(request, shell)
     if request.method == "POST":
@@ -135,7 +137,7 @@ def notifications(request):
         # صريحٌ لأن هذه **كتابة** لا عرضُ تبويب.
         if not may_send:
             raise PermissionDenied("notifications.send غير مسموحة لهذا المستخدم")
-        return broadcast_tab(request, shell | {"which": "send"})
+        return broadcast_tab(request, shell | {"which": "log", "opens": "notifySend"})
 
     rows = search(
         text=request.GET.get("q", ""),

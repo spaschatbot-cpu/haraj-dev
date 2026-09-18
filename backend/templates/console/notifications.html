@@ -1,5 +1,5 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
 الإشعارات — ثلاثُ شاشاتٍ صارت واحدة. T941
 
@@ -20,29 +20,57 @@
 {% block title %}الإشعارات{% endblock %}
 {% block heading %}الإشعارات{% endblock %}
 {% block actions %}
+  {% if may_send %}
+    <button type="button" class="btn-primary-sm" data-opens="notifySend">+ أرسِل إشعاراً</button>
+  {% endif %}
   {% if which == "log" %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endif %}
 {% endblock %}
 
 {% block content %}
+<div{% if opens %} data-open-dialog="{{ opens }}"{% endif %}>
 
-  {% comment %} تبويباتٌ روابطُ لا أزرار: تُنسخ وتُفتح في تبويبٍ جديد وتعمل
-     قبل أيّ سكربت. {% endcomment %}
+  {% comment %} تبويبان لا ثلاثة بعد T942: الإرسالُ صار **نافذةً** بزرٍّ فوق
+     لا تبويباً — قرارُ المالك: «إرسال إشعار دي كـpopup أملأ فيها الداتا
+     المطلوبة». وهو نظيرُ «قيِّد دفعة» في «إدارة المدفوعات»: فعلٌ يقع على
+     الجدول الذي تقرؤه، فلا يُخرجك منه.
+
+     وروابطُ لا أزرار: تُنسخ وتُفتح في تبويبٍ جديد وتعمل قبل أيّ سكربت. {% endcomment %}
   <nav class="tabs" aria-label="الإشعارات">
     <a class="tab{% if which == 'log' %} is-on{% endif %}" href="?which=log"{% if which == 'log' %} aria-current="page"{% endif %}>السجلّ</a>
-    {% if may_send %}
-      <a class="tab{% if which == 'send' %} is-on{% endif %}" href="?which=send"{% if which == 'send' %} aria-current="page"{% endif %}>إرسال إشعار</a>
-    {% endif %}
     {% if may_remind %}
       <a class="tab{% if which == 'reminders' %} is-on{% endif %}" href="?which=reminders"{% if which == 'reminders' %} aria-current="page"{% endif %}>تذكيرات المزادات</a>
     {% endif %}
   </nav>
 
-{% if which == "send" %}
-  {% include "console/_notify_send.html" %}
-{% elif which == "reminders" %}
+{% if which == "reminders" %}
   {% include "console/_notify_reminders.html" %}
 {% else %}
   {% include "console/_notify_log.html" %}
 {% endif %}
 
+</div>
+
+{% if may_send %}
+  {% comment %} **نافذةُ الإرسال — خطواتُها الثلاث كما هي.** الاستمارةُ الأولى
+     `POST` تُعاين (`step=preview`)، والصفحةُ تعود ومعها `data-open-dialog`
+     فتُفتح النافذةُ على المعاينة؛ والثانيةُ تُدرج (`step=send`). ولا خطوةَ
+     حُذفت: العددُ والكلفةُ وحدُّ التأكيد والرمزُ كما كانت.
+
+     والسجلُّ خلفها يبقى معروضاً — وهو المقصود: من يرسل يرى أثرَ ما أرسله
+     في الجدول نفسِه بعد الإغلاق. {% endcomment %}
+  <dialog class="modal modal--wide" id="notifySend">
+    <h2>أرسِل إشعاراً</h2>
+    {% include "console/_notify_send.html" %}
+    <div class="modal__buttons">
+      <button type="button" formnovalidate data-close>إغلاق</button>
+    </div>
+  </dialog>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% comment %} هو الذي يفتح النافذة ويغلقها، ويُعيد فتحَها بعد المعاينة
+     (`data-open-dialog`). وبلا هذا السطر يكون الزرُّ زرّاً لا يفعل شيئاً —
+     وقع في «إدارة المدفوعات» وبُلِّغ عنه. {% endcomment %}
+  <script src="{% static 'console/storefront.js' %}" defer></script>
 {% endblock %}
