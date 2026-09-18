@@ -7,8 +7,6 @@ the guard both read it, so there is no second list to keep in step.
 from django.contrib.auth.views import LogoutView
 from django.urls import path, reverse_lazy
 
-from apps.bidding import views as bidding_views
-
 from . import (
     actions,
     after_sales,
@@ -45,7 +43,6 @@ from . import (
     support,
     vehicle_bulk,
     vehicle_images,
-    wallet,
 )
 from . import (
     dashboard as dashboard_views,
@@ -75,7 +72,6 @@ urlpatterns = [
     ),
     # The support answer from phase 006, now a page of the console rather than
     # a URL somebody had to be told about.
-    path("why-no-bid/", bidding_views.why_no_bid, name="why-no-bid"),
     path("auctions/", auctions.auctions, name="auctions"),
     path("auctions/new/", auctions.auction_new, name="auction-new"),
     path("auctions/<int:pk>/edit/", auctions.auction_edit, name="auction-edit"),
@@ -172,15 +168,11 @@ urlpatterns = [
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
     # مسارٌ واحدٌ للشاشة كلِّها، كـ«شريط الأخبار» — و`op` يميّز الفعل. T921
-    # المحفظة — الشحن والخصم (T830ط). كلاهما يمرّ بـ`money.services` وحدها.
-    path("wallet/credit/", wallet.wallet_credit, name="wallet-credit"),
-    path("wallet/deduct/", wallet.direct_deduct, name="direct-deduct"),
-    path("wallet/bank-topups/", wallet.bank_topups, name="bank-topups"),
-    path(
-        "analytics/insurance/",
-        analytics.insurance_report,
-        name="insurance-report",
-    ),
+    #
+    # **قسمُ «المحفظة» صار شاشتين** (قرار المالك، ١٨ سبتمبر ٢٠٢٦): «صحّة
+    # المحفظة» ابتلعت «لماذا لا يستطيع العميل المزايدة؟»، و«سجل المحفظة»
+    # ابتلعت «تقرير المحفظة». وأُلغيت «شحن يدوي» و«طلبات الشحن البنكي»
+    # و«خصم مباشر من التأمين» — والتفصيل في `navigation.py`.
     # إدارة الأعضاء — قسمُ v1 نفسه (T830ج).
     path("admins/", staff.admins, name="admins"),
     path("admins/page-control/", staff.page_control, name="page-control"),

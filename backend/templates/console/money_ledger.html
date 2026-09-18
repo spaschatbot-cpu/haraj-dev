@@ -1,68 +1,87 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-Finding a customer before reading their money.
+سجل المحفظة — من يحمل رصيداً عندنا، وكم.
 
-Only accounts that actually hold something are listed. The question that brings
-anybody to this screen is about a balance, and a list of every account ever
-registered buries the four people the operator could have meant.
+**شاشةٌ واحدةٌ بعد أن كانت اثنتين** (قرار المالك، ١٨ سبتمبر ٢٠٢٦): «سجل
+المحفظة» كانت تسرد من يحمل رصيداً، و«تقرير المحفظة» تسرد **القائمة نفسَها**
+بمرشِّحِ مبلغٍ وبطاقتَي مجموعٍ وتصدير. والفرقُ بين استعلاميهما دلوٌ واحد
+(`wallet`) لا حسابَ له على الإنتاج إطلاقاً — أي أن الشاشتين كانتا تعرضان
+الشيء نفسَه، ولكلٍّ ميزةٌ تنقص الأخرى. فاجتمعت المزايا هنا.
+
+والرقمُ مجموعٌ من قيود الدفتر عند كل عرض. وشاشةُ v1 المقابلة تكتب على نفسها
+أنها تقرأ `SUM(total_insurance_paid)` — عمودٌ مشتقٌّ محذَّرٌ منه في كودها ولا
+يُحدَّث بانتظام، وهو نفسُه «إجمالي التأمين» في رئيسيّتها. فاختلافُ الرقمين
+يومَ التحويل هو الجوابُ لا المشكلة.
+
+`unlocalize` على كلّ مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢).
 {% endcomment %}
-{% block title %}دفتر التأمينات{% endblock %}
-{% block heading %}دفتر التأمينات{% endblock %}
-{% block actions %}<a href="{{ export_url }}">تصدير إلى إكسل</a>{% endblock %}
+{% block title %}سجل المحفظة{% endblock %}
+{% block heading %}سجل المحفظة{% endblock %}
+{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
 
 {% block content %}
-  {% comment %} I5: every list downloads as a real workbook, and the download carries the
-     filter that is on the screen. `export_url` is this very request with one
-     parameter added, built in `apps.console.context` — so the filter comes
-     along by construction and no template writes a path by hand. {% endcomment %}
-
-  {% comment %} سطرُ تعريفٍ: الشاشةُ كانت تبدأ بحقلِ بحثٍ عارٍ، فلا تقول ما
-     الذي يُبحَث فيه ولا ما يظهر بعده. {% endcomment %}
   <p class="lede">
-    أرصدةُ التأمين عند العملاء — <strong>مجموعُ ما دفعه كلٌّ منهم وما هو محجوزٌ
-    له الآن</strong>. والرقمُ مجموعٌ من قيود الدفتر عند كل عرض، لا عمودٌ مخزَّن.
+    أرصدةُ العملاء عندنا — <strong>مجموعُ دلائه كلِّها: المتاحُ والمحجوزُ
+    والمقفول</strong>. والرقمُ مجموعٌ من قيود الدفتر عند كل عرض، لا عمودٌ
+    مخزَّن. وكتابةُ رقم جوّالٍ كاملٍ تفتح دفترَ صاحبه مباشرةً.
   </p>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام المحفظة">
+    <div class="sum">
+      <p class="sum__label">عملاء لهم رصيد</p>
+      <p class="sum__value">{{ customers|unlocalize }}</p>
+      <p class="sum__note">يحملون رصيداً في الدفتر.</p>
+    </div>
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي الأرصدة</p>
+      <p class="sum__value money">{{ total|unlocalize }}</p>
+      <p class="sum__note">مجموعُ أرصدتهم كلِّها.</p>
+    </div>
+  </section>
+
+  {% comment %} أربعةُ حقولٍ وزرّ — قائمةٌ واحدةٌ فقط، أي دون عتبة الثلاث،
+     فتقع في سطرٍ واحد. {% endcomment %}
   <form method="get" class="filters filters--row">
     <div class="filters__main">
       <input type="search" name="q" value="{{ q }}"
              placeholder="رقم الجوال أو الاسم" aria-label="بحث" autofocus>
-      <button type="submit" class="btn-primary">بحث</button>
+      <input type="number" step="0.01" name="low" value="{{ low }}" placeholder="من مبلغ" aria-label="من مبلغ">
+      <input type="number" step="0.01" name="high" value="{{ high }}" placeholder="إلى مبلغ" aria-label="إلى مبلغ">
+      <select name="order" aria-label="الترتيب">
+        <option value="">الأعلى أولاً</option>
+        <option value="asc" {% if order == "asc" %}selected{% endif %}>الأقل أولاً</option>
+      </select>
+      <button type="submit" class="btn-primary">تطبيق</button>
     </div>
   </form>
 
-  {% if missing %}
-    <p class="notice">لا يوجد عميلٌ بهذا الرقم ({{ missing|unlocalize }}).</p>
-  {% endif %}
-
-  {% comment %} كان الجدولُ كلُّه داخل `{% if page %}`، فالشاشةُ قبل البحث
-     تظهر **فارغةً تماماً** — حقلُ بحثٍ وبياضٌ تحته، بلا كلمةٍ تقول ما يُفعل.
-     فحالةُ الفراغ تُكتب صراحةً. {% endcomment %}
-  {% if not page %}
-    <div class="blank">
-      <p class="blank__say">ابحث برقم الجوّال أو الاسم لعرض رصيد العميل.</p>
-      <p class="blank__hint">أو اترك الحقلَ فارغاً واضغط «بحث» لعرض كلّ من يحمل رصيداً.</p>
-    </div>
-  {% endif %}
-
-  {% if page %}
-    <div class="scroller">
-      <table>
+  <div class="scroller">
+    <table>
       <thead>
-        <tr><th>العميل</th><th>الجوال</th><th>مجموع التأمينات</th><th>حجوزات قائمة</th></tr>
+        <tr>
+          <th>#</th>
+          <th>العميل</th>
+          <th>الجوال</th>
+          <th>مجموع رصيده</th>
+          <th>حجوزات قائمة</th>
+          <th></th>
+        </tr>
       </thead>
       <tbody>
         {% for customer in page %}
           <tr>
-            <td><a href="{% url 'console:money-customer' customer.pk %}">{{ customer }}</a></td>
-            <td class="money">{{ customer.phone }}</td>
+            <td class="mono">{{ customer.pk|unlocalize }}</td>
+            <td><a href="{% url 'console:customer-detail' customer.pk %}">{{ customer }}</a></td>
+            <td class="money">{{ customer.phone|unlocalize }}</td>
             <td class="money">{{ customer.held_total|unlocalize }}</td>
             <td class="money">{{ customer.active_holds|unlocalize }}</td>
+            {% comment %} الرقمُ بابٌ إلى دفتره: من يسأل «من أين جاء» يفتح
+               الحركاتِ التي كوّنته، ولا يُصدّق المجموع. {% endcomment %}
+            <td class="rf-act"><a class="rf-go" href="{% url 'console:money-customer' customer.pk %}">دفتره</a></td>
           </tr>
         {% empty %}
-          <tr><td colspan="4" class="empty">
+          <tr><td colspan="6" class="empty">
             {% if searched %}لا عميل مطابق يحمل رصيداً.{% else %}لا أرصدة بعد.{% endif %}
           </td></tr>
         {% endfor %}
@@ -70,6 +89,11 @@ registered buries the four people the operator could have meant.
     </table>
   </div>
 
-    <p><b class="tf__n">{{ page.paginator.count }}</b> عميل<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b></p>
-  {% endif %}
+  {% include "console/_pager.html" %}
+
+  <p class="empty">
+    كل رقمٍ هنا <strong>مجموعُ دلاء العميل</strong> (متاح · محجوز · مقفول) من
+    دفتر الحركات، لا عمودٌ مخزَّن. وعميلٌ كلُّ تأمينه محجوزٌ لمزادٍ جارٍ
+    <strong>دفع</strong> تأمينه — وقراءةُ المتاح وحده كانت ستقول صفراً.
+  </p>
 {% endblock %}

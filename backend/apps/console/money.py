@@ -46,6 +46,7 @@ from apps.money import verification
 from apps.money.models import ZERO, AccountKind, Entry, HoldState
 
 from .exports import export, wants_export
+from .paging import paged, pager
 from .views import console_page
 
 #: Ledger lines per page. A customer with a year of activity has hundreds, and
@@ -78,20 +79,72 @@ def ledger_for(customer: User) -> CustomerLedger:
     )
 
 
+#: دلاءُ التأمين الثلاثة — «إجمالي التأمين» في تقرير v1 مجموعُها.
+INSURANCE = (
+    AccountKind.INSURANCE_FREE,
+    AccountKind.INSURANCE_HELD,
+    AccountKind.INSURANCE_LOCKED,
+)
+
+
+def wallet_rows(*, text: str = "", low: str = "", high: str = "", order: str = ""):
+    """العملاءُ وأرصدتُهم — **مجموعةً من الدفتر لا من عمود**.
+
+    شاشةُ v1 المقابلة (`/analytics/insurance-report`) تكتب مصدرَها على نفسها:
+    «إجمالي مبالغ التأمين 9,390,004.00 — `SUM(total_insurance_paid)`». وذلك
+    العمود بالحرف أحدُ الثلاثة التي وجدها جرد T302 في `userss` أعمدةَ رصيدٍ
+    مشتقّةً كلُّها تُهمَل. وهنا يُجمَع من `money.Account` عند كل عرض.
+
+    **والمجموعُ من `customer_owned` لا من دلاء التأمين وحدها** — وهو أوسع
+    بدلوٍ واحد (`wallet`). وقِيس على الإنتاج في ١٨ سبتمبر ٢٠٢٦: **لا حساب
+    `wallet` واحداً** (١٬٦٠٨ متاح · ٣١٧ محجوز · ١٣ مقفول · صفر محفظة)، فالرقمان
+    متساويان اليوم. والأوسعُ مقصود: ريالٌ في دلوٍ لا تجمعه الشاشةُ هو ريالٌ
+    يختفي من تقرير المال يوم يُستعمل ذلك الدلو.
+    """
+    rows = (
+        User.objects.filter(is_staff=False)
+        .annotate(
+            # المجموعُ يُحسب في القاعدة لا صفّاً صفّاً: قائمةٌ من أربعين عميلاً
+            # تسأل القاعدةَ أربع مرّاتٍ لكلٍّ منهم هي شاشةٌ تبطؤ كلّ شهر.
+            held_total=Sum(
+                "accounts__balance",
+                filter=Q(accounts__kind__in=AccountKind.customer_owned()),
+            ),
+            active_holds=Count(
+                "holds", filter=Q(holds__state=HoldState.ACTIVE), distinct=True
+            ),
+        )
+        .filter(held_total__gt=ZERO)
+    )
+
+    text = (text or "").strip()
+    if text:
+        rows = rows.filter(search_q(text, "full_name", "company__name", "phone"))
+
+    for value, field in ((low, "held_total__gte"), (high, "held_total__lte")):
+        value = (value or "").strip()
+        if value.replace(".", "", 1).isdigit():
+            rows = rows.filter(**{field: Decimal(value)})
+
+    # «الأعلى أوّلاً» افتراضاً كما في v1: السؤالُ الذي تُفتح الشاشة لأجله «من
+    # عنده مالٌ عندنا» لا «من سجّل أوّلاً».
+    return rows.order_by("held_total" if order == "asc" else "-held_total", "id")
+
+
 @console_page("console:money-ledger")
 def ledger(request):
-    """Find a customer, by phone or by name, and see what they hold with us.
+    """سجلُّ المحفظة: من يحمل رصيداً عندنا، وكم، وكم منه محجوز.
 
-    Typing a full phone number redirects to that person's page. It is the
-    overwhelmingly common case — support is holding a phone call — and making
-    them read a one-row result table first is a click nobody would defend. A
-    redirect rather than a render, so the address bar ends up holding a link
-    that can be pasted into a ticket.
+    **شاشةٌ واحدةٌ بعد أن كانت اثنتين** (قرار المالك، ١٨ سبتمبر ٢٠٢٦): كانت
+    «سجل المحفظة» تسرد من يحمل رصيداً، و«تقرير المحفظة» تسرد **القائمةَ
+    نفسَها** بمرشّحِ مبلغٍ وبطاقتَي مجموع. والفرقُ بين استعلاميهما دلوٌ واحد
+    (`wallet`) **لا حسابَ له على الإنتاج إطلاقاً** — أي أن الشاشتين كانتا
+    تعرضان الشيءَ نفسَه بمرشِّحاتٍ مختلفة، وكلُّ واحدةٍ فيها ميزةٌ تنقص الأخرى.
+    فاجتمعت المزايا في واحدة.
 
-    The list itself shows **only customers who have money with us**, because the
-    question this screen answers is always about a balance. A search that
-    returns every account ever registered buries the four people the operator
-    could have meant.
+    وكتابةُ رقم جوّالٍ كاملٍ تذهب مباشرةً إلى دفتر صاحبه: الحالةُ الغالبة أن
+    الموظّف على الهاتف، وإجبارُه على قراءة جدولٍ من صفٍّ واحدٍ نقرةٌ لا يدافع
+    عنها أحد. وتحويلٌ لا عرضٌ، ليبقى في شريط العنوان رابطٌ يُلصَق في تذكرة.
     """
     query = (request.GET.get("q") or "").strip()
 
@@ -99,33 +152,26 @@ def ledger(request):
     if exact is not None:
         return redirect("console:money-customer", pk=exact.pk)
 
-    rows = (
-        User.objects.filter(accounts__kind__in=AccountKind.customer_owned())
-        .exclude(accounts__balance=ZERO)
-        .distinct()
+    rows = wallet_rows(
+        text=query,
+        low=request.GET.get("low", ""),
+        high=request.GET.get("high", ""),
+        order=request.GET.get("order", ""),
     )
-    if query:
-        rows = rows.filter(search_q(query, "full_name", "company__name", "phone"))
-
-    # The total is annotated rather than read per row: a list of forty customers
-    # that asks the database four times each is the shape of a screen that gets
-    # slower every month until somebody notices it in production.
-    rows = rows.annotate(
-        held_total=Sum(
-            "accounts__balance",
-            filter=Q(accounts__kind__in=AccountKind.customer_owned()),
-        ),
-        active_holds=Count(
-            "holds", filter=Q(holds__state=HoldState.ACTIVE), distinct=True
-        ),
-    ).order_by("-held_total", "phone")
 
     if wants_export(request):
         return export(
             rows,
-            name="deposits",
-            headers=["العميل", "الجوال", "مجموع التأمينات", "حجوزات قائمة"],
+            name="المحفظة",
+            headers=[
+                "المعرّف",
+                "العميل",
+                "الجوال",
+                "مجموع رصيده",
+                "حجوزات قائمة",
+            ],
             cell=lambda u: [
+                u.pk,
                 display_name(u),
                 u.phone,
                 u.held_total,
@@ -133,11 +179,21 @@ def ledger(request):
             ],
         )
 
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    page = paged(request, rows)
     return render(
         request,
         "console/money_ledger.html",
-        {"page": page, "q": query, "searched": bool(query)},
+        {
+            "page": page,
+            "pager": pager(request, page, "عميلاً"),
+            "customers": rows.count(),
+            "total": rows.aggregate(t=Sum("held_total"))["t"] or ZERO,
+            "q": query,
+            "low": request.GET.get("low", ""),
+            "high": request.GET.get("high", ""),
+            "order": request.GET.get("order", ""),
+            "searched": bool(query),
+        },
     )
 
 

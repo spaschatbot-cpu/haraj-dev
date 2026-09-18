@@ -526,7 +526,8 @@ def board_for(user) -> Board:
                 "مزايدات مرفوضة اليوم",
                 f"{refusals:,}",
                 "كلٌّ منها بسببه ولقطةٍ لماله وقتها",
-                reverse("console:why-no-bid"),
+                # دُمجت الشاشة في «صحّة المحفظة» تبويباً (T935).
+                reverse("console:money-health") + "?which=bid",
                 "warn" if refusals else "plain",
                 "help",
                 "لماذا رُفضت",

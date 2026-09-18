@@ -50,11 +50,12 @@ from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid, BidRefusal
 from apps.core.arabic import search_q
 from apps.money import services as money
-from apps.money.models import AccountKind, Invoice
+from apps.money.models import Invoice
 
 from .decisions import AWARDED as DECISION_AWARDED
 from .decisions import awarded
 from .exports import export, wants_export
+from .money import wallet_rows
 from .sensitive import shown_to
 from .views import console_page
 
@@ -361,98 +362,6 @@ def reports(request):
 
 
 # ---------------------------------------------------------------------------
-# تقرير المحفظة — الشاشة التي هي دليلُ أطروحة v2 كاملةً. T830ح
-# ---------------------------------------------------------------------------
-#
-# شاشة v1 المقابلة تكتب مصدرَها على نفسها: «إجمالي مبالغ التأمين
-# `9,390,004.00` — `SUM(total_insurance_paid)`». وذلك العمود **بالحرف** أحد
-# الثلاثة التي وجدها جرد T302 في `userss` أعمدةَ رصيدٍ مشتقّة كلُّها تُهمَل.
-#
-# وهو نفسه «إجمالي التأمين» في رئيسية v1 — أي أن **الرقم الأكبر في لوحة
-# الإدارة كلّها مقروءٌ من عمودٍ محذَّرٍ منه في الكود ولا يُحدَّث بانتظام**.
-#
-# وهنا يُجمَع من `money.Account` عند كل عرض. وقد يختلف عن العمود القديم يوم
-# التحويل — **والاختلاف هو الجواب لا المشكلة.**
-
-
-#: دلاءُ العميل الثلاثة. الإجمالي مجموعُها لا واحدٌ منها: عميلٌ كلُّ تأمينه
-#: محجوزٌ لمزادٍ جارٍ **دفع** تأمينه، وقراءة `insurance_free` وحدها تقول صفراً.
-INSURANCE = (
-    AccountKind.INSURANCE_FREE,
-    AccountKind.INSURANCE_HELD,
-    AccountKind.INSURANCE_LOCKED,
-)
-
-
-def wallet_rows(*, text: str = "", low: str = "", high: str = "", order: str = ""):
-    """عملاء التأمين وأرصدتُهم — **مجموعةً من الدفتر لا من عمود**.
-
-    و`filter` على الدلاء داخل `Sum` لا استعلامٌ لكل عميل: أربعةٌ وأربعون ألف
-    عميلٍ بأربعةٍ وأربعين ألف استعلام هي الشاشة التي لا تُفتح.
-    """
-    from django.contrib.auth import get_user_model
-
-    rows = (
-        get_user_model()
-        .objects.filter(is_staff=False)
-        .annotate(
-            insurance=Sum(
-                "accounts__balance",
-                filter=Q(accounts__kind__in=INSURANCE),
-            )
-        )
-        .filter(insurance__gt=ZERO)
-    )
-
-    text = (text or "").strip()
-    if text:
-        rows = rows.filter(search_q(text, "full_name", "phone"))
-
-    for value, field in ((low, "insurance__gte"), (high, "insurance__lte")):
-        value = (value or "").strip()
-        if value.replace(".", "", 1).isdigit():
-            rows = rows.filter(**{field: Decimal(value)})
-
-    # «الأعلى أولاً» افتراضاً كما في v1: السؤال الذي تُفتح الشاشة لأجله «من
-    # عنده مالٌ عندنا» لا «من سجّل أوّلاً».
-    return rows.order_by("insurance" if order == "asc" else "-insurance", "id")
-
-
-@console_page("console:insurance-report")
-def insurance_report(request):
-    """تقرير المحفظة: من دفع تأميناً وكم — من الدفتر."""
-    rows = wallet_rows(
-        text=request.GET.get("q", ""),
-        low=request.GET.get("low", ""),
-        high=request.GET.get("high", ""),
-        order=request.GET.get("order", ""),
-    )
-
-    if wants_export(request):
-        return export(
-            rows,
-            name="تقرير-المحفظة",
-            headers=["المعرّف", "الاسم", "الجوال", "إجمالي التأمين"],
-            cell=lambda row: [row.pk, row.full_name, row.phone, row.insurance],
-        )
-
-    page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
-    return render(
-        request,
-        "console/insurance_report.html",
-        {
-            "page": page,
-            "customers": rows.count(),
-            "total": rows.aggregate(t=Sum("insurance"))["t"] or ZERO,
-            "q": request.GET.get("q", ""),
-            "low": request.GET.get("low", ""),
-            "high": request.GET.get("high", ""),
-            "order": request.GET.get("order", ""),
-        },
-    )
-
-
-# ---------------------------------------------------------------------------
 # احصائيات المزاد النشط — «لو أُغلق المزاد الآن». T830ح
 # ---------------------------------------------------------------------------
 
@@ -665,7 +574,8 @@ def owners_console(request):
     # المحفظة** لا مبلغُ فاتورة، فقدرتُه `money.view` لا `invoices.view`
     # (`sensitive.WALLET`). وهو الرقمُ الذي يحرسه `money.view` في «تقرير
     # المحفظة» التي يفتحها الرابطُ بجواره، **وبالدالّة ذاتها**
-    # (`wallet_rows`) — فكان يُقرأ هنا بـ`auctions.view` وحدَها:
+    # (`money.wallet_rows` — انتقلت إليه في T935 حين دُمجت الشاشتان) — فكان
+    # يُقرأ هنا بـ`auctions.view` وحدَها:
     # `9,050,004.00` على `haraj2_t307` لموظّف ساحة.
     seen = shown_to(request.user)
 
@@ -678,12 +588,12 @@ def owners_console(request):
             "auctions": Auction.objects.count(),
             "live": live.count(),
             "show_wallet": seen.wallet,
-            # الرقم نفسه الذي يعرضه «تقرير المحفظة» — من الدفتر، وبالدالّة
+            # الرقم نفسه الذي يعرضه «سجل المحفظة» — من الدفتر، وبالدالّة
             # ذاتها. فلا يقول هذا تسعةً وثلاثمئة ألفٍ ويقول ذاك غيرها.
             # ولا يُجمَع أصلاً لمن لا يراه: استعلامُ تجميعٍ على أربعةٍ
             # وأربعين ألف عميلٍ ثمنُه يُدفَع، والحجبُ بعد الدفع ليس توفيراً.
             "insurance": (
-                wallet_rows().aggregate(t=Sum("insurance"))["t"] or ZERO
+                wallet_rows().aggregate(t=Sum("held_total"))["t"] or ZERO
                 if seen.wallet
                 else None
             ),

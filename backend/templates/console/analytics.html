@@ -59,7 +59,7 @@
 
     {% comment %} «منعتها البوابة» رقمُ عملٍ لا إحصاء: كلُّ واحدةٍ فيه عميلٌ
        حاول ولم يستطع، وقد يكون على الهاتف الآن. {% endcomment %}
-    <a class="sum sum--wait" href="{% url 'console:why-no-bid' %}">
+    <a class="sum sum--wait" href="{% url 'console:money-health' %}?which=bid">
       <p class="sum__label">محاولات منعتها البوابة</p>
       <p class="sum__value">{{ totals.refusals|unlocalize }}</p>
       <p class="sum__note">لماذا رُفضت</p>

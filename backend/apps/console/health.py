@@ -39,9 +39,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 
+from django.conf import settings
 from django.db.models import Sum
 from django.shortcuts import render
 
+from apps.bidding.support import look_up
 from apps.money.models import ZERO, Account, AccountKind, Entry, TransactionKind
 from apps.money.verification import Finding, verify_ledger
 from apps.odoo.reconciliation import open_differences
@@ -247,7 +249,35 @@ def health_report() -> Health:
 
 @console_page("console:money-health")
 def health(request):
-    return render(request, "console/money_health.html", {"report": health_report()})
+    """صحّةُ المحفظة، ومعها «لماذا لا يستطيع العميل المزايدة؟» في تبويبٍ ثانٍ.
+
+    **دُمجتا بقرار المالك (١٨ سبتمبر ٢٠٢٦)**: «الصفحات اللي بتعمل نفس الوظيفة
+    ادمجها». والوظيفةُ واحدةٌ فعلاً — كلتاهما تجيب «لماذا لا يمشي المالُ كما
+    يُتوقَّع؟»: هذه على مستوى النظام (أربعةُ فحوصٍ على الدفتر كلِّه)، وتلك على
+    مستوى شخصٍ بعينه (لماذا رُفضت مزايداتُه). والدعمُ يفتح الأولى ثم يُسأل عن
+    عميل، فيخرج من الشاشة ليعود إليها.
+
+    **والتبويبُ لا يُحسب مرّتين**: `health_report()` يعيد تشغيل الفحوص الأربعة
+    عند كلّ عرض (وهو ما يجعل البلاغَ يُغلق وحدَه)، فتشغيلُه على تبويبٍ لا يُرى
+    إنفاقٌ بلا سبب — ولذلك يُحسب في فرعه وحده.
+    """
+    if request.GET.get("which", "") == "bid":
+        return render(
+            request,
+            "console/money_health.html",
+            {
+                "which": "bid",
+                "lookup": look_up(request.GET.get("phone", "")),
+                # المادة ٥-٦: كلُّ شاشةٍ تقول في أي بيئةٍ هي، فلا يُقرأ بحثٌ
+                # على بيئة اختبارٍ على أنه بحثٌ على الإنتاج.
+                "environment": settings.ENVIRONMENT_NAME,
+            },
+        )
+    return render(
+        request,
+        "console/money_health.html",
+        {"which": "checks", "report": health_report()},
+    )
 
 
 __all__ = [

@@ -9,10 +9,115 @@ reports twice what is actually missing. Every amount here is one the ledger or
 the comparison already holds — nothing on this page is arithmetic done in a
 template.
 {% endcomment %}
-{% block title %}صحة المال{% endblock %}
-{% block heading %}صحة المال{% endblock %}
+{% block title %}صحة المحفظة{% endblock %}
+{% block heading %}صحة المحفظة{% endblock %}
 
 {% block content %}
+
+  {% comment %} تبويبان بقرار المالك (١٨ سبتمبر ٢٠٢٦): «الصفحات اللي بتعمل نفس
+     الوظيفة ادمجها». والوظيفةُ واحدة — «لماذا لا يمشي المالُ كما يُتوقَّع؟»:
+     هذا على مستوى النظام، وذاك على مستوى عميلٍ بعينه. والدعمُ كان يفتح الأوّل
+     ثم يُسأل عن عميلٍ فيخرج من الشاشة.
+
+     وروابطُ لا أزرار: تُنسخ وتُفتح في تبويبٍ جديد وتعمل قبل أيّ سكربت. {% endcomment %}
+  <nav class="tabs" aria-label="نوع الفحص">
+    <a class="tab{% if which == 'checks' %} is-on{% endif %}" href="?which=checks"{% if which == 'checks' %} aria-current="page"{% endif %}>فحوصُ الدفتر</a>
+    <a class="tab{% if which == 'bid' %} is-on{% endif %}" href="?which=bid"{% if which == 'bid' %} aria-current="page"{% endif %}>لماذا لا يستطيع عميلٌ المزايدة؟</a>
+  </nav>
+
+{% if which == "bid" %}
+
+  {% comment %} كانت صفحةً مستقلّة (`bidding/why_no_bid.html`)، ودُمجت هنا.
+     والقاعدةُ التي تُقرأ بها كما هي: الأرقامُ حالةُ فلوسه **وقت الرفض** لا
+     رصيدَه الآن — والصفحةُ تقرأ ولا تكتب شيئاً. {% endcomment %}
+  <p class="lede">
+    كلُّ محاولةِ مزايدةٍ رُفضت لهذا العميل وسببُها.
+    <strong>والأرقامُ هي حالةُ فلوسه وقتَ الرفض لا رصيدَه الآن</strong> —
+    السؤالُ دائماً عن تلك اللحظة.
+  </p>
+
+  <form method="get" class="filters filters--row">
+    <input type="hidden" name="which" value="bid">
+    <div class="filters__main">
+      <input type="search" name="phone" value="{{ lookup.query }}"
+             placeholder="رقم جوال العميل" aria-label="رقم الجوال" autofocus>
+      <button type="submit" class="btn-primary">ابحث</button>
+    </div>
+  </form>
+
+  {% if not lookup.searched %}
+    <div class="blank">
+      <p class="blank__say">اكتب رقمَ جوّال العميل لترى محاولاتِه المرفوضة.</p>
+      <p class="blank__hint">الرقمُ كما هو مسجَّلٌ في حسابه.</p>
+    </div>
+  {% elif not lookup.bidder %}
+    <div class="blank">
+      <p class="blank__say">لا يوجد عميلٌ بهذا الرقم.</p>
+      <p class="blank__hint">تأكّد من الرقم — أو ابحث عنه في «إدارة المستخدمين».</p>
+    </div>
+  {% endif %}
+
+  {% if lookup.bidder %}
+    <p class="wnb-who">
+      العميل: <strong>{{ lookup.bidder }}</strong> ·
+      {% comment %} السؤالُ التالي دائماً «وكم عنده الآن؟»، وهو سؤالٌ آخر —
+         فرابطٌ لا عمود: رصيدٌ طازجٌ بجوار لقطةٍ قديمة رقمان يبدوان واحداً،
+         فيقتبس الدعمُ أيَّهما وقعت عليه العين. {% endcomment %}
+      <a href="{% url 'console:money-customer' lookup.bidder.pk %}">دفتره الآن ←</a>
+    </p>
+
+    {% if lookup.refusals %}
+      {% comment %} عشرةُ أعمدةٍ في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفّ، فيقارب
+         ارتفاعُ الصفّ مئةَ بكسل. `scroller--wide` تمنع اللفَّ وتُمرّر أفقياً. {% endcomment %}
+      <div class="scroller scroller--wide">
+      <table>
+        <thead>
+          <tr>
+            <th>وقت المحاولة</th>
+            <th>المركبة</th>
+            <th>المبلغ</th>
+            <th>السبب</th>
+            <th>التفصيل</th>
+            <th>متاح</th>
+            <th>محجوز</th>
+            <th>مقفول</th>
+            <th>مجموع تأمينه</th>
+            <th>مستحق عليه</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% comment %} `unlocalize`: المبلغُ كما يخزّنه الدفتر — الشاشةُ
+             تُقارَن بكشفِ بنكٍ أو فاتورةِ أودو. {% endcomment %}
+          {% for refusal in lookup.refusals %}
+            <tr>
+              <td class="money">{{ refusal.refused_at|date:"Y-m-d H:i" }}</td>
+              <td>{{ refusal.vehicle }}</td>
+              <td class="money">{{ refusal.amount|unlocalize }}</td>
+              <td class="reason">{{ refusal.get_reason_display }}</td>
+              <td>{{ refusal.detail }}</td>
+              <td class="money">{{ refusal.insurance_free|unlocalize }}</td>
+              <td class="money">{{ refusal.insurance_held|unlocalize }}</td>
+              <td class="money">{{ refusal.insurance_locked|unlocalize }}</td>
+              {% comment %} الرقمُ الذي يقتبسه العميلُ على الهاتف. بدونه يجمع
+                 الموظّفُ ثلاثةَ أعمدةٍ في رأسه قبل أن يوافقه — و«كان عندي
+                 عشرةُ آلاف» صحيحةٌ لمن عنده ٢٬٠٠٠ متاحةً و٨٬٠٠٠ مقفولة. {% endcomment %}
+              <td class="money">{{ refusal.insurance_total|unlocalize }}</td>
+              <td class="money">{{ refusal.outstanding_dues|unlocalize }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <div class="blank">
+        <p class="blank__say">لا محاولاتٍ مرفوضةً لهذا العميل.</p>
+        <p class="blank__hint">فلا شيءَ منعه من المزايدة.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+
+{% else %}
+
   {% if report.is_clean %}
     <p class="clean"><strong>لا ملاحظات.</strong> الدفتر متّسق مع نفسه، ولا فروق
       مفتوحة مع أودو، ولا مبلغ معلّق بلا صاحب، ولا شيء ينتظر إنساناً.</p>
@@ -160,4 +265,6 @@ template.
       </tbody>
     </table>
   </div>
+
+{% endif %}
 {% endblock %}
