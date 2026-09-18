@@ -23,6 +23,7 @@ from celery import shared_task
 from apps.core.locks import single_instance
 
 from . import broadcast as service
+from . import delivery
 from .models import Broadcast, BroadcastState
 
 log = logging.getLogger(__name__)
@@ -56,6 +57,24 @@ def run_broadcast(broadcast_id: int) -> dict:
             raise
 
 
+@shared_task(name="notifications.deliver_push")
+def deliver_push(limit: int = delivery.BATCH) -> dict:
+    """سلِّم ما في طابور إشعارات التطبيق إلى أجهزتها. T943.
+
+    **ولا تُجدوَل** — كسابقتها وللمادة ٥-٢ نفسِها: تُحجَز بضغطةِ إنسانٍ على
+    «سلِّم الطابور». والإرسالُ إلى الأجهزة لا يُحاسَب بالرسالة، لكنّ إشعاراً
+    يصل في الثالثة فجراً بلا أن يقرّره أحدٌ هو الإنفاقُ نفسُه بعملةٍ أخرى.
+
+    والقفلُ واحدٌ للطابور كلِّه لا لكلّ صفّ: مهمّتان تأخذان الدفعةَ نفسَها
+    تُرسلان الإشعارَ مرّتين إلى الجهاز نفسِه.
+    """
+    with single_instance("notifications.deliver_push") as acquired:
+        if not acquired:
+            log.info("push delivery: another instance holds the lock")
+            return {"skipped": "another instance holds the lock"}
+        return delivery.deliver(limit)
+
+
 def dispatch(broadcast: Broadcast) -> str | None:
     """احجز إدراجَ هذا البثّ فور كتابة قراره. يفشل بهدوءٍ بلا وسيط.
 
@@ -72,4 +91,4 @@ def dispatch(broadcast: Broadcast) -> str | None:
     return result.id
 
 
-__all__ = ["dispatch", "run_broadcast"]
+__all__ = ["deliver_push", "dispatch", "run_broadcast"]

@@ -1,0 +1,119 @@
+{% load l10n %}
+{% comment %}
+ربطُ إشعارات التطبيق — FCM. T943
+
+يُدار من هنا كلُّ شيءٍ إلا المفتاحَ الخاصّ: هل الربطُ حيّ، وأيُّ مشروع، وكم
+جهازاً، وكم في الطابور — وزرٌّ يُسلّمه، وزرٌّ يُجرّب على جهاز من يضغط.
+
+والمفتاحُ في بيئة الخادم لا في القاعدة (السببُ في `apps/notifications/push.py`)،
+والشاشةُ تقول بالحرف ما يُكتب وأين.
+{% endcomment %}
+
+<p class="lede">
+  إشعاراتُ التطبيق تمرّ بـ<strong>FCM وحدَها</strong> — لا مزوّدَ ثانٍ. وv1
+  يحمل مسلكين (OneSignal ثمّ FCM)، ومزوّدان في مسارٍ واحد يجعلان جوابَ «لماذا
+  لم تصله؟» يحتاج أن تعرف أوّلاً أيُّهما حاول.
+</p>
+
+{% if fcm.configured %}
+  <div class="notice notice--soft">
+    <strong>الربطُ حيّ.</strong>
+    المشروع <code>{{ fcm.project }}</code>
+    {% if fcm.client_email %}· حسابُ الخدمة <code>{{ fcm.client_email }}</code>{% endif %}
+    {% if fcm.source %}· المصدر: {{ fcm.source }}{% endif %}
+  </div>
+{% else %}
+  {% comment %} لا يُقال «خطأ»: الربطُ لم يُضبط بعد، وهذه خطوةُ إعدادٍ لا عطل.
+     والتعليماتُ في الشاشة لا في وثيقةٍ أخرى — من يضبطه يضبطه من هنا. {% endcomment %}
+  <div class="notice notice--error">
+    <p><strong>الربطُ غيرُ مضبوط</strong> — لا إشعارَ يصل جهازاً حتى يُضبط.</p>
+    <p>ضع في <code>.env</code> على الخادم أحدَ هذين، ثمّ أعِد تشغيل الخدمة:</p>
+    <pre class="mono">FCM_SERVICE_ACCOUNT_PATH=/srv/haraj/secrets/fcm.json
+# أو نصَّ الملفّ كاملاً في سطر:
+FCM_SERVICE_ACCOUNT_JSON={"type":"service_account", …}</pre>
+    <p class="empty">
+      الملفُّ يُنزَّل من <strong>Firebase ← إعدادات المشروع ← حسابات الخدمة ←
+      إنشاء مفتاح خاصّ جديد</strong>. و<code>FCM_PROJECT_ID</code> اختياريّ —
+      يُقرأ من الملفّ نفسِه.
+    </p>
+    <p class="empty">
+      <strong>ولا يُوضَع المفتاحُ في قاعدة البيانات</strong> ولا في هذه الشاشة:
+      نسخةُ القاعدة تُؤخذ للتطوير وتحمل كلَّ صفّ، ومفتاحٌ في صفٍّ يخرج مع أوّل
+      نسخة.
+    </p>
+  </div>
+{% endif %}
+
+<section class="sum-grid sum-grid--tight" aria-label="أرقام الإشعارات">
+  <div class="sum">
+    <p class="sum__label">أجهزة مسجَّلة</p>
+    <p class="sum__value">{{ devices|unlocalize }}</p>
+    <p class="sum__note">
+      {% for row in by_platform %}{{ row.name }} {{ row.count|unlocalize }}{% if not forloop.last %} · {% endif %}{% empty %}لم يسجّل التطبيقُ جهازاً بعد.{% endfor %}
+    </p>
+  </div>
+  <div class="sum sum--wait">
+    <p class="sum__label">في الطابور</p>
+    <p class="sum__value">{{ queued|unlocalize }}</p>
+    <p class="sum__note">كُتبت ولم تُسلَّم بعد.</p>
+  </div>
+  <div class="sum">
+    <p class="sum__label">قبِلها FCM</p>
+    <p class="sum__value">{{ sent|unlocalize }}</p>
+    <p class="sum__note">قبولٌ لا يعني أن صاحبَها رآها.</p>
+  </div>
+  <div class="sum">
+    <p class="sum__label">فشلت</p>
+    <p class="sum__value">{{ failed|unlocalize }}</p>
+    <p class="sum__note">وسببُها في صفّها بالسجلّ.</p>
+  </div>
+</section>
+
+{% if may_send %}
+  <div class="rowact">
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="deliver">
+      <button type="submit" class="btn-primary"{% if not fcm.configured or not queued %} disabled{% endif %}>
+        سلِّم الطابور ({{ queued|unlocalize }})
+      </button>
+    </form>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="test">
+      <button type="submit"{% if not fcm.configured %} disabled{% endif %}>جرِّب على جهازي</button>
+    </form>
+  </div>
+  <p class="empty">
+    التسليمُ <strong>بضغطةِ إنسان</strong> ولا كرون: رسالةٌ تصل في الثالثة
+    فجراً بلا أن يقرّرها أحدٌ إنفاقٌ بعملةٍ أخرى (المادة ٥-٢). والتجربةُ تصل
+    <strong>أجهزتَك أنت</strong> لا جوّالاً يُكتب في خانة.
+  </p>
+{% endif %}
+
+<h3 class="dd-sec">أحدثُ الأجهزة</h3>
+<div class="scroller">
+  <table>
+    <thead>
+      <tr><th>العميل</th><th>النظام</th><th>سُجِّل</th><th>آخر ظهور</th></tr>
+    </thead>
+    <tbody>
+      {% for device in sample %}
+        <tr>
+          <td><a href="{% url 'console:customer-detail' device.user_id %}">{{ device.user.full_name|default:device.user.phone }}</a></td>
+          <td>{{ device.get_platform_display }}</td>
+          <td>{{ device.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ device.last_seen_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+      {% empty %}
+        {% comment %} التوكنُ نفسُه لا يُعرَض في عمود: هو **بيانُ اعتمادٍ**
+           للإرسال إلى الجهاز، ومن يقرأه يستطيع أن يُرسل إليه. {% endcomment %}
+        <tr><td colspan="4" class="empty">
+          لا جهازَ مسجَّل. التطبيقُ يسجّل الجهازَ عند الدخول عبر
+          <code>/api/v1/notifications/devices/</code> — فحتى يفعل، لا وجهةَ
+          لإشعار.
+        </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

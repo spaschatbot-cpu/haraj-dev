@@ -46,6 +46,19 @@ echo "نشر: $local_sha -> $remote_sha"
 git merge --ff-only origin/main
 
 cd /srv/haraj/backend
+
+# ‏**التبعيّاتُ أوّلاً، وفقط إن تغيّر `pyproject.toml`.** حزمةٌ جديدةٌ تُضاف في
+# المستودع ولا تُثبَّت هنا تعني `ModuleNotFoundError` في أوّل طلبٍ يمسّها —
+# وقع مع `cryptography` في ١٨ سبتمبر ٢٠٢٦ (T943) فثُبّتت باليد. و`uv` ليس في
+# `PATH` لخدمةٍ غير تفاعليّة، فالمسارُ كامل.
+if git -C /srv/haraj diff --name-only "$local_sha" "$remote_sha" | grep -q '^backend/pyproject.toml$'; then
+  echo "التبعيّات: تغيّر pyproject — أثبّت"
+  /home/ubuntu/.local/bin/uv pip install --python .venv/bin/python -e . || {
+    echo "فشل تثبيتُ التبعيّات — أوقفتُ النشر قبل أن يُعاد التشغيل بنقص" >&2
+    exit 1
+  }
+fi
+
 .venv/bin/python manage.py migrate --noinput
 .venv/bin/python manage.py collectstatic --noinput
 sudo systemctl restart haraj-backend

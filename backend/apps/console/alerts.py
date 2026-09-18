@@ -58,13 +58,14 @@ from __future__ import annotations
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 
 from apps.accounts.services import find_by_phone
 from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 from apps.notifications.models import DeliveryState, Notification
 
+from . import push_settings
 from .broadcast import broadcast as broadcast_tab
 from .exports import export, wants_export
 from .reminders import reminders as reminders_tab
@@ -132,7 +133,19 @@ def notifications(request):
         return broadcast_tab(request, shell | {"which": "log", "opens": "notifySend"})
     if which == "reminders" and may_remind:
         return reminders_tab(request, shell)
+    if which == "push":
+        # تبويبُ الربط: يفتحه من يقرأ (`notifications.view`) ليرى أحيٌّ هو،
+        # وزرّاه خلف `notifications.send` — الحارسُ في `push_settings.act`.
+        return render(
+            request,
+            "console/notifications.html",
+            shell | {"which": "push"} | push_settings.shape(),
+        )
     if request.method == "POST":
+        # زرّا تبويب الربط يُرسلان `op`؛ وما عداه استمارةُ البثّ.
+        if (request.POST.get("op") or "").strip():
+            push_settings.act(request)
+            return redirect(f"{request.path}?which=push")
         # استمارةُ الإرسال تُرسل إلى الصفحة نفسِها بلا `?which=`؛ والرفضُ هنا
         # صريحٌ لأن هذه **كتابة** لا عرضُ تبويب.
         if not may_send:

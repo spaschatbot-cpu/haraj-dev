@@ -40,9 +40,14 @@
     {% if may_remind %}
       <a class="tab{% if which == 'reminders' %} is-on{% endif %}" href="?which=reminders"{% if which == 'reminders' %} aria-current="page"{% endif %}>تذكيرات المزادات</a>
     {% endif %}
+    {% comment %} تبويبُ الربط مفتوحٌ لمن يقرأ: «هل إشعاراتُ التطبيق تعمل؟»
+       سؤالُ دعمٍ لا سؤالُ إعداد. وزرّاه وحدَهما خلف `notifications.send`. {% endcomment %}
+    <a class="tab{% if which == 'push' %} is-on{% endif %}" href="?which=push"{% if which == 'push' %} aria-current="page"{% endif %}>ربط التطبيق (FCM)</a>
   </nav>
 
-{% if which == "reminders" %}
+{% if which == "push" %}
+  {% include "console/_notify_push.html" %}
+{% elif which == "reminders" %}
   {% include "console/_notify_reminders.html" %}
 {% else %}
   {% include "console/_notify_log.html" %}
