@@ -18,7 +18,6 @@ from . import (
     auctions,
     audit,
     bids,
-    bids_report,
     billing,
     broadcast,
     bulk,
@@ -159,9 +158,7 @@ urlpatterns = [
     path("bids/accepted/summary/", decisions.accepted_summary, name="accepted-summary"),
     # التقارير والتحليلات — قسمُ v1 نفسه (T830ب).
     path("analytics/", analytics.reports, name="analytics"),
-    path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
     # تقرير المزايدات — المزايدون مجمَّعين، بمسار v1 نفسِه (T832).
-    path("analytics/bids-report/", bids_report.bids_report, name="bids-report"),
     # «احصائيات المزاد النشط» دُمجت في `console:live-bids` (T938) —
     # شاشتان عن المزاد المفتوح نفسِه: تلك تعدّ وهذه تسرد.
     path("analytics/profit/", analytics.profit_report, name="profit-report"),

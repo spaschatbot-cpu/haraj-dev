@@ -40,7 +40,7 @@ from __future__ import annotations
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.paginator import Paginator
-from django.db.models import Avg, Count, Max, Min, Q, Sum
+from django.db.models import Avg, Count, Max, Q, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import User
@@ -89,146 +89,17 @@ def _rounded(value: Decimal | None) -> Decimal | None:
     return Decimal(value).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
-def bid_shape(*, first: str = "", last: str = "") -> dict:
-    """أرقام المزايدات — **والحالات الثلاث قسمةٌ يساوي مجموعُها الإجمالي**.
-
-    مفصولةٌ عن العرض ليسألها الاختبار: ادّعاءُ أن المجموع يساوي الكلّ خاصيّةُ
-    هذه الدالّة لا خاصيّةُ صفحةٍ من HTML — وهو الادّعاء الذي تكسره v1.
-    """
-    rows = Bid.objects.all()
-
-    if (first or "").strip().isdigit():
-        rows = rows.filter(vehicle__auction__number__gte=int(first))
-    if (last or "").strip().isdigit():
-        rows = rows.filter(vehicle__auction__number__lte=int(last))
-
-    # قسمةٌ بالترتيب: المسحوبة أوّلاً، فالمستبدَلة **من غير المسحوب**، فالباقي.
-    # وبلا هذا الترتيب تُعدّ المزايدةُ المسحوبةُ المستبدَلةُ مرّتين — وهو
-    # بالضبط شكلُ الفائض في v1.
-    withdrawn = rows.filter(is_withdrawn=True)
-    superseded = rows.filter(is_withdrawn=False, is_superseded=True)
-    standing = rows.filter(is_withdrawn=False, is_superseded=False)
-
-    numbers = rows.aggregate(
-        total=Count("id"),
-        highest=Max("amount"),
-        lowest=Min("amount"),
-        average=Avg("amount"),
-        value=Sum("amount"),
-    )
-
-    return {
-        "total": numbers["total"] or 0,
-        "highest": numbers["highest"],
-        "lowest": numbers["lowest"],
-        # `Avg` تُرجع كسراً بثمانية عشر رقماً (`88352.941176470588`)، وهو مبلغٌ
-        # لا يُقرأ ولا يوجد بهذه الدقّة: الريال قرشان لا أكثر. والتقريب هنا لا
-        # في القالب — مرشّحٌ في القالب مكانٌ ثانٍ للقاعدة ولا يُختبَر.
-        "average": _rounded(numbers["average"]),
-        "value": numbers["value"] or ZERO,
-        "withdrawn": withdrawn.count(),
-        "superseded": superseded.count(),
-        "standing": standing.count(),
-        # خارج القسمة عمداً: محاولةٌ منعتها البوابة ليست مزايدةً وقعت.
-        "refused": BidRefusal.objects.count(),
-        "bidders": rows.values("bidder").distinct().count(),
-        "auctions": rows.values("vehicle__auction").distinct().count(),
-        "vehicles": rows.values("vehicle").distinct().count(),
-    }
-
-
-def top_bidders(*, limit: int = TOP):
-    """أكثر المزايدين نشاطاً، بعدد مزايداتهم وإجمالي قيمتها.
-
-    والعدُّ يشمل المستبدَلة عمداً — السؤال «من يزايد كثيراً» لا «من يفوز
-    كثيراً»، والثاني شاشةٌ أخرى. ومكتوبٌ في العنوان كي لا يُقرأ الأول ثانياً:
-    في v1 أعلى مزايدٍ `5,636` مزايدة بإجمالي `93,556,250`، ولا شيء يقول أهي
-    مزايداتٌ متتالية على سيارةٍ واحدة أم سياراتٍ كثيرة.
-    """
-    return (
-        Bid.objects.values("bidder__id", "bidder__full_name", "bidder__phone")
-        .annotate(
-            bids=Count("id"),
-            value=Sum("amount"),
-            vehicles=Count("vehicle", distinct=True),
-        )
-        .order_by("-bids", "bidder__id")[:limit]
-    )
-
-
-def _top_shown(rows, seen) -> list[dict]:
-    """صفوفُ «أكثر المزايدين نشاطاً» منقوصةً ما لا يحقُّ رؤيتُه. T901.
-
-    و`top_bidders` تُرجع قواميسَ `values()` لا كائناتِ نموذج، فلا تصلح لها
-    :func:`~apps.console.sensitive.person_on` التي تكتب على الصفّ — والقاموسُ
-    يُبنى هنا من جديدٍ بلا المفاتيح المحجوبة، **فلا يصل القالبَ مفتاحٌ محجوب**
-    ليُخفى فيه.
-
-    والاسمُ الفارغ يبقى فارغاً لمن يملك الصلاحية: أسماءُ المزايدين المرحَّلين
-    فارغةٌ في القاعدة (`full_name == ''`)، وكتابةُ «محجوب» مكانَها لمن يراها
-    عطلٌ وقع في جولةٍ سابقة وأُصلح.
-
-    و«إجمالي القيمة» مبلغٌ يُحجَب للحجّة التي في :func:`bids_analysis`: مجموعُ
-    مزايداتِ شخصٍ فيه مزايداتُه على ما رسا له. أمّا عددُ مزايداته ومركباتِه
-    فعددٌ يبقى — وهو السؤالُ الذي تُفتح الشاشةُ لأجله.
-    """
-    out = []
-    for row in rows:
-        shown = {
-            "bidder__id": row["bidder__id"],
-            "bids": row["bids"],
-            "vehicles": row["vehicles"],
-        }
-        if seen.customer:
-            shown["bidder__full_name"] = row["bidder__full_name"]
-            shown["bidder__phone"] = row["bidder__phone"]
-        if seen.money:
-            shown["value"] = row["value"]
-        out.append(shown)
-    return out
-
-
-@console_page("console:analytics-bids")
-def bids_analysis(request):
-    """تحليل المزايدات: قسمةٌ تجمع، وأعلى المزايدين."""
-    first = request.GET.get("from", "")
-    last = request.GET.get("to", "")
-    shape = bid_shape(first=first, last=last)
-
-    # الشاشةُ `auctions.view`، وكانت تضع في مصدرها عشرةَ جوّالاتٍ بأسمائها
-    # وثلاثةَ عشرَ مبلغاً. والأعدادُ كلُّها تبقى — القسمةُ وعددُ المزايدين
-    # والمركبات هي سببُ فتح الشاشة، وهي التي تكذب في v1.
-    seen = shown_to(request.user)
-
-    # **والأربعةُ الماليّة لا تُقسَم على مركبة، فتُحجَب كلُّها.**
-    #
-    # قاعدةُ المالك: مبلغُ مزايدةٍ على مركبةٍ **رست** مالٌ، وعلى مركبةٍ لم
-    # تَرسُ رقمُ سوق. و`highest`/`lowest`/`average`/`value` تجميعٌ على
-    # **كلّ** المزايدات، فيها مزايداتُ المركبات المرساة — أي أن «أعلى مزايدة»
-    # قد تكون بعينها سعرَ رسوِّ مركبةٍ، و«إجمالي القيمة» يحمل أسعارَ الرسوّ
-    # كلَّها. ولا شرطَ صفٍّ يفصلها هنا كما يفصلها في جدول المزايدات، فالحجبُ
-    # للأربعة كلِّها — وذلك ثمنُ التجميع لا تشدّدٌ زائد.
-    if not seen.money:
-        shape |= {"highest": None, "lowest": None, "average": None, "value": None}
-
-    return render(
-        request,
-        "console/analytics_bids.html",
-        {
-            "shape": shape,
-            "show_money": seen.money,
-            "show_customer": seen.customer,
-            "top": _top_shown(top_bidders(), seen),
-            "first": first,
-            "last": last,
-            # يُحسب هنا لا في القالب: قالبٌ يجمع ثلاثة أرقامٍ ليعرض رابعاً هو
-            # مكانٌ ثانٍ للقاعدة ولا يُختبَر (المادة ٤-٤).
-            "partition_total": shape["withdrawn"]
-            + shape["superseded"]
-            + shape["standing"],
-        },
-    )
-
+# ---------------------------------------------------------------------------
+# «تحليل المزايدات» كانت هنا — وحُذفت بطلب المالك (١٨ سبتمبر ٢٠٢٦). T939
+# ---------------------------------------------------------------------------
+#
+# ومعها `bid_shape` و`top_bidders` و`_top_shown`: لا مناديَ لها بعد الشاشة،
+# ودالّةٌ تبقى بلا نداء تُقرأ يوماً على أنها طريقٌ قائم فيُبنى عليها.
+#
+# **وما كانت تجيبه لم يُفقد كلُّه.** القسمةُ الثلاث (قائمة · مسحوبة ·
+# مستبدَلة) تُقرأ لكل مزادٍ في «المزاد الجاري» (T938) ولكل مركبةٍ في «مزايدات
+# المركبة». والمفقودُ حقّاً: **أكثرُ المزايدين نشاطاً** على المنصّة كلِّها،
+# و«كم رسا لكلّ مزايد» — وكانت شاشةُ `bids-report` تجيبه وحُذفت معها.
 
 def report_totals() -> dict:
     """أرقام لوحة التقارير — كلٌّ منها **يستدعي مصدرَ شاشته** لا استعلاماً ثانياً.

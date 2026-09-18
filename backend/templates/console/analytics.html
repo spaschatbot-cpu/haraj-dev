@@ -51,11 +51,14 @@
       <p class="sum__note">ملخّص المقبولة</p>
     </a>
 
-    <a class="sum" href="{% url 'console:analytics-bids' %}">
+    {% comment %} بطاقةٌ بلا وجهة منذ T939: «تحليل المزايدات» حُذفت بطلب
+       المالك، ولا شاشةَ تقرأ هذا الرقمَ الكلّيّ وتقسمه. ورابطٌ إلى جدولِ
+       صفوفٍ لا يجيب سؤالَ الرقم. {% endcomment %}
+    <div class="sum">
       <p class="sum__label">إجمالي المزايدات</p>
       <p class="sum__value">{{ totals.bids|unlocalize }}</p>
-      <p class="sum__note">تحليل المزايدات</p>
-    </a>
+      <p class="sum__note">على المنصّة كلِّها</p>
+    </div>
 
     {% comment %} «منعتها البوابة» رقمُ عملٍ لا إحصاء: كلُّ واحدةٍ فيه عميلٌ
        حاول ولم يستطع، وقد يكون على الهاتف الآن. {% endcomment %}

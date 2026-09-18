@@ -71,11 +71,13 @@
       <p class="sum__note">سجل المحفظة</p>
     </a>
 
-    <a class="sum" href="{% url 'console:analytics-bids' %}">
+    {% comment %} بطاقةٌ بلا وجهة منذ T939 — انظر نظيرتَها في
+       `analytics.html`. {% endcomment %}
+    <div class="sum">
       <p class="sum__label">المزايدون</p>
       <p class="sum__value">{{ bidders|unlocalize }}</p>
-      <p class="sum__note">تحليل المزايدات</p>
-    </a>
+      <p class="sum__note">من زايد مرّةً على الأقلّ</p>
+    </div>
 
     <a class="sum" href="{% url 'console:accepted-bids' %}">
       <p class="sum__label">مركبات رست</p>
