@@ -124,10 +124,17 @@
               {% else %}<span class="empty">—</span>{% endif %}
             </td>
             <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+            {% comment %} الشرطُ على **وجودِ قرارٍ** لا على وجودِ فاعل: الصفوفُ
+               المرحَّلةُ من v1 تحمل قراراً مكتوباً («صُرف في v1 · سندُ أودو
+               …») و`decided_by` فارغاً، لأن v1 لا يسجّل من قرّر. وكان الشرطُ
+               على الفاعل فقُرئت ٣٬١٩٥ صفّاً «بلا قرار» وقرارُها مكتوبٌ تحته.
+            {% endcomment %}
             <td>
-              {% if row.decided_by_id %}
-                {{ row.decided_by.full_name|default:row.decided_by.phone }}
-                <small>{{ row.decided_at|date:"Y-m-d H:i" }}</small>
+              {% if row.decided_by_id or row.decision_note %}
+                {% if row.decided_by_id %}
+                  {{ row.decided_by.full_name|default:row.decided_by.phone }}
+                {% endif %}
+                {% if row.decided_at %}<small>{{ row.decided_at|date:"Y-m-d H:i" }}</small>{% endif %}
                 {% if row.decision_note %}<small>{{ row.decision_note }}</small>{% endif %}
               {% else %}<span class="empty">—</span>{% endif %}
             </td>

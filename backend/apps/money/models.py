@@ -716,6 +716,22 @@ class RefundRequestState(models.TextChoices):
     REJECTED = "rejected", "مرفوض"
     CANCELLED = "cancelled", "ألغاه العميل"
 
+    #: **صُرف في v1، ولا قيدَ له في دفترنا.** T934، ولا يكتبها كودٌ جديدٌ أبداً.
+    #:
+    #: ٣٬١٢١ طلباً في v1 حالتُها ``approved`` و``payment_state='posted'`` — أي
+    #: أن أودو صرفها فعلاً. و``confirmed`` عندنا تشترط حركةً في الدفتر
+    #: (``a_confirmed_refund_names_its_transaction``)، **ولا حركةَ تقابلها**:
+    #: دفترُنا بُني من ``insurance_deposits`` لا من الطلبات (قرارُ
+    #: `build_ledger`، وبناءُ الاثنين يخصم المال مرّتين). وقِيس المرشَّحُ
+    #: الوحيدُ للربط — ``odoo_payment_id`` — فطابق **صفراً من ٣٬٢٨٨**: عمودُ
+    #: الوديعة يحمل معرّفَ دفعة **الشحن** الداخلة، وعمودُ الطلب معرّفَ دفعة
+    #: **الصرف** الخارجة. حدثان مختلفان، لا خطأَ صيغة.
+    #:
+    #: فالحالةُ تقول ما جرى بلا أن تدّعي ما لم يجرِ عندنا. وسندُ أودو
+    #: (``payment_name`` ورقمُه) يُكتب في ``decision_note`` — فالسؤالُ «أين
+    #: ذهبت العشرةُ آلاف؟» له جوابٌ مكتوبٌ في الصفّ.
+    PAID_IN_V1 = "v1_paid", "صُرف في v1"
+
     @classmethod
     def open_states(cls) -> tuple[str, ...]:
         """The states in which a request may still cost us money.
@@ -793,19 +809,25 @@ class RefundRequest(models.Model):
             models.CheckConstraint(
                 condition=Q(amount__gt=ZERO), name="refund_request_is_positive"
             ),
-            # رفضٌ يقول من ومتى ولماذا — نظيرُ
-            # `a_closed_shortfall_names_its_decision` وبالسبب نفسه: صفٌّ
-            # مرفوضٌ بلا قرارٍ مكتوب هو قرارٌ لا يُسأل عنه أحد.
+            # رفضٌ يقول **لماذا** — نظيرُ `a_closed_shortfall_names_its_decision`
+            # وبالسبب نفسه: صفٌّ مرفوضٌ بلا قرارٍ مكتوب هو قرارٌ لا يُسأل عنه
+            # أحد.
             #
-            # و`cancelled` **خارج القيد** عمداً: هي «ألغاه العميل» كما يقول
+            # **والفاعلُ ليس في القيد، وكان فيه.** ١١١ طلباً مرفوضاً في v1
+            # لا تحمل معرّفَ موظّف: `refunds_requests_update.php` يكتب
+            # ``UPDATE … SET status='rejected' WHERE id=?`` ولا عمودَ هناك
+            # لمن كتبها. فاشتراطُ الفاعل في القاعدة يعني إمّا رفضَ ترحيل
+            # الـ١١١ — أي إخفاءَ ما جرى — أو نسبةَ رفضٍ إلى موظّفٍ لم يرفض،
+            # وهو اختراعُ واقعةٍ (المادة ٢-٣). فبقي **السببُ** شرطاً في
+            # القاعدة، و**الفاعلُ** يفرضه البابُ الواحد: `decide_refund` لا
+            # تُنادى إلا بـ`by`، فكلُّ رفضٍ يقع من اليوم فصاعداً باسمِ صاحبه.
+            #
+            # و`cancelled` خارج القيد عمداً: هي «ألغاه العميل» كما يقول
             # اسمُها، ولا موظّفَ فيها ليُسمّى. وv1 يحذف الصفَّ حذفاً
             # (`delete_refund.php`) فلا يبقى ما يُسأل عنه أصلاً؛ ونظيرُ ذلك
             # الزرِّ هنا هو **الرفضُ بسبب**، لا حذفٌ ولا إلغاءٌ باسم العميل.
             models.CheckConstraint(
-                condition=(
-                    ~Q(state="rejected")
-                    | (~Q(decision_note="") & Q(decided_by__isnull=False))
-                ),
+                condition=(~Q(state="rejected") | ~Q(decision_note="")),
                 name="a_refused_refund_names_its_decision",
             ),
             models.CheckConstraint(
