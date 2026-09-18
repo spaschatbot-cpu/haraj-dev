@@ -16,7 +16,7 @@ v1 يفرّقهما كذلك: `BillController::activeBids` يعرض **أعلى �
 from __future__ import annotations
 
 from django.core.paginator import Paginator
-from django.db.models import Max, Q
+from django.db.models import Q
 from django.shortcuts import render
 
 from apps.accounts.models import User
@@ -26,6 +26,7 @@ from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 
+from .analytics import live_shape
 from .archive import _bid_state
 from .exports import export_table, wants_export
 from .sensitive import (
@@ -125,7 +126,17 @@ def _export_columns(seen):
 
 @console_page("console:live-bids")
 def live_bids(request):
-    """مزايدات المزاد الجاري الآن — الشاشة التي تُفتح والمزاد مفتوح.
+    """المزاد الجاري: **أرقامُه ومزايداتُه في شاشةٍ واحدة**. T938.
+
+    كانتا شاشتين عن الشيء نفسِه — «احصائيات المزاد النشط» تعدّ، و«مزايدات
+    المزاد الجاري» تسرد — والموظّفُ يفتح إحداهما ثم يخرج إلى الأخرى ليسأل
+    السؤالَ التالي. وقرارُ المالك (١٨ سبتمبر ٢٠٢٦): «ادمج لي صفحة مزايدات
+    المزاد الجاري مع صفحة إحصائيات المزاد النشط».
+
+    **و`?number=` باقٍ كما كان في شاشة الإحصائيات**: بلا رقمٍ تُقرأ المزاداتُ
+    المفتوحةُ كلُّها (أرقاماً وجدولاً معاً، فلا رقمان عن نطاقين)، وبرقمٍ يُقصَر
+    الاثنان على مزادٍ واحد — ولو كان منتهياً، وهو ما كانت تفعله تلك الشاشة
+    ويُقرأ به مزادٌ أُغلق أمس.
 
     «الجاري» من `engine.phase` لا من عمود الحالة وحده: عاملُ Celery قد يتأخّر،
     ولا يحتمل الموظّف أن يفتح الشاشة فيراها فارغةً ومزادٌ يعمل منذ دقيقتين.
@@ -150,10 +161,19 @@ def live_bids(request):
         if engine.phase(a) in (engine.Phase.OVERDUE_START, engine.Phase.OVERDUE_END)
     ]
 
+    # رقمُ مزادٍ مكتوبٌ يقصر الشاشةَ كلَّها عليه — الأرقامَ والجدولَ معاً.
+    # ويُبحَث عنه في المزادات كلِّها لا في الجاري وحده: شاشةُ الإحصائيات كانت
+    # تفعل ذلك، ومن يكتب رقمَ مزادٍ أُغلق أمس يريد صورتَه لا رسالةَ «لا مزاد».
+    number = (request.GET.get("number") or "").strip()
+    if number.isdigit():
+        scope = list(Auction.objects.filter(number=int(number)))
+    else:
+        scope = live
+
     search = request.GET.get("q", "")
     rows = (
-        _rows(search=search).filter(vehicle__auction__in=live)
-        if live
+        _rows(search=search).filter(vehicle__auction__in=scope)
+        if scope
         else Bid.objects.none()
     )
 
@@ -172,12 +192,14 @@ def live_bids(request):
     amounts_on(page.object_list, seen)
     return render(request, "console/live_bids.html", {
         "page": page, "q": search, "live": live, "late": late,
+        "number": number,
+        # الأرقامُ على **النطاق نفسِه** الذي يعرضه الجدول تحتها.
+        "shape": live_shape(scope),
         "show_money": seen.money, "show_customer": seen.customer,
-        # روابطُ التصفّح تحمل البحث معها: «التالي» بدونه يعود بالجدول كلّه
-        # والقارئُ يظنّ نفسه داخل نتيجته.
-        "keep": f"q={search}&" if search else "",
-        "bidders": rows.values("bidder_id").distinct().count(),
-        "highest": rows.aggregate(top=Max("amount"))["top"],
+        # روابطُ التصفّح تحمل البحث والرقم معها: «التالي» بدونهما يعود
+        # بالجدول كلّه والقارئُ يظنّ نفسه داخل نتيجته.
+        "keep": (f"q={search}&" if search else "")
+        + (f"number={number}&" if number else ""),
     })
 
 

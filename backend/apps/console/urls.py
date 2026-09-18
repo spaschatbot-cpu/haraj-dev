@@ -162,7 +162,8 @@ urlpatterns = [
     path("analytics/bids/", analytics.bids_analysis, name="analytics-bids"),
     # تقرير المزايدات — المزايدون مجمَّعين، بمسار v1 نفسِه (T832).
     path("analytics/bids-report/", bids_report.bids_report, name="bids-report"),
-    path("analytics/active/", analytics.active_auction, name="active-auction"),
+    # «احصائيات المزاد النشط» دُمجت في `console:live-bids` (T938) —
+    # شاشتان عن المزاد المفتوح نفسِه: تلك تعدّ وهذه تسرد.
     path("analytics/profit/", analytics.profit_report, name="profit-report"),
     path("owners/", analytics.owners_console, name="owners-console"),
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),

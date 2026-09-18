@@ -362,26 +362,34 @@ def reports(request):
 
 
 # ---------------------------------------------------------------------------
-# احصائيات المزاد النشط — «لو أُغلق المزاد الآن». T830ح
+# أرقامُ المزاد الجاري — «لو أُغلق الآن». T830ح · T938
 # ---------------------------------------------------------------------------
+#
+# **وشاشتُها لم تعد هنا.** «احصائيات المزاد النشط» و«مزايدات المزاد الجاري»
+# كانتا شاشتين عن الشيء نفسِه — المزادُ المفتوحُ الآن: تلك تعدّ وهذه تسرد —
+# فدُمجتا في `console:live-bids` بقرار المالك (١٨ سبتمبر ٢٠٢٦): «ادمج لي
+# صفحة مزايدات المزاد الجاري مع صفحة إحصائيات المزاد النشط».
+#
+# والحسابُ باقٍ هنا لأنه حسابٌ لا عرض، وينادى من `apps.console.bids`.
 
 
-def live_shape(number: str = "") -> dict | None:
-    """صورةُ مزادٍ واحد الآن — أو `None` حين لا مزادَ يُقرأ.
+def live_shape(auctions) -> dict | None:
+    """صورةُ المزادات المعطاة الآن — أو `None` حين لا مزادَ فيها.
+
+    **تأخذ المزاداتِ ولا تختارها**: كانت تقرأ `engine.open_now()` بنفسها
+    وتأخذ أوّلَها، فصارت الشاشةُ التي تسرد مزايداتِ **كلِّ** المزادات
+    المفتوحة تعرض فوقها أرقامَ **واحدٍ** منها — رقمان متجاوران عن نطاقين.
+    فالنطاقُ يُقرَّر في مكانٍ واحد (الشاشة) ويُمرَّر.
 
     و«القيمة الحالية» **مجموعُ أعلى مزايدةٍ لكل سيارة**، لا مجموعُ المزايدات:
     الثاني يجمع عشرَ مزايداتٍ على سيارةٍ واحدة فيقول إنها بيعت عشر مرّات.
     """
-    auctions = engine.open_now().order_by("-starts_at")
-    if (number or "").strip().isdigit():
-        auctions = Auction.objects.filter(number=int(number))
-
-    auction = auctions.first()
-    if auction is None:
+    auctions = list(auctions)
+    if not auctions:
         return None
 
-    cars = Vehicle.objects.filter(auction=auction)
-    bids = Bid.objects.filter(vehicle__auction=auction)
+    cars = Vehicle.objects.filter(auction__in=auctions)
+    bids = Bid.objects.filter(vehicle__auction__in=auctions)
 
     # أعلى مزايدةٍ لكل سيارة، مجموعةً في القاعدة لا في بايثون.
     tops = (
@@ -392,7 +400,11 @@ def live_shape(number: str = "") -> dict | None:
     current = sum(tops, ZERO)
 
     return {
-        "auction": auction,
+        "auctions": auctions,
+        # مزادٌ واحدٌ يُسمّى في الترويسة، وأكثرُ من واحدٍ يُسرَد. والفرقُ
+        # يُقرَّر هنا لا في القالب: قالبٌ يعدّ قائمةً ليقرّر ما يعرض هو قاعدةٌ
+        # في موضعٍ لا يُراجَع (المادة ٤-٤).
+        "one": auctions[0] if len(auctions) == 1 else None,
         "vehicles": cars.count(),
         "with_bids": cars.filter(bids__isnull=False).distinct().count(),
         "without_bids": cars.filter(bids__isnull=True).count(),
@@ -404,20 +416,6 @@ def live_shape(number: str = "") -> dict | None:
         # الرقم نافعاً بدل أن يُقرأ مبيعاتٍ وقعت.
         "if_closed_now": current,
     }
-
-
-@console_page("console:active-auction")
-def active_auction(request):
-    """احصائيات المزاد النشط: ما قيمتُه **لو أُغلق الآن**."""
-    return render(
-        request,
-        "console/active_auction.html",
-        {
-            "shape": live_shape(request.GET.get("number", "")),
-            "number": request.GET.get("number", ""),
-            "live": engine.open_now().count(),
-        },
-    )
 
 
 # ---------------------------------------------------------------------------

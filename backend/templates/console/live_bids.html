@@ -1,12 +1,22 @@
 {% extends "console/base.html" %}
 {% load l10n %}
 {% comment %}
-مزايدات المزاد الجاري — نظيرُ `activeBids` في v1، لكن «الجاري» من محرّك المراحل
-لا من `end_time <= CONVERT_TZ(NOW(),…)` مكتوبةً بيدٍ في كل استعلام.
+المزاد الجاري — أرقامُه ومزايداتُه في شاشةٍ واحدة. T938
+
+كانتا شاشتين عن الشيء نفسِه: «احصائيات المزاد النشط» تعدّ، و«مزايدات المزاد
+الجاري» تسرد. فالموظّفُ يفتح إحداهما ثمّ يخرج إلى الأخرى ليسأل السؤالَ التالي
+عن المزاد نفسِه. وقرارُ المالك (١٨ سبتمبر ٢٠٢٦): «ادمج الصفحتين».
+
+و«الجاري» من محرّك المراحل لا من `end_time <= CONVERT_TZ(NOW(),…)` مكتوبةً
+بيدٍ في كل استعلام كما في v1.
+
+**والأرقامُ على نطاق الجدول نفسِه**: بلا رقمِ مزادٍ تُقرأ المزاداتُ المفتوحة
+كلُّها فوق وتحت، وبرقمٍ يُقصَر الاثنان عليه. ورقمان متجاوران عن نطاقين هو
+ما يجعل الشاشةَ تكذب بلا أن يكون في أيٍّ منهما خطأ.
 {% endcomment %}
-{% block title %}مزايدات المزاد الجاري{% endblock %}
-{% block heading %}مزايدات المزاد الجاري{% endblock %}
-{% block actions %}<a href="?{% if q %}q={{ q }}&amp;{% endif %}export=1" class="btn-secondary">تصدير إكسل</a>{% endblock %}
+{% block title %}المزاد الجاري{% endblock %}
+{% block heading %}المزاد الجاري{% endblock %}
+{% block actions %}<a href="?{{ keep }}export=1" class="btn-secondary">تصدير إكسل</a>{% endblock %}
 
 {% block content %}
   {% if late %}
@@ -23,28 +33,118 @@
     </div>
   {% endif %}
 
-  {% if not live %}
-    <p class="notice warning">لا مزاد مفتوحٌ للمزايدة الآن — الشاشة تمتلئ حين يبدأ مزاد.</p>
-  {% else %}
-    <div class="board-stats">
-      <div class="stat"><span class="stat__label">مزادات مفتوحة</span><strong class="stat__value">{{ live|length|unlocalize }}</strong></div>
-      <div class="stat"><span class="stat__label">مزايدات</span><strong class="stat__value">{{ page.paginator.count|unlocalize }}</strong></div>
-      <div class="stat"><span class="stat__label">مزايدون</span><strong class="stat__value">{{ bidders|unlocalize }}</strong></div>
-      <div class="stat"><span class="stat__label">أعلى مبلغ</span><strong class="stat__value money">{{ highest|default:"—"|unlocalize }}</strong></div>
-    </div>
-    <p class="muted">
-      المزادات المفتوحة:
-      {% for a in live %}<a href="{% url 'console:auction-detail' a.pk %}">{{ a.number|unlocalize }} — {{ a.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}
-    </p>
-  {% endif %}
+  <p class="lede">
+    ما يجري الآن: أرقامُ المزاد المفتوح ومزايداتُه.
+    <strong>و«القيمة الحالية» مجموعُ أعلى مزايدةٍ لكلّ سيارة</strong> لا مجموعُ
+    المزايدات — الثاني يجمع عشرَ مزايداتٍ على سيّارةٍ واحدة فيقول إنها بيعت
+    عشر مرّات. واكتب رقمَ مزادٍ لتقرأ صورتَه ومزايداته وحدَه.
+  </p>
 
+  {% comment %} الاستمارةُ واحدةٌ للبحث ورقمِ المزاد: كانتا استمارتين في
+     شاشتين، وهما مرشِّحان على الشيء نفسِه. {% endcomment %}
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      <input type="search" name="q" value="{{ q }}" placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…" aria-label="بحث">
-      <button type="submit" class="btn-primary">بحث</button>
-      {% if q %}<a href="{% url 'console:live-bids' %}" class="filters__reset">مسح</a>{% endif %}
+      <input type="number" name="number" value="{{ number }}"
+             placeholder="رقم مزاد" aria-label="رقم المزاد">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="لوحة · شاصي · ماركة · لوت · اسم المزايد…" aria-label="بحث">
+      <button type="submit" class="btn-primary">اعرض</button>
+      {% if q or number %}<a href="{% url 'console:live-bids' %}" class="filters__reset">مسح</a>{% endif %}
     </div>
   </form>
 
-  {% include "console/_bids_table.html" with empty_text="لا مزايدات على المزاد الجاري بعد." keep=keep %}
+  {% if not shape %}
+    {% comment %} «لا مزاد جارٍ» جوابٌ صحيحٌ لا شاشةٌ فارغة: المنصّةُ تعمل
+       بمزادٍ أسبوعيّ، وبين المزادين لا شيءَ يُقاس. {% endcomment %}
+    <div class="blank">
+      {% if number %}
+        <p class="blank__say">لا مزادَ بهذا الرقم.</p>
+        <p class="blank__hint">تأكّد من الرقم كما هو في «قائمة المزادات».</p>
+      {% else %}
+        <p class="blank__say">لا مزادَ مفتوحٌ للمزايدة الآن.</p>
+        <p class="blank__hint">وهذا جوابٌ لا نقص: المنصّةُ تعمل بمزادٍ أسبوعيّ،
+          وبين المزادين لا شيءَ يُقاس. اكتب رقمَ مزادٍ لتقرأ صورتَه ومزايداته.</p>
+      {% endif %}
+    </div>
+  {% else %}
+
+    {% comment %} مزادٌ واحدٌ يُسمّى في ترويسة، وأكثرُ من واحدٍ يُسرَد — والقرارُ
+       في العرض (`shape.one`) لا في القالب. {% endcomment %}
+    {% if shape.one %}
+      <h2 class="dd-who">
+        {{ shape.one.number|unlocalize }} — {{ shape.one.title }}
+        <small>{{ shape.one.get_state_display }}</small>
+      </h2>
+      <p class="wnb-who">
+        من {{ shape.one.starts_at }} إلى {{ shape.one.ends_at }}
+        <a class="rf-go" href="{% url 'console:auction-detail' shape.one.pk %}">افتح المزاد</a>
+      </p>
+    {% else %}
+      <p class="muted">
+        المزادات المفتوحة:
+        {% for a in shape.auctions %}<a href="{% url 'console:auction-detail' a.pk %}">{{ a.number|unlocalize }} — {{ a.title }}</a>{% if not forloop.last %} · {% endif %}{% endfor %}
+      </p>
+    {% endif %}
+
+    <section class="sum-grid sum-grid--tight" aria-label="أرقام المزاد">
+      <div class="sum">
+        <p class="sum__label">سيارات المزاد</p>
+        <p class="sum__value">{{ shape.vehicles|unlocalize }}</p>
+        <p class="sum__note">المعروضُ كلُّه.</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">عليها مزايدة</p>
+        <p class="sum__value">{{ shape.with_bids|unlocalize }}</p>
+        <p class="sum__note">وجدت من يطلبها.</p>
+      </div>
+      {% comment %} «بلا مزايدة» رقمُ عملٍ لا إحصاء: هي التي تحتاج تذكيراً أو
+         مراجعةَ سعر وقوفٍ قبل أن ينتهي المزاد — فلها لونُ التنبيه. {% endcomment %}
+      <div class="sum sum--wait">
+        <p class="sum__label">بلا مزايدة</p>
+        <p class="sum__value">{{ shape.without_bids|unlocalize }}</p>
+        <p class="sum__note">تحتاج تذكيراً أو مراجعةَ سعر وقوف.</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">إجمالي المزايدات</p>
+        <p class="sum__value">{{ shape.bids|unlocalize }}</p>
+        <p class="sum__note">كلُّ مزايدةٍ وقعت.</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">عدد المزايدين</p>
+        <p class="sum__value">{{ shape.bidders|unlocalize }}</p>
+        <p class="sum__note">أشخاصٌ لا مزايدات.</p>
+      </div>
+      <div class="sum sum--money">
+        <p class="sum__label">أعلى مزايدة</p>
+        <p class="sum__value money">{{ shape.highest|default:"—"|unlocalize }}</p>
+        <p class="sum__note">على سيّارةٍ واحدة.</p>
+      </div>
+      <div class="sum sum--money">
+        <p class="sum__label">متوسّط المزايدة</p>
+        <p class="sum__value money">{{ shape.average|default:"—"|unlocalize }}</p>
+        <p class="sum__note">على المزايدات كلِّها.</p>
+      </div>
+    </section>
+
+    {% comment %} الرقمُ الأكبرُ في الشاشة، وبلا شرطه يُقرأ **مبيعاتٍ وقعت**.
+       فالشرطُ في البطاقة لا تحتها. {% endcomment %}
+    <h3 class="dd-sec">القيمة الحالية <small>لو أُغلق المزاد الآن</small></h3>
+    <div class="aa-now">
+      <p class="aa-now__k">مجموع أعلى مزايدةٍ لكل سيارة</p>
+      <p class="aa-now__v money">{{ shape.if_closed_now|unlocalize }}</p>
+      <p class="aa-now__say">
+        رقمٌ <strong>مشروط</strong>: لو أُغلق المزاد في هذه اللحظة. وليس مبيعاتٍ
+        وقعت — المزايدةُ قد تُعلى، والمالكُ قد يرفض ما دون سعر الوقوف.
+      </p>
+    </div>
+
+    <p class="notice notice--soft">
+      <strong>ولا ضريبةَ عليه.</strong> الضريبةُ تُحسب على الفاتورة حين تصدر،
+      ومبلغٌ لم يُفوتَر بعدُ لا ضريبةَ عليه. وv1 يعرض «ضريبة القيمة ١٥٪» على
+      هذا الرقم نفسِه.
+    </p>
+  {% endif %}
+
+  <h3 class="dd-sec">المزايدات</h3>
+  {% include "console/_bids_table.html" with empty_text="لا مزايدات على هذا المزاد بعد." keep=keep %}
 {% endblock %}
