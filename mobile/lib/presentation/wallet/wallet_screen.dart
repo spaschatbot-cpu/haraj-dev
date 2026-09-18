@@ -360,7 +360,46 @@ class _InsuranceCard extends StatelessWidget {
         .map((bucket) => bucket.money)
         .firstOrNull;
     final active = deposit != null && !_isZero(deposit);
-    final tint = active ? palette.goldDeep : theme.colorScheme.error;
+
+    // **والصفرُ ليس دائماً «لا تأمين». T945**
+    //
+    // العطل، مقيساً في المتصفّح (١٩ سبتمبر ٢٠٢٦): عميلٌ له `insurance_free = 0`
+    // و`insurance_held = 10,000` — أي أن تأمينه **محجوزٌ كلُّه على مزادٍ قائم**
+    // — قرأ «غير مفعّل: يجب شحن التأمين أولاً». وهي جملةٌ تقول له «ما عندك
+    // شيء» وعنده عشرةُ آلاف، فيشحن ثانيةً أو يتصل غاضباً.
+    //
+    // والرقمُ المعروضُ يبقى المتاحَ وحدَه — هو الذي يفتح مزاداً جديداً، وجمعُه
+    // بالمحجوز يعطي رقماً لا يستطيع صاحبُه أن يزايد به. **والذي يتغيّر هو
+    // الجملةُ تحته**: تقول أين ذهب المال لا أنه ليس موجوداً.
+    final committed = balance.buckets
+        .where(
+          (bucket) =>
+              bucket.kind == WalletBucketKind.insuranceHeld ||
+              bucket.kind == WalletBucketKind.insuranceLocked,
+        )
+        .where((bucket) => !_isZero(bucket.money))
+        .toList();
+    final held = committed
+        .where((bucket) => bucket.kind == WalletBucketKind.insuranceHeld)
+        .isNotEmpty;
+
+    final String statusLine;
+    if (active) {
+      statusLine = l10n.walletInsuranceActive;
+    } else if (committed.isEmpty) {
+      statusLine = l10n.walletInsuranceInactive;
+    } else {
+      // المحجوزُ أوّلاً حين يجتمعان: هو المؤقّتُ الذي يعود بلا فعلٍ من العميل،
+      // والمقفولُ يحتاج سداداً — والأولُ طمأنةٌ والثاني مطالبة.
+      statusLine = held
+          ? l10n.walletInsuranceHeld
+          : l10n.walletInsuranceLocked;
+    }
+
+    // ولا «خطأ» أحمرُ لمالٍ قائم: المحجوزُ حالةٌ طبيعيّةٌ في مزادٍ جارٍ.
+    final tint = active
+        ? palette.goldDeep
+        : (committed.isEmpty ? theme.colorScheme.error : palette.inkMuted);
 
     return _Card(
       child: Column(
@@ -407,16 +446,18 @@ class _InsuranceCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Icon(
-                  active ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                  active
+                      ? Icons.check_circle_rounded
+                      : (committed.isEmpty
+                            ? Icons.cancel_rounded
+                            : Icons.lock_clock_rounded),
                   size: 16,
                   color: tint,
                 ),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
-                    active
-                        ? l10n.walletInsuranceActive
-                        : l10n.walletInsuranceInactive,
+                    statusLine,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,

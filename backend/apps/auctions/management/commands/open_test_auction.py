@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
@@ -23,12 +25,47 @@ from django.utils import timezone
 
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.services import move_auction
-from apps.auctions.states import AuctionState
+from apps.auctions.states import AuctionState, VehicleState
 
 #: رقمٌ خارج نطاق أرقام البذرة (1001–1004)، فلا يتنازعان على صفٍّ واحد.
 NUMBER = 1900
 
 TITLE = "مزاد الاختبار — مفتوح"
+
+#: ما يُملأ في المركبة المنقولة حين يكون عمودُها فارغاً. T946
+#:
+#: **ولماذا يُملأ أصلاً:** الترحيل نقل ١٣ ألف مركبةٍ من v1، ولون ٩٩٪ منها
+#: `unknown` — لأن v1 يكتب اللونَ نصّاً حرّاً وما لم يُطابِق قائمتَنا يسقط
+#: (`apps/migration/vocab.py`). وبطاقةُ المركبة في التطبيق تعرض اللونَ وناقلَ
+#: الحركة والوقود، فمركبةٌ بلا شيءٍ منها تُقرأ «الشاشةُ ناقصة» لا «البياناتُ
+#: ناقصة».
+#:
+#: وهذه **بيانات فحصٍ صريحة** في قاعدة تطويرٍ خلف `DEBUG` — لا تُكتب على صفٍّ
+#: يحمل قيمةً من v1، ولا تعمل في الإنتاج أصلاً.
+FILLERS = {
+    "colour": ("white", "black", "silver", "grey", "blue"),
+    "transmission": ("automatic",),
+    "fuel_type": ("petrol",),
+    "condition": ("running",),
+}
+
+#: عدّادٌ معقول حين لا عدّاد: مدىً لا رقمٌ واحد، فجدولٌ كلُّه `100000` يُقرأ
+#: عموداً معطوباً.
+ODOMETERS = (45_000, 68_000, 92_000, 120_000, 155_000, 180_000)
+
+
+def _reserve_for(year: int | None) -> Decimal:
+    """سعرُ وقوفٍ معقولٌ لمركبةِ فحص — بالسنة، لا رقمٌ واحدٌ للجميع.
+
+    وهو **بيانُ فحصٍ صريح**: v1 لا يحمل هذا العمود أصلاً (اثنتا عشرة مركبةً
+    من ١٣٬٠٠٣ تحمله)، فالصفرُ في الجدول ليس قيمةً منقولةً بل عمودٌ لم يُملأ.
+    وصفرٌ في «سعر الوقوف» يُقرأ «تُباع بأيّ مبلغ».
+    """
+    base = 8_000
+    if year:
+        base += max(0, (year - 2005)) * 900
+    return Decimal(min(base, 95_000))
+
 
 
 class Command(BaseCommand):
@@ -40,6 +77,12 @@ class Command(BaseCommand):
             type=int,
             default=8760,
             help="كم ساعةً يبقى مفتوحاً (الافتراضي سنة)",
+        )
+        parser.add_argument(
+            "--cars",
+            type=int,
+            default=0,
+            help="أضِف هذا العددَ من المركبات **معروضةً** بكامل بياناتها",
         )
 
     def handle(self, *args, **options) -> None:
@@ -74,6 +117,8 @@ class Command(BaseCommand):
         # يكون في المزاد مركبةٌ واحدة على الأقل — وهو شرطٌ محقّ: مزادٌ مجدولٌ
         # بلا مركبات موعدٌ لا شيء فيه.
         moved = self._fill(auction)
+        if options["cars"]:
+            moved += self._stock(auction, options["cars"])
 
         if auction.state == AuctionState.DRAFT:
             move_auction(auction, AuctionState.SCHEDULED)
@@ -115,3 +160,101 @@ class Command(BaseCommand):
             return 0
 
         return Vehicle.objects.filter(auction=source).update(auction=auction)
+
+    def _stock(self, auction: Auction, count: int) -> int:
+        """انسخ مركباتٍ حقيقيّةً إلى المزاد **معروضةً** وبكامل بياناتها. T946.
+
+        **نسخٌ لا نقل** — خلافاً لـ`_fill` فوقه: تلك تأخذ مركبات مزادٍ منتهٍ
+        بحالاتها (`invoiced` · `awarded` · `paid`)، فيمتلئ «الجاري» بمركباتٍ
+        **حُسم أمرُها** ولا تُزايَد. وهذه تنسخ صفّاً جديداً بحالة `listed`،
+        فالأصلُ يبقى في مزاده وتاريخُه لا يُمسّ.
+
+        والمصدرُ مركباتٌ تحمل صانعاً وطرازاً وسنةً ولوحةً وشاصياً — أي ما
+        يملأ بطاقةَ التطبيق. وما نقص من عمودٍ عرضيّ (لون · ناقل · وقود ·
+        عدّاد) يُملأ من :data:`FILLERS`، والسببُ عندها.
+
+        و`lot_number` يبدأ بعد أكبر رقمٍ في المزاد: رقمان متساويان في مزادٍ
+        واحد يجعلان «اللوت ٣» يشير إلى سيّارتين.
+        """
+        import itertools
+        import random
+
+        source = (
+            Vehicle.objects.exclude(auction=auction)
+            .exclude(make="")
+            .exclude(plate_number="")
+            .exclude(vin="")
+            # **ولا شرطَ على سعر الوقوف.** قِيس على `haraj2_t307`: من ١٣٬٠٠٣
+            # مركبةٍ مُرحَّلة **اثنتا عشرةَ** تحمل سعرَ وقوفٍ أكبر من صفر —
+            # فالعمودُ لم يأتِ من v1. واشتراطُه يترك المزادَ بمركبتين.
+            .filter(year__isnull=False)
+            .order_by("-year", "-id")[: count * 3]
+        )
+        picked = list(source)[:count]
+        if not picked:
+            self.stdout.write("لا مركبةَ كاملةَ البيانات تُنسَخ")
+            return 0
+
+        top = (
+            Vehicle.objects.filter(auction=auction)
+            .order_by("-lot_number")
+            .values_list("lot_number", flat=True)
+            .first()
+            or 0
+        )
+        colours = itertools.cycle(FILLERS["colour"])
+        odometers = itertools.cycle(ODOMETERS)
+        random.seed(auction.pk)
+
+        made = []
+        for offset, car in enumerate(picked, start=1):
+            made.append(
+                Vehicle(
+                    auction=auction,
+                    lot_number=top + offset,
+                    make=car.make,
+                    model=car.model,
+                    year=car.year,
+                    # لوحةٌ وشاصٍ **جديدان**: كلاهما فريدٌ في القاعدة، ونسخُهما
+                    # كما هما يصطدم بالقيد.
+                    plate_number=f"ف ح ص {top + offset:04d}",
+                    vin=f"TEST{auction.number}{top + offset:06d}",
+                    plate_type=car.plate_type,
+                    odometer_km=car.odometer_km or next(odometers),
+                    colour=(
+                        car.colour
+                        if car.colour and car.colour != "unknown"
+                        else next(colours)
+                    ),
+                    transmission=(
+                        car.transmission
+                        if car.transmission and car.transmission != "unknown"
+                        else FILLERS["transmission"][0]
+                    ),
+                    fuel_type=(
+                        car.fuel_type
+                        if car.fuel_type and car.fuel_type != "unknown"
+                        else FILLERS["fuel_type"][0]
+                    ),
+                    condition=(
+                        car.condition
+                        if car.condition and car.condition != "unknown"
+                        else FILLERS["condition"][0]
+                    ),
+                    # سعرُ وقوفٍ محسوبٌ حين لا يوجد: أحدثُ سيّارةٍ أغلى،
+                    # والمدى يجعل العمودَ يُقرأ عموداً لا رقماً مكرّراً.
+                    reserve_price=(
+                        car.reserve_price
+                        if car.reserve_price and car.reserve_price > 0
+                        else _reserve_for(car.year)
+                    ),
+                    claim_number=car.claim_number or f"CLM-TEST-{top + offset:04d}",
+                    insurance_company=car.insurance_company or "شركة تأمين الاختبار",
+                    # **معروضة**: هي كلمةُ هذا الأمر كلِّه — مركبةٌ تُزايَد.
+                    state=VehicleState.LISTED,
+                )
+            )
+
+        Vehicle.objects.bulk_create(made, batch_size=200)
+        self.stdout.write(f"أُضيفت {len(made)} مركبةً معروضةً بكامل بياناتها")
+        return len(made)

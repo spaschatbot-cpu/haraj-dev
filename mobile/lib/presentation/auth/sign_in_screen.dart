@@ -9,6 +9,7 @@ import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
+import '../common/saudi_phone_field.dart';
 import 'pending_sign_in.dart';
 import 'session_controller.dart';
 
@@ -18,6 +19,10 @@ import 'session_controller.dart';
 /// (`PHONE_PATTERN`) ويردّ برسالتها العربية؛ ونسخةٌ منها في الشاشة تفترق عنها
 /// عند أول تعديل، فيرفض التطبيقُ رقماً يقبله الخادم أو العكس (المادة ٤-٥).
 /// المعطَّل هنا حالة واحدة: حقل فارغ — لا شيء يُرسَل أصلاً.
+///
+/// و[SaudiPhoneField] **لا يكسر هذه القاعدة**: هو يوحّد ما كُتب (يُسقط `966`
+/// و`0` البادئَين ويأخذ الأرقام وحدَها) ولا يحكم على الصحّة. والخادمُ يبقى
+/// صاحبَ الكلمة. T944
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
@@ -40,7 +45,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   Future<void> _send() async {
-    final phone = _phone.text.trim();
+    // ما يُرسَل صيغةُ الخادم دائماً؛ والعميلُ كتب رقمَه وحدَه.
+    final phone = SaudiPhoneField.toServerFormat(_phone.text);
     setState(() {
       _sending = true;
       _failure = null;
@@ -165,22 +171,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          TextField(
+                          SaudiPhoneField(
                             controller: _phone,
-                            keyboardType: TextInputType.phone,
-                            textDirection: TextDirection.ltr,
-                            autofillHints: const <String>[
-                              AutofillHints.telephoneNumber,
-                            ],
-                            decoration: InputDecoration(
-                              labelText: l10n.signInPhoneLabel,
-                              hintText: l10n.signInPhoneHint,
-                              filled: true,
-                              fillColor: palette.pageBackground,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                            label: l10n.signInPhoneLabel,
                             onChanged: (_) => setState(() {}),
                           ),
                           const SizedBox(height: 16),
@@ -191,13 +184,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                               label: l10n.signInSendCode,
                               seconds: _cooldownSeconds,
                               token: _cooldownToken,
-                              onPressed: _phone.text.trim().isEmpty
+                              onPressed: SaudiPhoneField.isBlank(_phone.text)
                                   ? null
                                   : _send,
                             )
                           else
                             FilledButton(
-                              onPressed: _phone.text.trim().isEmpty
+                              onPressed: SaudiPhoneField.isBlank(_phone.text)
                                   ? null
                                   : _send,
                               style: FilledButton.styleFrom(

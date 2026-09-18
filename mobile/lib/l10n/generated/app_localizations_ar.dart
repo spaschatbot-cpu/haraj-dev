@@ -1292,4 +1292,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get refundIbanUploading => 'جارٍ الرفع…';
+
+  @override
+  String get walletInsuranceHeld =>
+      'محجوزٌ على مزادٍ قائم — يعود متاحاً عند انتهائه';
+
+  @override
+  String get walletInsuranceLocked =>
+      'مقفولٌ على مستحقّاتٍ غير مسدَّدة — يُفكّ بالسداد';
+
+  @override
+  String get walletInsuranceCommitted => 'من تأمينك مرتبطٌ الآن';
 }

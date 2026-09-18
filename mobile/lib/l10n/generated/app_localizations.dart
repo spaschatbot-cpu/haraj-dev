@@ -2275,6 +2275,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'جارٍ الرفع…'**
   String get refundIbanUploading;
+
+  /// التأمينُ المتاحُ صفر والمحجوزُ أكبر من صفر — وليس «لا تأمين»
+  ///
+  /// In ar, this message translates to:
+  /// **'محجوزٌ على مزادٍ قائم — يعود متاحاً عند انتهائه'**
+  String get walletInsuranceHeld;
+
+  /// التأمينُ المتاحُ صفر والمقفولُ أكبر من صفر
+  ///
+  /// In ar, this message translates to:
+  /// **'مقفولٌ على مستحقّاتٍ غير مسدَّدة — يُفكّ بالسداد'**
+  String get walletInsuranceLocked;
+
+  /// سطرٌ تحت المبلغ يقول كم المرتبط — يسبقه المبلغ
+  ///
+  /// In ar, this message translates to:
+  /// **'من تأمينك مرتبطٌ الآن'**
+  String get walletInsuranceCommitted;
 }
 
 class _AppLocalizationsDelegate

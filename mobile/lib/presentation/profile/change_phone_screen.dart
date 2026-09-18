@@ -11,6 +11,7 @@ import '../auth/session_controller.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
 import '../common/haraj_app_bar.dart';
+import '../common/saudi_phone_field.dart';
 
 /// تغيير رقم الجوال بتأكيد الرقمين.
 ///
@@ -55,7 +56,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     try {
       final sent = await ref
           .read(changePhoneNumberProvider)
-          .requestCodes(newPhone: _newPhone.text.trim());
+          .requestCodes(newPhone: SaudiPhoneField.toServerFormat(_newPhone.text));
       setState(() {
         _sent = sent;
         _cooldownSeconds = sent.delivery.resendAfterSeconds;
@@ -88,7 +89,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
       await ref
           .read(changePhoneNumberProvider)
           .confirm(
-            newPhone: _newPhone.text.trim(),
+            newPhone: SaudiPhoneField.toServerFormat(_newPhone.text),
             currentCode: _currentCode.text.trim(),
             newCode: _newCode.text.trim(),
           );
@@ -122,14 +123,10 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
           children: [
             Text(l10n.changePhoneIntro),
             const SizedBox(height: 16),
-            TextField(
+            SaudiPhoneField(
               controller: _newPhone,
-              keyboardType: TextInputType.phone,
+              label: l10n.changePhoneNewLabel,
               enabled: sent == null,
-              decoration: InputDecoration(
-                labelText: l10n.changePhoneNewLabel,
-                hintText: l10n.signInPhoneHint,
-              ),
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
@@ -142,15 +139,15 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                   label: l10n.changePhoneSendCodes,
                   seconds: _cooldownSeconds,
                   token: _cooldownToken,
-                  onPressed: _newPhone.text.trim().isEmpty ? null : _sendCodes,
+                  onPressed: SaudiPhoneField.isBlank(_newPhone.text) ? null : _sendCodes,
                 )
               else
                 FilledButton(
-                  onPressed: _newPhone.text.trim().isEmpty ? null : _sendCodes,
+                  onPressed: SaudiPhoneField.isBlank(_newPhone.text) ? null : _sendCodes,
                   child: Text(l10n.changePhoneSendCodes),
                 ),
             ] else ...[
-              Text(l10n.changePhoneSentNotice(_newPhone.text.trim())),
+              Text(l10n.changePhoneSentNotice(SaudiPhoneField.toServerFormat(_newPhone.text))),
               const SizedBox(height: 16),
               TextField(
                 controller: _currentCode,

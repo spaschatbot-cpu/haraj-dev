@@ -1158,5 +1158,17 @@
   "refundIbanUploaded": "رُفعت صورة الآيبان.",
   "@refundIbanUploaded": {},
   "refundIbanUploading": "جارٍ الرفع…",
-  "@refundIbanUploading": {}
+  "@refundIbanUploading": {},
+  "walletInsuranceHeld": "محجوزٌ على مزادٍ قائم — يعود متاحاً عند انتهائه",
+  "@walletInsuranceHeld": {
+    "description": "التأمينُ المتاحُ صفر والمحجوزُ أكبر من صفر — وليس «لا تأمين»"
+  },
+  "walletInsuranceLocked": "مقفولٌ على مستحقّاتٍ غير مسدَّدة — يُفكّ بالسداد",
+  "@walletInsuranceLocked": {
+    "description": "التأمينُ المتاحُ صفر والمقفولُ أكبر من صفر"
+  },
+  "walletInsuranceCommitted": "من تأمينك مرتبطٌ الآن",
+  "@walletInsuranceCommitted": {
+    "description": "سطرٌ تحت المبلغ يقول كم المرتبط — يسبقه المبلغ"
+  }
 }
