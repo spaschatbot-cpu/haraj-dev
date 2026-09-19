@@ -12517,10 +12517,15 @@ a.pager__num:hover, a.pager__step:hover {
 /* ---- شرائحُ مرشّح سيارات الشريك — نظيرُ `p-chips` في v1 ------------------
    الأربعةُ ظاهرةٌ معاً والمختارُ ملوَّن: الانتقالُ نقرةٌ واحدة، والقائمةُ
    المنسدلة تحتاج فتحاً واختياراً وضغطَ زرّ — وتُخفي الخياراتِ حتى تُفتح. */
-.pv-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .7rem; }
+/* المقاييسُ مقاييسُ v1 حرفاً (`settlement.php:163`): فجوةٌ **10px** وحشوةٌ
+   ‏`9px 18px` وحدٌّ `1.5px`. وكانت ٦px و`5.4×12.8` — شريحتان مدوَّرتان
+   بحدَّين تفصلهما ستُّ نقاطٍ تُقرآن كتلةً واحدة، وهو ما رآه المالك:
+   «مباعة وغير مباعة لازق في بعضه». والفجوةُ وحدَها لا تكفي: الحشوةُ الداخليّة
+   هي ما يجعل للشريحة جسماً تُرى حوافُّه. */
+.pv-chips { display: flex; flex-wrap: wrap; gap: .62rem; margin: 0 0 .9rem; }
 .pv-chip {
-  padding: .34rem .8rem; border-radius: 999px; font-size: .8rem; font-weight: 700;
-  border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft);
+  padding: .5rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 800;
+  border: 1.5px solid var(--line); background: var(--panel); color: var(--ink-soft);
   text-decoration: none; white-space: nowrap;
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
