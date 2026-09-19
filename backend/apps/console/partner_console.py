@@ -367,11 +367,31 @@ def partner_ended(request):
 
 
 def vehicles_of(partner: str = "", which: str = "", text: str = ""):
-    """سيارات الشريك، بمرشّحات v1 الأربعة: الكل · مباعة · غير مباعة · تنتظر قراري."""
-    rows = _scoped(
-        Vehicle.objects.select_related("auction", "awarded_to", "owner_company"),
-        partner,
-    ).order_by("-id")
+    """سيارات الشريك، بمرشّحات v1 الأربعة: الكل · مباعة · غير مباعة · تنتظر قراره.
+
+    **و«تنتظر قراره» تعني ما يعنيه v1 لا ما كانت تعنيه هنا.** كان المرشّح
+    `state = AWAITING_DECISION` — وتلك حالةُ مركبةٍ تنتظر قرارَ **المالك**،
+    وقائمةُ الاختيار نفسُها كانت تقول «بانتظار قرار المالك». فالشريحةُ لم تكن
+    تجيب سؤالَ v1 أصلاً: هناك الشرطُ `partner_decided_at IS NULL` — أي ما لم
+    يحكم فيه **الشريك** بعد.
+
+    والسؤالان مختلفان في الاتجاه: مركبةٌ حكم فيها الشريكُ وتنتظر المالك تظهر
+    في القديم **لا** وفي الجديد **نعم** — وهي أكثرُ ما يقرؤه الشريك.
+
+    ويُضاف شرطُ «المزاد منتهٍ» كما في صفحة القرار: قرارٌ قبل انتهاء المزاد
+    مرفوضٌ أصلاً (409 في v1)، فعرضُه في طابورٍ اسمه «ينتظر قرارك» وعدٌ كاذب.
+
+    وعددُ المزايدات وأعلى عرضٍ يُحسبان هنا لا في القالب: عمودان في v1، وحسابُهما
+    في حلقةٍ على الصفوف يعني استعلامين لكلّ صفّ.
+    """
+    rows = (
+        _scoped(
+            Vehicle.objects.select_related("auction", "awarded_to", "owner_company"),
+            partner,
+        )
+        .annotate(bids_count=Count("bids", distinct=True), top_bid=Max("bids__amount"))
+        .order_by("-id")
+    )
 
     if which == "sold":
         rows = rows.filter(state__in=AWARDED)
@@ -380,11 +400,15 @@ def vehicles_of(partner: str = "", which: str = "", text: str = ""):
             state=VehicleState.AWAITING_DECISION
         )
     elif which == "deciding":
-        rows = rows.filter(state=VehicleState.AWAITING_DECISION)
+        rows = rows.filter(
+            auction__state__in=ARCHIVED, partner_decided_at__isnull=True
+        )
 
     text = (text or "").strip()
     if text:
-        matches = search_q(text, "plate_number", "vin", "make", "model")
+        # ستّةُ حقولٍ كـ v1، ومنها **رقم المطالبة**: لا يُعرف أيُّ رقمٍ في يد
+        # السائل — قد تكون بيده ورقةٌ فيها رقمُ المطالبة وحده.
+        matches = search_q(text, "plate_number", "vin", "make", "model", "claim_number")
         if text.isdigit():
             matches |= Q(lot_number=int(text)) | Q(auction__number=int(text))
         rows = rows.filter(matches)
@@ -409,9 +433,12 @@ def partner_vehicles(request):
                 "السيارة",
                 "السنة",
                 "اللوحة",
+                "رقم المطالبة",
                 "الشاصي",
                 "سعر الوقوف",
                 "سعر الترسية",
+                "مزايدات",
+                "أعلى عرض",
                 "الحالة",
                 "الفائز",
             ],
@@ -422,9 +449,12 @@ def partner_vehicles(request):
                 f"{row.make} {row.model}",
                 row.year,
                 row.plate_number,
+                row.claim_number,
                 row.vin,
                 row.reserve_price,
                 row.awarded_price,
+                row.bids_count,
+                row.top_bid,
                 row.get_state_display(),
                 row.awarded_to.full_name if row.awarded_to else "",
             ],

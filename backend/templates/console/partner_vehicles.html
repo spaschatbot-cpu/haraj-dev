@@ -53,10 +53,10 @@
         <option value="">الكل</option>
         <option value="sold" {% if which == "sold" %}selected{% endif %}>مباعة</option>
         <option value="unsold" {% if which == "unsold" %}selected{% endif %}>غير مباعة</option>
-        <option value="deciding" {% if which == "deciding" %}selected{% endif %}>بانتظار قرار المالك</option>
+        <option value="deciding" {% if which == "deciding" %}selected{% endif %}>بانتظار قرار الشريك</option>
       </select>
       <input type="search" name="q" value="{{ q }}"
-             placeholder="لوحة أو شاصي أو اسم أو لوت" aria-label="بحث">
+             placeholder="لوحة · شاصي · اسم · ماركة · رقم مطالبة · لوط" aria-label="بحث">
       <button type="submit" class="btn-primary">بحث</button>
     </div>
   </form>
@@ -72,10 +72,13 @@
         <th>اللوت</th>
         <th>السيارة</th>
         <th>اللوحة</th>
+        <th>رقم المطالبة</th>
         <th>الشاصي</th>
         <th>المزاد</th>
         <th>سعر الوقوف</th>
         <th>سعر الترسية</th>
+        <th>مزايدات</th>
+        <th>أعلى عرض</th>
         <th>النتيجة</th>
         <th>الفائز</th>
         <th>حكم الشريك</th>
@@ -91,12 +94,18 @@
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>
+          <td class="mono">{{ row.claim_number|default:"—" }}</td>
           <td class="mono">{{ row.vin|default:"—" }}</td>
           <td class="count">{{ row.auction.number|unlocalize }}</td>
           {% comment %} سعرُ الوقوف الحقيقي: في v1 هذا العمود `0.00` في كل
              صفّ، فيقرأ الشريك أن سيارته بدأت من الصفر. {% endcomment %}
           <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
           <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
+          {% comment %} عمودا v1: كم عرضاً على السيارة وأعلاها. و«٠» تُكتب رقماً
+             لا شرطةً — الشرطةُ تُقرأ «لا أعرف» والصفرُ يقول «لم يزايد أحد»،
+             وهو جوابٌ يتّخذ عليه الشريكُ قرارَ الرفض. {% endcomment %}
+          <td class="count">{{ row.bids_count|unlocalize }}</td>
+          <td class="money">{{ row.top_bid|default:"—"|unlocalize }}</td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           <td>
             {% if row.awarded_to %}
@@ -123,7 +132,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="11" class="empty">لا سيارات مطابقة.</td></tr>
+        <tr><td colspan="14" class="empty">لا سيارات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
