@@ -12524,11 +12524,16 @@ a.pager__num:hover, a.pager__step:hover {
    هي ما يجعل للشريحة جسماً تُرى حوافُّه. */
 .pv-chips { display: flex; flex-wrap: wrap; gap: .62rem; margin: 0 0 .9rem; }
 .pv-chip {
+  display: inline-flex; align-items: center; gap: .4rem;
   padding: .5rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 800;
   border: 1.5px solid var(--line); background: var(--panel); color: var(--ink-soft);
   text-decoration: none; white-space: nowrap;
   transition: background .15s ease, color .15s ease, border-color .15s ease;
 }
+/* الرسمُ بمقاس اللوحة نفسِه — **1rem وسُمك 1.7** كأزرار الأفعال وألسنة
+   الخروج. ورسمٌ أكبرُ في شريحةٍ صغيرة يسحب العينَ إليه بدل الكلمة، ورسمان
+   بمقاسين في شاشةٍ واحدة لا يُقرآن مجموعةً (T837). */
+.pv-chip svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
 .pv-chip:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
 .pv-chip.is-on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
 

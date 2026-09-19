@@ -57,6 +57,7 @@ from apps.money.models import Invoice, InvoiceState
 from .after_sales import state_label
 from .archive import ARCHIVED
 from .exports import export, wants_export
+from .icons import path_of
 from .tones import with_tones
 from .views import console_page
 
@@ -475,11 +476,15 @@ def partner_vehicles(request):
             "totals": summary_for(partner),
             # الشرائحُ الأربعُ من مكانٍ واحد: القالبُ يرسمها والمنظرُ يعرفها،
             # فإضافةُ خامسةٍ يوماً سطرٌ واحد لا سطران يفترقان.
+            # ورسمٌ لكلّ شريحة من `icons.py`: أربعُ كلماتٍ متشابهةِ الطول في
+            # صفٍّ واحد تُقرأ بالقراءة وحدها، والرسمُ يجعل الاختيارَ يُلتقط
+            # بالنظر. وv1 يضع `✅ ⏳ 🔔` — يرسمها نظامُ التشغيل فتخرج بأساليبَ
+            # مختلفة (T837).
             "chips": (
-                ("", "الكل"),
-                ("sold", "مباعة"),
-                ("unsold", "غير مباعة"),
-                ("deciding", "بانتظار قراره"),
+                ("", "الكل", path_of("grid")),
+                ("sold", "مباعة", path_of("check")),
+                ("unsold", "غير مباعة", path_of("hourglass")),
+                ("deciding", "بانتظار قراره", path_of("scale")),
             ),
         },
     )
