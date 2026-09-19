@@ -12513,3 +12513,16 @@ a.pager__num:hover, a.pager__step:hover {
 .pb-diff[data-sign="down"] { color: var(--danger); font-weight: 800; }
 .pb-tbl th, .pb-tbl td { padding-inline: .62rem; text-align: center; }
 .pb-tbl tbody td:first-child, .pb-tbl thead th:first-child { text-align: start; }
+
+/* ---- شرائحُ مرشّح سيارات الشريك — نظيرُ `p-chips` في v1 ------------------
+   الأربعةُ ظاهرةٌ معاً والمختارُ ملوَّن: الانتقالُ نقرةٌ واحدة، والقائمةُ
+   المنسدلة تحتاج فتحاً واختياراً وضغطَ زرّ — وتُخفي الخياراتِ حتى تُفتح. */
+.pv-chips { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .7rem; }
+.pv-chip {
+  padding: .34rem .8rem; border-radius: 999px; font-size: .8rem; font-weight: 700;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink-soft);
+  text-decoration: none; white-space: nowrap;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.pv-chip:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.pv-chip.is-on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }

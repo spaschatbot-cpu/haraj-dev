@@ -30,9 +30,16 @@
   {% comment %} بطاقةُ التنبيه — نظيرُ v1، ولا تُبنى إلا حين يكون ثمّ قرارٌ
      ينتظر. وv1 يكتب «لديك N سيارة بانتظار قرارك» لأن الشريكَ هو من يقرؤها؛
      وهنا يقرؤها **الموظّف** عن شريكٍ يختاره (لا حسابَ لوحةٍ للشريك في v2)،
-     فالصياغةُ تقول صاحبَ القرار لا تخاطبه. {% endcomment %}
+     فالصياغةُ تقول صاحبَ القرار لا تخاطبه.
+
+     **ووجهتُها «كل السيارات» مرشَّحةً لا شاشةُ القرار** — وهو ما يفعله v1
+     حرفياً: `href="{baseHref}/vehicles?status=pending"`. وليس ذلك التفافاً:
+     السؤالُ الذي يليه «أيُّها ينتظرني؟» يُجاب بقائمةٍ فيها اللوحةُ ورقمُ
+     المطالبة وأعلى عرضٍ وعددُ المزايدين — وهي أعمدةُ تلك الشاشة. وشاشةُ
+     القرار تُفتح حين يكون القرارُ هو الفعلَ التالي، لا حين يكون السؤالُ
+     «ماذا عندي». وقد أشار المالكُ إلى هذا بعينه. {% endcomment %}
   {% if totals.pending_decision %}
-    <a class="notice notice--warn partner-alert" href="{% url 'console:partner-decisions' %}?partner={{ partner }}">
+    <a class="notice notice--warn partner-alert" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=deciding">
       <strong>{{ totals.pending_decision|unlocalize }}</strong>
       سيارة في مزاداتٍ منتهية تنتظر قرارَ الشريك — ولا تُفوتَر حتى يحكم عليها.
       <span class="partner-alert__go">اتخاذ القرار ←</span>
@@ -136,7 +143,7 @@
       <p class="sum__note">أشخاصٌ لا مزايدات</p>
     </div>
 
-    <a class="sum" href="{% url 'console:partner-decisions' %}?partner={{ partner }}">
+    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=deciding">
       <p class="sum__label">بانتظار قرار الشريك</p>
       <p class="sum__value">{{ totals.pending_decision|unlocalize }}</p>
       <p class="sum__note">في المزادات المنتهية</p>

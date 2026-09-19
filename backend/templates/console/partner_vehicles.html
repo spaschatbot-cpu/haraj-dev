@@ -46,18 +46,33 @@
   </section>
 
   {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمتان وحقلٌ وزرّ. {% endcomment %}
+  {% comment %} **شرائحُ لا قائمةٌ منسدلة — كـ v1.** الأربعةُ ظاهرةٌ معاً
+     والمختارُ ملوَّن، فالانتقالُ نقرةٌ واحدة. والقائمةُ المنسدلة تحتاج فتحاً
+     واختياراً وضغطَ «بحث»، وتُخفي الثلاثةَ الأخرى فلا يُعرف ما الخيارات إلا
+     بفتحها.
+
+     **وكلُّ شريحةٍ تحمل البحثَ معها** (`&q=`): من بحث عن «تويوتا» ثم ضغط
+     «مباعة» يقصد تويوتا المباعة، لا كلَّ المباع. وv1 يفعلها بالسطر نفسِه.
+     {% endcomment %}
+  <nav class="pv-chips" aria-label="المرشّح">
+    {% for key, label in chips %}
+      <a class="pv-chip{% if which == key %} is-on{% endif %}"
+         href="?partner={{ partner }}&amp;which={{ key }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+
   <form method="get" class="filters filters--row">
     <div class="filters__main">
       {% include "console/_partner_pick.html" %}
-      <select name="which" aria-label="النتيجة">
-        <option value="">الكل</option>
-        <option value="sold" {% if which == "sold" %}selected{% endif %}>مباعة</option>
-        <option value="unsold" {% if which == "unsold" %}selected{% endif %}>غير مباعة</option>
-        <option value="deciding" {% if which == "deciding" %}selected{% endif %}>بانتظار قرار الشريك</option>
-      </select>
+      {% comment %} المرشّحُ يسافر مع البحث في حقلٍ مخفيّ — وإلّا أعاد البحثُ
+         الشاشةَ إلى «الكل» وضاع ما اختاره القارئ. {% endcomment %}
+      <input type="hidden" name="which" value="{{ which }}">
       <input type="search" name="q" value="{{ q }}"
              placeholder="لوحة · شاصي · اسم · ماركة · رقم مطالبة · لوط" aria-label="بحث">
       <button type="submit" class="btn-primary">بحث</button>
+      {% if q %}
+        <a class="filters__reset" href="?partner={{ partner }}&amp;which={{ which }}">مسح</a>
+      {% endif %}
     </div>
   </form>
 
@@ -82,6 +97,7 @@
         <th>النتيجة</th>
         <th>الفائز</th>
         <th>حكم الشريك</th>
+        <th>إجراء</th>
       </tr>
     </thead>
     <tbody>
@@ -130,9 +146,14 @@
               </form>
             {% endif %}
           </td>
+                  {% comment %} زرٌّ صريحٌ في آخر الصفّ كـ v1. والرابطُ على اسم
+             السيارة يبقى، لكنه هدفٌ متغيّرُ العرض يضيق إلى ثلاثة محارف في
+             «كيه» ويطول في «لاندكروزر» — وزرٌّ ثابتٌ في العمود الأخير يُنقر
+             بلا تصويب. {% endcomment %}
+          <td class="actions"><a class="btn-sm" href="{% url 'console:vehicle-detail' row.pk %}">التفاصيل ←</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="14" class="empty">لا سيارات مطابقة.</td></tr>
+        <tr><td colspan="15" class="empty">لا سيارات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

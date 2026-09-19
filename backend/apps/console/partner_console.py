@@ -473,6 +473,14 @@ def partner_vehicles(request):
             "which": which,
             "q": request.GET.get("q", ""),
             "totals": summary_for(partner),
+            # الشرائحُ الأربعُ من مكانٍ واحد: القالبُ يرسمها والمنظرُ يعرفها،
+            # فإضافةُ خامسةٍ يوماً سطرٌ واحد لا سطران يفترقان.
+            "chips": (
+                ("", "الكل"),
+                ("sold", "مباعة"),
+                ("unsold", "غير مباعة"),
+                ("deciding", "بانتظار قراره"),
+            ),
         },
     )
 
