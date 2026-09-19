@@ -12227,3 +12227,134 @@ a.pager__num:hover, a.pager__step:hover {
 @media (max-width: 40rem) {
   .rf-head { margin-block-start: 1.2rem; }
 }
+
+
+/* ===========================================================================
+   «الاستردادات» — الشريطُ لسانٌ مجزّأ، والصفُّ سطرٌ لا ثلاثة
+   ---------------------------------------------------------------------------
+   «خلى الجدول بشكل احترافى اكتر والهيدر الى فيه التلات صفحات».
+
+   ١) **الشريط.** ثلاثةُ أسماءٍ طويلةٍ فوق خطٍّ رفيع، ومع اثنين منها رقمٌ
+      رماديٌّ ملتصقٌ بالاسم — `طلبات الاسترداد 3235` تُقرأ جملةً واحدة. فحدٌّ
+      يجمعها ويقول «مجموعةٌ واحدة، اختر منها»، والعددُ حبّةٌ منفصلة، والمفتوحُ
+      لوحةٌ بيضاء لا خطٌّ تحته.
+
+   ٢) **ارتفاعُ الصفّ.** خانةُ التحكّم كانت تلفُّ ثلاثةَ أسطر (خانةُ السبب،
+      ثمّ «أرسله للمحاسبة»، ثمّ «ارفضه») فبلغ صفُّ كلّ طلبٍ مفتوحٍ ١٣٧ بكسلاً
+      — ثلاثةُ صفوفٍ في الشاشة بدل تسعة، وأربعون طلباً مفتوحاً تحتاج ثلاثَ
+      عشرةَ شاشة. فعرضٌ أدنى على الخانة، وسطرٌ واحد.
+
+   ٣) **عمودان فارغان.** «صندوق أودو» و«الحركة» كلاهما «—» في كلّ صفٍّ
+      مرحَّلٍ من v1 — وهما جوابا سؤالٍ واحد: ماذا ترك هذا الطلبُ خلفه عندنا.
+      فعمودُ «الأثر» واحدٌ يحمل الاثنين حبّتين.
+
+   ٤) **النصُّ الحرّ.** «ما كتبه العميل» و«سببُ القرار» و«المرجع» بلا سقف —
+      والمرجعُ وحدَه `v1-refund-request-3392`. فـ`cell-clip` والقيمةُ كاملةٌ
+      في `title`، وهي قاعدةُ «كتالوج السيارات» نفسُها.
+   ======================================================================== */
+
+/* ---- الشريط ------------------------------------------------------------ */
+
+.tabs--seg {
+  gap: .2rem;
+  padding: .25rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  /* الحدُّ السفليُّ الموروثُ يصير حدّاً كاملاً حول المجموعة. */
+  border-block-end: 1px solid var(--line);
+  /* لا يمتدّ بعرض الشاشة: ثلاثةُ ألسنةٍ في شريطٍ ١٤٠٠ بكسلٍ تسبح فيه. */
+  inline-size: fit-content;
+  max-inline-size: 100%;
+}
+
+.tabs--seg .tab {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .45rem .95rem;
+  margin-block-end: 0;
+  border-block-end: 0;
+  border-radius: calc(var(--radius-lg) - .25rem);
+}
+
+.tabs--seg .tab:hover {
+  background: var(--panel);
+  border-block-end-color: transparent;
+}
+
+/* المفتوحُ لوحةٌ مرفوعة، لا خطٌّ تحته: داخل حدٍّ جامعٍ يُقرأ الخطُّ زينةً. */
+.tabs--seg .tab[aria-current="page"],
+.tabs--seg .tab.is-on {
+  background: var(--panel);
+  color: var(--brand-dark);
+  border-block-end-color: transparent;
+  box-shadow: var(--shadow);
+}
+
+/* العددُ حبّةٌ منفصلة: `3235` ملتصقاً بالاسم يُقرأ جزءاً منه. */
+.tabs--seg .count {
+  padding: .1rem .45rem;
+  border-radius: 999px;
+  background: var(--line-soft);
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 700;
+}
+.tabs--seg .tab.is-on .count,
+.tabs--seg .tab[aria-current="page"] .count {
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+/* «طابور العجز» صفحةٌ أخرى لا لسانٌ في هذه الشاشة — فتُفصل وتحمل سهماً. */
+.tabs--seg .tab--away {
+  margin-inline-start: .35rem;
+  border-inline-start: 1px solid var(--line);
+  border-radius: 0;
+  padding-inline-start: .95rem;
+  color: var(--muted);
+}
+.tabs--seg .tab--away::after { content: "←"; font-weight: 800; opacity: .6; }
+.tabs--seg .tab--away:hover { background: transparent; color: var(--ink); }
+
+@media (max-width: 40rem) {
+  .tabs--seg { inline-size: 100%; }
+  .tabs--seg .tab { flex: 1 1 auto; justify-content: center; }
+  .tabs--seg .tab--away { border-inline-start: 0; margin-inline-start: 0; }
+}
+
+/* ---- الجدول ------------------------------------------------------------ */
+
+/* الخانةُ في منتصف ارتفاعها: الصفُّ فيه سطرٌ ثانٍ خافتٌ تحت الاسم وتحت
+   القرار، و`vertical-align: top` العامّة تُعلّق الباقيَ في أعلى الصفّ. */
+.rf-table td { vertical-align: middle; }
+
+/* سقوفُ القصّ. المرجعُ أطولُها (`v1-refund-request-3392` = ٢١ محرفاً). */
+.clip-ref  { --clip: 11rem; }
+.clip-said { --clip: 13rem; }
+.clip-why  { --clip: 15rem; }
+
+/* «الأثر»: حبّتان أو واحدةٌ أو لا شيء. */
+.rf-table td.rf-trace { white-space: nowrap; }
+.rf-table td.rf-trace .pill + .pill { margin-inline-start: .25rem; }
+
+/* السببُ هو المقروء، واسمُ من قرّر ومتى سطرٌ خافتٌ تحته. */
+.rf-table td.rf-why > .cell-clip { font-weight: 600; color: var(--ink); }
+.rf-table td.rf-why small { color: var(--muted); font-size: .7rem; }
+
+/* خانةُ التحكّم: عرضٌ أدنى يسع الخانةَ والزرّين في سطرٍ واحد. بدونه تلفُّ
+   ثلاثةَ أسطرٍ ويصير الصفُّ ١٣٧ بكسلاً. و`nowrap` كي لا يلفّ الزرُّ الثاني
+   وحدَه حين يضيق العمودُ بكسلاً. */
+.rf-table td.rf-act { min-inline-size: 19rem; }
+.rf-table .rowact { flex-wrap: nowrap; }
+.rf-table .rowact input[type="text"] { flex: 1 1 6rem; inline-size: auto; }
+
+/* «قرارٌ نهائيّ» في خانةٍ عرضُها ١٩ريم تسبح وحدَها — فتُقرأ في أوّلها. */
+.rf-table td.rf-act .empty { font-size: .76rem; }
+
+/* على الضيّق يعود اللفُّ: سطرٌ واحدٌ بعرض ٣٠٠ بكسلٍ أسوأُ من سطرين. */
+@media (max-width: 62rem) {
+  .rf-table td.rf-act { min-inline-size: 0; }
+  .rf-table .rowact { flex-wrap: wrap; }
+}
