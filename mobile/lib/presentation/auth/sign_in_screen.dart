@@ -11,6 +11,7 @@ import '../catalog/widgets/countdown_text.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
 import '../common/saudi_phone_field.dart';
+import 'auth_shell.dart';
 import 'pending_sign_in.dart';
 import 'session_controller.dart';
 
@@ -118,64 +119,68 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     // اللوحة، ومقبضان لفعلٍ واحدٍ في شاشةٍ من حقلٍ واحد ضجيج.
     return Scaffold(
       backgroundColor: palette.pageBackground,
-      body: Stack(
-        children: <Widget>[
-          // هالتان خلف المحتوى تكسران استواءَ الأرضيّة. تزيينٌ صريح، ولا
-          // تُقرآن عنصراً: لا حدَّ لهما ولا نصَّ فيهما.
-          Positioned(
-            top: -130,
-            right: -90,
-            child: _Glow(color: palette.heroGlow, size: 330),
-          ),
-          Positioned(
-            bottom: -150,
-            left: -110,
-            child: _Glow(
-              color: palette.goldDeep.withValues(alpha: 0.16),
-              size: 300,
-            ),
-          ),
-          SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: ConstrainedBox(
-                  // **٤٠٠ لا عرضُ الشاشة**: حقلٌ واحد ممتدٌّ على شاشةٍ عريضة
-                  // يُقرأ نموذجاً طويلاً، وهو حقلٌ واحد.
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: <Widget>[
-                      _Brand(palette: palette, theme: theme),
-                      const SizedBox(height: 18),
-                      const _LiveAuctionStrip(),
-                      const SizedBox(height: 14),
-                      _Panel(
-                        palette: palette,
-                        theme: theme,
+      // الأرضيّةُ والشعارُ واللوحةُ **مشتركةٌ مع شاشة الرمز** ([AuthBackdrop]
+      // و[AuthBrand] و[AuthPanel] في `auth_shell.dart`). كانت هنا نسخةٌ
+      // خاصّةٌ منها، ونسختان من هيكلٍ واحدٍ تفترقان عند أوّل تعديل — فيعبر
+      // العميلُ من خطوةٍ إلى خطوةٍ فيظنّ أنه خرج من التطبيق. T948
+      body: AuthBackdrop(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              child: ConstrainedBox(
+                // **٤٠٠ لا عرضُ الشاشة**: حقلٌ واحد ممتدٌّ على شاشةٍ عريضة
+                // يُقرأ نموذجاً طويلاً، وهو حقلٌ واحد.
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // دخولٌ متتابع: الشعارُ ثمّ الشريطُ ثمّ اللوحة. تأخيرٌ
+                    // يقود العينَ من أعلى إلى الحقل، لا ثلاثُ ودجاتٍ تظهر
+                    // معاً.
+                    const AuthEntrance(
+                      child: AuthBrand(
+                        title: 'مزاد حراج واحد',
+                        subtitle: 'مزايدةٌ مغلقة على سيّارات المزاد — من جوّالك',
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const AuthEntrance(
+                      delay: Duration(milliseconds: 90),
+                      child: _LiveAuctionStrip(),
+                    ),
+                    const SizedBox(height: 14),
+                    AuthEntrance(
+                      delay: const Duration(milliseconds: 170),
+                      child: AuthPanel(
+                        title: l10n.signInTitle,
+                        icon: Icons.lock_outline_rounded,
                         child: _form(l10n, palette, theme, expired: expired),
                       ),
-                      const SizedBox(height: 14),
-                      _Assurances(palette: palette, theme: theme),
-                      const SizedBox(height: 4),
-                      // **«إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق**:
-                      // اللوحةُ مسارٌ في الشجرة لا نافذةٌ فوقها، ولا شيء
-                      // تحتها يُكشف بالإغلاق.
-                      TextButton(
-                        onPressed: () => context.go(Routes.homePath),
-                        style: TextButton.styleFrom(
-                          foregroundColor: palette.inkMuted,
-                        ),
-                        child: Text(l10n.signInDismiss),
+                    ),
+                    const SizedBox(height: 14),
+                    AuthEntrance(
+                      delay: const Duration(milliseconds: 240),
+                      child: _Assurances(palette: palette, theme: theme),
+                    ),
+                    const SizedBox(height: 4),
+                    // **«إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق**:
+                    // اللوحةُ مسارٌ في الشجرة لا نافذةٌ فوقها، ولا شيء
+                    // تحتها يُكشف بالإغلاق.
+                    TextButton(
+                      onPressed: () => context.go(Routes.homePath),
+                      style: TextButton.styleFrom(
+                        foregroundColor: palette.inkMuted,
                       ),
-                    ],
-                  ),
+                      child: Text(l10n.signInDismiss),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -191,9 +196,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         if (expired) ...<Widget>[
-          _Notice(
-            palette: palette,
-            theme: theme,
+          AuthNotice(
             icon: Icons.schedule_rounded,
             text: l10n.sessionExpiredNotice,
           ),
@@ -253,76 +256,6 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 // ---------------------------------------------------------------------------
 // أجزاءُ الشاشة. T947
 // ---------------------------------------------------------------------------
-
-/// الشعارُ واسمُ المنصّة وسطرٌ يقول ما هي.
-///
-/// **والشعارُ من `assets/images/logo.png`** لا حرفٌ في دائرة: الصورةُ هي التي
-/// تجعل الشاشةَ تُقرأ «حراج» قبل أن يُقرأ سطرٌ واحد. و`errorBuilder` يسقط إلى
-/// أيقونةٍ حين لا يُحمَّل الأصل — شاشةُ دخولٍ لا تسقط لأجل صورة.
-class _Brand extends StatelessWidget {
-  const _Brand({required this.palette, required this.theme});
-
-  final HarajPalette palette;
-  final ThemeData theme;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: <Widget>[
-        Container(
-          width: 78,
-          height: 78,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[palette.heroTop, palette.heroBottom],
-            ),
-            border: Border.all(
-              color: palette.goldOnDark.withValues(alpha: 0.5),
-            ),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: palette.goldDeep.withValues(alpha: 0.30),
-                blurRadius: 26,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(13),
-            child: Image.asset(
-              'assets/images/logo.png',
-              fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Icon(
-                Icons.gavel_rounded,
-                color: palette.goldOnDark,
-                size: 30,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'مزاد حراج واحد',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          'مزايدةٌ مغلقة على سيّارات المزاد — من جوّالك',
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted),
-        ),
-      ],
-    );
-  }
-}
 
 /// **المزادُ الجاري** — لا ثلاثةُ عدّادات. T947
 ///
@@ -453,74 +386,6 @@ class _LiveAuctionStrip extends ConsumerWidget {
   }
 }
 
-/// اللوحةُ نفسُها — شريطُ عنوانٍ متدرّجٌ ثمّ المحتوى.
-class _Panel extends StatelessWidget {
-  const _Panel({
-    required this.palette,
-    required this.theme,
-    required this.child,
-  });
-
-  final HarajPalette palette;
-  final ThemeData theme;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Material(
-      color: palette.cardSurface,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.55),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          // شريطٌ داكن بعنوان اللوحة — نفس تدرّج الهيدر، فتُقرأ اللوحةُ من
-          // التطبيق لا نافذةً غريبة عليه.
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topRight,
-                end: Alignment.bottomLeft,
-                colors: <Color>[palette.heroTop, palette.heroBottom],
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-              child: Row(
-                children: <Widget>[
-                  Icon(
-                    Icons.lock_outline_rounded,
-                    size: 18,
-                    color: palette.goldOnDark,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.signInTitle,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-            child: child,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// ثلاثةُ أسطرٍ تقول ما وراء الباب — **وكلُّها قواعدُ مبنيّةٌ في الخادم**.
 ///
 /// لا وعدٌ تسويقيّ: المزايدةُ مغلقةٌ فعلاً (لا يرى أحدٌ مبلغَ غيره)، والدخولُ
@@ -569,70 +434,6 @@ class _Assurances extends StatelessWidget {
             if (index != _items.length - 1) const SizedBox(height: 9),
           ],
         ],
-      ),
-    );
-  }
-}
-
-/// سطرُ تنبيهٍ داخل اللوحة — «انتهت جلستك» وأمثالُه.
-class _Notice extends StatelessWidget {
-  const _Notice({
-    required this.palette,
-    required this.theme,
-    required this.icon,
-    required this.text,
-  });
-
-  final HarajPalette palette;
-  final ThemeData theme;
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: palette.goldDeep.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.goldDeep.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(icon, size: 16, color: palette.goldOnDark),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: theme.textTheme.bodySmall?.copyWith(color: palette.ink),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// دائرةٌ ضبابيّةٌ خلف المحتوى. تزيينٌ صريح، ولذلك `IgnorePointer`: لا تلتقط
-/// نقرةً موجَّهةً إلى ما تحتها.
-class _Glow extends StatelessWidget {
-  const _Glow({required this.color, required this.size});
-
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[color, color.withValues(alpha: 0)],
-          ),
-        ),
       ),
     );
   }
