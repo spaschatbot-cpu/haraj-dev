@@ -2,12 +2,14 @@ import 'dart:convert';
 
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
+import '../../domain/wallet/entities/bank_account.dart';
 import '../../domain/wallet/entities/ledger_movement.dart';
 import '../../domain/wallet/entities/refund_request.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../domain/wallet/entities/wallet_balance.dart';
 import '../../domain/wallet/repositories/wallet_repository.dart';
 import '../api/api_call.dart';
+import '../api/generated/clients/bank_transfer_api.dart';
 import '../api/generated/clients/wallet_api.dart';
 import '../api/generated/models/paginated_ledger_entry_list.dart' as api;
 import '../api/generated/models/wallet.dart' as api;
@@ -21,9 +23,11 @@ import 'wallet_mapper.dart';
 final class WalletRepositoryImpl implements WalletRepository {
   WalletRepositoryImpl({
     required WalletApi api,
+    required BankTransferApi bankApi,
     required ResponseCache cache,
     DateTime Function()? clock,
   }) : _api = api,
+       _bankApi = bankApi,
        _cache = cache,
        _clock = clock ?? DateTime.now;
 
@@ -31,6 +35,7 @@ final class WalletRepositoryImpl implements WalletRepository {
   static const int _pageSize = 20;
 
   final WalletApi _api;
+  final BankTransferApi _bankApi;
   final ResponseCache _cache;
   final DateTime Function() _clock;
 
@@ -104,6 +109,18 @@ final class WalletRepositoryImpl implements WalletRepository {
           .map((row) => row.toDomain(currency: wallet.currency))
           .toList(growable: false),
       at: _clock().toUtc(),
+    );
+  }
+
+  @override
+  Future<BankAccount> loadBankAccount() async {
+    final row = await callApi(_bankApi.v1BankTransferRetrieve);
+    return BankAccount(
+      configured: row.configured,
+      beneficiary: row.beneficiary,
+      bank: row.bank,
+      iban: row.iban,
+      account: row.account,
     );
   }
 

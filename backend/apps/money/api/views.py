@@ -20,7 +20,7 @@ from django.db import IntegrityError, transaction
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.permissions import AllowAny
@@ -28,7 +28,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.models import Auction, Vehicle
-from apps.bidding import settlement
 from apps.core import jsonio, ratelimit
 from apps.core.exceptions import envelope
 from apps.core.net import client_ip
@@ -44,7 +43,7 @@ from apps.money.models import (
 from apps.odoo.models import InboundMessage, InboundState
 
 from .serializers import (
-    InvoicePaySerializer,
+    BankTransferSerializer,
     InvoiceSerializer,
     LedgerEntrySerializer,
     PaymentIntentSerializer,
@@ -505,32 +504,90 @@ class InvoiceDetailView(RetrieveAPIView):
 
 
 class InvoicePayView(APIView):
-    """Settle one invoice from the balance the customer already has with us.
+    """`POST /api/v1/invoices/{id}/pay/` — **مغلقٌ بقرار المالك.** T954.
 
-    There is no card branch here and no card purpose to reach for: a purchase is
-    paid from deposited money or by a bank transfer the bank confirms.
+    ## القاعدة
+
+    «رصيد التأمين لا يمكن، وممنوع السداد منه للفواتير. بعد سداد فاتورة
+    العربية يقدر يسترد التأمين» — المالك، ١٩ سبتمبر ٢٠٢٦.
+
+    وهي المادةُ السادسة بنصّها: «مبلغ الضمان … **لا يُحتسب من ثمن المركبة**».
+    وكان هذا البابُ يحتسبه: `pay_invoice_from_balance` يصرف قفلَ الفاتورة ثمّ
+    الرصيدَ الحرّ، فيخرج الضمانُ ثمناً للسيّارة — وهو ما يمنعه العقد.
+
+    ## والفاتورةُ تحويلٌ بنكيٌّ وحدَه
+
+    يسجّلها `record_payment` حين يؤكّد البنكُ الحوالة عبر أودو. ولا يُفقَد
+    شيء: الرهنُ على الفاتورة (`HoldReason.DUES`) يتقلّص مع كلّ دفعةٍ حتى
+    الصفر (`_shrink_dues_claims`)، فيعود التأمينُ إلى `insurance_free` بعد
+    السداد الكامل — **وعندها** يطلب العميلُ استردادَه. وهو ترتيبُ المالك
+    نفسُه، ويعمل اليوم بلا تعديل.
+
+    ## ولماذا ردٌّ لا حذفُ مسار
+
+    تطبيقٌ على جوّالٍ لم يُحدَّث سيضغط «ادفع» غداً. و404 يُقرأ عطلاً فيُعاد
+    ويُتّصل بالدعم؛ ورفضٌ برسالةٍ عربيّةٍ يقول **لماذا** وماذا يفعل بدلاً
+    منه. ويُحذف المسارُ يوم لا يبقى إصدارٌ يعرفه.
     """
 
-    @extend_schema(request=InvoicePaySerializer, responses=InvoiceSerializer)
+    @extend_schema(
+        request=None,
+        responses={409: OpenApiResponse(description="السداد من الرصيد ممنوع.")},
+        summary="سداد فاتورة من الرصيد (مغلق)",
+        deprecated=True,
+    )
     def post(self, request, pk):
-        invoice = get_object_or_404(Invoice, pk=pk, customer=request.user)
-
-        form = InvoicePaySerializer(data=request.data)
-        form.is_valid(raise_exception=True)
-
-        # `settlement.pay_vehicle_invoice_from_balance` لا
-        # `services.pay_invoice_from_balance`: السدادُ نفسُه، ومعه نقلُ المركبة
-        # إلى «مسدَّدة». بابٌ من خمسةٍ للدفع، والقاعدةُ في موضعٍ واحدٍ خلفها
-        # كلِّها (`bidding/settlement.py:sync_vehicle_to_invoice`) — فعميلٌ
-        # يضغط «ادفع» من تطبيقه يُدخل سيّارته طابورَ الخروج كما يفعل أودو
-        # وملفُّ الشريك، لا أقلّ.
-        txn = settlement.pay_vehicle_invoice_from_balance(
-            user=request.user, invoice=invoice, method=form.validated_data["method"]
+        # المِلكيّةُ تُفحَص أوّلاً: فاتورةُ غيرِه تبقى 404 كما كانت، فلا يصير
+        # هذا البابُ وسيلةً لمعرفة أيُّ أرقام الفواتير موجودة.
+        get_object_or_404(Invoice, pk=pk, customer=request.user)
+        raise services.InvoiceNotPayable(
+            f"paying invoice {pk} from the insurance balance is forbidden",
+            user_message=(
+                "لا يمكن سداد الفاتورة من رصيد التأمين. السدادُ بحوالةٍ بنكيّة "
+                "على حساب الشركة، وبعد سدادها يمكنك طلبُ استرداد تأمينك."
+            ),
         )
-        invoice.refresh_from_db()
+
+
+class BankTransferView(APIView):
+    """`GET /api/v1/bank-transfer/` — حسابُ الشركة الذي يُحوَّل إليه. T954.
+
+    ## لماذا نقطةٌ لا نصٌّ في التطبيق
+
+    الحسابُ بيانُ شركةٍ يتغيّر، ومكتوباً في التطبيق يعني إصداراً جديداً على
+    المتجرَين لتغيير رقم. وv1 يخزّنه في `account_page_settings` ويحرّره من
+    اللوحة للسبب نفسِه. وهنا في بيئة الخادم (`BANK_TRANSFER_*`).
+
+    ## وما يُبنى عليها
+
+    قناتان لشحن التأمين — ميسر والحوالة — وكان زرُّ الحوالة يردّ «قريباً»
+    بلا رقم حساب. **والفاتورةُ حوالةٌ وحدَها** بعد أن أُغلق السدادُ من رصيد
+    التأمين (انظر :class:`InvoicePayView`).
+
+    ## ومفتوحةٌ لمن لم يدخل
+
+    `AllowAny` بقصد: من يقرأ الشروطَ قبل التسجيل يسأل «كيف أدفع؟»، والحسابُ
+    الذي تُعلنه الشركةُ لاستقبال الحوالات ليس سرّاً — هو على فواتيرها
+    وموقعها. وإخفاؤه خلف تسجيل دخولٍ يمنع سؤالاً مشروعاً ولا يحمي شيئاً.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses=BankTransferSerializer, summary="حساب الحوالة البنكية")
+    def get(self, request):
+        iban = (settings.BANK_TRANSFER_IBAN or "").strip()
+        account = (settings.BANK_TRANSFER_ACCOUNT or "").strip()
         return Response(
-            {
-                "invoice": InvoiceSerializer(invoice, context={"request": request}).data,
-                "transaction": str(txn.uuid),
-            }
+            BankTransferSerializer(
+                {
+                    # **الآيبان وحدَه يقرّر**: هو ما يُحوَّل إليه فعلاً، ورقمُ
+                    # الحساب مكمّلٌ تعرضه بعضُ البنوك. فحسابٌ بلا آيبان ليس
+                    # حساباً صالحاً للعرض.
+                    "configured": bool(iban),
+                    "beneficiary": (settings.BANK_TRANSFER_BENEFICIARY or "").strip(),
+                    "bank": (settings.BANK_TRANSFER_BANK or "").strip(),
+                    "iban": iban,
+                    "account": account,
+                }
+            ).data
         )

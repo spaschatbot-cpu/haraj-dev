@@ -1964,6 +1964,78 @@ abstract class AppLocalizations {
   /// **'الإجمالي المستحق'**
   String get purchasesTotalDue;
 
+  /// عنوان ورقة الحوالة — T954
+  ///
+  /// In ar, this message translates to:
+  /// **'التحويل البنكي'**
+  String get bankTransferTitle;
+
+  /// No description provided for @bankTransferBeneficiary.
+  ///
+  /// In ar, this message translates to:
+  /// **'المستفيد'**
+  String get bankTransferBeneficiary;
+
+  /// No description provided for @bankTransferBank.
+  ///
+  /// In ar, this message translates to:
+  /// **'البنك'**
+  String get bankTransferBank;
+
+  /// No description provided for @bankTransferIban.
+  ///
+  /// In ar, this message translates to:
+  /// **'الآيبان'**
+  String get bankTransferIban;
+
+  /// No description provided for @bankTransferAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الحساب'**
+  String get bankTransferAccount;
+
+  /// رقمُ الفاتورة يُكتب في خانة الغرض — بدونه تصل الحوالةُ ولا يُعرف عن ماذا
+  ///
+  /// In ar, this message translates to:
+  /// **'غرض الحوالة'**
+  String get bankTransferPurpose;
+
+  /// No description provided for @bankTransferCopy.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ'**
+  String get bankTransferCopy;
+
+  /// No description provided for @bankTransferCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'نُسخ {field}.'**
+  String bankTransferCopied(String field);
+
+  /// No description provided for @bankTransferNoteTopUp.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّل المبلغ إلى الحساب أعلاه، ويُضاف إلى تأمينك بعد تأكيد البنك للحوالة.'**
+  String get bankTransferNoteTopUp;
+
+  /// الفاتورةُ لا تُسدَّد من رصيد التأمين (المادة السادسة) — قرار المالك ١٩ سبتمبر ٢٠٢٦
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّل قيمة الفاتورة إلى الحساب أعلاه واكتب رقمها في غرض الحوالة. وتُسدَّد الفاتورة بعد تأكيد البنك، ثم يمكنك طلب استرداد تأمينك.'**
+  String get bankTransferNoteInvoice;
+
+  /// No description provided for @bankTransferUnavailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب التحويل غير متاح حالياً. تواصل مع الدعم.'**
+  String get bankTransferUnavailable;
+
+  /// بدل «دفع كامل المختارة» — السدادُ من الرصيد ممنوع
+  ///
+  /// In ar, this message translates to:
+  /// **'بيانات التحويل'**
+  String get purchasesTransferAll;
+
   /// No description provided for @purchasesPayAll.
   ///
   /// In ar, this message translates to:

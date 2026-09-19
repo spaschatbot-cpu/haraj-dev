@@ -5,6 +5,7 @@
 // Clients
 export 'clients/auctions_api.dart';
 export 'clients/auth_api.dart';
+export 'clients/bank_transfer_api.dart';
 export 'clients/bids_api.dart';
 export 'clients/devices_api.dart';
 export 'clients/favourites_api.dart';
@@ -20,6 +21,7 @@ export 'clients/wallet_api.dart';
 export 'models/auction_card.dart';
 export 'models/auction_page.dart';
 export 'models/authenticated_user.dart';
+export 'models/bank_transfer.dart';
 export 'models/bid.dart';
 export 'models/bid_page.dart';
 export 'models/bid_quote.dart';
@@ -33,7 +35,6 @@ export 'models/invoice_state_enum.dart';
 export 'models/kind_enum.dart';
 export 'models/ledger_entry.dart';
 export 'models/locked_field.dart';
-export 'models/method_enum.dart';
 export 'models/paginated_invoice_list.dart';
 export 'models/paginated_ledger_entry_list.dart';
 export 'models/paginated_purchase_list.dart';

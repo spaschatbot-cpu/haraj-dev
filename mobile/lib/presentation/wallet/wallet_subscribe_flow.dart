@@ -12,6 +12,7 @@ import '../../domain/profile/entities/customer_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
 import '../profile/profile_controller.dart';
+import 'bank_transfer_sheet.dart';
 
 /// مسارُ الاشتراك: **بياناتٌ أوّلاً، ثم طريقةُ الدفع**.
 ///
@@ -271,12 +272,12 @@ class _DetailsDialogState extends ConsumerState<_DetailsDialog> {
 
 /// الخطوة الثانية: طريقة الدفع.
 ///
-/// **الثلاثةُ تُضغَط، وواحدةٌ تدفع**: البطاقة/مدى هي ما يفتحه العقد (`topups`).
-/// والتحويلُ البنكيّ وApple Pay لا نقطةَ لهما بعد — وكانا باهتَين معطَّلين،
-/// فصارا يُضغطان ويردّان «قريباً» بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+/// **اثنتان تعملان وواحدةٌ تقول «قريباً»**: البطاقة/مدى عبر `topups`، و
+/// **التحويلُ البنكيّ** يفتح ورقةَ الحساب (T954) — وكان يردّ «قريباً» وهو
+/// قناةٌ قائمةٌ عند الشركة. وApple Pay وحدَها لم تُفعَّل بعد.
 ///
-/// **ولا يفتحان مسارَ البطاقة**: زرٌّ اسمُه «تحويل بنكي» يفتح بوّابةَ بطاقةٍ
-/// يكذب على من ضغطه، وقد يدفع بها وهو يظنّ أنه حوّل.
+/// **ولا تفتح إحداهما مسارَ الأخرى**: زرٌّ اسمُه «تحويل بنكي» يفتح بوّابةَ
+/// بطاقةٍ يكذب على من ضغطه، وقد يدفع بها وهو يظنّ أنه حوّل.
 class _PaymentDialog extends StatelessWidget {
   const _PaymentDialog();
 
@@ -339,12 +340,21 @@ class _PaymentDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
+          // **الحوالةُ تعمل الآن.** T954. كانت تردّ «قريباً» بلا رقم حساب،
+          // وهي قناةٌ قائمةٌ عند الشركة — فالعميلُ الذي يريد التحويل كان لا
+          // يجد إلى أين يحوّل. والحسابُ من الخادم (`bankAccountProvider`).
+          //
+          // ويُغلَق هذا المربّعُ قبل فتحها: ورقتان فوق بعضهما تُغطّي الثانيةُ
+          // الأولى، ومن أغلق الأعلى يجد نفسه في شاشةٍ لم يقصدها.
           _Method(
             icon: Icons.account_balance_outlined,
             title: l10n.walletBankTransfer,
             note: l10n.walletBankTransferNote,
             palette: palette,
-            onTap: () => _soon(context),
+            onTap: () {
+              Navigator.of(context).pop();
+              unawaited(BankTransferSheet.open(context));
+            },
           ),
           const SizedBox(height: 10),
           _Method(

@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../app/providers.dart';
 import '../../../domain/activity/entities/invoice.dart';
-import '../../../domain/common/failure.dart';
 import '../../../domain/common/money.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../common/failure_message.dart';
 import '../../common/money_text.dart';
 import '../../common/saudi_time.dart';
-import '../activity_providers.dart';
+import '../../wallet/bank_transfer_sheet.dart';
 
 /// عرض فاتورة واحدة: رقمها وحالتها ومبالغها وأثرها على التأمين.
 ///
@@ -88,75 +84,23 @@ bool _isPayable(Invoice invoice) {
   return (double.tryParse(invoice.due.amount) ?? 0) > 0;
 }
 
-/// زرُّ السداد من رصيد التأمين.
+/// زرُّ الحوالة البنكيّة — **بدل السداد من رصيد التأمين**. T954.
 ///
-/// **والخلفيةُ هي التي تقرّر**: تقيّد الدفعة وتنقل المركبةَ وتفكّ ما رُهن في
-/// بابٍ واحد (`bidding.settlement`). فهذا الزرّ ينادي وينتظر ويعرض، ولا يحسب
-/// مبلغاً ولا يفترض نتيجة — ولا يُحدِّث الشاشة من عنده بل يُبطل المزوّدات
-/// فتُقرأ من الخادم من جديد.
-class _PayFromBalanceButton extends ConsumerStatefulWidget {
+/// كان هنا `_PayFromBalanceButton` ينادي `payInvoiceFromBalance`. وقرارُ
+/// المالك (١٩ سبتمبر ٢٠٢٦): «رصيد التأمين لا يمكن وممنوع السداد منه
+/// للفواتير. بعد سداد فاتورة العربية يقدر يسترد التأمين» — وهي المادةُ
+/// السادسة بنصّها: «مبلغ الضمان لا يُحتسب من ثمن المركبة».
+///
+/// ولا يُفقَد شيءٌ في الترتيب: الرهنُ على الفاتورة يتقلّص مع كلّ دفعةٍ
+/// بنكيّةٍ حتى الصفر (`_shrink_dues_claims` في الخادم)، فيعود التأمينُ حرّاً
+/// بعد السداد الكامل — وعندها يطلب العميلُ استردادَه.
+///
+/// **ورقمُ الفاتورة يُمرَّر مرجعاً**: يُكتب في خانة «الغرض»، وبدونه تصل
+/// الحوالةُ ولا يُعرف عن ماذا.
+class _PayFromBalanceButton extends StatelessWidget {
   const _PayFromBalanceButton({required this.invoice});
 
   final Invoice invoice;
-
-  @override
-  ConsumerState<_PayFromBalanceButton> createState() =>
-      _PayFromBalanceButtonState();
-}
-
-class _PayFromBalanceButtonState extends ConsumerState<_PayFromBalanceButton> {
-  bool _sending = false;
-
-  Future<void> _pay() async {
-    final l10n = AppLocalizations.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    final invoice = widget.invoice;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.invoicePayConfirmTitle),
-        content: Text(
-          l10n.invoicePayConfirmBody(
-            '${invoice.due.amount} ${invoice.due.currency}',
-            invoice.number,
-          ),
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.invoicePayAction),
-          ),
-        ],
-      ),
-    );
-    if (!(confirmed ?? false) || !mounted) return;
-
-    setState(() => _sending = true);
-    try {
-      await ref.read(payInvoiceFromBalanceProvider)(invoice.id);
-      // الثلاثةُ معاً: الفاتورةُ صارت مسدَّدة، والمركبةُ صارت شراءً، والرصيدُ
-      // نقص. وإبطالُ واحدٍ منها يترك الشاشتين الأخريين تكذبان.
-      ref
-        ..invalidate(myInvoicesProvider)
-        ..invalidate(myPurchasesProvider);
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(l10n.invoicePaid)));
-    } on Failure catch (failure) {
-      // جوابُ الخادم كما جاء: «رصيدك لا يكفي»، «الفاتورة مسدَّدة»… وأيٌّ منها
-      // أوضح من «تعذّر السداد» التي كنّا سنكتبها نحن.
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(content: Text(failureMessage(context, failure))),
-      );
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -164,17 +108,11 @@ class _PayFromBalanceButtonState extends ConsumerState<_PayFromBalanceButton> {
 
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
-        // **يُعطَّل أثناء الإرسال**: ضغطتان على زرِّ دفعٍ ضغطتان على المال،
-        // ولا يُترك ذلك لحارس التكرار في الخلفية وحدَه.
-        onPressed: _sending ? null : _pay,
-        child: _sending
-            ? const SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : Text(l10n.invoicePayAction),
+      child: FilledButton.icon(
+        onPressed: () =>
+            BankTransferSheet.open(context, reference: invoice.number),
+        icon: const Icon(Icons.account_balance_outlined, size: 18),
+        label: Text(l10n.bankTransferTitle),
       ),
     );
   }

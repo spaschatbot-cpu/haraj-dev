@@ -280,6 +280,24 @@ class RefundRequestSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------------------------
 
 
+class BankTransferSerializer(serializers.Serializer):
+    """حسابُ الشركة كما يُعرَض للعميل ليحوّل إليه. T954.
+
+    أربعةُ نصوص، **ولا مبلغ**: الحوالةُ يقرّر مبلغَها العميل — يشحن تأميناً
+    أو يسدّد فاتورة — والخادمُ لا يعرف أيّهما حتى تصل.
+
+    و`configured` علمٌ صريحٌ لا استنتاجٌ من فراغ الحقول: شاشةٌ تقرأ أربعةَ
+    نصوصٍ فارغةٍ ترسمها أربعةَ أسطرٍ فارغةٍ وتظنّها بياناتٍ ناقصة، وعلمٌ
+    واحدٌ يقول «لم يُضبَط بعد» فتعرض الرسالةَ الصحيحة.
+    """
+
+    configured = serializers.BooleanField()
+    beneficiary = serializers.CharField(allow_blank=True)
+    bank = serializers.CharField(allow_blank=True)
+    iban = serializers.CharField(allow_blank=True)
+    account = serializers.CharField(allow_blank=True)
+
+
 class InvoiceSerializer(serializers.ModelSerializer):
     amount = MoneyField(read_only=True)
     amount_paid = MoneyField(read_only=True)
@@ -310,23 +328,6 @@ class InvoiceSerializer(serializers.ModelSerializer):
         return [
             {"method": value, "label": label} for value, label in PaymentMethod.choices
         ]
-
-
-class InvoicePaySerializer(serializers.Serializer):
-    """``method`` accepts only what :class:`PaymentMethod` declares.
-
-    ``card`` is not a member, so the schema itself rejects it and there is no
-    branch anywhere that could accidentally grow one.
-    """
-
-    method = serializers.ChoiceField(
-        choices=PaymentMethod.choices,
-        default=PaymentMethod.BALANCE,
-        error_messages={
-            "invalid_choice": "طريقة السداد غير مدعومة. المشتريات تُسدَّد من الرصيد "
-            "أو بتحويل بنكي فقط.",
-        },
-    )
 
 
 class PurchaseSerializer(serializers.Serializer):

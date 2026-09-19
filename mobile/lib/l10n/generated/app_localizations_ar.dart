@@ -1121,6 +1121,47 @@ class AppLocalizationsAr extends AppLocalizations {
   String get purchasesTotalDue => 'الإجمالي المستحق';
 
   @override
+  String get bankTransferTitle => 'التحويل البنكي';
+
+  @override
+  String get bankTransferBeneficiary => 'المستفيد';
+
+  @override
+  String get bankTransferBank => 'البنك';
+
+  @override
+  String get bankTransferIban => 'الآيبان';
+
+  @override
+  String get bankTransferAccount => 'رقم الحساب';
+
+  @override
+  String get bankTransferPurpose => 'غرض الحوالة';
+
+  @override
+  String get bankTransferCopy => 'نسخ';
+
+  @override
+  String bankTransferCopied(String field) {
+    return 'نُسخ $field.';
+  }
+
+  @override
+  String get bankTransferNoteTopUp =>
+      'حوّل المبلغ إلى الحساب أعلاه، ويُضاف إلى تأمينك بعد تأكيد البنك للحوالة.';
+
+  @override
+  String get bankTransferNoteInvoice =>
+      'حوّل قيمة الفاتورة إلى الحساب أعلاه واكتب رقمها في غرض الحوالة. وتُسدَّد الفاتورة بعد تأكيد البنك، ثم يمكنك طلب استرداد تأمينك.';
+
+  @override
+  String get bankTransferUnavailable =>
+      'حساب التحويل غير متاح حالياً. تواصل مع الدعم.';
+
+  @override
+  String get purchasesTransferAll => 'بيانات التحويل';
+
+  @override
   String get purchasesPayAll => 'دفع كامل المختارة';
 
   @override

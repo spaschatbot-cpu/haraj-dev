@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../domain/activity/entities/purchase.dart';
@@ -10,11 +9,10 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../activity/activity_providers.dart';
-import '../common/failure_message.dart';
 import '../common/failure_view.dart';
 import '../common/haraj_app_bar.dart';
 import '../common/riyal_text.dart';
-import '../wallet/wallet_controller.dart';
+import '../wallet/bank_transfer_sheet.dart';
 
 /// صفحة «مشترياتي» — على تصميم المالك (١٣ سبتمبر ٢٠٢٦).
 ///
@@ -360,18 +358,22 @@ class _PayBar extends ConsumerStatefulWidget {
 }
 
 class _PayBarState extends ConsumerState<_PayBar> {
-  bool _sending = false;
-
-  /// يسدّد فواتيرَ ما اختاره العميل من رصيد التأمين.
+  /// يعرض بيانات الحوالة لما اختاره — **ولا يسدّد من الرصيد**. T954.
   ///
-  /// **واحدةً واحدة، وتتوقّف عند أوّل رفض.** لا نداءَ جماعيَّ في العقد، ولو
-  /// مضينا على الباقي بعد رفضٍ لرأى العميل «سُدّدت» وفواتيرُ لم تُسدَّد.
-  /// والمسدَّدُ قبل الرفض يبقى مسدَّداً — وهو الصواب: كلُّ فاتورةٍ قيدٌ مستقلّ
-  /// في الدفتر، لا جزءٌ من صفقةٍ تُلغى.
+  /// كان هنا `_pay` ينادي `payInvoiceFromBalance` لكلّ فاتورةٍ مختارة.
+  /// وقرارُ المالك (١٩ سبتمبر ٢٠٢٦): «رصيد التأمين لا يمكن وممنوع السداد منه
+  /// للفواتير. بعد سداد فاتورة العربية يقدر يسترد التأمين» — وهي المادةُ
+  /// السادسة بنصّها: «مبلغ الضمان لا يُحتسب من ثمن المركبة». والنقطةُ في
+  /// الخادم تردّ اليوم برفضٍ صريح، فزرٌّ يناديها كان سيُظهر خطأً في كلّ ضغطة.
+  ///
+  /// **ورقمُ فاتورةٍ واحدةٍ مرجعاً، لا أرقامٌ عدّة**: خانةُ «الغرض» في
+  /// الحوالة سطرٌ واحد، وحوالةٌ واحدةٌ بأرقامِ ثلاثِ فواتير لا تُطابَق
+  /// آليّاً. فمن اختار أكثرَ من فاتورةٍ يرى الحسابَ بلا مرجع، ويحوّل لكلٍّ
+  /// على حدة.
   ///
   /// **وشراءٌ بلا فاتورة يُتخطّى** ولا يُعدّ فشلاً: المركبةُ رست ولم تُفوتَر
   /// بعد، وليس للعميل فيها فعل.
-  Future<void> _pay(List<Purchase> chosen) async {
+  Future<void> _transfer(List<Purchase> chosen) async {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final payable = chosen
@@ -384,39 +386,10 @@ class _PayBarState extends ConsumerState<_PayBar> {
       return;
     }
 
-    setState(() => _sending = true);
-    var paid = 0;
-    try {
-      for (final purchase in payable) {
-        await ref.read(payInvoiceFromBalanceProvider)(purchase.invoice!.id);
-        paid += 1;
-      }
-      ref
-        ..invalidate(myPurchasesProvider)
-        ..invalidate(myInvoicesProvider)
-        ..invalidate(walletBalanceProvider);
-      if (!mounted) return;
-      widget.onClear();
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(l10n.purchasesPaid(paid))));
-    } on Failure catch (failure) {
-      // جوابُ الخادم كما جاء: «رصيدك لا يكفي»، «الفاتورة مسدَّدة»…
-      if (paid > 0) {
-        ref
-          ..invalidate(myPurchasesProvider)
-          ..invalidate(myInvoicesProvider)
-          ..invalidate(walletBalanceProvider);
-      }
-      if (!mounted) return;
-      messenger
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(content: Text(failureMessage(context, failure))),
-        );
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+    await BankTransferSheet.open(
+      context,
+      reference: payable.length == 1 ? payable.single.invoice!.number : null,
+    );
   }
 
   @override
@@ -490,14 +463,10 @@ class _PayBarState extends ConsumerState<_PayBar> {
               Expanded(
                 flex: 3,
                 child: _DarkButton(
-                  label: l10n.purchasesPayAll,
-                  icon: Icons.credit_card_rounded,
+                  label: l10n.purchasesTransferAll,
+                  icon: Icons.account_balance_outlined,
                   palette: palette,
-                  // **يُعطَّل أثناء الإرسال**: ضغطتان على زرِّ دفعٍ ضغطتان
-                  // على المال، ولا يُترك ذلك لحارس التكرار في الخلفية وحدَه.
-                  onTap: selected.isEmpty || _sending
-                      ? null
-                      : () => _pay(chosen),
+                  onTap: selected.isEmpty ? null : () => _transfer(chosen),
                 ),
               ),
               const SizedBox(width: 12),

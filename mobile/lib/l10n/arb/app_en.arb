@@ -480,6 +480,36 @@
   "@purchasesSelectedCount": {},
   "purchasesTotalDue": "Total due",
   "@purchasesTotalDue": {},
+  "bankTransferTitle": "Bank transfer",
+  "@bankTransferTitle": {},
+  "bankTransferBeneficiary": "Beneficiary",
+  "@bankTransferBeneficiary": {},
+  "bankTransferBank": "Bank",
+  "@bankTransferBank": {},
+  "bankTransferIban": "IBAN",
+  "@bankTransferIban": {},
+  "bankTransferAccount": "Account no.",
+  "@bankTransferAccount": {},
+  "bankTransferPurpose": "Transfer purpose",
+  "@bankTransferPurpose": {},
+  "bankTransferCopy": "Copy",
+  "@bankTransferCopy": {},
+  "bankTransferCopied": "{field} copied.",
+  "@bankTransferCopied": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "bankTransferNoteTopUp": "Transfer the amount to the account above; it is added to your deposit once the bank confirms it.",
+  "@bankTransferNoteTopUp": {},
+  "bankTransferNoteInvoice": "Transfer the invoice amount to the account above and put its number in the transfer purpose. The invoice settles once the bank confirms, and you may then request your deposit back.",
+  "@bankTransferNoteInvoice": {},
+  "bankTransferUnavailable": "Transfer details are unavailable. Please contact support.",
+  "@bankTransferUnavailable": {},
+  "purchasesTransferAll": "Transfer details",
+  "@purchasesTransferAll": {},
   "purchasesPayAll": "Pay all selected",
   "@purchasesPayAll": {},
   "purchasesClear": "Clear selection",

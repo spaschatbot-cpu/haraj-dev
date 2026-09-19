@@ -1118,6 +1118,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get purchasesTotalDue => 'Total due';
 
   @override
+  String get bankTransferTitle => 'Bank transfer';
+
+  @override
+  String get bankTransferBeneficiary => 'Beneficiary';
+
+  @override
+  String get bankTransferBank => 'Bank';
+
+  @override
+  String get bankTransferIban => 'IBAN';
+
+  @override
+  String get bankTransferAccount => 'Account no.';
+
+  @override
+  String get bankTransferPurpose => 'Transfer purpose';
+
+  @override
+  String get bankTransferCopy => 'Copy';
+
+  @override
+  String bankTransferCopied(String field) {
+    return '$field copied.';
+  }
+
+  @override
+  String get bankTransferNoteTopUp =>
+      'Transfer the amount to the account above; it is added to your deposit once the bank confirms it.';
+
+  @override
+  String get bankTransferNoteInvoice =>
+      'Transfer the invoice amount to the account above and put its number in the transfer purpose. The invoice settles once the bank confirms, and you may then request your deposit back.';
+
+  @override
+  String get bankTransferUnavailable =>
+      'Transfer details are unavailable. Please contact support.';
+
+  @override
+  String get purchasesTransferAll => 'Transfer details';
+
+  @override
   String get purchasesPayAll => 'Pay all selected';
 
   @override

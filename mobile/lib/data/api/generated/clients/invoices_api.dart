@@ -2,12 +2,10 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, unused_import, invalid_annotation_target, unnecessary_import
 
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import '../models/invoice.dart';
-import '../models/method_enum.dart';
 import '../models/paginated_invoice_list.dart';
 
 part 'invoices_api.g.dart';
@@ -28,16 +26,33 @@ abstract class InvoicesApi {
   @GET('/api/v1/invoices/{id}/')
   Future<Invoice> v1InvoicesRetrieve({@Path('id') required int id});
 
-  /// Settle one invoice from the balance the customer already has with us.
+  /// سداد فاتورة من الرصيد (مغلق).
   ///
-  /// There is no card branch here and no card purpose to reach for: a purchase is.
-  /// paid from deposited money or by a bank transfer the bank confirms.
+  /// `POST /api/v1/invoices/{id}/pay/` — **مغلقٌ بقرار المالك.** T954.
   ///
-  /// [method] - الافتراضيّ حين لا يُرسَل الحقل: `balance`.
-  @MultiPart()
+  /// ## القاعدة.
+  ///
+  /// «رصيد التأمين لا يمكن، وممنوع السداد منه للفواتير. بعد سداد فاتورة.
+  /// العربية يقدر يسترد التأمين» — المالك، ١٩ سبتمبر ٢٠٢٦.
+  ///
+  /// وهي المادةُ السادسة بنصّها: «مبلغ الضمان … **لا يُحتسب من ثمن المركبة**».
+  /// وكان هذا البابُ يحتسبه: `pay_invoice_from_balance` يصرف قفلَ الفاتورة ثمّ.
+  /// الرصيدَ الحرّ، فيخرج الضمانُ ثمناً للسيّارة — وهو ما يمنعه العقد.
+  ///
+  /// ## والفاتورةُ تحويلٌ بنكيٌّ وحدَه.
+  ///
+  /// يسجّلها `record_payment` حين يؤكّد البنكُ الحوالة عبر أودو. ولا يُفقَد.
+  /// شيء: الرهنُ على الفاتورة (`HoldReason.DUES`) يتقلّص مع كلّ دفعةٍ حتى.
+  /// الصفر (`_shrink_dues_claims`)، فيعود التأمينُ إلى `insurance_free` بعد.
+  /// السداد الكامل — **وعندها** يطلب العميلُ استردادَه. وهو ترتيبُ المالك.
+  /// نفسُه، ويعمل اليوم بلا تعديل.
+  ///
+  /// ## ولماذا ردٌّ لا حذفُ مسار.
+  ///
+  /// تطبيقٌ على جوّالٍ لم يُحدَّث سيضغط «ادفع» غداً. و404 يُقرأ عطلاً فيُعاد.
+  /// ويُتّصل بالدعم؛ ورفضٌ برسالةٍ عربيّةٍ يقول **لماذا** وماذا يفعل بدلاً.
+  /// منه. ويُحذف المسارُ يوم لا يبقى إصدارٌ يعرفه.
+  @Deprecated('This method is marked as deprecated')
   @POST('/api/v1/invoices/{id}/pay/')
-  Future<Invoice> v1InvoicesPayCreate({
-    @Path('id') required int id,
-    @Part(name: 'method') MethodEnum? method,
-  });
+  Future<void> v1InvoicesPayCreate({@Path('id') required int id});
 }

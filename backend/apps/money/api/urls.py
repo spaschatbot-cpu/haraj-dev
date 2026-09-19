@@ -43,6 +43,11 @@ urlpatterns = [
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
     path("invoices/<int:pk>/pay/", views.InvoicePayView.as_view(), name="invoice-pay"),
     path(
+        "bank-transfer/",
+        views.BankTransferView.as_view(),
+        name="bank-transfer",
+    ),
+    path(
         "payments/callback/",
         views.PaymentCallbackView.as_view(),
         name="payment-callback",

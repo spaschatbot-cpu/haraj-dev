@@ -396,6 +396,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorEnvelope'
+  /api/v1/bank-transfer/:
+    get:
+      operationId: v1_bank_transfer_retrieve
+      description: |-
+        `GET /api/v1/bank-transfer/` — حسابُ الشركة الذي يُحوَّل إليه. T954.
+
+        ## لماذا نقطةٌ لا نصٌّ في التطبيق
+
+        الحسابُ بيانُ شركةٍ يتغيّر، ومكتوباً في التطبيق يعني إصداراً جديداً على
+        المتجرَين لتغيير رقم. وv1 يخزّنه في `account_page_settings` ويحرّره من
+        اللوحة للسبب نفسِه. وهنا في بيئة الخادم (`BANK_TRANSFER_*`).
+
+        ## وما يُبنى عليها
+
+        قناتان لشحن التأمين — ميسر والحوالة — وكان زرُّ الحوالة يردّ «قريباً»
+        بلا رقم حساب. **والفاتورةُ حوالةٌ وحدَها** بعد أن أُغلق السدادُ من رصيد
+        التأمين (انظر :class:`InvoicePayView`).
+
+        ## ومفتوحةٌ لمن لم يدخل
+
+        `AllowAny` بقصد: من يقرأ الشروطَ قبل التسجيل يسأل «كيف أدفع؟»، والحسابُ
+        الذي تُعلنه الشركةُ لاستقبال الحوالات ليس سرّاً — هو على فواتيرها
+        وموقعها. وإخفاؤه خلف تسجيل دخولٍ يمنع سؤالاً مشروعاً ولا يحمي شيئاً.
+      summary: حساب الحوالة البنكية
+      tags:
+      - bank-transfer
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BankTransfer'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/bids/{id}/withdraw/:
     post:
       operationId: bids_withdraw
@@ -811,10 +854,31 @@ paths:
     post:
       operationId: v1_invoices_pay_create
       description: |-
-        Settle one invoice from the balance the customer already has with us.
+        `POST /api/v1/invoices/{id}/pay/` — **مغلقٌ بقرار المالك.** T954.
 
-        There is no card branch here and no card purpose to reach for: a purchase is
-        paid from deposited money or by a bank transfer the bank confirms.
+        ## القاعدة
+
+        «رصيد التأمين لا يمكن، وممنوع السداد منه للفواتير. بعد سداد فاتورة
+        العربية يقدر يسترد التأمين» — المالك، ١٩ سبتمبر ٢٠٢٦.
+
+        وهي المادةُ السادسة بنصّها: «مبلغ الضمان … **لا يُحتسب من ثمن المركبة**».
+        وكان هذا البابُ يحتسبه: `pay_invoice_from_balance` يصرف قفلَ الفاتورة ثمّ
+        الرصيدَ الحرّ، فيخرج الضمانُ ثمناً للسيّارة — وهو ما يمنعه العقد.
+
+        ## والفاتورةُ تحويلٌ بنكيٌّ وحدَه
+
+        يسجّلها `record_payment` حين يؤكّد البنكُ الحوالة عبر أودو. ولا يُفقَد
+        شيء: الرهنُ على الفاتورة (`HoldReason.DUES`) يتقلّص مع كلّ دفعةٍ حتى
+        الصفر (`_shrink_dues_claims`)، فيعود التأمينُ إلى `insurance_free` بعد
+        السداد الكامل — **وعندها** يطلب العميلُ استردادَه. وهو ترتيبُ المالك
+        نفسُه، ويعمل اليوم بلا تعديل.
+
+        ## ولماذا ردٌّ لا حذفُ مسار
+
+        تطبيقٌ على جوّالٍ لم يُحدَّث سيضغط «ادفع» غداً. و404 يُقرأ عطلاً فيُعاد
+        ويُتّصل بالدعم؛ ورفضٌ برسالةٍ عربيّةٍ يقول **لماذا** وماذا يفعل بدلاً
+        منه. ويُحذف المسارُ يوم لا يبقى إصدارٌ يعرفه.
+      summary: سداد فاتورة من الرصيد (مغلق)
       parameters:
       - in: path
         name: id
@@ -823,27 +887,13 @@ paths:
         required: true
       tags:
       - invoices
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InvoicePay'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/InvoicePay'
-          multipart/form-data:
-            schema:
-              $ref: '#/components/schemas/InvoicePay'
       security:
       - bearerAuth: []
       - cookieAuth: []
+      deprecated: true
       responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Invoice'
-          description: ''
+        '409':
+          description: السداد من الرصيد ممنوع.
         default:
           description: رفضٌ أو خطأ، بالغلاف الموحَّد.
           content:
@@ -1841,6 +1891,34 @@ components:
       - id
       - is_new
       - phone
+    BankTransfer:
+      type: object
+      description: |-
+        حسابُ الشركة كما يُعرَض للعميل ليحوّل إليه. T954.
+
+        أربعةُ نصوص، **ولا مبلغ**: الحوالةُ يقرّر مبلغَها العميل — يشحن تأميناً
+        أو يسدّد فاتورة — والخادمُ لا يعرف أيّهما حتى تصل.
+
+        و`configured` علمٌ صريحٌ لا استنتاجٌ من فراغ الحقول: شاشةٌ تقرأ أربعةَ
+        نصوصٍ فارغةٍ ترسمها أربعةَ أسطرٍ فارغةٍ وتظنّها بياناتٍ ناقصة، وعلمٌ
+        واحدٌ يقول «لم يُضبَط بعد» فتعرض الرسالةَ الصحيحة.
+      properties:
+        configured:
+          type: boolean
+        beneficiary:
+          type: string
+        bank:
+          type: string
+        iban:
+          type: string
+        account:
+          type: string
+      required:
+      - account
+      - bank
+      - beneficiary
+      - configured
+      - iban
     Bid:
       type: object
       description: |-
@@ -2244,18 +2322,6 @@ components:
       - outstanding
       - payment_methods
       - state_label
-    InvoicePay:
-      type: object
-      description: |-
-        ``method`` accepts only what :class:`PaymentMethod` declares.
-
-        ``card`` is not a member, so the schema itself rejects it and there is no
-        branch anywhere that could accidentally grow one.
-      properties:
-        method:
-          allOf:
-          - $ref: '#/components/schemas/MethodEnum'
-          description: 'الافتراضيّ حين لا يُرسَل الحقل: `balance`.'
     InvoiceStateEnum:
       enum:
       - draft
@@ -2341,14 +2407,6 @@ components:
       required:
       - field
       - reason
-    MethodEnum:
-      enum:
-      - balance
-      - bank_transfer
-      type: string
-      description: |-
-        * `balance` - من الرصيد
-        * `bank_transfer` - تحويل بنكي
     NationalId:
       type: object
       description: |-

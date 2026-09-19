@@ -78,25 +78,13 @@ class _InvoicesApi implements InvoicesApi {
   }
 
   @override
-  Future<Invoice> v1InvoicesPayCreate({
-    required int id,
-    MethodEnum? method,
-  }) async {
+  Future<void> v1InvoicesPayCreate({required int id}) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
-    queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
-    final _data = FormData();
-    if (method != null) {
-      _data.fields.add(MapEntry('method', method.toString()));
-    }
-    final _options = _setStreamType<Invoice>(
-      Options(
-            method: 'POST',
-            headers: _headers,
-            extra: _extra,
-            contentType: 'multipart/form-data',
-          )
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<void>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
             '/api/v1/invoices/${id}/pay/',
@@ -105,15 +93,7 @@ class _InvoicesApi implements InvoicesApi {
           )
           .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
     );
-    final _result = await _dio.fetch<Map<String, Object?>>(_options);
-    late Invoice _value;
-    try {
-      _value = Invoice.fromJson(_result.data!);
-    } on Object catch (e, s) {
-      errorLogger?.logError(e, s, _options, response: _result);
-      rethrow;
-    }
-    return _value;
+    await _dio.fetch<void>(_options);
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

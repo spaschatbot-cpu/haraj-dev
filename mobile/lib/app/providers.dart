@@ -36,7 +36,6 @@ import '../domain/activity/repositories/activity_repository.dart';
 import '../domain/activity/usecases/load_my_invoices.dart';
 import '../domain/activity/usecases/load_my_participations.dart';
 import '../domain/activity/usecases/load_my_purchases.dart';
-import '../domain/activity/usecases/pay_invoice_from_balance.dart';
 import '../domain/auth/repositories/auth_repository.dart';
 import '../domain/auth/session_signal.dart';
 import '../domain/auth/usecases/change_phone_number.dart';
@@ -66,6 +65,7 @@ import '../domain/profile/gateways/image_source_picker.dart';
 import '../domain/profile/repositories/profile_repository.dart';
 import '../domain/profile/usecases/manage_profile.dart';
 import '../domain/profile/usecases/upload_document.dart';
+import '../domain/wallet/entities/bank_account.dart';
 import '../domain/wallet/gateways/checkout_launcher.dart';
 import '../domain/wallet/repositories/wallet_repository.dart';
 import '../domain/wallet/usecases/cancel_card_top_up.dart';
@@ -159,12 +159,22 @@ final profileRepositoryProvider = Provider<ProfileRepository>(
 final walletRepositoryProvider = Provider<WalletRepository>(
   (ref) => WalletRepositoryImpl(
     api: ref.watch(apiClientProvider).wallet,
+    bankApi: ref.watch(apiClientProvider).bankTransfer,
     cache: ref.watch(responseCacheProvider),
   ),
 );
 
 /// لغة التطبيق. عربيةٌ افتراضاً كما في `HarajApp`، ومزوَّدٌ لا ثابتٌ كي
 /// تُبدَّل في اختبارٍ أو من إعدادٍ لاحق بلا تعديل من يقرأها.
+/// حسابُ الشركة للحوالة — يُقرأ عند فتح شاشة الحوالة وحدَها. T954.
+///
+/// `autoDispose` بقصد: شاشةٌ تُفتح وتُغلق، وآيبانٌ محفوظٌ في الذاكرة بعد
+/// إغلاقها لا يُقرأ ثانيةً — ويُقرأ طازجاً في المرّة التالية، وهو المطلوب
+/// لرقمِ حسابٍ قد يتغيّر.
+final bankAccountProvider = FutureProvider.autoDispose<BankAccount>(
+  (ref) => ref.watch(walletRepositoryProvider).loadBankAccount(),
+);
+
 final localeProvider = Provider<Locale>((ref) => const Locale('ar'));
 
 /// أسماء حقول المواصفات، من ملفّ الترجمة.
@@ -392,9 +402,6 @@ final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
   (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
 );
 
-final payInvoiceFromBalanceProvider = Provider<PayInvoiceFromBalance>(
-  (ref) => PayInvoiceFromBalance(ref.watch(activityRepositoryProvider)),
-);
 
 final cancelCardTopUpProvider = Provider<CancelCardTopUp>(
   (ref) => CancelCardTopUp(ref.watch(walletRepositoryProvider)),

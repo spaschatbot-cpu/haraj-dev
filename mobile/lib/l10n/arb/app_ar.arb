@@ -1035,6 +1035,44 @@
   "@purchasesSelectedCount": {},
   "purchasesTotalDue": "الإجمالي المستحق",
   "@purchasesTotalDue": {},
+  "bankTransferTitle": "التحويل البنكي",
+  "@bankTransferTitle": {
+    "description": "عنوان ورقة الحوالة — T954"
+  },
+  "bankTransferBeneficiary": "المستفيد",
+  "@bankTransferBeneficiary": {},
+  "bankTransferBank": "البنك",
+  "@bankTransferBank": {},
+  "bankTransferIban": "الآيبان",
+  "@bankTransferIban": {},
+  "bankTransferAccount": "رقم الحساب",
+  "@bankTransferAccount": {},
+  "bankTransferPurpose": "غرض الحوالة",
+  "@bankTransferPurpose": {
+    "description": "رقمُ الفاتورة يُكتب في خانة الغرض — بدونه تصل الحوالةُ ولا يُعرف عن ماذا"
+  },
+  "bankTransferCopy": "نسخ",
+  "@bankTransferCopy": {},
+  "bankTransferCopied": "نُسخ {field}.",
+  "@bankTransferCopied": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "bankTransferNoteTopUp": "حوّل المبلغ إلى الحساب أعلاه، ويُضاف إلى تأمينك بعد تأكيد البنك للحوالة.",
+  "@bankTransferNoteTopUp": {},
+  "bankTransferNoteInvoice": "حوّل قيمة الفاتورة إلى الحساب أعلاه واكتب رقمها في غرض الحوالة. وتُسدَّد الفاتورة بعد تأكيد البنك، ثم يمكنك طلب استرداد تأمينك.",
+  "@bankTransferNoteInvoice": {
+    "description": "الفاتورةُ لا تُسدَّد من رصيد التأمين (المادة السادسة) — قرار المالك ١٩ سبتمبر ٢٠٢٦"
+  },
+  "bankTransferUnavailable": "حساب التحويل غير متاح حالياً. تواصل مع الدعم.",
+  "@bankTransferUnavailable": {},
+  "purchasesTransferAll": "بيانات التحويل",
+  "@purchasesTransferAll": {
+    "description": "بدل «دفع كامل المختارة» — السدادُ من الرصيد ممنوع"
+  },
   "purchasesPayAll": "دفع كامل المختارة",
   "@purchasesPayAll": {},
   "purchasesClear": "مسح التحديد",

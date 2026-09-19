@@ -1,4 +1,5 @@
 import '../../common/snapshot.dart';
+import '../entities/bank_account.dart';
 import '../entities/ledger_movement.dart';
 import '../entities/refund_request.dart';
 import '../entities/top_up.dart';
@@ -27,6 +28,12 @@ abstract interface class WalletRepository {
   /// **قائمةٌ لا عدد**: العدّ يُقرأ من طولها، والمبلغُ والحالةُ يُقرآن من
   /// صفوفها — ومجموعٌ يحسبه التطبيق رقمٌ بلا قيدٍ يقابله (المادة ١-٦).
   Future<Snapshot<List<RefundRequest>>> loadRefundRequests();
+
+  /// حسابُ الشركة الذي يُحوَّل إليه — من الخادم لا من ثابتٍ في التطبيق.
+  ///
+  /// **بلا كاش**: يُقرأ حين يفتح العميلُ شاشةَ الحوالة وحدَها، وآيبانٌ محفوظٌ
+  /// من نسخةٍ قديمة يرسل مالَ عميلٍ إلى حسابٍ لم يعد للشركة.
+  Future<BankAccount> loadBankAccount();
 
   /// يفتح نيّة شحن بالبطاقة عند الخادم. بلا مبلغ: الخادم يحدّده.
   Future<TopUp> startTopUp();

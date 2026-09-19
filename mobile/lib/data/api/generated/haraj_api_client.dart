@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 
 import 'clients/auctions_api.dart';
 import 'clients/auth_api.dart';
+import 'clients/bank_transfer_api.dart';
 import 'clients/bids_api.dart';
 import 'clients/devices_api.dart';
 import 'clients/favourites_api.dart';
@@ -29,6 +30,7 @@ class HarajApiClient {
 
   AuctionsApi? _auctions;
   AuthApi? _auth;
+  BankTransferApi? _bankTransfer;
   BidsApi? _bids;
   DevicesApi? _devices;
   FavouritesApi? _favourites;
@@ -45,6 +47,9 @@ class HarajApiClient {
       _auctions ??= AuctionsApi(_dio, baseUrl: _baseUrl);
 
   AuthApi get auth => _auth ??= AuthApi(_dio, baseUrl: _baseUrl);
+
+  BankTransferApi get bankTransfer =>
+      _bankTransfer ??= BankTransferApi(_dio, baseUrl: _baseUrl);
 
   BidsApi get bids => _bids ??= BidsApi(_dio, baseUrl: _baseUrl);
 

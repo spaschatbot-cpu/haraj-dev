@@ -70,30 +70,6 @@ final class ActivityRepositoryImpl implements ActivityRepository {
     toDomain: (page) => page.toDomain(),
   );
 
-  @override
-  Future<Invoice> payInvoiceFromBalance(String invoiceId) async {
-    // المفتاحُ نصٌّ في الكيان ورقمٌ في العقد (`id: '$id'` في المُحوِّل)، فيُقرأ
-    // هنا مرّةً ويُرفض ما ليس رقماً — بدل أن يُرمى `FormatException` عارياً من
-    // عمق الشبكة فتظهر «حدث خطأ غير متوقع» على فعلٍ يخصّ مالاً.
-    final id = int.tryParse(invoiceId);
-    if (id == null) {
-      throw UnexpectedFailure('معرّف فاتورة غير صالح: $invoiceId');
-    }
-
-    // **بلا `method`**: الافتراضيّ في العقد `balance`، وإرسالُه من التطبيق
-    // يجعل لنا رأياً في شيءٍ تقرّره الخلفية. والتحويلُ البنكيّ ليس هذا الزرّ.
-    final invoice = await callApi(() => _invoices.v1InvoicesPayCreate(id: id));
-
-    // **ويُمحى كاشُ الفواتير والمشتريات.** الفاتورةُ صارت مسدَّدةً والمركبةُ
-    // صارت شراءً، فقائمةٌ محفوظةٌ تقول غيرَ ذلك تظهر للعميل بعد ثانيةٍ من
-    // دفعه. والكاشُ هنا شبكةُ أمانٍ لصمت الخادم، لا ذاكرةٌ تُناقض فعلاً نجح.
-    await _cache.remove(CacheKeys.invoices);
-    await _cache.remove(CacheKeys.purchases);
-    await _cache.remove(CacheKeys.wallet);
-
-    return invoice.toDomain();
-  }
-
   /// مسار القراءة الواحد للقوائم الثلاث.
   ///
   /// دالة واحدة لا ثلاث نسخ: قرار «متى يُقرأ الكاش» هو القرار الحسّاس هنا،
