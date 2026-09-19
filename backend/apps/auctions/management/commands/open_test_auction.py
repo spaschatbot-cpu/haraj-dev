@@ -21,9 +21,10 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import Count
 from django.utils import timezone
 
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.services import move_auction
 from apps.auctions.states import AuctionState, VehicleState
 
@@ -72,11 +73,17 @@ class Command(BaseCommand):
     help = "مزادٌ حيٌّ بنافذةٍ طويلة، لفحص الشاشات (DEBUG وحده)"
 
     def add_arguments(self, parser) -> None:
+        # **ثلاثةُ أيّامٍ لا سنة.** T950.
+        #
+        # كان الافتراضُ 8760 ساعةً، فقرأ العدّادُ على كلّ بطاقةٍ
+        # `364:08:24:21` — رقمٌ لا يُقرأ، ولا يشبه مزاداً، ويشغل أعرضَ حوضٍ
+        # في الكرت بلا معنى. ومزادُ حراج الحقيقيّ يُفتح أيّاماً لا سنوات،
+        # فبيانةُ الفحص تُشبه ما تُحاكيه.
         parser.add_argument(
             "--hours",
             type=int,
-            default=8760,
-            help="كم ساعةً يبقى مفتوحاً (الافتراضي سنة)",
+            default=72,
+            help="كم ساعةً يبقى مفتوحاً (الافتراضي ثلاثة أيّام)",
         )
         parser.add_argument(
             "--cars",
@@ -179,7 +186,7 @@ class Command(BaseCommand):
         import itertools
         import random
 
-        source = (
+        base = (
             Vehicle.objects.exclude(auction=auction)
             .exclude(make="")
             .exclude(plate_number="")
@@ -188,9 +195,29 @@ class Command(BaseCommand):
             # مركبةٍ مُرحَّلة **اثنتا عشرةَ** تحمل سعرَ وقوفٍ أكبر من صفر —
             # فالعمودُ لم يأتِ من v1. واشتراطُه يترك المزادَ بمركبتين.
             .filter(year__isnull=False)
-            .order_by("-year", "-id")[: count * 3]
         )
-        picked = list(source)[:count]
+
+        # **ذواتُ الصور أوّلاً.** T950.
+        #
+        # كانت المركباتُ تُنتقى بالسنة وحدَها، فجاءت كلُّها بلا صورة — وشبكةُ
+        # الرئيسيّة أربعٌ وثلاثون بطاقةً تقول «لا توجد صورة». والصورةُ نصفُ
+        # البطاقة بالمساحة، فمزادُ اختبارٍ بلا صور لا يُختبَر عليه شيءٌ ممّا
+        # يراه العميل.
+        #
+        # و`prefetch_related` لا استعلامٌ لكلّ مركبة: النسخُ أدناه يقرأ صفوفَ
+        # الصور، وقراءتُها واحدةً واحدةً أربعون رحلةً إلى القاعدة.
+        with_photos = list(
+            base.annotate(shots=Count("images"))
+            .filter(shots__gt=0)
+            .prefetch_related("images")
+            .order_by("-year", "-id")[:count]
+        )
+        remainder = count - len(with_photos)
+        picked = with_photos + (
+            list(base.order_by("-year", "-id")[: remainder * 3])[:remainder]
+            if remainder > 0
+            else []
+        )
         if not picked:
             self.stdout.write("لا مركبةَ كاملةَ البيانات تُنسَخ")
             return 0
@@ -256,5 +283,36 @@ class Command(BaseCommand):
             )
 
         Vehicle.objects.bulk_create(made, batch_size=200)
-        self.stdout.write(f"أُضيفت {len(made)} مركبةً معروضةً بكامل بياناتها")
+        photos = self._copy_photos(picked, made)
+        self.stdout.write(
+            f"أُضيفت {len(made)} مركبةً معروضةً بكامل بياناتها"
+            + (f" · و{photos} صورةً منسوخة" if photos else " · بلا صور")
+        )
         return len(made)
+
+    def _copy_photos(self, sources: list[Vehicle], made: list[Vehicle]) -> int:
+        """انسخ صفوفَ صور المصدر إلى النسخة — **بمشاركة الملفّ لا بنسخه**.
+
+        الصفُّ الجديد يحمل المسارات الثلاثة نفسَها (الأصل والمصغَّرة
+        والمعاينة)، فلا بايت يُكتب على القرص ولا طبقةٌ تُولَّد ثانيةً:
+        `add_image` يُعقّم ويُولّد لأن مصدرَه رفعُ مستخدم، وهذه بايتاتٌ
+        مرّت بذلك البابِ أصلاً.
+
+        ومشاركةُ الملفّ آمنةٌ هنا: Django لا يحذف ملفَّ حقلٍ عند حذف صفّه
+        (سلوكُه منذ 1.3)، فحذفُ نسخةِ الاختبار لا يترك الأصلَ بلا صورة.
+        """
+        copies = []
+        for origin, clone in zip(sources, made, strict=True):
+            for shot in origin.images.all():
+                copies.append(
+                    VehicleImage(
+                        vehicle=clone,
+                        image=shot.image.name,
+                        thumbnail=shot.thumbnail.name,
+                        preview=shot.preview.name,
+                        position=shot.position,
+                        is_cover=shot.is_cover,
+                    )
+                )
+        VehicleImage.objects.bulk_create(copies, batch_size=200)
+        return len(copies)

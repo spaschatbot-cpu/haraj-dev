@@ -37,6 +37,23 @@ def _label(choices, value: str) -> str:
         return value
 
 
+def _title(vehicle) -> str:
+    """«ماركة طراز» — **ولا تُكتب الماركةُ مرّتين**. T950.
+
+    `model` في صفوف v1 المُرحَّلة يحمل الاسمَ الكاملَ أحياناً لا الطرازَ
+    وحدَه، فصار العنوانُ «سوزوكي ديز اير سوزوكي ديز اير». والشرطُ على
+    البداية لا على الاحتواء: طرازٌ اسمُه «سيرا» لماركة «جي ام سي» لا يُقصّ
+    لأن حرفين منه وردا في مكانٍ ما.
+    """
+    make = (vehicle.make or "").strip()
+    model = (vehicle.model or "").strip()
+    if not make:
+        return model
+    if model.startswith(make):
+        return model
+    return f"{make} {model}".strip()
+
+
 def _amount(value) -> str | None:
     """A money value as it should cross a wire: fixed-point text.
 
@@ -140,7 +157,18 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "reference": lambda v: f"#{v.pk}",
     # الماركة والطراز وحدهما. سنةُ الصنع شارةٌ مستقلّة على كرت v1، وذكرُها في
     # العنوان أيضاً تكرارٌ للبيانات نفسها في بطاقةٍ واحدة.
-    "title": lambda v: f"{v.make} {v.model}",
+    #
+    # **والطرازُ وحدَه إن كان يحمل الماركةَ في أوّله.** T950.
+    #
+    # ترحيلُ v1 وضع في `model` الاسمَ الكاملَ أحياناً لا الطرازَ وحدَه، فقرأ
+    # الكرتُ «سوزوكي ديز اير سوزوكي ديز اير» و«سي ان اتش تي HOWO-N سي ان اتش
+    # تي HOWO-N». قِيس على مزاد الاختبار: ثلاثون بطاقةً من ثلاثين مكرَّرةَ
+    # العنوان.
+    #
+    # والعلاجُ في العرض لا في العمود: `make` و`model` يُعرضان منفصلَين في
+    # مواضع أخرى ويُبحَث بهما، وتنظيفُ ثلاثةَ عشرَ ألفَ صفٍّ بحدسٍ نصّيّ
+    # يتلف ما لا يُسترجَع.
+    "title": lambda v: _title(v),
     "make": lambda v: v.make,
     "model": lambda v: v.model,
     "year": lambda v: v.year,

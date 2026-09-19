@@ -43,12 +43,26 @@ String remainingLabel(AppLocalizations l10n, Duration remaining) {
 /// **والثواني هنا وحدها**: العدّاد الرقميّ يتحرّك كلَّ ثانية فيُقرأ حيّاً،
 /// وهو ما يفرّق مزاداً يغلق اليوم عن جدولٍ مكتوب.
 String remainingDigits(Duration remaining) {
-  if (remaining <= Duration.zero) return '00:00:00:00';
+  if (remaining <= Duration.zero) return '00:00:00';
   String two(int value) => value.toString().padLeft(2, '0');
-  return '${two(remaining.inDays)}:'
+
+  final clock =
       '${two(remaining.inHours % Duration.hoursPerDay)}:'
       '${two(remaining.inMinutes % Duration.minutesPerHour)}:'
       '${two(remaining.inSeconds % Duration.secondsPerMinute)}';
+
+  // **الأيّامُ بحرفها لا بخانةٍ رابعة.** T950.
+  //
+  // كانت الصيغةُ `DD:HH:MM:SS` أربعَ خاناتٍ دائماً، فقرأ الكرتُ
+  // `364:08:24:21` لمزادٍ مفتوحٍ سنة — رقمٌ لا يُقرأ ولا يُخمَّن أوّلُه
+  // أيّامٌ أم ساعات. وثلاثُ خاناتٍ في الخانة الأولى تكسر عرضَ الحوض فتزحف
+  // البطاقة.
+  //
+  // فالأيّامُ تُكتب بحرفها حين توجد، والساعةُ تبقى ساعةً — والثواني تبقى
+  // تتحرّك في الحالتين، فالعدّادُ يُقرأ حيّاً وهو ما يفرّق مزاداً يغلق عن
+  // جدولٍ مكتوب.
+  final days = remaining.inDays;
+  return days > 0 ? '$daysد $clock' : clock;
 }
 
 /// عدّاد تنازلي حيّ إلى لحظة بعينها (T707).
