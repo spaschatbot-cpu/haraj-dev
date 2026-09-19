@@ -12132,3 +12132,98 @@ a.pager__num:hover, a.pager__step:hover {
 
 /* الأزرارُ لا تنمو مع الخانة، ولا تُقصّ كلماتُها. */
 .rowact button { flex: 0 0 auto; white-space: nowrap; }
+
+
+/* ===========================================================================
+   «الاستردادات» — قسمان يقولان ما يُفعل بهما، والبطاقةُ مرشِّح
+   ---------------------------------------------------------------------------
+   «عايزه صفحه الاستردادات دى بشكل احترافى جدا».
+
+   ١) كانت سبعَ بطاقاتٍ متساويةِ الوزن في شبكةٍ واحدة (4 + 3)، **أربعٌ منها
+      صفر** على الإنتاج، و«ما زال يكلّفنا» — سببُ الشاشة — خامسةً في الصفّ
+      الثاني بين صفرين. فتمشي العينُ على سبعٍ لتجد اثنتين.
+
+      فقسمان: ثلاثٌ فيها عمل (المالُ المفتوح ثمّ الحالتان المفتوحتان)،
+      وأربعٌ للسجلّ تحت عنوانٍ يقول ذلك. والقسمةُ من
+      `RefundRequestState.open_states()` لا من ذوقٍ هنا.
+
+   ٢) والبطاقةُ صارت مرشِّحاً يُنقر. كان تحتها منسدلٌ يحمل الحالاتِ نفسَها
+      بأسمائها نفسِها — شيءٌ واحدٌ في مكانين، وهو العطلُ الذي بُنيت هذه
+      الشاشةُ لإصلاحه في أرقام v1.
+
+   ٣) والصفرُ يُخفَت ولا يُحذَف: بطاقةٌ تختفي تجعل «أين حالةُ نُفِّذ؟» سؤالاً،
+      وصفرٌ بوزن ٣٬٠٩٠ يسرق النظر. لا شريطَ لونيّ، والرقمُ رماديّ.
+   ======================================================================== */
+
+/* عنوانُ قسم «ما انتهى» — أربعُ بطاقاتٍ بلا عنوانٍ تُقرأ امتداداً للثلاث
+   قبلها، ولا عملَ فيها. ونظيرُه `.owners-head` في «منصّة الملاك». */
+.rf-head {
+  margin: 1.5rem 0 .75rem;
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+/* البطاقةُ المعروضةُ الآن تُرى معروضة — نظيرُ `st-queues` في «تسوية الشريك». */
+.rf-states .sum--on {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.rf-states .sum--on .sum__label,
+.rf-states .sum--on .sum__value { color: var(--brand-dark); }
+.rf-states .sum--on .sum__note {
+  color: var(--brand-dark);
+  font-weight: 800;
+}
+/* والسهمُ يقول «تُفتح»، والمفتوحةُ لا تُفتح. */
+.rf-states .sum--on .sum__note::after { content: none; }
+
+/* الصفرُ: حاضرٌ ولا يسرق النظر. */
+.rf-states .sum--none::before { background: var(--line); }
+.rf-states .sum--none .sum__value { color: var(--muted); }
+.rf-states .sum--none.sum--on::before { background: var(--brand); }
+.rf-states .sum--none.sum--on .sum__value { color: var(--brand-dark); }
+
+/* ---- الجدول: عشرةُ أعمدةٍ تُقرأ، ومفتاحان لشخصٍ واحدٍ في خانة ---------- */
+
+/* المرجعُ يُطابَق ولا يُقرأ، فوزنُه البصريُّ أقلُّ ما يمكن — كـ`pv-table`. */
+.rf-table td.rf-ref { font-size: .74rem; color: var(--muted); letter-spacing: -.01em; }
+
+.rf-table td.rf-who a { font-weight: 700; }
+.rf-table td.rf-who small {
+  display: block;
+  margin-block-start: .1rem;
+  font-size: .72rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  text-align: end;
+}
+
+/* المبلغُ سببُ الصفّ. */
+.rf-table td.rf-amount { font-weight: 800; color: var(--ink); }
+
+/* ما كتبه العميلُ نصٌّ حرٌّ بلا حدٍّ لطوله: بلا سقفٍ يمدّ الجدولَ إلى ما لا
+   نهاية، و`scroller--wide` يمنع الالتفاف — فسطرٌ واحدٌ يُقصّ بنقاط. */
+.rf-table td.rf-said {
+  max-inline-size: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+.rf-table td.rf-when { font-size: .74rem; color: var(--muted); }
+
+/* القرارُ ثلاثةُ أسطر: من، ومتى، ولماذا — والسببُ أثقلُها لأنه المقروء. */
+.rf-table td.rf-why {
+  max-inline-size: 26ch;
+  white-space: normal;
+  font-size: .76rem;
+  line-height: 1.5;
+}
+.rf-table td.rf-why small { display: block; color: var(--muted); }
+
+/* على الضيّق: القسمان بطاقةً في الصفّ، والعنوانُ بينهما يفصل. */
+@media (max-width: 40rem) {
+  .rf-head { margin-block-start: 1.2rem; }
+}
