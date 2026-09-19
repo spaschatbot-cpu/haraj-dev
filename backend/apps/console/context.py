@@ -116,3 +116,34 @@ def _export_url(request) -> str:
         query.pop("page", None)
         return f"{request.path}?{query.urlencode()}"
     return f"{request.path}?{PARAM}=xlsx"
+
+
+#: بصمةُ ورقة الأنماط — من **وقت تعديل الملفّ** لا من رقمٍ يُكتب بيد.
+#:
+#: كان القالبُ يحمل `?v=1133` مكتوباً حرفاً، ويُنتظَر ممّن يعدّل `app.css` أن
+#: يتذكّر زيادتَه. ولا يتذكّر: الملفُّ تغيّر مرّاتٍ والرقمُ ثابت، وNginx يقول
+#: للمتصفّح `max-age=604800` — **فسبعةُ أيامٍ ولا يرى أحدٌ التعديل**. قاله
+#: المالك: «التعديل مش ظاهر عندي»، وهو كذلك على كلّ متصفّحٍ فتح الصفحةَ قبله.
+#:
+#: ويُقرأ الوقتُ مرّةً عند الإقلاع لا مع كلّ طلب: `stat` على كلّ صفحةٍ تُفتح
+#: إنفاقٌ بلا مقابل، وإعادةُ تشغيل الخدمة جزءٌ من كلّ نشرٍ أصلاً.
+def _asset_stamp() -> str:
+    from pathlib import Path
+
+    from django.contrib.staticfiles import finders
+
+    newest = 0.0
+    for name in ("console/app.css", "console/theme.js"):
+        found = finders.find(name)
+        if found and Path(found).exists():
+            newest = max(newest, Path(found).stat().st_mtime)
+    return str(int(newest)) if newest else "0"
+
+
+#: تُحسَب مرّةً، ويقرؤها القالبُ من السياق.
+ASSET_STAMP = SimpleLazyObject(_asset_stamp)
+
+
+def assets(request) -> dict:
+    """بصمةُ الملفّات الثابتة، ليضعها القالبُ على روابطها."""
+    return {"asset_stamp": ASSET_STAMP}

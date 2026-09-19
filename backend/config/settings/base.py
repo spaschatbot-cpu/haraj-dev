@@ -161,6 +161,10 @@ TEMPLATES = [
                 # entry: a view that forgets it renders a console with no
                 # navigation, and that is how a page becomes unreachable.
                 "apps.console.context.navigation",
+                # بصمةُ ورقة الأنماط من وقت تعديلها — بديلُ رقمٍ كان
+                # يُكتب بيدٍ في القالب ولا يتذكّره أحد، فيبقى المتصفّح
+                # على نسخةٍ قديمةٍ أسبوعاً كاملاً (`Cache-Control` سبعةُ أيام).
+                "apps.console.context.assets",
             ],
         },
     },
