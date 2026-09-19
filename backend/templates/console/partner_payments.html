@@ -16,7 +16,7 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
      بإكسل، ويقول في شاشته الأخرى «تجنّب رفع الملف نفسه مرتين حتى لا تُسجَّل
      الدفعة مرتين» — أي أن التفرُّد تذكيرٌ لا مفتاح. {% endcomment %}
   <p class="lede">
-    الفواتيرُ التي وصل منها مالٌ على سيارات الشريك. <strong>والصفُّ دفعةٌ
+    ما قُيِّد سداداً على سيارات الشريك، دفعةً دفعة. <strong>والصفُّ دفعةٌ
     مسجَّلةٌ في الدفتر لا صفَّ ملفٍّ مرفوع</strong> — فالرقمُ هنا هو نفسُه الذي
     في حساب العميل وفي صحّة المال، لا رقمٌ للمحاسبة ورقمٌ يراه الشريك.
   </p>
@@ -35,56 +35,74 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
     <div class="sum sum--money">
       <p class="sum__label">إجمالي ما وصل</p>
       <p class="sum__value money">{{ total|unlocalize }}</p>
-      <p class="sum__note">مجموعُ ما سُدِّد من هذه الفواتير.</p>
+      <p class="sum__note">مجموعُ الطابور كلِّه لا هذه الصفحة.</p>
     </div>
     <div class="sum">
-      <p class="sum__label">فواتير وصل منها مال</p>
+      <p class="sum__label">عدد الدفعات</p>
       <p class="sum__value">{{ page.paginator.count|unlocalize }}</p>
-      <p class="sum__note">هي صفوفُ الجدول تحت.</p>
+      <p class="sum__note">قيداً في الدفتر على سيارات الشريك.</p>
     </div>
   </section>
 
-  {% comment %} ثمانيةُ أعمدةٍ في غلافٍ بعرض الشاشة تلفُّ كلُّ خانةٍ فيها. {% endcomment %}
+  {% comment %} **صفٌّ لكلّ دفعةٍ كما في v1، لا لكلّ فاتورة.** كان الجدولُ
+     يعرض الفواتيرَ التي وصل منها مال، فتُقرأ فاتورةٌ سُدِّدت على قسطين
+     **دفعةً واحدة**، ويُقرأ عمودُ «التاريخ» — وهو `issued_at` — تاريخَ
+     وصولِ المال وهو تاريخُ إصدار الفاتورة. وفي شاشةٍ اسمُها «سجل الدفعات»
+     لا شيء يقول للقارئ غيرَ ذلك. {% endcomment %}
   <div class="scroller scroller--wide">
-    <table class="pv-table">
+    <table class="pd-tbl">
     <thead>
       <tr>
-        <th>الفاتورة</th>
         <th>التاريخ</th>
         <th>السيارة</th>
+        <th>اللوت</th>
+        <th>اللوحة</th>
         <th>المزاد</th>
         <th>العميل</th>
-        <th>قيمة الفاتورة</th>
-        <th>ما وصل منها</th>
-        <th>الحالة</th>
+        <th>المبلغ</th>
+        <th>الفاتورة</th>
+        {% comment %} «ملاحظة» في v1 خانةٌ حرّةٌ يكتبها رافعُ الملفّ؛ وهنا
+           مصدرُ الدفعة ومرجعُها — مشتقَّين من مفتاحها في الدفتر. {% endcomment %}
+        <th>المصدر</th>
+        <th>المرجع</th>
       </tr>
     </thead>
     <tbody>
-      {% for row in page %}
+      {% for row in rows %}
         <tr>
-          <td class="inv-no"><a href="{% url 'console:invoice-detail' row.pk %}">{{ row.number }}</a></td>
-          <td class="rm-when">{{ row.issued_at|date:"Y-m-d H:i" }}</td>
-          <td>
+          <td class="rm-when">{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+          <td class="pv-name">
             {% if row.vehicle %}
-              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}">{{ row.vehicle.display_title }}</a>
+              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}"><strong>{{ row.vehicle.display_title }}</strong></a>
+              <small>{{ row.vehicle.year|unlocalize }}</small>
             {% else %}—{% endif %}
           </td>
+          <td class="count">{% if row.vehicle %}{{ row.vehicle.lot_number|unlocalize }}{% else %}—{% endif %}</td>
+          <td class="mono">{% if row.vehicle %}{{ row.vehicle.plate_number|default:"—" }}{% else %}—{% endif %}</td>
           <td class="count">{% if row.vehicle %}{{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
-          <td><a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name }}</a></td>
-          <td class="money">{{ row.amount|unlocalize }}</td>
-          {% comment %} «ما وصل منها» هو سببُ الشاشة، فيُقرأ أثقلَ من قيمة
-             الفاتورة بجواره. {% endcomment %}
-          <td class="money inv-due">{{ row.amount_paid|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ row.tone|default:'plain' }}">{{ row.get_state_display }}</span></td>
+          <td>
+            {% if row.customer %}
+              <a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name }}</a>
+            {% else %}—{% endif %}
+          </td>
+          {% comment %} المبلغُ هو سببُ الشاشة، فيُقرأ أثقلَ من جاره. {% endcomment %}
+          <td class="money inv-due">{{ row.amount|unlocalize }}</td>
+          <td class="inv-no">
+            {% if row.invoice %}
+              <a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ row.source }}</td>
+          <td class="mono">{{ row.reference|default:"—" }}</td>
         </tr>
       {% empty %}
-        <tr><td colspan="8" class="empty">لا دفعات على سيارات هذا الشريك بعد.</td></tr>
+        <tr><td colspan="10" class="empty">لا دفعات على سيارات هذا الشريك بعد.</td></tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
 
-  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> فاتورةً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
+  <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> دفعةً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
 
   <p class="notice notice--soft">
     لا رفعَ ملفٍّ هنا. الدفعة تُسجَّل على فاتورتها في الدفتر، فتظهر في هذه

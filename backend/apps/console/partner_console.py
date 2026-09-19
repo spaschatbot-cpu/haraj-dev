@@ -44,7 +44,19 @@ from functools import reduce
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
+from django.db.models import (
+    CharField,
+    Count,
+    Exists,
+    F,
+    Func,
+    Max,
+    OuterRef,
+    Q,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Cast
 from django.shortcuts import render
 
 from apps.accounts.models import Company
@@ -54,7 +66,7 @@ from apps.bidding.models import Bid
 from apps.auctions.states import AuctionState, VehicleState
 from apps.core.arabic import search_q
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState, Transaction
+from apps.money.models import Entry, Invoice, InvoiceState, Transaction
 
 from . import payments
 from .after_sales import state_label
@@ -725,6 +737,51 @@ def partner_paid(request):
     return _settlement_screen(request, paid=True)
 
 
+def payments_of(partner: str = ""):
+    """دفعاتُ الشريك — **صفٌّ لكلِّ دفعة**، من الدفتر.
+
+    كانت هذه الدالّة تُعيد **فواتيرَ** وصل منها مال، وتسمّي الشاشةَ «سجل
+    الدفعات». والفرقُ ليس تسمية:
+
+    * فاتورةٌ سُدِّدت على قسطين تُقرأ **دفعةً واحدة**، فيُسأل «فين الدفعة
+      التانية؟» وهي مقيَّدةٌ في الدفتر؛
+    * والتاريخُ المعروضُ كان `issued_at` — **تاريخَ إصدار الفاتورة لا وصولِ
+      المال**. وفي سجلِّ دفعاتٍ يُقرأ عمودُ «التاريخ» تاريخَ الدفعة، ولا شيء
+      على الشاشة يقول غيرَ ذلك.
+
+    وv1 يعرضها دفعةً دفعةً (`payments` صفوفاً)، وهو الصواب هنا.
+
+    **والنطاقُ يُدفع إلى القاعدة لا يُبنى في الذاكرة.** الدفعةُ لا مفتاحَ
+    أجنبيّاً لها إلى الفاتورة — الرابطُ مفتاحُ المنع بشكليه (`console.payments`)
+    — فتُشقّ بادئتُه ومرجعُه في القاعدة بـ`split_part` ويُقارَنان باستعلامَين
+    فرعيَّين. والبديلُ قائمةُ معرّفاتٍ بآلاف القيم تُرسَل `IN (...)`.
+    """
+    cars = _scoped(Vehicle.objects.filter(state__in=AWARDED), partner)
+    invoices = Invoice.objects.filter(vehicle__in=cars)
+
+    split = lambda part: Func(  # noqa: E731
+        F("idempotency_key"),
+        Value(":"),
+        Value(part),
+        function="split_part",
+        output_field=CharField(),
+    )
+    mine = Q(
+        shape=payments.KEY_BY_PK.rstrip(":"),
+        ref__in=invoices.annotate(text=Cast("pk", CharField())).values("text"),
+    ) | Q(
+        shape=payments.KEY_BY_NUMBER.rstrip(":"),
+        ref__in=invoices.values("number"),
+    )
+    return (
+        Transaction.objects.filter(kind__in=payments.PAYMENT_KINDS)
+        .annotate(shape=split(1), ref=split(2))
+        .filter(mine)
+        .prefetch_related("entries__owner")
+        .order_by("-occurred_at", "-id")
+    )
+
+
 @console_page("console:partner-payments")
 def partner_payments(request):
     """سجل دفعات الشريك — **الدفعات المسجَّلة**، لا صفوفَ ملفٍّ مرفوع.
@@ -734,23 +791,41 @@ def partner_payments(request):
     الصفُّ دفعةٌ على فاتورة، ولها معرّفُها ومصدرُها وتاريخُها من الدفتر.
     """
     partner = request.GET.get("partner", "")
-    cars = _scoped(Vehicle.objects.filter(state__in=AWARDED), partner)
-
-    rows = (
-        Invoice.objects.filter(vehicle__in=cars, amount_paid__gt=ZERO)
-        .select_related("customer", "vehicle", "vehicle__auction")
-        .order_by("-issued_at", "-id")
-    )
-
+    rows = payments_of(partner)
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
+    page_rows = list(page.object_list)
+    payments.decorate(page_rows)
+
+    # المركبةُ عمودان في v1 (اللوط واللوحة) وليست على الحركة: تُقرأ من فواتير
+    # الصفحة باستعلامٍ واحد.
+    vehicles = {
+        vehicle.pk: vehicle
+        for vehicle in Vehicle.objects.filter(
+            pk__in={row.invoice.vehicle_id for row in page_rows if row.invoice}
+        ).select_related("auction")
+    }
+    for row in page_rows:
+        row.vehicle = vehicles.get(row.invoice.vehicle_id) if row.invoice else None
+
     return render(
         request,
         "console/partner_payments.html",
         {
             "page": page,
+            "rows": page_rows,
             "partner": partner,
             "partners": partners(),
-            "total": rows.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
+            # **مجموعُ الطابور كلِّه لا الصفحة.** «إجمالي المعتمد» في v1 جوابُ
+            # «كم قبضنا له»، وصفحةٌ من خمسين تجيب عن خمسين.
+            #
+            # ويُجمع في القاعدة لا بالمرور على الصفوف: `Transaction` لا عمودَ
+            # مبلغٍ له — الحركةُ طرفان — فيُجمع الطرفُ الموجب من `Entry`
+            # باستعلامٍ واحد. والمرورُ على ثلاثةَ عشرَ ألفَ قيدٍ في بايثون
+            # لجمع عمودٍ هو ما يجعل الصفحةَ تُحمَّل في ثوانٍ.
+            "total": Entry.objects.filter(
+                transaction__in=rows, amount__gt=ZERO
+            ).aggregate(t=Sum("amount"))["t"]
+            or ZERO,
         },
     )
 
