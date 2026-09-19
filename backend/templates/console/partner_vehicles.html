@@ -84,22 +84,27 @@
   <div class="scroller scroller--wide">
     <table class="pv-table">
     <thead>
+      {% comment %} **أعمدةُ v1 نفسُها وبترتيبها**: `#` · اللوط · السيارة ·
+         اللوحة · رقم المطالبة · المزاد · البداية · أعلى عرض · مزايدات ·
+         النتيجة · قراري · التفاصيل.
+
+         وثلاثةٌ حُذفت لأنها ليست هناك: **الشاصي** (يُبحَث به ولا يُعرَض —
+         سبعةَ عشرَ محرفاً تأكل عرضَ الشاشة ولا تُقرأ)، و**سعر الترسية**
+         (تقوله «النتيجة» باسم الفائز)، و**الفائز** (هو النتيجةُ نفسُها).
+         و«البداية» هي سعرُ الوقوف باسم v1. {% endcomment %}
       <tr>
         <th>#</th>
-        <th>اللوت</th>
+        <th>اللوط</th>
         <th>السيارة</th>
         <th>اللوحة</th>
         <th>رقم المطالبة</th>
-        <th>الشاصي</th>
         <th>المزاد</th>
-        <th>سعر الوقوف</th>
-        <th>سعر الترسية</th>
-        <th>مزايدات</th>
+        <th>البداية</th>
         <th>أعلى عرض</th>
+        <th>مزايدات</th>
         <th>النتيجة</th>
-        <th>الفائز</th>
-        <th>حكم الشريك</th>
-        <th>إجراء</th>
+        <th>قراري</th>
+        <th>التفاصيل</th>
       </tr>
     </thead>
     <tbody>
@@ -107,55 +112,44 @@
         <tr>
           <td class="count">{{ row.pk|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td>
+          <td class="pv-name">
             <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>
           <td class="mono">{{ row.claim_number|default:"—" }}</td>
-          <td class="mono">{{ row.vin|default:"—" }}</td>
           <td class="count">{{ row.auction.number|unlocalize }}</td>
-          {% comment %} سعرُ الوقوف الحقيقي: في v1 هذا العمود `0.00` في كل
-             صفّ، فيقرأ الشريك أن سيارته بدأت من الصفر. {% endcomment %}
+          {% comment %} «البداية» اسمُ v1 لسعر الوقوف. وهو `0.00` في كلّ صفٍّ
+             هناك، فيقرأ الشريكُ أن سيارته بدأت من الصفر ويقرّر بناءً على
+             ذلك. وهنا القيمةُ الحقيقيّة، و«—» تعني «لم يُحدَّد» لا
+             «مجّاناً». {% endcomment %}
           <td class="money">{{ row.reserve_price|default:"—"|unlocalize }}</td>
-          <td class="money">{{ row.awarded_price|default:"—"|unlocalize }}</td>
-          {% comment %} عمودا v1: كم عرضاً على السيارة وأعلاها. و«٠» تُكتب رقماً
-             لا شرطةً — الشرطةُ تُقرأ «لا أعرف» والصفرُ يقول «لم يزايد أحد»،
-             وهو جوابٌ يتّخذ عليه الشريكُ قرارَ الرفض. {% endcomment %}
-          <td class="count">{{ row.bids_count|unlocalize }}</td>
           <td class="money">{{ row.top_bid|default:"—"|unlocalize }}</td>
-          <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
+          {% comment %} و«٠» رقماً لا شرطة: الشرطةُ تُقرأ «لا أعرف» والصفرُ
+             يقول «لم يزايد أحد» — وعليه يُتّخذ قرارُ الرفض. {% endcomment %}
+          <td class="count">{{ row.bids_count|unlocalize }}</td>
+          {% comment %} **النتيجةُ اسمُ الفائز أو «لم تُبع»** كـ v1 — لا حالةٌ
+             تقنيّة. فعمودُ «الفائز» لا يُكتب مرّتين، واسمُ الفائز خلف
+             `users.view` كبقيّة اللوحة. {% endcomment %}
           <td>
-            {% if row.awarded_to %}
-              <a href="{% url 'console:customer-detail' row.awarded_to.pk %}">{{ row.awarded_to.full_name }}</a>
-            {% else %}—{% endif %}
-          </td>
-          {% comment %} حكمُ الشريك — هو ما يفكّ قفل القرار على سيارة التسويق.
-             يظهر الزرّان لسيارةِ تسويقٍ لم يُحكَم فيها ومزادُها انتهى؛ وما
-             سوى ذلك يُقرأ ولا يُضغط. والخدمةُ تُعيد فحصَ الشرطين، فالزرُّ
-             راحةٌ لا حارس. {% endcomment %}
-          <td>
-            {% if not row.is_marketing %}
-              <span class="muted">—</span>
-            {% elif row.partner_decided_at %}
-              <span class="pill" data-tone="plain">{{ row.get_partner_decision_display }}</span>
+            {% if row.awarded_to_id %}
+              {% if show_customer %}<a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.awarded_to.full_name }}</a>
+              {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
             {% else %}
-              <form method="post" action="{% url 'console:partner-rule' row.pk %}" class="pk-form pv-rule">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" name="decision" value="accepted" class="btn-sm">قبِل</button>
-                <button type="submit" name="decision" value="rejected" class="btn-sm">رفض</button>
-              </form>
+              <span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span>
             {% endif %}
           </td>
-                  {% comment %} زرٌّ صريحٌ في آخر الصفّ كـ v1. والرابطُ على اسم
-             السيارة يبقى، لكنه هدفٌ متغيّرُ العرض يضيق إلى ثلاثة محارف في
-             «كيه» ويطول في «لاندكروزر» — وزرٌّ ثابتٌ في العمود الأخير يُنقر
-             بلا تصويب. {% endcomment %}
+          <td>
+            {% if row.partner_decided_at %}
+              <span class="pill" data-tone="{% if row.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ row.get_partner_decision_display|default:"حُكم" }}</span>
+            {% else %}
+              <span class="pill" data-tone="warn">بانتظار قراري</span>
+            {% endif %}
+          </td>
           <td class="actions"><a class="btn-sm" href="{% url 'console:vehicle-detail' row.pk %}">التفاصيل ←</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="15" class="empty">لا سيارات مطابقة.</td></tr>
+        <tr><td colspan="12" class="empty">لا سيارات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

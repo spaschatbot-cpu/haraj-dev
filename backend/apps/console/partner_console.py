@@ -472,13 +472,15 @@ def partner_vehicles(request):
                 "السنة",
                 "اللوحة",
                 "رقم المطالبة",
+                # والشاصي يبقى في **الملفّ** وإن غاب عن الشاشة: الورقةُ تُقرأ
+                # بعيداً عن اللوحة وقد يكون هو المفتاحَ الوحيدَ بيد قارئها،
+                # والعرضُ فيها لا يُزاحم أحداً.
                 "الشاصي",
-                "سعر الوقوف",
-                "سعر الترسية",
-                "مزايدات",
+                "البداية",
                 "أعلى عرض",
-                "الحالة",
-                "الفائز",
+                "مزايدات",
+                "النتيجة",
+                "قراري",
             ],
             cell=lambda row: [
                 row.pk,
@@ -490,11 +492,10 @@ def partner_vehicles(request):
                 row.claim_number,
                 row.vin,
                 row.reserve_price,
-                row.awarded_price,
-                row.bids_count,
                 row.top_bid,
-                row.get_state_display(),
-                row.awarded_to.full_name if row.awarded_to else "",
+                row.bids_count,
+                row.awarded_to.full_name if row.awarded_to else row.get_state_display(),
+                row.get_partner_decision_display() or "بانتظار قراري",
             ],
         )
 
