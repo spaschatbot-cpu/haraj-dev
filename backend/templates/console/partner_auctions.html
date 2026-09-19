@@ -54,6 +54,18 @@
            `mine` مركباتِ المزاد كلَّها، فـ«سياراته» تصير كذباً. {% endcomment %}
         <th>{% if picked %}سياراته{% else %}المركبات{% endif %}</th>
         <th>{% if picked %}ما بيع منها{% else %}ما بيع{% endif %}</th>
+        {% comment %} إحصاءُ v1 لكلّ مزاد — والصفُّ وحدَه لا يقول شيئاً عن
+           الطلب: مزادٌ فيه عشرُ سياراتٍ بيعت منه اثنتان قد يكون لم يزره أحد،
+           أو زايد عليه عشرون ولم يبلغ أحدُهم سعرَ الوقوف. والفرقُ بينهما
+           قرارُ توريدٍ مختلف. {% endcomment %}
+        <th>نسبة البيع</th>
+        <th>عليها عروض</th>
+        <th>التغطية</th>
+        <th>المزايدون</th>
+        <th>أعلى عرض</th>
+        <th>سعر الوقوف</th>
+        <th>المبيعات</th>
+        <th>الفرق</th>
         <th>البداية</th>
         <th>النهاية</th>
         {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
@@ -68,12 +80,23 @@
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           <td class="count">{{ row.mine|unlocalize }}</td>
           <td class="count">{{ row.sold|unlocalize }}</td>
+          <td><span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}plain{% endif %}">{{ row.rate|unlocalize }}%</span></td>
+          <td class="count">{{ row.with_bids|unlocalize }}</td>
+          {% comment %} التغطيةُ: كم من سياراته لقيت عرضاً أصلاً. ونسبةُ البيع
+             تقول ما رسا، وهذه تقول ما **رآه أحد** — ومزادٌ بتغطيةٍ عاليةٍ
+             وبيعٍ منخفض يعني سعرَ وقوفٍ فوق السوق، لا ضعفَ إقبال. {% endcomment %}
+          <td><span class="pill" data-tone="{% if row.coverage >= 50 %}ok{% elif row.coverage %}info{% else %}plain{% endif %}">{{ row.coverage|unlocalize }}%</span></td>
+          <td class="count">{{ row.bidders|unlocalize }}</td>
+          <td class="money">{{ row.top_bid|default:"—"|unlocalize }}</td>
+          <td class="money">{{ row.reserve|default:"—"|unlocalize }}</td>
+          <td class="money">{{ row.sales|default:"—"|unlocalize }}</td>
+          <td class="money pb-diff" data-sign="{% if row.diff >= 0 %}up{% else %}down{% endif %}">{{ row.diff|unlocalize }}</td>
           <td class="rm-when">{{ row.starts_at|date:"Y-m-d H:i" }}</td>
           <td class="rm-when">{{ row.ends_at|date:"Y-m-d H:i" }}</td>
           <td class="rf-act"><a class="rf-go" href="{% url 'console:auction-bids' row.pk %}">المزايدات</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="8" class="empty">لا مزادات مطابقة.</td></tr>
+        <tr><td colspan="16" class="empty">لا مزادات مطابقة.</td></tr>
       {% endfor %}
     </tbody>
   </table>

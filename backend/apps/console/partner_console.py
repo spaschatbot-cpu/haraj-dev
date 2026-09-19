@@ -247,6 +247,25 @@ def auctions_of(partner: str = "", state: str = ""):
         rows = rows.filter(state=state)
 
     mine = Q(vehicles__owner_company_id=int(partner)) if partner.isdigit() else Q()
+
+    # **تعريفُ «المزايدة» يتغيّر بحال المزاد** — قاعدةُ v1، ووراءها عطلٌ وقع
+    # هناك: المزادُ الجاري تُعدّ فيه **العروضُ القائمة**، والمنتهي يُعدّ فيه
+    # **التاريخُ كلُّه** — لأن مزايداتِ المنتهي تصير كلُّها مرفوضةً عند
+    # التسوية، فعدُّ القائم منها يعطي **صفراً**. وخلطُ التعريفين أظهر في v1
+    # «١٩٥ مزايدة» بجوار «٠ سيارة عليها عروض» في الشاشة الواحدة.
+    live_only = state == AuctionState.LIVE
+    # و«القائمة» هنا تعريفُ `BidQuerySet.live` نفسُه — لا عمودَ حالةٍ على
+    # المزايدة في v2، بل رايتان: لم تُستبدَل ولم تُسحَب. وكتابةُ تعريفٍ ثانٍ
+    # لها هنا يعني أن يفترقا أوّلَ ما يتغيّر أحدُهما.
+    standing = Q(vehicles__bids__is_superseded=False, vehicles__bids__is_withdrawn=False)
+    # **والذي يتغيّر هو الحياةُ لا الوجود.** كُتب أوّلَ مرّةٍ `Q()` لغير
+    # الجاري، فسقط شرطُ «عليها مزايدة» كلُّه وصار `with_bids` يعدّ **كلَّ**
+    # سياراته — فظهر «مزاد ١٠٠٢: مزايدات ٠ · عليها عروض ٢»، وهو التناقضُ
+    # نفسُه الذي وقع في v1 («١٩٥ مزايدة» بجوار «٠ سيارة عليها عروض»).
+    # فالشرطُ قائمٌ دائماً: مزايدةٌ موجودة، وفي الجاري تكون قائمةً أيضاً.
+    exists = Q(vehicles__bids__isnull=False)
+    bid_filter = mine & (standing if live_only else exists)
+
     return rows.annotate(
         mine=Count("vehicles", filter=mine, distinct=True),
         sold=Count(
@@ -254,7 +273,18 @@ def auctions_of(partner: str = "", state: str = ""):
             filter=mine & Q(vehicles__state__in=AWARDED),
             distinct=True,
         ),
-    ).order_by("-starts_at", "-number")
+        # إحصاءُ v1 لكلّ مزاد: كم عرضاً، ومن كم شخص، وكم سيارةً عليها عرض.
+        bids=Count("vehicles__bids", filter=bid_filter, distinct=True),
+        bidders=Count("vehicles__bids__bidder", filter=bid_filter, distinct=True),
+        with_bids=Count("vehicles", filter=bid_filter, distinct=True),
+        reserve=Sum("vehicles__reserve_price", filter=mine),
+        sales=Sum("vehicles__awarded_price", filter=mine),
+        top_bid=Max("vehicles__bids__amount", filter=mine),
+    ).order_by(
+        # **الترتيبُ يتبع الحال** كـ v1: المزادُ الجاري شيءٌ عاجل، فالأقربُ
+        # قفلاً أوّلاً لأنه الذي يحتاج قراراً. والمنتهي تاريخٌ، فالأحدثُ أوّلاً.
+        *(("ends_at", "number") if live_only else ("-starts_at", "-number"))
+    )
 
 
 def _auctions_screen(request, state: str = "", *, only=None, screen=None):
@@ -273,6 +303,13 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
         rows = rows.filter(pk__in=only)
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
+
+    # النسبتان تُحسبان هنا لا في القالب: لغةُ القوالب لا تقسم، وحسابُهما في
+    # `annotate` يعني `Case/When` على كلّ صفٍّ لاتّقاء القسمة على صفر.
+    for row in page.object_list:
+        row.rate = round(row.sold / row.mine * 100, 1) if row.mine else 0.0
+        row.coverage = round(row.with_bids / row.mine * 100, 1) if row.mine else 0.0
+        row.diff = (row.sales or ZERO) - (row.reserve or ZERO)
 
     return render(
         request,
