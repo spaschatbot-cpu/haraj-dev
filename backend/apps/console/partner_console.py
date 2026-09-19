@@ -38,7 +38,9 @@
 
 from __future__ import annotations
 
+import operator
 from decimal import Decimal
+from functools import reduce
 
 from django.contrib import messages
 from django.core.paginator import Paginator
@@ -52,8 +54,9 @@ from apps.bidding.models import Bid
 from apps.auctions.states import AuctionState, VehicleState
 from apps.core.arabic import search_q
 from apps.money import services as money
-from apps.money.models import Invoice, InvoiceState
+from apps.money.models import Invoice, InvoiceState, Transaction
 
+from . import payments
 from .after_sales import state_label
 from .archive import ARCHIVED
 from .exports import export, wants_export
@@ -548,7 +551,10 @@ def settlement_of(partner: str = "", paid: bool = False):
             "auction", "awarded_to", "owner_company"
         ),
         partner,
-    ).order_by("-awarded_at", "-id")
+        # الترتيبُ بالمزاد ثم اللوط لا بتاريخ الترسية: الشاشةُ تُجمَّع
+        # بالمزاد كما في v1، والتجميعُ يمرّ على صفوف الصفحة مرّةً واحدةً —
+        # فمزادٌ متقطّعٌ في الترتيب يصير مجموعتين برأسٍ مكرَّر.
+    ).order_by("-auction__number", "lot_number")
 
     # استعلامٌ فرعيّ لا مجموعةٌ في بايثون: قائمةُ معرّفاتٍ من عشرة آلاف صفّ
     # تُبنى في الذاكرة ثم تُرسَل `IN (...)` بعشرة آلاف قيمة — والقاعدة تعرف
@@ -558,6 +564,86 @@ def settlement_of(partner: str = "", paid: bool = False):
     return marked.filter(is_settled=True) if paid else marked.filter(is_settled=False)
 
 
+def _payment_facts(invoices) -> dict[int, tuple]:
+    """متى وصل مالُ كلِّ فاتورة ومن أين — من الدفتر، لا من عمودٍ يُكتب مرّةً.
+
+    **ولا يُقرأ من عمود لأنّه لا وجود له**: الدفعةُ حركةٌ في الدفتر ولا مفتاحَ
+    أجنبيّاً منها إلى الفاتورة. والرابطُ مفتاحُ المنع، **وله شكلان**:
+    ``payment:<pk>:<ref>`` يكتبه `money.services.record_payment`، و
+    ``invoice-payment:<number>:<ref>`` يكتبه `pay_invoice_from_balance`.
+
+    ولذلك تُقرأ القاعدةُ من `console.payments` ولا تُنسَخ هنا: كُتب هذا أوّلَ
+    مرّةٍ بالشكل الأوّل وحدَه، **فخرج عمودُ التاريخ فارغاً على كلّ فاتورةٍ
+    سُدِّدت من الرصيد** — وهي في قاعدة التطوير الفاتورةُ المسدَّدة الوحيدة.
+    وشرطةٌ تُقرأ «لم يُسجَّل» وهي في الحقيقة «قرأتُ نصفَ المفاتيح».
+
+    واستعلامٌ واحدٌ للصفحة لا واحدٌ لكلّ صفّ (المادة ٢).
+    """
+    if not invoices:
+        return {}
+
+    shapes = []
+    by_pk, by_number = {}, {}
+    for invoice in invoices:
+        by_pk[invoice.pk] = invoice.pk
+        by_number[invoice.number] = invoice.pk
+        shapes.append(Q(idempotency_key__startswith=f"{payments.KEY_BY_PK}{invoice.pk}:"))
+        shapes.append(
+            Q(idempotency_key__startswith=f"{payments.KEY_BY_NUMBER}{invoice.number}:")
+        )
+
+    facts: dict[int, tuple] = {}
+    rows = Transaction.objects.filter(
+        reduce(operator.or_, shapes), kind__in=payments.PAYMENT_KINDS
+    ).values_list("idempotency_key", "occurred_at")
+    for key, when in rows:
+        shape, value = payments.invoice_of(key)
+        pk = by_pk.get(value) if shape == "pk" else by_number.get(value)
+        if pk is None:
+            continue
+        if pk not in facts or when > facts[pk][0]:
+            facts[pk] = (when, payments.source_of(key))
+    return facts
+
+
+#: حكمُ الشريك كما يُقرأ — v1 يكتب «بانتظار قرارك» لأن قارئَه الشريك، وقارئُ
+#: هذه الشاشة موظّفٌ يسأل عن شريكٍ اختاره، فالضميرُ يتغيّر مع القارئ.
+_RULINGS = {
+    "accepted": ("قبِله الشريك", "ok"),
+    "rejected": ("رفضه الشريك", "danger"),
+}
+
+
+def _settlement_groups(rows, paid: bool) -> list[dict]:
+    """اجمع صفوفَ الصفحة تحت مزاداتها، ومع كلِّ مزادٍ حسابُه — تجميعُ v1.
+
+    **الجدولُ المسطّح كان يقول الأرقامَ نفسَها ولا يجيب السؤال.** من يفتح
+    «غير المسدَّدة» يسأل «كم بقي على مزاد كذا» لا «كم بقي إجمالاً»، وهو رقمٌ
+    لا يُستخرج من جدولٍ مسطّحٍ إلا بالعدّ باليد على أربعين صفّاً. وv1 يجمعها
+    كذلك ويضع تحت رأس كلّ مزادٍ عدَّه ومجموعَه.
+
+    والتجميعُ على صفوف الصفحة لا على الاستعلام كلِّه (كما في
+    `partners._group_by_auction`): استعلامٌ ثانٍ ليجمع ثمنٌ لا يُدفع لأجل
+    رأسِ مجموعةٍ يقطعه ترقيمُ الصفحات مرّةً كلَّ خمسين صفّاً.
+    """
+    groups: list[dict] = []
+    for row in rows:
+        if not groups or groups[-1]["auction"].pk != row.auction_id:
+            groups.append(
+                {
+                    "auction": row.auction,
+                    "rows": [],
+                    "money": ZERO,
+                    "with_vat": ZERO,
+                }
+            )
+        group = groups[-1]
+        group["rows"].append(row)
+        group["money"] += row.settled_amount if paid else row.due_amount
+        group["with_vat"] += row.due_with_vat
+    return groups
+
+
 def _settlement_screen(request, paid: bool):
     """جسمُ شاشة التسوية — طابوران، ولكلٍّ صفُّه في السجلّ."""
     partner = request.GET.get("partner", "")
@@ -565,10 +651,16 @@ def _settlement_screen(request, paid: bool):
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
-    for vehicle in page.object_list:
-        invoice = (
-            Invoice.objects.filter(vehicle=vehicle).order_by("-issued_at", "-id").first()
+    invoices = {
+        invoice.vehicle_id: invoice
+        for invoice in Invoice.objects.filter(vehicle__in=page.object_list).order_by(
+            "issued_at", "id"
         )
+    }
+    facts = _payment_facts(list(invoices.values())) if paid else {}
+
+    for vehicle in page.object_list:
+        invoice = invoices.get(vehicle.pk)
         vehicle.invoice = invoice
         vehicle.invoice_state = money.derive_invoice_state(invoice) if invoice else ""
         # **الاسمُ العربيُّ لا القيمة.** كان القالبُ يطبع `invoice_state`
@@ -577,15 +669,46 @@ def _settlement_screen(request, paid: bool):
         # والقيمةُ تبقى كما هي لمن يرشّح بها.
         vehicle.invoice_label = state_label(vehicle.invoice_state)
 
+        # ثلاثةُ أرقامٍ لا رقمٌ واحد — وعمودُ v1 «شامل الضريبة» جنبَ المبلغ
+        # لأنّ السؤال «ده شامل الضريبة؟» كان يتكرّر على كلّ شاشة، والعمودُ
+        # الواحد لا يجيب عنه.
+        price = vehicle.awarded_price or ZERO
+        vehicle.due_amount = invoice.outstanding if invoice else price
+        vehicle.settled_amount = invoice.amount_paid if invoice else ZERO
+        # **ولا تُضرَب النسبةُ هنا.** `tax_of` تقرأ المكوّنات المختومة على
+        # فاتورةٍ أصدرناها، و`tax_added_to` تضرب على مبلغٍ لا فاتورةَ له بعد —
+        # وهي الموضعُ الوحيد الذي يضرب في المشروع كلِّه.
+        vehicle.due_with_vat = (
+            money.tax_of(invoice).total if invoice else money.tax_added_to(price).total
+        )
+        # ومصدرُ الدفعة يقوم مقام عمود «ملاحظة» في v1: هناك خانةٌ حرّةٌ
+        # يكتبها رافعُ الملفّ، وهنا مشتقٌّ من مرجع الدفعة في الدفتر.
+        vehicle.paid_at, vehicle.paid_from = (
+            facts.get(invoice.pk) or (None, "") if invoice else (None, "")
+        )
+        vehicle.ruling, vehicle.ruling_tone = _RULINGS.get(
+            vehicle.partner_decision, ("بانتظار قرار الشريك", "warn")
+        )
+
+    groups = _settlement_groups(page.object_list, paid)
     return render(
         request,
         "console/partner_settlement.html",
         {
             "page": page,
+            "groups": groups,
             "partner": partner,
             "partners": partners(),
             "paid": paid,
             "totals": summary_for(partner),
+            # ثلاثةُ أرقامِ v1 فوق الجدول: كم سيارةً · في كم مزاداً · وكم
+            # مالُها. وهي **على الصفحة المعروضة** لا على الطابور كلِّه، ولذلك
+            # تُسمّى في القالب باسمها.
+            "kpi": {
+                "vehicles": len(page.object_list),
+                "auctions": len(groups),
+                "money": sum((g["money"] for g in groups), ZERO),
+            },
         },
     )
 
