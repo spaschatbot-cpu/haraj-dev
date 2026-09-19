@@ -12302,15 +12302,21 @@ a.pager__num:hover, a.pager__step:hover {
 }
 
 .tabs--seg {
-  display: flex;
-  gap: .25rem;
-  padding: .34rem;
+  display: inline-flex;
+  gap: .2rem;
+  padding: .3rem;
   background: var(--seg);
   border: 1px solid var(--seg-edge);
-  border-radius: var(--radius-lg);
+  border-radius: .75rem;
   border-block-end: 1px solid var(--seg-edge);
-  box-shadow: var(--shadow);
-  inline-size: 100%;
+  /* خطٌّ فاتحٌ على الحافّة العليا من الداخل: يعطي اللوحَ سُمكاً بدل أن يبدو
+     مستطيلاً مصمتاً — وهو ما يفرّق شريطاً مصقولاً من مربّعٍ ملوّن. */
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .07), 0 1px 3px rgb(23 35 61 / .18);
+  /* **بعرض محتواه لا بعرض الشاشة.** كان `100%` واللسانان يتقاسمانه، فأخذ
+     «طلبات الاسترداد» وحدَه ٤١٥ بكسلاً — لوحٌ أبيضُ بعرض ثلث الشاشة لكلمتين.
+     والشريطُ رأسٌ لثلاث صفحات، لا شريطُ تقدّمٍ يملأ ما أمامه. */
+  inline-size: fit-content;
+  max-inline-size: 100%;
 }
 
 .tabs--seg .tab {
@@ -12318,14 +12324,14 @@ a.pager__num:hover, a.pager__step:hover {
   align-items: center;
   justify-content: center;
   gap: .5rem;
-  /* اللسانان يتقاسمان الفراغ، ولا ينكمش نصُّهما دون طوله. */
-  flex: 1 1 0;
-  min-inline-size: 0;
-  padding: .78rem 1.3rem;
+  /* كلُّ لسانٍ بعرض اسمه: القسمةُ بالتساوي تجعل عرضَ اللسان دالّةً على عددِ
+     الألسنة لا على ما فيه. */
+  flex: 0 0 auto;
+  padding: .58rem 1.15rem;
   margin-block-end: 0;
   border-block-end: 0;
-  border-radius: calc(var(--radius-lg) - .3rem);
-  font-size: .92rem;
+  border-radius: .55rem;
+  font-size: .88rem;
   font-weight: 700;
   color: var(--seg-ink);
   white-space: nowrap;
@@ -12353,8 +12359,8 @@ a.pager__num:hover, a.pager__step:hover {
 .tabs--seg .tab.is-on::before {
   content: "";
   position: absolute;
-  inset-inline: .8rem;
-  inset-block-end: .28rem;
+  inset-inline: .7rem;
+  inset-block-end: .26rem;
   block-size: 2px;
   border-radius: 2px;
   background: var(--brand);
@@ -12393,7 +12399,7 @@ a.pager__num:hover, a.pager__step:hover {
 .tabs--seg .tab--away:hover { background: transparent; opacity: 1; color: #fff; }
 
 @media (max-width: 48rem) {
-  .tabs--seg { flex-wrap: wrap; }
+  .tabs--seg { display: flex; flex-wrap: wrap; inline-size: 100%; }
   .tabs--seg .tab { flex: 1 1 100%; justify-content: space-between; }
   .tabs--seg .tab--away {
     flex: 1 1 100%;
