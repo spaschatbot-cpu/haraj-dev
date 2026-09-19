@@ -12526,3 +12526,35 @@ a.pager__num:hover, a.pager__step:hover {
 }
 .pv-chip:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
 .pv-chip.is-on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+
+/* ---- جداول قسم الشريك: حشوةٌ تُقرأ، بمقاييس v1 ---------------------------
+   `.scroller--wide` تضيّق الحشوةَ الأفقيّة إلى **4px** لتحشر خمسةَ عشرَ
+   عموداً في عرض الشاشة — فتلتصق آخرُ كلمةٍ في عمودٍ بأوّل كلمةٍ في الذي يليه
+   وتُقرآن جملةً واحدة. قاله المالك مرّتين: في جدول الخروج ثم هنا.
+
+   والحلُّ هو حلُّ الخروج نفسُه: مقاييسُ v1 (`padding: 8px 10px` و
+   `font-size: 13px` و**وسطاً** لا بدايةً) — والوسطُ وحدَه يترك هامشين بدل
+   هامشٍ واحد. والجدولُ يُمرَّر أفقياً، وهو أهونُ من صفٍّ لا يُقرأ.
+
+   والعمودُ الأوّلُ الحاملُ اسمَ المركبة يبقى إلى البداية: اسمٌ عربيٌّ
+   متغيّرُ الطول يُقرأ من حافّةٍ ثابتة. */
+.pv-table th, .pv-table td,
+.pd-tbl th, .pd-tbl td,
+.pb-tbl th, .pb-tbl td {
+  padding-inline: .62rem !important;
+  padding-block: .5rem;
+  font-size: .82rem;
+  text-align: center;
+}
+.pv-table thead th, .pd-tbl thead th, .pb-tbl thead th { font-size: .74rem; }
+.pv-table .pv-name, .pd-tbl .pv-name { text-align: start; }
+/* ونماذجُ الصفّ تنزع بطاقةَ النماذج — القاعدةُ العامّة `form {…}` تُلبسها
+   كلَّ `<form>` في اللوحة فيصير الزرُّ داخل مربّعٍ بحدٍّ وظلّ. */
+.pd-tbl td.actions, .pv-table td.actions {
+  display: flex; flex-wrap: wrap; gap: .3rem;
+  justify-content: center; align-items: center;
+  grid-template-columns: none;
+}
+/* عنوانُ مجموعة المزاد في شاشة القرار. */
+.pd-auction { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1.4rem 0 .5rem; font-size: 1rem; }
+.pd-auction small { font-weight: 600; color: var(--muted); }
