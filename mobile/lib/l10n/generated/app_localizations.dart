@@ -590,6 +590,12 @@ abstract class AppLocalizations {
   /// **'ينتهي بعد {remaining}'**
   String countdownToEnd(String remaining);
 
+  /// الأيّامُ وحدَها في العدّاد الرقميّ على الكرت — الساعةُ ودجةٌ منفصلة بجوارها لأن اتّجاهها لاتينيّ.
+  ///
+  /// In ar, this message translates to:
+  /// **'{days, plural, one{يوم} two{يومان} few{{days} أيّام} other{{days} يوماً}}'**
+  String countdownDaysOnly(int days);
+
   /// No description provided for @countdownDaysHours.
   ///
   /// In ar, this message translates to:

@@ -313,6 +313,15 @@
       }
     }
   },
+  "countdownDaysOnly": "{days, plural, one{يوم} two{يومان} few{{days} أيّام} other{{days} يوماً}}",
+  "@countdownDaysOnly": {
+    "description": "الأيّامُ وحدَها في العدّاد الرقميّ على الكرت — الساعةُ ودجةٌ منفصلة بجوارها لأن اتّجاهها لاتينيّ.",
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "countdownDaysHours": "{days} يوم و{hours} ساعة",
   "@countdownDaysHours": {
     "placeholders": {

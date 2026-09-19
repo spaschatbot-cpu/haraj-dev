@@ -313,6 +313,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String countdownDaysOnly(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '${days}d',
+      one: '1d',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String countdownDaysHours(int days, int hours) {
     return '${days}d ${hours}h';
   }

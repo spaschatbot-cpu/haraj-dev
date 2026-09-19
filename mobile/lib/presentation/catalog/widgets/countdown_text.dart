@@ -45,24 +45,28 @@ String remainingLabel(AppLocalizations l10n, Duration remaining) {
 String remainingDigits(Duration remaining) {
   if (remaining <= Duration.zero) return '00:00:00';
   String two(int value) => value.toString().padLeft(2, '0');
-
-  final clock =
-      '${two(remaining.inHours % Duration.hoursPerDay)}:'
+  return '${two(remaining.inHours % Duration.hoursPerDay)}:'
       '${two(remaining.inMinutes % Duration.minutesPerHour)}:'
       '${two(remaining.inSeconds % Duration.secondsPerMinute)}';
+}
 
-  // **الأيّامُ بحرفها لا بخانةٍ رابعة.** T950.
-  //
-  // كانت الصيغةُ `DD:HH:MM:SS` أربعَ خاناتٍ دائماً، فقرأ الكرتُ
-  // `364:08:24:21` لمزادٍ مفتوحٍ سنة — رقمٌ لا يُقرأ ولا يُخمَّن أوّلُه
-  // أيّامٌ أم ساعات. وثلاثُ خاناتٍ في الخانة الأولى تكسر عرضَ الحوض فتزحف
-  // البطاقة.
-  //
-  // فالأيّامُ تُكتب بحرفها حين توجد، والساعةُ تبقى ساعةً — والثواني تبقى
-  // تتحرّك في الحالتين، فالعدّادُ يُقرأ حيّاً وهو ما يفرّق مزاداً يغلق عن
-  // جدولٍ مكتوب.
+/// عددُ الأيّام الكاملة، أو `null` حين لا يومَ كامل.
+///
+/// **منفصلٌ عن [remainingDigits] لأن الاتّجاه يفصلهما.** T950.
+///
+/// كانت الصيغةُ `DD:HH:MM:SS` أربعَ خاناتٍ دائماً، فقرأ الكرتُ
+/// `364:08:24:21` لمزادٍ مفتوحٍ سنة — رقمٌ لا يُقرأ، ولا يُخمَّن أوّلُه
+/// أيّامٌ أم ساعات، وثلاثُ خاناتٍ في الأولى تكسر عرضَ الحوض.
+///
+/// وضمُّ «د» إلى السلسلة نفسِها لا يصلح: الحوضُ يُرسَم بـ`TextDirection.ltr`
+/// (وإلا أُعيد ترتيب المجموعات)، وحرفٌ عربيٌّ في نصٍّ لاتينيّ يُدفَع إلى
+/// آخر السطر — فقُرئ `223:49:54 د`، وهو أسوأُ ممّا أصلحه. قِيس في المتصفّح.
+///
+/// فالرقمان ودجتان، لكلٍّ اتّجاهُها.
+int? remainingWholeDays(Duration remaining) {
+  if (remaining <= Duration.zero) return null;
   final days = remaining.inDays;
-  return days > 0 ? '$daysد $clock' : clock;
+  return days > 0 ? days : null;
 }
 
 /// عدّاد تنازلي حيّ إلى لحظة بعينها (T707).
@@ -123,12 +127,31 @@ class _CountdownTextState extends ConsumerState<CountdownText> {
     final now = ref.watch(nowProvider)();
     final remaining = widget.at.toUtc().difference(now.toUtc());
     if (widget.digital) {
-      return Text(
+      final style = widget.style ?? Theme.of(context).textTheme.bodyMedium;
+      final days = remainingWholeDays(remaining);
+      final clock = Text(
         remainingDigits(remaining),
         // **`ltr` صراحةً**: الأرقام والنقطتان في سياقٍ عربيّ تُعاد ترتيبها
         // فيصير `16:49:04:03` — الأيام في آخر السطر.
         textDirection: TextDirection.ltr,
-        style: widget.style ?? Theme.of(context).textTheme.bodyMedium,
+        style: style,
+      );
+      if (days == null) return clock;
+
+      // يومٌ واحدٌ لغةً و«٣ أيّام» جمعاً — والودجتان منفصلتان لأن اتّجاه
+      // كلٍّ منهما غيرُ اتّجاه الأخرى (انظر [remainingWholeDays]).
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            l10n.countdownDaysOnly(days),
+            textDirection: TextDirection.rtl,
+            style: style,
+          ),
+          const SizedBox(width: 6),
+          clock,
+        ],
       );
     }
 

@@ -313,6 +313,19 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String countdownDaysOnly(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days يوماً',
+      few: '$days أيّام',
+      two: 'يومان',
+      one: 'يوم',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String countdownDaysHours(int days, int hours) {
     return '$days يوم و$hours ساعة';
   }
