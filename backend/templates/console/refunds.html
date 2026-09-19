@@ -145,7 +145,7 @@
         <tr>
           <th>المرجع</th>
           <th>العميل</th>
-          <th>المبلغ</th>
+          <th class="money">المبلغ</th>
           <th>ما كتبه العميل</th>
           <th>الحالة</th>
           {% comment %} «صندوق أودو» و«الحركة» كانا عمودين، وكلاهما «—» في
@@ -189,7 +189,7 @@
                 <span class="empty">—</span>
               {% endif %}
             </td>
-            <td class="rf-when">{{ row.created_at|date:"Y-m-d H:i" }}</td>
+            <td class="rf-when">{{ row.created_at|date:"Y-m-d" }} <span class="rf-time">{{ row.created_at|date:"H:i" }}</span></td>
             {% comment %} الشرطُ على **وجودِ قرارٍ** لا على وجودِ فاعل: الصفوفُ
                المرحَّلةُ من v1 تحمل قراراً مكتوباً («صُرف في v1 · سندُ أودو
                …») و`decided_by` فارغاً، لأن v1 لا يسجّل من قرّر. وكان الشرطُ
@@ -287,7 +287,7 @@
           <th>النوع</th>
           <th>المصدر</th>
           <th>العميل</th>
-          <th>المبلغ</th>
+          <th class="money">المبلغ</th>
           <th>المرجع</th>
           <th>البيان</th>
           <th>التاريخ</th>
@@ -312,7 +312,7 @@
               {% if row.memo %}<span class="cell-clip clip-said" title="{{ row.memo }}">{{ row.memo }}</span>
               {% else %}<span class="empty">—</span>{% endif %}
             </td>
-            <td class="rf-when">{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+            <td class="rf-when">{{ row.occurred_at|date:"Y-m-d" }} <span class="rf-time">{{ row.occurred_at|date:"H:i" }}</span></td>
             <td class="rf-act">
               {% if row.customer %}
                 <a class="rf-go" href="{% url 'console:money-customer' row.customer.pk %}">دفتره</a>
