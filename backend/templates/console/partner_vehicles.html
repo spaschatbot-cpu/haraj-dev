@@ -55,8 +55,8 @@
      «مباعة» يقصد تويوتا المباعة، لا كلَّ المباع. وv1 يفعلها بالسطر نفسِه.
      {% endcomment %}
   <nav class="pv-chips" aria-label="المرشّح">
-    {% for key, label, icon in chips %}
-      <a class="pv-chip{% if which == key %} is-on{% endif %}"
+    {% for key, label, icon, tone in chips %}
+      <a class="pv-chip{% if which == key %} is-on{% endif %}" data-tone="{{ tone }}"
          href="?partner={{ partner }}&amp;which={{ key }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">
         {% include "console/_act_icon.html" with path=icon %}
         <span>{{ label }}</span></a>

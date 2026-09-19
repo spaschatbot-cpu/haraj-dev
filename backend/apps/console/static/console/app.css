@@ -12522,7 +12522,7 @@ a.pager__num:hover, a.pager__step:hover {
    بحدَّين تفصلهما ستُّ نقاطٍ تُقرآن كتلةً واحدة، وهو ما رآه المالك:
    «مباعة وغير مباعة لازق في بعضه». والفجوةُ وحدَها لا تكفي: الحشوةُ الداخليّة
    هي ما يجعل للشريحة جسماً تُرى حوافُّه. */
-.pv-chips { display: flex; flex-wrap: wrap; gap: .62rem; margin: 0 0 .9rem; }
+.pv-chips { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0 0 1rem; }
 .pv-chip {
   display: inline-flex; align-items: center; gap: .4rem;
   padding: .5rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 800;
@@ -12535,19 +12535,37 @@ a.pager__num:hover, a.pager__step:hover {
    الخروج. ورسمٌ أكبرُ في شريحةٍ صغيرة يسحب العينَ إليه بدل الكلمة، ورسمان
    بمقاسين في شاشةٍ واحدة لا يُقرآن مجموعةً (T837). */
 .pv-chip svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
-.pv-chip:hover {
-  border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft);
-  transform: translateY(-1px);
-}
+/* **لكلِّ شريحةٍ نبرتُها**، وهي نبرةُ شارةِ الحالة التي تفتحها: المباعُ
+   أخضرُ وغيرُ المباع برتقاليٌّ وما ينتظر قراراً أحمر. فلونُ المرشّح يقول ما
+   يقوله لونُ الصفّ، ولا يُتعلَّم لونان لمعنًى واحد. والحدُّ ملوَّنٌ خافتاً
+   وهي ساكنة — إطارٌ يُرى ولا يصرخ — ويمتلئ حين تُختار. */
+.pv-chip[data-tone="ok"] { border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); color: var(--ok); }
+.pv-chip[data-tone="warn"] { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); color: var(--warn); }
+.pv-chip[data-tone="info"] { border-color: color-mix(in srgb, var(--info) 45%, var(--line)); color: var(--info); }
+.pv-chip[data-tone="bad"] { border-color: color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--danger); }
+.pv-chip[data-tone="plain"] { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); color: var(--brand-dark); }
+
+.pv-chip[data-tone="ok"]:hover { background: var(--ok-soft); border-color: var(--ok); }
+.pv-chip[data-tone="warn"]:hover { background: var(--warn-soft); border-color: var(--warn); }
+.pv-chip[data-tone="info"]:hover { background: var(--info-soft); border-color: var(--info); }
+.pv-chip[data-tone="bad"]:hover { background: var(--danger-soft); border-color: var(--danger); }
+.pv-chip[data-tone="plain"]:hover { background: var(--brand-soft); border-color: var(--brand); }
+
+.pv-chip:hover { transform: translateY(-1px); }
 .pv-chip:hover svg { transform: scale(1.15) rotate(-6deg); }
 /* الضغطةُ تُردّ: الشريحةُ تنزل تحت الإصبع ثم تعود. وهي الإشارةُ الوحيدة بين
    النقر ووصولِ الصفحة الجديدة — وبدونها يظنّ القارئُ أن نقرتَه ضاعت فينقر
    ثانيةً. */
 .pv-chip:active { transform: translateY(0) scale(.97); }
-.pv-chip.is-on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+/* المختارةُ تمتلئ بنبرتها — واللونُ وحدَه لا يكفي، فمعه ظلٌّ وارتفاع. */
+.pv-chip.is-on { color: #fff; }
+.pv-chip.is-on[data-tone="ok"] { background: var(--ok); border-color: var(--ok); box-shadow: 0 2px 8px -2px var(--ok); }
+.pv-chip.is-on[data-tone="warn"] { background: var(--warn); border-color: var(--warn); box-shadow: 0 2px 8px -2px var(--warn); }
+.pv-chip.is-on[data-tone="info"] { background: var(--info); border-color: var(--info); box-shadow: 0 2px 8px -2px var(--info); }
+.pv-chip.is-on[data-tone="bad"] { background: var(--danger); border-color: var(--danger); box-shadow: 0 2px 8px -2px var(--danger); }
+.pv-chip.is-on[data-tone="plain"] { background: var(--brand-solid); border-color: var(--brand-solid); box-shadow: 0 2px 8px -2px var(--brand); }
 /* المختارةُ ترتفع قليلاً عن أخواتها: الفرقُ لونٌ **وارتفاع**، فيُقرأ في
    الأبيض والأسود ولمن لا يميّز الألوان. */
-.pv-chip.is-on { box-shadow: 0 2px 8px -2px var(--brand); }
 
 /* **حركةٌ بـ`transition` لا بـ`animation`.** الأخيرةُ لها لقطةٌ أولى تتجمّد
    عندها حين يوقفها المتصفّح (تبويبٌ خلفيّ أو عنصرٌ مخفيّ)، وقد حدث ذلك في
