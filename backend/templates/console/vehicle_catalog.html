@@ -141,7 +141,7 @@
           <td class="count">{{ row.lot_number|unlocalize }}</td>
           <td class="count">{{ row.auction.number|unlocalize }}</td>
           <td>
-            <strong>{{ row.make }} {{ row.model }}</strong>
+            <strong>{{ row.display_title }}</strong>
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td>{{ row.get_colour_display }}</td>
@@ -186,7 +186,7 @@
                  فالنافذةُ تُملأ بلا رحلةِ خادم (نظيرُ ما بعد البيع). {% endcomment %}
               <button type="button" class="act act--review" data-opens="invoiceCard"
                       title="سند الدفع" aria-label="سند الدفع"
-                      data-vehicle="{{ row.make }} {{ row.model }}"
+                      data-vehicle="{{ row.display_title }}"
                       data-lot="{{ row.lot_number|unlocalize }}"
                       data-auction="{{ row.auction.number|unlocalize }}"
                       data-plate="{{ row.plate_number|default:'—' }}"

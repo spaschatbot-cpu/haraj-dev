@@ -43,7 +43,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
           {% for car in page %}
             <tr>
               <td class="count">{{ car.auction.number|unlocalize }}</td>
-              <td><strong>{{ car.make }} {{ car.model }}</strong></td>
+              <td><strong>{{ car.display_title }}</strong></td>
               <td class="mono">{{ car.plate_number|default:"—" }}</td>
               <td>{{ car.year|unlocalize }}</td>
               {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on`
@@ -89,7 +89,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                     <button type="button" class="ex-act ex-act--papers"
                             data-exit-papers
                             data-action="{% url 'console:exit-upload' car.exit_order.pk %}"
-                            data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}"
+                            data-car="{{ car.display_title }} {{ car.plate_number }}"
                             data-type="{{ car.exit_order.exit_type }}"
                             data-reason="{{ car.exit_order.exit_reason }}">
                       {% include "console/_act_icon.html" with path=row_icons.papers %}
@@ -98,7 +98,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                   <button type="button" class="ex-act ex-act--edit"
                           data-exit-edit
                           data-pk="{{ car.exit_order.pk|unlocalize }}"
-                          data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}"
+                          data-car="{{ car.display_title }} {{ car.plate_number }}"
                           data-name="{{ car.exit_order.recipient_name }}"
                           data-id="{{ car.exit_order.recipient_id }}"
                           data-phone="{{ car.exit_order.recipient_phone|unlocalize }}"
@@ -108,7 +108,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                 {% else %}
                   <button type="button" class="ex-act ex-act--create" data-exit-create
                           data-action="{% url 'console:exit-create' car.pk %}"
-                          data-car="{{ car.make }} {{ car.model }} {{ car.plate_number }}">
+                          data-car="{{ car.display_title }} {{ car.plate_number }}">
                     {% include "console/_act_icon.html" with path=row_icons.create %}
                     <span>إنشاء الخروج</span></button>
                 {% endif %}
@@ -152,7 +152,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
               {% comment %} لونُ الصفّ من درجة التأخّر، ومن الحظر قبلها: صفٌّ
                  محظورٌ يُقرأ قبل أن يُقرأ مؤقّتُه، لأن متابعتَه شيءٌ آخر. {% endcomment %}
               <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}" data-late="{{ o.timer.2|unlocalize }}"{% if o.is_banned %} data-ban="1"{% endif %}>
-                <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
+                <td><strong>{{ o.vehicle.display_title }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>
@@ -209,7 +209,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
                     <button type="button" class="ex-act ex-act--transfer"
                             data-exit-transfer
                             data-action="{% url 'console:exit-transfer' o.pk %}"
-                            data-car="{{ o.vehicle.make }} {{ o.vehicle.model }} {{ o.vehicle.plate_number }}">
+                            data-car="{{ o.vehicle.display_title }} {{ o.vehicle.plate_number }}">
                       {% include "console/_act_icon.html" with path=confirm_icon %}
                       <span>تأكيد النقل</span></button>
                   {% endif %}
@@ -252,7 +252,7 @@ POST بسببه. اللسانُ يُحفَظ في `?tab=` فيبقى بعد أي
           <tbody>
             {% for o in archive %}
               <tr class="ex-row" data-date="{{ o.warehouse_exit_at|date:'Y-m-d' }}">
-                <td><strong>{{ o.vehicle.make }} {{ o.vehicle.model }}</strong></td>
+                <td><strong>{{ o.vehicle.display_title }}</strong></td>
                 <td class="mono">{{ o.vehicle.plate_number|default:"—" }}</td>
                 <td class="mono">{{ o.vehicle.claim_number|default:"—" }}</td>
                 <td>{{ o.vehicle.year|unlocalize }}</td>

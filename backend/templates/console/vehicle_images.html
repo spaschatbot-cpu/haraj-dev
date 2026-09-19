@@ -8,7 +8,7 @@
 {% endcomment %}
 
 {% block title %}صور المركبة {{ vehicle.lot_number|unlocalize }}{% endblock %}
-{% block heading %}صور {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
+{% block heading %}صور {{ vehicle.display_title }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
   <p class="crumbs">

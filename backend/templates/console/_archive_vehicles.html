@@ -15,7 +15,7 @@
         </div>
         <div class="arch-card__body">
           <div class="arch-card__top">
-            <h4 class="arch-card__title">{{ car.make }} {{ car.model }} <small>({{ car.year|unlocalize }})</small></h4>
+            <h4 class="arch-card__title">{{ car.display_title }} <small>({{ car.year|unlocalize }})</small></h4>
             <div class="arch-card__badges">
               {% if car.invoice_state == 'paid' %}<span class="pill" data-tone="ok">مسدَّد</span>
               {% elif car.sold %}<span class="pill" data-tone="warn">غير مسدَّد</span>{% endif %}

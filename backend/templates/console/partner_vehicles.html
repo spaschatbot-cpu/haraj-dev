@@ -113,7 +113,7 @@
           <td class="count">{{ row.pk|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
           <td class="pv-name">
-            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.make }} {{ row.model }}</a>
+            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.display_title }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>

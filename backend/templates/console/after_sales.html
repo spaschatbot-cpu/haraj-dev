@@ -223,7 +223,7 @@
               {% if row.cover %}
                 <span class="thumb">
                   <img src="{{ row.cover.thumbnail.url|default:row.cover.image.url }}"
-                       alt="صورة {{ row.make }} {{ row.model }}" loading="lazy" decoding="async">
+                       alt="صورة {{ row.display_title }}" loading="lazy" decoding="async">
                 </span>
               {% else %}
                 <span class="thumb thumb--none" title="لا صورة على هذه المركبة">—</span>
@@ -302,7 +302,7 @@
                    أصلاً في الصفّ. {% endcomment %}
                 <button type="button" class="act act--review" data-opens="invoiceCard"
                         title="سند الدفع" aria-label="سند الدفع"
-                        data-vehicle="{{ row.make }} {{ row.model }}"
+                        data-vehicle="{{ row.display_title }}"
                         data-lot="{{ row.lot_number|unlocalize }}"
                         data-auction="{{ row.auction.number|unlocalize }}"
                         data-plate="{{ row.plate_number|default:'—' }}"

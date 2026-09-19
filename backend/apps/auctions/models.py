@@ -402,6 +402,32 @@ class Vehicle(models.Model):
         return f"#{self.lot_number} {self.make} {self.model} {self.year}"
 
     @property
+    def display_title(self) -> str:
+        """«ماركة طراز» — **ولا تُكتب الماركةُ مرّتين**. T955.
+
+        ترحيلُ v1 وضع في `model` الاسمَ الكاملَ أحياناً لا الطرازَ وحدَه، فقرأ
+        كلُّ من ركّب `f"{make} {model}"` بيده «سوزوكي ديز اير سوزوكي ديز اير»
+        و«سي ان اتش تي HOWO-N سي ان اتش تي HOWO-N».
+
+        **وهنا لا في كلّ قارئ**: أُصلحت مرّةً في `cards._title` لكرت التطبيق
+        (T950)، فظهرت ثانيةً في `auction_detail.html` باللوحة — لأن القاعدةَ
+        كانت في موضعٍ واحدٍ من اثنين. وخاصّيّةٌ على النموذج يقرؤها القالبُ
+        والمسلسِلُ والتصديرُ معاً هي الموضعُ الذي لا يُنسى (المادة ٤-٥).
+
+        والشرطُ على البداية لا على الاحتواء: طرازٌ اسمُه «سيرا» لماركة «جي ام
+        سي» لا يُقصّ لأن حرفين منه وردا في مكانٍ ما.
+
+        والعلاجُ في العرض لا في العمود: `make` و`model` يُعرضان منفصلَين في
+        مواضع أخرى ويُبحَث بهما، وتنظيفُ ثلاثةَ عشرَ ألفَ صفٍّ بحدسٍ نصّيّ
+        يتلف ما لا يُسترجَع.
+        """
+        make = (self.make or "").strip()
+        model = (self.model or "").strip()
+        if not make:
+            return model
+        return model if model.startswith(make) else f"{make} {model}".strip()
+
+    @property
     def partner_name(self) -> str:
         """Whose car this is, for a screen or a file. Presentation, not a rule.
 

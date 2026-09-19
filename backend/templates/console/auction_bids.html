@@ -43,7 +43,7 @@ v1 يعرض القائمة الأخيرة وحدها، فيسأل الدعم «�
     <tbody>
       {% for row in page %}
         <tr>
-          <td><a href="{% url 'console:vehicle-detail' row.vehicle_id %}">{{ row.vehicle.make }} {{ row.vehicle.model }}</a></td>
+          <td><a href="{% url 'console:vehicle-detail' row.vehicle_id %}">{{ row.vehicle.display_title }}</a></td>
           <td>{{ row.vehicle.plate_number|default:"—" }}</td>
           {% comment %} `buyer_name`/`buyer_phone` من `sensitive.person_on` لا
              `row.bidder` من العلاقة: الاسمُ والجوّالُ خلف `users.view`،

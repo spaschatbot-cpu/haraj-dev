@@ -68,7 +68,7 @@ sat in the vehicle list and the partner was told by telephone.
             <tr>
               <td class="inv-no"><a href="{% url 'console:partner-offers' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
               <td class="pv-name">
-                <strong>{{ vehicle.make }} {{ vehicle.model }}</strong>
+                <strong>{{ vehicle.display_title }}</strong>
                 <small>{{ vehicle.year|unlocalize }}</small>
               </td>
               <td class="mono">{{ vehicle.plate_number|default:"—" }}</td>

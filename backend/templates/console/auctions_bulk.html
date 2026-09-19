@@ -49,7 +49,7 @@
         {% for bid in dangling_rows %}
           <tr>
             <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
-            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.display_title }}</a></td>
             <td class="money">{{ bid.amount|unlocalize }}</td>
             <td>{{ bid.placed_at }}</td>
           </tr>

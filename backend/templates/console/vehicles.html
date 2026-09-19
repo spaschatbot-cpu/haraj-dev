@@ -53,7 +53,7 @@ have to undo one in their head.
                 <img src="{{ vehicle.thumb }}" alt="" loading="lazy" decoding="async">
               {% else %}<span class="thumb__none" aria-hidden="true">—</span>{% endif %}
             </span>
-            <span class="thumb__name">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}</span>
+            <span class="thumb__name">{{ vehicle.display_title }} {{ vehicle.year|unlocalize }}</span>
           </td>
           <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
           <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>

@@ -72,7 +72,7 @@
         <tr>
           <td class="count">{{ row.auction.number|unlocalize }}</td>
           <td class="count">{{ row.lot_number|unlocalize }}</td>
-          <td class="pv-name"><a href="{% url 'console:vehicle-detail' row.pk %}"><strong>{{ row.make }} {{ row.model }}</strong></a></td>
+          <td class="pv-name"><a href="{% url 'console:vehicle-detail' row.pk %}"><strong>{{ row.display_title }}</strong></a></td>
           <td class="mono">{{ row.plate_number|default:"—" }}</td>
           <td>
             {% if row.awarded_to %}

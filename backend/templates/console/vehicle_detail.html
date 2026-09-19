@@ -14,7 +14,7 @@
 {% endcomment %}
 
 {% block title %}مركبة {{ vehicle.pk }}{% endblock %}
-{% block heading %}{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}{% endblock %}
+{% block heading %}{{ vehicle.display_title }} {{ vehicle.year|unlocalize }}{% endblock %}
 
 {% block content %}
   {% comment %} في النافذة المنبثقة: ترويسةٌ باسم السيارة وزرُّ إغلاق — بلا
@@ -22,7 +22,7 @@
      المباشرة العنوانُ في `{% block heading %}` فلا يُكرَّر. {% endcomment %}
   {% if is_modal %}
     <div class="cmodal__head">
-      <h3 class="cmodal__title">{{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }}
+      <h3 class="cmodal__title">{{ vehicle.display_title }} {{ vehicle.year|unlocalize }}
         <small>— لوت {{ vehicle.lot_number|unlocalize }} · مزاد #{{ vehicle.auction.number|unlocalize }}</small></h3>
       {% comment %} الرسمُ من `icons.py` عبر `close_icon` في معالج السياق — لا
          `✕` بيدها: `_vehicle_images_modal.html` يغلق بالرسم نفسه، ومحرفٌ هنا
