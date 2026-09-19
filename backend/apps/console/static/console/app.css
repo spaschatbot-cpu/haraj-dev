@@ -12266,53 +12266,92 @@ a.pager__num:hover, a.pager__step:hover {
       في `title`، وهي قاعدةُ «كتالوج السيارات» نفسُها.
    ======================================================================== */
 
-/* ---- الشريط ------------------------------------------------------------ */
+/* ---- الشريط: لوحٌ كحليٌّ بعرض المحتوى ------------------------------------
+   «خلى الهيدر الى فيه التلات صفحات باللون الكلحلى وشكله احتراقى جدا وخليه
+   اعرض شويه».
+
+   **والكحليُّ رمزٌ ثابت لا `--ink`.** الأخير هو لونُ النصّ: في المظهر الداكن
+   يصير `#e7ecf4` — أي لوحاً أبيضَ بنصٍّ أبيضَ عليه. فرمزٌ خاصٌّ له قيمتان،
+   واحدةٌ لكلّ مظهر.
+
+   **ولا يتبع اللونَ الأساسيَّ الذي يختاره الموظّف** (ستّةُ ألوانٍ في درج
+   المظهر): الكحليُّ طلبٌ صريح، وربطُه بالأساسيّ يجعله أخضرَ عند من اختار
+   الأخضر. والأساسيُّ يبقى حاضراً حيث يجب — في حبّة العدد على اللسان المفتوح.
+
+   **والعرضُ بعرض المحتوى**: كان `fit-content` فوقف الشريطُ في طرفٍ والبطاقاتُ
+   تحته تمتدُّ بعرض الشاشة، فبدا معلّقاً. والآن حافّتاه حافّتا الشبكة تحته،
+   واللسانان يتقاسمان الفراغ. */
+
+:root {
+  --seg: #17233d;
+  --seg-ink: #ced9ee;
+  --seg-edge: #26324e;
+  --seg-on: #ffffff;
+  --seg-on-ink: #17233d;
+  --seg-pill: #2b3a5c;
+}
+:root[data-scheme="dark"] {
+  --seg: #101726;
+  --seg-ink: #b6c4dc;
+  --seg-edge: #222c40;
+  --seg-on: #27334a;
+  --seg-on-ink: #eaf0fa;
+  --seg-pill: #313d55;
+}
 
 .tabs--seg {
-  gap: .2rem;
-  padding: .25rem;
-  background: var(--raised);
-  border: 1px solid var(--line);
+  display: flex;
+  gap: .25rem;
+  padding: .3rem;
+  background: var(--seg);
+  border: 1px solid var(--seg-edge);
   border-radius: var(--radius-lg);
-  /* الحدُّ السفليُّ الموروثُ يصير حدّاً كاملاً حول المجموعة. */
-  border-block-end: 1px solid var(--line);
-  /* لا يمتدّ بعرض الشاشة: ثلاثةُ ألسنةٍ في شريطٍ ١٤٠٠ بكسلٍ تسبح فيه. */
-  inline-size: fit-content;
-  max-inline-size: 100%;
+  border-block-end: 1px solid var(--seg-edge);
+  box-shadow: var(--shadow);
+  inline-size: 100%;
 }
 
 .tabs--seg .tab {
   display: inline-flex;
   align-items: center;
-  gap: .45rem;
-  padding: .45rem .95rem;
+  justify-content: center;
+  gap: .5rem;
+  /* اللسانان يتقاسمان الفراغ، ولا ينكمش نصُّهما دون طوله. */
+  flex: 1 1 0;
+  min-inline-size: 0;
+  padding: .62rem 1.1rem;
   margin-block-end: 0;
   border-block-end: 0;
-  border-radius: calc(var(--radius-lg) - .25rem);
+  border-radius: calc(var(--radius-lg) - .3rem);
+  font-size: .92rem;
+  font-weight: 700;
+  color: var(--seg-ink);
+  white-space: nowrap;
 }
 
 .tabs--seg .tab:hover {
-  background: var(--panel);
+  background: rgb(255 255 255 / .08);
+  color: #fff;
   border-block-end-color: transparent;
 }
 
-/* المفتوحُ لوحةٌ مرفوعة، لا خطٌّ تحته: داخل حدٍّ جامعٍ يُقرأ الخطُّ زينةً. */
+/* المفتوحُ لوحٌ مرفوعٌ فوق الكحليّ — أوضحُ من خطٍّ تحته بكثير. */
 .tabs--seg .tab[aria-current="page"],
 .tabs--seg .tab.is-on {
-  background: var(--panel);
-  color: var(--brand-dark);
+  background: var(--seg-on);
+  color: var(--seg-on-ink);
   border-block-end-color: transparent;
-  box-shadow: var(--shadow);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .25);
 }
 
 /* العددُ حبّةٌ منفصلة: `3235` ملتصقاً بالاسم يُقرأ جزءاً منه. */
 .tabs--seg .count {
-  padding: .1rem .45rem;
+  padding: .12rem .5rem;
   border-radius: 999px;
-  background: var(--line-soft);
-  color: var(--muted);
-  font-size: .72rem;
-  font-weight: 700;
+  background: var(--seg-pill);
+  color: var(--seg-ink);
+  font-size: .74rem;
+  font-weight: 800;
 }
 .tabs--seg .tab.is-on .count,
 .tabs--seg .tab[aria-current="page"] .count {
@@ -12320,21 +12359,31 @@ a.pager__num:hover, a.pager__step:hover {
   color: var(--brand-dark);
 }
 
-/* «طابور العجز» صفحةٌ أخرى لا لسانٌ في هذه الشاشة — فتُفصل وتحمل سهماً. */
+/* «طابور العجز» صفحةٌ أخرى لا لسانٌ في هذه الشاشة: لا يتقاسم الفراغ مع
+   اللسانين، ويقف في الطرف بفاصلٍ وسهم. */
 .tabs--seg .tab--away {
-  margin-inline-start: .35rem;
-  border-inline-start: 1px solid var(--line);
+  flex: 0 0 auto;
+  margin-inline-start: .4rem;
+  border-inline-start: 1px solid var(--seg-edge);
   border-radius: 0;
-  padding-inline-start: .95rem;
-  color: var(--muted);
+  padding-inline-start: 1.1rem;
+  font-weight: 600;
+  color: var(--seg-ink);
+  opacity: .82;
 }
-.tabs--seg .tab--away::after { content: "←"; font-weight: 800; opacity: .6; }
-.tabs--seg .tab--away:hover { background: transparent; color: var(--ink); }
+.tabs--seg .tab--away::after { content: "←"; font-weight: 800; }
+.tabs--seg .tab--away:hover { background: transparent; opacity: 1; color: #fff; }
 
-@media (max-width: 40rem) {
-  .tabs--seg { inline-size: 100%; }
-  .tabs--seg .tab { flex: 1 1 auto; justify-content: center; }
-  .tabs--seg .tab--away { border-inline-start: 0; margin-inline-start: 0; }
+@media (max-width: 48rem) {
+  .tabs--seg { flex-wrap: wrap; }
+  .tabs--seg .tab { flex: 1 1 100%; justify-content: space-between; }
+  .tabs--seg .tab--away {
+    flex: 1 1 100%;
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--seg-edge);
+    padding-inline-start: 1.1rem;
+    margin-inline-start: 0;
+  }
 }
 
 /* ---- الجدول ------------------------------------------------------------ */
