@@ -15,6 +15,15 @@
 `unlocalize` على كل مبلغ: يُعرض كما يخزّنه الدفتر (المادة ٣-٢) — وهذه الشاشة
 تُقارَن سطراً بسطر بكشف البنك أو بتقرير أودو، والتنسيقُ يجعل المقارنة مستحيلة.
 
+**والبطاقاتُ قسمان، والبطاقةُ مرشِّح.** كانت سبعاً متساويةَ الوزن في شبكةٍ
+واحدة، أربعٌ منها صفرٌ على الإنتاج، و«ما زال يكلّفنا» خامسةً بين صفرين وهي
+سببُ الشاشة. فثلاثٌ فيها عمل، وأربعٌ للسجلّ تحت عنوان. والقسمةُ من
+`RefundRequestState.open_states()` لا من ذوقٍ في القالب.
+
+وحُذف منسدلُ الحالة: كان يحمل الحالاتِ نفسَها بأسمائها نفسِها تحت بطاقاتٍ
+تعدّها — شيءٌ واحدٌ في مكانين، وهو العطلُ الذي بُنيت هذه الشاشةُ لإصلاحه في
+أرقام v1. فالبطاقةُ تُنقر فترشّح، وتحمل نصَّ البحث معها.
+
 **والأزرارُ استماراتٌ في الصفّ، بلا جافاسكربت.** نافذةٌ لكلّ صفٍّ تحتاج سكربتاً
 يفتحها، وسكربتٌ لم يُحمَّل هو زرٌّ لا يفعل شيئاً بلا رسالةِ خطأٍ في أي مكان —
 وقع ذلك في «إدارة المدفوعات» وبُلِّغ عنه («قيد الدفعة مش شغال»). والاستمارةُ
@@ -26,75 +35,125 @@
 
 {% block content %}
 
-  {% comment %} تبويبان روابطُ لا أزرار: يُنسخان ويُفتحان في تبويبٍ جديد. {% endcomment %}
-  <nav class="tabs" aria-label="نوع العرض">
+  {% comment %} ثلاثةُ ألسنةٍ روابطُ لا أزرار: تُنسخ وتُفتح في تبويبٍ جديد.
+
+     و`tabs--seg` لسانٌ مجزّأ لا ثلاثةُ روابطَ فوق خطّ: الخطُّ السفليُّ وحدَه
+     يترك الشريطَ يُقرأ نصّاً مبثوثاً في الفراغ — وثلاثةُ أسماءٍ طويلةٍ معها
+     أرقامُها تحتاج حدّاً يقول «هذه مجموعةٌ واحدة، اختر منها». والعددُ حبّةٌ
+     لا رقمٌ رماديٌّ ملتصقٌ بالاسم: `3235` بجانب «طلبات الاسترداد» بلا فاصلٍ
+     يُقرأ جزءاً من الجملة.
+
+     و«طابور العجز» صفحةٌ أخرى لا لسانٌ في هذه — فيُفصل بفاصلٍ ويحمل سهماً:
+     الثلاثةُ في صفٍّ واحدٍ بلا فرقٍ تُقرأ ثلاثَ حالاتٍ لشيءٍ واحد. {% endcomment %}
+  <nav class="tabs tabs--seg" aria-label="نوع العرض">
     <a class="tab{% if which == 'requests' %} is-on{% endif %}" href="?which=requests"{% if which == 'requests' %} aria-current="page"{% endif %}>
       طلبات الاسترداد <span class="count">{{ requests_total|unlocalize }}</span>
     </a>
     <a class="tab{% if which == 'done' %} is-on{% endif %}" href="?which=done"{% if which == 'done' %} aria-current="page"{% endif %}>
       ما نُفِّذ في الدفتر <span class="count">{{ executed_total|unlocalize }}</span>
     </a>
-    <a class="tab" href="{% url 'console:refund-queue' %}">طابور العجز</a>
+    <a class="tab tab--away" href="{% url 'console:refund-queue' %}">طابور العجز</a>
   </nav>
 
 {% if which == "requests" %}
 
+  {% comment %} سطرُ التعريف كان أربعةَ أسطرٍ رماديّةٍ بعرض الشاشة تحكي
+     أرقامَ v1 الثلاثة — وهي مكتوبةٌ في تعليق الملفّ أعلاه وفي `refunds.py`،
+     ولا تُقرأ مرّتين. والذي يحتاجه من يفتح الشاشةَ اليومَ جملةٌ واحدة: ما
+     هذا الطابور. {% endcomment %}
   <p class="lede">
-    كلُّ طلب استردادٍ وحالتُه. <strong>وفي v1 ثلاثةُ أرقامٍ لشيءٍ واحد</strong>
-    — «لوحة التقارير» تقول ٣٬٣٤٢، و«إدارة الطلبات» تقول ٥٠٠، و«الاستردادات»
-    تقول ٠ — ولا واحدةٌ منها تقول أيَّ مرشِّحٍ تطبّق. وهنا مصدرٌ واحدٌ وحالاتٌ
-    مسمّاة، فالسؤالُ «كم مُقدَّماً وكم نُفِّذ» له جوابٌ واحد.
+    طلباتُ العملاء لاسترداد تأمينهم، وحالةُ كلٍّ منها.
+    <strong>مصدرٌ واحد وحالاتٌ مسمّاة</strong> — فـ«كم استرداداً عندنا» له
+    جوابٌ واحد، لا ثلاثةٌ كما في v1.
   </p>
 
-  {% comment %} ستُّ قيمٍ منفردةٍ يقرؤها الموظّفُ في لمحةٍ ثم ينزل إلى الجدول
-     تحتها — بطاقاتٌ لا جدولٌ بثلاثة أعمدة، إذ لا صفوفَ تُفرَز ولا أعمدةَ
-     تُقارَن. و«ما زال مفتوحاً» شريطٌ كهرمانيٌّ على حافّة البطاقة. {% endcomment %}
-  <section class="sum-grid sum-grid--tight" aria-label="الاستردادات بحالاتها">
-    {% for row in counts %}
-      <div class="sum{% if row.open %} sum--wait{% endif %}">
-        <p class="sum__label">{{ row.label }}</p>
-        <p class="sum__value">{{ row.count|unlocalize }}</p>
-        <p class="sum__note">{% if row.open %}ما زال مفتوحاً{% else %}حالةٌ مُغلَقة{% endif %}</p>
-      </div>
-    {% endfor %}
+  {% comment %} ============ البطاقات: ثلاثٌ تعمل، وأربعٌ للسجلّ ============
 
-    {% comment %} «ما زال يكلّفنا» ليست تصنيفاً بل مجموعةٌ مسمّاة
-       (`RefundRequestState.open_states`) يقرأها القيدُ في القاعدة وهذه الشاشة
-       معاً. ولها بطاقةٌ بلون المال لأنها الوحيدةُ التي تحمل مبلغاً. {% endcomment %}
+     كانت سبعَ بطاقاتٍ متساوية الوزن في شبكةٍ واحدة (4 + 3)، أربعٌ منها صفر،
+     و«ما زال يكلّفنا» — وهي سببُ الشاشة — خامسةً في الصفّ الثاني بين
+     صفرين. فتمشي العينُ على سبعٍ لتجد اثنتين.
+
+     وهنا قسمان يقولان ما يُفعل بهما: **ما ينتظر قراراً** (المال المفتوح ثمّ
+     الحالتان المفتوحتان)، و**ما انتهى** (الأربع المُغلَقة). والقسمةُ ليست
+     ذوقاً: `RefundRequestState.open_states()` هي التي تقسم، وهي نفسُها التي
+     يقرأها القيدُ في القاعدة (المادة ٤-٥) — فحالةٌ تُضاف تقع في قسمها بلا
+     تعديلٍ هنا.
+
+     **والبطاقةُ مرشِّحٌ لا رقمٌ ميّت.** كان تحتها منسدلٌ يحمل الحالاتِ
+     نفسَها بأسمائها نفسِها — شيءٌ واحد في مكانين، وهو العطلُ الذي تُصلحه
+     هذه الشاشةُ أصلاً في أرقام v1. فحُذف المنسدل، وصارت البطاقةُ تُنقر
+     فترشّح، وتحمل معها نصَّ البحث فلا يضيع. والمعروضةُ الآن `sum--on`.
+     نظيرُ `st-queues` في «تسوية الشريك» بالسبب نفسه. {% endcomment %}
+  <section class="sum-grid sum-grid--tight rf-states" aria-label="ما ينتظر قراراً">
+    {% comment %} «ما زال يكلّفنا» أوّلاً لأنها السؤال: كم مالاً معلّقاً على
+       رقابنا. وهي الوحيدةُ التي تحمل مبلغاً، فبلون المال. ولا تُنقر — ليست
+       حالةً بل مجموعَ حالتين، ونقرُها يعني مرشِّحين معاً. {% endcomment %}
     <div class="sum sum--money">
       <p class="sum__label">ما زال يكلّفنا</p>
       <p class="sum__value money">{{ open_value|unlocalize }}</p>
-      <p class="sum__note">{{ open_count|unlocalize }} طلباً مفتوحاً.</p>
+      <p class="sum__note">{{ open_count|unlocalize }} طلباً مفتوحاً — مُقدَّمٌ أو أُرسل للمحاسبة.</p>
     </div>
+
+    {% for row in counts %}{% if row.open %}
+      <a class="sum sum--wait{% if not row.count %} sum--none{% endif %}{% if row.value == state %} sum--on{% endif %}"
+         href="?which=requests&amp;q={{ q|urlencode }}&amp;state={{ row.value }}"
+         {% if row.value == state %}aria-current="page"{% endif %}>
+        <p class="sum__label">{{ row.label }}</p>
+        <p class="sum__value">{{ row.count|unlocalize }}</p>
+        <p class="sum__note">{% if row.value == state %}معروضٌ الآن{% else %}ينتظر قراراً{% endif %}</p>
+      </a>
+    {% endif %}{% endfor %}
+  </section>
+
+  {% comment %} «ما انتهى» عنوانٌ مكتوب: أربعُ بطاقاتٍ بلا عنوانٍ فوقها
+     تُقرأ امتداداً للثلاث قبلها، وهي ليست كذلك — لا عملَ فيها. {% endcomment %}
+  <h2 class="rf-head">ما انتهى — للسجلّ والبحث</h2>
+  <section class="sum-grid sum-grid--tight rf-states rf-states--done" aria-label="حالاتٌ مُغلَقة">
+    {% for row in counts %}{% if not row.open %}
+      <a class="sum{% if not row.count %} sum--none{% endif %}{% if row.value == state %} sum--on{% endif %}"
+         href="?which=requests&amp;q={{ q|urlencode }}&amp;state={{ row.value }}"
+         {% if row.value == state %}aria-current="page"{% endif %}>
+        <p class="sum__label">{{ row.label }}</p>
+        <p class="sum__value">{{ row.count|unlocalize }}</p>
+        <p class="sum__note">{% if row.value == state %}معروضٌ الآن{% else %}حالةٌ مُغلَقة{% endif %}</p>
+      </a>
+    {% endif %}{% endfor %}
   </section>
 
   <form method="get" class="filters filters--row">
     <input type="hidden" name="which" value="requests">
+    {% comment %} الحالةُ تُحمل في خانةٍ مخفيّة لا في منسدل: البطاقاتُ فوق
+       هي التي تختارها، والبحثُ النصّيُّ يجب ألّا يمحوها. {% endcomment %}
+    <input type="hidden" name="state" value="{{ state }}">
     <div class="filters__main">
       <input type="search" name="q" value="{{ q }}"
              placeholder="اسم العميل أو جواله أو المرجع" aria-label="بحث">
-      <select name="state" aria-label="الحالة">
-        <option value="">كل الحالات</option>
-        {% for row in counts %}
-          <option value="{{ row.value }}" {% if row.value == state %}selected{% endif %}>{{ row.label }}</option>
-        {% endfor %}
-      </select>
       <button type="submit" class="btn-primary">بحث</button>
+      {% if q or state %}
+        <a href="?which=requests" class="filters__reset">إلغاء الفلترة</a>
+      {% endif %}
     </div>
   </form>
 
-  <div class="scroller">
-    <table>
+  {% comment %} أحدَ عشرَ عموداً في غلافٍ بعرض الشاشة تلتفّ كلُّ خانةٍ فيها —
+     الاسمُ سطرين والتاريخُ ثلاثة. فـ`scroller--wide` كـ«سجل دفعات الشريك»،
+     والجوالُ تحت الاسم لا عموداً: مفتاحان لشخصٍ واحدٍ يُقرآن معاً، فعشرةُ
+     أعمدةٍ بدل أحدَ عشر. {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="rf-table">
       <thead>
         <tr>
           <th>المرجع</th>
           <th>العميل</th>
-          <th>الجوال</th>
-          <th>المبلغ</th>
+          <th class="money">المبلغ</th>
           <th>ما كتبه العميل</th>
           <th>الحالة</th>
-          <th>صندوق أودو</th>
-          <th>الحركة</th>
+          {% comment %} «صندوق أودو» و«الحركة» كانا عمودين، وكلاهما «—» في
+             كلّ صفٍّ مرحَّلٍ من v1 — أي عمودان من عشرةٍ لا يحملان شيئاً في
+             ٣٬٠٩٠ صفّاً. وهما جوابا سؤالٍ واحد: **ماذا ترك هذا الطلبُ خلفه
+             في نظامنا** — رسالةً في الصندوق، أو حركةً في الدفتر، أو لا شيء.
+             فعمودٌ واحد، وكلاهما يظهر فيه إن وُجدا. {% endcomment %}
+          <th>الأثر</th>
           <th>قُدِّم</th>
           <th>القرار</th>
           {% if may_act %}<th>تحكّم</th>{% endif %}
@@ -103,39 +162,50 @@
       <tbody>
         {% for row in page %}
           <tr>
-            <td class="mono">{{ row.reference }}</td>
-            <td><a href="{% url 'console:customer-detail' row.user.pk %}">{{ row.user.full_name|default:row.user.phone }}</a></td>
-            <td>{{ row.user.phone|unlocalize }}</td>
-            <td class="money">{{ row.amount|unlocalize }}</td>
+            <td class="mono rf-ref"><span class="cell-clip clip-ref" title="{{ row.reference }}">{{ row.reference }}</span></td>
+            <td class="rf-who">
+              <a href="{% url 'console:customer-detail' row.user.pk %}">{{ row.user.full_name|default:row.user.phone }}</a>
+              <small>{{ row.user.phone|unlocalize }}</small>
+            </td>
+            {% comment %} المبلغُ سببُ الصفّ، فيُقرأ أثقلَ من جيرانه. {% endcomment %}
+            <td class="money rf-amount">{{ row.amount|unlocalize }}</td>
             {% comment %} ما كتبه العميلُ كما كتبه — الآيبانُ الذي يريد التحويل
                إليه وما يوضّحه. وv1 يحمل `iban_account` عموداً و`iban_image`
                صورةً؛ وعندنا الصورةُ مستندٌ في ملفّ العميل (`DocumentKind.IBAN`)
                و`request_refund` ترفض الطلبَ بدونها أصلاً. {% endcomment %}
-            <td>{{ row.note|default:"—" }}</td>
+            <td class="rf-said">
+              {% if row.note %}<span class="cell-clip clip-said" title="{{ row.note }}">{{ row.note }}</span>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
             <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
-            <td>
+            <td class="rf-trace">
               {% if row.outbox_message_id %}
                 <span class="pill">{{ row.outbox_message.get_state_display }}</span>
-              {% else %}<span class="empty">—</span>{% endif %}
-            </td>
-            <td>
+              {% endif %}
               {% if row.resulting_transaction_id %}
-                <span class="count">{{ row.resulting_transaction_id|unlocalize }}</span>
-              {% else %}<span class="empty">—</span>{% endif %}
+                <span class="pill" data-tone="money">حركة #{{ row.resulting_transaction_id|unlocalize }}</span>
+              {% endif %}
+              {% if not row.outbox_message_id and not row.resulting_transaction_id %}
+                <span class="empty">—</span>
+              {% endif %}
             </td>
-            <td>{{ row.created_at|date:"Y-m-d H:i" }}</td>
+            <td class="rf-when">{{ row.created_at|date:"Y-m-d" }} <span class="rf-time">{{ row.created_at|date:"H:i" }}</span></td>
             {% comment %} الشرطُ على **وجودِ قرارٍ** لا على وجودِ فاعل: الصفوفُ
                المرحَّلةُ من v1 تحمل قراراً مكتوباً («صُرف في v1 · سندُ أودو
                …») و`decided_by` فارغاً، لأن v1 لا يسجّل من قرّر. وكان الشرطُ
                على الفاعل فقُرئت ٣٬١٩٥ صفّاً «بلا قرار» وقرارُها مكتوبٌ تحته.
             {% endcomment %}
-            <td>
+            {% comment %} السببُ هو المقروء، واسمُ من قرّر ومتى سطرٌ خافتٌ
+               تحته — وكان الثلاثةُ بوزنٍ واحدٍ في ثلاثة أسطر. {% endcomment %}
+            <td class="rf-why">
               {% if row.decided_by_id or row.decision_note %}
-                {% if row.decided_by_id %}
-                  {{ row.decided_by.full_name|default:row.decided_by.phone }}
+                {% if row.decision_note %}
+                  <span class="cell-clip clip-why" title="{{ row.decision_note }}">{{ row.decision_note }}</span>
                 {% endif %}
-                {% if row.decided_at %}<small>{{ row.decided_at|date:"Y-m-d H:i" }}</small>{% endif %}
-                {% if row.decision_note %}<small>{{ row.decision_note }}</small>{% endif %}
+                <small>
+                  {% if row.decided_by_id %}{{ row.decided_by.full_name|default:row.decided_by.phone }}{% endif %}
+                  {% if row.decided_at %}· {{ row.decided_at|date:"Y-m-d H:i" }}{% endif %}
+                </small>
               {% else %}<span class="empty">—</span>{% endif %}
             </td>
 
@@ -149,6 +219,11 @@
                     {% comment %} السببُ إجباريٌّ للرفض ويدخل الصفَّ وسجلَّ
                        التدقيق — والقيدُ `a_refused_refund_names_its_decision`
                        يمنع الفارغ في القاعدة. {% endcomment %}
+                    {% comment %} الخانةُ والزرّان في سطرٍ واحد: كانت تلفُّ
+                       ثلاثةَ أسطرٍ في عمودٍ ضيّق، فارتفع صفُّ كلّ طلبٍ مفتوحٍ
+                       إلى ١٣٧ بكسلاً — ثلاثةُ صفوفٍ في الشاشة بدل تسعة. والعرضُ
+                       الأدنى على الخانة في `rf-act`، والتمريرُ الأفقيُّ ثمنٌ
+                       أرخصُ من ثلث الصفوف. {% endcomment %}
                     <input type="text" name="reason" maxlength="500"
                            placeholder="سبب القرار" aria-label="سبب القرار">
                     {% if row.may_send %}
@@ -166,7 +241,7 @@
           </tr>
         {% empty %}
           <tr>
-            <td colspan="{% if may_act %}11{% else %}10{% endif %}" class="empty">
+            <td colspan="{% if may_act %}9{% else %}8{% endif %}" class="empty">
               لا طلبات استرداد مطابقة.
               {% if executed_total %}
                 و<a href="?which=done">{{ executed_total|unlocalize }} استرداداً نُفِّذ فعلاً</a> — الطلباتُ لم تُرحَّل من v1، والأثرُ رُحِّل.
@@ -202,16 +277,17 @@
     </div>
   </form>
 
-  <div class="scroller">
-    <table>
+  {% comment %} هيئةُ التبويب الأوّل نفسُها — تبويبان في صفحةٍ واحدة يُقرآن
+     بلغةٍ واحدة. و«رقم العميل» تحت اسمه لا عموداً: مفتاحان لشخصٍ واحد. {% endcomment %}
+  <div class="scroller scroller--wide">
+    <table class="rf-table">
       <thead>
         <tr>
           <th>#</th>
           <th>النوع</th>
           <th>المصدر</th>
-          <th>رقم العميل</th>
-          <th>الاسم</th>
-          <th>المبلغ</th>
+          <th>العميل</th>
+          <th class="money">المبلغ</th>
           <th>المرجع</th>
           <th>البيان</th>
           <th>التاريخ</th>
@@ -221,22 +297,22 @@
       <tbody>
         {% for row in page %}
           <tr>
-            <td class="mono">{{ row.pk|unlocalize }}</td>
+            <td class="mono rf-ref">{{ row.pk|unlocalize }}</td>
             <td>{{ row.get_kind_display }}</td>
-            <td>{{ row.source }}</td>
-            <td class="mono">
-              {% if row.customer %}{{ row.customer.pk|unlocalize }}
-              {% else %}<span class="empty">—</span>{% endif %}
-            </td>
-            <td>
+            <td class="rf-src">{{ row.source }}</td>
+            <td class="rf-who">
               {% if row.customer %}
                 <a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name|default:row.customer.phone }}</a>
+                <small>#{{ row.customer.pk|unlocalize }}</small>
               {% else %}<span class="empty">—</span>{% endif %}
             </td>
-            <td class="money">{{ row.amount|unlocalize }}</td>
-            <td class="mono">{{ row.reference }}</td>
-            <td>{{ row.memo|default:"—" }}</td>
-            <td>{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+            <td class="money rf-amount">{{ row.amount|unlocalize }}</td>
+            <td class="mono rf-ref"><span class="cell-clip clip-ref" title="{{ row.reference }}">{{ row.reference }}</span></td>
+            <td class="rf-said">
+              {% if row.memo %}<span class="cell-clip clip-said" title="{{ row.memo }}">{{ row.memo }}</span>
+              {% else %}<span class="empty">—</span>{% endif %}
+            </td>
+            <td class="rf-when">{{ row.occurred_at|date:"Y-m-d" }} <span class="rf-time">{{ row.occurred_at|date:"H:i" }}</span></td>
             <td class="rf-act">
               {% if row.customer %}
                 <a class="rf-go" href="{% url 'console:money-customer' row.customer.pk %}">دفتره</a>
@@ -244,7 +320,7 @@
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="10" class="empty">لا قيود مطابقة.</td></tr>
+          <tr><td colspan="9" class="empty">لا قيود مطابقة.</td></tr>
         {% endfor %}
       </tbody>
     </table>
