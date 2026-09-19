@@ -470,9 +470,9 @@
   "@tabPurchases": {},
   "tabInvoices": "فواتيري",
   "@tabInvoices": {},
-  "emptyParticipations": "لم تدخل أي مزاد حتى الآن.",
+  "emptyParticipations": "لا مزايدة لك في المزاد الحاليّ.",
   "@emptyParticipations": {
-    "description": "الحالة الفارغة — قائمة بلا صفوف ليست عطلاً ولا تُترك بيضاء"
+    "description": "الحالةُ الفارغة. «الحاليّ» لا «حتى الآن»: الشاشةُ تعرض مزادَ العميل الحاليّ وحدَه (قاعدةُ v1، انظر current_auction_ids)، فمن زايد في مزادٍ سابقٍ ليس ممّن «لم يدخل أيَّ مزاد»."
   },
   "emptyPurchases": "لم ترسُ عليك أي مركبة حتى الآن.",
   "@emptyPurchases": {},

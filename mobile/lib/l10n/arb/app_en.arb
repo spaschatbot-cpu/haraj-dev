@@ -138,7 +138,7 @@
   "tabParticipations": "My auctions",
   "tabPurchases": "My purchases",
   "tabInvoices": "My invoices",
-  "emptyParticipations": "You have not entered any auction yet.",
+  "emptyParticipations": "You have no bids in the current auction.",
   "emptyPurchases": "No vehicle has been awarded to you yet.",
   "emptyInvoices": "There are no invoices on your account.",
   "participationBidsCount": "My bids: {count}",

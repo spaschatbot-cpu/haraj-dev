@@ -463,7 +463,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get tabInvoices => 'My invoices';
 
   @override
-  String get emptyParticipations => 'You have not entered any auction yet.';
+  String get emptyParticipations => 'You have no bids in the current auction.';
 
   @override
   String get emptyPurchases => 'No vehicle has been awarded to you yet.';

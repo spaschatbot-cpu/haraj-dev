@@ -812,10 +812,10 @@ abstract class AppLocalizations {
   /// **'فواتيري'**
   String get tabInvoices;
 
-  /// الحالة الفارغة — قائمة بلا صفوف ليست عطلاً ولا تُترك بيضاء
+  /// الحالةُ الفارغة. «الحاليّ» لا «حتى الآن»: الشاشةُ تعرض مزادَ العميل الحاليّ وحدَه (قاعدةُ v1، انظر current_auction_ids)، فمن زايد في مزادٍ سابقٍ ليس ممّن «لم يدخل أيَّ مزاد».
   ///
   /// In ar, this message translates to:
-  /// **'لم تدخل أي مزاد حتى الآن.'**
+  /// **'لا مزايدة لك في المزاد الحاليّ.'**
   String get emptyParticipations;
 
   /// No description provided for @emptyPurchases.

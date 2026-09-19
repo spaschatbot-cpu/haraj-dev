@@ -470,7 +470,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get tabInvoices => 'فواتيري';
 
   @override
-  String get emptyParticipations => 'لم تدخل أي مزاد حتى الآن.';
+  String get emptyParticipations => 'لا مزايدة لك في المزاد الحاليّ.';
 
   @override
   String get emptyPurchases => 'لم ترسُ عليك أي مركبة حتى الآن.';

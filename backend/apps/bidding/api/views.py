@@ -37,7 +37,7 @@ from rest_framework.views import APIView
 
 from apps.auctions.cards import auction_card
 from apps.auctions.models import Auction, Vehicle
-from apps.auctions.visibility import visible_vehicles
+from apps.auctions.visibility import current_auction_ids, visible_vehicles
 from apps.bidding import live, services
 from apps.bidding.models import Bid
 from apps.bidding.throttling import BID_THROTTLES
@@ -249,6 +249,16 @@ class MyBidsView(APIView):
         bids = Bid.objects.filter(bidder=request.user).select_related("vehicle")
         if not query.validated_data["include_history"]:
             bids = bids.live()
+            # **المزادُ الحاليّ وحدَه** — قاعدةُ v1 حرفاً. T952.
+            #
+            # «مشاركاتي» ليست سجلَّ مزايداتٍ أبديّاً: هي ما يخصّ العميلَ
+            # الآن. فإن كان ثمّة مزادٌ جارٍ فمزايداتُه وحدَها، وبين مزادين
+            # نتيجةُ آخر ما انتهى — والتفصيلُ وسببُه في
+            # :func:`current_auction_ids`.
+            #
+            # و`include_history=true` يرفع القيدَين معاً — المزادَ والحالَ —
+            # فالاسمُ يصدق: «التاريخ» هو ما وراء الحاضر بكلّ معنى.
+            bids = bids.filter(vehicle__auction_id__in=current_auction_ids())
 
         total = bids.count()
         page = bids.order_by("-placed_at")[
