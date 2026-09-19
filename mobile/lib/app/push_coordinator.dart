@@ -49,6 +49,20 @@ final class PushCoordinator {
     final launcher = await _push.initialNotification();
     if (launcher != null) _open(launcher);
 
+    return registerNow();
+  }
+
+  /// يسجّل هذا الجهاز الآن — **ويُنادى ثانيةً بعد كلّ دخول**. T949
+  ///
+  /// [start] يجري مرّةً واحدةً عند الإقلاع، وترتيبُ [RegisterThisDevice]
+  /// يقرأ الجلسةَ أوّلاً: فمن فتح التطبيقَ ولم يدخل بعد يُرجِع `notSignedIn`
+  /// وينتهي الأمر. ثمّ يدخل بعد دقيقة — **ولا شيء يُعيد المحاولة**، فيبقى
+  /// بلا صفٍّ في `notifications.Device` حتى يُغلق التطبيقَ ويفتحه.
+  ///
+  /// وهذا بالضبط ما تقرؤه لوحةُ التحكّم «أجهزة مسجَّلة: ٠» بينما العملاء
+  /// داخلون: الربطُ سليم، والتوكن موجود، والنداءُ لم يحدث. فصار الدخولُ
+  /// نفسُه يُطلق التسجيل (`main.dart`).
+  Future<PushRegistrationOutcome> registerNow() async {
     try {
       return await _register();
     } on Failure {

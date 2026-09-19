@@ -1,4 +1,4 @@
-package sa.harajwahed.haraj_mobile
+package com.haraj2.harajOne
 
 import io.flutter.embedding.android.FlutterActivity
 

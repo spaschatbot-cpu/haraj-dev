@@ -41,7 +41,7 @@ if (!hasReleaseKeystore) {
 }
 
 android {
-    namespace = "sa.harajwahed.haraj_mobile"
+    namespace = "com.haraj2.harajOne"
 
     // ‏37 صراحةً لا `flutter.compileSdkVersion`، و`flutter_secure_storage` هو
     // السبب: يطلب التصريف على 37 بينما إصدار مُلحَق Flutter الحالي (9.0.1)
@@ -74,7 +74,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "sa.harajwahed.haraj_mobile"
+        applicationId = "com.haraj2.harajOne"
 
         // معيار القبول H1: «أندرويد 9+». الرقم مكتوب هنا لا متروكاً لافتراض
         // الأداة، فترقية Flutter لا تحرّك النطاق المتعاقَد عليه بلا قرار.
