@@ -387,5 +387,5 @@
   {% comment %} `?v=` على الجافاسكربت كما على الأنماط: بدونه يبقى المتصفّح على
      نسختِه المكاشة، فلا يصل إصلاحُ الطباعة ولا زرُّ الفاتورة الضريبيّة —
      وهو ما حدث. يُزاد الرقمُ مع كل تعديلٍ في الملفّ. {% endcomment %}
-  <script src="{% static 'console/after_sales.js' %}?v=4" defer></script>
+  <script src="{% static 'console/after_sales.js' %}?v={{ asset_stamp }}" defer></script>
 {% endblock %}

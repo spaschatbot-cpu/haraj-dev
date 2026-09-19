@@ -277,7 +277,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'console/after_sales.js' %}?v=3"></script>
+<script src="{% static 'console/after_sales.js' %}?v={{ asset_stamp }}"></script>
 <script>
 (function () {
   var csrf = (document.querySelector('[name=csrfmiddlewaretoken]') || {}).value || '';

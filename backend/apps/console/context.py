@@ -133,7 +133,15 @@ def _asset_stamp() -> str:
     from django.contrib.staticfiles import finders
 
     newest = 0.0
-    for name in ("console/app.css", "console/theme.js"):
+    # كلُّ ملفٍّ ثابتٍ يحمل بصمةً في قالبٍ ما — والبصمةُ **أحدثُها**، فتعديلُ
+    # أيٍّ منها يُبطل الكاشَ لجميعها. وذلك أرخصُ من بصمةٍ لكلّ ملفّ: الملفّاتُ
+    # أربعةٌ والتعديلُ فيها متلازمٌ غالباً، وبصمةٌ واحدة لا تُنسى.
+    for name in (
+        "console/app.css",
+        "console/theme.js",
+        "console/fonts.css",
+        "console/after_sales.js",
+    ):
         found = finders.find(name)
         if found and Path(found).exists():
             newest = max(newest, Path(found).stat().st_mtime)
