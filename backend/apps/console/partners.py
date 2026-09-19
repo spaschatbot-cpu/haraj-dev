@@ -28,8 +28,10 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, Count, IntegerField, Max, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.http import urlencode
 
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import VehicleState
@@ -37,6 +39,7 @@ from apps.bidding import settlement
 from apps.bidding.models import Bid
 from apps.core import audit
 
+from .archive import ARCHIVED
 from .exports import export, wants_export
 from .tones import with_tones
 from .views import console_page
@@ -56,17 +59,30 @@ def decisions(request):
     question this page answers is "what has been sitting the longest", and a lot
     number answers nothing about that.
     """
+    # **النطاقُ نطاقُ v1: كلُّ مركبةٍ في مزادٍ منتهٍ.** كان `state__in=DECIDABLE`
+    # — ثلاثةُ صفوفٍ من تسعة على قاعدة التطوير — فتُخفى عن الشريك مركباتٌ
+    # انتهى مزادُها ولم يزايد عليها أحد. وتلك بالضبط ما يحتاج أن يحكم فيها
+    # بالرفض: `rejectVehicle` في v1 لها حالةٌ خاصّة «لا عروضَ قائمة — يُسجَّل
+    # الرفض» كي تتوقّف شاشةُ المالك عن انتظاره.
+    #
+    # ولا يُحذف الترتيبُ بالإلحاح، بل يصير **ثانياً** بعد اللوط.
     rows = (
-        Vehicle.objects.filter(state__in=DECIDABLE)
+        Vehicle.objects.filter(auction__state__in=ARCHIVED)
         .select_related("auction", "owner_company", "awarded_to")
         .annotate(
             urgency=Case(
                 When(state=VehicleState.AWAITING_DECISION, then=Value(0)),
                 default=Value(1),
                 output_field=IntegerField(),
-            )
+            ),
+            bidders=Count("bids__bidder", distinct=True),
+            top_amount=Max("bids__amount"),
         )
-        .order_by("urgency", "updated_at")
+        # **الترتيبُ برقم اللوط.** قاله مالكُ v1 في ٢٠٢٦-٠٨-٢٢: «الشريك يمشي في
+        # الحوش بالترتيب، فالصفحة تُقرأ بجانب السيارات». وفي v1 العمودُ نصّيٌّ
+        # فترتيبُه النصّيّ يعطي ١٤ ثم ١٤٩ ثم ١٥٧ ثم ٣٤ ثم ٨ — ترتيبٌ لا يقابل
+        # شيئاً على الأرض. وهنا العمودُ عدديٌّ أصلاً فالمشكلةُ لا تنشأ.
+        .order_by("auction__number", "lot_number", "urgency")
     )
 
     partner = request.GET.get("partner")
@@ -109,10 +125,118 @@ def decisions(request):
         "console/partner_decisions.html",
         {
             "page": page,
+            "groups": _group_by_auction(page.object_list),
             "partner": partner or "",
             "auction_filter": auction_row,
+            # المرشّحاتُ كما هي، ليعود إليها بعد كلّ حكم: الشريك يحكم على
+            # أربعين مركبةً في مزادٍ واحد، وعودةٌ إلى الصفحة عاريةً تعني بحثاً
+            # جديداً بعد كلّ واحدة.
+            "filters": urlencode(
+                {
+                    "partner": partner or "",
+                    "auction": request.GET.get("auction", ""),
+                    "page": request.GET.get("page", ""),
+                }
+            ),
         },
     )
+
+
+def _group_by_auction(vehicles) -> list[dict]:
+    """اجمع صفوفَ الصفحة تحت مزاداتها، ومع كلٍّ إحصاؤه — تجميعُ v1.
+
+    **ولماذا تجميعٌ وقد كان جدولاً مسطّحاً يقول الشيءَ نفسَه.** لأن القرار
+    يُتّخذ **بالمزاد لا بالسيارة**: الشريك يفتح الصفحةَ بعد أن يُقفل مزادٌ
+    بعينه، ويريد أن يعرف «كم بقي عليّ في هذا المزاد» — وهو رقمٌ لا يقوله جدولٌ
+    مسطّحٌ إلا بالعدّ باليد. وv1 يجمعها كذلك ويضع تحت كلّ مزادٍ عدّادَه.
+
+    والتجميعُ على **صفوف الصفحة المعروضة** لا على الاستعلام كلِّه: الترتيبُ
+    بالمزاد ثم اللوط يجعل مزاداً واحداً متّصلاً، وصفحةٌ قد تقطعه — وذلك مقبول،
+    أمّا استعلامٌ ثانٍ ليجمع فلا.
+    """
+    groups: list[dict] = []
+    for vehicle in vehicles:
+        if not groups or groups[-1]["auction"].pk != vehicle.auction_id:
+            groups.append({"auction": vehicle.auction, "rows": [], "pending": 0})
+        groups[-1]["rows"].append(vehicle)
+        if vehicle.partner_decided_at is None:
+            groups[-1]["pending"] += 1
+    return groups
+
+
+@console_page("console:partner-award-top")
+def award_top(request, pk: int):
+    """اقبل **أعلى عرضٍ قائم** على المركبة من صفّها — زرُّ v1 في الجدول.
+
+    v1 يضع القبولَ والرفضَ في الصفّ نفسِه، وهنا كانا في صفحةٍ ثانيةٍ لكلّ
+    مركبة. والفرق ليس نقرةً: الشريك يحكم على أربعين سيارةً بعد كلّ مزاد،
+    فأربعون فتحةَ صفحةٍ ورجوعاً تجعل الشاشةَ قائمةَ عرضٍ لا شاشةَ قرار — وهو
+    ما قرأه المالكُ حين قال إنها «تفتح صفحة كل سياراتي».
+
+    **وأعلى عرضٍ لا عرضٌ يُختار**: الاختيار بين المزايدين يبقى في صفحة العروض
+    حيث يُرى الثاني والثالث. وهذا الزرُّ للحالة الغالبة — «خذ الأعلى» — ويردّ
+    من لا عرضَ له إلى الرفض.
+    """
+    vehicle = get_object_or_404(Vehicle.objects.select_related("auction"), pk=pk)
+    if request.method != "POST":
+        return redirect("console:partner-decisions")
+
+    top = (
+        Bid.objects.live()
+        .filter(vehicle=vehicle)
+        .order_by("-amount", "placed_at")
+        .first()
+    )
+    if top is None:
+        messages.error(request, "لا عرضَ قائمٌ على هذه المركبة — الرفضُ هو القرار.")
+        return redirect(_back(request))
+
+    before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
+    try:
+        settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
+    except Exception as refusal:
+        messages.error(request, str(refusal))
+        return redirect(_back(request))
+
+    vehicle.refresh_from_db()
+    _stamp(vehicle, "accepted", top, request.user)
+    audit.record(
+        action="console.award_vehicle",
+        entity=vehicle,
+        actor=request.user,
+        before=before,
+        after=audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"]),
+        note="قبول أعلى عرض من شاشة القرار",
+    )
+    settlement.try_close(vehicle.auction)
+    messages.success(request, f"رست على {top.bidder.full_name} بمبلغ {top.amount}.")
+    return redirect(_back(request))
+
+
+def _stamp(vehicle, decision: str, bid, actor) -> None:
+    """اختم قرارَ الشريك على المركبة — نظيرُ `stampDecision` في v1.
+
+    وبلا هذا الختم لا تعرف شاشةُ المالك أن الشريك حكم، فتبقى تنتظره على مركبةٍ
+    حُسم أمرُها. وv1 يختمه في `partner_decided_at` ويقرؤه في شاشة قراره.
+    """
+    vehicle.partner_decision = decision
+    vehicle.partner_decided_at = timezone.now()
+    vehicle.partner_decided_by = actor if getattr(actor, "pk", None) else None
+    vehicle.partner_decision_bid = bid
+    vehicle.save(
+        update_fields=[
+            "partner_decision",
+            "partner_decided_at",
+            "partner_decided_by",
+            "partner_decision_bid",
+        ]
+    )
+
+
+def _back(request) -> str:
+    """يعود إلى شاشة القرار بمرشّحاتها — لا إلى رأسها."""
+    query = request.POST.get("back", "")
+    return f"/console/partners/?{query}" if query else "/console/partners/"
 
 
 @console_page("console:partner-offers")
@@ -243,9 +367,13 @@ def reject(request, pk: int):
     # قرارٌ على مركبةٍ قد يكون آخرَ ما كان ينتظره المزاد — فيُسأل عن الإغلاق
     # هنا، لا في استطلاعٍ يمرّ على كل مزادٍ منتهٍ كلَّ دقيقة. والدالةُ تصمت إن
     # بقي غيرُها.
+    # ختمُ قرار الشريك — وبدونه تبقى شاشةُ المالك تنتظره على مركبةٍ حُسم
+    # أمرُها. وv1 يختمه حتى حين **لا عرضَ قائمٌ أصلاً**: «لا توجد عروض — تم
+    # تسجيل الرفض»، لأن الشريك حكم وإن لم يكن ثمّ ما يُرفض.
+    _stamp(vehicle, "rejected", None, request.user)
     settlement.try_close(vehicle.auction)
-    messages.success(request, "سُجّل رفض المالك.")
-    return redirect("console:partner-offers", pk=pk)
+    messages.success(request, "سُجّل الرفض.")
+    return redirect(_back(request) if request.POST.get("back") is not None else f"/console/partners/{pk}/")
 
 
 def _amount(raw: str) -> Decimal | None:

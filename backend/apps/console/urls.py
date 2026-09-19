@@ -270,6 +270,11 @@ urlpatterns = [
     path("partners/", partners.decisions, name="partner-decisions"),
     path("partners/<int:pk>/", partners.offers, name="partner-offers"),
     path("partners/<int:pk>/award/", partners.award, name="partner-award"),
+    path(
+        "partners/<int:pk>/award-top/",
+        partners.award_top,
+        name="partner-award-top",
+    ),
     path("partners/<int:pk>/reject/", partners.reject, name="partner-reject"),
     path("customers/", people.customers, name="customers"),
     path("customers/<int:pk>/", customer_file.customer_detail, name="customer-detail"),

@@ -1051,6 +1051,15 @@ DETAIL_PAGES: tuple[Page, ...] = (
         "",
         parent="console:partner-decisions",
     ),
+    # قبولُ أعلى عرضٍ من صفّ شاشة القرار — فعلٌ على صفٍّ لا وجهةٌ في الشريط،
+    # وقدرتُه قدرةُ الترسية نفسُها: هو ترسيةٌ بمزايدٍ لا يُختار.
+    Page(
+        "console:partner-award-top",
+        "قبول أعلى عرض",
+        Capability.PARTNERS_DECIDE,
+        "",
+        parent="console:partner-decisions",
+    ),
     Page(
         "console:partner-reject",
         "رفض المالك",
