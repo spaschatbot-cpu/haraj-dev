@@ -12528,14 +12528,35 @@ a.pager__num:hover, a.pager__step:hover {
   padding: .5rem 1.1rem; border-radius: 999px; font-size: .82rem; font-weight: 800;
   border: 1.5px solid var(--line); background: var(--panel); color: var(--ink-soft);
   text-decoration: none; white-space: nowrap;
-  transition: background .15s ease, color .15s ease, border-color .15s ease;
+  transition: background .15s ease, color .15s ease, border-color .15s ease,
+              transform .12s ease, box-shadow .15s ease;
 }
 /* الرسمُ بمقاس اللوحة نفسِه — **1rem وسُمك 1.7** كأزرار الأفعال وألسنة
    الخروج. ورسمٌ أكبرُ في شريحةٍ صغيرة يسحب العينَ إليه بدل الكلمة، ورسمان
    بمقاسين في شاشةٍ واحدة لا يُقرآن مجموعةً (T837). */
 .pv-chip svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
-.pv-chip:hover { border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft); }
+.pv-chip:hover {
+  border-color: var(--brand); color: var(--brand-dark); background: var(--brand-soft);
+  transform: translateY(-1px);
+}
+.pv-chip:hover svg { transform: scale(1.15) rotate(-6deg); }
+/* الضغطةُ تُردّ: الشريحةُ تنزل تحت الإصبع ثم تعود. وهي الإشارةُ الوحيدة بين
+   النقر ووصولِ الصفحة الجديدة — وبدونها يظنّ القارئُ أن نقرتَه ضاعت فينقر
+   ثانيةً. */
+.pv-chip:active { transform: translateY(0) scale(.97); }
 .pv-chip.is-on { background: var(--brand-solid); border-color: var(--brand-solid); color: #fff; }
+/* المختارةُ ترتفع قليلاً عن أخواتها: الفرقُ لونٌ **وارتفاع**، فيُقرأ في
+   الأبيض والأسود ولمن لا يميّز الألوان. */
+.pv-chip.is-on { box-shadow: 0 2px 8px -2px var(--brand); }
+
+/* **حركةٌ بـ`transition` لا بـ`animation`.** الأخيرةُ لها لقطةٌ أولى تتجمّد
+   عندها حين يوقفها المتصفّح (تبويبٌ خلفيّ أو عنصرٌ مخفيّ)، وقد حدث ذلك في
+   أزرار شاشة الخروج: بقيت عند `scale(.92)` ثم عند `opacity: 0` — أي غيرَ
+   مرئيّةٍ أصلاً. و`transition` لا لقطةَ أولى لها: أسوأُ ما يقع ألّا تتحرّك. */
+.pv-chip svg { transition: transform .2s cubic-bezier(.34,1.56,.64,1); }
+@media (prefers-reduced-motion: reduce) {
+  .pv-chip, .pv-chip svg { transition: none !important; transform: none !important; }
+}
 
 /* ---- جداول قسم الشريك: حشوةٌ تُقرأ، بمقاييس v1 ---------------------------
    `.scroller--wide` تضيّق الحشوةَ الأفقيّة إلى **4px** لتحشر خمسةَ عشرَ
