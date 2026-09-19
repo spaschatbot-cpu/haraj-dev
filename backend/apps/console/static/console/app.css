@@ -12286,18 +12286,23 @@ a.pager__num:hover, a.pager__step:hover {
   --seg: #17233d;
   --seg-ink: #ffffff;
   --seg-edge: #2b3757;
-  /* اللسانُ المفتوح **كحليٌّ أفتح، لا أبيض**: «الكلام ابيض» تعني النصَّ كلَّه
-     أبيض، ولوحٌ أبيضُ تحت اللسان المفتوح يفرض نصّاً كحليّاً عليه — أي
-     كلمتين من أربعٍ ليستا بيضاء. فالفرقُ يُحمل على الأرضيّة والظلّ وشريطٍ
-     بلون الأساسيّ تحت اللسان، والنصُّ أبيضُ في الحالين. */
-  --seg-on: #2c3d63;
+  /* **اللسانُ المفتوح لوحٌ أبيض** — طُلب صراحةً («خلى المربع الى جوا المربع
+     الكحلى خلف الكلام لونه ابيض»). وثمنُه أن نصَّه **لا يكون أبيض**: أبيضُ
+     على أبيضَ لا يُقرأ. فالنصُّ الأبيضُ على الكحليّ في اللسانين المغلقين
+     وفي «طابور العجز»، والمفتوحُ وحدَه كحليٌّ على أبيض — وهو أقوى تمييزٍ
+     ممكنٍ بين الثلاثة، لا استثناءٌ من القاعدة. */
+  --seg-on: #ffffff;
+  --seg-on-ink: #17233d;
   --seg-pill: #3a4c74;
 }
 :root[data-scheme="dark"] {
   --seg: #0e1524;
   --seg-ink: #ffffff;
   --seg-edge: #232e44;
-  --seg-on: #25304a;
+  /* في المظهر الداكن لوحٌ فاتحٌ لا أبيضُ صارخ: الأبيضُ الكاملُ على صفحةٍ
+     داكنةٍ بقعةُ ضوءٍ تُتعب العين. */
+  --seg-on: #dfe6f2;
+  --seg-on-ink: #111a2b;
   --seg-pill: #2f3d57;
 }
 
@@ -12327,7 +12332,7 @@ a.pager__num:hover, a.pager__step:hover {
   /* كلُّ لسانٍ بعرض اسمه: القسمةُ بالتساوي تجعل عرضَ اللسان دالّةً على عددِ
      الألسنة لا على ما فيه. */
   flex: 0 0 auto;
-  padding: .58rem 1.15rem;
+  padding: .55rem 1.05rem;
   margin-block-end: 0;
   border-block-end: 0;
   border-radius: .55rem;
@@ -12351,7 +12356,7 @@ a.pager__num:hover, a.pager__step:hover {
 .tabs--seg .tab.is-on {
   position: relative;
   background: var(--seg-on);
-  color: #fff;
+  color: var(--seg-on-ink);
   border-block-end-color: transparent;
   box-shadow: 0 1px 3px rgb(0 0 0 / .3);
 }
@@ -12360,7 +12365,7 @@ a.pager__num:hover, a.pager__step:hover {
   content: "";
   position: absolute;
   inset-inline: .7rem;
-  inset-block-end: .26rem;
+  inset-block-end: .24rem;
   block-size: 2px;
   border-radius: 2px;
   background: var(--brand);
@@ -12375,12 +12380,13 @@ a.pager__num:hover, a.pager__step:hover {
   font-size: .74rem;
   font-weight: 800;
 }
-/* حبّةُ اللسان المفتوح أفتحُ أرضيّةً ونصُّها أبيضُ كذلك — و`--brand-soft`
-   أرضيّةٌ فاتحةٌ جدّاً تفرض نصّاً غامقاً عليها، وهو ما لا نريد هنا. */
+/* وحبّةُ اللسان المفتوح تتبع لوحَه: على الأبيض أرضيّةٌ فاتحةٌ من لون
+   الأساسيّ ونصٌّ غامق. وكانت `rgb(255 255 255 / .18)` — أبيضُ شفّافٌ على
+   أبيض، أي حبّةٌ لا تُرى ونصُّها أبيضُ على أبيض. */
 .tabs--seg .tab.is-on .count,
 .tabs--seg .tab[aria-current="page"] .count {
-  background: rgb(255 255 255 / .18);
-  color: #fff;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
 }
 
 /* «طابور العجز» صفحةٌ أخرى لا لسانٌ في هذه الشاشة: لا يتقاسم الفراغ مع
