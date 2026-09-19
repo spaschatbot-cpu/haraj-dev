@@ -12407,8 +12407,17 @@ a.pager__num:hover, a.pager__step:hover {
 
 /* خانةُ التحكّم: عرضٌ أدنى يسع الخانةَ والزرّين في سطرٍ واحد. بدونه تلفُّ
    ثلاثةَ أسطرٍ ويصير الصفُّ ١٣٧ بكسلاً. و`nowrap` كي لا يلفّ الزرُّ الثاني
-   وحدَه حين يضيق العمودُ بكسلاً. */
-.rf-table td.rf-act { min-inline-size: 19rem; }
+   وحدَه حين يضيق العمودُ بكسلاً.
+
+   **والشرطُ على وجود الاستمارة لا على الصنف.** خانةُ «دفتره» في تبويب «ما
+   نُفِّذ» تحمل `rf-act` نفسَها وفيها **رابطٌ واحد** — فأخذت ٣٠٤ بكسلاً لزرٍّ
+   عرضُه سبعون، وبقي إلى جانبه فراغٌ بعرض عمودٍ كامل، ودُفع الجدولُ إلى
+   تمريرٍ أفقيٍّ لا سببَ له. رآه المالك في اللقطة. */
+.rf-table td.rf-act:has(.rowact) { min-inline-size: 19rem; }
+
+/* الأعمدةُ الطرفيّة تنكمش إلى محتواها، والفائضُ يذهب إلى أعمدة النصّ —
+   لا إلى آخر عمودٍ في الصفّ لأنه الأخير. */
+.rf-table td.rf-act, .rf-table th:last-child { inline-size: 1%; white-space: nowrap; }
 .rf-table .rowact { flex-wrap: nowrap; }
 .rf-table .rowact input[type="text"] { flex: 1 1 6rem; inline-size: auto; }
 
@@ -12417,7 +12426,7 @@ a.pager__num:hover, a.pager__step:hover {
 
 /* على الضيّق يعود اللفُّ: سطرٌ واحدٌ بعرض ٣٠٠ بكسلٍ أسوأُ من سطرين. */
 @media (max-width: 62rem) {
-  .rf-table td.rf-act { min-inline-size: 0; }
+  .rf-table td.rf-act:has(.rowact) { min-inline-size: 0; }
   .rf-table .rowact { flex-wrap: wrap; }
 }
 
@@ -12465,3 +12474,8 @@ a.pager__num:hover, a.pager__step:hover {
 
 /* الحبّةُ لا تُقصّ ولا تلتفّ في خانةٍ ضيّقة. */
 .rf-table td .pill { white-space: nowrap; }
+
+/* «المصدر» في تبويب «ما نُفِّذ» كان يحمل `rf-when` — صنفَ التواريخ — لأن
+   هيئتَه هي المطلوبة. والصنفُ يُسمّي ما يحمله لا ما يشبهه: من يقرأ القالب
+   بعد شهورٍ يبحث عن تاريخٍ حيث لا تاريخ. */
+.rf-table td.rf-src { font-size: .76rem; color: var(--muted); }
