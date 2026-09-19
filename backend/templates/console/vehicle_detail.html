@@ -67,13 +67,26 @@
     </p>
   {% endif %}
 
-  {% comment %} **أربعةُ أقسامٍ معنونةٍ كـ v1، لا قائمةٌ واحدةٌ من تسعةٍ
-     وعشرين حقلاً.** والقائمةُ المسطّحة تحمل المعلومةَ نفسَها ولا تُقرأ: من
-     يسأل «ما لونها؟» يمسح تسعةً وعشرين سطراً، ومن يسأل «بكم بيعت؟» يمسحها
-     كذلك. والعنوانُ يقطع المسحَ إلى ربعه.
+  {% comment %} **خمسُ بطاقاتٍ بمجموعات v1 وأسمائها**
+     (`partner/vehicle_detail.php`)، لا قائمةٌ واحدةٌ من تسعةٍ وعشرين حقلاً.
+     والقائمةُ المسطّحة تحمل المعلومةَ نفسَها ولا تُقرأ: من يسأل «ما لونها؟»
+     يمسح تسعةً وعشرين سطراً، ومن يسأل «بكم بيعت؟» يمسحها كذلك.
 
-     والترتيبُ ترتيبُ v1: ما المركبة ← ما حالُها ← أين تُعايَن ← ماذا جرى
-     لها. وهو ترتيبُ من يقف أمامها لا ترتيبُ الجدول في القاعدة. {% endcomment %}
+     والترتيبُ ترتيبُ v1: ما المركبة ← بأيّ رقمٍ تُعرَف ← ما حالُها ← أين
+     تُعايَن ← ماذا جرى لها. وهو ترتيبُ من يقف أمامها لا ترتيبُ الجدول في
+     القاعدة.
+
+     **وبطاقاتٌ متجاورةٌ لا عناوينُ متتابعة.** كانت الأقسامُ الأربعةُ
+     أشرطةً بعرض الشاشة يتلو بعضُها بعضاً، فصفحةٌ من تسعةٍ وعشرين حقلاً
+     تطول طولاً يُمرَّر، وثلاثةُ أرباعِ كلّ سطرٍ بياضٌ. وv1 يضعها بطاقاتٍ
+     في شبكةٍ (`.p-cols`): ثلاثٌ في الصفّ على الشاشة العريضة.
+
+     **و«الهوية» مجموعةٌ قائمةٌ بذاتها في v1، وكانت مدموجةً في «المركبة».**
+     والفرقُ ليس ترتيباً: أرقامُ التعريف (اللوحة والشاصي والمطالبة) هي ما
+     يُنسَخ في مراسلةٍ أو يُبحَث به، ودمجُها في ثلاثةَ عشرَ حقلاً يجعل
+     نسخَ رقمِ شاصٍ بحثاً بالعين. {% endcomment %}
+  <div class="vd-cards">
+  <section class="vd-card">
   <h2 class="section-title">المركبة</h2>
   <dl class="vehicle-facts">
     <div><dt>الماركة</dt><dd>{{ vehicle.make|default:"—" }}</dd></div>
@@ -82,11 +95,6 @@
     <div><dt>اللون</dt><dd>{{ vehicle.get_colour_display|default:"—" }}</dd></div>
     <div><dt>العداد</dt><dd>{% if vehicle.odometer_km %}{{ vehicle.odometer_km|unlocalize }} كم{% else %}—{% endif %}</dd></div>
     <div><dt>رقم اللوت</dt><dd>{{ vehicle.lot_number|unlocalize }}</dd></div>
-    <div><dt>رقم اللوحة</dt><dd>{{ vehicle.plate_number|default:"—" }}</dd></div>
-    <div><dt>نوع اللوحة</dt><dd>{{ vehicle.get_plate_type_display|default:"—" }}</dd></div>
-    <div><dt>رقم الهيكل</dt><dd>{{ vehicle.vin|default:"—" }}</dd></div>
-    <div><dt>رقم المطالبة</dt><dd>{{ vehicle.claim_number|default:"—" }}</dd></div>
-    <div><dt>شركة التأمين</dt><dd>{{ vehicle.insurance_company|default:"—" }}</dd></div>
     <div><dt>التسويق</dt><dd>{% if vehicle.is_marketing %}سيارة شريك التسويق (التعاونية){% else %}عاديّة{% endif %}</dd></div>
     <div><dt>الشريك المالك</dt><dd>{{ vehicle.owner_company.name|default:"—" }}</dd></div>
     {% comment %} الفائزُ اسماً وسعرُ رسوّه — الحقلان الوحيدان الحسّاسان في
@@ -103,9 +111,27 @@
        المعيارُ الذي استُقرَّ عليه في `ended-decisions`. {% endcomment %}
   </dl>
 
+  </section>
+
+  {% comment %} **«الهوية» بأرقام v1 الخمسة.** و«رقم الهيكل» اسمُنا لما يسمّيه
+     v1 «رقم الشاصي» — والحقلُ واحد (`chassis_number` ← `vin`). {% endcomment %}
+  <section class="vd-card">
+  <h2 class="section-title">الهوية</h2>
+  <dl class="vehicle-facts vehicle-facts--tall">
+    <div><dt>رقم اللوحة</dt><dd>{{ vehicle.plate_number|default:"—" }}</dd></div>
+    <div><dt>نوع اللوحة</dt><dd>{{ vehicle.get_plate_type_display|default:"—" }}</dd></div>
+    <div><dt>رقم الهيكل</dt><dd class="mono">{{ vehicle.vin|default:"—" }}</dd></div>
+    <div><dt>رقم المطالبة</dt><dd class="mono">{{ vehicle.claim_number|default:"—" }}</dd></div>
+    <div><dt>شركة التأمين</dt><dd>{{ vehicle.insurance_company|default:"—" }}</dd></div>
+  </dl>
+  </section>
+
+  <section class="vd-card">
   <h2 class="section-title">الحالة الفنية</h2>
-  <dl class="vehicle-facts">
-    <div><dt>الحالة الفنية</dt><dd>{{ vehicle.get_condition_display|default:"—" }}</dd></div>
+  <dl class="vehicle-facts vehicle-facts--tall">
+    {% comment %} «حالة المركبة» اسمُ v1، وكان «الحالة الفنية» — أي اسمَ
+       القسم نفسِه فوقه بسطر. {% endcomment %}
+    <div><dt>حالة المركبة</dt><dd>{{ vehicle.get_condition_display|default:"—" }}</dd></div>
     <div><dt>الوزن / نوع الوقود</dt><dd>{{ vehicle.get_fuel_type_display|default:"—" }}</dd></div>
     <div><dt>ناقل الحركة</dt><dd>{{ vehicle.get_transmission_display|default:"—" }}</dd></div>
     <div><dt>حالة المحرّك (فحص MVPI)</dt><dd>{{ vehicle.runs_status|default:"—" }}</dd></div>
@@ -113,15 +139,24 @@
     <div><dt>الأبواب</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
   </dl>
 
-  <h2 class="section-title">المعاينة والفحص</h2>
-  <dl class="vehicle-facts">
+  </section>
+
+  <section class="vd-card">
+  <h2 class="section-title">المعاينة</h2>
+  <dl class="vehicle-facts vehicle-facts--tall">
     <div><dt>المدينة / موقع المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>أيام الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>أيام المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    {% comment %} «الأوقات» ثالثةُ حقول v1 في هذه المجموعة (`time_periods`)،
+       وكانت ساقطةً من القائمة. ولا تُستورَد بعدُ كأختيها. {% endcomment %}
+    <div><dt>الأوقات</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>تقرير الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>الوصف / النبذة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>حالة التفعيل</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
   </dl>
 
+  </section>
+
+  <section class="vd-card vd-card--wide">
   <h2 class="section-title">المزاد والنتيجة</h2>
   <dl class="vehicle-facts">
     <div><dt>المزاد</dt><dd>
@@ -152,6 +187,7 @@
        والمبالغُ خلف صلاحيتها كأخواتها. {% endcomment %}
     <div><dt>وقت الترسية</dt><dd>{{ vehicle.awarded_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
   </dl>
+  </section>
   </div>
 
   {% comment %} **كلُّ المزايدات — وكانت الصفحةُ تُفتح بلا واحدةٍ منها.**
@@ -165,10 +201,13 @@
   {% if bids %}
     <div class="scroller">
       <table class="vd-bids">
-        <thead><tr><th>المزايد</th><th>المبلغ</th><th>الوقت</th><th>الحال</th></tr></thead>
+        {% comment %} عمودُ «#» في v1: ترتيبُ المزايدة بالمبلغ. ومن يقرأ
+           «المزايد الثاني» يحتاج أن يراه مرقوماً لا أن يعدّ الصفوف. {% endcomment %}
+        <thead><tr><th>#</th><th>المزايد</th><th>المبلغ</th><th>الوقت</th><th>الحال</th></tr></thead>
         <tbody>
           {% for bid in bids %}
             <tr>
+              <td class="count">{{ forloop.counter|unlocalize }}</td>
               <td>
                 {% if shown.customer %}{{ bid.bidder.full_name }}
                 {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}

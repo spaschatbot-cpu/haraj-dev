@@ -4226,6 +4226,31 @@ dialog.row-modal {
 .vehicle-facts .fact--pending { color: var(--muted); font-size: .8rem; font-weight: 400; }
 .vehicle-facts__foot { margin: 1.1rem 0 0; }
 
+/* ---- بطاقاتُ تفصيل المركبة: شبكةُ v1 `.p-cols` لا أشرطةٌ متتابعة ------ */
+/* خمسةُ أقسامٍ بعرض الشاشة يتلو بعضُها بعضاً تجعل صفحةً من تسعةٍ وعشرين حقلاً
+   تطول طولاً يُمرَّر، وثلاثةُ أرباعِ كلّ سطرٍ بياض. وv1 يضعها بطاقاتٍ: ثلاثٌ
+   في الصفّ على العريضة، واحدةٌ على الضيّقة. و«المزاد والنتيجة» أحدَ عشرَ
+   حقلاً فتأخذ الصفَّ كلَّه. */
+.vd-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr));
+  gap: .9rem;
+  margin: 0 0 1.2rem;
+  align-items: start;
+}
+.vd-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: .9rem 1rem 1rem;
+}
+.vd-card .section-title { margin-block-start: 0; }
+.vd-card .vehicle-facts { margin-block-end: 0; }
+/* داخل بطاقةٍ ضيّقةٍ لا يتّسع عمودان لاسمٍ وقيمة: عمودٌ واحدٌ يُقرأ. */
+.vehicle-facts--tall { grid-template-columns: minmax(0, 1fr); }
+.vd-card--wide { grid-column: 1 / -1; }
+.vehicle-facts .mono { font-family: var(--mono, ui-monospace, monospace); letter-spacing: .02em; }
+
 /* ---- زرُّ التسويق على الصفّ: toggle لا حبّة عرض (T877) --------------- */
 .mkt-toggle {
   display: inline-flex;
