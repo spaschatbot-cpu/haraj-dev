@@ -1,3 +1,4 @@
+import '../../catalog/entities/vehicle_summary.dart';
 import '../../common/money.dart';
 
 /// حال المزايدة **كما يقولها الخادم** — وهو يقولها بعلمين لا بكلمة.
@@ -36,6 +37,7 @@ final class PlacedBid {
     required this.money,
     required this.state,
     required this.placedAtUtc,
+    this.vehicle,
   });
 
   final String id;
@@ -54,6 +56,17 @@ final class PlacedBid {
   /// الواجهة (المعيار H3). كان الحقل هنا لأن المخطط الوهميّ وعد بـ
   /// `status_label` ولم يفِ به عقدٌ حقيقيّ قط.
   final DateTime placedAtUtc;
+
+  /// كرتُ المركبة، **مع المزايدة لا بطلبٍ بعدها**. T951.
+  ///
+  /// كانت شاشةُ «مشاركاتي» تقرأ كلَّ مركبةٍ بمعرّفها لترسم كرتها، فكلّفت
+  /// **طلبين لكلّ صفّ** (`/vehicles/<id>/` و`/vehicles/<id>/images/`).
+  /// قِيس في سجلّ الخادم: سبعُ مزايدات = أربعةَ عشرَ طلباً زائداً، وبعشرين
+  /// أربعون.
+  ///
+  /// و`null` واردةٌ بحقّ: مركبةٌ حُذفت والمزايدةُ باقيةٌ في السجلّ. عندها
+  /// يُرسم الصفُّ بـ[vehicleTitle] و[lotNumber]، ولا تسقط الشاشة لأجل صفّ.
+  final VehicleSummary? vehicle;
 
   bool get isWithdrawn => state == BidState.withdrawn;
   bool get isSuperseded => state == BidState.superseded;

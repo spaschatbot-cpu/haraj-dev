@@ -1869,6 +1869,10 @@ components:
           type: boolean
         is_superseded:
           type: boolean
+        vehicle:
+          allOf:
+          - $ref: '#/components/schemas/VehicleCard'
+          nullable: true
       required:
       - amount
       - auction_id
@@ -2798,6 +2802,7 @@ components:
       - confirmed
       - rejected
       - cancelled
+      - v1_paid
       type: string
       description: |-
         * `requested` - مُقدَّم
@@ -2805,6 +2810,7 @@ components:
         * `confirmed` - نُفِّذ
         * `rejected` - مرفوض
         * `cancelled` - ألغاه العميل
+        * `v1_paid` - صُرف في v1
     SendCode:
       type: object
       description: Ask for a code.

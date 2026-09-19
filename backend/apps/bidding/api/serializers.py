@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from apps.auctions.api.serializers import AuctionCardSerializer
+from apps.auctions.api.serializers import AuctionCardSerializer, VehicleCardSerializer
 
 
 class PlaceBidSerializer(serializers.Serializer):
@@ -50,6 +50,17 @@ class BidSerializer(serializers.Serializer):
     placed_at = serializers.DateTimeField()
     is_withdrawn = serializers.BooleanField()
     is_superseded = serializers.BooleanField()
+
+    #: كرتُ المركبة كاملاً — **مع المزايدة لا بطلبٍ بعدها**. T951.
+    #:
+    #: شاشةُ «مشاركاتي» ترسم كرتاً لكلّ مزايدة، والحقولُ الأربعة أعلاه لا
+    #: تكفيه: لا صورةَ ولا سنةَ صنعٍ ولا ممشى ولا عدّاد. فكان التطبيقُ يقرأ
+    #: كلَّ مركبةٍ بمعرّفها، وقِيس في السجلّ: سبعُ مزايدات = **أربعةَ عشرَ
+    #: طلباً زائداً**.
+    #:
+    #: و`allow_null` لأن مركبةً قد تُحذف والمزايدةُ باقيةٌ في السجلّ: صفٌّ
+    #: بلا كرتٍ يُعرَض بحقوله الأربعة، ولا تسقط الصفحةُ كلُّها لأجل صفّ.
+    vehicle = VehicleCardSerializer(allow_null=True, required=False)
 
 
 class BidPageSerializer(serializers.Serializer):

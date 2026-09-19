@@ -4,6 +4,8 @@
 
 import 'package:json_annotation/json_annotation.dart';
 
+import 'vehicle_card.dart';
+
 part 'bid.g.dart';
 
 /// A bid as the owner of it sees it.
@@ -23,6 +25,7 @@ class Bid {
     required this.placedAt,
     required this.isWithdrawn,
     required this.isSuperseded,
+    this.vehicle,
   });
 
   factory Bid.fromJson(Map<String, Object?> json) => _$BidFromJson(json);
@@ -43,6 +46,7 @@ class Bid {
   final bool isWithdrawn;
   @JsonKey(name: 'is_superseded')
   final bool isSuperseded;
+  final VehicleCard? vehicle;
 
   Map<String, Object?> toJson() => _$BidToJson(this);
 }

@@ -9,6 +9,7 @@ import 'package:json_annotation/json_annotation.dart';
 /// * `confirmed` - نُفِّذ.
 /// * `rejected` - مرفوض.
 /// * `cancelled` - ألغاه العميل.
+/// * `v1_paid` - صُرف في v1.
 @JsonEnum()
 enum RefundRequestStateEnum {
   @JsonValue('requested')
@@ -21,6 +22,8 @@ enum RefundRequestStateEnum {
   rejected('rejected'),
   @JsonValue('cancelled')
   cancelled('cancelled'),
+  @JsonValue('v1_paid')
+  v1Paid('v1_paid'),
 
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);

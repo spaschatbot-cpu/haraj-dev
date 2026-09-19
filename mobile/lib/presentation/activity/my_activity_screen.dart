@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../app/providers.dart';
 import '../../domain/bidding/entities/placed_bid.dart';
-import '../../domain/catalog/entities/vehicle_detail.dart';
+import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -99,9 +98,17 @@ class _BidVehicles extends StatelessWidget {
     // **مركبةٌ واحدة لكل مركبة، لا كرتٌ لكل مزايدة**: من زايد ثلاثَ مرّاتٍ على
     // سيّارةٍ زايد على سيّارةٍ واحدة، وثلاثةُ كروتٍ متطابقة تُقرأ ثلاثَ
     // سيّارات. والأحدثُ أوّلاً كما وصلت من الخادم.
-    final vehicleIds = <String>[];
+    //
+    // **والكرتُ يأتي مع المزايدة الآن.** T951. كان يُقرأ بمعرّف المركبة من
+    // `vehicleProvider`، وذاك يجلب التفاصيلَ **وكلَّ الصور** — طلبين لكلّ
+    // صفّ. قِيس في سجلّ الخادم: سبعُ مزايدات = أربعةَ عشرَ طلباً زائداً،
+    // وبعشرين أربعون. والآن صفرٌ: `bids/mine/` يحمل الكروت في استجابته،
+    // وسبعةُ استعلاماتٍ في الخلفية مهما طالت الصفحة.
+    final seen = <String>{};
+    final cards = <VehicleSummary>[];
     for (final bid in bids) {
-      if (!vehicleIds.contains(bid.vehicleId)) vehicleIds.add(bid.vehicleId);
+      final card = bid.vehicle;
+      if (card != null && seen.add(bid.vehicleId)) cards.add(card);
     }
 
     // **`navActivity` لا `myActivityTitle`**: الثاني نصُّه «حسابي» من يوم
@@ -109,7 +116,7 @@ class _BidVehicles extends StatelessWidget {
     // فوق قائمة مركبات. والاسمُ الصحيح هو اسمُ القسم في الشريط السفليّ نفسه.
     final header = HarajAppBar(title: l10n.navActivity);
 
-    if (vehicleIds.isEmpty) {
+    if (cards.isEmpty) {
       return ListView(
         // **قائمةٌ لا `Center`**: الحالةُ الفارغة يجب أن تُسحب لتحديث القائمة،
         // ومن فتح القسم قبل أول مزايدة سيعود إليه بعدها.
@@ -131,35 +138,9 @@ class _BidVehicles extends StatelessWidget {
       ),
       // **العنوانُ عنصرٌ في القائمة**: هو ما يجعله ينزلق. وفهرسُ المركبة
       // يُزاح واحداً لأجله.
-      itemCount: vehicleIds.length + 1,
+      itemCount: cards.length + 1,
       itemBuilder: (context, index) =>
-          index == 0 ? header : _BidVehicleCard(id: vehicleIds[index - 1]),
+          index == 0 ? header : VehicleCard(vehicle: cards[index - 1]),
     );
-  }
-}
-
-/// كرتُ مركبةٍ في «مشاركاتي» — يُقرأ بمعرّفها.
-///
-/// **المزايدةُ لا تحمل المركبة كاملةً**: `PlacedBid` فيه المعرّفُ والاسمُ ورقمُ
-/// اللوت والمبلغ، ولا صورةَ فيه ولا سنةَ صنعٍ ولا ممشى — والكرتُ يحتاجها. فتُقرأ
-/// المركبةُ بمعرّفها من `vehicleProvider`، وهو مُخزَّنٌ فلا يُعاد الطلبُ لكل بناء.
-class _BidVehicleCard extends ConsumerWidget {
-  const _BidVehicleCard({required this.id});
-
-  final String id;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final vehicle = ref.watch(vehicleProvider(id));
-
-    return switch (vehicle) {
-      AsyncData(value: final Snapshot<VehicleDetail> snapshot) => VehicleCard(
-        vehicle: snapshot.value.card,
-      ),
-      // **مركبةٌ سقط طلبُها لا تُسقط القائمة**: تختفي من القسم ولا تترك مكانها
-      // خطأً أحمر بين كرتين — وإعادةُ المحاولة في سحبة القائمة كلِّها.
-      AsyncError() => const SizedBox.shrink(),
-      _ => const SizedBox(height: 154),
-    };
   }
 }

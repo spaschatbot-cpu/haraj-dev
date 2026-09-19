@@ -5,6 +5,7 @@ import '../../domain/common/money.dart';
 import '../api/generated/models/bid.dart' as api;
 import '../api/generated/models/bid_page.dart' as api;
 import '../api/generated/models/bid_quote.dart' as api;
+import '../catalog/catalog_mapper.dart';
 import '../wallet/wallet_mapper.dart' show walletCurrency;
 
 extension BidMapper on api.Bid {
@@ -17,6 +18,7 @@ extension BidMapper on api.Bid {
     money: Money(amount: amount, currency: walletCurrency),
     state: _stateOf(isWithdrawn: isWithdrawn, isSuperseded: isSuperseded),
     placedAtUtc: placedAt.toUtc(),
+    vehicle: vehicle?.toDomain(),
   );
 }
 

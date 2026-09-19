@@ -34,5 +34,6 @@ const _$RefundRequestStateEnumEnumMap = {
   RefundRequestStateEnum.confirmed: 'confirmed',
   RefundRequestStateEnum.rejected: 'rejected',
   RefundRequestStateEnum.cancelled: 'cancelled',
+  RefundRequestStateEnum.v1Paid: 'v1_paid',
   RefundRequestStateEnum.$unknown: r'$unknown',
 };

@@ -36,7 +36,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.cards import auction_card
-from apps.auctions.models import Auction
+from apps.auctions.models import Auction, Vehicle
 from apps.auctions.visibility import visible_vehicles
 from apps.bidding import live, services
 from apps.bidding.models import Bid
@@ -64,8 +64,11 @@ NO_HOLD = "none"
 NO_HOLD_LABEL = "لا تأمين محجوز لهذا المزاد"
 
 
-def bid_row(bid: Bid) -> dict:
-    """One bid, rendered. The single place a bid becomes JSON."""
+def bid_row(bid: Bid, *, card: dict | None = None) -> dict:
+    """One bid, rendered. The single place a bid becomes JSON.
+
+    ``card`` هو كرتُ المركبة إن بُني للصفحة — انظر :func:`bid_cards`.
+    """
     vehicle = bid.vehicle
     return {
         "id": bid.pk,
@@ -79,7 +82,42 @@ def bid_row(bid: Bid) -> dict:
         "placed_at": bid.placed_at,
         "is_withdrawn": bid.is_withdrawn,
         "is_superseded": bid.is_superseded,
+        # **الكرتُ مع المزايدة، لا بطلبٍ لكلّ صفّ.** T951.
+        #
+        # قِيس في سجلّ الخادم (١٩ سبتمبر ٢٠٢٦) بعد دخولٍ واحد: سبعُ مزايدات
+        # كلّفت **أربعةَ عشرَ طلباً زائداً** — `‎/vehicles/<id>/` و
+        # `‎/vehicles/<id>/images/` لكلّ صفّ. وبعشرين مزايدةً أربعون. وشاشةُ
+        # «مشاركاتي» ترسم كرتاً لكلّ مزايدة، والمزايدةُ لا تحمل منه شيئاً:
+        # لا صورةَ ولا سنةَ صنعٍ ولا ممشى.
+        #
+        # وليس كرتاً ثانياً: `cards.vehicle_card` هو الباني، فحقلٌ يُضاف
+        # هناك يظهر هنا بلا تعديل — وذلك شرطُ T708.
+        #
+        # والحقولُ الأربعة فوقه تبقى رغم تكرار بعضها في الكرت: يقرؤها
+        # `web/app/bids/page.tsx` و`bid_mapper.dart`، وحذفُها كسرُ عقدٍ
+        # مقابلَ بايتاتٍ معدودة.
+        "vehicle": card,
     }
+
+
+def bid_cards(bids, *, reader=None) -> dict[int, dict]:
+    """كروتُ مركبات صفحةِ مزايداتٍ — **باستعلامٍ واحدٍ للصفحة**.
+
+    `card_queryset` يضمّ المزادَ والمالكَ ويجلب صورَ الغلاف مسبقاً، فصفحةٌ
+    من عشرين مزايدةً تكلّف ثلاثةَ استعلاماتٍ مهما طالت. والقراءةُ واحدةً
+    واحدةً هي بعينها ما كان التطبيقُ يفعله عبر الشبكة.
+
+    و`vehicle_cards` لا `vehicle_card` في حلقة: المفضّلةُ تُسأل مرّةً
+    واحدةً للصفحة كلّها (`favourite_ids`)، وسؤالُها لكلّ صفٍّ يعيد الـN+1
+    من بابٍ آخر.
+    """
+    from apps.auctions.cards import card_queryset, vehicle_cards
+
+    ids = {bid.vehicle_id for bid in bids}
+    if not ids:
+        return {}
+    vehicles = card_queryset(Vehicle.objects.filter(pk__in=ids))
+    return {card["id"]: card for card in vehicle_cards(vehicles, favourite_of=reader)}
 
 
 class PlaceBidView(APIView):
@@ -218,9 +256,16 @@ class MyBidsView(APIView):
             + query.validated_data["limit"]
         ]
 
+        rows = list(page)
+        cards = bid_cards(rows, reader=request.user)
         return Response(
             BidPageSerializer(
-                {"total": total, "results": [bid_row(bid) for bid in page]}
+                {
+                    "total": total,
+                    "results": [
+                        bid_row(bid, card=cards.get(bid.vehicle_id)) for bid in rows
+                    ],
+                }
             ).data,
             status=status.HTTP_200_OK,
         )
