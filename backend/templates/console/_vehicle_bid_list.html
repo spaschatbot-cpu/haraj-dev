@@ -5,7 +5,7 @@
 {% endcomment %}
 <header class="row-modal__head">
   <h2 class="row-modal__title">
-    مزايدات {{ vehicle.make }} {{ vehicle.model }} — لوت {{ vehicle.lot_number|unlocalize }}
+    مزايدات {{ vehicle.display_title }} — لوت {{ vehicle.lot_number|unlocalize }}
   </h2>
   <p class="row-modal__note">
     مزاد {{ vehicle.auction.number|unlocalize }} · {{ vehicle.plate_number|default:"بلا لوحة" }}

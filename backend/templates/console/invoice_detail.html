@@ -21,7 +21,7 @@ Odoo's own word is shown, clearly marked as theirs and never as ours (Article
     {% if invoice.vehicle %}
       <tr><th>المركبة</th><td>
         <a href="{% url 'console:vehicle-detail' invoice.vehicle.pk %}">
-          {{ invoice.vehicle.make }} {{ invoice.vehicle.model }}</a></td></tr>
+          {{ invoice.vehicle.display_title }}</a></td></tr>
     {% endif %}
     <tr><th>المبلغ</th><td class="money">{{ invoice.amount|unlocalize }}</td></tr>
     <tr><th>المسدَّد</th><td class="money">{{ invoice.amount_paid|unlocalize }}</td></tr>

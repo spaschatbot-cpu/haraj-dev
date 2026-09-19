@@ -61,7 +61,7 @@
             <td class="tnum">{{ vehicle.auction.number|unlocalize }}</td>
             <td class="tnum">{{ vehicle.pk|unlocalize }}</td>
             <td class="tnum">{{ vehicle.lot_number|unlocalize }}</td>
-            <td>{{ vehicle.make }} {{ vehicle.model }}</td>
+            <td>{{ vehicle.display_title }}</td>
             <td>{{ vehicle.year|unlocalize }}</td>
             <td>{{ vehicle.get_colour_display }}</td>
             <td class="tnum">{{ vehicle.plate_number|default:"—" }}</td>

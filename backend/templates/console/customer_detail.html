@@ -328,7 +328,7 @@
           {% for bid in card.rows %}
             <tr>
               <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
-              <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+              <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.display_title }}</a></td>
               <td class="money">{{ bid.amount|unlocalize }}</td>
               <td>
                 {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>

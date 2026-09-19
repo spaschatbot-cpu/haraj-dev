@@ -118,7 +118,7 @@
             {% if seen.customer %}<td class="money">{{ invoice.customer.phone|unlocalize }}</td>{% endif %}
             <td>
               {% if invoice.vehicle %}
-                <a href="{% url 'console:vehicle-detail' invoice.vehicle_id %}">{{ invoice.vehicle.make }} {{ invoice.vehicle.model }}</a>
+                <a href="{% url 'console:vehicle-detail' invoice.vehicle_id %}">{{ invoice.vehicle.display_title }}</a>
               {% else %}<span class="empty">—</span>{% endif %}
             </td>
             <td class="mono">{{ invoice.vehicle.plate_number|default:"—" }}</td>

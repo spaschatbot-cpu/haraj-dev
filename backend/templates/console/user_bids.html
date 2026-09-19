@@ -102,7 +102,7 @@
           <tr>
             <td>{{ car.auction.number|unlocalize }}</td>
             <td class="count">{{ car.lot_number|unlocalize }}</td>
-            <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }} {{ car.model }}</a></td>
+            <td><a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.display_title }}</a></td>
             <td class="money">{{ car.awarded_price|default:"—"|unlocalize }}</td>
             <td>{{ car.get_state_display }}</td>
           </tr>
@@ -123,7 +123,7 @@
         {% for bid in report.recent %}
           <tr>
             <td>{{ bid.vehicle.auction.number|unlocalize }}</td>
-            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</a></td>
+            <td><a href="{% url 'console:vehicle-detail' bid.vehicle.pk %}">{{ bid.vehicle.display_title }}</a></td>
             <td class="money">{{ bid.amount|unlocalize }}</td>
             {% comment %} الحالة بالترتيب نفسه الذي تعدّ به `bid_shape`:
                المسحوبة أوّلاً، فالمستبدَلة، فالقائمة — فلا يُقرأ صفٌّ هنا

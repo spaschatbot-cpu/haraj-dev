@@ -1,7 +1,7 @@
 {% extends base_template|default:"console/base.html" %}
 {% block title %}{% if vehicle %}تعديل مركبة{% else %}مركبة جديدة{% endif %}{% endblock %}
 {% block heading %}
-  {% if vehicle %}تعديل {{ vehicle.make }} {{ vehicle.model }}{% else %}مركبة جديدة{% endif %}
+  {% if vehicle %}تعديل {{ vehicle.display_title }}{% else %}مركبة جديدة{% endif %}
 {% endblock %}
 
 {% block content %}

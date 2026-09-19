@@ -23,7 +23,7 @@
           <td>
             <button type="button" class="linkish" data-detail-open
                     data-url="{% url 'console:vehicle-detail' bid.vehicle.pk %}?modal=1"
-                    title="تفاصيل المركبة">{{ bid.vehicle.make }} {{ bid.vehicle.model }}</button>
+                    title="تفاصيل المركبة">{{ bid.vehicle.display_title }}</button>
           </td>
           <td>{{ bid.vehicle.year|unlocalize }}</td>
           <td>{{ bid.vehicle.plate_number|default:"—" }}</td>

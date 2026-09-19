@@ -11,7 +11,7 @@ that number reached the invoice conversation.
 
 {% block title %}عروض اللوت {{ vehicle.lot_number|unlocalize }}{% endblock %}
 {% block heading %}
-  {{ vehicle.make }} {{ vehicle.model }} {{ vehicle.year|unlocalize }} —
+  {{ vehicle.display_title }} {{ vehicle.year|unlocalize }} —
   لوت {{ vehicle.lot_number|unlocalize }}
 {% endblock %}
 

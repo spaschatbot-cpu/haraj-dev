@@ -38,20 +38,13 @@ def _label(choices, value: str) -> str:
 
 
 def _title(vehicle) -> str:
-    """«ماركة طراز» — **ولا تُكتب الماركةُ مرّتين**. T950.
+    """عنوانُ الكرت — من `Vehicle.display_title` وحدَها.
 
-    `model` في صفوف v1 المُرحَّلة يحمل الاسمَ الكاملَ أحياناً لا الطرازَ
-    وحدَه، فصار العنوانُ «سوزوكي ديز اير سوزوكي ديز اير». والشرطُ على
-    البداية لا على الاحتواء: طرازٌ اسمُه «سيرا» لماركة «جي ام سي» لا يُقصّ
-    لأن حرفين منه وردا في مكانٍ ما.
+    كانت القاعدةُ مكتوبةً هنا (T950)، فتكرّرت الماركةُ ثانيةً في
+    `auction_detail.html` باللوحة لأن القالبَ يركّب `make model` بيده.
+    فانتقلت إلى النموذج، ويقرؤها الاثنان.
     """
-    make = (vehicle.make or "").strip()
-    model = (vehicle.model or "").strip()
-    if not make:
-        return model
-    if model.startswith(make):
-        return model
-    return f"{make} {model}".strip()
+    return vehicle.display_title
 
 
 def _amount(value) -> str | None:

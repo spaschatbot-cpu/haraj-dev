@@ -73,7 +73,7 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
           <td class="rm-when">{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
           <td class="pv-name">
             {% if row.vehicle %}
-              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}"><strong>{{ row.vehicle.make }} {{ row.vehicle.model }}</strong></a>
+              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}"><strong>{{ row.vehicle.display_title }}</strong></a>
               <small>{{ row.vehicle.year|unlocalize }}</small>
             {% else %}—{% endif %}
           </td>
