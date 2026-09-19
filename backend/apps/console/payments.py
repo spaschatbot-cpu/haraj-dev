@@ -187,7 +187,12 @@ def decorate(page_rows) -> None:
         row.invoice = found.get(row.invoice_ref)
         row.source = source_of(row.idempotency_key)
         # المرجعُ هو «اسم الدفعة» في v1 — ذيلُ المفتاح بعد الفاتورة.
-        row.reference = row.idempotency_key.rsplit(":", 1)[-1]
+        #
+        # **وقصّاً من اليسار مرّةً واحدة، لا `rsplit` من اليمين.** المرجعُ نفسُه
+        # قد يحمل نقطتين: `pay_invoice_from_balance` يكتب `balance:<txn>`،
+        # فيُقرأ بـ`rsplit` رقماً عارياً — «١» في عمود المرجع، ولا يدلّ على
+        # شيء. والمفتاحُ ثلاثةُ أجزاء: بادئةٌ ثم فاتورةٌ ثم المرجعُ كلُّه.
+        row.reference = row.idempotency_key.split(":", 2)[-1]
         # **العميلُ من فاتورته، لا من قيود الحركة.** كُتب أوّلاً أنه صاحبُ
         # القيد الذي على حسابِ عميل — **وقِيس ففشل في مئتي صفٍّ من مئتين**:
         # سدادُ فاتورةٍ بتحويلٍ بنكيّ يمرّ من `external_cash` إلى الإيراد،
