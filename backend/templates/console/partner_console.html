@@ -27,6 +27,18 @@
     </div>
   </form>
 
+  {% comment %} بطاقةُ التنبيه — نظيرُ v1، ولا تُبنى إلا حين يكون ثمّ قرارٌ
+     ينتظر. وv1 يكتب «لديك N سيارة بانتظار قرارك» لأن الشريكَ هو من يقرؤها؛
+     وهنا يقرؤها **الموظّف** عن شريكٍ يختاره (لا حسابَ لوحةٍ للشريك في v2)،
+     فالصياغةُ تقول صاحبَ القرار لا تخاطبه. {% endcomment %}
+  {% if totals.pending_decision %}
+    <a class="notice notice--warn partner-alert" href="{% url 'console:partner-decisions' %}?partner={{ partner }}">
+      <strong>{{ totals.pending_decision|unlocalize }}</strong>
+      سيارة في مزاداتٍ منتهية تنتظر قرارَ الشريك — ولا تُفوتَر حتى يحكم عليها.
+      <span class="partner-alert__go">اتخاذ القرار ←</span>
+    </a>
+  {% endif %}
+
   {% comment %} كان جدولاً بثلاثة أعمدة: «الاسم · القيمة · افتحها ←» — وعمودُه
      الثالثُ كلُّه رابطٌ مكرَّرٌ بالكلمة نفسِها ثمانيَ مرّات، أي ثلثُ عرض
      الشاشة يحمل «افتحها» وحدَها. وهو ليس جدولاً: ثمانِ قيمٍ منفردةٍ لا تُفرَز
@@ -85,7 +97,81 @@
       <p class="sum__note">سجل الدفعات</p>
     </a>
 
+    {% comment %} السبعةُ التي كانت في v1 ولم تكن هنا. وأربعةٌ منها بلا وجهة
+       (نسبةٌ ومتوسّطٌ وأعلى بيعةٍ وزيادة) فتبقى بطاقاتٍ لا تُنقر — رابطٌ لا
+       يفتح شيئاً أسوأ من غيابه. {% endcomment %}
+    <div class="sum">
+      <p class="sum__label">نسبة البيع</p>
+      <p class="sum__value">{{ totals.sale_rate|unlocalize }}%</p>
+      <p class="sum__note">من إجمالي سياراته</p>
+    </div>
+
+    <div class="sum">
+      <p class="sum__label">متوسط سعر البيع</p>
+      <p class="sum__value money">{{ totals.avg_price|unlocalize }}</p>
+      <p class="sum__note">للمركبة المرساة</p>
+    </div>
+
+    <div class="sum">
+      <p class="sum__label">أعلى بيعة</p>
+      <p class="sum__value money">{{ totals.best_sale|unlocalize }}</p>
+      <p class="sum__note">أغلى ما رسا له</p>
+    </div>
+
+    <div class="sum">
+      <p class="sum__label">فوق سعر الوقوف</p>
+      <p class="sum__value">{{ totals.uplift_pct|unlocalize }}%</p>
+      <p class="sum__note">مقيسةٌ على المرساة وحدها</p>
+    </div>
+
+    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">
+      <p class="sum__label">إجمالي المزايدات</p>
+      <p class="sum__value">{{ totals.bids|unlocalize }}</p>
+      <p class="sum__note">على سياراته</p>
+    </a>
+
+    <div class="sum">
+      <p class="sum__label">عدد المزايدين</p>
+      <p class="sum__value">{{ totals.bidders|unlocalize }}</p>
+      <p class="sum__note">أشخاصٌ لا مزايدات</p>
+    </div>
+
+    <a class="sum" href="{% url 'console:partner-decisions' %}?partner={{ partner }}">
+      <p class="sum__label">بانتظار قرار الشريك</p>
+      <p class="sum__value">{{ totals.pending_decision|unlocalize }}</p>
+      <p class="sum__note">في المزادات المنتهية</p>
+    </a>
+
+
   </section>
+
+
+  {% comment %} الأداء لكل مزاد — نظيرُ جدول v1. الإجماليُّ يخفي التوزيع:
+     شريكٌ باع نصفَ سياراته قد يكون باع كلَّ شيءٍ في مزادٍ ولا شيءَ في آخر،
+     وذلك قرارُ توريدٍ للمزاد القادم لا يُقرأ من رقمٍ واحد. {% endcomment %}
+  {% if breakdown %}
+    <h2 class="section-title">الأداء لكل مزاد</h2>
+    <div class="scroller">
+      <table class="pb-tbl">
+        <thead>
+          <tr><th>المزاد</th><th>سياراته</th><th>مباعة</th><th>نسبة البيع</th><th>سعر الوقوف</th><th>المبيعات</th><th>الفرق</th></tr>
+        </thead>
+        <tbody>
+          {% for row in breakdown %}
+            <tr>
+              <td><a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.title|default:row.auction.number }}</a></td>
+              <td>{{ row.cars|unlocalize }}</td>
+              <td>{{ row.sold|unlocalize }}</td>
+              <td><span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}plain{% endif %}">{{ row.rate|unlocalize }}%</span></td>
+              <td class="money">{{ row.reserve|unlocalize }}</td>
+              <td class="money">{{ row.sales|unlocalize }}</td>
+              <td class="money pb-diff" data-sign="{% if row.diff >= 0 %}up{% else %}down{% endif %}">{{ row.diff|unlocalize }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
 
   <p class="notice notice--soft">
     «مسدَّدة» هنا تعني <strong>فاتورةً مسدَّدة</strong>، والحالة محسوبةٌ من

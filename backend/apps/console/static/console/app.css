@@ -12502,3 +12502,14 @@ a.pager__num:hover, a.pager__step:hover {
 
 
 
+
+/* ---- لوحة الشريك: بطاقة التنبيه وجدول الأداء ---------------------------- */
+/* التنبيهُ رابطٌ لا فقرة: v1 يجعله كذلك، والوجهةُ هي الفعلُ المطلوب نفسُه. */
+.partner-alert { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; text-decoration: none; }
+.partner-alert__go { margin-inline-start: auto; font-weight: 800; white-space: nowrap; }
+/* الفرقُ بين المبيعات وسعر الوقوف: الإشارةُ تُقرأ لوناً قبل أن تُقرأ رقماً —
+   وهو العمودُ الوحيد في الجدول الذي يجوز أن يكون سالباً. */
+.pb-diff[data-sign="up"] { color: var(--ok); font-weight: 800; }
+.pb-diff[data-sign="down"] { color: var(--danger); font-weight: 800; }
+.pb-tbl th, .pb-tbl td { padding-inline: .62rem; text-align: center; }
+.pb-tbl tbody td:first-child, .pb-tbl thead th:first-child { text-align: start; }

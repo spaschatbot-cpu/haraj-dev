@@ -42,12 +42,13 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Count, Exists, OuterRef, Q, Sum
+from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import Company
 from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
+from apps.bidding.models import Bid
 from apps.auctions.states import AuctionState, VehicleState
 from apps.core.arabic import search_q
 from apps.money import services as money
@@ -85,15 +86,24 @@ def partners():
 
 
 def _scoped(rows, partner: str):
-    """ضيّق على شريكٍ بعينه، أو أعِد الكلّ.
+    """ضيّق على شريكٍ بعينه، أو على **الشركاء جميعاً** — لا على كلّ شيء.
 
     ولا يُخمَّن شريكٌ حين لا يُختار: «كل الشركاء» جوابٌ صحيح لموظّفٍ يقارن،
     و«الأول في القائمة» جوابٌ عن سؤالٍ لم يُطرح.
+
+    **لكنّ «كل الشركاء» ليست «كل السيارات».** كانت الدالّة تُعيد `rows` كما هي
+    حين لا يُختار شريك، فتعرض لوحةُ الشريك مركباتٍ **لا مالكَ شركةً لها
+    أصلاً** — وهي سيارات الشركة نفسِها، لا شأنَ لأيّ شريكٍ بها. قِيس على قاعدة
+    التطوير: ٢٣ مركبةً في القاعدة، **صفرٌ منها له `owner_company`**، واللوحةُ
+    تعرض الثلاثَ والعشرين وتقول «بانتظار قرار الشريك: ٢٣».
+
+    وv1 لا يقع في هذا لأن نطاقَه علمٌ على الصفّ (`is_marketing = 1`): سيارةٌ
+    بلا علمٍ لا تظهر أبداً. والنظيرُ هنا `owner_company IS NOT NULL`.
     """
     partner = (partner or "").strip()
     if partner.isdigit():
         return rows.filter(owner_company_id=int(partner))
-    return rows
+    return rows.filter(owner_company__isnull=False)
 
 
 def summary_for(partner: str = "") -> dict:
@@ -104,17 +114,100 @@ def summary_for(partner: str = "") -> dict:
     invoices = Invoice.objects.filter(vehicle__in=won)
     paid = invoices.filter(state=InvoiceState.PAID)
 
+    total = cars.count()
+    won_count = won.count()
+    won_value = won.aggregate(t=Sum("awarded_price"))["t"] or ZERO
+
+    # **سعرُ الوقوف للمرساة وحدها لا لكلّ سياراته.** «كم فوق سعر الوقوف بعتُ؟»
+    # سؤالٌ عن المبيع؛ وقسمةُ حصيلةِ المبيع على أسعارِ وقوفِ **كلّ** سياراته
+    # (ومنها ما لم يُعرَض أصلاً) تُنتج نسبةً سالبةً دائماً بلا معنى.
+    reserve_of_won = won.aggregate(t=Sum("reserve_price"))["t"] or ZERO
+
+    # الطلبُ على سياراته: كم عرضاً ومن كم شخص. و`distinct` على المزايد لا على
+    # المزايدة: من زايد عشراً شخصٌ واحد.
+    demand = Bid.objects.filter(vehicle__in=cars).aggregate(
+        bids=Count("id"), bidders=Count("bidder", distinct=True)
+    )
+
+    # «بانتظار قرار الشريك» — **في المزادات المنتهية وحدها**، وهو تعريفُ
+    # `console:partner-decisions` نفسُه. وفي v1 كان العدّاد يعدّ كلَّ ما لم
+    # يُقرَّر فيه أيّاً كان مزادُه: أظهر ١٧١ والصفحةُ نفسُها تعرض صفراً لأن
+    # المزاد لم يبدأ بعد. فالتعريفُ واحدٌ هنا يقرؤه الرقمُ والصفحة.
+    pending = cars.filter(
+        auction__state__in=ARCHIVED, partner_decided_at__isnull=True
+    ).count()
+
     return {
-        "vehicles": cars.count(),
+        "vehicles": total,
         "auctions": cars.values("auction").distinct().count(),
-        "won": won.count(),
+        "won": won_count,
         "unsold": cars.exclude(state__in=AWARDED).count(),
-        "won_value": won.aggregate(t=Sum("awarded_price"))["t"] or ZERO,
+        "won_value": won_value,
         "invoiced": invoices.count(),
         "paid": paid.count(),
-        "unpaid": won.count() - paid.count(),
+        "unpaid": won_count - paid.count(),
         "paid_value": paid.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
+        # ── السبعةُ التي كانت في v1 ولم تكن هنا ──────────────────────────
+        "sale_rate": round(won_count / total * 100, 1) if total else 0.0,
+        "avg_price": round(won_value / won_count, 2) if won_count else ZERO,
+        "best_sale": won.aggregate(t=Max("awarded_price"))["t"] or ZERO,
+        "reserve_value": reserve_of_won,
+        "uplift_pct": (
+            round((won_value - reserve_of_won) / reserve_of_won * 100, 1)
+            if reserve_of_won
+            else 0.0
+        ),
+        "bids": demand["bids"] or 0,
+        "bidders": demand["bidders"] or 0,
+        "pending_decision": pending,
     }
+
+
+def breakdown_for(partner: str = "", limit: int = 24) -> list:
+    """الأداء لكل مزاد — نظيرُ جدول v1، بالمزادات الأحدث أوّلاً.
+
+    **ولماذا جدولٌ تحت البطاقات وقد قالت البطاقاتُ الأرقام.** لأن الإجماليّ
+    يخفي التوزيع: شريكٌ باع نصفَ سياراته قد يكون باع كلَّ شيءٍ في مزادٍ ولا
+    شيءَ في آخر — وذلك قرارُ توريدٍ للمزاد القادم، لا يُقرأ من رقمٍ واحد.
+
+    و`limit` أربعةٌ وعشرون كـ v1: سنتان بمزادٍ شهريّ، وما قبلهما تاريخٌ لا
+    يُقرَّر عليه.
+    """
+    cars = _scoped(Vehicle.objects.all(), partner)
+    rows = (
+        Auction.objects.filter(vehicles__in=cars)
+        .distinct()
+        .annotate(
+            cars=Count("vehicles", filter=Q(vehicles__in=cars), distinct=True),
+            sold=Count(
+                "vehicles",
+                filter=Q(vehicles__in=cars, vehicles__state__in=AWARDED),
+                distinct=True,
+            ),
+            sales=Sum("vehicles__awarded_price", filter=Q(vehicles__in=cars)),
+            reserve=Sum("vehicles__reserve_price", filter=Q(vehicles__in=cars)),
+        )
+        .order_by("-starts_at", "-number")[:limit]
+    )
+
+    out = []
+    for row in rows:
+        sales = row.sales or ZERO
+        reserve = row.reserve or ZERO
+        out.append(
+            {
+                "auction": row,
+                "cars": row.cars,
+                "sold": row.sold,
+                "rate": round(row.sold / row.cars * 100, 1) if row.cars else 0.0,
+                "reserve": reserve,
+                "sales": sales,
+                # الفرقُ مبلغٌ لا نسبة: «زاد ٤٠ ألفاً» يُقرأ، و«زاد ٣٪» على
+                # مزادٍ صغيرٍ يُقرأ أكبرَ مما هو.
+                "diff": sales - reserve,
+            }
+        )
+    return out
 
 
 @console_page("console:partner-console")
@@ -126,6 +219,7 @@ def partner_console(request):
         "console/partner_console.html",
         {
             "totals": summary_for(partner),
+            "breakdown": breakdown_for(partner),
             "partner": partner,
             "partners": partners(),
         },
