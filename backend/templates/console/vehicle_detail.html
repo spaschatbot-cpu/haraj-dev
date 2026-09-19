@@ -91,6 +91,61 @@
       {% if shown.money %}{{ vehicle.awarded_price|default:"—"|unlocalize }}
       {% elif vehicle.awarded_price %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
       {% else %}—{% endif %}</dd></div>
+    {% comment %} أرقامُ «المزاد والنتيجة» في v1. و«أوّل عرض» ليس زينةً:
+       الفرقُ بينه وبين الأعلى هو **حركةُ المزايدة** على هذه السيارة —
+       سيارةٌ بدأت بـ٥٠ وانتهت بـ٥٢ لم يتنافس عليها أحد، وأخرى بلغت ١٢٠
+       تنافس عليها كثيرون. والرقمان معاً يقولان ما لا يقوله أحدُهما.
+       والمبالغُ خلف صلاحيتها كأخواتها. {% endcomment %}
+    <div><dt>نهاية المزاد</dt><dd>{{ vehicle.auction.ends_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
+    <div><dt>أعلى عرض</dt><dd class="money">
+      {% if shown.money %}{{ top_bid|default:"—"|unlocalize }}
+      {% elif top_bid %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
+    <div><dt>أول عرض</dt><dd class="money">
+      {% if shown.money %}{{ first_amount|default:"—"|unlocalize }}
+      {% elif first_amount %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
+    <div><dt>عدد المزايدات</dt><dd>{{ bids_count|unlocalize }}</dd></div>
+    <div><dt>عدد المزايدين</dt><dd>{{ bidders_count|unlocalize }}</dd></div>
+    <div><dt>وقت الترسية</dt><dd>{{ vehicle.awarded_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
   </dl>
   </div>
+
+  {% comment %} **كلُّ المزايدات — وكانت الصفحةُ تُفتح بلا واحدةٍ منها.**
+     المواصفاتُ تقول ما المركبة، والنتيجةُ تقول أين وصلت، ولا شيء يقول
+     **لماذا لم تُبَع** — وهو السؤالُ الذي يُفتح لأجله التفصيلُ بعد كلّ مزاد.
+
+     والتاريخُ كلُّه لا القائمُ منه: المستبدَلةُ والمسحوبةُ جزءٌ من الجواب،
+     فـ«زايد ثم سحب» ليست «لم يزايد». وتُوسَم كلٌّ بحالها فلا تُقرأ عرضاً
+     قائماً. {% endcomment %}
+  <h2 class="section-title">كل المزايدات ({{ bids_count|unlocalize }})</h2>
+  {% if bids %}
+    <div class="scroller">
+      <table class="vd-bids">
+        <thead><tr><th>المزايد</th><th>المبلغ</th><th>الوقت</th><th>الحال</th></tr></thead>
+        <tbody>
+          {% for bid in bids %}
+            <tr>
+              <td>
+                {% if shown.customer %}{{ bid.bidder.full_name }}
+                {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+              </td>
+              <td class="money">
+                {% if shown.money %}{{ bid.amount|unlocalize }}
+                {% else %}<span class="empty">محجوب</span>{% endif %}
+              </td>
+              <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+              <td>
+                {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
+                {% elif bid.is_superseded %}<span class="pill" data-tone="plain">مُستبدَلة</span>
+                {% else %}<span class="pill" data-tone="ok">قائمة</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {% comment %} حالةٌ فارغةٌ صريحةٌ كـ v1: «لا مزايدات» جوابٌ، وجدولٌ فارغٌ
+       بلا سطرٍ يُقرأ عطلاً في التحميل. {% endcomment %}
+    <p class="empty">لا توجد مزايدات على هذه السيارة.</p>
+  {% endif %}
 {% endblock %}

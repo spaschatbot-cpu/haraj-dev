@@ -631,6 +631,16 @@ def vehicle_detail(request, pk: int):
         else Auction.objects.none()
     )
 
+    # **المزايدات — وكانت الصفحةُ تُفتح بلا واحدةٍ منها.** الصفحةُ تقول ما
+    # المركبةُ وأين وصلت، ولا تقول **لماذا لم تُبَع** — وهو السؤالُ الذي
+    # يُفتح لأجله التفصيلُ بعد كلّ مزاد. وv1 يضع تحت المواصفات جدولَ «كل
+    # المزايدات (N)» بحالةٍ فارغةٍ صريحة: «لا توجد مزايدات على هذه السيارة».
+    #
+    # والتاريخُ كلُّه لا القائمُ منه: المستبدَلةُ والمسحوبةُ جزءٌ من الجواب —
+    # «زايد ثم سحب» ليس «لم يزايد»، والفرقُ هو ما يقرأه الشريك.
+    bids = vehicle.bids.select_related("bidder").order_by("-amount", "placed_at")
+    standing = [bid for bid in bids if not bid.is_superseded and not bid.is_withdrawn]
+
     is_modal, base_template = _modal(request)
     return render(
         request,
@@ -642,6 +652,20 @@ def vehicle_detail(request, pk: int):
             "destinations": destinations,
             "base_template": base_template,
             "is_modal": is_modal,
+            "bids": bids,
+            # أرقامُ «المزاد والنتيجة» في v1: أعلى عرضٍ وأوّلُه وعددُ المزايدات
+            # والمزايدين. و«أوّل عرض» ليس زينةً: الفرقُ بينه وبين الأعلى هو
+            # حركةُ المزايدة على هذه السيارة — سيارةٌ بدأت بـ٥٠ وانتهت بـ٥٢
+            # لم يتنافس عليها أحد، وبـ١٢٠ تنافس عليها كثيرون.
+            "top_bid": max((bid.amount for bid in standing), default=None),
+            "first_bid": min(
+                (bid.placed_at for bid in bids), default=None
+            ),
+            "first_amount": next(
+                (bid.amount for bid in sorted(bids, key=lambda b: b.placed_at)), None
+            ),
+            "bids_count": len(bids),
+            "bidders_count": len({bid.bidder_id for bid in bids}),
         },
     )
 
