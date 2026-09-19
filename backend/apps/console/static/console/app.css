@@ -12607,3 +12607,10 @@ a.pager__num:hover, a.pager__step:hover {
 /* عنوانُ مجموعة المزاد في شاشة القرار. */
 .pd-auction { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 1.4rem 0 .5rem; font-size: 1rem; }
 .pd-auction small { font-weight: 600; color: var(--muted); }
+/* شريطُ حالِ المركبة فوق تفاصيلها — ثلاثُ إجاباتٍ قبل النزول إلى الحقول. */
+.vd-badges { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .8rem; }
+.vd-badges a.pill { text-decoration: none; }
+.vd-badges a.pill:hover { background: var(--brand-soft); color: var(--brand-dark); }
+/* جدولُ مزايدات المركبة — بمقاييس جداول الشريك نفسِها. */
+.vd-bids th, .vd-bids td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
+.vd-bids thead th { font-size: .74rem; }

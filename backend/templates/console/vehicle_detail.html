@@ -42,34 +42,52 @@
     </ul>
   {% endif %}
 
+  {% comment %} **شريطُ حالٍ فوق التفاصيل كـ v1**: أين وصلت · هل حُكم فيها ·
+     أيُّ مزادٍ هي فيه. ثلاثُ إجاباتٍ تُقرأ قبل النزول إلى تسعةٍ وعشرين حقلاً،
+     وهي ما يُفتح لأجله التفصيلُ في أغلب المرّات. {% endcomment %}
+  <p class="vd-badges">
+    <span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span>
+    {% if vehicle.partner_decided_at %}
+      <span class="pill" data-tone="{% if vehicle.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ vehicle.get_partner_decision_display|default:"حُكم فيها" }}</span>
+    {% elif vehicle.owner_company_id %}
+      <span class="pill" data-tone="warn">بانتظار قرار الشريك</span>
+    {% endif %}
+    <a class="pill" data-tone="plain" href="{% url 'console:auction-detail' vehicle.auction.pk %}">مزاد {{ vehicle.auction.number|unlocalize }}</a>
+  </p>
+
+  {% comment %} سطرُ v1 نفسُه: يقول **أين** يُتخذ القرار و**متى** يجوز — فمن
+     فتح التفصيلَ باحثاً عن زرّ قبولٍ أو رفضٍ يعرف أنه ليس هنا، ولا يُقرأ
+     غيابُ الزرّ عطلاً. والشرطُ الثاني («بعد انتهاء المزاد») هو ما يردّه
+     الخادمُ بـ409، فيُقال قبل المحاولة لا بعدها. {% endcomment %}
+  {% if vehicle.owner_company_id and not vehicle.partner_decided_at %}
+    <p class="notice notice--soft">
+      القرار يُتخذ من
+      <a href="{% url 'console:partner-decisions' %}?partner={{ vehicle.owner_company_id }}">صفحة اتخاذ القرار</a>،
+      وبعد انتهاء المزاد فقط.
+    </p>
+  {% endif %}
+
+  {% comment %} **أربعةُ أقسامٍ معنونةٍ كـ v1، لا قائمةٌ واحدةٌ من تسعةٍ
+     وعشرين حقلاً.** والقائمةُ المسطّحة تحمل المعلومةَ نفسَها ولا تُقرأ: من
+     يسأل «ما لونها؟» يمسح تسعةً وعشرين سطراً، ومن يسأل «بكم بيعت؟» يمسحها
+     كذلك. والعنوانُ يقطع المسحَ إلى ربعه.
+
+     والترتيبُ ترتيبُ v1: ما المركبة ← ما حالُها ← أين تُعايَن ← ماذا جرى
+     لها. وهو ترتيبُ من يقف أمامها لا ترتيبُ الجدول في القاعدة. {% endcomment %}
+  <h2 class="section-title">المركبة</h2>
   <dl class="vehicle-facts">
-    <div><dt>المزاد</dt><dd>
-      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">{{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></dd></div>
-    <div><dt>رقم اللوت</dt><dd>{{ vehicle.lot_number|unlocalize }}</dd></div>
     <div><dt>الماركة</dt><dd>{{ vehicle.make|default:"—" }}</dd></div>
     <div><dt>الموديل</dt><dd>{{ vehicle.model|default:"—" }}</dd></div>
     <div><dt>السنة</dt><dd>{{ vehicle.year|unlocalize }}</dd></div>
-    <div><dt>رقم الهيكل</dt><dd>{{ vehicle.vin|default:"—" }}</dd></div>
+    <div><dt>اللون</dt><dd>{{ vehicle.get_colour_display|default:"—" }}</dd></div>
+    <div><dt>العداد</dt><dd>{% if vehicle.odometer_km %}{{ vehicle.odometer_km|unlocalize }} كم{% else %}—{% endif %}</dd></div>
+    <div><dt>رقم اللوت</dt><dd>{{ vehicle.lot_number|unlocalize }}</dd></div>
     <div><dt>رقم اللوحة</dt><dd>{{ vehicle.plate_number|default:"—" }}</dd></div>
     <div><dt>نوع اللوحة</dt><dd>{{ vehicle.get_plate_type_display|default:"—" }}</dd></div>
-    <div><dt>العداد</dt><dd>{% if vehicle.odometer_km %}{{ vehicle.odometer_km|unlocalize }} كم{% else %}—{% endif %}</dd></div>
-    <div><dt>اللون</dt><dd>{{ vehicle.get_colour_display|default:"—" }}</dd></div>
-    <div><dt>الحالة الفنية</dt><dd>{{ vehicle.get_condition_display|default:"—" }}</dd></div>
-    <div><dt>الأبواب</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>الوزن / نوع الوقود</dt><dd>{{ vehicle.get_fuel_type_display|default:"—" }}</dd></div>
-    <div><dt>ناقل الحركة</dt><dd>{{ vehicle.get_transmission_display|default:"—" }}</dd></div>
-    <div><dt>سعر الوقوف</dt><dd class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</dd></div>
+    <div><dt>رقم الهيكل</dt><dd>{{ vehicle.vin|default:"—" }}</dd></div>
     <div><dt>رقم المطالبة</dt><dd>{{ vehicle.claim_number|default:"—" }}</dd></div>
     <div><dt>شركة التأمين</dt><dd>{{ vehicle.insurance_company|default:"—" }}</dd></div>
-    <div><dt>حالة المحرّك (فحص MVPI)</dt><dd>{{ vehicle.runs_status|default:"—" }}</dd></div>
-    <div><dt>المفاتيح</dt><dd>{{ vehicle.key_status|default:"—" }}</dd></div>
-    <div><dt>أيام الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>تقرير الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>الوصف / النبذة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>حالة التفعيل</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
-    <div><dt>المدينة / موقع المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
     <div><dt>التسويق</dt><dd>{% if vehicle.is_marketing %}سيارة شريك التسويق (التعاونية){% else %}عاديّة{% endif %}</dd></div>
-    <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
     <div><dt>الشريك المالك</dt><dd>{{ vehicle.owner_company.name|default:"—" }}</dd></div>
     {% comment %} الفائزُ اسماً وسعرُ رسوّه — الحقلان الوحيدان الحسّاسان في
        واحدٍ وعشرين حقلاً، والشاشةُ `auctions.view` وحدَها. وهما بعينهما ما
@@ -83,6 +101,42 @@
 
        وسعرُ الوقوف أعلاه يبقى: سعرٌ بلا مشترٍ (المالكُ شركةٌ لا شخص)، وهو
        المعيارُ الذي استُقرَّ عليه في `ended-decisions`. {% endcomment %}
+  </dl>
+
+  <h2 class="section-title">الحالة الفنية</h2>
+  <dl class="vehicle-facts">
+    <div><dt>الحالة الفنية</dt><dd>{{ vehicle.get_condition_display|default:"—" }}</dd></div>
+    <div><dt>الوزن / نوع الوقود</dt><dd>{{ vehicle.get_fuel_type_display|default:"—" }}</dd></div>
+    <div><dt>ناقل الحركة</dt><dd>{{ vehicle.get_transmission_display|default:"—" }}</dd></div>
+    <div><dt>حالة المحرّك (فحص MVPI)</dt><dd>{{ vehicle.runs_status|default:"—" }}</dd></div>
+    <div><dt>المفاتيح</dt><dd>{{ vehicle.key_status|default:"—" }}</dd></div>
+    <div><dt>الأبواب</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+  </dl>
+
+  <h2 class="section-title">المعاينة والفحص</h2>
+  <dl class="vehicle-facts">
+    <div><dt>المدينة / موقع المعاينة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>أيام الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>تقرير الفحص</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>الوصف / النبذة</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+    <div><dt>حالة التفعيل</dt><dd class="fact--pending">— (لا يُستورَد بعد)</dd></div>
+  </dl>
+
+  <h2 class="section-title">المزاد والنتيجة</h2>
+  <dl class="vehicle-facts">
+    <div><dt>المزاد</dt><dd>
+      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">{{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></dd></div>
+    <div><dt>نهاية المزاد</dt><dd>{{ vehicle.auction.ends_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
+    <div><dt>سعر الوقوف</dt><dd class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</dd></div>
+    <div><dt>أعلى عرض</dt><dd class="money">
+      {% if shown.money %}{{ top_bid|default:"—"|unlocalize }}
+      {% elif top_bid %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
+    <div><dt>أول عرض</dt><dd class="money">
+      {% if shown.money %}{{ first_amount|default:"—"|unlocalize }}
+      {% elif first_amount %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
+    <div><dt>عدد المزايدات</dt><dd>{{ bids_count|unlocalize }}</dd></div>
+    <div><dt>عدد المزايدين</dt><dd>{{ bidders_count|unlocalize }}</dd></div>
+    <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
     <div><dt>الفائز</dt><dd>
       {% if shown.customer %}{{ vehicle.awarded_to.full_name|default:"—" }}
       {% elif vehicle.awarded_to_id %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
@@ -96,15 +150,6 @@
        سيارةٌ بدأت بـ٥٠ وانتهت بـ٥٢ لم يتنافس عليها أحد، وأخرى بلغت ١٢٠
        تنافس عليها كثيرون. والرقمان معاً يقولان ما لا يقوله أحدُهما.
        والمبالغُ خلف صلاحيتها كأخواتها. {% endcomment %}
-    <div><dt>نهاية المزاد</dt><dd>{{ vehicle.auction.ends_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
-    <div><dt>أعلى عرض</dt><dd class="money">
-      {% if shown.money %}{{ top_bid|default:"—"|unlocalize }}
-      {% elif top_bid %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
-    <div><dt>أول عرض</dt><dd class="money">
-      {% if shown.money %}{{ first_amount|default:"—"|unlocalize }}
-      {% elif first_amount %}<span class="empty">محجوب</span>{% else %}—{% endif %}</dd></div>
-    <div><dt>عدد المزايدات</dt><dd>{{ bids_count|unlocalize }}</dd></div>
-    <div><dt>عدد المزايدين</dt><dd>{{ bidders_count|unlocalize }}</dd></div>
     <div><dt>وقت الترسية</dt><dd>{{ vehicle.awarded_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
   </dl>
   </div>
