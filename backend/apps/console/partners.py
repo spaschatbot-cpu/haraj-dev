@@ -41,6 +41,7 @@ from apps.core import audit
 
 from .archive import ARCHIVED
 from .exports import export, wants_export
+from .icons import path_of
 from .tones import with_tones
 from .views import console_page
 
@@ -138,6 +139,12 @@ def decisions(request):
                     "page": request.GET.get("page", ""),
                 }
             ),
+            # رسومُ الحكم — من `icons.py` لا إيموجي (T837). والقبولُ والرفضُ
+            # فعلان لا رجعةَ لهما في الشاشة، فيُقرآن بالرسم قبل النصّ: العينُ
+            # تلتقط «✓» و«⃠» أسرعَ من كلمتين متجاورتين بالطول نفسه.
+            "icon_yes": path_of("check"),
+            "icon_no": path_of("ban"),
+            "icon_offers": path_of("eye"),
         },
     )
 

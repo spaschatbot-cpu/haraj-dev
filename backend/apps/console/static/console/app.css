@@ -4226,6 +4226,67 @@ dialog.row-modal {
 .vehicle-facts .fact--pending { color: var(--muted); font-size: .8rem; font-weight: 400; }
 .vehicle-facts__foot { margin: 1.1rem 0 0; }
 
+/* ---- حكمُ الشريك: زوجٌ مقروءٌ بالرسم، لا ثلاثةُ أزرارٍ متشابهة --------- */
+/* كانت الخانةُ ثلاثةَ أزرارٍ بأصنافٍ عامّةٍ تفرّقها الألوانُ وحدَها، وطولُ
+   «قبول أعلى عرض» و«العروض ←» متقاربٌ في العين. وهي أفعالٌ لا رجعةَ لها
+   يُضغط عليها أربعين مرّةً بعد كلّ مزاد. فالرسمُ قبل النصّ، والحكمان في
+   مجموعةٍ يفصلها خطٌّ عن «العروض». */
+.dc-cell { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.dc-pair {
+  display: inline-flex;
+  gap: .35rem;
+  padding-inline-end: .45rem;
+  border-inline-end: 1px solid var(--line);
+}
+.dc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .34rem .7rem;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  /* الانتقالُ على الخصائص المسمّاة لا على `all`: `all` يحرّك `border-width`
+     و`font-size` معها فيهتزّ النصُّ داخل الزرّ عند كلّ مرور. */
+  transition: background .16s ease, border-color .16s ease, color .16s ease,
+              transform .16s ease, box-shadow .16s ease;
+}
+.dc-btn svg { inline-size: .95rem; block-size: .95rem; opacity: .75; transition: opacity .16s ease, transform .16s ease; }
+.dc-btn:hover { transform: translateY(-1px); }
+.dc-btn:hover svg { opacity: 1; transform: scale(1.12); }
+/* الضغطةُ تُرى: زرٌّ يهبط تحت الإصبع يقول «وصلت» قبل أن يردّ الخادم. */
+.dc-btn:active { transform: translateY(0) scale(.97); }
+.dc-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+.dc-btn--yes { border-color: var(--ok-line); color: var(--ok); background: var(--ok-soft); }
+.dc-btn--yes:hover { background: var(--ok); border-color: var(--ok); color: #fff; box-shadow: 0 2px 10px -3px var(--ok); }
+.dc-btn--no { border-color: var(--danger-line); color: var(--danger); background: var(--danger-soft); }
+.dc-btn--no:hover { background: var(--danger); border-color: var(--danger); color: #fff; box-shadow: 0 2px 10px -3px var(--danger); }
+.dc-btn--ghost:hover { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-dark); }
+
+/* نبضةٌ بطيئةٌ على «ينتظر» وحدَه — والصفحةُ تُفتح على أربعين صفّاً أكثرُها
+   محكومٌ فيه. وهي تعود إلى حيث بدأت في كلّ دورة، فتجمّدُها في تبويبٍ مخفيٍّ
+   لا يترك شارةً باهتة: ذلك بعينه ما وقع في `.ex-act` حين انتهت بـ`forwards`
+   على `opacity: 0`. */
+@keyframes dcWait {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px var(--warn-soft); }
+}
+.dc-wait { animation: dcWait 2.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-btn, .dc-btn svg { transition: none; }
+  .dc-btn:hover, .dc-btn:active { transform: none; }
+  .dc-wait { animation: none; }
+}
+
 /* ---- بطاقاتُ تفصيل المركبة: شبكةُ v1 `.p-cols` لا أشرطةٌ متتابعة ------ */
 /* خمسةُ أقسامٍ بعرض الشاشة يتلو بعضُها بعضاً تجعل صفحةً من تسعةٍ وعشرين حقلاً
    تطول طولاً يُمرَّر، وثلاثةُ أرباعِ كلّ سطرٍ بياض. وv1 يضعها بطاقاتٍ: ثلاثٌ

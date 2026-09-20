@@ -90,28 +90,50 @@ sat in the vehicle list and the partner was told by telephone.
                 {% if vehicle.partner_decided_at %}
                   <span class="pill" data-tone="{% if vehicle.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ vehicle.get_partner_decision_display|default:"حُكم" }}</span>
                 {% else %}
-                  <span class="pill" data-tone="warn">ينتظر</span>
+                  {% comment %} نبضةٌ بطيئةٌ على المنتظِر وحدَه: الصفحةُ
+                     تُفتح على أربعين صفّاً أكثرُها محكومٌ فيه، والعينُ تحتاج
+                     أن تجد الباقيَ دون قراءة عمودٍ كامل. وتعود إلى حيث بدأت
+                     في كلّ دورة، فتجمّدُها في تبويبٍ مخفيٍّ لا يترك شيئاً
+                     باهتاً — وهو العطلُ الذي وقع في `.ex-act`. {% endcomment %}
+                  <span class="pill dc-wait" data-tone="warn">ينتظر</span>
                 {% endif %}
               </td>
               {% comment %} **الفعلُ في الصفّ كـ v1.** كان في صفحةٍ ثانيةٍ لكلّ
                  مركبة، والشريك يحكم على أربعين سيارةً بعد كلّ مزاد — فأربعون
                  فتحةَ صفحةٍ ورجوعاً تجعل الشاشةَ قائمةَ عرضٍ لا شاشةَ قرار.
                  و«العروض ←» تبقى لمن يريد أن يختار الثاني أو الثالث. {% endcomment %}
-              <td class="actions">
+              {% comment %} **الحكمُ زوجٌ مقروءٌ بالرسم، لا ثلاثةُ أزرارٍ
+                 متشابهةِ الطول.** كانت الخانةُ «قبول أعلى عرض» و«رفض»
+                 و«العروض ←» بثلاثة أصنافٍ عامّة (`btn-primary-sm` و
+                 `btn-danger-sm` و`btn-sm`) تفرّقها الألوانُ وحدَها — وهي
+                 أفعالٌ لا رجعةَ لها يُضغط عليها أربعين مرّةً بعد كلّ مزاد،
+                 والخطأُ فيها ترسيةٌ أو رفضٌ على المركبة الخطأ.
+
+                 فصارت: رسمٌ قبل النصّ (العينُ تلتقط «✓» و«⃠» أسرعَ من
+                 كلمتين متجاورتين بالطول نفسه)، والحكمان معاً في مجموعةٍ
+                 واحدةٍ يفصلها خطٌّ عن «العروض» — فلا يُقرأ الثالثُ حكماً
+                 ثالثاً. {% endcomment %}
+              <td class="actions dc-cell">
                 {% if vehicle.partner_decided_at %}
-                  <a class="btn-sm" href="{% url 'console:partner-offers' vehicle.pk %}">العروض ←</a>
+                  <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
+                    {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
                 {% else %}
-                  {% if vehicle.top_amount %}
-                    <form method="post" action="{% url 'console:partner-award-top' vehicle.pk %}" class="ex-inline">
+                  <span class="dc-pair">
+                    {% if vehicle.top_amount %}
+                      <form method="post" action="{% url 'console:partner-award-top' vehicle.pk %}" class="ex-inline">
+                        {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
+                        <button type="submit" class="dc-btn dc-btn--yes">
+                          {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول أعلى عرض</span></button>
+                      </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}" class="ex-inline">
                       {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                      <button type="submit" class="btn-primary-sm">قبول أعلى عرض</button>
+                      <button type="submit" class="dc-btn dc-btn--no">
+                        {% include "console/_act_icon.html" with path=icon_no %}<span>رفض</span></button>
                     </form>
-                  {% endif %}
-                  <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}" class="ex-inline">
-                    {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                    <button type="submit" class="btn-danger-sm">رفض</button>
-                  </form>
-                  <a class="btn-sm" href="{% url 'console:partner-offers' vehicle.pk %}">العروض ←</a>
+                  </span>
+                  <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
+                    {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
                 {% endif %}
               </td>
             </tr>
