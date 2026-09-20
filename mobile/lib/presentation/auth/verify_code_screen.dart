@@ -176,10 +176,10 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    const AuthEntrance(
+                    AuthEntrance(
                       child: AuthBrand(
-                        title: 'مزاد حراج واحد',
-                        subtitle: 'خطوةٌ أخيرة — الرمزُ في رسالةٍ على جوّالك',
+                        title: l10n.splashHeadline,
+                        subtitle: l10n.verifyTagline,
                         size: 66,
                       ),
                     ),
@@ -263,9 +263,9 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         ),
         if (_needsName) ...<Widget>[
           const SizedBox(height: 14),
-          const AuthNotice(
+          AuthNotice(
             icon: Icons.person_add_alt_1_outlined,
-            text: 'حسابٌ جديد — اكتب اسمَك كما في الهويّة لنُكمل التسجيل.',
+            text: l10n.verifyNewAccountHint,
           ),
           const SizedBox(height: 10),
           TextField(

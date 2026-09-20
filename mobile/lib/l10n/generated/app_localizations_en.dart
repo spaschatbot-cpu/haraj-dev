@@ -1354,4 +1354,138 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get walletInsuranceCommitted => 'من تأمينك مرتبطٌ الآن';
+
+  @override
+  String get splashTagline =>
+      'The first platform for luxury and rare car auctions in the Kingdom';
+
+  @override
+  String get splashLoadingLabel => 'Preparing the app';
+
+  @override
+  String get splashLiveBadge => 'Live and licensed';
+
+  @override
+  String get splashHeadline => 'Haraj Wahed Auctions';
+
+  @override
+  String get splashStepBoot => 'Preparing the interface…';
+
+  @override
+  String get splashStepSession => 'Checking your session…';
+
+  @override
+  String get splashStepAuctions => 'Syncing the live auction board…';
+
+  @override
+  String get splashStepReady => 'Ready';
+
+  @override
+  String get splashStepOffline => 'Sync failed — it retries inside the app';
+
+  @override
+  String get splashEnter => 'Next';
+
+  @override
+  String get splashPlace => 'Saudi Arabia • Riyadh';
+
+  @override
+  String splashVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get welcomeSkip => 'Skip';
+
+  @override
+  String get welcomeBrandLine => 'The official licensed platform';
+
+  @override
+  String get welcomeEyebrow => 'Rare cars and collectibles';
+
+  @override
+  String get welcomeHeadlineLead => 'The rarest luxury auctions,';
+
+  @override
+  String get welcomeHeadlineAccent => 'in your hands';
+
+  @override
+  String get welcomeBody =>
+      'Live, fully transparent bidding under official oversight.';
+
+  @override
+  String get welcomeCta => 'Explore live auctions';
+
+  @override
+  String welcomeStep(String index, String total) {
+    return 'Step $index of $total';
+  }
+
+  @override
+  String get welcomeLive => 'Live';
+
+  @override
+  String welcomeLot(String lot) {
+    return 'Lot $lot';
+  }
+
+  @override
+  String welcomeActiveVehicles(String count) {
+    return '$count active';
+  }
+
+  @override
+  String get exploreEyebrow => 'The licensed auctions platform';
+
+  @override
+  String get exploreHeadline =>
+      'Everything you need to buy and sell at auction';
+
+  @override
+  String get exploreBody =>
+      'Browse hundreds of inspected vehicles daily, with ownership transfer, secure online payment and delivery to every city.';
+
+  @override
+  String get exploreChipKeys => 'Instant key handover';
+
+  @override
+  String get exploreChipTransfer => 'Ownership transfer';
+
+  @override
+  String get exploreChipShipping => 'Delivery nationwide';
+
+  @override
+  String get exploreCta => 'Start browsing and bidding';
+
+  @override
+  String get signInTagline =>
+      'Sealed bidding on auction cars — from your phone';
+
+  @override
+  String get signInLiveAuction => 'Live auction';
+
+  @override
+  String get signInNextAuction => 'Next auction';
+
+  @override
+  String signInVehicleCount(String count) {
+    return '$count vehicles';
+  }
+
+  @override
+  String get signInAssuranceSealed => 'Sealed bids: nobody sees your amount';
+
+  @override
+  String get signInAssuranceOtp => 'No password — a one-time code';
+
+  @override
+  String get signInAssuranceDeposit => 'The deposit is refundable on request';
+
+  @override
+  String get verifyTagline =>
+      'One last step — the code is in a message on your phone';
+
+  @override
+  String get verifyNewAccountHint =>
+      'New account — write your name as in your ID to finish signing up.';
 }

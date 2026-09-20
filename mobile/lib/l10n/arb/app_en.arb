@@ -642,5 +642,123 @@
   "refundIbanUploaded": "The IBAN image was uploaded.",
   "@refundIbanUploaded": {},
   "refundIbanUploading": "Uploading…",
-  "@refundIbanUploading": {}
+  "@refundIbanUploading": {},
+  "splashTagline": "The first platform for luxury and rare car auctions in the Kingdom",
+  "@splashTagline": {
+    "description": "Tagline under the logo on the splash screen"
+  },
+  "splashLoadingLabel": "Preparing the app",
+  "@splashLoadingLabel": {
+    "description": "Accessible label for the splash loading indicator"
+  },
+  "splashLiveBadge": "Live and licensed",
+  "@splashLiveBadge": {},
+  "splashHeadline": "Haraj Wahed Auctions",
+  "@splashHeadline": {},
+  "splashStepBoot": "Preparing the interface…",
+  "@splashStepBoot": {},
+  "splashStepSession": "Checking your session…",
+  "@splashStepSession": {},
+  "splashStepAuctions": "Syncing the live auction board…",
+  "@splashStepAuctions": {},
+  "splashStepReady": "Ready",
+  "@splashStepReady": {},
+  "splashStepOffline": "Sync failed — it retries inside the app",
+  "@splashStepOffline": {},
+  "splashEnter": "Next",
+  "@splashEnter": {
+    "description": "Splash entry button — the screen is left only by pressing it"
+  },
+  "splashPlace": "Saudi Arabia • Riyadh",
+  "@splashPlace": {},
+  "splashVersion": "Version {version}",
+  "@splashVersion": {
+    "description": "App version in the splash footer",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSkip": "Skip",
+  "@welcomeSkip": {},
+  "welcomeBrandLine": "The official licensed platform",
+  "@welcomeBrandLine": {},
+  "welcomeEyebrow": "Rare cars and collectibles",
+  "@welcomeEyebrow": {},
+  "welcomeHeadlineLead": "The rarest luxury auctions,",
+  "@welcomeHeadlineLead": {},
+  "welcomeHeadlineAccent": "in your hands",
+  "@welcomeHeadlineAccent": {},
+  "welcomeBody": "Live, fully transparent bidding under official oversight.",
+  "@welcomeBody": {},
+  "welcomeCta": "Explore live auctions",
+  "@welcomeCta": {},
+  "welcomeStep": "Step {index} of {total}",
+  "@welcomeStep": {
+    "placeholders": {
+      "index": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeLive": "Live",
+  "@welcomeLive": {},
+  "welcomeLot": "Lot {lot}",
+  "@welcomeLot": {
+    "placeholders": {
+      "lot": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeActiveVehicles": "{count} active",
+  "@welcomeActiveVehicles": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreEyebrow": "The licensed auctions platform",
+  "@exploreEyebrow": {},
+  "exploreHeadline": "Everything you need to buy and sell at auction",
+  "@exploreHeadline": {},
+  "exploreBody": "Browse hundreds of inspected vehicles daily, with ownership transfer, secure online payment and delivery to every city.",
+  "@exploreBody": {},
+  "exploreChipKeys": "Instant key handover",
+  "@exploreChipKeys": {},
+  "exploreChipTransfer": "Ownership transfer",
+  "@exploreChipTransfer": {},
+  "exploreChipShipping": "Delivery nationwide",
+  "@exploreChipShipping": {},
+  "exploreCta": "Start browsing and bidding",
+  "@exploreCta": {},
+  "signInTagline": "Sealed bidding on auction cars — from your phone",
+  "@signInTagline": {},
+  "signInLiveAuction": "Live auction",
+  "@signInLiveAuction": {},
+  "signInNextAuction": "Next auction",
+  "@signInNextAuction": {},
+  "signInVehicleCount": "{count} vehicles",
+  "@signInVehicleCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "signInAssuranceSealed": "Sealed bids: nobody sees your amount",
+  "@signInAssuranceSealed": {},
+  "signInAssuranceOtp": "No password — a one-time code",
+  "@signInAssuranceOtp": {},
+  "signInAssuranceDeposit": "The deposit is refundable on request",
+  "@signInAssuranceDeposit": {},
+  "verifyTagline": "One last step — the code is in a message on your phone",
+  "@verifyTagline": {},
+  "verifyNewAccountHint": "New account — write your name as in your ID to finish signing up.",
+  "@verifyNewAccountHint": {}
 }
