@@ -55,34 +55,46 @@
      الشاشة يحمل «افتحها» وحدَها. وهو ليس جدولاً: ثمانِ قيمٍ منفردةٍ لا تُفرَز
      ولا تُقارَن.
 
-     فكلُّ صفٍّ صار بطاقةً هي نفسُها الرابط، كما في «منصّة الملاك» و«لوحة
-     التقارير». و«إجمالي أسعار الترسية» بلا وجهةٍ فيبقى بطاقةً لا تُنقر —
-     وهو الصفُّ الذي كانت خانتُه الثالثةُ فارغةً في الجدول. {% endcomment %}
+     فكلُّ صفٍّ صار بطاقةً، كما في «منصّة الملاك» و«لوحة التقارير».
+
+     **ولا تفتح شيئاً** (قرار المالكة، ٢٠ سبتمبر ٢٠٢٦: «مش عوزه البطاقات اللي
+     في الصفحة تفتح صفح داخلية»). وكانت تسعٌ منها روابطَ إلى شاشاتٍ **كلُّها
+     في الشريط الجانبيّ تحت «شريك التسويق»** — «كل السيارات» و«اتخاذ القرار»
+     و«غير المسددة» و«المسددة» و«سجل الدفعات» وأخواتُها. فالبطاقةُ بابٌ ثانٍ
+     إلى بابٍ قائم، وثمنُه أن تُقرأ خمسَ عشرةَ بطاقةً ستٌّ منها لا تُنقر:
+     يُجرَّب النقرُ على «متوسط سعر البيع» فلا يحدث شيء، ولا يُعرف من الشكل
+     أيُّها يُنقر.
+
+     فصارت الخمسَ عشرةَ **أرقاماً تُقرأ**، والتنقّلُ من الشريط وحده. و«افتحها»
+     في سطرها الصغير كانت تسعَ مرّاتٍ تقول الشيءَ نفسَه ولا تقول عن الرقم
+     شيئاً — فصار كلُّ سطرٍ يقول **ما الرقم**: «رستْ على مشترٍ» و«رستْ ولم يصل
+     مالُها». ويبقى شريطُ التنبيه فوقها رابطاً — وهو ليس بطاقةَ رقمٍ بل عملٌ
+     ينتظر. {% endcomment %}
   <section class="sum-grid sum-grid--links" aria-label="أرقام الشريك">
 
-    <a class="sum" href="{% url 'console:partner-auctions' %}?partner={{ partner }}">
+    <div class="sum">
       <p class="sum__label">مزادات فيها سياراته</p>
       <p class="sum__value">{{ totals.auctions|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">التي دخلها بمركبة</p>
+    </div>
 
-    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">
+    <div class="sum">
       <p class="sum__label">سياراته</p>
       <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">في المزادات كلِّها</p>
+    </div>
 
-    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=sold">
+    <div class="sum">
       <p class="sum__label">ما بيع منها</p>
       <p class="sum__value">{{ totals.won|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">رستْ على مشترٍ</p>
+    </div>
 
-    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=unsold">
+    <div class="sum">
       <p class="sum__label">ما لم يُبع</p>
       <p class="sum__value">{{ totals.unsold|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">لم ترسُ على أحد</p>
+    </div>
 
     <div class="sum sum--money">
       <p class="sum__label">إجمالي أسعار الترسية</p>
@@ -90,23 +102,23 @@
       <p class="sum__note">ما رسا — قبل أيّ سداد.</p>
     </div>
 
-    <a class="sum sum--wait" href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">
+    <div class="sum sum--wait">
       <p class="sum__label">غير مسدَّدة</p>
       <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">رستْ ولم يصل مالُها</p>
+    </div>
 
-    <a class="sum" href="{% url 'console:partner-paid' %}?partner={{ partner }}">
+    <div class="sum">
       <p class="sum__label">مسدَّدة</p>
       <p class="sum__value">{{ totals.paid|unlocalize }}</p>
-      <p class="sum__note">افتحها</p>
-    </a>
+      <p class="sum__note">وصل مالُها كاملاً</p>
+    </div>
 
-    <a class="sum sum--money" href="{% url 'console:partner-payments' %}?partner={{ partner }}">
+    <div class="sum sum--money">
       <p class="sum__label">ما وصل من مالها</p>
       <p class="sum__value money">{{ totals.paid_value|unlocalize }}</p>
-      <p class="sum__note">سجل الدفعات</p>
-    </a>
+      <p class="sum__note">مجموعُ ما قُيِّد سداداً</p>
+    </div>
 
     {% comment %} السبعةُ التي كانت في v1 ولم تكن هنا. وأربعةٌ منها بلا وجهة
        (نسبةٌ ومتوسّطٌ وأعلى بيعةٍ وزيادة) فتبقى بطاقاتٍ لا تُنقر — رابطٌ لا
@@ -135,11 +147,11 @@
       <p class="sum__note">مقيسةٌ على المرساة وحدها</p>
     </div>
 
-    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}">
+    <div class="sum">
       <p class="sum__label">إجمالي المزايدات</p>
       <p class="sum__value">{{ totals.bids|unlocalize }}</p>
       <p class="sum__note">على سياراته</p>
-    </a>
+    </div>
 
     <div class="sum">
       <p class="sum__label">عدد المزايدين</p>
@@ -147,11 +159,11 @@
       <p class="sum__note">أشخاصٌ لا مزايدات</p>
     </div>
 
-    <a class="sum" href="{% url 'console:partner-vehicles' %}?partner={{ partner }}&amp;which=deciding">
+    <div class="sum">
       <p class="sum__label">بانتظار قرار الشريك</p>
       <p class="sum__value">{{ totals.pending_decision|unlocalize }}</p>
       <p class="sum__note">في المزادات المنتهية</p>
-    </a>
+    </div>
 
 
   </section>
