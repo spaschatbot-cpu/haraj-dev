@@ -73,98 +73,86 @@
   <section class="sum-grid sum-grid--links" aria-label="أرقام الشريك">
 
     <div class="sum">
-      <p class="sum__label">مزادات فيها سياراته</p>
-      <p class="sum__value">{{ totals.auctions|unlocalize }}</p>
-      <p class="sum__note">التي دخلها بمركبة</p>
-    </div>
-
-    <div class="sum">
       <p class="sum__label">سياراته</p>
       <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
       <p class="sum__note">في المزادات كلِّها</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">ما بيع منها</p>
       <p class="sum__value">{{ totals.won|unlocalize }}</p>
       <p class="sum__note">رستْ على مشترٍ</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">ما لم يُبع</p>
       <p class="sum__value">{{ totals.unsold|unlocalize }}</p>
       <p class="sum__note">لم ترسُ على أحد</p>
     </div>
-
-    <div class="sum sum--money">
-      <p class="sum__label">إجمالي أسعار الترسية</p>
-      <p class="sum__value money">{{ totals.won_value|unlocalize }}</p>
-      <p class="sum__note">ما رسا — قبل أيّ سداد.</p>
-    </div>
-
-    <div class="sum sum--wait">
-      <p class="sum__label">غير مسدَّدة</p>
-      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
-      <p class="sum__note">رستْ ولم يصل مالُها</p>
-    </div>
-
-    <div class="sum">
-      <p class="sum__label">مسدَّدة</p>
-      <p class="sum__value">{{ totals.paid|unlocalize }}</p>
-      <p class="sum__note">وصل مالُها كاملاً</p>
-    </div>
-
-    <div class="sum sum--money">
-      <p class="sum__label">ما وصل من مالها</p>
-      <p class="sum__value money">{{ totals.paid_value|unlocalize }}</p>
-      <p class="sum__note">مجموعُ ما قُيِّد سداداً</p>
-    </div>
-
-    {% comment %} السبعةُ التي كانت في v1 ولم تكن هنا. وأربعةٌ منها بلا وجهة
-       (نسبةٌ ومتوسّطٌ وأعلى بيعةٍ وزيادة) فتبقى بطاقاتٍ لا تُنقر — رابطٌ لا
-       يفتح شيئاً أسوأ من غيابه. {% endcomment %}
     <div class="sum">
       <p class="sum__label">نسبة البيع</p>
       <p class="sum__value">{{ totals.sale_rate|unlocalize }}%</p>
       <p class="sum__note">من إجمالي سياراته</p>
     </div>
-
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي أسعار الترسية</p>
+      <p class="sum__value money">{{ totals.won_value|unlocalize }}</p>
+      <p class="sum__note">ما رسا — قبل أيّ سداد.</p>
+    </div>
     <div class="sum">
       <p class="sum__label">متوسط سعر البيع</p>
       <p class="sum__value money">{{ totals.avg_price|unlocalize }}</p>
       <p class="sum__note">للمركبة المرساة</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">أعلى بيعة</p>
       <p class="sum__value money">{{ totals.best_sale|unlocalize }}</p>
       <p class="sum__note">أغلى ما رسا له</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">فوق سعر الوقوف</p>
       <p class="sum__value">{{ totals.uplift_pct|unlocalize }}%</p>
       <p class="sum__note">مقيسةٌ على المرساة وحدها</p>
     </div>
-
+    <div class="sum">
+      <p class="sum__label">مزادات فيها سياراته</p>
+      <p class="sum__value">{{ totals.auctions|unlocalize }}</p>
+      <p class="sum__note">التي دخلها بمركبة</p>
+    </div>
     <div class="sum">
       <p class="sum__label">إجمالي المزايدات</p>
       <p class="sum__value">{{ totals.bids|unlocalize }}</p>
       <p class="sum__note">على سياراته</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">عدد المزايدين</p>
       <p class="sum__value">{{ totals.bidders|unlocalize }}</p>
       <p class="sum__note">أشخاصٌ لا مزايدات</p>
     </div>
-
     <div class="sum">
       <p class="sum__label">بانتظار قرار الشريك</p>
       <p class="sum__value">{{ totals.pending_decision|unlocalize }}</p>
       <p class="sum__note">في المزادات المنتهية</p>
     </div>
 
+    {% comment %} **وثلاثٌ ليست في v1.** لوحتُه لا تعرض سداداً أصلاً: التسويةُ
+       هناك جدولٌ يُرفع بملفٍّ في شاشةٍ أخرى، وهي تقول بنفسها إن «الشريك لا
+       يرى أيَّ حالة سداد من النظام المحاسبي». وهنا الحالةُ من الفاتورة،
+       فتُقال على اللوحة. وهي آخرَ الشبكة لا وسطَها: الاثنتا عشرةَ قبلها
+       بترتيب v1، وما زِيد يُقرأ زيادةً. {% endcomment %}
+    <div class="sum sum--wait">
+      <p class="sum__label">غير مسدَّدة</p>
+      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
+      <p class="sum__note">رستْ ولم يصل مالُها</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مسدَّدة</p>
+      <p class="sum__value">{{ totals.paid|unlocalize }}</p>
+      <p class="sum__note">وصل مالُها كاملاً</p>
+    </div>
+    <div class="sum sum--money">
+      <p class="sum__label">ما وصل من مالها</p>
+      <p class="sum__value money">{{ totals.paid_value|unlocalize }}</p>
+      <p class="sum__note">مجموعُ ما قُيِّد سداداً</p>
+    </div>
 
   </section>
 
@@ -177,7 +165,10 @@
     <div class="scroller">
       <table class="pb-tbl">
         <thead>
-          <tr><th>المزاد</th><th>سياراته</th><th>مباعة</th><th>نسبة البيع</th><th>سعر الوقوف</th><th>المبيعات</th><th>الفرق</th></tr>
+          {% comment %} «سعر وقوف المباعة» لا «سعر الوقوف»: العمودُ يحمل وقوفَ
+              ما رسا وحدَه، فيقارَن بالمبيعات جنبَه على المجموعة نفسِها.
+              {% endcomment %}
+          <tr><th>المزاد</th><th>سياراته</th><th>مباعة</th><th>نسبة البيع</th><th>سعر وقوف المباعة</th><th>المبيعات</th><th>الفرق</th></tr>
         </thead>
         <tbody>
           {% for row in breakdown %}
@@ -193,12 +184,27 @@
               <td><span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}plain{% endif %}">{{ row.rate|unlocalize }}%</span></td>
               <td class="money">{{ row.reserve|unlocalize }}</td>
               <td class="money">{{ row.sales|unlocalize }}</td>
-              <td class="money pb-diff" data-sign="{% if row.diff >= 0 %}up{% else %}down{% endif %}">{{ row.diff|unlocalize }}</td>
+              {% comment %} الزائدُ يُكتب كـ v1: «١٠٬٠٠٠» و«+١٠٬٠٠٠» تُقرآن
+                 مختلفتين في عمودٍ أكثرُه سالب. {% endcomment %}
+              {% if row.diff is None %}
+                <td class="empty">—</td>
+              {% else %}
+                <td class="money pb-diff" data-sign="{% if row.diff >= 0 %}up{% else %}down{% endif %}">{% if row.diff >= 0 %}+{% endif %}{{ row.diff|unlocalize }}</td>
+              {% endif %}
             </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+  {% endif %}
+
+  {% comment %} حالةٌ فارغةٌ كـ v1 («لا توجد سيارات مسجّلة باسمك بعد»):
+     خمسَ عشرةَ بطاقةَ صفرٍ وجدولٌ غائبٌ تُقرأ عطلاً في التحميل، وهي جوابٌ.
+     {% endcomment %}
+  {% if not totals.vehicles %}
+    <p class="empty">
+      لا سيارات لهذا الشريك بعد — تظهر هنا فور إضافتها إلى مزاد.
+    </p>
   {% endif %}
 
   <p class="notice notice--soft">

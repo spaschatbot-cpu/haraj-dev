@@ -201,7 +201,22 @@ def breakdown_for(partner: str = "", limit: int = 24) -> list:
                 distinct=True,
             ),
             sales=Sum("vehicles__awarded_price", filter=Q(vehicles__in=cars)),
-            reserve=Sum("vehicles__reserve_price", filter=Q(vehicles__in=cars)),
+            # **سعرُ وقوفِ المرساة وحدها، لا وقوفِ كلّ سياراته في المزاد.**
+            #
+            # كان بلا شرطِ الحال، فيُطرح مبيعُ **المباع** من وقوفِ **الجميع**
+            # ويُسمّى «الفرق». وأثرُه مقيسٌ على الشاشة: «مزاد الرياض —
+            # الأسبوع القادم · سياراته ٢ · مباعة ٠ · سعر الوقوف ٢٠٥٬٠٠٠ ·
+            # المبيعات ٠ · الفرق −٢٠٥٬٠٠٠» — مزادٌ **لم يبدأ بعد** يُقرأ
+            # خسارةً بمئتي ألف.
+            #
+            # وهو عطلُ v1 نفسُه (`auctionBreakdown`: `SUM(av.starting_price)`
+            # بلا شرط)، وقد أُصلح هنا في الرقم العامّ وحدَه
+            # (`summary_for.uplift_pct` على المرساة) — فصار للمفهوم الواحد
+            # حسابان على الصفحة الواحدة. الآن حسابٌ واحد.
+            reserve=Sum(
+                "vehicles__reserve_price",
+                filter=Q(vehicles__in=cars, vehicles__state__in=AWARDED),
+            ),
         )
         .order_by("-starts_at", "-number")[:limit]
     )
@@ -220,7 +235,10 @@ def breakdown_for(partner: str = "", limit: int = 24) -> list:
                 "sales": sales,
                 # الفرقُ مبلغٌ لا نسبة: «زاد ٤٠ ألفاً» يُقرأ، و«زاد ٣٪» على
                 # مزادٍ صغيرٍ يُقرأ أكبرَ مما هو.
-                "diff": sales - reserve,
+                #
+                # و`None` حين لا مباع: صفرٌ يُقرأ «تعادل» ولم يجرِ بيعٌ أصلاً،
+                # والشرطةُ تقول «لا شيءَ يُقارَن».
+                "diff": (sales - reserve) if row.sold else None,
             }
         )
     return out
