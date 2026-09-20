@@ -43,6 +43,201 @@
     </div>
   </form>
 
+  {% comment %} **شرائحُ v1 الثلاث بعدّاداتها.** والشاشاتُ الثلاثُ في
+     الشريط الجانبيّ أصلاً — لكنّ ما ليس فيه هو **الرقم**: «قريباً (0) · نشط
+     (0) · منتهي (2)» يوفّر فتحَ شاشتين فارغتين، وهو ما يجعلها معلومةً لا
+     رابطاً مكرَّراً. ولذلك بقيت هنا حين أُسقطت بطاقاتُ لوحة الشريك.
+
+     و«نشط» بالساعة لا بالعمود، كما تقرؤه شاشتُه — وعدّادٌ يقول ٣ وشاشةٌ
+     تفتح على صفرٍ أسوأ من غياب العدّاد. {% endcomment %}
+  {% if counts %}
+    <nav class="pv-chips" aria-label="حال المزاد">
+      <a class="pv-chip{% if kind == 'soon' %} is-on{% endif %}" data-tone="info"
+         href="{% url 'console:partner-soon' %}?partner={{ partner }}">
+        <span>قريباً</span><b>{{ counts.soon|unlocalize }}</b></a>
+      <a class="pv-chip{% if kind == 'live' %} is-on{% endif %}" data-tone="ok"
+         href="{% url 'console:partner-active' %}?partner={{ partner }}">
+        <span>نشط</span><b>{{ counts.live|unlocalize }}</b></a>
+      <a class="pv-chip{% if kind == 'ended' %} is-on{% endif %}" data-tone="plain"
+         href="{% url 'console:partner-ended' %}?partner={{ partner }}">
+        <span>منتهي</span><b>{{ counts.ended|unlocalize }}</b></a>
+    </nav>
+  {% endif %}
+
+  {% comment %} **بطاقاتُ الحال — وتختلف بالحال كما في v1.** المزادُ القادم
+     لا مبيعاتِ له ولا مزايدات، فبطاقتان ورقمُ مزاداته؛ والجاري سؤالُه «هل
+     يزايد أحد»؛ والمنتهي «بكم بعت». وبطاقةٌ تقول صفراً لأن الحدثَ لم يقع
+     بعدُ تُقرأ «لم يزايد أحد» لا «لم يُفتح المزاد».
+
+     وهي على الطابور كلِّه لا على الصفحة — v1 يجمعها على المعروض، وصفحةٌ من
+     خمسين تجيب عن خمسين. {% endcomment %}
+  {% if totals %}
+    <section class="sum-grid sum-grid--tight" aria-label="أرقام هذه الحال">
+      <div class="sum">
+        <p class="sum__label">{% if picked %}سياراته{% else %}المركبات{% endif %}</p>
+        <p class="sum__value">{{ totals.cars|unlocalize }}</p>
+        <p class="sum__note">في {{ totals.auctions|unlocalize }} مزاداً</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">سعر الوقوف</p>
+        <p class="sum__value money">{{ totals.reserve|unlocalize }}</p>
+        <p class="sum__note">مجموعُ ما تقف عنده</p>
+      </div>
+
+      {% if kind == "live" %}
+        <div class="sum">
+          <p class="sum__label">المزايدات</p>
+          <p class="sum__value">{{ totals.bids|unlocalize }}</p>
+          <p class="sum__note">القائمةُ وحدَها</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">عليها عروض</p>
+          <p class="sum__value">{{ totals.with_bids|unlocalize }}</p>
+          <p class="sum__note">من سياراته</p>
+        </div>
+        <div class="sum sum--wait">
+          <p class="sum__label">بدون عروض</p>
+          <p class="sum__value">{{ totals.no_bids|unlocalize }}</p>
+          <p class="sum__note">لم يرها أحد بعد</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">نسبة التغطية</p>
+          <p class="sum__value">{{ totals.coverage|unlocalize }}%</p>
+          <p class="sum__note">ما لقي عرضاً أصلاً</p>
+        </div>
+      {% elif kind == "ended" %}
+        <div class="sum">
+          <p class="sum__label">المباعة</p>
+          <p class="sum__value">{{ totals.sold|unlocalize }}</p>
+          <p class="sum__note">رستْ على مشترٍ</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">غير المباعة</p>
+          <p class="sum__value">{{ totals.unsold|unlocalize }}</p>
+          <p class="sum__note">لم ترسُ على أحد</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">نسبة البيع</p>
+          <p class="sum__value">{{ totals.rate|unlocalize }}%</p>
+          <p class="sum__note">من سياراته في هذه المزادات</p>
+        </div>
+        <div class="sum sum--money">
+          <p class="sum__label">المبيعات</p>
+          <p class="sum__value money">{{ totals.sales|unlocalize }}</p>
+          <p class="sum__note">مجموعُ أسعار الترسية</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">فوق سعر الوقوف</p>
+          <p class="sum__value">{{ totals.uplift|unlocalize }}%</p>
+          <p class="sum__note">مقيسةٌ على المرساة وحدها</p>
+        </div>
+        <div class="sum">
+          <p class="sum__label">إجمالي المزايدات</p>
+          <p class="sum__value">{{ totals.bids|unlocalize }}</p>
+          <p class="sum__note">تاريخُها كلُّه</p>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {% if kind %}
+    {% comment %} **قسمٌ لكلّ مزادٍ وتحته سياراتُ الشريك فيه — بناءُ v1.**
+       وكان صفَّ مزادٍ وحده، فمن يسأل «أيُّ سياراتي في مزاد الخميس؟» — وهو
+       سؤالُ هذه الشاشة الأوّل قبل مزادٍ لم يُفتح — لا يجد جواباً إلا بفتح
+       المزاد.
+
+       والأعمدةُ تتبع الحال كـ v1: القادمُ بلا «أعلى عرض» ولا «مزايدات» (لا
+       شيءَ فيهما بعد)، والجاري يزيد «الفرق» عن سعر الوقوف، والمنتهي يزيد
+       «النتيجة». {% endcomment %}
+    {% for row in page %}
+      <h2 class="pd-auction">
+        <a href="{% url 'console:auction-detail' row.pk %}">مزاد {{ row.number|unlocalize }}</a>
+        {% if row.title %}<small>{{ row.title }}</small>{% endif %}
+        <span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span>
+        {% if kind == "soon" %}
+          <span class="pill" data-tone="plain">يبدأ {{ row.starts_at|date:"Y-m-d H:i" }}</span>
+        {% elif kind == "live" %}
+          <span class="pill" data-tone="plain">ينتهي {{ row.ends_at|date:"Y-m-d H:i" }}</span>
+          {% if row.mine and not row.with_bids %}
+            <span class="pill" data-tone="bad">لا عروض على أيٍّ منها</span>
+          {% endif %}
+        {% else %}
+          <span class="pill" data-tone="plain">انتهى {{ row.ends_at|date:"Y-m-d" }}</span>
+          <span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}bad{% endif %}">بيع {{ row.rate|unlocalize }}% · {{ row.sold|unlocalize }}/{{ row.mine|unlocalize }}</span>
+          <span class="pill" data-tone="info">مبيعات {{ row.sales|default:"0.00"|unlocalize }}</span>
+        {% endif %}
+      </h2>
+
+      {% if row.cars %}
+        <div class="scroller scroller--wide">
+          <table class="pd-tbl">
+            <thead>
+              <tr>
+                <th>اللوت</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
+                <th>سعر الوقوف</th>
+                {% if kind != "soon" %}<th>أعلى عرض</th><th>مزايدات</th>{% endif %}
+                {% if kind == "live" %}<th>الفرق</th>{% endif %}
+                {% if kind == "ended" %}<th>النتيجة</th>{% endif %}
+                <th>التفاصيل</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for car in row.cars %}
+                <tr>
+                  <td class="count">{{ car.lot_number|unlocalize }}</td>
+                  <td class="pv-name">
+                    <a href="{% url 'console:vehicle-detail' car.pk %}"><strong>{{ car.make }} {{ car.model }}</strong></a>
+                    <small>{{ car.year|unlocalize }}</small>
+                  </td>
+                  <td class="mono">{{ car.plate_number|default:"—" }}</td>
+                  <td class="mono">{{ car.claim_number|default:"—" }}</td>
+                  <td class="money">{{ car.reserve_price|default:"—"|unlocalize }}</td>
+                  {% if kind != "soon" %}
+                    <td class="money">
+                      {% if car.top_amount %}{{ car.top_amount|unlocalize }}
+                      {% else %}<span class="pill" data-tone="bad">لا عروض</span>{% endif %}
+                    </td>
+                    <td class="count">{{ car.bids_count|unlocalize }}</td>
+                  {% endif %}
+                  {% if kind == "live" %}
+                    {% comment %} الفرقُ عن سعر الوقوف: هو ما يقول أبلغ العرضُ
+                       الحدَّ أم لا — وسيارةٌ عليها عشرُ مزايداتٍ تحت الوقوف
+                       لن تُباع. {% endcomment %}
+                    {% if car.gap is None %}
+                      <td class="empty">—</td>
+                    {% else %}
+                      <td class="money pb-diff" data-sign="{% if car.gap >= 0 %}up{% else %}down{% endif %}">{% if car.gap >= 0 %}+{% endif %}{{ car.gap|unlocalize }}</td>
+                    {% endif %}
+                  {% endif %}
+                  {% if kind == "ended" %}
+                    <td>
+                      {% if car.awarded_price %}
+                        <span class="pill" data-tone="ok">بيعت · {{ car.awarded_price|unlocalize }}</span>
+                      {% else %}<span class="pill" data-tone="plain">لم تُبع</span>{% endif %}
+                    </td>
+                  {% endif %}
+                  <td class="rf-act"><a class="rf-go" href="{% url 'console:vehicle-detail' car.pk %}">{% if kind == "soon" %}التفاصيل{% else %}المزايدات{% endif %}</a></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        {% comment %} بلا شريكٍ مختارٍ لا تُقرأ سياراتُ أحد: الشاشةُ تعرض
+           المزادات وحدَها، وتقول ذلك بدل أن تترك فراغاً يُقرأ عطلاً. {% endcomment %}
+        <p class="empty">
+          {% if picked %}لا سيارات لهذا الشريك في هذا المزاد.
+          {% else %}اختر شريكاً لتظهر سياراتُه في هذا المزاد.{% endif %}
+        </p>
+      {% endif %}
+    {% empty %}
+      <p class="empty">
+        {% if kind == "soon" %}لا مزادات قادمة فيها سيارات لهذا الشريك.
+        {% elif kind == "live" %}لا مزاد شغّالٌ الآن فيه سيارات لهذا الشريك.
+        {% else %}لا مزادات منتهية فيها سيارات لهذا الشريك.{% endif %}
+      </p>
+    {% endfor %}
+  {% else %}
   <div class="scroller scroller--wide">
     <table>
     <thead>
@@ -101,6 +296,8 @@
     </tbody>
   </table>
 </div>
+
+  {% endif %}
 
   <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مزاداً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
 {% endblock %}

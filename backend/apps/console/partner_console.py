@@ -334,6 +334,14 @@ def auctions_of(partner: str = "", state: str = ""):
         bidders=Count("vehicles__bids__bidder", filter=bid_filter, distinct=True),
         with_bids=Count("vehicles", filter=bid_filter, distinct=True),
         reserve=Sum("vehicles__reserve_price", filter=mine),
+        # **ووقوفُ المُباع وحدَه، عموداً ثانياً.** «كم فوق الوقوف بعتُ؟»
+        # سؤالٌ عن المبيع، وقسمتُه على وقوفِ **كلّ** السيارات (ومنها ما لم
+        # يُعرَض) تُنتج سالباً دائماً — عطلُ v1 نفسُه، المُصلَح في لوحة
+        # الشريك وفي «الأداء لكل مزاد»، ولا يُعاد هنا.
+        reserve_sold=Sum(
+            "vehicles__reserve_price",
+            filter=mine & Q(vehicles__state__in=AWARDED),
+        ),
         sales=Sum("vehicles__awarded_price", filter=mine),
         top_bid=Max("vehicles__bids__amount", filter=mine),
     ).order_by(
@@ -341,6 +349,133 @@ def auctions_of(partner: str = "", state: str = ""):
         # قفلاً أوّلاً لأنه الذي يحتاج قراراً. والمنتهي تاريخٌ، فالأحدثُ أوّلاً.
         *(("ends_at", "number") if live_only else ("-starts_at", "-number"))
     )
+
+
+def cars_in(partner: str, auctions, live_only: bool = False) -> dict[int, list]:
+    """سيارات الشريك في مزاداتٍ بعينها، مجموعةً بمزادها — جدولُ v1 داخلَ كلّ قسم.
+
+    **وهو محتوى الشاشة لا زينتُها.** صفحةُ v1 لكلّ حالٍ («قريباً» و«نشط»
+    و«منتهي») تعرض تحت كلّ مزادٍ **سياراتِ الشريك فيه**؛ وكانت الشاشةُ هنا
+    صفَّ مزادٍ وحده، فمن يسأل «أيُّ سياراتي في مزاد الخميس؟» — وهو سؤالُ
+    الشاشة الأوّل قبل مزادٍ لم يُفتح — لا يجد جواباً إلا بفتح المزاد.
+
+    واستعلامٌ واحدٌ لمزادات الصفحة كلِّها، ثم تجميعٌ في الذاكرة: خمسون مزاداً
+    تعني خمسين استعلاماً لو سُئل كلُّ قسمٍ عن سياراته (المادة ٢).
+
+    و«المزايدة» تتبع الحال كما في `auctions_of`: الجاري تُعدّ فيه القائمةُ
+    وحدَها، والمنتهي تاريخُه كلُّه — وإلّا قرأ المنتهي صفراً لأن مزايداتِه
+    تصير مرفوضةً عند التسوية.
+    """
+    if not str(partner).strip().isdigit() or not auctions:
+        return {}
+
+    standing = Q(bids__is_superseded=False, bids__is_withdrawn=False)
+    rows = (
+        Vehicle.objects.filter(
+            auction__in=auctions, owner_company_id=int(partner)
+        )
+        .select_related("auction")
+        .annotate(
+            top_amount=Max("bids__amount", filter=standing if live_only else Q()),
+            bids_count=Count(
+                "bids", filter=standing if live_only else Q(), distinct=True
+            ),
+        )
+        .order_by("auction", "lot_number")
+    )
+
+    grouped: dict[int, list] = {}
+    for vehicle in rows:
+        # الفرقُ عن سعر الوقوف — عمودُ v1 في الشاشة الجارية. ولا يُحسب في
+        # القالب: لغةُ القوالب لا تطرح.
+        vehicle.gap = (
+            (vehicle.top_amount - (vehicle.reserve_price or ZERO))
+            if vehicle.top_amount is not None
+            else None
+        )
+        grouped.setdefault(vehicle.auction_id, []).append(vehicle)
+    return grouped
+
+
+def state_totals(rows, partner: str, kind: str) -> dict:
+    """شريطُ أرقامِ الحالة — على الطابور كلِّه لا على الصفحة.
+
+    v1 يجمعها على المزادات المعروضة ويضع فوقها بطاقاتٍ تختلف بالحال: القادمُ
+    لا مبيعاتِ له ولا مزايدات، فبطاقتان؛ والجاري سؤالُه «هل يزايد أحد»؛
+    والمنتهي «بكم بعت». وبطاقةٌ تقول صفراً لأن الحدثَ لم يقع بعدُ تُقرأ «لم
+    يزايد أحد» لا «لم يُفتح المزاد».
+
+    **وتُجمع من المركبات لا من أعمدة `auctions_of`.** جُرّب
+    ``rows.aggregate(Sum("mine"))`` فسقط: `mine` نفسُها `Count` مجمَّعة،
+    وجانغو يكتب `SUM("sold")` على عمودٍ لا وجود له — ``column "sold" does
+    not exist``. والجمعُ من المصدر أصحُّ أيضاً: تعريفُ «سياراته» يبقى في
+    `_scoped` وحدَه.
+    """
+    cars = _scoped(Vehicle.objects.filter(auction__in=rows.values("pk")), partner)
+    money_row = cars.aggregate(
+        n=Count("id"),
+        reserve=Sum("reserve_price"),
+        sales=Sum("awarded_price", filter=Q(state__in=AWARDED)),
+        reserve_sold=Sum("reserve_price", filter=Q(state__in=AWARDED)),
+        sold=Count("id", filter=Q(state__in=AWARDED)),
+    )
+
+    # «المزايدة» تتبع الحال كما في `auctions_of`: الجاري تُعدّ فيه القائمةُ
+    # وحدَها، والمنتهي تاريخُه كلُّه — وإلّا قرأ المنتهي صفراً لأن مزايداتِه
+    # تصير مرفوضةً عند التسوية.
+    bids = Bid.objects.filter(vehicle__in=cars)
+    if kind == "live":
+        bids = bids.filter(is_superseded=False, is_withdrawn=False)
+    demand = bids.aggregate(n=Count("id"), on=Count("vehicle", distinct=True))
+
+    total = money_row["n"] or 0
+    sold = money_row["sold"] or 0
+    with_bids = demand["on"] or 0
+    reserve_sold = money_row["reserve_sold"] or ZERO
+    sales = money_row["sales"] or ZERO
+
+    return {
+        "kind": kind,
+        "auctions": rows.count(),
+        "cars": total,
+        "sold": sold,
+        "unsold": total - sold,
+        "bids": demand["n"] or 0,
+        "with_bids": with_bids,
+        "no_bids": total - with_bids,
+        "reserve": money_row["reserve"] or ZERO,
+        "sales": sales,
+        "rate": round(sold / total * 100, 1) if total else 0.0,
+        "coverage": round(with_bids / total * 100, 1) if total else 0.0,
+        # **الزيادةُ على وقوفِ المُباع وحدَه.** v1 يقسم على وقوفِ الجميع
+        # فيُنتج سالباً دائماً على مزادٍ باع نصفَه — العطلُ المُصلَح في لوحة
+        # الشريك وفي «الأداء لكل مزاد»، ولا يُعاد هنا.
+        "uplift": (
+            round((sales - reserve_sold) / reserve_sold * 100, 1)
+            if reserve_sold
+            else 0.0
+        ),
+    }
+
+
+def state_counts(partner: str = "") -> dict:
+    """عدّادُ كلّ حالٍ — الأرقامُ في شرائح v1 الثلاث.
+
+    **والعدّادُ هو ما يجعل الشريحةَ معلومةً لا رابطاً مكرَّراً.** الشاشاتُ
+    الثلاثُ في الشريط الجانبيّ أصلاً؛ وما ليس فيه أن «القادمة صفر والمنتهية
+    اثنان» — وهو ما يوفّر فتحَ شاشتين فارغتين. وv1 يكتبه: «قريباً (0) · نشط
+    (0) · منتهي (2)».
+    """
+    base = Auction.objects.all()
+    if (partner or "").strip().isdigit():
+        base = base.filter(vehicles__owner_company_id=int(partner)).distinct()
+    return {
+        "soon": base.filter(state=AuctionState.SCHEDULED).count(),
+        # «الشغّال» بالساعة لا بالعمود، كما في `partner_active` — وعدّادٌ
+        # يقول ٣ وشاشةٌ تفتح على صفرٍ أسوأ من غياب العدّاد.
+        "live": base.filter(state=AuctionState.LIVE, pk__in=engine.open_now()).count(),
+        "ended": base.filter(state__in=ARCHIVED).count(),
+    }
 
 
 def _auctions_screen(request, state: str = "", *, only=None, screen=None):
@@ -352,6 +487,7 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
     الذي وُجد `navigation.py` لمنعه. فالجسم مشترك، والحراسةُ لكلٍّ صفُّه.
     """
     partner = request.GET.get("partner", "")
+    kind = (screen or {}).get("kind", "")
     rows = auctions_of(partner, state or request.GET.get("state", ""))
     if only is not None:
         # `only` ضيقٌ على ما بناه `auctions_of`، لا استعلامٌ بديل: الفلترةُ
@@ -365,7 +501,14 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
     for row in page.object_list:
         row.rate = round(row.sold / row.mine * 100, 1) if row.mine else 0.0
         row.coverage = round(row.with_bids / row.mine * 100, 1) if row.mine else 0.0
-        row.diff = (row.sales or ZERO) - (row.reserve or ZERO)
+        # **الفرقُ على وقوفِ المُباع.** كان على وقوفِ الجميع، فمزادٌ لم
+        # يُفتح بعد يُقرأ خسارةً بمبلغ أسعار وقوفه كلِّها — العطلُ نفسُه
+        # المُصلَح في «الأداء لكل مزاد».
+        row.diff = (row.sales or ZERO) - (row.reserve_sold or ZERO)
+
+    cars = cars_in(partner, [row.pk for row in page.object_list], state == AuctionState.LIVE)
+    for row in page.object_list:
+        row.cars = cars.get(row.pk, [])
 
     return render(
         request,
@@ -398,6 +541,14 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
             "states": [
                 (value, AuctionState(value).label) for value in AuctionState.values
             ],
+            # **أيُّ حالٍ هذه الشاشة** — والقالبُ يبني بها أعمدتَه وبطاقاتِه.
+            # «القادمة» لا مبيعاتِ لها ولا مزايدات، وعمودٌ لا يحمل إلا صفراً
+            # يُقرأ «لم يزايد أحد» لا «لم يُفتح المزاد».
+            "kind": kind,
+            "totals": state_totals(rows, partner, kind) if kind else None,
+            # شرائحُ v1 الثلاث بعدّاداتها — وهي معلومةٌ لا تكرارٌ للشريط:
+            # «قريباً (0) · نشط (0) · منتهي (2)» يوفّر فتحَ شاشتين فارغتين.
+            "counts": state_counts(partner) if kind else None,
         },
     )
 
@@ -415,6 +566,7 @@ def partner_soon(request):
         request,
         AuctionState.SCHEDULED,
         screen={
+            "kind": "soon",
             "title": "المزادات القادمة",
             "say": "المجدولةُ وحدَها — لم تُفتح للمزايدة بعد.",
         },
@@ -434,6 +586,7 @@ def partner_active(request):
         AuctionState.LIVE,
         only=engine.open_now(),
         screen={
+            "kind": "live",
             "title": "المزاد الشغال",
             "say": (
                 # بلا نجمتين: النصُّ يُخرَج مهرَّباً في القالب، فـ`**` تُرسم
@@ -454,6 +607,7 @@ def partner_ended(request):
         request,
         ARCHIVED,
         screen={
+            "kind": "ended",
             "title": "المزادات المنتهية",
             "say": "بتعريف الأرشيف نفسِه: منتهٍ ومُسوّى وملغى.",
         },
