@@ -1217,5 +1217,189 @@
   "walletInsuranceCommitted": "من تأمينك مرتبطٌ الآن",
   "@walletInsuranceCommitted": {
     "description": "سطرٌ تحت المبلغ يقول كم المرتبط — يسبقه المبلغ"
+  },
+  "splashTagline": "المنصة الأولى لمزادات السيارات الفاخرة والنادرة بالمملكة",
+  "@splashTagline": {
+    "description": "سطرٌ تحت الشعار في شاشة البدء يقول ما هي المنصّة"
+  },
+  "splashLoadingLabel": "جار تجهيز التطبيق",
+  "@splashLoadingLabel": {
+    "description": "وصفُ مؤشّر التحميل في شاشة البدء — يقرؤه قارئُ الشاشة"
+  },
+  "splashLiveBadge": "مزاد حي ومعتمد",
+  "@splashLiveBadge": {
+    "description": "شارةٌ على حافّة الشعار في شاشة البدء"
+  },
+  "splashHeadline": "مزاد حراج واحد",
+  "@splashHeadline": {
+    "description": "اسمُ المنصّة كما يُعرض في شاشة البدء"
+  },
+  "splashStepBoot": "تهيئة الواجهة…",
+  "@splashStepBoot": {
+    "description": "خطوةُ الإقلاع الأولى في شاشة البدء"
+  },
+  "splashStepSession": "التحقق من الجلسة…",
+  "@splashStepSession": {
+    "description": "خطوةُ قراءة التخزين الآمن"
+  },
+  "splashStepAuctions": "مزامنة لوحة المزايدات الحية…",
+  "@splashStepAuctions": {
+    "description": "خطوةُ جلب أوّل صفحة مزادات"
+  },
+  "splashStepReady": "جاهز",
+  "@splashStepReady": {
+    "description": "الحالةُ بعد اكتمال خطوات الإقلاع"
+  },
+  "splashStepOffline": "تعذرت المزامنة — تعاد داخل التطبيق",
+  "@splashStepOffline": {
+    "description": "حين يفشل جلبُ المزادات في شاشة البدء"
+  },
+  "splashEnter": "التالي",
+  "@splashEnter": {
+    "description": "زرُّ الدخول في شاشة البدء — لا تُغادَر الشاشةُ إلا بضغطه"
+  },
+  "splashPlace": "المملكة العربية السعودية • الرياض",
+  "@splashPlace": {
+    "description": "سطرُ الموقع في ذيل شاشة البدء"
+  },
+  "splashVersion": "الإصدار {version}",
+  "@splashVersion": {
+    "description": "رقمُ الإصدار في ذيل شاشة البدء",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeSkip": "تخطي",
+  "@welcomeSkip": {
+    "description": "زرُّ تخطّي شاشة الترحيب"
+  },
+  "welcomeBrandLine": "المنصة الرسمية المعتمدة",
+  "@welcomeBrandLine": {
+    "description": "سطرٌ تحت اسم المنصّة في رأس شاشة الترحيب"
+  },
+  "welcomeEyebrow": "نخبة السيارات والمقتنيات النادرة",
+  "@welcomeEyebrow": {
+    "description": "شارةٌ فوق عنوان شاشة الترحيب"
+  },
+  "welcomeHeadlineLead": "أندر المزادات الفاخرة،",
+  "@welcomeHeadlineLead": {
+    "description": "الجزءُ الأوّل من عنوان شاشة الترحيب"
+  },
+  "welcomeHeadlineAccent": "بين يديك",
+  "@welcomeHeadlineAccent": {
+    "description": "الجزءُ الملوَّن من عنوان شاشة الترحيب"
+  },
+  "welcomeBody": "مزايدة حية وموثقة بشفافية مطلقة، بضمان وإشراف رسمي.",
+  "@welcomeBody": {
+    "description": "سطرُ الشرح في شاشة الترحيب"
+  },
+  "welcomeCta": "استكشف المزادات الحية",
+  "@welcomeCta": {
+    "description": "زرُّ الدخول في شاشة الترحيب"
+  },
+  "welcomeStep": "الخطوة {index} من {total}",
+  "@welcomeStep": {
+    "description": "وصفُ نقاط الصفحات لقارئ الشاشة",
+    "placeholders": {
+      "index": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeLive": "مباشر",
+  "@welcomeLive": {
+    "description": "شارة البث الحي على صورة كرت الترحيب"
+  },
+  "welcomeLot": "اللوت {lot}",
+  "@welcomeLot": {
+    "description": "رقم اللوت على صورة كرت الترحيب",
+    "placeholders": {
+      "lot": {
+        "type": "String"
+      }
+    }
+  },
+  "welcomeActiveVehicles": "{count} مركبة نشطة",
+  "@welcomeActiveVehicles": {
+    "description": "عدد المركبات النشطة على صورة كرت الترحيب",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "exploreEyebrow": "منصة المزادات المعتمدة",
+  "@exploreEyebrow": {
+    "description": "شارة فوق عنوان الصفحة الثالثة"
+  },
+  "exploreHeadline": "كل ما تحتاجه لبيع وشراء سيارتك بالمزاد",
+  "@exploreHeadline": {
+    "description": "عنوان الصفحة الثالثة"
+  },
+  "exploreBody": "تصفح مئات المركبات المفحوصة يومياً، مع ضمان نقل الملكية والدفع الإلكتروني الآمن وإمكانية الشحن لكافة المدن.",
+  "@exploreBody": {
+    "description": "سطر الشرح في الصفحة الثالثة"
+  },
+  "exploreChipKeys": "تسليم مفتاح فوري",
+  "@exploreChipKeys": {
+    "description": "شارة خدمة على صورة الصفحة الثالثة"
+  },
+  "exploreChipTransfer": "ضمان نقل الملكية",
+  "@exploreChipTransfer": {
+    "description": "شارة خدمة على صورة الصفحة الثالثة"
+  },
+  "exploreChipShipping": "شحن لكل المدن",
+  "@exploreChipShipping": {
+    "description": "شارة خدمة على صورة الصفحة الثالثة"
+  },
+  "exploreCta": "ابدأ التصفح والمزايدة",
+  "@exploreCta": {
+    "description": "زر الدخول في الصفحة الثالثة"
+  },
+  "signInTagline": "مزايدة مغلقة على سيارات المزاد — من جوالك",
+  "@signInTagline": {
+    "description": "سطر تحت اسم المنصة في شاشة الدخول"
+  },
+  "signInLiveAuction": "المزاد الجاري",
+  "@signInLiveAuction": {
+    "description": "عنوان شريط المزاد في شاشة الدخول حين يكون جارياً"
+  },
+  "signInNextAuction": "المزاد القادم",
+  "@signInNextAuction": {
+    "description": "عنوان شريط المزاد في شاشة الدخول حين لا مزاد جارياً"
+  },
+  "signInVehicleCount": "{count} سيارة",
+  "@signInVehicleCount": {
+    "description": "عدد مركبات المزاد على شريط شاشة الدخول",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "signInAssuranceSealed": "مزايدة مغلقة: لا يرى أحد مبلغك",
+  "@signInAssuranceSealed": {
+    "description": "ضمانة على شاشة الدخول"
+  },
+  "signInAssuranceOtp": "بلا كلمة مرور — رمز لمرة واحدة",
+  "@signInAssuranceOtp": {
+    "description": "ضمانة على شاشة الدخول"
+  },
+  "signInAssuranceDeposit": "التأمين وديعة تسترد بطلب منك",
+  "@signInAssuranceDeposit": {
+    "description": "ضمانة على شاشة الدخول"
+  },
+  "verifyTagline": "خطوة أخيرة — الرمز في رسالة على جوالك",
+  "@verifyTagline": {
+    "description": "سطر تحت اسم المنصة في شاشة الرمز"
+  },
+  "verifyNewAccountHint": "حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.",
+  "@verifyNewAccountHint": {
+    "description": "سطر يظهر لمن لا حساب له في شاشة الرمز"
   }
 }

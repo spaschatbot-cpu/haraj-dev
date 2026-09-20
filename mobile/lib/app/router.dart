@@ -27,6 +27,9 @@ import '../presentation/profile/change_phone_screen.dart';
 import '../presentation/profile/company_profile_screen.dart';
 import '../presentation/profile/profile_screen.dart';
 import '../presentation/shell/home_shell.dart';
+import '../presentation/splash/splash_screen.dart';
+import '../presentation/splash/explore_screen.dart';
+import '../presentation/splash/welcome_screen.dart';
 import '../presentation/wallet/top_up_screen.dart';
 import '../presentation/wallet/transactions_screen.dart';
 import '../presentation/wallet/wallet_screen.dart';
@@ -52,6 +55,23 @@ export 'routes.dart' show Routes;
 /// نسخة ثانية من تعريف المسارات — نسخة الاختبار كانت ستفترق عن نسخة الإنتاج،
 /// فيمرّ اختبار على شجرة لا تُشحن.
 List<RouteBase> appRoutes() => <RouteBase>[
+  // شاشة البدء **خارج القشرة**: لا شريطَ سفليّاً تحتها، ولا أقسامَ تُبنى
+  // خلفها. وهي أوّل ما يُفتح (`initialLocation` أدناه).
+  GoRoute(
+    path: Routes.splashPath,
+    name: Routes.splash,
+    builder: (context, state) => const SplashScreen(),
+  ),
+  GoRoute(
+    path: Routes.welcomePath,
+    name: Routes.welcome,
+    builder: (context, state) => const WelcomeScreen(),
+  ),
+  GoRoute(
+    path: Routes.explorePath,
+    name: Routes.explore,
+    builder: (context, state) => const ExploreScreen(),
+  ),
   // الأقسام الخمسة تحت قشرةٍ واحدة تحمل الشريط السفليّ.
   //
   // **`StatefulShellRoute` لا `ShellRoute`:** لكل فرعٍ مكدّسه الخاص، فمن فتح
@@ -304,7 +324,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     ..onDispose(sessionChanged.dispose);
 
   return GoRouter(
-    initialLocation: Routes.homePath,
+    // **البدءُ من الشعار لا من الرئيسية.** كانت الرئيسيةُ أوّلَ ما يُبنى،
+    // فتطلب شبكتَها ويُقرأ التخزينُ الآمن في الوقت نفسه — والمستخدمُ أمام
+    // أرضيّةٍ فارغةٍ ودوّامة. والشعارُ يملأ تلك اللحظة، ويخرج منها بنفسه.
+    initialLocation: Routes.splashPath,
     refreshListenable: sessionChanged,
     redirect: (context, state) {
       final session = ref.read(sessionControllerProvider);

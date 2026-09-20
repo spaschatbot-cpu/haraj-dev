@@ -171,12 +171,21 @@ class _AuthBrandState extends State<AuthBrand>
           ),
         ),
         const SizedBox(height: 12),
+        // **`ink` لا `Colors.white`.** كان العنوان أبيضَ على أرضيّة الصفحة
+        // الفاتحة (`#F3F5F8`) — نسبةُ تباينٍ **١٫٠٥**، والحدُّ ٤٫٥. ولم
+        // يختفِ لأن هالةً زرقاء تصادف أن تقع خلفه، أي أن قراءةَ اسم
+        // المنصّة كانت معلّقةً على موضع زخرفةٍ لا على لون. و`ink` عليها
+        // **١٢٫٩**. والعطلُ يصيب شاشتين منذ صار الشعارُ هنا: الدخول
+        // والرمز.
+        //
+        // والوزنُ ٧٠٠ لا ٨٠٠: العائلةُ تحمل ٤٠٠ و٥٠٠ و٧٠٠ فقط
+        // (`pubspec.yaml`)، ولا وجهَ لـ٨٠٠ فيصطنعه المحرّك.
         Text(
           widget.title,
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            color: palette.ink,
           ),
         ),
         if (widget.subtitle != null) ...<Widget>[

@@ -15,6 +15,15 @@ import '../presentation/activity/my_activity_screen.dart' show MyActivityTab;
 /// شاشات المجموعة ب (T706–T715) تُركَّب على هذه المسارات نفسها ولا تخترع غيرها.
 abstract final class Routes {
   static const String seed = 'seed';
+
+  /// شاشة البدء — الشعارُ بينما يُقرأ التخزين الآمن.
+  static const String splash = 'splash';
+
+  /// شاشةُ الترحيب — الصفحةُ الثانية، وفيها كرتُ مزادٍ جارٍ.
+  static const String welcome = 'welcome';
+
+  /// الصفحةُ الثالثة — ما تقدّمه المنصّة، وآخرُ بابٍ قبل الصالة.
+  static const String explore = 'explore';
   static const String home = 'home';
   static const String signIn = 'signIn';
   static const String verifyCode = 'verifyCode';
@@ -71,6 +80,24 @@ abstract final class Routes {
   /// بدل أن ينزل على الافتراضي فيبحث المستخدم بيده (معيار H6). والاسم `phase`
   /// هو بعينه اسم الحقل على السلك وعلى الكرت — معنى واحد باسم واحد.
   static const String phaseQueryParameter = 'phase';
+
+  /// **مسارٌ حقيقيٌّ لا حالةٌ داخل الرئيسية.** شاشةُ البدء التي تُرسَم
+  /// كطبقةٍ فوق الشاشة الأولى تعني أن الرئيسيةَ تبني نفسَها خلفها وتطلب
+  /// شبكتَها قبل أن يُعرف هل ثمّة جلسة. ومسارٌ مستقلٌّ يجعل الخروجَ منه
+  /// `go` واحدة، وحالتَه مقروءةً في السجلّ حين يُشكى من بطء الإقلاع.
+  ///
+  /// وليس في `authenticatedRoutes`، فلا يردّه حارسُ الجلسة إلى الدخول —
+  /// وهو يعمل قبل أن تُعرف الجلسةُ أصلاً.
+  static const String splashPath = '/splash';
+
+  /// **صفحةٌ ثانيةٌ لا تبويبٌ في الأولى.** الشاشتان تُفتحان بالترتيب
+  /// (`/splash` ← `/welcome` ← `/`)، ومسارٌ لكلٍّ منهما يعني أن زرّ الرجوع
+  /// يعمل بينهما بلا حالةٍ تُدار بيد، وأن كلاً منهما تُفتح مباشرةً في
+  /// المعاينة والاختبار. وليست في `authenticatedRoutes`.
+  static const String welcomePath = '/welcome';
+
+  /// آخرُ الثلاث. مسارٌ مستقلٌّ كأختيه — انظر [welcomePath].
+  static const String explorePath = '/explore';
 
   static const String homePath = '/';
   static const String signInPath = '/sign-in';
