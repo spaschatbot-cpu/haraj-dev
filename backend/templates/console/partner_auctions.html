@@ -78,7 +78,12 @@
 
      وهي على الطابور كلِّه لا على الصفحة — v1 يجمعها على المعروض، وصفحةٌ من
      خمسين تجيب عن خمسين. {% endcomment %}
-  {% if totals %}
+  {% comment %} **ولا تُرسم على طابورٍ فارغ.** رُئي على «المزاد الشغال»
+     وقاعدةُ التطوير بلا مزادٍ جارٍ: ستُّ بطاقاتٍ كلُّها صفرٌ فوق سطرٍ يقول
+     «لا مزاد شغّال» — والأصفارُ تُقرأ **«لا أحد يزايد»**، وهي جوابٌ عن
+     سؤالٍ آخر تماماً. وv1 يعرض صندوقَ الفراغ **بدلَ** البطاقات لا فوقها.
+     {% endcomment %}
+  {% if totals and page.paginator.count %}
     <section class="sum-grid sum-grid--tight" aria-label="أرقام هذه الحال">
       <div class="sum">
         <p class="sum__label">{% if picked %}سياراته{% else %}المركبات{% endif %}</p>
@@ -306,5 +311,10 @@
 
   {% endif %}
 
+  {% comment %} وسطرُ الترقيم لا يُكتب على فراغ: «٠ مزاداً · صفحة ١ من ١»
+     تحت سطرٍ يقول «لا مزاد» جملتان تقولان الشيءَ نفسَه، وإحداهما بأرقامٍ
+     تُقرأ عطلاً. {% endcomment %}
+  {% if page.paginator.count %}
   <p><b class="tf__n">{{ page.paginator.count|unlocalize }}</b> مزاداً<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number|unlocalize }}</b> من <b class="tf__n">{{ page.paginator.num_pages|unlocalize }}</b></p>
+  {% endif %}
 {% endblock %}
