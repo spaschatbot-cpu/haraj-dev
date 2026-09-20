@@ -10,7 +10,7 @@
 هذه الشاشة. فبقيت ثلاثةَ مسارات كما يعرفها الموظّف، وتقرأها دالّةٌ واحدة.
 {% endcomment %}
 {% block title %}{{ screen.title }}{% endblock %}
-{% block heading %}{{ screen.title }}{% endblock %}
+{% block heading %}{{ screen.title }}{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
 
 {% block content %}
   {% comment %} سطرُ تعريفٍ يقول ما يصنع الشاشةَ — وهو مكتوبٌ في تعليق الملفّ
@@ -27,7 +27,13 @@
     {% endif %}
   </p>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمتان وزرٌّ في الهواء. {% endcomment %}
+  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمتان وزرٌّ في الهواء.
+
+     **ولا استمارةَ في شاشات الحال الثلاث** (قرار المالكة، ٢٠ سبتمبر ٢٠٢٦):
+     لا قائمةَ حالٍ فيها — الحالُ في المسار — فتبقى قائمةُ شريكٍ وزرُّ «اعرض»
+     وحدَهما، وقد صار الشريكُ يُحسَم في العرض. ويُبدَّل بـ`?partner=<id>`.
+     {% endcomment %}
+  {% if not kind %}
   <form method="get" class="filters filters--row">
     <div class="filters__main">
       {% include "console/_partner_pick.html" %}
@@ -42,6 +48,7 @@
       <button type="submit" class="btn-primary">اعرض</button>
     </div>
   </form>
+  {% endif %}
 
   {% comment %} **شرائحُ v1 الثلاث بعدّاداتها.** والشاشاتُ الثلاثُ في
      الشريط الجانبيّ أصلاً — لكنّ ما ليس فيه هو **الرقم**: «قريباً (0) · نشط

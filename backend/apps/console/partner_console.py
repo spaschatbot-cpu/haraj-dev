@@ -486,8 +486,25 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
     أسماء تعني أن ثلاثةً منها **محروسةٌ بصفِّ رابعة** — وهو بعينه الافتراق
     الذي وُجد `navigation.py` لمنعه. فالجسم مشترك، والحراسةُ لكلٍّ صفُّه.
     """
-    partner = request.GET.get("partner", "")
+    partner = (request.GET.get("partner") or "").strip()
     kind = (screen or {}).get("kind", "")
+    companies = partners()
+
+    # **شاشاتُ الحال الثلاث بلا مُنتقٍ، وشريكٌ واحدٌ دائماً** (قرار المالكة،
+    # ٢٠ سبتمبر ٢٠٢٦: «شيل دي»). وهي شاشاتُ «سياراتي في المزاد»: جدولُ
+    # السيارات تحت كلّ مزادٍ لا يُبنى أصلاً بلا شريكٍ مختار، فتُفتح الشاشةُ
+    # على مزاداتٍ بلا محتواها وسطرٍ يقول «اختر شريكاً» — أي أنها لا تعمل حتى
+    # يُنقَر شيء. والافتراضيُّ أوّلُ الشركاء بالاسم، كما في لوحة الشريك.
+    #
+    # و«كل المزادات» تُبقي مُنتقيها: هي شاشةُ نظرةٍ عامّة فيها قائمةُ حالٍ
+    # أيضاً، و«كل الشركاء» فيها جوابٌ صحيح.
+    company = None
+    if kind:
+        company = companies.filter(pk=int(partner)).first() if partner.isdigit() else None
+        if company is None:
+            company = companies.first()
+        partner = str(company.pk) if company else ""
+
     rows = auctions_of(partner, state or request.GET.get("state", ""))
     if only is not None:
         # `only` ضيقٌ على ما بناه `auctions_of`، لا استعلامٌ بديل: الفلترةُ
@@ -516,7 +533,8 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
         {
             "page": page,
             "partner": partner,
-            "partners": partners(),
+            "partners": companies,
+            "company": company,
             "state": state,
             # **العنوانُ يقول أيَّ المداخل الأربعة هذا.** القالبُ واحدٌ
             # لأربعة صفوفٍ في الشريط الجانبي (كلُّ المزادات · القادمة ·
