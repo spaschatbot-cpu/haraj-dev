@@ -7,9 +7,13 @@
 
 و«كل الشركاء» أوّلُ الخيارات عمداً: الموظّف يفتح الشاشة ليقارن غالباً، ولا
 يُخمَّن له شريكٌ لم يطلبه.
+
+**إلا حيث لا معنى للجمع.** `one_only` يُسقط الخيار، وتمرّره لوحةُ الشريك
+وحدَها: أرقامُها أرقامُ شريكٍ بعينه — «نسبة البيع» و«أعلى بيعة» و«متوسّط
+السعر» مجموعةً على الشركاء كلِّهم أرقامٌ لا تُقرأ ولا يُتّخذ عليها قرار.
 {% endcomment %}
 <select name="partner">
-  <option value="">كل الشركاء</option>
+  {% if not one_only %}<option value="">كل الشركاء</option>{% endif %}
   {% for company in partners %}
     <option value="{{ company.pk }}" {% if company.pk|stringformat:"s" == partner %}selected{% endif %}>
       {{ company.name }} ({{ company.car_count }})

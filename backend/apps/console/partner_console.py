@@ -228,8 +228,26 @@ def breakdown_for(partner: str = "", limit: int = 24) -> list:
 
 @console_page("console:partner-console")
 def partner_console(request):
-    """لوحة الشريك: أرقامُ شريكٍ واحد، وكلٌّ منها بابٌ إلى صفوفه."""
-    partner = request.GET.get("partner", "")
+    """لوحة الشريك: أرقامُ شريكٍ واحد، وكلٌّ منها بابٌ إلى صفوفه.
+
+    **وشريكٌ واحدٌ دائماً، ولو لم يُختَر** (قرار المالكة، ٢٠ سبتمبر ٢٠٢٦: «شيل
+    كل الشركاء»). وكانت الشاشةُ تُفتح على «كل الشركاء» كأخواتها، وسطرُها
+    الأوّل يقول «أرقامُ شريكٍ واحد» — فيقرأ الموظّفُ نقيضَ ما يرى.
+
+    والجمعُ هنا ليس مجرّدَ تناقضِ عبارة: «نسبة البيع» و«متوسّط سعر البيع»
+    و«أعلى بيعة» و«فوق سعر الوقوف» مجموعةً على الشركاء كلِّهم أرقامٌ لا تخصّ
+    أحداً ولا يُتّخذ عليها قرارُ توريد. والشاشاتُ الأخرى تُجمَع بلا ضررٍ لأنها
+    صفوفٌ مرشَّحةٌ لا خلاصاتٌ محسوبة.
+
+    والافتراضيُّ أوّلُ الشركاء بالاسم — لا «أوّلُ من له سيارات» ولا الأكبر:
+    ترتيبٌ ثابتٌ يفتح الشاشةَ نفسَها في كل مرّة، ويُبدَّل من القائمة.
+    """
+    partner = (request.GET.get("partner") or "").strip()
+    companies = partners()
+    if not partner.isdigit() or not companies.filter(pk=int(partner)).exists():
+        first = companies.first()
+        partner = str(first.pk) if first else ""
+
     return render(
         request,
         "console/partner_console.html",
@@ -237,7 +255,7 @@ def partner_console(request):
             "totals": summary_for(partner),
             "breakdown": breakdown_for(partner),
             "partner": partner,
-            "partners": partners(),
+            "partners": companies,
         },
     )
 

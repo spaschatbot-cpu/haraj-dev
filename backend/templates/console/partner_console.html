@@ -22,7 +22,7 @@
   {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمةٌ وزرٌّ في الهواء. {% endcomment %}
   <form method="get" class="filters filters--row">
     <div class="filters__main">
-      {% include "console/_partner_pick.html" %}
+      {% include "console/_partner_pick.html" with one_only=True %}
       <button type="submit" class="btn-primary">اعرض</button>
     </div>
   </form>
@@ -166,7 +166,12 @@
         <tbody>
           {% for row in breakdown %}
             <tr>
-              <td><a href="{% url 'console:auction-detail' row.auction.pk %}">{{ row.auction.title|default:row.auction.number }}</a></td>
+              {% comment %} **اسمُ المزاد نصٌّ لا رابط** (قرار المالكة،
+                 ٢٠ سبتمبر ٢٠٢٦). وصفحةُ المزاد تعرضه بسياراته **كلِّها**،
+                 وهذا الجدولُ يقول أداءَ شريكٍ فيه — فالنقرةُ تنقل من سؤالٍ
+                 عن الشريك إلى شاشةٍ لا ذكرَ له فيها، وهو الخلطُ نفسُه الذي
+                 يحرسه عمودُ «سياراته» في `auctions_of`. {% endcomment %}
+              <td>{{ row.auction.title|default:row.auction.number }}</td>
               <td>{{ row.cars|unlocalize }}</td>
               <td>{{ row.sold|unlocalize }}</td>
               <td><span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}plain{% endif %}">{{ row.rate|unlocalize }}%</span></td>
