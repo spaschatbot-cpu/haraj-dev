@@ -9891,6 +9891,31 @@ form.cat-filters .cat-filters__actions > .btn-ghost:hover {
   }
   .filters--row .filters__main:not(:has(select:nth-of-type(3))) select { min-inline-size: 11rem; }
   .filters--row .filters__main:not(:has(select:nth-of-type(3))) .btn-primary { min-inline-size: 6.5rem; }
+  /* **وبلا قائمةٍ أصلاً**: البحثُ وحدَه في عمود `1fr` يأخذ العرضَ كلَّه.
+     قِيس بعد حذف مُنتقي الشريك من «كل السيارات»: خانةُ البحث ١١٨٢ بكسلاً من
+     ١٣٥٩، بعرض الجدول تحتها ولكلمةٍ واحدةٍ تُكتب فيها. فيُقاس عمودُها
+     ويُترك الباقي فارغاً — ويلتصق الزرُّ بها.
+
+     والقاعدةُ على الشرط لا على صنفٍ يُعلَّق على القالب: أيُّ شريطٍ يفقد
+     قوائمَه يُصيبه العطلُ نفسُه، والصنفُ يُنسى في الثاني.
+
+     **وترتيبُها ووزنُها مقصودان.** القاعدةُ فوقها
+     `:not(:has(select:nth-of-type(3)))` وزنُها ٠-٣-١ لأن `:not()` و`:has()`
+     تأخذان وزنَ أثقلِ ما فيهما؛ و`:not(:has(select))` وحدَها ٠-٢-١ فتخسر
+     مهما تأخّرت. فزِيد `.filters` إلى المُحدِّد وأُخّرت. قِيس مرّتين قبل
+     ذلك: `grid-template-columns` بقيت `1182.4px 104px 0 0 0`. */
+  .filters.filters--row .filters__main:not(:has(select)) {
+    grid-template-columns: repeat(5, auto);
+    justify-content: start;
+  }
+  /* والعرضُ على خانة البحث نفسِها لا على العمود الأوّل: «المزايدات
+     المباشرة» تضع رقمَ المزاد قبل البحث، فعمودٌ أوّلُ عريضٌ يعطي العرضَ
+     لخانةِ رقمٍ من أربعة أحرف ويترك البحثَ ١٩٢ بكسلاً. قِيس. */
+  .filters.filters--row .filters__main:not(:has(select)) > input[type="search"] {
+    inline-size: 26rem;
+    max-inline-size: 100%;
+  }
+
   /* الزرُّ ورابطُ الإلغاء يلتصقان في آخر الصفّ لا يتمدّدان بعرض عمود. */
   .filters--row .filters__main .btn-primary { justify-self: start; min-inline-size: 7rem; }
   .filters--row .filters__reset { justify-self: start; }
