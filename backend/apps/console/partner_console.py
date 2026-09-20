@@ -56,6 +56,7 @@ from django.db.models import (
     Sum,
     Value,
 )
+from django.db.models import DecimalField, Subquery
 from django.db.models.functions import Cast
 from django.shortcuts import render
 
@@ -283,6 +284,19 @@ def partner_console(request):
     )
 
 
+def _money_of(rows, field: str):
+    """مجموعُ عمودٍ ماليٍّ على مركبات المزاد — استعلاماً فرعيّاً.
+
+    `Sum("vehicles__x")` على استعلامٍ يصل `vehicles__bids` يجمع العمودَ
+    مرّةً لكلّ مزايدة، و`distinct=True` لا يُنقذ `Sum` (مبلغان متساويان
+    ليسا تكراراً يُحذف). والاستعلامُ الفرعيّ يجمع على المركبات وحدَها.
+    """
+    return Subquery(
+        rows.values("auction").annotate(t=Sum(field)).values("t")[:1],
+        output_field=DecimalField(max_digits=14, decimal_places=2),
+    )
+
+
 def auctions_of(partner: str = "", state: str = ""):
     """مزادات الشريك — ومعها **عدد سياراته هو** لا عدد سيارات المزاد.
 
@@ -303,6 +317,14 @@ def auctions_of(partner: str = "", state: str = ""):
         rows = rows.filter(state=state)
 
     mine = Q(vehicles__owner_company_id=int(partner)) if partner.isdigit() else Q()
+
+    # نظيرُ `mine` استعلاماً فرعيّاً على المركبات — للمبالغ، انظر أدناه.
+    # و«بلا شريكٍ مختار» تعني هنا **كلَّ مركبات المزاد** كما تعنيه `mine`
+    # الفارغة، لا مركباتِ الشركاء وحدَهم: تعريفان لعمودٍ واحدٍ في الدالّة
+    # الواحدة أسوأ من تعريفٍ واسع، والقالبُ يقول للقارئ أيَّهما يرى.
+    mine_sub = Vehicle.objects.filter(auction=OuterRef("pk"))
+    if partner.isdigit():
+        mine_sub = mine_sub.filter(owner_company_id=int(partner))
 
     # **تعريفُ «المزايدة» يتغيّر بحال المزاد** — قاعدةُ v1، ووراءها عطلٌ وقع
     # هناك: المزادُ الجاري تُعدّ فيه **العروضُ القائمة**، والمنتهي يُعدّ فيه
@@ -333,16 +355,22 @@ def auctions_of(partner: str = "", state: str = ""):
         bids=Count("vehicles__bids", filter=bid_filter, distinct=True),
         bidders=Count("vehicles__bids__bidder", filter=bid_filter, distinct=True),
         with_bids=Count("vehicles", filter=bid_filter, distinct=True),
-        reserve=Sum("vehicles__reserve_price", filter=mine),
-        # **ووقوفُ المُباع وحدَه، عموداً ثانياً.** «كم فوق الوقوف بعتُ؟»
-        # سؤالٌ عن المبيع، وقسمتُه على وقوفِ **كلّ** السيارات (ومنها ما لم
-        # يُعرَض) تُنتج سالباً دائماً — عطلُ v1 نفسُه، المُصلَح في لوحة
-        # الشريك وفي «الأداء لكل مزاد»، ولا يُعاد هنا.
-        reserve_sold=Sum(
-            "vehicles__reserve_price",
-            filter=mine & Q(vehicles__state__in=AWARDED),
-        ),
-        sales=Sum("vehicles__awarded_price", filter=mine),
+        # **ومبالغُ المركبات باستعلامٍ فرعيّ لا بـ`Sum` على الوصلة.**
+        #
+        # عطلٌ قِيس على الشاشة: «كل المزادات» تعرض لمزاد ١٠٠١ «سعر الوقوف
+        # ٩٦٠٬٠٠٠» و«المبيعات ٢١٩٬٠٠٠»، والصحيحُ ٣٢٠٬٠٠٠ و٧٣٬٠٠٠ —
+        # **ثلاثةُ أضعاف**، وعددُ مزايدات كلّ مركبةٍ ثلاث.
+        #
+        # والسببُ أن الأعمدة أعلاه تصل `vehicles__bids`، فتتضاعف صفوفُ
+        # المركبة بعدد مزايداتها ويُجمع سعرُ وقوفها مرّةً لكلّ مزايدة. و
+        # `distinct=True` يعالج `Count` ولا يعالج `Sum` — لأن مبلغين
+        # متساويين ليسا تكراراً يُحذف.
+        #
+        # وكان الرقمُ يناقض نفسَه على شاشتين: «الأداء لكل مزاد» في لوحة
+        # الشريك لا تصل المزايدات فتقول ٧٣٬٠٠٠، وهذه تقول ٢١٩٬٠٠٠.
+        reserve=_money_of(mine_sub, "reserve_price"),
+        reserve_sold=_money_of(mine_sub.filter(state__in=AWARDED), "reserve_price"),
+        sales=_money_of(mine_sub, "awarded_price"),
         top_bid=Max("vehicles__bids__amount", filter=mine),
     ).order_by(
         # **الترتيبُ يتبع الحال** كـ v1: المزادُ الجاري شيءٌ عاجل، فالأقربُ
@@ -575,6 +603,53 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
 def partner_auctions(request):
     """كل مزادات الشريك، بلا ترشيحٍ على الحالة."""
     return _auctions_screen(request, request.GET.get("state", ""))
+
+
+@console_page("console:partner-auction")
+def partner_auction(request, pk: int):
+    """سيارات الشريك في مزادٍ بعينه — نظيرُ `partner/auction_vehicles.php`.
+
+    **والوجهةُ هي المسألة.** «فتح ←» في قائمة v1 تذهب إلى
+    `/partner/auctions/{id}`: صفحةٌ **مقصورةٌ على سياراته** في ذلك المزاد.
+    وكانت هنا تذهب إلى صفحة المزاد العامّة — التي تعرض مركباته **كلَّها**
+    (٣٨٦ في مزادٍ للشريك منها ٢٠٦) ومعها «إضافة مركبة» و«تعديل المزاد»
+    و«رفع إكسل». فمن دخل من قسم الشريك يقرأ حصّةً ليست له، ويرى أزرارَ
+    إدارةٍ لا شأنَ لسؤاله بها. وهو الخلطُ نفسُه الذي بُني عمودُ «سياراته»
+    لمنعه.
+
+    والصفحةُ لا تحكم: القبولُ والرفضُ في «اتخاذ القرار» وحدَها كما في v1،
+    وهذه للاطّلاع — فلا يكون للقرار مدخلان أحدُهما بلا شرط انتهاء المزاد.
+    """
+    from django.shortcuts import get_object_or_404
+
+    auction = get_object_or_404(Auction, pk=pk)
+    partner = (request.GET.get("partner") or "").strip()
+    companies = partners()
+    company = companies.filter(pk=int(partner)).first() if partner.isdigit() else None
+    if company is None:
+        # أوّلُ شريكٍ **له مركبةٌ في هذا المزاد** لا أوّلُ الشركاء مطلقاً:
+        # صفحةُ مزادٍ تُفتح على شريكٍ لا سيارةَ له فيه تقول «لا سيارات» وهي
+        # مليئة.
+        company = companies.filter(vehicles__auction=auction).first() or companies.first()
+    partner = str(company.pk) if company else ""
+
+    live = auction.state == AuctionState.LIVE
+    cars = cars_in(partner, [auction.pk], live).get(auction.pk, [])
+    pending = sum(1 for car in cars if car.partner_decided_at is None)
+
+    return render(
+        request,
+        "console/partner_auction.html",
+        {
+            "auction": auction,
+            "cars": cars,
+            "company": company,
+            "partner": partner,
+            "pending": pending,
+            "live": live,
+            "ended": auction.state in ARCHIVED,
+        },
+    )
 
 
 @console_page("console:partner-soon")

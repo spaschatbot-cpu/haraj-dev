@@ -1,0 +1,102 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+سيارات الشريك في مزادٍ واحد — نظيرُ `partner/auction_vehicles.php`.
+
+**والوجهةُ هي المسألة.** «فتح ←» في قائمة مزادات v1 تذهب إلى
+`/partner/auctions/{id}`: صفحةٌ مقصورةٌ على سيارات الشريك في ذلك المزاد.
+وكانت هنا تذهب إلى صفحة المزاد العامّة — التي تعرض مركباته **كلَّها** (٣٨٦
+في مزادٍ للشريك منها ٢٠٦) ومعها «إضافة مركبة» و«تعديل المزاد» و«رفع إكسل».
+فمن دخل من قسم الشريك يقرأ حصّةً ليست له، ويرى أزرارَ إدارةٍ لا شأنَ لسؤاله
+بها.
+
+ولا تحكم هذه الصفحة: القبولُ والرفضُ في «اتخاذ القرار» وحدَها كما في v1.
+{% endcomment %}
+{% block title %}سيارات الشريك في مزاد {{ auction.number|unlocalize }}{% endblock %}
+{% block heading %}مزاد {{ auction.number|unlocalize }}{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
+
+{% block content %}
+  {% comment %} شريطُ حالٍ يقول أيُّ مزادٍ هذا وأين وصل وكم ينتظر قراراً —
+     ثلاثُ إجاباتٍ تُقرأ قبل النزول إلى الجدول. {% endcomment %}
+  <p class="vd-badges">
+    {% if auction.title %}<span class="pill" data-tone="plain">{{ auction.title }}</span>{% endif %}
+    <span class="pill" data-tone="{% if live %}ok{% elif ended %}plain{% else %}info{% endif %}">{{ auction.get_state_display }}</span>
+    {% if live %}
+      <span class="pill" data-tone="plain">ينتهي {{ auction.ends_at|date:"Y-m-d H:i" }}</span>
+    {% elif ended %}
+      <span class="pill" data-tone="plain">انتهى {{ auction.ends_at|date:"Y-m-d" }}</span>
+    {% else %}
+      <span class="pill" data-tone="plain">يبدأ {{ auction.starts_at|date:"Y-m-d H:i" }}</span>
+    {% endif %}
+    {% if pending %}
+      <span class="pill" data-tone="warn">{{ pending|unlocalize }} بانتظار قرار الشريك</span>
+    {% endif %}
+    <a class="pill" data-tone="plain" href="{% url 'console:partner-auctions' %}?partner={{ partner }}">كل مزاداته ←</a>
+  </p>
+
+  {% if cars %}
+    {% comment %} الأعمدةُ أعمدةُ v1، والقرارُ عمودُ قراءةٍ لا زرَّين: هذه
+       الصفحةُ للاطّلاع، والحكمُ في «اتخاذ القرار» — فلا يكون له مدخلان
+       أحدُهما بلا شرط انتهاء المزاد (٤٠٩ في v1). {% endcomment %}
+    <div class="scroller scroller--wide">
+      <table class="pd-tbl">
+        <thead>
+          <tr>
+            <th>اللوت</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
+            <th>سعر الوقوف</th><th>أعلى عرض</th><th>مزايدات</th>
+            {% if ended %}<th>النتيجة</th>{% endif %}
+            <th>حكم الشريك</th><th>التفاصيل</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for car in cars %}
+            <tr>
+              <td class="count">{{ car.lot_number|unlocalize }}</td>
+              <td class="pv-name">
+                <a href="{% url 'console:vehicle-detail' car.pk %}"><strong>{{ car.make }} {{ car.model }}</strong></a>
+                <small>{{ car.year|unlocalize }}</small>
+              </td>
+              <td class="mono">{{ car.plate_number|default:"—" }}</td>
+              <td class="mono">{{ car.claim_number|default:"—" }}</td>
+              <td class="money">{{ car.reserve_price|default:"—"|unlocalize }}</td>
+              <td class="money">
+                {% if car.top_amount %}{{ car.top_amount|unlocalize }}
+                {% else %}<span class="pill" data-tone="bad">لا عروض</span>{% endif %}
+              </td>
+              <td class="count">{{ car.bids_count|unlocalize }}</td>
+              {% if ended %}
+                <td>
+                  {% if car.awarded_price %}
+                    <span class="pill" data-tone="ok">بيعت · {{ car.awarded_price|unlocalize }}</span>
+                  {% else %}<span class="pill" data-tone="plain">لم تُبع</span>{% endif %}
+                </td>
+              {% endif %}
+              <td>
+                {% if car.partner_decided_at %}
+                  <span class="pill" data-tone="{% if car.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ car.get_partner_decision_display|default:"حُكم فيها" }}</span>
+                {% else %}
+                  <span class="pill dc-wait" data-tone="warn">بانتظار قراره</span>
+                {% endif %}
+              </td>
+              <td class="rf-act"><a class="rf-go" href="{% url 'console:vehicle-detail' car.pk %}">التفاصيل</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pending %}
+      {% comment %} سطرُ v1: القرارُ له مكانٌ واحد، ومن فتح هذه الصفحة
+         باحثاً عن زرِّ قبولٍ يعرف أنه ليس هنا — ولا يُقرأ غيابُ الزرّ
+         عطلاً. {% endcomment %}
+      <p class="notice notice--soft">
+        {{ pending|unlocalize }} من سياراته في هذا المزاد تنتظر حكمَه —
+        والقرار يُتخذ من
+        <a href="{% url 'console:partner-decisions' %}?partner={{ partner }}&amp;auction={{ auction.number|unlocalize }}">صفحة اتخاذ القرار</a>،
+        وبعد انتهاء المزاد فقط.
+      </p>
+    {% endif %}
+  {% else %}
+    <p class="empty">لا سيارات لهذا الشريك في هذا المزاد.</p>
+  {% endif %}
+{% endblock %}

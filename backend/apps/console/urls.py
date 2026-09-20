@@ -206,6 +206,11 @@ urlpatterns = [
     # شريك التسويق — عشرةُ مداخلَ في v1، وخمسُ دوالّ تقرؤها (T830و).
     path("partner/", partner_console.partner_console, name="partner-console"),
     path("partner/auctions/", partner_console.partner_auctions, name="partner-auctions"),
+    path(
+        "partner/auctions/<int:pk>/",
+        partner_console.partner_auction,
+        name="partner-auction",
+    ),
     path("partner/state/soon/", partner_console.partner_soon, name="partner-soon"),
     path("partner/state/active/", partner_console.partner_active, name="partner-active"),
     path("partner/state/ended/", partner_console.partner_ended, name="partner-ended"),

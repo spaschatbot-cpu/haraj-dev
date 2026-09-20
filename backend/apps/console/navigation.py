@@ -653,6 +653,17 @@ PAGES: tuple[Page, ...] = (
         "car-list",
     ),
     Page(
+        "console:partner-auction",
+        "سياراته في هذا المزاد",
+        Capability.PARTNERS_DECIDE,
+        # بلا قسم: مسارُها يأخذ `pk`، وصفٌّ في الشريط يصير `href=""` يعيد
+        # تحميل الصفحة — انظر حجّة `partner-rule` تحتها.
+        "",
+        "سيارات الشريك في مزادٍ واحد — وهي وجهة «فتح ←» في قائمة مزاداته.",
+        "car-list",
+        parent="console:partner-auctions",
+    ),
+    Page(
         "console:partner-rule",
         "حكم الشريك على سيارته",
         Capability.PARTNERS_DECIDE,

@@ -250,7 +250,17 @@
       </p>
     {% endfor %}
   {% else %}
-  <div class="scroller scroller--wide">
+  {% comment %} **فهرسٌ بسبعة أعمدة، كـ v1 (`partner/auctions.php`).**
+
+     كان ستةَ عشرَ عموداً فيها «نسبة البيع» و«التغطية» و«المزايدون» و«أعلى
+     عرض» و«المبيعات» و«الفرق». وهذه شاشةُ **كلّ** الأحوال: صفٌّ لمزادٍ لم
+     يُفتح يعرض «نسبة البيع ٠٫٠٪» و«التغطية ٠٫٠٪» — تُقرآن فشلاً وهما «لم
+     يحدث شيءٌ بعد». والتحليلُ صار له موضعُه: الشاشاتُ الثلاثُ بحالها،
+     وبطاقاتُها تختلف بالحال لهذا السبب بعينه.
+
+     فبقي ما يجيب سؤالَ هذه الشاشة وحدَه: **أيُّ المزادات فيها سياراته، وكم
+     فيها، ومتى** — ثم «فتح ←». {% endcomment %}
+  <div class="scroller">
     <table>
     <thead>
       <tr>
@@ -260,50 +270,29 @@
         {% comment %} عنوانُ العمود يقول ما فيه: بلا شريكٍ مختارٍ يعدّ
            `mine` مركباتِ المزاد كلَّها، فـ«سياراته» تصير كذباً. {% endcomment %}
         <th>{% if picked %}سياراته{% else %}المركبات{% endif %}</th>
-        <th>{% if picked %}ما بيع منها{% else %}ما بيع{% endif %}</th>
-        {% comment %} إحصاءُ v1 لكلّ مزاد — والصفُّ وحدَه لا يقول شيئاً عن
-           الطلب: مزادٌ فيه عشرُ سياراتٍ بيعت منه اثنتان قد يكون لم يزره أحد،
-           أو زايد عليه عشرون ولم يبلغ أحدُهم سعرَ الوقوف. والفرقُ بينهما
-           قرارُ توريدٍ مختلف. {% endcomment %}
-        <th>نسبة البيع</th>
-        <th>عليها عروض</th>
-        <th>التغطية</th>
-        <th>المزايدون</th>
-        <th>أعلى عرض</th>
-        <th>سعر الوقوف</th>
-        <th>المبيعات</th>
-        <th>الفرق</th>
         <th>البداية</th>
         <th>النهاية</th>
-        {% comment %} رأسٌ فارغٌ يُقرأ عموداً بلا اسم. {% endcomment %}
-        <th>المزايدات</th>
+        <th>فتح</th>
       </tr>
     </thead>
     <tbody>
       {% for row in page %}
         <tr>
           <td class="count">{{ row.number|unlocalize }}</td>
-          <td><a href="{% url 'console:auction-detail' row.pk %}">{{ row.title }}</a></td>
+          <td>{{ row.title }}</td>
           <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
           <td class="count">{{ row.mine|unlocalize }}</td>
-          <td class="count">{{ row.sold|unlocalize }}</td>
-          <td><span class="pill" data-tone="{% if row.rate >= 50 %}ok{% elif row.rate %}warn{% else %}plain{% endif %}">{{ row.rate|unlocalize }}%</span></td>
-          <td class="count">{{ row.with_bids|unlocalize }}</td>
-          {% comment %} التغطيةُ: كم من سياراته لقيت عرضاً أصلاً. ونسبةُ البيع
-             تقول ما رسا، وهذه تقول ما **رآه أحد** — ومزادٌ بتغطيةٍ عاليةٍ
-             وبيعٍ منخفض يعني سعرَ وقوفٍ فوق السوق، لا ضعفَ إقبال. {% endcomment %}
-          <td><span class="pill" data-tone="{% if row.coverage >= 50 %}ok{% elif row.coverage %}info{% else %}plain{% endif %}">{{ row.coverage|unlocalize }}%</span></td>
-          <td class="count">{{ row.bidders|unlocalize }}</td>
-          <td class="money">{{ row.top_bid|default:"—"|unlocalize }}</td>
-          <td class="money">{{ row.reserve|default:"—"|unlocalize }}</td>
-          <td class="money">{{ row.sales|default:"—"|unlocalize }}</td>
-          <td class="money pb-diff" data-sign="{% if row.diff >= 0 %}up{% else %}down{% endif %}">{{ row.diff|unlocalize }}</td>
           <td class="rm-when">{{ row.starts_at|date:"Y-m-d H:i" }}</td>
           <td class="rm-when">{{ row.ends_at|date:"Y-m-d H:i" }}</td>
-          <td class="rf-act"><a class="rf-go" href="{% url 'console:auction-bids' row.pk %}">المزايدات</a></td>
+          {% comment %} **وجهةُ «فتح ←» صفحةُ الشريك لا صفحةُ المزاد.** تلك
+             تعرض مركبات المزاد كلَّها ومعها «إضافة مركبة» و«تعديل المزاد»
+             و«رفع إكسل» — حصّةٌ ليست له وأزرارُ إدارةٍ لا شأنَ لسؤاله بها.
+             وv1 يذهب إلى `/partner/auctions/{id}`: سياراتُه وحدَها.
+             {% endcomment %}
+          <td class="rf-act"><a class="rf-go" href="{% url 'console:partner-auction' row.pk %}?partner={{ partner }}">فتح</a></td>
         </tr>
       {% empty %}
-        <tr><td colspan="16" class="empty">لا مزادات مطابقة.</td></tr>
+        <tr><td colspan="7" class="empty">لا مزادات فيها سيارات لهذا الشريك.</td></tr>
       {% endfor %}
     </tbody>
   </table>
