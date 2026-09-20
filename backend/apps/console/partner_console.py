@@ -244,9 +244,10 @@ def partner_console(request):
     """
     partner = (request.GET.get("partner") or "").strip()
     companies = partners()
-    if not partner.isdigit() or not companies.filter(pk=int(partner)).exists():
-        first = companies.first()
-        partner = str(first.pk) if first else ""
+    company = companies.filter(pk=int(partner)).first() if partner.isdigit() else None
+    if company is None:
+        company = companies.first()
+    partner = str(company.pk) if company else ""
 
     return render(
         request,
@@ -255,6 +256,10 @@ def partner_console(request):
             "totals": summary_for(partner),
             "breakdown": breakdown_for(partner),
             "partner": partner,
+            # الشركةُ نفسُها لا معرّفُها وحده: اسمُها كان لا يُكتب في الصفحة
+            # إلا داخل قائمة الاختيار، فلمّا حُذفت صارت خمسةَ عشرَ رقماً بلا
+            # صاحب.
+            "company": company,
             "partners": companies,
         },
     )
