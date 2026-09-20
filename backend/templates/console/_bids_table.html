@@ -95,41 +95,4 @@
   {% endif %}
 </div>
 
-{% comment %} نافذةُ مزايدات المركبة — `<dialog>` لا `<div>`: المتصفّح يحبس
-   التركيز ويُغلق بـEscape ويعتم الخلف. والضغطُ خارجها يغلقها كبقيّة نوافذ اللوحة.
-{% endcomment %}
-<dialog class="modal row-ajax-modal" data-bids-modal>
-  <div data-bids-body></div>
-</dialog>
-
-<script>
-(function () {
-  var modal = document.querySelector('[data-bids-modal]');
-  if (!modal || !modal.showModal) return;
-  var body = modal.querySelector('[data-bids-body]');
-
-  // **تفويضٌ على المستند** لا ربطٌ لكل زرّ: زرُّ «تفاصيل المركبة» يُحقَن داخل
-  // النافذة بعد أن يكون هذا السكربت قد عمل، فربطٌ مباشرٌ لا يبلغه أبداً.
-  function openInto(url) {
-    body.innerHTML = '<p class="empty">…يُحمَّل</p>';
-    if (!modal.open) modal.showModal();
-    fetch(url, {
-      credentials: 'same-origin',
-      headers: { 'X-Requested-With': 'fetch' },
-    }).then(function (r) { return r.text(); }).then(function (html) {
-      body.innerHTML = html;
-    }).catch(function () {
-      body.innerHTML = '<p class="empty">تعذّر الجلب.</p>';
-    });
-  }
-
-  document.addEventListener('click', function (e) {
-    var opener = e.target.closest('[data-bids-open], [data-detail-open]');
-    if (opener) { openInto(opener.getAttribute('data-url')); return; }
-    if (e.target.closest('[data-bids-close], [data-close]')) { modal.close(); }
-  });
-
-  // الضغطُ على الخلفية (خارج البطاقة) يغلق — كبقيّة نوافذ اللوحة.
-  modal.addEventListener('click', function (e) { if (e.target === modal) modal.close(); });
-})();
-</script>
+{% include "console/_bids_modal.html" %}
