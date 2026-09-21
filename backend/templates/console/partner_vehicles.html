@@ -25,31 +25,6 @@
     يقرّر بناءً على ذلك. و«—» تعني «لم يُحدَّد» لا «مجّاناً».
   </p>
 
-  {% comment %} ثلاثةُ أرقامٍ كانت في سطرٍ واحدٍ عارٍ يفصلها نقاطٌ وسطى، فتُقرأ
-     جملةً لا أرقاماً.
-
-     **وهي من المرشَّح نفسِه تحتها — وكانت تقول ذلك ولا تفعله.** كانت تقرأ
-     `summary_for(partner)`: كلَّ سيارات الشريك أيّاً كانت الشريحةُ والبحث.
-     قِيس: «مباعة» أربعةُ صفوفٍ والبطاقةُ تقول ٩، و«كامري» صفّان والبطاقةُ
-     تقول ٩. {% endcomment %}
-  <section class="sum-grid sum-grid--tight" aria-label="أرقام الشريك">
-    <div class="sum">
-      <p class="sum__label">سيارات مطابقة</p>
-      <p class="sum__value">{{ matched.vehicles|unlocalize }}</p>
-      <p class="sum__note">في المرشّح الحالي.</p>
-    </div>
-    <div class="sum">
-      <p class="sum__label">مباعة منها</p>
-      <p class="sum__value">{{ matched.won|unlocalize }}</p>
-      <p class="sum__note">رست على مزايد.</p>
-    </div>
-    <div class="sum sum--money">
-      <p class="sum__label">إجمالي الترسية</p>
-      <p class="sum__value money">{{ matched.won_value|unlocalize }}</p>
-      <p class="sum__note">مجموعُ أسعار ما رسا.</p>
-    </div>
-  </section>
-
   {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمتان وحقلٌ وزرّ. {% endcomment %}
   {% comment %} **شرائحُ لا قائمةٌ منسدلة — كـ v1.** الأربعةُ ظاهرةٌ معاً
      والمختارُ ملوَّن، فالانتقالُ نقرةٌ واحدة. والقائمةُ المنسدلة تحتاج فتحاً
@@ -59,14 +34,32 @@
      **وكلُّ شريحةٍ تحمل البحثَ معها** (`&q=`): من بحث عن «تويوتا» ثم ضغط
      «مباعة» يقصد تويوتا المباعة، لا كلَّ المباع. وv1 يفعلها بالسطر نفسِه.
      {% endcomment %}
-  <nav class="pv-chips" aria-label="المرشّح">
-    {% for key, label, icon, tone in chips %}
-      <a class="pv-chip{% if which == key %} is-on{% endif %}" data-tone="{{ tone }}"
-         href="?partner={{ partner }}&amp;which={{ key }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">
-        {% include "console/_act_icon.html" with path=icon %}
-        <span>{{ label }}</span></a>
-    {% endfor %}
-  </nav>
+  <div class="pv-bar">
+    <nav class="pv-chips" aria-label="المرشّح">
+      {% for key, label, icon, tone in chips %}
+        <a class="pv-chip{% if which == key %} is-on{% endif %}" data-tone="{{ tone }}"
+           href="?partner={{ partner }}&amp;which={{ key }}{% if q %}&amp;q={{ q|urlencode }}{% endif %}">
+          {% include "console/_act_icon.html" with path=icon %}
+          <span>{{ label }}</span></a>
+      {% endfor %}
+    </nav>
+
+    {% comment %} **رقمان في بطاقةٍ جانبيّة، كـ v1** (قرار المالكة، ٢٢ سبتمبر
+       ٢٠٢٦). كانت ثلاثَ بطاقاتٍ بعرض الشاشة فوق الشرائح: «سيارات مطابقة»
+       تكرّر عدَّ الترقيم في ذيل الصفحة، وثلاثةُ أسطرِ شرحٍ تحتها تشرح ما
+       لا يحتاج شرحاً. وv1 يضعهما سطراً واحداً في آخر شريط المرشّح:
+       «مباعة 373 · مبيعات 17,738,288».
+
+       وهما من المرشَّح كما كانت البطاقات: الشريحةُ والبحثُ يغيّرانهما.
+       {% endcomment %}
+    {% comment %} النصُّ نصُّ v1 حرفاً وترتيباً (`vehicles.php:40`): الاسمُ
+       ثم الرقم — «مباعة 373 · مبيعات 17,738,288.00». {% endcomment %}
+    <aside class="pv-sum" aria-label="حصيلةُ المرشّح">
+      <span>مباعة <b>{{ matched.won_text }}</b></span>
+      <span class="pv-sum__sep" aria-hidden="true">·</span>
+      <span>مبيعات <b class="money">{{ matched.won_value_text }}</b></span>
+    </aside>
+  </div>
 
   {% comment %} **بحثٌ وحدَه، بلا مُنتقي شريك** (قرار المالكة، ٢٠ سبتمبر
      ٢٠٢٦: «شيل دا» ثم «سيب بحث بس»).

@@ -839,6 +839,17 @@ def partner_vehicles(request):
                 "vehicles": matched["n"] or 0,
                 "won": matched["won"] or 0,
                 "won_value": matched["value"] or ZERO,
+                # **بفاصل آلافٍ كـ v1** (`number_format($sales, 2)`):
+                # «17,738,288.00» لا «17738288.00» — وثمانيةُ أرقامٍ متتابعةٍ
+                # بلا فاصلٍ تُعدّ بالإصبع. وهي بطاقةُ خلاصةٍ لا خانةُ جدول،
+                # فلا تُقاس عليها بقيّةُ الأرقام.
+                #
+                # ويُحسَب هنا لا في القالب: `intcomma` تحتاج
+                # `django.contrib.humanize` في `INSTALLED_APPS`، وتطبيقٌ كاملٌ
+                # لأجل فاصلةٍ أغلى من سطر — وهي حجّةُ `odometer_text` نفسُها.
+                # والفاصلةُ لاتينيّةٌ صراحةً كما `unlocalize` في كلّ اللوحة.
+                "won_text": f"{matched['won'] or 0:,}",
+                "won_value_text": f"{matched['value'] or ZERO:,.2f}",
             },
             # الشرائحُ الأربعُ من مكانٍ واحد: القالبُ يرسمها والمنظرُ يعرفها،
             # فإضافةُ خامسةٍ يوماً سطرٌ واحد لا سطران يفترقان.
