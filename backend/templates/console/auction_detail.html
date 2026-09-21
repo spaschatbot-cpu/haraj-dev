@@ -337,7 +337,7 @@ somebody went looking for it.
   **خارجها** — نموذجٌ داخل نموذجٍ غيرُ صالحٍ في HTML، ويسقط الداخليُّ صامتاً.
   {% endcomment %}
   <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
-        data-bulk-form>
+        class="plain-form" data-bulk-form>
     {% csrf_token %}
     <div class="bulk-bar" data-bulk-bar hidden>
       <span class="bulk-bar__count"><b data-bulk-count>0</b> مركبة محدَّدة</span>

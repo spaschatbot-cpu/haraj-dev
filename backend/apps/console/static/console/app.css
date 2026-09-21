@@ -12800,3 +12800,52 @@ a.pager__num:hover, a.pager__step:hover {
 
 .mv-pick { inline-size: 2.2rem; text-align: center; }
 .mv-pick input { inline-size: 1rem; block-size: 1rem; cursor: pointer; }
+
+/* ---- ثلاثةُ إصلاحاتٍ قِيست على الصفحة المُصيَّرة. T961 ------------------ */
+
+/* ١) **النموذجُ لا يلبس بطاقة.** القاعدةُ العامّة `form {…}` (سطر 1062) تعطي
+   كلَّ `<form>` في اللوحة خلفيّةً وحدّاً وظلّاً و`max-width: 46rem`. ولفُّ
+   جدولِ المركبات بنموذجٍ للشريط المجمَّع ورّثه ذلك السقف: قِيس في المتصفّح —
+   `main` عرضُه 1430 بكسلاً و`form` **736**، فانضغط الجدولُ إلى نصف الشاشة
+   وبقي نصفُها فارغاً. والتعليقُ عند 12731 يحذّر من هذا الفخّ نفسِه. */
+.plain-form {
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ٢) **أفعالُ الصفّ في سطرٍ واحد.** قِيس: إفراغُ خانة الأفعال يُنزل ارتفاع
+   الصفّ من **١٥٠ إلى ٦٧** بكسلاً — أربعةُ أزرارٍ بـ30px في خانةٍ عرضُها 70
+   تنكسر واحداً تحت الآخر. و`.actions { flex-wrap: nowrap }` وحدَها لا تكفي:
+   تتجاوزها `.pv-table td.actions` (12733) بالترتيب، و`.scroller--wide
+   td.actions { min-inline-size: 0 }` (802) يمنع الخانةَ أن تتّسع. فالقاعدتان
+   هنا بعدهما معاً. */
+.mv-table td.actions,
+.scroller--wide .mv-table td.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  min-inline-size: max-content;
+  gap: .28rem;
+}
+
+/* ٣) **وأزرارُ جدول المزادات كذلك** — طلبُ المالك «أزرار التحكّم في صف واحد».
+   وهي شبكةٌ بثلاثة أعمدة (سطر 9066)، فسبعةُ أزرارٍ ثلاثةُ أسطر. و`grid-auto-flow:
+   column` يجعلها سطراً واحداً بلا مسّ مقاسات الأزرار.
+   و`.act--review` كان يمتدّ `1 / -1` على الأعمدة الثلاثة ليتّسع لعدده —
+   وفي سطرٍ واحدٍ لا معنى للامتداد، فيُلغى ويأخذ عرضَه من محتواه. */
+.auctions-table td.actions {
+  grid-auto-flow: column;
+  grid-auto-columns: 1.85rem;
+  grid-template-columns: none;
+  justify-content: start;
+  min-inline-size: max-content;
+}
+.auctions-table td.actions .act--review {
+  grid-column: auto;
+  inline-size: auto;
+  padding-inline: .3rem;
+}
