@@ -2772,8 +2772,16 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    ويظنّ الباقيَ مفقوداً. صفّان من أربعةٍ يُريان كلَّها. */
 .actions { white-space: normal; }
 .actions .act { flex: none; }
-td.actions { min-inline-size: 9rem; }
-.actions { display: flex; flex-wrap: wrap; gap: .15rem; }
+/* **صفٌّ واحد لا ثلاثة.** T959.
+   طلبُ المالك (٢١ سبتمبر ٢٠٢٦): «أزرار التحكّم تكون في صف واحد». وكانت
+   `flex-wrap: wrap` مع سقفٍ ٩ريم للخانة، وسبعةُ أزرارٍ بعرض ٢ريم وفواصلها
+   تحتاج نحو ١٥ — فانكسرت إلى ثلاثة أسطر، وصار الصفُّ في الجدول بارتفاع
+   ثلاثة أضعافه وقُرئت الأزرارُ مجموعاتٍ لا صفّاً.
+   و`max-content` بدل الرقم الثابت: العددُ يختلف بالصلاحية (المدير يرى سبعة،
+   وغيرُه ثلاثة)، فرقمٌ واحدٌ إمّا يضيق على الأوّل أو يُهدر على الثاني.
+   والجدولُ داخل `.scroller` فالعرضُ الزائد يُمرَّر أفقيّاً ولا يقصّ. */
+td.actions { min-inline-size: max-content; }
+.actions { display: flex; flex-wrap: nowrap; gap: .15rem; }
 .act {
   display: inline-flex;
   align-items: center;
@@ -12737,3 +12745,29 @@ a.pager__num:hover, a.pager__step:hover {
 /* جدولُ مزايدات المركبة — بمقاييس جداول الشريك نفسِها. */
 .vd-bids th, .vd-bids td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
 .vd-bids thead th { font-size: .74rem; }
+
+/* ---- جدولُ سيارات المزاد — نظيرُ `manage_vehicles.php`. T959 ------------ */
+/* كان بطاقاتٍ في شبكة، وv1 جدولٌ بستّةَ عشرَ عموداً. والصورةُ تبقى في العمود
+   الأوّل مصغَّرةً وهي زرُّ صورة العرض، فلا يضيع فعلٌ بتغيير الشكل. */
+.mv-table td { vertical-align: middle; }
+.mv-thumb { inline-size: 4.6rem; }
+.mv-thumb__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 4.2rem;
+  block-size: 3.1rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.mv-thumb__btn img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.mv-thumb__btn:hover { border-color: var(--brand); }
+/* المخفيّةُ عن العملاء تُقرأ من الصفّ نفسه، لا من شارةٍ في عمودٍ واحد: جدولٌ
+   من ستّين صفّاً لا يُمسح بالعين بحثاً عن خليّةٍ صغيرة. */
+.mv-row--hidden > td { opacity: .55; }
+.mv-row--focus > td { background: var(--brand-soft); }
