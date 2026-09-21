@@ -13054,6 +13054,14 @@ a.of-nav__card:hover {
    ورأسُها `images-modal__head` نفسُه، فلا قاعدةَ ثانيةً له هنا — كتبتُ واحدةً
    فخرج الزرُّ بلا شكلٍ في الجهة الخطأ فوق العنوان. */
 .bidders-modal { inline-size: min(58rem, 94vw); padding: 0; }
+/* **وزرُّ الإغلاق بمحاذاة السطر الأوّل من العنوان.** رأسُ نافذة الصور
+   `align-items: center` وهو صوابٌ لعنوانٍ من سطر؛ وعنوانُ هذه سطران (اللوط
+   ثمّ المركبةُ وعددُ العروض)، فيقع الزرُّ في منتصف الكتلة — **أخفضَ من
+   السطر الأوّل بأحدَ عشرَ بكسلاً**، فيُقرأ عائماً لا محاذياً. قِيس: رأسٌ في
+   ٣٠٥ والعنوانُ في ٣٢١ والزرُّ في ٣٣٢.
+
+   و`flex-start` تجعله ٣٢١ بالضبط — على سطر العنوان. */
+.bidders-modal .images-modal__head { align-items: flex-start; }
 .bidders-modal .images-modal__title small {
   display: block;
   margin-block-start: .25rem;
