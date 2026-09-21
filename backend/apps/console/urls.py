@@ -30,6 +30,7 @@ from . import (
     manual_payment,
     money,
     news,
+    offers,
     partner_console,
     partner_payments,
     partners,
@@ -161,7 +162,7 @@ urlpatterns = [
     # تقرير المزايدات — المزايدون مجمَّعين، بمسار v1 نفسِه (T832).
     # «احصائيات المزاد النشط» دُمجت في `console:live-bids` (T938) —
     # شاشتان عن المزاد المفتوح نفسِه: تلك تعدّ وهذه تسرد.
-    path("owners/", analytics.owners_console, name="owners-console"),
+    path("owners/", offers.owners_console, name="owners-console"),
     path("owners/bids/", refunds.auction_bids_index, name="auction-bids-index"),
     path("refunds/", refunds.refunds, name="refunds"),
     # مسارٌ واحدٌ للشاشة كلِّها، كـ«شريط الأخبار» — و`op` يميّز الفعل. T921

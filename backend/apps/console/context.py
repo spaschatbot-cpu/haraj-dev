@@ -139,6 +139,11 @@ def _asset_stamp() -> str:
     for name in (
         "console/app.css",
         "console/theme.js",
+        # **و`auctions.js` كذلك** (T962): كان خارج القائمة وبلا `?v=` في
+        # القالب معاً، فكان تعديلُه لا يُبطل كاشاً ولا يصل متصفّحاً.
+        "console/auctions.js",
+        "console/columns_auto.js",
+        "console/offers.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):
@@ -168,4 +173,5 @@ def assets(request) -> dict:
     و`stat` على أربعة ملفّاتٍ في التطوير وحدَه ثمنٌ لا يُذكر، والسيرفرُ يبقى
     على القراءة الواحدة.
     """
-    return {"asset_stamp": SimpleLazyObject(_asset_stamp) if settings.DEBUG else ASSET_STAMP}
+    stamp = SimpleLazyObject(_asset_stamp) if settings.DEBUG else ASSET_STAMP
+    return {"asset_stamp": stamp}

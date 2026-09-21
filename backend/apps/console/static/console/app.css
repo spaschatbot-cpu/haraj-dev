@@ -2772,8 +2772,16 @@ a.stat:hover { box-shadow: var(--shadow-lift); }
    ويظنّ الباقيَ مفقوداً. صفّان من أربعةٍ يُريان كلَّها. */
 .actions { white-space: normal; }
 .actions .act { flex: none; }
-td.actions { min-inline-size: 9rem; }
-.actions { display: flex; flex-wrap: wrap; gap: .15rem; }
+/* **صفٌّ واحد لا ثلاثة.** T959.
+   طلبُ المالك (٢١ سبتمبر ٢٠٢٦): «أزرار التحكّم تكون في صف واحد». وكانت
+   `flex-wrap: wrap` مع سقفٍ ٩ريم للخانة، وسبعةُ أزرارٍ بعرض ٢ريم وفواصلها
+   تحتاج نحو ١٥ — فانكسرت إلى ثلاثة أسطر، وصار الصفُّ في الجدول بارتفاع
+   ثلاثة أضعافه وقُرئت الأزرارُ مجموعاتٍ لا صفّاً.
+   و`max-content` بدل الرقم الثابت: العددُ يختلف بالصلاحية (المدير يرى سبعة،
+   وغيرُه ثلاثة)، فرقمٌ واحدٌ إمّا يضيق على الأوّل أو يُهدر على الثاني.
+   والجدولُ داخل `.scroller` فالعرضُ الزائد يُمرَّر أفقيّاً ولا يقصّ. */
+td.actions { min-inline-size: max-content; }
+.actions { display: flex; flex-wrap: nowrap; gap: .15rem; }
 .act {
   display: inline-flex;
   align-items: center;
@@ -4651,6 +4659,10 @@ dialog.row-modal {
    والعنصرُ المرن ينكمش افتراضياً — فقِيس عرضُ الرسم على الشاشة **صفراً**
    وارتفاعُه ١٤٫٤ (أي شريطٌ رأسيّ لا صليب). */
 .modal__close svg { inline-size: .9rem; block-size: .9rem; flex: none; }
+/* **ومربّعٌ فعلاً.** `inline-size: 2rem` وحدَها لا تكفي: حشوُ القاعدة العامّة
+   للأزرار يُضاف إليها (`box-sizing` الموروث)، فقِيس الزرُّ ٤٣×٣٢ — مستطيلٌ
+   يُقرأ خللاً بجانب عنوانٍ مرتّب. */
+.modal__close { padding: 0; flex: none; }
 .gallery-msgs { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .4rem; }
 
 /* بطاقةُ مزادٍ بلا سيارات في مُنتقي التعديل السريع: لا تُفتح، فتُعتّم ويغيب
@@ -12767,3 +12779,364 @@ a.pager__num:hover, a.pager__step:hover {
 /* جدولُ مزايدات المركبة — بمقاييس جداول الشريك نفسِها. */
 .vd-bids th, .vd-bids td { padding-inline: .62rem; padding-block: .5rem; font-size: .82rem; text-align: center; }
 .vd-bids thead th { font-size: .74rem; }
+
+/* ---- جدولُ سيارات المزاد — نظيرُ `manage_vehicles.php`. T959 ------------ */
+/* كان بطاقاتٍ في شبكة، وv1 جدولٌ بستّةَ عشرَ عموداً. والصورةُ تبقى في العمود
+   الأوّل مصغَّرةً وهي زرُّ صورة العرض، فلا يضيع فعلٌ بتغيير الشكل. */
+.mv-table td { vertical-align: middle; }
+.mv-thumb { inline-size: 4.6rem; }
+.mv-thumb__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 4.2rem;
+  block-size: 3.1rem;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink-3);
+  cursor: pointer;
+}
+.mv-thumb__btn img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+.mv-thumb__btn:hover { border-color: var(--brand); }
+/* المخفيّةُ عن العملاء تُقرأ من الصفّ نفسه، لا من شارةٍ في عمودٍ واحد: جدولٌ
+   من ستّين صفّاً لا يُمسح بالعين بحثاً عن خليّةٍ صغيرة. */
+.mv-row--hidden > td { opacity: .55; }
+.mv-row--focus > td { background: var(--brand-soft); }
+
+/* ---- الشريطُ المجمَّع على مركبات المزاد — نظيرُ v1. T960 ---------------- */
+/* لا يظهر إلا بتحديد (`hidden` يرفعه الجافاسكربت): شريطٌ دائمٌ بأزرارٍ
+   معطَّلة ضجيجٌ فوق كلّ جدول، وظهورُه عند أوّل تحديدٍ يقول إنّ ما يليه يخصّ
+   ما اخترتَه. */
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-block-end: .6rem;
+  padding: .55rem .7rem;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+}
+.bulk-bar[hidden] { display: none; }
+.bulk-bar__count { font-weight: 700; color: var(--brand-dark); }
+.bulk-bar__count b { font-size: 1.05em; }
+.bulk-bar__field { display: inline-flex; align-items: center; gap: .3rem; }
+.bulk-bar__field select { max-inline-size: 15rem; }
+/* السببُ يأخذ ما بقي: هو الحقلُ الوحيدُ الذي يُكتب فيه كلام. */
+.bulk-bar__reason { flex: 1 1 12rem; min-inline-size: 9rem; }
+/* والحذفُ في الطرف المقابل، بعيداً عن «طبّق» و«انقل»: خطأُ الإصبع على فعلٍ
+   لا رجعةَ فيه أغلى من خطوةٍ زائدة. */
+.bulk-bar [data-bulk-delete] { margin-inline-start: auto; }
+
+.mv-pick { inline-size: 2.2rem; text-align: center; }
+.mv-pick input { inline-size: 1rem; block-size: 1rem; cursor: pointer; }
+
+/* ---- ثلاثةُ إصلاحاتٍ قِيست على الصفحة المُصيَّرة. T961 ------------------ */
+
+/* ١) **النموذجُ لا يلبس بطاقة.** القاعدةُ العامّة `form {…}` (سطر 1062) تعطي
+   كلَّ `<form>` في اللوحة خلفيّةً وحدّاً وظلّاً و`max-width: 46rem`. ولفُّ
+   جدولِ المركبات بنموذجٍ للشريط المجمَّع ورّثه ذلك السقف: قِيس في المتصفّح —
+   `main` عرضُه 1430 بكسلاً و`form` **736**، فانضغط الجدولُ إلى نصف الشاشة
+   وبقي نصفُها فارغاً. والتعليقُ عند 12731 يحذّر من هذا الفخّ نفسِه. */
+.plain-form {
+  max-inline-size: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ٢) **أفعالُ الصفّ في سطرٍ واحد.** قِيس: إفراغُ خانة الأفعال يُنزل ارتفاع
+   الصفّ من **١٥٠ إلى ٦٧** بكسلاً — أربعةُ أزرارٍ بـ30px في خانةٍ عرضُها 70
+   تنكسر واحداً تحت الآخر. و`.actions { flex-wrap: nowrap }` وحدَها لا تكفي:
+   تتجاوزها `.pv-table td.actions` (12733) بالترتيب، و`.scroller--wide
+   td.actions { min-inline-size: 0 }` (802) يمنع الخانةَ أن تتّسع. فالقاعدتان
+   هنا بعدهما معاً. */
+.mv-table td.actions,
+.scroller--wide .mv-table td.actions {
+  display: flex;
+  flex-wrap: nowrap;
+  min-inline-size: max-content;
+  gap: .28rem;
+}
+
+/* ٣) **وأزرارُ جدول المزادات كذلك** — طلبُ المالك «أزرار التحكّم في صف واحد».
+   وهي شبكةٌ بثلاثة أعمدة (سطر 9066)، فسبعةُ أزرارٍ ثلاثةُ أسطر. و`grid-auto-flow:
+   column` يجعلها سطراً واحداً بلا مسّ مقاسات الأزرار.
+   و`.act--review` كان يمتدّ `1 / -1` على الأعمدة الثلاثة ليتّسع لعدده —
+   وفي سطرٍ واحدٍ لا معنى للامتداد، فيُلغى ويأخذ عرضَه من محتواه. */
+.auctions-table td.actions {
+  grid-auto-flow: column;
+  grid-auto-columns: 1.85rem;
+  grid-template-columns: none;
+  justify-content: start;
+  min-inline-size: max-content;
+}
+.auctions-table td.actions .act--review {
+  grid-column: auto;
+  inline-size: auto;
+  padding-inline: .3rem;
+}
+
+/* ---- سقوفُ النصّ الحرّ في الجداول الضيّقة. T963 ------------------------- */
+/* قِيس على عرضٍ 1394: «الملاحظة» في صندوق أودو **٤٤٧** بكسلاً و«السبب» في
+   التدقيق ٢٨٨ و«الفعل» ٢٤٠ و«الكيان» ٢٢٥ — فتجاوز جدولُ التدقيق حاويتَه
+   بـ٣٨٣ وصندوقُ أودو بـ١٨١. و`max-inline-size` على `<td>` لا يكفي:
+   `table-layout: auto` يوسّع العمودَ فوق السقف متى وجد مكاناً، والسقفُ يقصّ
+   المحتوى ولا يضبط العمود. فالقصُّ على `span` داخلها، وهي آليّةُ `cell-clip`
+   القائمة أصلاً. */
+.clip-note { --clip: 13rem; }
+.clip-act { --clip: 11rem; }
+@media (max-width: 96rem) {
+  .clip-note { --clip: 10rem; }
+  .clip-act { --clip: 9rem; }
+}
+
+/* شريطُ زرّ الأعمدة حين لا شريطَ أدواتٍ فوق الجدول. T964 */
+.cols-auto-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: .5rem;
+}
+
+/* ---- منصّة الملّاك: اختيار العروض. T965 ---------------------------------
+   خمسةُ أصنافٍ لا أكثر، وكلُّ ما عداها مستعارٌ من مكوّناتٍ قائمة
+   (`.filters--row` · `.acc-bulk` · `.sum-grid` · `.pv-table` · `.dc-btn`):
+   شاشةٌ جديدةٌ تكتب ورقةَ أنماطٍ لنفسها هي شاشةٌ تفترق عن اللوحة بعد شهرين. */
+
+/* **شريطُ فلاترٍ بستّة أعمدةٍ لا أربعة.** شبكةُ `.filters--row` أربعةُ أعمدةٍ
+   والبحثُ يمتدُّ صفّاً كاملاً متى كانت القوائمُ ثلاثاً فأكثر — وهو الحالُ هنا
+   (المزاد · القرار · التسويق). فبستّةِ عناصرَ تحت البحث تنكسر إلى **أربعةِ
+   صفوف**: قائمةٌ وحدَها، ثمّ البحث، ثمّ أربعة، ثمّ الزرُّ وحدَه. قِيس:
+   `top` 344 · 397 · 450 · 503.
+
+   والستّةُ تجعلها صفّين: البحثُ فوق، وتحته المزادُ والسعران والقراران والزرّ
+   في صفٍّ واحد. ولا يُمسُّ المكوّنُ العامّ: صنفٌ على هذه الشاشة وحدَها. */
+@media (min-width: 62rem) {
+  .filters--offers .filters__main { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+/* أفعالُ المزاد في صفٍّ واحد: «إصدار الفواتير» و«إبلاغ الفائزين» فعلان
+   متتاليان في الزمن، فوضعُهما تحت بعضهما يقرأهما قارئُهما بديلين. */
+.of-bulk { flex-wrap: wrap; align-items: center; gap: .6rem; }
+
+/* **التعادلُ يُعلَّم ولا يُكرَّر الصفّ.** v1 يعرض المركبةَ المتعادَلَ عليها
+   مرّتين بخلفيّةٍ برتقاليّة، فيقرأ العدُّ مركبتين وهي واحدة. والعلامةُ شريطٌ
+   على حافة الصفّ: يُرى في مسحٍ سريعٍ ولا يُلوّن النصَّ فيُصعِّب قراءتَه. */
+.of-tie > td:first-child { box-shadow: inset 4px 0 0 var(--warn); }
+.of-tie__note { color: var(--warn); font-weight: 700; }
+
+/* خانةُ الأفعال: ثلاثةُ أزرارٍ بالرسم والنصّ، في سطرٍ واحدٍ لا ثلاثة.
+   و`td.actions` شبكةٌ من ثلاثة أعمدةٍ ضيّقةٍ في القاعدة العامّة — وهي مقاسُ
+   أزرارِ الرسمِ وحدَه، وهذه أزرارٌ بنصّ. */
+/* **أربعةُ أزرارٍ في صفّين لا في سطرٍ واحد.** بالنصّ الكامل تأخذ الخليّةُ
+   ٤٣٧ بكسلاً من ١٣٧٢، فيُقلّص المُنتقي التلقائيُّ أربعةَ أعمدةٍ ليتّسع الجدول
+   — وفيها «موقف المركبة»، وهو الرقمُ الذي يمشي به المالكُ في الحوش. قِيس.
+
+   وv1 يلفُّها كذلك (`d-flex flex-wrap`)، وجدولُه يُمرَّر أفقيّاً فوق ذلك.
+   فهنا تلتفّ وتُقيَّد بسقفٍ، فينزل عرضُ الخليّة إلى نحو ٢٠٠ ويرتفع الصفُّ
+   صفّاً — وارتفاعُ صفٍّ أرخصُ من عمودٍ يختفي. */
+/* **جدولُ هذه الشاشة لا يرث `pv-table`** — T966.
+   تلك تفرض `padding-inline: .62rem !important` بحجّةٍ مكتوبةٍ فوقها: «الجدولُ
+   يُمرَّر أفقياً، وهو أهونُ من صفٍّ لا يُقرأ». وهي صحيحةٌ لجدول المركبات،
+   وتنقض هنا شرطَ المالك الصريح: أربعةَ عشرَ عموداً **بلا تمريرٍ أفقيّ**.
+   وحشوُ ٠٫٦٢rem × ١٤ عموداً = الأحدَ عشرَ بكسلاً التي كانت تفيض. قِيس.
+
+   فبدل `!important` يغلب `!important`، تأخذ الشاشةُ أنماطَها: ستّةُ أسطرٍ
+   تنسخ ما كانت تستعمله من `pv-table` وتترك ما لا يلزمها. */
+.of-table th, .of-table td {
+  padding-inline: 4px;
+  padding-block: .5rem;
+  font-size: .8rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.of-table thead th { font-size: .73rem; }
+.of-table td strong, .of-table td a { font-weight: 700; }
+.of-table td small {
+  display: block;
+  margin-block-start: .1rem;
+  font-size: .72rem;
+  color: var(--muted);
+}
+.of-table td.mono { font-size: .76rem; color: var(--ink-soft); }
+.of-table .pv-name { text-align: start; }
+/* **وخليّةُ الأفعال خليّةُ جدولٍ لا شبكة.** القاعدةُ العامّة
+   `td.actions { display: grid; grid-template-columns: repeat(3, 1.85rem) }`
+   مقاسُ أزرارِ رسمٍ ثلاثة؛ وهذه فيها زرّان بنصٍّ ورسمان، فيُحشَر محتواها في
+   مسارٍ عرضُه ٢٩٫٦ ويفيض من داخل الخليّة. و`scrollWidth` يعدُّ ذلك الفائضَ
+   فائضَ جدول — فيبقى «الجدولُ يفيض ٢٩ بكسلاً» مهما أُخفي من أعمدة، ولا رابطَ
+   بين السبب والعَرَض. قِيس: محتوىً ٢٧٧ في خليّةٍ ٢٤٧، في الخمسين صفّاً. */
+.of-table td.actions { display: table-cell; min-inline-size: 0; }
+.of-acts {
+  display: flex;
+  /* **يلتفُّ عند الضيق** — شبكةُ أمانٍ لا خيارَ أوّل. الخليّةُ لها حدٌّ أدنى
+     أسفلَ هذا، فالالتفافُ لا يقع إلّا على شاشةٍ أضيق. وبلا `wrap` يفيض
+     المحتوى من داخل الخليّة، و`scrollWidth` يعدّه — فيبقى الجدولُ «فائضاً»
+     مهما أُخفي من أعمدة. قِيس: ٢٦٤ بكسلاً في خليّةٍ ٢٢١. */
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: .2rem;
+  inline-size: max-content;
+}
+
+/* **وأربعةَ عشرَ عموداً تُغلَق في ١٢٩٩ بكسلاً — بأربعة قيودٍ مقيسة.** T966
+   المالكُ طلب أعمدةَ v1 كلَّها **وبلا تمريرٍ أفقيّ**، وهما لا يجتمعان بلا
+   ضبط: الجدولُ كان يفيض ٣٨.
+
+   ١) خانةُ الأفعال لها **حدٌّ أدنى**: `table-layout: auto` كان يعطيها ١٠٨
+      ومحتواها ١٣٩، فتفيض من داخلها — والفائضُ يُحسَب في `scrollWidth` وإن
+      كان مجموعُ الأعمدة مساوياً للحاوية تماماً — و`scrollWidth` يعدُّ فائضَ
+      الخليّة من داخلها. و**١٣rem تسع محتواها** (٢٠٢ بكسلاً بعد أن عاد
+      «قبول» و«رفض» كلمتين): دونها يفيض من داخلها فلا يراه المُقلِّص أصلاً،
+      وبها يصير الفائضُ فائضَ جدولٍ صادقاً — فيُخفي «معرف المركبة» ويتّسع.
+
+      وتصغيرُ الخطّ لا يُزحزح شيئاً: جُرّب ٠٫٧٦ و٠٫٧٤ فبقي الفائضُ كما هو.
+      والأعمدةُ الثلاثةَ عشرَ الأخرى عند حدودها الدنيا — كلُّ ١٦ بكسلاً تُزاد
+      للأفعال تُعيد ٨ فقط.
+   ٢) والفراغُ بين الأزرار ٠٫٢ بدل ٠٫٣ — ١٤٠ تصير ١٢٣.
+   ٣) وسقوفُ القصّ أضيقُ من العامّة: اسمُ المزايد وحدَه كان ١٩٩ بكسلاً.
+   ٤) وحبّةُ التعادل «تعادُل ×٢» لا جملةً: الطويلةُ كانت تفرض ١٥٠ على عمود
+      الاسم في صفٍّ واحدٍ من ٢٥٦. */
+.of-table th[data-col="actions"],
+.of-table td.actions { min-inline-size: 13rem; }
+.of-table .clip-name,
+.of-table .clip-model { --clip: 7.5rem; }
+.of-table .clip-buyer { --clip: 7rem; }
+
+
+/* **كروتُ مراحل المزاد** — نظيرُ `nav-cards` في `admin2/bills/index.php`.
+   هناك ثلاثةُ كروتٍ ذهبيّةٍ يقفز الحاليُّ منها بلونٍ أغمق؛ وهنا بألوان اللوحة
+   لا بذهبٍ مستعار، والحاليُّ `<span>` لا `<a>`: رابطٌ إلى الصفحة التي أنت
+   فيها نقرةٌ تُهدَر، و`aria-current` يقوله لقارئ الشاشة. */
+.of-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+  margin-block-end: 1.1rem;
+}
+.of-nav__card {
+  display: block;
+  padding: .8rem 1rem;
+  text-align: center;
+  font-weight: 800;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.of-nav__card small {
+  display: block;
+  margin-block-start: .25rem;
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+a.of-nav__card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
+  box-shadow: var(--shadow);
+}
+.of-nav__card.is-here {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+@media (prefers-reduced-motion: reduce) {
+  .of-nav__card { transition: none; }
+  a.of-nav__card:hover { transform: none; }
+}
+@media (max-width: 52rem) { .of-nav { grid-template-columns: minmax(0, 1fr); } }
+
+/* **زرٌّ حاضرٌ ولم يحن وقتُه.** `<span>` بهيئة زرٍّ لا `<button disabled>`:
+   المعطَّلُ لا يستقبل `focus` ولا يُظهر `title` لقارئ لوحة المفاتيح، وهذا
+   نصفُ الفائدة — السببُ مكتوبٌ في `title` وهو ما يُراد قراءتُه. */
+.btn-sm.is-off,
+.btn-primary.is-off {
+  opacity: .5;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* **القبولُ والرفضُ رسمان في الصفّ** — T966.
+   بالنصّ الكامل تأخذ الخليّةُ ٣٩٤ بكسلاً من ١٣٧٢، فيُخفي المُنتقي التلقائيُّ
+   أربعةَ أعمدةٍ من الأربعةَ عشرَ التي طلبها المالكُ بعينها. قِيس. وأزرارُ
+   الرسم هي عُرفُ اللوحة أصلاً (جدولُ مركبات المزاد)، والنصُّ يبقى في
+   `title` و`aria-label` فلا يضيع على قارئ الشاشة.
+
+   واللونُ يفرّق بينهما قبل الرسم: قبولٌ ورفضٌ فعلان لا رجعةَ لهما يُضغَط
+   عليهما أربعين مرّةً بعد كلّ مزاد. */
+.act--yes { color: var(--ok); border-color: var(--ok-line); }
+.act--yes:hover { background: var(--ok); border-color: var(--ok); color: #fff; }
+.act--no { color: var(--danger); border-color: var(--danger-line); }
+.act--no:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* نافذةُ المزايدين — أوسعُ من نافذة النماذج: خمسةُ أعمدةٍ فيها حقلُ سببٍ وزرّ.
+   ورأسُها `images-modal__head` نفسُه، فلا قاعدةَ ثانيةً له هنا — كتبتُ واحدةً
+   فخرج الزرُّ بلا شكلٍ في الجهة الخطأ فوق العنوان. */
+.bidders-modal { inline-size: min(58rem, 94vw); padding: 0; }
+/* **وزرُّ الإغلاق بمحاذاة السطر الأوّل من العنوان.** رأسُ نافذة الصور
+   `align-items: center` وهو صوابٌ لعنوانٍ من سطر؛ وعنوانُ هذه سطران (اللوط
+   ثمّ المركبةُ وعددُ العروض)، فيقع الزرُّ في منتصف الكتلة — **أخفضَ من
+   السطر الأوّل بأحدَ عشرَ بكسلاً**، فيُقرأ عائماً لا محاذياً. قِيس: رأسٌ في
+   ٣٠٥ والعنوانُ في ٣٢١ والزرُّ في ٣٣٢.
+
+   و`flex-start` تجعله ٣٢١ بالضبط — على سطر العنوان. */
+.bidders-modal .images-modal__head { align-items: flex-start; }
+.bidders-modal .images-modal__title small {
+  display: block;
+  margin-block-start: .25rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+/* والجسمُ يُمرَّر وحدَه: تسعةٌ وثمانون عرضاً على مركبةٍ واحدةٍ قِيست، ورأسٌ
+   يهرب مع التمرير يترك القارئَ لا يعرف أيَّ لوطٍ يقرأ. */
+.bidders-modal__scroll {
+  padding: 1rem 1.3rem 1.3rem;
+  max-block-size: min(62vh, 34rem);
+  overflow: auto;
+}
+/* ولا ذيلَ: حُذف رابطُ «صفحة العروض الكاملة» بقرار المالك، فبقي حشوٌ سفليٌّ
+   على جسم النافذة وحدَه. */
+.of-bidders { inline-size: 100%; }
+.of-bidders th, .of-bidders td {
+  padding: .5rem .55rem;
+  font-size: .82rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.of-bidders tr.is-awarded { background: var(--ok-soft); }
+/* الصفُّ الفارغُ لا يلتصق بالرأس: «لا عروض» في نافذةٍ بارتفاعٍ ثابتٍ تبدو
+   خللاً في التحميل لا جواباً. */
+.of-bidders td.empty { padding-block: 2.2rem; }
+/* ونموذجُ الترسية ينزع بطاقةَ النماذج — القاعدةُ العامّة `form {…}` تُلبسها
+   كلَّ `<form>` في اللوحة فيصير الزرُّ داخل مربّعٍ بحدٍّ وظلّ داخل خليّة. */
+.of-award {
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.of-award input[type="text"] { inline-size: 8.5rem; min-inline-size: 0; margin: 0; }
+.of-award .btn-sm { flex: none; }
+
+/* «بلا فاتورة» — مركبةٌ أُلغيت فاتورتُها ولم تعد إلى طابور الفوترة. تحذيرٌ
+   لا خطأ: البيانُ سليم، والعملُ هو الناقص. */
+.of-gap { display: block; margin-block-start: .15rem; color: var(--warn); font-weight: 700; }

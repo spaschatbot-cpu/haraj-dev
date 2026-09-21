@@ -27,6 +27,18 @@ class Column:
     #: وكلاهما ليس تخصيصاً بل تعطيل. فيُعرَض دائماً ولا خانةَ إخفاءٍ له.
     locked: bool = False
 
+    #: مخفيٌّ **حتى يطلبه الموظّف**. T962.
+    #:
+    #: طلبُ المالك (٢١ سبتمبر ٢٠٢٦): «عايز الداتا تتعرض بدون الحاجة للاسكرول
+    #: يمين وشمال». وجدولُ سيارات المزاد تسعةَ عشرَ عموداً في السجلّ — قِيس
+    #: على الإنتاج: عرضُ الجدول 1718 بكسلاً في حاوية 1394، فالتمريرُ الأفقيّ
+    #: حتمٌ مهما اتّسعت الشاشة.
+    #:
+    #: **وليس حذفاً**: العمودُ يبقى في السجلّ وفي نافذة التخصيص، وخانتُه غيرُ
+    #: مؤشَّرة. من يحتاج الشاصيَ يؤشّرها مرّةً فتبقى له. والفرقُ بين هذا وبين
+    #: حذفِ العمود هو الفرقُ بين شاشةٍ تُقرأ وشاشةٍ ناقصة.
+    hidden_by_default: bool = False
+
 
 #: جداولُ اللوحة، كلٌّ بمفتاحه وأعمدته بترتيبها الافتراضيّ. المفتاحُ يُخزَّن في
 #: `ColumnLayout.table_key`، فتغييرُه يفقد تخصيصَ من خصّص — لا يُغيَّر إلا بهجرة.
@@ -35,20 +47,20 @@ TABLES: dict[str, tuple[Column, ...]] = {
         Column("lot", "اللوت", locked=True),
         Column("car", "السيارة"),
         Column("year", "السنة"),
-        Column("vin", "الشاصي"),
-        Column("claim", "رقم المطالبة"),
+        Column("vin", "الشاصي", hidden_by_default=True),
+        Column("claim", "رقم المطالبة", hidden_by_default=True),
         Column("plate", "اللوحة"),
-        Column("plate_type", "نوع اللوحة"),
+        Column("plate_type", "نوع اللوحة", hidden_by_default=True),
         Column("colour", "اللون"),
         Column("odometer", "العداد"),
-        Column("insurance", "شركة التأمين"),
+        Column("insurance", "شركة التأمين", hidden_by_default=True),
         Column("condition", "الحالة الفنية"),
-        Column("runs", "حالة المحرّك"),
-        Column("keys", "المفاتيح"),
-        Column("transmission", "ناقل الحركة"),
+        Column("runs", "حالة المحرّك", hidden_by_default=True),
+        Column("keys", "المفاتيح", hidden_by_default=True),
+        Column("transmission", "ناقل الحركة", hidden_by_default=True),
         Column("fuel", "الوقود"),
         Column("images", "الصور"),
-        Column("owner", "المالك"),
+        Column("owner", "المالك", hidden_by_default=True),
         Column("marketing", "التسويق"),
         Column("state", "الحالة"),
     ),
@@ -90,7 +102,14 @@ def layout_for(user, table_key: str) -> list[ResolvedColumn]:
     by_key = {col.key: col for col in defined}
 
     saved = _saved_layout(user, table_key)
-    hidden = set(saved.get("hidden", ()))
+    # **الافتراضُ يُقرأ من السجلّ حين لا تخصيصَ محفوظ.** T962.
+    #
+    # ولا يُدمَج مع المحفوظ: من خصّص أعمدتَه قال كلمتَه، وإضافةُ إخفاءٍ
+    # افتراضيٍّ فوق اختياره تُخفي عموداً أظهره بيده. فالافتراضُ للجديد وحدَه.
+    if saved:
+        hidden = set(saved.get("hidden", ()))
+    else:
+        hidden = {col.key for col in defined if col.hidden_by_default}
     order = [key for key in saved.get("ordering", ()) if key in by_key]
 
     # الترتيب: المحفوظُ أولاً، ثم ما في السجلّ ولم يُذكَر — بترتيبه الأصليّ.

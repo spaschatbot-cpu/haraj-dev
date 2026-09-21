@@ -51,6 +51,9 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   {% comment %} `?v=` عليه كما على الورقة: كان بلا بصمةٍ، فبقي المتصفّحُ على
      نسختِه القديمة بعد تعديلٍ في المنطق — وضاع قياسٌ كامل على ذلك. {% endcomment %}
   <script src="{% static 'console/theme.js' %}?v={{ asset_stamp }}"></script>
+  {% comment %} تخصيصُ أعمدةِ أيِّ جدولٍ — يقرأ الجدولَ نفسَه فلا يحتاج تسجيلاً
+     ولا وسمَ خلايا. T964. ويتخطّى ما له مُنتقٍ أصلاً. {% endcomment %}
+  <script defer src="{% static 'console/columns_auto.js' %}?v={{ asset_stamp }}"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>

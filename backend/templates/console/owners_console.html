@@ -1,150 +1,385 @@
 {% extends "console/base.html" %}
-{% load l10n %}
+{% load l10n static %}
 {% comment %}
-منصة الملاك.
+اتخاذ القرار — اختيارُ العروض في المزاد المنتهي. T965 · T966
 
-شاشة v1 «الإدارة العليا… في صفحة واحدة موحدة»، وهي أربعةَ عشرَ كرتاً معظمُها
-روابطُ شاشاتٍ قائمة. وأولُ رابطٍ فيها يخرج من `admin_v2` إلى
-`admin2/bills/index.php` — أي أن «الصفحة الموحدة» تُحيل إلى نظامٍ ثالث.
+طلبُ المالك: «استبدل صفحة منصّة الملّاك بالصفحة دي» ومعه رابطُ
+`admin2/bills/index.php`، ثمّ «خلي اسمها اتخاذ القرار»، ثمّ «عايز المنطق
+بتاعها يشتغل ويتظبط وتعرض نفس الأعمدة وأدوات التحكم بالظبط».
 
-وكرتُ «تعديل المزايدات» فيها («تعديل مبلغ مزايدة معيّنة») غيرُ موجودٍ هنا،
-ومكتوبٌ أسفل الصفحة لماذا.
+فالأعمدةُ **أربعةَ عشرَ بترتيب v1 وأسمائه** (`index.php:365-380`)، والأزرارُ
+أربعةٌ في الصفّ كما هناك، والفعلان الجماعيّان تحت الجدول كما هناك.
 
-وكلُّ رقمٍ يُقرأ من مصدر شاشته — «إجمالي المحفظة» هنا هو رقمُ «سجل المحفظة»
-نفسه بالدالّة ذاتها، لا استعلامٌ ثانٍ ولا عمودٌ مخزَّن.
+وثلاثةُ فروقٍ في الشكل وحدَه، وكلٌّ منها من عطلٍ مقيسٍ في ملفّ v1:
+
+**١ — التعادلُ خليّةٌ لا صفٌّ مكرَّر.** v1 يعرض المركبةَ المتعادَلَ عليها
+مرّتين بخلفيّةٍ برتقاليّة، فيقرأ العدُّ في الأسفل مركبتين وهي واحدة.
+
+**٢ — والعدّاداتُ فوق.** «كم بقي عليّ؟» هو سؤالُ من يفتح هذه الشاشة، وv1 لا
+يجيبه إطلاقاً — يُعَدُّ بالعين في ثلاثمئة صفّ. والعددُ نفسُه مكتوبٌ على الزرّ
+تحت الجدول، فما يُضغَط معلومٌ قبل الضغط.
+
+**٣ — و«رقم المطالبة» ليس في الجدول** — وهو قرارُ v1 نفسِه، مكتوبٌ في ملفّه:
+«بقي خارج الـHTML عمداً… الحاجةُ إليه عند المقارنة لا عند القرار». فهو في
+الورقة المصدَّرة وحدَها، كما هناك.
 {% endcomment %}
-{% block title %}منصة الملاك{% endblock %}
-{% block heading %}منصة الملاك{% endblock %}
+{% block title %}اتخاذ القرار{% endblock %}
+{% block heading %}اتخاذ القرار{% endblock %}
+{% comment %} شريطُ v1 العلويّ: «قائمة الفواتير» ثمّ «تصدير Excel». و«رجوع»
+   ليس هنا لأن اللوحة كلَّها تحمله في رأسها (`context.back_to`). {% endcomment %}
+{% block actions %}
+  {% if auction %}
+    {% if show_money %}<a href="{% url 'console:invoices' %}">قائمة الفواتير</a>{% endif %}
+    <a href="{{ export_url }}">تصدير إلى إكسل</a>
+  {% endif %}
+{% endblock %}
 
 {% block content %}
-  {% comment %} سطرُ تعريفٍ كبقيّة الشاشات — الشاشةُ كانت تبدأ برأس جدولٍ
-     مباشرةً، فلا تقول ما هي ولا لمن. {% endcomment %}
-  <p class="lede">
-    أرقامُ المنصّة السبعةُ في لمحة، وكلُّ رقمٍ يفتح الشاشةَ التي يُقرأ منها —
-    <strong>لا استعلامٌ ثانٍ ولا عمودٌ مخزَّن</strong>، بل الدالّةُ نفسُها التي
-    تعدّها تلك الشاشة. وتحتها أبوابُ الإدارة العليا.
-  </p>
+  {% comment %} **كروتُ التنقّل الثلاثة** كما في v1 (`index.php:303-313`):
+     المزادُ النشط · هذه الصفحة · أرشيفُ المنتهية. وهي في الشريط الجانبيّ
+     أيضاً — والتكرارُ مقصودٌ هنا لأن الثلاثةَ **مراحلُ عملٍ متتابعة**: من
+     يقرأ المباشرةَ يقرأ القرارَ بعدها ثمّ الأرشيف. {% endcomment %}
+  <nav class="of-nav" aria-label="مراحل المزاد">
+    <a class="of-nav__card" href="{% url 'console:live-bids' %}">
+      صفحة المزاد النشط<small>المزايدات الجارية الآن</small></a>
+    <span class="of-nav__card is-here" aria-current="page">
+      صفحة اتخاذ القرار<small>أعلى عرضٍ على كلّ مركبة</small></span>
+    <a class="of-nav__card" href="{% url 'console:accepted-bids' %}">
+      أرشيف المزادات المنتهية<small>ما رسا وما فُوتِر</small></a>
+  </nav>
 
-  {% comment %} كان جدولاً بثلاثة أعمدة: «الرقم · القيمة · من أين». وهو ليس
-     جدولاً — لا أعمدةَ تُقارَن ولا صفوفَ تُفرَز — والعمودُ الثالثُ كلُّه رابطٌ
-     مكرَّر «← اسم الشاشة»، أي أن ثلثَ عرض الشاشة يحمل كلمةً واحدةً سبعَ مرّات.
+  {% if not auction %}
+    <p class="lede">
+      تعرض هذه الشاشةُ مركباتِ <strong>آخر مزادٍ انتهى</strong> ومعها أعلى عرضٍ
+      قائمٍ على كلٍّ منها، ليقبل المالكُ أو يرفض.
+    </p>
+    <p class="empty">لا مزادَ منتهياً بعد — تظهر المركباتُ هنا فورَ إقفال أوّل مزاد.</p>
+  {% else %}
 
-     فكلُّ صفٍّ صار **بطاقةً هي نفسُها الرابط**: الرقمُ وعنوانُه ووجهتُه في
-     كتلةٍ واحدة تُنقر كلُّها، فلا عمودَ ثالثَ ولا سهمَ يُقرأ سبعاً. {% endcomment %}
-  <section class="sum-grid sum-grid--links" aria-label="أرقام المنصّة">
+    <p class="lede">
+      مزاد <strong>{{ auction.number|unlocalize }} — {{ auction.title }}</strong>،
+      أُقفل {{ auction.ends_at|date:"Y-m-d H:i" }}. لكلّ مركبةٍ
+      <strong>أعلى عرضٍ قائم</strong> — المسحوبةُ والمتجاوَزةُ ليستا عرضاً يُقبَل.
+      {% comment %} وهذه الجملةُ ليست تزييناً: «شامل الضريبة» في v1 يجمع المزايدةَ
+         وضريبتَها ويسكت عن الرسم، والفاتورةُ تصدر أكبرَ فيُسأل عن فرقٍ مكتوبٍ
+         في القانون. {% endcomment %}
+      و«السعر شامل الضريبة» يحمل <strong>رسمَ المزاد وضريبتَه</strong> كما ستصدر الفاتورة.
+    </p>
 
-    <a class="sum" href="{% url 'console:admins' %}">
-      <p class="sum__label">المشرفون</p>
-      <p class="sum__value">{{ staff|unlocalize }}</p>
-      <p class="sum__note">إدارة المشرفين</p>
-    </a>
+    <section class="sum-grid sum-grid--tight" aria-label="حصيلةُ المزاد">
+      <div class="sum sum--wait">
+        <p class="sum__label">قيد الموافقة</p>
+        <p class="sum__value">{{ counts.pending|unlocalize }}</p>
+        <p class="sum__note">تنتظر قبولاً أو رفضاً</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">مقبولة</p>
+        <p class="sum__value">{{ counts.accepted|unlocalize }}</p>
+        <p class="sum__note">رستْ على مزايد</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">مرفوضة</p>
+        <p class="sum__value">{{ counts.rejected|unlocalize }}</p>
+        <p class="sum__note">لا فائز</p>
+      </div>
+      <div class="sum">
+        <p class="sum__label">مركبات المزاد</p>
+        <p class="sum__value">{{ counts.all_rows|unlocalize }}</p>
+        <p class="sum__note">في هذه النتائج</p>
+      </div>
+    </section>
 
-    <a class="sum" href="{% url 'console:customers' %}">
-      <p class="sum__label">المستخدمون</p>
-      <p class="sum__value">{{ customers|unlocalize }}</p>
-      <p class="sum__note">حسابات الأفراد والشركات</p>
-    </a>
+    {% comment %} **المرشّحاتُ على الخادم.** فلاترُ v1 جافاسكربت تُخفي صفوفاً
+       مرسومة، و«تصدير» يتجاهلها ويُنزّل الجدولَ كاملاً — مكتوبٌ في ملفّه. وهنا
+       المرشّحُ في `WHERE`، فالورقةُ هي الشاشة. {% endcomment %}
+    <form method="get" class="filters filters--row filters--offers">
+      <div class="filters__main">
+        <input type="search" name="q" value="{{ q }}"
+               placeholder="بحث (اسم، لوحة، مركبة، مزايد)" aria-label="بحث">
+        {% comment %} **وبعد البحث لا قبلَه**: خانةُ البحث تمتدُّ الصفَّ كلَّه في
+           شبكة `.filters--row`، فأيُّ عنصرٍ قبلها يبقى وحدَه في صفٍّ فوقها.
 
-    <a class="sum" href="{% url 'console:auctions' %}">
-      <p class="sum__label">المزادات</p>
-      <p class="sum__value">{{ auctions|unlocalize }}</p>
-      <p class="sum__note">قائمة المزادات</p>
-    </a>
+           **ومزادٌ يُختار، وv1 لا يملك هذا.** هناك المزادُ الأخيرُ مثبَّتٌ في
+           الاستعلام، فمن أراد مراجعةَ قرار المزاد الذي قبله لا سبيلَ له من
+           الشاشة — ولو أُقفل بعده مزادٌ تجريبيٌّ بسيّارةٍ واحدة صارت الشاشةُ
+           سيّارةً واحدةً والعملُ الحقيقيُّ لا يُرى. {% endcomment %}
+        <select name="auction" aria-label="المزاد">
+          {% for row in auctions %}
+            <option value="{{ row.pk|unlocalize }}"{% if chosen == row.pk|stringformat:"s" %} selected{% endif %}>
+              مزاد {{ row.number|unlocalize }} — {{ row.title }} ({{ row.cars|unlocalize }})
+            </option>
+          {% endfor %}
+        </select>
+        <input type="number" name="from" value="{{ price_from }}"
+               placeholder="السعر من" step="0.01" min="0" aria-label="السعر من">
+        <input type="number" name="to" value="{{ price_to }}"
+               placeholder="السعر إلى" step="0.01" min="0" aria-label="السعر إلى">
+        <select name="decision" aria-label="الحالة">
+          {% for value, label in decisions %}
+            <option value="{{ value }}"{% if decision == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <select name="marketing" aria-label="التسويق">
+          {% for value, label in marketing_choices %}
+            <option value="{{ value }}"{% if marketing == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn-primary">بحث</button>
+      </div>
+    </form>
 
-    <a class="sum sum--live" href="{% url 'console:live-bids' %}">
-      <p class="sum__label">الجاري الآن</p>
-      <p class="sum__value">{{ live|unlocalize }}</p>
-      <p class="sum__note">أرقامُه ومزايداتُه</p>
-    </a>
+    <div class="scroller">
+      <table class="of-table">
+        {% comment %} **أربعةَ عشرَ عموداً — هي أعمدةُ v1 بعينها وبترتيبها**
+           (`admin2/bills/index.php:365-380`).
 
-    {% comment %} الوحيدُ الذي مبلغٌ بين ستّةِ أعداد — ومبلغُ **دفتر المحفظة**،
-       فقدرتُه «عرض دفتر التأمينات والحركات» (`money.view`) لا قدرةُ الفواتير.
-       وهو الرقمُ الذي تحرسه تلك القدرةُ في «سجل المحفظة» التي يفتحها
-       الرابطُ وبالدالّة ذاتها (`analytics.py`). {% endcomment %}
-    <a class="sum sum--money" href="{% url 'console:money-ledger' %}">
-      <p class="sum__label">إجمالي التأمين</p>
-      {% if show_wallet %}
-        <p class="sum__value money">{{ insurance|unlocalize }}</p>
-      {% else %}
-        <p class="sum__value sum__value--hidden" title="دفترُ التأمينات خلف صلاحية «عرض دفتر التأمينات والحركات»">محجوب</p>
-      {% endif %}
-      <p class="sum__note">سجل المحفظة</p>
-    </a>
+           **و`data-keep` على أحدَ عشرَ منها.** التقليصُ التلقائيُّ يُخفي
+           الأعرضَ حتى يتّسع الجدول (`columns_auto.js`)، وهو هنا يختار من بين
+           أعمدةٍ طلبها المالكُ بعينها. فالمصونُ كلُّها إلّا **«معرف المركبة»**:
+           هو مفتاحُ قاعدةِ بياناتٍ داخليّ، أقلُّ ما يُقرأ في مسحِ صفوفٍ وأكثرُ
+           ما يُستغنى عنه — ويعود بضغطةٍ من «تخصيص الأعمدة».
 
-    {% comment %} بطاقةٌ بلا وجهة منذ T939: «تحليل المزايدات» حُذفت بطلب
-       المالك، ولا شاشةَ تقرأ هذا الرقمَ وتقسمه. {% endcomment %}
-    <div class="sum">
-      <p class="sum__label">المزايدون</p>
-      <p class="sum__value">{{ bidders|unlocalize }}</p>
-      <p class="sum__note">من زايد مرّةً على الأقلّ</p>
+           **وأربعةٌ تحمل `data-drop`**: «معرف المركبة» و«تسويقي» و«عرض
+           الصور» و«الطراز». والأخيرُ لسببٍ في بياناتنا لا في الشاشة: قِيس
+           على ١٣٬٠٣١ مركبةً أن `make` و`model` **متطابقان في ١٢٬٥٧٧** منها
+           (٩٦٪) — فالعمودان يعرضان النصَّ نفسَه في تسعةَ عشرَ صفّاً من
+           عشرين. وأربعةَ عشرَ عموداً مع «قبول» و«رفض» **بالكلمة** تحتاج نحو
+           ١٥٠٠ بكسلاً، والمتاحُ على شاشةٍ 1440 هو ١٣٧٢ — قِيس الفائضُ ٤٩.
+           فإمّا تمريرٌ أفقيٌّ يرفضه المالك، أو عمودان يتنحّيان. وهذان
+           أقلُّها إخباراً: العلَمُ نفسُه في كلّ الصفوف تقريباً، والصورُ نافذةٌ
+           تُفتح بالضغط لا بياناً يُمسَح.
+
+           وهذا يجعل ما يُخفى **معروفاً سلفاً**، لا ما يقع عليه قياسُ العرض في
+           تلك اللحظة. وكلُّه يعود بضغطةٍ من «تخصيص الأعمدة». {% endcomment %}
+        <thead>
+          <tr>
+            <th data-col="id" data-drop>معرف المركبة</th>
+            <th data-col="mkt" data-drop>تسويقي</th>
+            <th data-col="lot" data-keep>موقف المركبة</th>
+            <th data-col="car" data-keep>اسم المركبة</th>
+            <th data-col="year" data-keep>الموديل</th>
+            <th data-col="plate" data-keep>رقم اللوحة</th>
+            <th data-col="model" data-drop>الطراز</th>
+            <th data-col="images" data-drop>عرض الصور</th>
+            <th data-col="offer" data-keep>السعر</th>
+            <th data-col="total" data-keep>السعر شامل الضريبة</th>
+            <th data-col="bidder" data-keep>اسم أعلى مزايد</th>
+            <th data-col="phone" data-keep>رقم الجوال</th>
+            <th data-col="state" data-keep>الحالة</th>
+            <th data-col="actions">أزرار التحكم</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for car in page %}
+            <tr{% if car.tied > 1 %} class="of-tie"{% endif %}>
+              <td class="count">{{ car.pk|unlocalize }}</td>
+              <td>
+                {% if car.is_marketing %}<span class="pill" data-tone="info">تسويقي</span>
+                {% else %}<span class="empty">غير تسويقي</span>{% endif %}
+              </td>
+              <td class="count">{{ car.lot_number|unlocalize }}</td>
+              {% comment %} `cell-clip` تقصّ بثلاث نقاطٍ وتترك القيمةَ كاملةً
+                 في `title` — **لا تحذف**. واسمُ المزايد وحدَه كان ١٩٩ بكسلاً
+                 من ١٢٩٩ (اسمٌ عربيٌّ رباعيّ)، فيفيض الجدولُ ٣٨ ولا عمودَ
+                 يُخفى. قِيس. {% endcomment %}
+              <td class="pv-name">
+                <a class="cell-clip clip-name" title="{{ car.make }}"
+                   href="{% url 'console:vehicle-detail' car.pk %}">{{ car.make }}</a>
+                {% comment %} حبّةُ التعادل في خليّة المركبة لا صفّاً ثانياً —
+                   انظر رأس الملفّ. {% endcomment %}
+                {% if car.tied > 1 %}<small class="of-tie__note" title="{{ car.tied|unlocalize }} عروضٍ بالمبلغ نفسه — القرارُ بينها من «قائمة المزايدين»">تعادُل ×{{ car.tied|unlocalize }}</small>{% endif %}
+              </td>
+              <td class="count">{{ car.year|unlocalize|default:"—" }}</td>
+              <td class="mono">{{ car.plate_number|default:"—" }}</td>
+              <td><span class="cell-clip clip-model" title="{{ car.model }}">{{ car.model|default:"—" }}</span></td>
+              {% comment %} الصورُ في نافذةٍ تُجلَب عند الضغط لا في الصفحة:
+                 ثلاثمئة صفٍّ × ستّ صورٍ = صفحةٌ لا تُحمَّل. و«لا صور» نصّاً
+                 لا زرّاً، كـ v1 — نقرةٌ تفتح فراغاً نقرةٌ تُهدَر. {% endcomment %}
+              <td>
+                {% if car.image_count %}
+                  <button type="button" class="btn-sm" data-gallery
+                          data-url="{% url 'console:vehicle-images' car.pk %}?modal=1">صور ({{ car.image_count|unlocalize }})</button>
+                {% else %}<span class="empty">لا صور</span>{% endif %}
+              </td>
+              {% comment %} المبلغُ خلف `invoices.view` — والمحجوبُ **لا يصل
+                 القالبَ أصلاً** (`offers.dress`)، لا مخفيٌّ فيه بـCSS. {% endcomment %}
+              <td class="money">
+                {% if not show_money %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
+                {% elif car.offer %}{{ car.offer|unlocalize }}
+                {% else %}<span class="empty">لا عروض</span>{% endif %}
+              </td>
+              <td class="money">
+                {% if not show_money %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
+                {% elif car.with_tax %}{{ car.with_tax|unlocalize }}
+                {% else %}<span class="empty">—</span>{% endif %}
+              </td>
+              <td>
+                {% if car.buyer_name %}<span class="cell-clip clip-buyer" title="{{ car.buyer_name }}">{{ car.buyer_name }}</span>
+                {% elif show_customer %}<span class="empty">—</span>
+                {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+              </td>
+              <td class="mono">
+                {% if show_customer %}{{ car.buyer_phone|default:"—"|unlocalize }}
+                {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+              </td>
+              {% comment %} **ثلاثُ حالاتٍ كـ v1** — «قيد الموافقة» و«مقبول»
+                 و«مرفوض». وحالاتُنا تسعٌ، فالدقيقةُ منها في `title`: من يريد
+                 أن يعرف أمفوترةٌ هي أم مسدَّدةٌ يقف عليها، ومن يمسح الجدولَ
+                 يقرأ الثلاثةَ التي يقرؤها في القديم. {% endcomment %}
+              <td>
+                <span class="pill" data-tone="{{ car.tone }}"
+                      title="{{ car.get_state_display }}">{{ car.decision_label }}</span>
+                {% comment %} **فجوةُ الفوترة تُقال في الصفّ.** مركبةٌ حالتُها
+                   بعد الفوترة وفاتورتُها ملغاة: ليست في طابور «إنشاء جميع
+                   الفواتير» (مرشِّحُه `awarded`) ولا فاتورةَ لها — فتجلس
+                   صامتةً إلى الأبد. قِيس: واحدةٌ من اثنتَي عشرةَ مرسّاة. {% endcomment %}
+                {% if car.invoice_gap %}
+                  <small class="of-gap" title="حالتُها «{{ car.get_state_display }}» وفاتورتُها ملغاة — فهي خارج طابور الفوترة وبلا فاتورة">بلا فاتورة</small>
+                {% endif %}
+              </td>
+              {% comment %} **أربعةُ أزرارٍ كـ v1**، واثنان منها في v1 نفسِه
+                 يفتحان الشيءَ ذاته (`showBiddersModal`): «تعديل الأسعار»
+                 و«قائمة المزايدين». وهنا يفتحان صفحةَ العروض — وهي **حيث
+                 يُغيَّر السعرُ فعلاً عندنا**: باعتماد عرضٍ آخر (`partner-award`
+                 → `replace_winner`، تُلغي الفاتورةَ الأولى وتفكّ حجزَ الفائز
+                 الأوّل في المعاملة نفسِها).
+
+                 و`Bid.amount` لا يُكتب فوقه أبداً: المزايدةُ عرضٌ قانونيٌّ
+                 وقع. فزرُّ v1 حاضرٌ بعملِه لا بكتابته فوق ما وقع.
+
+                 والقبولُ والرفضُ يذهبان إلى `partner-award-top` و
+                 `partner-reject`: تُرسيان وتكتبان السجلَّ وتغلقان المزادَ
+                 وتحرّران تأميناتِ الخاسرين — بابٌ إلى منطقٍ قائم، لا نسخةٌ
+                 ثانيةٌ منه.
+
+                 **والقبولُ والرفضُ بالنصّ، والآخران رسمان.** جعلتُها أربعتَها
+                 رسوماً ليتّسع الجدول، فسأل المالكُ: «فين زرار قبول؟؟؟؟» —
+                 وهو الجواب: هذان فعلان لا رجعةَ لهما يُبحَث عنهما بالكلمة، لا
+                 يُخمَّنان من رسمٍ في ٢٥ بكسلاً. وذانك وجهتان إلى **الصفحة
+                 نفسِها** (كما في v1: زرّاه يناديان `showBiddersModal` معاً)،
+                 فنصُّهما أقلُّ لزوماً، ويبقى في `title` و`aria-label`.
+
+                 والخليّةُ بذلك ١٦٥ بكسلاً لا ٣٩٤ — والأربعةَ عشرَ عموداً
+                 تبقى. {% endcomment %}
+              {% comment %} والأزرارُ في `div` داخل الخليّة لا في الخليّة
+                 نفسِها: `max-inline-size` على `<td>` تلميحٌ لا قيدٌ حين
+                 `table-layout: auto` — يوسّع المتصفّحُ العمودَ فوق السقف متى
+                 وجد مكاناً. وهي الآليّةُ نفسُها التي اقتضت `cell-clip` في
+                 T963: القيدُ على عنصرٍ داخل الخليّة، لا عليها. {% endcomment %}
+              <td class="actions">
+                <div class="of-acts">
+                {% if car.decision == "pending" %}
+                  <span class="dc-pair">
+                    {% if car.top_bid %}
+                      <form method="post" action="{% url 'console:partner-award-top' car.pk %}" class="ex-inline"
+                            data-decide="قبولُ أعلى عرضٍ على الموقف {{ car.lot_number|unlocalize }} — {{ car.make }}؟">
+                        {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
+                        <button type="submit" class="dc-btn dc-btn--yes" aria-label="قبول أعلى عرضٍ على الموقف {{ car.lot_number|unlocalize }}">قبول</button>
+                      </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'console:partner-reject' car.pk %}" class="ex-inline"
+                          data-decide="رفضُ كلّ العروض على الموقف {{ car.lot_number|unlocalize }} — {{ car.make }}؟ لا فائزَ لها.">
+                      {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
+                      <button type="submit" class="dc-btn dc-btn--no" aria-label="رفضُ كلّ العروض على الموقف {{ car.lot_number|unlocalize }}">رفض</button>
+                    </form>
+                  </span>
+                {% endif %}
+                {% comment %} **نافذةٌ لا صفحة** — طلبُ المالك: «قائمة
+                   المزايدين عايزها بوباب يعرض قائمة المزايدين بس». ومن يقارن
+                   العرضَ الثانيَ بالأوّل على أربعين مركبةً كان يفتح أربعين
+                   صفحةً ويعود أربعين.
+
+                   والزرّان يفتحان النافذةَ نفسَها — **كما في v1 حرفياً**:
+                   `showBiddersModal` هي ما يناديه زرّاه. والسعرُ يتغيّر من
+                   داخلها باعتماد عرضٍ آخر. {% endcomment %}
+                <button type="button" class="act" data-bidders
+                        data-url="{% url 'console:partner-offers' car.pk %}?modal=1"
+                        title="تعديل الأسعار — باعتماد عرضٍ آخر من قائمة المزايدين"
+                        aria-label="تعديل أسعار الموقف {{ car.lot_number|unlocalize }}">
+                  {% include "console/_act_icon.html" with path=icon_price %}</button>
+                <button type="button" class="act" data-bidders
+                        data-url="{% url 'console:partner-offers' car.pk %}?modal=1"
+                        title="قائمة المزايدين" aria-label="قائمة المزايدين على الموقف {{ car.lot_number|unlocalize }}">
+                  {% include "console/_act_icon.html" with path=icon_offers %}</button>
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="14" class="empty">لا توجد مزادات منتهية بانتظار القرار.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
 
-    <a class="sum" href="{% url 'console:accepted-bids' %}">
-      <p class="sum__label">مركبات رست</p>
-      <p class="sum__value">{{ awarded|unlocalize }}</p>
-      <p class="sum__note">المزايدات المقبولة</p>
-    </a>
+    {% include "console/_pager.html" %}
 
-  </section>
+    {% comment %} **الفعلان الجماعيّان تحت الجدول كـ v1** (`index.php:424-434`)،
+       **وحاضران دائماً** — وهذا خلافُ قاعدة «لا زرَّ بصفر» في
+       `accepted_bids.html`، وبقرار المالك: «نفس أدوات التحكم بالظبط».
 
-  {% comment %} كانت قائمةَ `<ul>` عاريةً: سبعةُ روابطَ مسطورةٍ تحت بعضها،
-     وشرحُ كلٍّ بعد شرطةٍ في السطر نفسِه. فيُقرأ الاسمُ والشرحُ كتلةً واحدة،
-     ولا هدفَ نقرٍ إلا الكلمةَ نفسَها. فصارت بلاطاتٍ: الاسمُ سطرٌ والشرحُ
-     تحته، والبلاطةُ كلُّها تُنقر. {% endcomment %}
-  <h2 class="owners-head">ما يُفتح من هنا</h2>
-  <div class="open-grid">
-    <a class="open" href="{% url 'console:partner-decisions' %}">
-      <span class="open__name">اتخاذ القرار</span>
-      <span class="open__why">ما ينتظر قرار المالك</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:ended-decisions' %}">
-      <span class="open__name">القرارات المنتهية</span>
-      <span class="open__why">ما حُسم</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:auction-archive' %}">
-      <span class="open__name">أرشيف المزادات</span>
-      <span class="open__why">المزادات المنتهية وأرقامها</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:money-health' %}">
-      <span class="open__name">صحّة المال</span>
-      <span class="open__why">اتّساق الدفتر مع الفواتير</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-    <a class="open" href="{% url 'console:audit' %}">
-      <span class="open__name">سجل التدقيق</span>
-      <span class="open__why">من فعل ماذا ومتى</span>
-      {% comment %} «عرض» **ليس** `<button>`: البلاطةُ كلُّها `<a>`، وعنصرٌ
-         تفاعليٌّ داخل تفاعليٍّ وسمٌ غيرُ صالح — يكسر التنقّل بالمفاتيح ويجعل
-         لقارئ الشاشة هدفين لوجهةٍ واحدة. فهو `<span>` بهيئة زرّ، والنقرُ
-         يقع على البلاطة كما كان. {% endcomment %}
-      <span class="open__go" aria-hidden="true">عرض</span>
-    </a>
-  </div>
+       والحجّةُ التي تجعله صحيحاً هنا لا هناك: هذه شاشةُ **تسلسلٍ معروف** —
+       يقبل المالكُ ثمّ يفوتر ثمّ يُبلغ. فالزرُّ الغائبُ في أوّل الطريق يُقرأ
+       «ليست في هذه الشاشة» فيُبحَث عنه في غيرها، والزرُّ المعطَّلُ بعدده يقول
+       «هنا، ولم يحن بعد». فيُعطَّل ويُكتب سببُه في `title` لا يُخفى. {% endcomment %}
+    <section class="acc-bulk">
+        <p class="acc-bulk__label">أفعالُ المزاد</p>
+        <div class="acc-bulk__form of-bulk">
+          {% comment %} **إبلاغُ الفائزين رابطٌ لا زرُّ إرسال.** v1 يُرسل SMS
+             لكلّ فائزٍ بضغطةٍ واحدةٍ بلا عددٍ ولا كلفةٍ ولا نصٍّ يُراجَع. وهنا
+             يفتح شاشةَ البثّ **بجمهورها محدَّداً سلفاً** (فائزو هذا المزاد)،
+             فتُقرأ الكلفةُ ويُكتب النصُّ ويُؤكَّد العدد قبل أن تُرسَل رسالة.
+             والرابطُ لا يُرسل شيئاً بنفسه. {% endcomment %}
+          {% if not can_notify %}
+            <span class="btn-sm is-off" title="البثُّ يحتاج صلاحية «بثُّ إشعارٍ أو رسالةٍ لجمهور»">إرسال رسائل للفائزين</span>
+          {% elif counts.accepted %}
+            <a class="btn-sm" href="{% url 'console:notifications' %}?which=send&amp;auction={{ auction.pk|unlocalize }}&amp;auction_link=winners">إرسال رسائل للفائزين ({{ counts.accepted|unlocalize }})</a>
+          {% else %}
+            <span class="btn-sm is-off" title="لا فائزَ في هذا المزاد بعد — اقبل عرضاً أوّلاً">إرسال رسائل للفائزين (٠)</span>
+          {% endif %}
+          {% if not can_invoice %}
+            <span class="btn-primary is-off" title="إصدارُ الفواتير يحتاج صلاحية «الأفعال المالية الإدارية»">إنشاء جميع الفواتير</span>
+          {% elif not counts.to_invoice %}
+            <span class="btn-primary is-off" title="لا مركبةَ رستْ بلا فاتورة في هذا المزاد">إنشاء جميع الفواتير (٠)</span>
+          {% else %}
+            <form method="post" action="{% url 'console:accepted-invoice-all' %}" class="ex-inline">
+              {% csrf_token %}
+              <input type="hidden" name="auction" value="{{ auction.pk|unlocalize }}">
+              {% comment %} `next` يعيدنا إلى هذه الشاشة بمرشّحاتها: بدونه يردّ
+                 `decisions._back` المالكَ إلى «المزايدات المقبولة» بعد كلّ
+                 دفعة، فيخرج من الشاشة التي كان يعمل فيها. {% endcomment %}
+              <input type="hidden" name="next" value="{{ request.path }}?{{ filters }}">
+              <button type="submit" class="btn-primary">إنشاء جميع الفواتير ({{ counts.to_invoice|unlocalize }})</button>
+            </form>
+          {% endif %}
+        </div>
+        <p class="acc-bulk__note">
+          تُصدَر الفواتيرُ لما رسا في هذا المزاد ولم يُفوتَر، وكلُّ فاتورةٍ معاملةٌ
+          مستقلّة — فالمردودةُ لا تُبطل الصادرة.
+          {% comment %} **وما سقط بين الاثنين يُقال بعدده.** مركبةٌ أُلغيت
+             فاتورتُها ولم تعد حالتُها إلى «مرسّاة»: لا الزرُّ يلتقطها ولا
+             فاتورةَ لها. وإصلاحُها كتابةٌ في طريق المال، فلا تقع من شاشةِ
+             عرض — يُقال العددُ ويُترك القرارُ لصاحبه. {% endcomment %}
+          {% if counts.no_invoice %}
+            <strong class="of-gap">وفيها {{ counts.no_invoice|unlocalize }} مركبةً أُلغيت فاتورتُها ولم تعد إلى طابور الفوترة — لن يلتقطها الزرّ.</strong>
+          {% endif %}
+      </p>
+    </section>
 
-  <p class="notice owners-note">
-    <strong>ولا «تعديل مزايدة» هنا.</strong> شاشة v1 تعرض كرتاً بهذا الاسم
-    («تعديل مبلغ مزايدة معيّنة»)، وتعديلُ مبلغِ مزايدةٍ بعد وقوعها أخطرُ ما في
-    اللوحة بعد الخصم المباشر — المزايدة <strong>عرضٌ قانونيّ</strong>، ومن
-    زايد بمئةٍ لم يعرض مئةً وعشرين. وفي هذا النظام لا يُعدَّل مبلغُ مزايدة:
-    تُسحَب وتُستبدَل، فيبقى الأصلُ والبديلُ ومن فعل ولماذا.
-  </p>
+    {% comment %} نافذةُ الصور: غلافٌ فارغٌ يُملأ بـ`fetch` عند الضغط، ويقودها
+       `console/offers.js`. وهي `_vehicle_images_modal.html` نفسُها التي تفتحها
+       شاشةُ المزاد — قالبٌ واحدٌ لمعرضٍ واحد. {% endcomment %}
+    <dialog class="modal images-modal" data-gallery-dialog>
+      <div data-gallery-body></div>
+    </dialog>
+
+    {% comment %} نافذةُ المزايدين — تُجلَب عند الضغط من `partners.offers`
+       نفسِها بـ`?modal=1`. {% endcomment %}
+    <dialog class="modal bidders-modal" data-bidders-dialog>
+      <div data-bidders-body></div>
+    </dialog>
+  {% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if auction %}<script src="{% static 'console/offers.js' %}?v={{ asset_stamp }}" defer></script>{% endif %}
 {% endblock %}

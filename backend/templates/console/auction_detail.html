@@ -254,6 +254,17 @@ somebody went looking for it.
       </h2>
     </div>
     <div class="table-bar__actions">
+      {% comment %} **مُنتقي الأعمدة — كان مبنيّاً ولا يُرسَم.** T962.
+
+         `auction_detail` يمرّر `columns_layout` و`columns_table_key` و
+         `cols_hidden` منذ T869، والسجلُّ يعرّف تسعةَ عشرَ عموداً لهذا
+         الجدول باسم `auction_vehicles` — **ولم يُشمَل المكوّنُ في القالب
+         قطّ**، لا قبل تحويله إلى جدولٍ ولا بعده. فالتخصيصُ محفوظٌ ومقروءٌ
+         ولا بابَ إليه.
+
+         وهو الفارقُ بين جدولٍ يُمرَّر يميناً وشمالاً وجدولٍ يُقرأ: من لا
+         يحتاج الشاصيَ يُخفيه مرّةً فيبقى مخفيّاً له وحدَه. {% endcomment %}
+      {% include "console/_columns.html" %}
       <a href="{% url 'console:vehicle-search' %}" class="btn-sm">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.4-4.4"/></svg>
         بحث في المركبات
@@ -298,137 +309,213 @@ somebody went looking for it.
     </p>
   {% endif %}
 
-  <div class="veh-grid">
-    {% for car in page %}
-      <article class="veh-card{% if car.is_hidden %} veh-card--hidden{% endif %}{% if car.pk == focus_pk %} veh-card--focus{% endif %}"
-               {% if car.pk == focus_pk %}id="veh-focus" tabindex="-1"{% endif %}>
-        {% comment %} صورةُ الكارت نفسُها زرُّ **صورة العرض** — كـ v1
-           (`data-action="display-image"` في `manage.php`): الضغطُ يفتح منتقيَ
-           ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض. والفارغةُ تقول
-           «اضغط لرفع صورة العرض» لا «لا صورة» — الفراغُ دعوةٌ لا خبر.
-           ولغير المديرِ تبقى رابطاً للمعرض: لا يرفع من لا يملك. {% endcomment %}
-        {% if can_manage %}
-          <button type="button" class="veh-card__img" data-display-image
-                  data-pk="{{ car.pk|unlocalize }}" title="اضغط لرفع صورة العرض">
-            <span class="veh-card__noimg">{% include "console/_act_icon.html" with path=action_icons.camera %} اضغط لرفع صورة العرض</span>
-            {% if car.thumb %}
-              <img src="{{ car.thumb }}" alt="صورة {{ car.display_title }}"
-                   loading="lazy" decoding="async" onerror="this.remove()">
-            {% endif %}
-            {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
-          </button>
-        {% else %}
-          <a class="veh-card__img" href="{% url 'console:vehicle-images' car.pk %}"
-             title="معرض صور المركبة">
-            <span class="veh-card__noimg">{% include "console/_act_icon.html" with path=action_icons.camera %} لا صورة عرض</span>
-            {% if car.thumb %}
-              <img src="{{ car.thumb }}" alt="صورة {{ car.display_title }}"
-                   loading="lazy" decoding="async" onerror="this.remove()">
-            {% endif %}
-            {% if car.image_count %}<span class="veh-card__badge">{{ car.image_count|unlocalize }} صور</span>{% endif %}
-          </a>
-        {% endif %}
-        <div class="veh-card__body">
-          <h3 class="veh-card__title">
-            <a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.display_title }}</a>
-          </h3>
-          <div class="veh-card__meta">
-            <span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span>
-            {% comment %} زرُّ toggle لا حبّةُ عرض: التسويقُ مِلكيّة تُقلَب من
-               الكارت فوراً بـAJAX كما في v1 (T877). محروسٌ بـ`can_manage`؛
-               لغير المدير حبّةٌ للقراءة فقط. {% endcomment %}
-            {% if can_manage %}
-              <button type="button" class="mkt-toggle{% if car.is_marketing %} is-on{% endif %}"
-                      data-marketing-toggle data-pk="{{ car.pk|unlocalize }}"
-                      data-on="{{ car.is_marketing|yesno:"1,0" }}"
-                      title="اضغط للتبديل: سيارة الشريك أو عاديّة">{% if car.is_marketing %}تسويق{% else %}عاديّة{% endif %}</button>
-            {% elif car.is_marketing %}
-              <span class="pill" data-tone="info">تسويق</span>
-            {% endif %}
-          </div>
-          {% comment %} اللونُ والعدّادُ عمودان في جدول v1
-             (`manage_vehicles.php:852-855`) وغابا عن البطاقة — والعدّادُ
-             تحديداً أوّلُ ما يُسأل عنه في الساحة. T955 {% endcomment %}
-          <div class="veh-card__chips">
-            <span class="chip">لوت {{ car.lot_number|unlocalize }}</span>
-            {% if car.plate_number %}<span class="chip">لوحة: {{ car.plate_number }}</span>{% endif %}
-            {% if car.vin %}<span class="chip">شاصي: {{ car.vin }}</span>{% endif %}
-            <span class="chip">{{ car.year|unlocalize }}</span>
-            {% comment %} `get_*_display` لا حقلٌ محسوب: الصفوفُ نماذجُ
-               `Vehicle` من `engine.vehicle_rows`، و`colour_label` اسمٌ يعيش
-               في مسلسِل الـAPI وحدَه — استعمالُه هنا يُخرج فراغاً صامتاً.
-               و«غير محدد» يُطوى: شريحةٌ تقول «غير محدد» ضجيجٌ في بطاقةٍ
-               ضيّقة. {% endcomment %}
-            {% if car.colour and car.colour != 'unknown' %}<span class="chip">{{ car.get_colour_display }}</span>{% endif %}
-            {% if car.odometer_km %}<span class="chip">{{ car.odometer_km|unlocalize }} كم</span>{% endif %}
-            {% if car.condition and car.condition != 'unknown' %}<span class="chip">{{ car.get_condition_display }}</span>{% endif %}
-          </div>
-          {% if can_manage %}
-          <div class="veh-card__actions">
-            {% comment %} «الصور» تفتح المعرضَ نافذةً منبثقة لا صفحةً كاملة —
-               رفعُ الصور وعرضُ الفرعيّة في مكان واحد دون مغادرة المزاد.
-               يُجلَب `?modal=1` بـfetch ويُحقَن في `<dialog>`. {% endcomment %}
-            <button type="button" class="btn-sm" data-images-modal
-                    data-url="{% url 'console:vehicle-images' car.pk %}?modal=1">الصور ({{ car.image_count|unlocalize }})</button>
-            <button type="button" class="btn-sm" data-row-edit
-                    data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1">تعديل</button>
-            {% comment %} إخفاء/إظهار أيقونةً — رؤيةُ السيارة عن العملاء، نظيرُ
-               v1 (`hide`/`show`). علمٌ مستقلٌّ عن الحالة (`is_hidden`)، فالزرُّ
-               حاضرٌ دائماً لا مربوطٌ بطورٍ من أطوار المزايدة: العينُ المشطوبة
-               «إخفاء» للمعروضة، والعينُ «إظهار» للمخفيّة. يُقلَب بـAJAX. {% endcomment %}
-            <button type="button"
-                    class="act {% if car.is_hidden %}act--show{% else %}act--hide{% endif %}"
-                    data-visibility-toggle data-pk="{{ car.pk|unlocalize }}"
-                    data-hidden="{{ car.is_hidden|yesno:'1,0' }}"
-                    title="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}"
-                    aria-label="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
-                d="{% if car.is_hidden %}{{ action_icons.show }}{% else %}{{ action_icons.hide }}{% endif %}"/></svg>
-            </button>
-            {% comment %}
-            **الزرّان اللذان سقطا.** T955.
+  {% comment %}
+  **جدولٌ لا شبكةَ بطاقات.** T959.
 
-            النافذتان أسفلَ هذا الملفّ (`data-row-move-modal` و
-            `data-row-delete-modal`) وسطرا التوصيل (`wire('data-row-move')` و
-            `wire('data-row-delete')`) كانت كلُّها قائمةً — ولا زرَّ يحمل
-            السمتين. فنافذتان مبنيّتان بلا بابٍ إليهما، وشاشةٌ تنقص فعلَين
-            يملكهما v1 في عمود «الإجراءات» (`js-move-auction` 🔀 و
-            `js-delete-vehicle` 🗑️ في `manage_vehicles.php:969,975`).
+  شكوى المالك (٢١ سبتمبر ٢٠٢٦): «زرار عرض السيارات… لو قارنت بالنظام القديم
+  هتلاقي إنه بيفتح صفحة غلط».
 
-            وهذا هو ما شكا منه المالك (٢٠ سبتمبر ٢٠٢٦): «زرار السيارات… مش
-            بيدخل على الصفحة الصح… عايز نفس الأزرار، مش ناقص». والوجهةُ كانت
-            صحيحةً، والناقصُ ما في الصفحة.
+  والوجهةُ صحيحةٌ — `/admin_v2/auctions/{id}/vehicles` عند v1 و
+  `console:auction-detail` عندنا — **لكنّ ما يُرسَم فيها كان شيئاً آخر**:
+  بطاقاتٌ بصورةٍ كبيرةٍ وأربع شرائح، بينما v1 جدولٌ بثمانيةَ عشرَ عموداً
+  (`manage_vehicles.php:850-867`). فمن يعرف القديمَ يفتح الجديدَ فلا يجد
+  شاشتَه، ويقرؤها «صفحة غلط» بحقّ: البطاقةُ تعرض ستّةَ حقولٍ من ستّةَ عشر،
+  والباقي لا سبيل إليه إلا بفتح كلّ مركبةٍ على حدة.
 
-            و`data-lot` لازمة: `wire()` يقرؤها ليكتب رقمَ اللوت في عنوان
-            النافذة — «تحذف اللوت ٧» لا «تحذف هذه».
-            {% endcomment %}
-            <button type="button" class="act act--move"
-                    data-row-move
-                    data-pk="{{ car.pk|unlocalize }}"
-                    data-lot="{{ car.lot_number|unlocalize }}"
-                    title="نقل إلى مزاد آخر" aria-label="نقل اللوت {{ car.lot_number|unlocalize }} إلى مزاد آخر">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.move }}"/></svg>
-            </button>
-            {% comment %} و`can_manage` المحيطةُ هي الحارس، لا `can_delete`:
-               نقطةُ الحذف نفسُها (`console:auction-vehicles-bulk`) محروسةٌ
-               بـ`AUCTIONS_MANAGE` في `navigation.py`، و`can_delete` ليست في
-               سياق هذه الشاشة أصلاً — فشرطٌ عليها يُخفي الزرَّ صامتاً عمّن
-               يملكه، وهو عينُ العطل الذي أُصلح هنا. {% endcomment %}
-            <button type="button" class="act act--del"
-                    data-row-delete
-                    data-pk="{{ car.pk|unlocalize }}"
-                    data-lot="{{ car.lot_number|unlocalize }}"
-                    title="حذف المركبة من المزاد" aria-label="حذف اللوت {{ car.lot_number|unlocalize }}">
-              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.delete }}"/></svg>
-            </button>
-          </div>
-          {% endif %}
-        </div>
-      </article>
-    {% empty %}
-      <p class="empty">لا سيارات في هذا المزاد بعد — اضغط «إضافة مركبة» بالأعلى.</p>
-    {% endfor %}
+  **وستّةَ عشرَ لا ثمانيةَ عشر**: «حالة المحرك» و«المفاتيح» (`runs_status` و
+  `key_status` في v1) لا حقلَ لهما في نموذجنا، ولا تُخترَع — مذكورتان في
+  `tasks.md`.
+
+  والصورةُ تبقى في العمود الأوّل مصغَّرةً وهي زرُّ **صورة العرض** كما كانت،
+  فلا يضيع فعلٌ بتغيير الشكل.
+  {% endcomment %}
+  {% comment %}
+  **الشريطُ المجمَّع وعمودُ التحديد.** T960.
+
+  `manage_vehicles.php` يحمل `mvSelectAll` وشريطاً بثلاثة أفعالٍ مجمَّعة
+  (`bulk-marketing` · `bulk-status` · `bulk-move-auction`). ونقطتُنا
+  `console:auction-vehicles-bulk` تدعم أربعةً — `state` و`marketing` و`move`
+  و`delete` — **ولا بابَ إليها إلا صفّاً صفّاً** عبر نافذتَي النقل والحذف.
+
+  وهو النمطُ نفسُه الذي أُصلح في T955: منطقٌ مبنيٌّ بلا زرٍّ يبلغه. ومن يريد
+  عرضَ مئتَي سيّارةٍ دفعةً واحدة كان يفتح مئتَي نافذة.
+
+  **والشريطُ لا يظهر إلا بتحديد**: شريطٌ دائمٌ بأزرارٍ معطَّلة ضجيجٌ فوق كلّ
+  جدول، وظهورُه عند أوّل تحديدٍ يقول إنّ ما يليه يخصّ ما اخترتَه.
+
+  و`form` واحدةٌ تلفّ الجدولَ والشريط: `vehicle` متعدّدٌ يُقرأ بـ`getlist`،
+  والفعلُ يُحسم بزرّ `submit` الذي ضُغط (`name="op"`). ونوافذُ الصفّ المفرد
+  **خارجها** — نموذجٌ داخل نموذجٍ غيرُ صالحٍ في HTML، ويسقط الداخليُّ صامتاً.
+  {% endcomment %}
+  <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
+        class="plain-form" data-bulk-form>
+    {% csrf_token %}
+    <div class="bulk-bar" data-bulk-bar hidden>
+      <span class="bulk-bar__count"><b data-bulk-count>0</b> مركبة محدَّدة</span>
+      <button type="submit" name="op" value="marketing" class="btn-sm"
+              formnovalidate>اقلب التسويق</button>
+      <label class="bulk-bar__field">
+        <select name="state" data-bulk-state>
+          <option value="">— الحالة —</option>
+          {% for value, label in bulk_states %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="state" class="btn-sm">طبّق</button>
+      </label>
+      <label class="bulk-bar__field">
+        <select name="target" data-bulk-target>
+          <option value="">— انقل إلى مزاد —</option>
+          {% for row in move_targets %}
+            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="move" class="btn-sm">انقل</button>
+      </label>
+      {% comment %} السببُ اختياريٌّ في الواجهة وإلزاميٌّ حيث يلزم: الخدمةُ
+         نفسُها ترفض ما يحتاج سبباً بلا سبب، فلا تُكرَّر القاعدةُ هنا. {% endcomment %}
+      <input type="text" name="reason" class="bulk-bar__reason"
+             placeholder="سبب (يُسجَّل في السجلّ)" maxlength="200">
+      <button type="submit" name="op" value="delete" class="btn-danger-sm"
+              data-bulk-delete>احذف</button>
+    </div>
+  <div class="scroller scroller--wide">
+    <table class="pv-table mv-table">
+      <thead>
+        <tr>
+          <th class="mv-pick"><input type="checkbox" data-pick-all autocomplete="off"
+                 title="تحديد كلّ ما يعرضه المرشّح الآن" aria-label="تحديد الكلّ"></th>
+          <th data-col="thumb"{% if "thumb" in cols_hidden %} hidden{% endif %}>الصورة</th>
+          <th data-col="lot"{% if "lot" in cols_hidden %} hidden{% endif %}>الموقف</th>
+          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}>السيارة</th>
+          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}>سنة الصنع</th>
+          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}>رقم الشاصي</th>
+          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}>رقم المطالبة</th>
+          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}>رقم اللوحة</th>
+          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>اللون</th>
+          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>شركة التأمين</th>
+          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}>العدّاد</th>
+          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>حالة المركبة</th>
+          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>نوع الوقود</th>
+          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>الصور</th>
+          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
+          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>التسويق</th>
+          <th data-col="actions"{% if "actions" in cols_hidden %} hidden{% endif %}>الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for car in page %}
+          <tr class="{% if car.is_hidden %}mv-row--hidden{% endif %}{% if car.pk == focus_pk %} mv-row--focus{% endif %}"
+              {% if car.pk == focus_pk %}id="veh-focus" tabindex="-1"{% endif %}>
+            {% comment %} الصورةُ زرُّ **صورة العرض** — كـ v1
+               (`data-action="display-image"` في `manage.php`): الضغطُ يفتح
+               منتقيَ ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض.
+               ولغير المديرِ رابطٌ للمعرض: لا يرفع من لا يملك. {% endcomment %}
+            <td class="mv-pick">
+              <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
+                     data-pick autocomplete="off"
+                     aria-label="تحديد اللوت {{ car.lot_number|unlocalize }}">
+            </td>
+            <td data-col="thumb"{% if "thumb" in cols_hidden %} hidden{% endif %} class="mv-thumb">
+              {% if can_manage %}
+                <button type="button" class="mv-thumb__btn" data-display-image
+                        data-pk="{{ car.pk|unlocalize }}" title="اضغط لرفع صورة العرض">
+                  {% if car.thumb %}
+                    <img src="{{ car.thumb }}" alt="صورة {{ car.display_title }}"
+                         loading="lazy" decoding="async" onerror="this.remove()">
+                  {% else %}
+                    {% include "console/_act_icon.html" with path=action_icons.camera %}
+                  {% endif %}
+                </button>
+              {% else %}
+                <a class="mv-thumb__btn" href="{% url 'console:vehicle-images' car.pk %}"
+                   title="معرض صور المركبة">
+                  {% if car.thumb %}
+                    <img src="{{ car.thumb }}" alt="صورة {{ car.display_title }}"
+                         loading="lazy" decoding="async" onerror="this.remove()">
+                  {% else %}
+                    {% include "console/_act_icon.html" with path=action_icons.camera %}
+                  {% endif %}
+                </a>
+              {% endif %}
+            </td>
+            <td data-col="lot"{% if "lot" in cols_hidden %} hidden{% endif %} class="count">{{ car.lot_number|unlocalize }}</td>
+            <td data-col="car"{% if "car" in cols_hidden %} hidden{% endif %} class="pv-name">
+              <a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.display_title }}</a>
+            </td>
+            <td data-col="year"{% if "year" in cols_hidden %} hidden{% endif %} class="count">{{ car.year|unlocalize|default:"—" }}</td>
+            <td data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %} class="mono">{{ car.vin|default:"—" }}</td>
+            <td data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %} class="mono">{{ car.claim_number|default:"—" }}</td>
+            <td data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %} class="mono">{{ car.plate_number|default:"—" }}</td>
+            <td data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>{% if car.colour and car.colour != 'unknown' %}{{ car.get_colour_display }}{% else %}—{% endif %}</td>
+            <td data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>{{ car.insurance_company|default:"—" }}</td>
+            <td data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %} class="count">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }}{% else %}—{% endif %}</td>
+            <td data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>{% if car.condition and car.condition != 'unknown' %}{{ car.get_condition_display }}{% else %}—{% endif %}</td>
+            <td data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>{% if car.fuel_type and car.fuel_type != 'unknown' %}{{ car.get_fuel_type_display }}{% else %}—{% endif %}</td>
+            <td data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>
+              {% if can_manage %}
+                <button type="button" class="btn-sm" data-images-modal
+                        data-url="{% url 'console:vehicle-images' car.pk %}?modal=1">{{ car.image_count|unlocalize }}</button>
+              {% else %}
+                <a class="btn-sm" href="{% url 'console:vehicle-images' car.pk %}">{{ car.image_count|unlocalize }}</a>
+              {% endif %}
+            </td>
+            <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>
+              {% comment %} زرُّ toggle لا حبّةُ عرض: التسويقُ مِلكيّة تُقلَب من
+                 الصفّ فوراً بـAJAX كما في v1 (`js-vehicle-marketing`). {% endcomment %}
+              {% if can_manage %}
+                <button type="button" class="mkt-toggle{% if car.is_marketing %} is-on{% endif %}"
+                        data-marketing-toggle data-pk="{{ car.pk|unlocalize }}"
+                        data-on="{{ car.is_marketing|yesno:'1,0' }}"
+                        title="اضغط للتبديل: سيارة الشريك أو عاديّة">{% if car.is_marketing %}تسويق{% else %}عاديّة{% endif %}</button>
+              {% elif car.is_marketing %}
+                <span class="pill" data-tone="info">تسويق</span>
+              {% else %}—{% endif %}
+            </td>
+            <td data-col="actions" class="actions">
+              {% if can_manage %}
+                <button type="button" class="act act--edit" data-row-edit
+                        data-url="{% url 'console:vehicle-edit' car.pk %}?modal=1"
+                        title="تعديل" aria-label="تعديل اللوت {{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.edit }}"/></svg>
+                </button>
+                {% comment %} إخفاء/إظهار — رؤيةُ السيارة عن العملاء، نظيرُ v1
+                   (`hide`/`show`). علمٌ مستقلٌّ عن الحالة، فالزرُّ حاضرٌ دائماً
+                   لا مربوطٌ بطورٍ من أطوار المزايدة. {% endcomment %}
+                <button type="button"
+                        class="act {% if car.is_hidden %}act--show{% else %}act--hide{% endif %}"
+                        data-visibility-toggle data-pk="{{ car.pk|unlocalize }}"
+                        data-hidden="{{ car.is_hidden|yesno:'1,0' }}"
+                        title="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}"
+                        aria-label="{% if car.is_hidden %}إظهار للعملاء{% else %}إخفاء عن العملاء{% endif %}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path
+                    d="{% if car.is_hidden %}{{ action_icons.show }}{% else %}{{ action_icons.hide }}{% endif %}"/></svg>
+                </button>
+                <button type="button" class="act act--move"
+                        data-row-move
+                        data-pk="{{ car.pk|unlocalize }}"
+                        data-lot="{{ car.lot_number|unlocalize }}"
+                        title="نقل إلى مزاد آخر" aria-label="نقل اللوت {{ car.lot_number|unlocalize }} إلى مزاد آخر">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.move }}"/></svg>
+                </button>
+                <button type="button" class="act act--del"
+                        data-row-delete
+                        data-pk="{{ car.pk|unlocalize }}"
+                        data-lot="{{ car.lot_number|unlocalize }}"
+                        title="حذف المركبة من المزاد" aria-label="حذف اللوت {{ car.lot_number|unlocalize }}">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ action_icons.delete }}"/></svg>
+                </button>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="17" class="empty">لا سيارات في هذا المزاد بعد — اضغط «إضافة مركبة» بالأعلى.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
+  </form>
 
   {% if can_manage %}
   {% comment %}
@@ -502,6 +589,45 @@ somebody went looking for it.
     }
     wire('data-row-move', moveModal);
     wire('data-row-delete', delModal);
+
+    // **الشريطُ المجمَّع يظهر بالتحديد.** T960.
+    //
+    // ولا إطارَ جافاسكربت: مربّعاتُ اختيارٍ داخل نموذجٍ واحد، والمتصفّحُ يرسل
+    // `vehicle` مكرّراً فيقرؤها `getlist`. وهذا الكودُ يعدّ ويُظهر ويُطابق
+    // "تحديد الكلّ" — لا أكثر.
+    var bar = document.querySelector('[data-bulk-bar]');
+    var all = document.querySelector('[data-pick-all]');
+    var picks = Array.prototype.slice.call(document.querySelectorAll('[data-pick]'));
+    var count = document.querySelector('[data-bulk-count]');
+    function refresh() {
+      var on = picks.filter(function (box) { return box.checked; }).length;
+      if (count) count.textContent = String(on);
+      if (bar) bar.hidden = on === 0;
+      if (all) {
+        all.checked = on > 0 && on === picks.length;
+        // حالةٌ ثالثة: بعضٌ لا كلّ. بدونها يقول المربّعُ "لا شيء" وقد اختير
+        // نصفُ الجدول.
+        all.indeterminate = on > 0 && on < picks.length;
+      }
+    }
+    picks.forEach(function (box) { box.addEventListener('change', refresh); });
+    if (all) {
+      all.addEventListener('change', function () {
+        picks.forEach(function (box) { box.checked = all.checked; });
+        refresh();
+      });
+    }
+    // **الحذفُ يُستأذَن فيه**: فعلٌ لا رجعةَ فيه على صفوفٍ عدّة، وv1 يسأل كذلك.
+    var wipe = document.querySelector('[data-bulk-delete]');
+    if (wipe) {
+      wipe.addEventListener('click', function (event) {
+        var on = picks.filter(function (box) { return box.checked; }).length;
+        if (!window.confirm('حذفُ ' + on + ' مركبةً من هذا المزاد. لا رجعةَ فيه — أتؤكّد؟')) {
+          event.preventDefault();
+        }
+      });
+    }
+    refresh();
   })();
   </script>
 
@@ -812,7 +938,12 @@ somebody went looking for it.
 {% endblock %}
 
 {% block scripts %}
-  <script src="{% static 'console/auctions.js' %}"></script>
+  {% comment %} **بوسم النسخة.** T962. كان بلا `?v=` — والمتصفّح يخزّن
+     السكربتَ بلا انتهاء، فإصلاحٌ فيه لا يصل من فتح الصفحةَ مرّةً. وهو ما
+     حجب إصلاحَ بذرة الأعمدة حتى قِيس بـ`curl` أن الخادمَ يقدّم الجديد
+     والمتصفّحَ يشغّل القديم. والأنماطُ كانت موسومةً أصلاً — السكربتُ وحدَه
+     نُسي. {% endcomment %}
+  <script src="{% static 'console/auctions.js' %}?v={{ asset_stamp }}"></script>
   {% if can_manage %}
   <script>
   {% comment %} فلاترُ الأعمدة تحت الرأس — أسلوبُ v1، ولكن server-side كي لا
