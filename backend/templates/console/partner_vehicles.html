@@ -145,8 +145,19 @@
              `users.view` كبقيّة اللوحة. {% endcomment %}
           <td>
             {% if row.awarded_to_id %}
-              {% if show_customer %}<a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.awarded_to.full_name }}</a>
-              {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+              {% comment %} **«بيعت · المبلغ» كـ v1، والاسمُ تحته.** كان
+                 العمودُ اسمَ الفائز وحدَه — والشريكُ لا يعرف مشتريَه ولا
+                 يقرّر عليه؛ الذي يقرّر عليه **بكم بيعت**، وهو الرقمُ الذي
+                 يدخل حديثَ الفاتورة. وv1 يكتبه في هذا العمود بعينه. والاسمُ
+                 يبقى لأنه يفيد الموظّفَ قارئَ الشاشة، خلف صلاحيته. {% endcomment %}
+              {% comment %} **و`shown` لا `show_customer`.** الاسمان
+                 الأخيران لا يضعهما هذا العرضُ في السياق أصلاً، فكانا فارغَين
+                 دائماً — والعمودُ يكتب «محجوب» لكلّ مركبةٍ بيعت **ولمن يملك
+                 الصلاحية**. قِيس: ثلاثةُ صفوفٍ مباعةٍ، وثلاثتُها «محجوب»
+                 والقارئُ مالكُ اللوحة. و`shown` من معالج السياق
+                 (`console/context.py`) فيصل كلَّ قالب. {% endcomment %}
+              <span class="pill" data-tone="ok">بيعت{% if shown.money and row.awarded_price %} · {{ row.awarded_price|unlocalize }}{% endif %}</span>
+              {% if shown.customer %}<small><a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.awarded_to.full_name }}</a></small>{% endif %}
             {% else %}
               <span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span>
             {% endif %}

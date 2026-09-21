@@ -731,15 +731,21 @@ def vehicles_of(partner: str = "", which: str = "", text: str = ""):
             partner,
         )
         .annotate(bids_count=Count("bids", distinct=True), top_bid=Max("bids__amount"))
-        .order_by("-id")
+        # ترتيبُ v1: `auction_id DESC, id DESC` — سياراتُ المزاد الواحد
+        # متّصلةٌ لا مبعثرةٌ بين مزادات. وكان `-id` وحدَه، فمن يفتح الشاشةَ
+        # بعد مزادٍ يجد سياراتِه موزّعةً على الصفحة.
+        .order_by("-auction__number", "-id")
     )
 
     if which == "sold":
         rows = rows.filter(state__in=AWARDED)
     elif which == "unsold":
-        rows = rows.exclude(state__in=AWARDED).exclude(
-            state=VehicleState.AWAITING_DECISION
-        )
+        # **كلُّ ما لم يُبَع، كـ v1** (`NOT (winner_user_id > 0)`). وكان
+        # يُستثنى معه `AWAITING_DECISION`، فمركبةٌ تنتظر قرار المالك تغيب عن
+        # الشريحتين معاً: لا في «مباعة» ولا في «غير مباعة» — والشريحتان
+        # يفترض أن تغطّيا «الكل». ومن جمعهما ووجد الحاصلَ أقلَّ ظنَّ أن
+        # سيارةً ضاعت.
+        rows = rows.exclude(state__in=AWARDED)
     elif which == "deciding":
         rows = rows.filter(
             auction__state__in=ARCHIVED, partner_decided_at__isnull=True
