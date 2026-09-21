@@ -61,8 +61,9 @@
        ولم يكن للشاشة تصديرٌ أصلاً. و`export_url` هذا الطلبُ نفسُه ومعه
        معامِلٌ واحد (`console/context.py`) — فالشريكُ والطابورُ يسافران معه
        بالبناء، ولا يكتب القالبُ مساراً بيده. {% endcomment %}
-    <a class="pv-chip" data-tone="plain" title="تنزيل إكسل" aria-label="تنزيل إكسل" href="{{ export_url }}">
-      {% include "console/_act_icon.html" with path=icon_export %}</a>
+    <a class="pv-chip xls-chip" data-tone="plain" title="تنزيل إكسل" href="{{ export_url }}">
+      {% include "console/_act_icon.html" with path=icon_export %}
+      <span>تنزيل إكسل</span></a>
   </nav>
 
   {% comment %} **ثلاثةُ أرقام فوق الجدول، كما في v1.** كان الرقمُ الوحيد

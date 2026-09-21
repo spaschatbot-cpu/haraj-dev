@@ -4244,6 +4244,37 @@ dialog.row-modal {
 }
 .page h1 small::before { content: "— "; }
 
+/* ---- زرُّ «تنزيل إكسل» — رسمٌ ومعه اسمُه، وأكبرُ من زرّ ------------- */
+/* كان زرَّ نصٍّ باهتاً، ثم رسماً وحدَه — والرسمُ وحدَه لغزٌ لمن لم يمرّ عليه
+   بالمؤشّر. وهو الفعلُ الوحيد في رأس هذه الشاشات، فيأخذ حجمَه: رسمٌ ١.١rem
+   ونصٌّ .88rem وحشوةٌ .55/1.15rem — أكبرُ من `.btn-ghost` بمقدارٍ يُرى ولا
+   يزاحم العنوان. */
+/* **والوزنُ ثقيلٌ عمداً**: في `.page__actions` نحوَ عشرين قاعدةً تُصيب
+   `a:not(.page__back)` — منها من يضبط الحشوةَ وحجمَ الخطّ ورسمَ `::before`.
+   وقاعدةٌ بصنفٍ واحدٍ تخسر أمامها، وقد قِيس: حجمُ الخطّ بقي 12.64px بعد
+   كتابة `.88rem`. فالمُحدِّرُ يذكر الوعاءَ ويزيد `:not()` ليبلغ وزنَها. */
+.page__actions a.xls-go:not(.page__back) {
+  padding: .62rem 1.3rem;
+  border-radius: 999px;
+  font-size: .92rem;
+  font-weight: 800;
+  gap: .5rem;
+}
+.page__actions a.xls-go:not(.page__back)::before {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+/* والشريحةُ في التسوية وسجل الدفعات بالحجم نفسِه، فالفعلُ الواحد شكلُه
+   واحدٌ في القسم. */
+.pv-chip.xls-chip { padding: .55rem 1.15rem; font-size: .88rem; }
+.pv-chip.xls-chip svg { inline-size: 1.1rem; block-size: 1.1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .xls-go { transition: none; }
+  .xls-go:hover, .xls-go:active { transform: none; }
+}
+
 /* ---- عمودُ الصورة في جداول الشريك — ثاني أعمدة v1 ------------------- */
 /* الصورةُ في جدولِ تسويةٍ ليست زينة: من يراجع مئتي صفٍّ يعرف السيارةَ بصورتها
    قبل أن يقرأ اسمَها. وبمقاسٍ ثابتٍ ومربّعٍ فارغٍ لمن لا صورةَ له — وإلّا

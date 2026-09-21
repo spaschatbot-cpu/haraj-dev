@@ -28,8 +28,9 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
      ويُبدَّل بـ`?partner=<id>`. ولم يكن للشاشة تصديرٌ أصلاً، وv1 يضعه فوق
      البطاقتين. {% endcomment %}
   <nav class="pv-chips" aria-label="أفعال الصفحة">
-    <a class="pv-chip" data-tone="plain" title="تنزيل إكسل" aria-label="تنزيل إكسل" href="{{ export_url }}">
-      {% include "console/_act_icon.html" with path=icon_export %}</a>
+    <a class="pv-chip xls-chip" data-tone="plain" title="تنزيل إكسل" href="{{ export_url }}">
+      {% include "console/_act_icon.html" with path=icon_export %}
+      <span>تنزيل إكسل</span></a>
   </nav>
 
 
