@@ -9,7 +9,9 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
 من الدفتر.
 {% endcomment %}
 {% block title %}سجل دفعات الشريك{% endblock %}
-{% block heading %}سجل دفعات الشريك{% endblock %}
+{% comment %} واسمُ الشريك في الرأس: لا مُنتقيَ في الصفحة — كأخواتها في
+   القسم. {% endcomment %}
+{% block heading %}سجل الدفعات{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
 
 {% block content %}
   {% comment %} سطرُ تعريفٍ يحمل ما في تعليق الملفّ: v1 يعرض هنا ما رُفع
@@ -21,13 +23,16 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
     في حساب العميل وفي صحّة المال، لا رقمٌ للمحاسبة ورقمٌ يراه الشريك.
   </p>
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف. {% endcomment %}
-  <form method="get" class="filters filters--row">
-    <div class="filters__main">
-      {% include "console/_partner_pick.html" %}
-      <button type="submit" class="btn-primary">اعرض</button>
-    </div>
-  </form>
+  {% comment %} **شريطُ v1: «⬇ تنزيل إكسل»، ولا مُنتقيَ شريك.** كانت
+     استمارةٌ بقائمةٍ وزرِّ «اعرض»؛ والشريكُ يُحسَم في العرض كأخواتها الستّ،
+     ويُبدَّل بـ`?partner=<id>`. ولم يكن للشاشة تصديرٌ أصلاً، وv1 يضعه فوق
+     البطاقتين. {% endcomment %}
+  <nav class="pv-chips" aria-label="أفعال الصفحة">
+    <a class="pv-chip" data-tone="plain" href="{{ export_url }}">
+      {% include "console/_act_icon.html" with path=icon_export %}
+      <span>تنزيل إكسل</span></a>
+  </nav>
+
 
   {% comment %} الرقمان كانا سطرين عاريين: «إجمالي ما وصل» فوق الجدول و«كم
      فاتورة» في ذيله — بينهما جدولٌ كامل، وهما جوابا سؤالٍ واحد. {% endcomment %}
@@ -65,6 +70,10 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
            مصدرُ الدفعة ومرجعُها — مشتقَّين من مفتاحها في الدفتر. {% endcomment %}
         <th>المصدر</th>
         <th>المرجع</th>
+        {% comment %} «تفاصيل» آخرَ الصفّ حيث تكون الأفعالُ في جداول اللوحة
+           كلِّها — والرابطُ المخبوءُ في اسم السيارة لا يُقرأ بابَ دخول.
+           {% endcomment %}
+        <th>تفاصيل</th>
       </tr>
     </thead>
     <tbody>
@@ -94,9 +103,18 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
           </td>
           <td>{{ row.source }}</td>
           <td class="mono">{{ row.reference|default:"—" }}</td>
+          <td class="rf-act">
+            {% if row.vehicle %}
+              <a class="rf-go" href="{% url 'console:vehicle-detail' row.vehicle.pk %}">تفاصيل</a>
+            {% else %}—{% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="10" class="empty">لا دفعات على سيارات هذا الشريك بعد.</td></tr>
+        {% comment %} والفراغُ يقول متى يمتلئ كـ v1 («ستظهر هنا فور اعتمادها
+           من المالك») — وهنا تظهر فور تقييد دفعةٍ على فاتورة، لا فور رفع
+           ملفّ. {% endcomment %}
+        <tr><td colspan="11" class="empty">لا دفعات على سيارات هذا الشريك بعد —
+          تظهر هنا فور تقييد دفعةٍ على فاتورة إحداها.</td></tr>
       {% endfor %}
     </tbody>
   </table>

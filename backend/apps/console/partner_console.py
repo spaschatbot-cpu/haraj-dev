@@ -1223,8 +1223,59 @@ def partner_payments(request):
     مرتين حتى لا تُسجَّل الدفعة مرتين» — أي أن التفرُّد تذكيرٌ لا مفتاح. وهنا
     الصفُّ دفعةٌ على فاتورة، ولها معرّفُها ومصدرُها وتاريخُها من الدفتر.
     """
-    partner = request.GET.get("partner", "")
+    # شريكٌ واحدٌ يُحسَم في العرض، كأخواتها الستّ — وهذه شاشةُ «كم قبضنا له».
+    partner = (request.GET.get("partner") or "").strip()
+    companies = partners()
+    company = companies.filter(pk=int(partner)).first() if partner.isdigit() else None
+    if company is None:
+        company = companies.first()
+    partner = str(company.pk) if company else ""
+
     rows = payments_of(partner)
+
+    # **«تنزيل إكسل» — وv1 يضعه هنا** (`payments.php`: زرُّ التنزيل فوق
+    # البطاقتين). ولم يكن للشاشة تصديرٌ أصلاً. والملفُّ ما تراه الشاشة:
+    # دفعاتُ هذا الشريك، بترتيبها نفسِه.
+    if wants_export(request):
+        page_rows = list(rows[:5000])
+        payments.decorate(page_rows)
+        cars = {
+            vehicle.pk: vehicle
+            for vehicle in Vehicle.objects.filter(
+                pk__in={r.invoice.vehicle_id for r in page_rows if r.invoice}
+            ).select_related("auction")
+        }
+        for row in page_rows:
+            row.vehicle = cars.get(row.invoice.vehicle_id) if row.invoice else None
+        return export(
+            page_rows,
+            name="سجل-دفعات-الشريك",
+            headers=[
+                "التاريخ",
+                "السيارة",
+                "اللوت",
+                "اللوحة",
+                "المزاد",
+                "العميل",
+                "المبلغ",
+                "الفاتورة",
+                "المصدر",
+                "المرجع",
+            ],
+            cell=lambda row: [
+                row.occurred_at,
+                f"{row.vehicle.make} {row.vehicle.model}" if row.vehicle else "",
+                row.vehicle.lot_number if row.vehicle else "",
+                row.vehicle.plate_number if row.vehicle else "",
+                row.vehicle.auction.number if row.vehicle else "",
+                row.customer.full_name if row.customer else "",
+                row.amount,
+                row.invoice.number if row.invoice else "",
+                row.source,
+                row.reference,
+            ],
+        )
+
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     page_rows = list(page.object_list)
     payments.decorate(page_rows)
@@ -1247,7 +1298,9 @@ def partner_payments(request):
             "page": page,
             "rows": page_rows,
             "partner": partner,
-            "partners": partners(),
+            "partners": companies,
+            "company": company,
+            "icon_export": path_of("download"),
             # **مجموعُ الطابور كلِّه لا الصفحة.** «إجمالي المعتمد» في v1 جوابُ
             # «كم قبضنا له»، وصفحةٌ من خمسين تجيب عن خمسين.
             #
