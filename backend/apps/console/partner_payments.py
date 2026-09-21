@@ -49,12 +49,13 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import Q, Sum
+from django.db.models import Max, Q, Sum
 from django.shortcuts import redirect, render
 
 from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import VehicleState
 from apps.bidding import settlement
+from apps.bidding.models import Bid
 from apps.core import audit
 from apps.core.arabic import search_q
 from apps.core.sheets import Sheet, SheetError
@@ -251,8 +252,23 @@ def approve(request):
     )
 
 
+def partner_console_payment_dates(invoices) -> dict:
+    """تاريخُ آخر دفعةٍ لكلّ فاتورة — تُقرأ من `partner_console` لا تُنسَخ.
+
+    وكُتبت مرّةً هناك بشكلٍ واحدٍ من شكلَي مفتاح المنع فخرج العمودُ فارغاً؛
+    فالنداءُ على الدالّة نفسِها، لا نسخةٌ ثالثة.
+    """
+    from apps.console import partner_console
+
+    return {pk: when for pk, (when, _src) in partner_console._payment_facts(invoices).items()}
+
+
 def _decorate_cars(rows) -> None:
-    """أضِف لكلّ مركبةٍ فاتورتَها وصورتَها وما بقي عليها — استعلامان للصفحة."""
+    """أضِف لكلّ مركبةٍ فاتورتَها وصورتَها وأعلى عرضٍ عليها ومتى سُدِّدت.
+
+    وأربعةُ استعلاماتٍ للصفحة كلِّها لا أربعةٌ لكلّ صفّ: الشاشةُ تُفتح على
+    أربعمئة مركبة.
+    """
     invoices = {
         invoice.vehicle_id: invoice
         for invoice in Invoice.objects.filter(vehicle__in=rows).order_by(
@@ -265,12 +281,25 @@ def _decorate_cars(rows) -> None:
     ):
         covers.setdefault(shot.vehicle_id, shot)
 
+    # **«أعلى عرض» عمودُ v1** — وهو ما رستْ به إن رستْ، وإلّا أعلى مزايدةٍ
+    # قائمة. واستعلامٌ واحدٌ للصفحة.
+    tops = dict(
+        Bid.objects.filter(vehicle__in=rows, is_superseded=False, is_withdrawn=False)
+        .values_list("vehicle")
+        .annotate(top=Max("amount"))
+    )
+
+    # ومتى سُدِّدت — من الدفتر، بمفتاح المنع بشكليه (`console.payments`).
+    paid_at = partner_console_payment_dates(list(invoices.values()))
+
     for car in rows:
         invoice = invoices.get(car.pk)
         car.invoice = invoice
         car.cover = covers.get(car.pk)
+        car.top_amount = car.awarded_price or tops.get(car.pk)
         car.paid_amount = invoice.amount_paid if invoice else ZERO
         car.due = invoice.outstanding if invoice else (car.awarded_price or ZERO)
+        car.paid_at = paid_at.get(invoice.pk) if invoice else None
         # «مسدَّدة» هنا = **لا بقيّةَ على الفاتورة**، لا علمٌ يُرفع بملفّ.
         car.is_paid = bool(invoice) and invoice.outstanding <= ZERO
 

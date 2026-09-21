@@ -143,7 +143,11 @@
             مزاد {{ a.number|unlocalize }}{% if a.title %} — {{ a.title }}{% endif %}</option>
         {% endfor %}
       </select>
-      <input type="search" name="q" value="{{ q }}"
+      {% comment %} بحثٌ فوريٌّ كـ v1 (`#ppFind`): يخفي الصفوفَ في مكانها.
+         و`name="q"` باقٍ فالإرسالُ يعمل لمن ضغط «اعرض» أو جاء برابط —
+         والترشيحُ على الخادم يبقى هو الحدّ حين تكون الصفوفُ أكثرَ من
+         المعروض. {% endcomment %}
+      <input type="search" name="q" value="{{ q }}" data-pa-find
              placeholder="اسم · لوحة · رقم مطالبة" aria-label="بحث">
       <button type="submit" class="btn-primary">اعرض</button>
     </div>
@@ -161,18 +165,22 @@
       </summary>
 
       <div class="scroller">
-        <table class="pd-tbl">
+        <table class="pd-tbl pa-tbl">
           <thead>
             <tr>
               <th class="pv-thumb-h">صورة</th>
-              <th>اللوت</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
-              <th>سعر الترسية</th><th>الحالة</th><th>المبلغ المعتمد</th><th>المتبقّي</th>
+              <th>الموقف</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
+              <th>أعلى عرض</th><th>الحالة</th><th>المبلغ المعتمد</th><th>المتبقّي</th>
               <th>إجراء</th>
             </tr>
           </thead>
           <tbody>
             {% for car in group.rows %}
-              <tr>
+              {% comment %} `data-find` كـ v1: البحثُ يخفي الصفوفَ في مكانها
+                 بلا إعادة تحميل — والمالكُ يكتب لوحةً وهو واقفٌ على مزادٍ
+                 مفتوح، فإعادةُ التحميل تطوي ما فتح. {% endcomment %}
+              <tr class="pa-vrow"
+                  data-find="{{ car.display_title|lower }} {{ car.plate_number|default:'' }} {{ car.claim_number|default:'' }} {{ car.lot_number|unlocalize }}">
                 <td class="pv-thumb">
                   {% if car.cover %}
                     <img src="{{ car.cover.thumbnail.url|default:car.cover.image.url }}"
@@ -180,37 +188,47 @@
                   {% else %}<span class="pv-thumb__none" aria-hidden="true"></span>{% endif %}
                 </td>
                 <td class="count">{{ car.lot_number|unlocalize }}</td>
+                {% comment %} **سطرٌ ثانٍ تحت الاسم كـ v1**: رقمُ المركبة —
+                   وهو ما يُكتب في الملفّ المرفوع — و«بلا فاتورة» حيث لا
+                   فاتورة، فيُعرف سببُ غياب زرّ الاعتماد من الصفّ نفسِه لا
+                   بالتجربة. {% endcomment %}
                 <td class="pv-name">
                   <strong>{{ car.display_title }}</strong>
-                  <small>{{ car.year|unlocalize }}</small>
+                  <small>#{{ car.pk|unlocalize }}{% if not car.invoice %} · <span class="pa-noinv">بلا فاتورة</span>{% endif %}</small>
                 </td>
                 <td class="mono">{{ car.plate_number|default:"—" }}</td>
                 <td class="mono">{{ car.claim_number|default:"—" }}</td>
-                <td class="money">{{ car.awarded_price|default:"—"|unlocalize }}</td>
+                <td class="money">{{ car.top_amount|default:"—"|unlocalize }}</td>
                 <td>
                   {% if car.is_paid %}<span class="pill" data-tone="ok">مسدَّدة</span>
-                  {% elif car.invoice %}<span class="pill" data-tone="warn">مستحقّة</span>
+                  {% elif car.invoice %}<span class="pill" data-tone="warn">غير مسدَّدة</span>
                   {% else %}<span class="pill" data-tone="bad">بلا فاتورة</span>{% endif %}
                 </td>
-                <td class="money">{{ car.paid_amount|unlocalize }}</td>
+                {% comment %} **المبلغُ ومعه تاريخُه كـ v1** — وسطرٌ تحته
+                   بالتاريخ. ومبلغٌ بلا تاريخٍ في شاشة اعتمادٍ يجعل «متى
+                   قبضنا؟» سؤالاً لا جواب له هنا. {% endcomment %}
+                <td class="money">
+                  {% if car.paid_amount %}{{ car.paid_amount|unlocalize }}
+                    {% if car.paid_at %}<small class="pa-when">{{ car.paid_at|date:"Y-m-d" }}</small>{% endif %}
+                  {% else %}—{% endif %}
+                </td>
                 <td class="money inv-due">{{ car.due|unlocalize }}</td>
-                {% comment %} **الاعتمادُ في الصفّ، ومبلغُه مكتوب.** خانةُ v1
-                   تقول «اتركه فارغاً = أعلى عرض» فتُقيَّد دفعةٌ على رقمٍ لم
-                   يكتبه أحد — وأثرُها مقيسٌ في الشاشة المجاورة: «خرج 29,990
-                   مقابل مدفوع 20,000». فالخانةُ هنا مُعبّأةٌ بالمتبقّي
-                   ويُعدّلها من يريد، ولا تُقبل فارغة. {% endcomment %}
-                <td class="actions dc-cell">
+                <td class="actions">
                   {% if car.invoice and not car.is_paid %}
-                    <form method="post" class="pa-pay">
-                      {% csrf_token %}
-                      <input type="hidden" name="op" value="pay">
-                      <input type="hidden" name="vehicle" value="{{ car.pk }}">
-                      <input type="number" name="amount" step="0.01" min="0.01" required
-                             value="{{ car.due|unlocalize }}" aria-label="المبلغ">
-                      <input type="date" name="paid_at" aria-label="تاريخ الدفع">
-                      <button type="submit" class="dc-btn dc-btn--yes">
-                        {% include "console/_act_icon.html" with path=icon_pay %}<span>اعتمِد</span></button>
-                    </form>
+                    {% comment %} **زرٌّ يفتح النافذة، لا خاناتٌ في الصفّ.**
+                       v1 يفتح «اعتماد سداد سيارة» بحقولها الأربعة، والصفُّ
+                       فيه عشرةُ أعمدةٍ أصلاً — فخانتان زائدتان فيه تدفعانه
+                       إلى التمرير الأفقيّ وتُقرآن جزءاً من البيانات.
+                       {% endcomment %}
+                    <button type="button" class="dc-btn dc-btn--yes pa-open"
+                            data-vehicle="{{ car.pk }}"
+                            data-title="{{ car.display_title }}"
+                            data-lot="{{ car.lot_number|unlocalize }}"
+                            data-plate="{{ car.plate_number|default:'' }}"
+                            data-claim="{{ car.claim_number|default:'' }}"
+                            data-invoice="{{ car.invoice.number }}"
+                            data-due="{{ car.due|unlocalize }}">
+                      {% include "console/_act_icon.html" with path=icon_pay %}<span>اعتماد السداد</span></button>
                   {% elif car.is_paid %}
                     <span class="empty">لا بقيّةَ عليها</span>
                   {% else %}
@@ -258,4 +276,99 @@
       </tbody>
     </table>
   </div>
+
+  {% comment %} **نافذةُ «اعتماد سداد سيارة» — الصفحةُ الداخليّةُ في v1.**
+
+     حقولُها حقولُه: المبلغُ وتاريخُ الدفع والملاحظة. وثلاثةُ فروقٍ عن v1،
+     كلُّها مكتوبٌ سببُها:
+
+     * **المبلغُ مطلوب.** خانةُ v1 تقول «اتركه فارغاً = أعلى عرض»، فتُقيَّد
+       دفعةٌ على رقمٍ لم يكتبه أحد. وأثرُها مقيسٌ في الشاشة المجاورة: «خرج
+       29,990 مقابل مدفوع 20,000». وهي مُعبّأةٌ بالمتبقّي فلا يُكتب في
+       الحالة الغالبة شيء.
+     * **ولا يتجاوز المتبقّي**: `max` في الخانة، و`record_payment` تردّه
+       أيضاً — فالحدُّ في الشاشة تلطّفٌ، وفي الدفتر قاعدة.
+     * **🟡 وصورةُ الحوالة لا نظيرَ لها بعد**: خانةُ `receipt` في v1 ترفع
+       ملفّاً، وتخزينُه لم يُقرَّر أين يقع.
+
+     و`<dialog>` لا `<div>`: المتصفّح يحبس التركيز ويُغلق بـEscape ويعتم
+     الخلف — كنافذة المزايدات. {% endcomment %}
+  <dialog class="modal pa-modal" data-pay-modal>
+    <form method="post" class="pa-modal__body">
+      {% csrf_token %}
+      <input type="hidden" name="op" value="pay">
+      <input type="hidden" name="vehicle" data-f="vehicle">
+
+      <h2 class="section-title">اعتماد سداد سيارة</h2>
+      <p class="pa-who" data-f="who"></p>
+
+      <div class="pa-field">
+        <label for="paAmount">المبلغ <small>بالريال — ولا يتجاوز المتبقّي</small></label>
+        <input id="paAmount" type="number" name="amount" step="0.01" min="0.01" required data-f="amount">
+      </div>
+
+      <div class="pa-field">
+        <label for="paDate">تاريخ الدفع</label>
+        <input id="paDate" type="date" name="paid_at" data-f="date">
+      </div>
+
+      <div class="pa-field">
+        <label for="paNote">ملاحظة</label>
+        <input id="paNote" type="text" name="note" maxlength="120" placeholder="تحويل بنكي…">
+      </div>
+
+      <p class="notice notice--soft">
+        القيدُ يقع في الدفتر: تُقرأ الدفعةُ هنا وفي حساب العميل وفي صحّة المال
+        وفي صفحات الشريك — <strong>رقماً واحداً</strong>. ولا تُحذف بعدها،
+        و<strong>القيدُ المغلوط يُعكَس</strong> فيبقى الاثنان ومعهما من عكس.
+      </p>
+
+      <div class="pa-modal__act">
+        <button type="submit" class="dc-btn dc-btn--yes">
+          {% include "console/_act_icon.html" with path=icon_pay %}<span>حفظ الاعتماد</span></button>
+        <button type="button" class="dc-btn dc-btn--ghost" data-pay-close><span>إلغاء</span></button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+  (function () {
+    var modal = document.querySelector('[data-pay-modal]');
+    if (!modal || !modal.showModal) return;
+    var f = function (name) { return modal.querySelector('[data-f="' + name + '"]'); };
+
+    document.addEventListener('click', function (e) {
+      var open = e.target.closest('.pa-open');
+      if (open) {
+        f('vehicle').value = open.dataset.vehicle;
+        f('amount').value = open.dataset.due;
+        f('amount').max = open.dataset.due;
+        f('date').value = new Date().toISOString().slice(0, 10);
+        f('who').textContent = 'لوط ' + open.dataset.lot + ' · ' + open.dataset.title
+          + ' · فاتورة ' + open.dataset.invoice
+          + (open.dataset.plate ? ' · ' + open.dataset.plate : '');
+        modal.showModal();
+        f('amount').focus();
+        return;
+      }
+      if (e.target.closest('[data-pay-close]')) { modal.close(); }
+    });
+    modal.addEventListener('click', function (e) { if (e.target === modal) modal.close(); });
+
+    // بحثٌ يخفي الصفوفَ في مكانها كـ v1 — بلا إعادة تحميلٍ تطوي ما فُتح.
+    var find = document.querySelector('[data-pa-find]');
+    if (find) {
+      find.addEventListener('input', function () {
+        var q = find.value.trim().toLowerCase();
+        document.querySelectorAll('.pa-vrow').forEach(function (row) {
+          row.hidden = q !== '' && (row.dataset.find || '').indexOf(q) === -1;
+        });
+        document.querySelectorAll('.pa-grp').forEach(function (grp) {
+          var shown = grp.querySelectorAll('.pa-vrow:not([hidden])').length;
+          grp.hidden = q !== '' && shown === 0;
+        });
+      });
+    }
+  })();
+  </script>
 {% endblock %}

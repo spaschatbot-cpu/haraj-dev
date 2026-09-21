@@ -4275,6 +4275,29 @@ dialog.row-modal {
   .xls-go:hover, .xls-go:active { transform: none; }
 }
 
+/* ---- نافذةُ «اعتماد سداد سيارة» — الصفحةُ الداخليّةُ في v1 ---------- */
+.pa-modal { inline-size: min(30rem, 92vw); }
+.pa-modal__body { padding: 1.15rem 1.25rem 1.25rem; }
+.pa-modal .section-title { margin-block-start: 0; }
+.pa-who { margin: 0 0 1rem; font-size: .82rem; font-weight: 700; color: var(--muted); }
+.pa-field { margin-block-end: .8rem; }
+.pa-field label { display: block; font-size: .78rem; font-weight: 800; margin-block-end: .25rem; }
+.pa-field label small { font-weight: 600; color: var(--muted); }
+.pa-field input {
+  inline-size: 100%;
+  padding: .5rem .65rem;
+  border: 1px solid var(--field-border);
+  border-radius: .45rem;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: .88rem;
+}
+.pa-modal__act { display: flex; gap: .45rem; margin-block-start: .9rem; }
+/* سطرُ التاريخ تحت المبلغ في الجدول — أصغرُ منه فلا يُقرآن رقمين. */
+.pa-when { display: block; font-size: .7rem; font-weight: 600; color: var(--muted); }
+.pa-noinv { color: var(--warn); font-weight: 800; }
+
 /* ---- «السيارات حسب المزاد» في شاشة الاعتماد — مجموعاتٌ تُطوى ------- */
 /* المالكُ يعتمد مزاداً بعد إغلاقه، وأربعُمئة صفٍّ مفتوحةٍ معاً لا تُقرأ.
    و`<details>` كـ v1: مفتوحةٌ ابتداءً ويُطوى ما فُرغ منه. */
