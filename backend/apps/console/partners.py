@@ -150,6 +150,7 @@ def decisions(request):
             # رسومُ الحكم — من `icons.py` لا إيموجي (T837). والقبولُ والرفضُ
             # فعلان لا رجعةَ لهما في الشاشة، فيُقرآن بالرسم قبل النصّ: العينُ
             # تلتقط «✓» و«⃠» أسرعَ من كلمتين متجاورتين بالطول نفسه.
+            "icon_export": path_of("download"),
             "icon_yes": path_of("check"),
             "icon_no": path_of("ban"),
             "icon_offers": path_of("eye"),

@@ -13,7 +13,11 @@
 {% endcomment %}
 {% block title %}كل سيارات الشريك{% endblock %}
 {% block heading %}كل سيارات الشريك{% endblock %}
-{% block actions %}<a href="{{ export_url }}" class="btn-ghost">تصدير إلى إكسل</a>{% endblock %}
+{% comment %} **رسمٌ لا زرُّ نصّ** (قرار المالكة، ٢٢ سبتمبر ٢٠٢٦).
+   و«تصدير إلى إكسل» أربع كلماتٍ في رأس الصفحة تزاحم عنوانَها، والفعلُ
+   يُلتقط برسم السهم النازل. والاسمُ باقٍ في `title` و`aria-label`،
+   فمن يقرأ بالصوت يسمعه ومن يتردّد يقف عليه. {% endcomment %}
+{% block actions %}<a href="{{ export_url }}" class="act act--go" title="تنزيل إكسل" aria-label="تنزيل إكسل">{% include "console/_act_icon.html" with path=icon_export %}</a>{% endblock %}
 
 {% block content %}
   {% comment %} سطرُ تعريفٍ يحمل ما في تعليق الملفّ: عمودُ «سعر الوقوف» في
@@ -61,27 +65,12 @@
     </aside>
   </div>
 
-  {% comment %} **بحثٌ وحدَه، بلا مُنتقي شريك** (قرار المالكة، ٢٠ سبتمبر
-     ٢٠٢٦: «شيل دا» ثم «سيب بحث بس»).
+  {% comment %} **ولا بحثَ** (قرار المالكة، ٢٢ سبتمبر ٢٠٢٦: «شيل
+     البحث»). وكان الشريطَ الأخيرَ الباقيَ في القسم بعد سقوط المُنتقين.
 
-     والشريكُ لم يسقط من الشاشة — سقط من الاستمارة: يأتي في `?partner=`
-     ويسافر مع البحث في حقلٍ مخفيّ كما يسافر المرشّح، فمن فتحها على شريكٍ
-     بعينه ثم بحث يبقى عليه. وبلا هذا الحقل يعيد البحثُ الشاشةَ إلى الشركاء
-     جميعاً وهو لم يطلب ذلك. {% endcomment %}
-  <form method="get" class="filters filters--row">
-    <div class="filters__main">
-      {% comment %} المرشّحُ يسافر مع البحث في حقلٍ مخفيّ — وإلّا أعاد البحثُ
-         الشاشةَ إلى «الكل» وضاع ما اختاره القارئ. {% endcomment %}
-      <input type="hidden" name="partner" value="{{ partner }}">
-      <input type="hidden" name="which" value="{{ which }}">
-      <input type="search" name="q" value="{{ q }}"
-             placeholder="لوحة · شاصي · اسم · ماركة · رقم مطالبة · لوط" aria-label="بحث">
-      <button type="submit" class="btn-primary">بحث</button>
-      {% if q %}
-        <a class="filters__reset" href="?partner={{ partner }}&amp;which={{ which }}">مسح</a>
-      {% endif %}
-    </div>
-  </form>
+     والترشيحُ يبقى بالشرائح الأربع، و`?q=` ما زالت تعمل في العرض لمن يصلها
+     برابط. ويوم يُطلب البحثُ ثانيةً فموضعُه هنا — ونصُّه محفوظٌ في تاريخ
+     الملفّ. {% endcomment %}
 
   {% comment %} أحدَ عشرَ عموداً في غلافٍ بعرض الشاشة: كلُّ خانةٍ تلفّ —
      واسمُ السيارة يأخذ ثلاثةَ أسطر. `scroller--wide` تمنع اللفَّ وتُمرّر

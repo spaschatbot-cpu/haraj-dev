@@ -837,6 +837,7 @@ def partner_vehicles(request):
             "partners": partners(),
             "which": which,
             "q": request.GET.get("q", ""),
+            "icon_export": path_of("download"),
             "matched": {
                 "vehicles": matched["n"] or 0,
                 "won": matched["won"] or 0,
