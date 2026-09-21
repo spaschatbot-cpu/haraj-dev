@@ -731,7 +731,7 @@ def vehicle_state(request, pk: int):
     ):
         messages.error(
             request,
-            "قرارُ قبولِ العرض أو رفضه يحتاج صلاحية «قرارات الشريك» — "
+            "قرارُ قبولِ العرض أو رفضه يحتاج صلاحية «اتخاذ القرار» — "
             "يُتَّخذ من شاشة العروض.",
         )
         return redirect("console:vehicle-detail", pk=vehicle.pk)
