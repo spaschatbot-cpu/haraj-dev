@@ -8,6 +8,7 @@ import '../../app/providers.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../core/environment.dart';
+import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../auth/session_controller.dart';
 import 'onboarding_parts.dart';
@@ -104,12 +105,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   /// يجلب لوحة المزايدات مرّةً. لا يرمي ولا يمنع الدخول.
+  ///
+  /// **و«غير متصل» تُقرأ من `origin` لا من `value`.** T956.
+  ///
+  /// كان الشرطُ `snapshot.value == null`، و`Snapshot.value` غيرُ قابلٍ للعدم
+  /// أصلاً — فالعلمُ لا يصير صحيحاً أبداً، وسطرُ `splashStepOffline` ميّتٌ
+  /// والشاشةُ تقول «جاهز» ولو لم يصل الخادمُ إطلاقاً. والمحلّلُ يقولها:
+  /// «the operand can't be null, so the condition is always false».
+  ///
+  /// و`DataOrigin.cache` هو المعنى المقصود بنصّه في `snapshot.dart`: «نسخة
+  /// قديمة من الكاش **بعد تعذّر الوصول للخادم**».
+  ///
+  /// **والرميُ يُمسَك**: بلا كاشٍ أصلاً (أوّلُ إقلاعٍ بلا شبكة) يرمي المستودع،
+  /// وهذه الدالّة تُنادى بـ`unawaited` فيضيع الرميُ في الفراغ — و`_auctionsDone`
+  /// يبقى `false`، فلا يصل `_maybeReady` إلى `ready` أبداً وتتعلّق الشاشةُ
+  /// على «جارٍ التحميل» حتى يقطعها السقفُ الزمنيّ. توثيقُها يقول «لا يرمي»،
+  /// فصار الكودُ يقول ما يقوله التوثيق.
   Future<void> _syncAuctions() async {
-    final snapshot = await ref.read(loadHomeAuctionsProvider)();
+    var offline = false;
+    try {
+      final snapshot = await ref.read(loadHomeAuctionsProvider)();
+      offline = snapshot.origin == DataOrigin.cache;
+    } on Object {
+      // لا كاشَ ولا شبكة. الدخولُ لا يُمنَع — والشريطُ يقول «غير متصل».
+      offline = true;
+    }
     if (!mounted) return;
     setState(() {
       _auctionsDone = true;
-      _syncFailed = snapshot.value == null;
+      _syncFailed = offline;
     });
     _maybeReady();
   }
