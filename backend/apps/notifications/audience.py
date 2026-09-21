@@ -54,10 +54,16 @@ STATUSES = (
 #: * `favourites` — من وضع سيارةً منه في مفضّلته. وهو جمهورُ التذكير قبل
 #:   الانطلاق (`auctions.services.queue_auction_reminder`)، لأنه أقربُ ما
 #:   يقوله العميلُ بنفسه عن نيّته قبل أن تبدأ المزايدة.
+#: * `winners` — من رستْ عليه مركبةٌ فيه. وهو جمهورُ «أبلغوا الفائزين» بعد
+#:   إقفال المزاد — الزرُّ الذي يضغطه المالكُ في v1 فتُرسَل رسائلُ بلا عددٍ
+#:   يُقرأ ولا كلفةٍ تُعرَض ولا نصٍّ يُراجَع (`admin2/bills/index.php`). وهنا
+#:   يصير مرشِّحاً في هذه الشاشة، فيمرّ من بوّابتها: العددُ والكلفةُ والتأكيدُ
+#:   فوق الحدّ. T965
 AUCTION_LINKS = (
     ("", "أيّ علاقة"),
     ("bidders", "من زايد في المزاد"),
     ("favourites", "من وضع سيارةً منه في مفضّلته"),
+    ("winners", "من رستْ عليه مركبةٌ فيه"),
 )
 
 
@@ -155,6 +161,12 @@ class Audience:
         if self.auction_id:
             if self.auction_link == "favourites":
                 rows = rows.filter(favourites__vehicle__auction_id=self.auction_id)
+            elif self.auction_link == "winners":
+                # `won_vehicles` هي `Vehicle.awarded_to` معكوسةً، والحالةُ
+                # ليست شرطاً: القاعدةُ نفسُها تشترط أن المركبةَ المرسّاةَ
+                # تسمّي فائزَها (`an_awarded_vehicle_names_its_winner`)، فمن
+                # يُسمَّى هنا رستْ عليه بحكم القيد.
+                rows = rows.filter(won_vehicles__auction_id=self.auction_id)
             else:
                 rows = rows.filter(bids__vehicle__auction_id=self.auction_id)
 

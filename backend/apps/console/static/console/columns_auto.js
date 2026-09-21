@@ -127,6 +127,22 @@
     locked[keys[0]] = true;
     locked[keys[heads.length - 1]] = true;
 
+    /* **وعمودٌ له أن يقول «لا تُخفِني تلقائيّاً».** T965.
+    
+       التقليصُ التلقائيُّ يختار **الأعرضَ**، وهي قاعدةٌ صحيحةٌ في الغالب:
+       العمودُ الواسعُ نصٌّ حرٌّ يُقرأ عند الحاجة. لكنّها تنقلب في شاشةٍ
+       عمودُها الواسعُ هو موضوعُها — «منصّة الملّاك» فتحت أوّلَ مرّةٍ فأخفت
+       **«أعلى عرض» و«شامل الضريبة» و«أعلى مزايد»**، أي الثلاثةَ التي يُفتح
+       لأجلها الجدول، وأبقت «سنة الصنع» و«التسويق». قِيس: خمسةٌ مخفيّةٌ من
+       خمسةَ عشر، وفيها الثلاثة.
+    
+       و`data-keep` **ليس قفلاً**: العمودُ يبقى في المنتقي ويخفيه الموظّفُ
+       متى شاء. هو يقول لآليّة التقليص وحدَها: ابدأ من غيري. */
+    var keep = {};
+    for (var k = 0; k < heads.length; k++) {
+      if (heads[k].hasAttribute("data-keep")) keep[keys[k]] = true;
+    }
+
     /* **ويُقلَّص حتى يتّسع — مرّةً واحدةً، ولمن لم يخصّص.** T964.
 
        طلبُ المالك: «عايز الداتا تتعرض بدون الحاجة للاسكرول يمين وشمال».
@@ -150,7 +166,7 @@
         var widest = -1;
         var widestSize = 0;
         for (var w = 0; w < heads.length; w++) {
-          if (locked[keys[w]] || !keys[w] || heads[w].hidden) continue;
+          if (locked[keys[w]] || keep[keys[w]] || !keys[w] || heads[w].hidden) continue;
           var size = heads[w].getBoundingClientRect().width;
           if (size > widestSize) { widestSize = size; widest = w; }
         }

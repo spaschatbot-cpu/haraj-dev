@@ -43,16 +43,13 @@ from django.db.models import Avg, Count, Max, Sum
 from django.shortcuts import render
 
 from apps.accounts.models import User
-from apps.auctions import engine
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Vehicle
 from apps.bidding.models import Bid, BidRefusal
 from apps.core.arabic import search_q
 from apps.money import services as money
 
 from .decisions import AWARDED as DECISION_AWARDED
 from .decisions import awarded
-from .money import wallet_rows
-from .sensitive import shown_to
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -267,58 +264,17 @@ def live_shape(auctions) -> dict | None:
 #
 # وحُذفت الدوالُّ مع شاشاتها لا بعدها، لسبب T939 نفسِه.
 
+
 # ---------------------------------------------------------------------------
-# منصة الملاك — روابطُ شاشاتٍ موجودة، وأرقامٌ من مصادرها. T830ك
+# و«منصة الملاك» لم تعد هنا — T965
 # ---------------------------------------------------------------------------
 #
-# شاشة v1 «الإدارة العليا… في صفحة واحدة موحدة»، وهي أربعةَ عشرَ كرتاً
-# **معظمُها روابطُ شاشاتٍ قائمة**. وأولُ رابطٍ فيها يخرج من `admin_v2` إلى
-# `admin2/bills/index.php` — أي أن «الصفحة الموحدة» تُحيل إلى نظامٍ ثالث.
+# كانت شاشتُها سبعةَ أرقامٍ وأربعَ عشرةَ بطاقةً معظمُها روابطُ شاشاتٍ في
+# الشريط الجانبيّ أصلاً. وقرارُ المالك (٢١ سبتمبر ٢٠٢٦): «استبدل صفحة منصّة
+# الملّاك بالصفحة دي» — ومعه رابطُ `admin2/bills/index.php`، أي **شاشةُ اختيار
+# العروض**. فالمسارُ نفسُه (`console:owners-console`) يرسم الآن تلك الشاشة،
+# وبناؤها في `apps/console/offers.py`.
 #
-# و«تعديل المزايدات» فيها: «تعديل مبلغ مزايدة معيّنة». وتعديلُ مبلغِ مزايدةٍ
-# بعد وقوعها أخطرُ ما في اللوحة بعد الخصم المباشر — المزايدة عرضٌ قانونيّ.
-# وفي v2 لا يُعدَّل `Bid.amount` أبداً: يُسحَب ويُستبدَل بقيدٍ يقول من ولماذا.
-# فالكرتُ غير موجودٍ هنا، ومكتوبٌ في القالب لماذا.
-
-
-@console_page("console:owners-console")
-def owners_console(request):
-    """منصة الملاك: الأرقام السبعة، وكلٌّ منها من مصدر شاشته."""
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
-    live = engine.open_now()
-
-    # **والرقمُ نفسُه يستحقّ حارسَ شاشته نفسَه.** T901
-    #
-    # ستّةٌ من السبعة أعداد، و«إجمالي التأمين» مبلغٌ — ومبلغُ **دفتر
-    # المحفظة** لا مبلغُ فاتورة، فقدرتُه `money.view` لا `invoices.view`
-    # (`sensitive.WALLET`). وهو الرقمُ الذي يحرسه `money.view` في «تقرير
-    # المحفظة» التي يفتحها الرابطُ بجواره، **وبالدالّة ذاتها**
-    # (`money.wallet_rows` — انتقلت إليه في T935 حين دُمجت الشاشتان) — فكان
-    # يُقرأ هنا بـ`auctions.view` وحدَها:
-    # `9,050,004.00` على `haraj2_t307` لموظّف ساحة.
-    seen = shown_to(request.user)
-
-    return render(
-        request,
-        "console/owners_console.html",
-        {
-            "staff": User.objects.filter(is_staff=True).count(),
-            "customers": User.objects.filter(is_staff=False).count(),
-            "auctions": Auction.objects.count(),
-            "live": live.count(),
-            "show_wallet": seen.wallet,
-            # الرقم نفسه الذي يعرضه «سجل المحفظة» — من الدفتر، وبالدالّة
-            # ذاتها. فلا يقول هذا تسعةً وثلاثمئة ألفٍ ويقول ذاك غيرها.
-            # ولا يُجمَع أصلاً لمن لا يراه: استعلامُ تجميعٍ على أربعةٍ
-            # وأربعين ألف عميلٍ ثمنُه يُدفَع، والحجبُ بعد الدفع ليس توفيراً.
-            "insurance": (
-                wallet_rows().aggregate(t=Sum("held_total"))["t"] or ZERO
-                if seen.wallet
-                else None
-            ),
-            "bidders": Bid.objects.values("bidder").distinct().count(),
-            "awarded": awarded().count(),
-        },
-    )
+# وحُذفت الدالّةُ مع شاشتها لا بعدها: دالّةٌ لا يستدعيها مسارٌ ليست شيفرةً
+# ميّتةً فحسب — هي وعدٌ بشاشةٍ لا وجودَ لها، يقرؤه من يبحث عن «منصة الملاك»
+# في هذا الملفّ فيصلحها هنا ولا يتغيّر شيء.

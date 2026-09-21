@@ -143,6 +143,7 @@ def _asset_stamp() -> str:
         # القالب معاً، فكان تعديلُه لا يُبطل كاشاً ولا يصل متصفّحاً.
         "console/auctions.js",
         "console/columns_auto.js",
+        "console/offers.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):
