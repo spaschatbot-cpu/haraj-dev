@@ -171,4 +171,5 @@ def assets(request) -> dict:
     و`stat` على أربعة ملفّاتٍ في التطوير وحدَه ثمنٌ لا يُذكر، والسيرفرُ يبقى
     على القراءة الواحدة.
     """
-    return {"asset_stamp": SimpleLazyObject(_asset_stamp) if settings.DEBUG else ASSET_STAMP}
+    stamp = SimpleLazyObject(_asset_stamp) if settings.DEBUG else ASSET_STAMP
+    return {"asset_stamp": stamp}

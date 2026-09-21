@@ -47,24 +47,25 @@ from django.core.paginator import Paginator
 from django.db.models import (
     CharField,
     Count,
+    DecimalField,
     Exists,
     F,
     Func,
     Max,
     OuterRef,
     Q,
+    Subquery,
     Sum,
     Value,
 )
-from django.db.models import DecimalField, Subquery
 from django.db.models.functions import Cast
 from django.shortcuts import render
 
 from apps.accounts.models import Company
 from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
-from apps.bidding.models import Bid
 from apps.auctions.states import AuctionState, VehicleState
+from apps.bidding.models import Bid
 from apps.core.arabic import search_q
 from apps.money import services as money
 from apps.money.models import Entry, Invoice, InvoiceState, Transaction
@@ -551,7 +552,8 @@ def _auctions_screen(request, state: str = "", *, only=None, screen=None):
         # المُصلَح في «الأداء لكل مزاد».
         row.diff = (row.sales or ZERO) - (row.reserve_sold or ZERO)
 
-    cars = cars_in(partner, [row.pk for row in page.object_list], state == AuctionState.LIVE)
+    ids = [row.pk for row in page.object_list]
+    cars = cars_in(partner, ids, state == AuctionState.LIVE)
     for row in page.object_list:
         row.cars = cars.get(row.pk, [])
 

@@ -380,7 +380,8 @@ def reject(request, pk: int):
     _stamp(vehicle, "rejected", None, request.user)
     settlement.try_close(vehicle.auction)
     messages.success(request, "سُجّل الرفض.")
-    return redirect(_back(request) if request.POST.get("back") is not None else f"/console/partners/{pk}/")
+    asked_back = request.POST.get("back") is not None
+    return redirect(_back(request) if asked_back else f"/console/partners/{pk}/")
 
 
 def _amount(raw: str) -> Decimal | None:
