@@ -12901,10 +12901,133 @@ a.pager__num:hover, a.pager__step:hover {
 /* خانةُ الأفعال: ثلاثةُ أزرارٍ بالرسم والنصّ، في سطرٍ واحدٍ لا ثلاثة.
    و`td.actions` شبكةٌ من ثلاثة أعمدةٍ ضيّقةٍ في القاعدة العامّة — وهي مقاسُ
    أزرارِ الرسمِ وحدَه، وهذه أزرارٌ بنصّ. */
+/* **أربعةُ أزرارٍ في صفّين لا في سطرٍ واحد.** بالنصّ الكامل تأخذ الخليّةُ
+   ٤٣٧ بكسلاً من ١٣٧٢، فيُقلّص المُنتقي التلقائيُّ أربعةَ أعمدةٍ ليتّسع الجدول
+   — وفيها «موقف المركبة»، وهو الرقمُ الذي يمشي به المالكُ في الحوش. قِيس.
+
+   وv1 يلفُّها كذلك (`d-flex flex-wrap`)، وجدولُه يُمرَّر أفقيّاً فوق ذلك.
+   فهنا تلتفّ وتُقيَّد بسقفٍ، فينزل عرضُ الخليّة إلى نحو ٢٠٠ ويرتفع الصفُّ
+   صفّاً — وارتفاعُ صفٍّ أرخصُ من عمودٍ يختفي. */
+/* **جدولُ هذه الشاشة لا يرث `pv-table`** — T966.
+   تلك تفرض `padding-inline: .62rem !important` بحجّةٍ مكتوبةٍ فوقها: «الجدولُ
+   يُمرَّر أفقياً، وهو أهونُ من صفٍّ لا يُقرأ». وهي صحيحةٌ لجدول المركبات،
+   وتنقض هنا شرطَ المالك الصريح: أربعةَ عشرَ عموداً **بلا تمريرٍ أفقيّ**.
+   وحشوُ ٠٫٦٢rem × ١٤ عموداً = الأحدَ عشرَ بكسلاً التي كانت تفيض. قِيس.
+
+   فبدل `!important` يغلب `!important`، تأخذ الشاشةُ أنماطَها: ستّةُ أسطرٍ
+   تنسخ ما كانت تستعمله من `pv-table` وتترك ما لا يلزمها. */
+.of-table th, .of-table td {
+  padding-inline: 4px;
+  padding-block: .5rem;
+  font-size: .8rem;
+  text-align: center;
+  vertical-align: middle;
+}
+.of-table thead th { font-size: .73rem; }
+.of-table td strong, .of-table td a { font-weight: 700; }
+.of-table td small {
+  display: block;
+  margin-block-start: .1rem;
+  font-size: .72rem;
+  color: var(--muted);
+}
+.of-table td.mono { font-size: .76rem; color: var(--ink-soft); }
+.of-table .pv-name { text-align: start; }
+.of-table td.actions { min-inline-size: 0; }
 .of-acts {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: .35rem;
-  min-inline-size: max-content;
+  justify-content: center;
+  gap: .2rem;
+  inline-size: max-content;
 }
+
+/* **وأربعةَ عشرَ عموداً تُغلَق في ١٢٩٩ بكسلاً — بأربعة قيودٍ مقيسة.** T966
+   المالكُ طلب أعمدةَ v1 كلَّها **وبلا تمريرٍ أفقيّ**، وهما لا يجتمعان بلا
+   ضبط: الجدولُ كان يفيض ٣٨.
+
+   ١) خانةُ الأفعال لها **حدٌّ أدنى**: `table-layout: auto` كان يعطيها ١٠٨
+      ومحتواها ١٣٩، فتفيض من داخلها — والفائضُ يُحسَب في `scrollWidth` وإن
+      كان مجموعُ الأعمدة مساوياً للحاوية تماماً. وقِيس السلَّمُ كلُّه على
+      الشاشة: ٩٫٥rem → ١٥ بكسلاً، و١٠ → ١١، و١٠٫٥ → ٧، و١١ → ٣،
+      و**١١٫٥ → صفر**. وتصغيرُ الخطّ لا يُزحزحه — جرّبتُ ٠٫٧٦ و٠٫٧٤ فبقي
+      سبعةً: القيدُ بنيويٌّ لا نصّيّ.
+   ٢) والفراغُ بين الأزرار ٠٫٢ بدل ٠٫٣ — ١٤٠ تصير ١٢٣.
+   ٣) وسقوفُ القصّ أضيقُ من العامّة: اسمُ المزايد وحدَه كان ١٩٩ بكسلاً.
+   ٤) وحبّةُ التعادل «تعادُل ×٢» لا جملةً: الطويلةُ كانت تفرض ١٥٠ على عمود
+      الاسم في صفٍّ واحدٍ من ٢٥٦. */
+.of-table th[data-col="actions"],
+.of-table td.actions { min-inline-size: 11.5rem; }
+.of-table .clip-name,
+.of-table .clip-model { --clip: 7.5rem; }
+.of-table .clip-buyer { --clip: 7rem; }
+
+
+/* **كروتُ مراحل المزاد** — نظيرُ `nav-cards` في `admin2/bills/index.php`.
+   هناك ثلاثةُ كروتٍ ذهبيّةٍ يقفز الحاليُّ منها بلونٍ أغمق؛ وهنا بألوان اللوحة
+   لا بذهبٍ مستعار، والحاليُّ `<span>` لا `<a>`: رابطٌ إلى الصفحة التي أنت
+   فيها نقرةٌ تُهدَر، و`aria-current` يقوله لقارئ الشاشة. */
+.of-nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .7rem;
+  margin-block-end: 1.1rem;
+}
+.of-nav__card {
+  display: block;
+  padding: .8rem 1rem;
+  text-align: center;
+  font-weight: 800;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.of-nav__card small {
+  display: block;
+  margin-block-start: .25rem;
+  font-size: .74rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+a.of-nav__card:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
+  box-shadow: var(--shadow);
+}
+.of-nav__card.is-here {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+@media (prefers-reduced-motion: reduce) {
+  .of-nav__card { transition: none; }
+  a.of-nav__card:hover { transform: none; }
+}
+@media (max-width: 52rem) { .of-nav { grid-template-columns: minmax(0, 1fr); } }
+
+/* **زرٌّ حاضرٌ ولم يحن وقتُه.** `<span>` بهيئة زرٍّ لا `<button disabled>`:
+   المعطَّلُ لا يستقبل `focus` ولا يُظهر `title` لقارئ لوحة المفاتيح، وهذا
+   نصفُ الفائدة — السببُ مكتوبٌ في `title` وهو ما يُراد قراءتُه. */
+.btn-sm.is-off,
+.btn-primary.is-off {
+  opacity: .5;
+  cursor: not-allowed;
+  user-select: none;
+}
+
+/* **القبولُ والرفضُ رسمان في الصفّ** — T966.
+   بالنصّ الكامل تأخذ الخليّةُ ٣٩٤ بكسلاً من ١٣٧٢، فيُخفي المُنتقي التلقائيُّ
+   أربعةَ أعمدةٍ من الأربعةَ عشرَ التي طلبها المالكُ بعينها. قِيس. وأزرارُ
+   الرسم هي عُرفُ اللوحة أصلاً (جدولُ مركبات المزاد)، والنصُّ يبقى في
+   `title` و`aria-label` فلا يضيع على قارئ الشاشة.
+
+   واللونُ يفرّق بينهما قبل الرسم: قبولٌ ورفضٌ فعلان لا رجعةَ لهما يُضغَط
+   عليهما أربعين مرّةً بعد كلّ مزاد. */
+.act--yes { color: var(--ok); border-color: var(--ok-line); }
+.act--yes:hover { background: var(--ok); border-color: var(--ok); color: #fff; }
+.act--no { color: var(--danger); border-color: var(--danger-line); }
+.act--no:hover { background: var(--danger); border-color: var(--danger); color: #fff; }

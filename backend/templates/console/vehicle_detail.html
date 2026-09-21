@@ -67,7 +67,7 @@
   {% if vehicle.owner_company_id and not vehicle.partner_decided_at %}
     <p class="notice notice--soft">
       القرار يُتخذ من
-      <a href="{% url 'console:partner-decisions' %}?partner={{ vehicle.owner_company_id }}">صفحة اتخاذ القرار</a>،
+      <a href="{% url 'console:partner-decisions' %}?partner={{ vehicle.owner_company_id }}">صفحة قرارات الشريك</a>،
       وبعد انتهاء المزاد فقط.
     </p>
   {% endif %}

@@ -89,11 +89,14 @@ from .views import console_page
 #: و«مقبول» يشمل المفوترةَ والمسدَّدةَ والخارجة: كلُّها مركباتٌ رستْ، والفرقُ
 #: بينها موضعُها في طريق المال لا في قرار المالك.
 DECISIONS = (
-    ("", "كلُّ القرارات"),
-    ("pending", "قيد القرار"),
+    ("", "كل الحالات"),
+    ("pending", "قيد الموافقة"),
     ("accepted", "مقبول"),
     ("rejected", "مرفوض"),
 )
+
+#: نصُّ الحالة في الخليّة — من الثلاثيّة نفسِها لا من قاموسٍ ثانٍ.
+DECISION_LABELS = {value: label for value, label in DECISIONS if value}
 
 #: الحالاتُ التي يقابلها كلُّ قرار — تعريفٌ واحدٌ يقرؤه المرشِّحُ والعرضُ معاً،
 #: فلا يُرشَّح على معنىً ويُلوَّن على آخر.
@@ -108,7 +111,7 @@ DECISION_STATES = {
     ),
 }
 
-MARKETING = (("", "تسويقيّة وغيرها"), ("1", "التسويقيّة فقط"), ("0", "غير التسويقيّة"))
+MARKETING = (("", "تسويقي وغيره"), ("1", "تسويقي فقط"), ("0", "غير تسويقي فقط"))
 
 #: طولُ قائمة المزادات في المرشّح. سبعةٌ وستّون مزاداً في القاعدة اليوم،
 #: وقائمةٌ بها كلِّها لا تُقرأ — والمُراجَعُ منها آخرُ بضعة.
@@ -197,7 +200,6 @@ def offer_rows(
         .select_related("auction", "awarded_to")
         .annotate(
             top_bid=Max("bids__amount", filter=live),
-            bidders=Count("bids__bidder", filter=live, distinct=True),
             image_count=Count("images", distinct=True),
         )
         .order_by("lot_number", "pk")
@@ -303,6 +305,7 @@ def dress(vehicles, *, auction: Auction, seen) -> None:
         vehicle.top = bid
         vehicle.tied = tied.get(vehicle.pk, 0)
         vehicle.decision = decision_of(vehicle)
+        vehicle.decision_label = DECISION_LABELS[vehicle.decision]
         vehicle.invoice = invoices.get(vehicle.pk)
 
         who = bid.bidder if (bid and seen.customer) else None
@@ -397,21 +400,29 @@ def owners_console(request):
             name=f"اختيار-العروض-مزاد-{auction.number}",
             columns=columns_for(
                 [
-                    ("الموقف", lambda v: v.lot_number, None),
-                    ("المركبة", lambda v: v.display_title, None),
-                    ("سنة الصنع", lambda v: v.year, None),
-                    ("رقم اللوحة", lambda v: v.plate_number, None),
+                    # **ستّةَ عشرَ عموداً بترتيب v1 وأسمائه**
+                    # (`index.php:220-226`). و«رقم المطالبة» فيها وليس في
+                    # الجدول — «هو المفتاح الذي يطابق به المالكُ ورقتَنا بورقة
+                    # الشريك»، مكتوبٌ هناك حرفاً.
+                    ("معرف المركبة", lambda v: v.pk, None),
                     ("رقم المطالبة", lambda v: v.claim_number, None),
-                    ("تسويقيّة", lambda v: v.is_marketing, None),
-                    ("أعلى عرض", lambda v: v.offer, MONEY),
-                    ("شامل الضريبة والرسم", lambda v: v.with_tax, MONEY),
+                    ("تسويق", lambda v: v.is_marketing, None),
+                    ("الموقف", lambda v: v.lot_number, None),
+                    ("المركبة", lambda v: v.make, None),
+                    ("الموديل", lambda v: v.year, None),
+                    ("رقم اللوحة", lambda v: v.plate_number, None),
+                    ("الطراز", lambda v: v.model, None),
+                    ("السعر", lambda v: v.offer, MONEY),
+                    ("السعر شامل الضريبة", lambda v: v.with_tax, MONEY),
                     ("أعلى مزايد", lambda v: v.buyer_name, CUSTOMER),
                     ("رقم الجوال", lambda v: v.buyer_phone, CUSTOMER),
-                    ("المزايدون", lambda v: v.bidders, None),
-                    ("متعادلون", lambda v: v.tied if v.tied > 1 else "", None),
-                    ("القرار", lambda v: dict(DECISIONS).get(v.decision, ""), None),
-                    ("الحالة", lambda v: v.get_state_display(), None),
-                    ("الفاتورة", lambda v: v.invoice.number if v.invoice else "", None),
+                    ("الحالة", lambda v: v.decision_label, None),
+                    # وعمودُ «تعادل» يُصدَّر كما في v1: المركبةُ التي تساوى
+                    # عليها عرضان تحتاج قارئَ الورقة أن يعرف أن التكرارَ
+                    # مقصودٌ لا خطأ.
+                    ("تعادل", lambda v: "نعم" if v.tied > 1 else "", None),
+                    ("المزاد", lambda v: auction.title, None),
+                    ("ينتهي", lambda v: auction.ends_at, None),
                 ],
                 seen,
             ),
@@ -460,6 +471,9 @@ def owners_console(request):
             "icon_yes": path_of("check"),
             "icon_no": path_of("ban"),
             "icon_offers": path_of("eye"),
+            # رسمُ «تعديل الأسعار»: قلمٌ لا عُملات — `coins` عند ١٦ بكسلاً
+            # تُقرأ سلّةَ مهملات، ولا حذفَ في هذا الصفّ فيُخشى الالتباس.
+            "icon_price": path_of("pencil-line"),
             "icon_camera": path_of("camera"),
         },
     )
