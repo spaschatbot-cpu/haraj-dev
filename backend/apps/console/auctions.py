@@ -638,8 +638,39 @@ def vehicle_detail(request, pk: int):
     #
     # والتاريخُ كلُّه لا القائمُ منه: المستبدَلةُ والمسحوبةُ جزءٌ من الجواب —
     # «زايد ثم سحب» ليس «لم يزايد»، والفرقُ هو ما يقرأه الشريك.
-    bids = vehicle.bids.select_related("bidder").order_by("-amount", "placed_at")
+    bids = list(vehicle.bids.select_related("bidder").order_by("-amount", "placed_at"))
     standing = [bid for bid in bids if not bid.is_superseded and not bid.is_withdrawn]
+
+    # **عمودُ «القرار» في جدول v1**: أيُّ مزايدةٍ قُبلت وأيُّها رُفضت.
+    #
+    # و«الحالة» لا تقوله: هي `active` في العشرة جميعاً في لقطة v1، فالجدولُ
+    # بلا هذا العمود يعرض عشرةَ صفوفٍ متطابقةِ الحال ولا يقول **من أخذها**.
+    #
+    # ولا عمودَ قرارٍ على المزايدة في v2 — ولا يُضاف: القرارُ واحدٌ للمركبة
+    # (`partner_decision_bid`، وإلّا فالمرساةُ نفسُها)، وعمودٌ على كلّ صفٍّ
+    # يعني حقيقتين تفترقان. فيُشتقّ هنا.
+    #
+    # و«—» لمركبةٍ لم يُحكَم فيها بعد: الفراغُ هنا خبرٌ («لم يُقرَّر») لا
+    # نقصُ بيانات، وكتابةُ «مرفوضة» على مزايدةٍ في مزادٍ لم يُغلق كذب.
+    chosen = vehicle.partner_decision_bid_id
+    if chosen is None and vehicle.awarded_to_id:
+        chosen = next(
+            (
+                bid.pk
+                for bid in bids
+                if bid.bidder_id == vehicle.awarded_to_id
+                and bid.amount == vehicle.awarded_price
+            ),
+            None,
+        )
+    decided = chosen is not None or vehicle.awarded_to_id is not None
+    for bid in bids:
+        if chosen is not None and bid.pk == chosen:
+            bid.ruling, bid.ruling_tone = "مقبولة", "ok"
+        elif decided:
+            bid.ruling, bid.ruling_tone = "مرفوضة", "bad"
+        else:
+            bid.ruling, bid.ruling_tone = "", "plain"
 
     is_modal, base_template = _modal(request)
     return render(

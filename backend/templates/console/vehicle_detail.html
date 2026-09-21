@@ -89,6 +89,9 @@
   <section class="vd-card">
   <h2 class="section-title">المركبة</h2>
   <dl class="vehicle-facts">
+    {% comment %} «الاسم» أوّلُ حقلٍ في v1 — وهو ما يُنادى به في الحوش
+       والمراسلة، والماركةُ والموديلُ تفصيلُه. {% endcomment %}
+    <div><dt>الاسم</dt><dd>{{ vehicle.display_title }}</dd></div>
     <div><dt>الماركة</dt><dd>{{ vehicle.make|default:"—" }}</dd></div>
     <div><dt>الموديل</dt><dd>{{ vehicle.model|default:"—" }}</dd></div>
     <div><dt>السنة</dt><dd>{{ vehicle.year|unlocalize }}</dd></div>
@@ -203,7 +206,7 @@
       <table class="vd-bids">
         {% comment %} عمودُ «#» في v1: ترتيبُ المزايدة بالمبلغ. ومن يقرأ
            «المزايد الثاني» يحتاج أن يراه مرقوماً لا أن يعدّ الصفوف. {% endcomment %}
-        <thead><tr><th>#</th><th>المزايد</th><th>المبلغ</th><th>الوقت</th><th>الحال</th></tr></thead>
+        <thead><tr><th>#</th><th>المزايد</th><th>المبلغ</th><th>الحال</th><th>القرار</th><th>الوقت</th></tr></thead>
         <tbody>
           {% for bid in bids %}
             <tr>
@@ -216,12 +219,19 @@
                 {% if shown.money %}{{ bid.amount|unlocalize }}
                 {% else %}<span class="empty">محجوب</span>{% endif %}
               </td>
-              <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
               <td>
                 {% if bid.is_withdrawn %}<span class="pill" data-tone="bad">مسحوبة</span>
                 {% elif bid.is_superseded %}<span class="pill" data-tone="plain">مُستبدَلة</span>
                 {% else %}<span class="pill" data-tone="ok">قائمة</span>{% endif %}
               </td>
+              {% comment %} **عمودُ «القرار» في v1** — وهو ما يقول من أخذها.
+                 و«الحالة» لا تقوله: هي `active` في العشرة جميعاً في لقطة
+                 v1. وشرطةٌ تعني «لم يُقرَّر بعد» لا نقصَ بيانات. {% endcomment %}
+              <td>
+                {% if bid.ruling %}<span class="pill" data-tone="{{ bid.ruling_tone }}">{{ bid.ruling }}</span>
+                {% else %}<span class="empty">—</span>{% endif %}
+              </td>
+              <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
             </tr>
           {% endfor %}
         </tbody>
