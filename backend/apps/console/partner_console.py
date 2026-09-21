@@ -63,7 +63,7 @@ from django.shortcuts import render
 
 from apps.accounts.models import Company
 from apps.auctions import engine
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import AuctionState, VehicleState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
@@ -982,6 +982,34 @@ def _settlement_groups(rows, paid: bool) -> list[dict]:
     return groups
 
 
+def _invoice_of(vehicle):
+    """أحدثُ فاتورةٍ على المركبة — تُقرأ في التصدير صفّاً صفّاً.
+
+    والصفحةُ تقرؤها بقاموسٍ لصفحتها (استعلامٌ واحد)؛ وهنا الصفوفُ تُبثّ
+    واحداً واحداً إلى الورقة، فلا قاموسَ يسبقها. وملفُّ تصديرٍ يُبنى مرّةً
+    ليس صفحةً تُفتح في كلّ ضغطة.
+    """
+    if not hasattr(vehicle, "_inv"):
+        vehicle._inv = (
+            Invoice.objects.filter(vehicle=vehicle).order_by("-issued_at", "-id").first()
+        )
+    return vehicle._inv
+
+
+def _due_of(vehicle):
+    """المستحقُّ: ما بقي على الفاتورة، أو سعرُ الترسية إن لم تُفوتَر بعد."""
+    invoice = _invoice_of(vehicle)
+    return invoice.outstanding if invoice else (vehicle.awarded_price or ZERO)
+
+
+def _with_vat_of(vehicle):
+    """شاملَ الضريبة — من الفاتورة إن وُجدت، وإلّا على سعر الترسية."""
+    invoice = _invoice_of(vehicle)
+    if invoice:
+        return money.tax_of(invoice).total
+    return money.tax_added_to(vehicle.awarded_price or ZERO).total
+
+
 def _settlement_screen(request, paid: bool):
     """جسمُ شاشة التسوية — طابوران، ولكلٍّ صفُّه في السجلّ.
 
@@ -998,6 +1026,52 @@ def _settlement_screen(request, paid: bool):
     partner = str(company.pk) if company else ""
 
     rows = settlement_of(partner, paid)
+
+    # **«تنزيل إكسل» — بطاقةٌ في الشريط كـ v1** (`settlement.php`: شريحةُ
+    # «⬇ تنزيل إكسل» بجوار الطابورين). ولم يكن للشاشة تصديرٌ أصلاً.
+    #
+    # والملفُّ **ما تراه الشاشة**: الشريكُ نفسُه والطابورُ نفسُه — لا الطابورُ
+    # كلُّه ولا الشركاءُ جميعاً. وv1 يقولها في تعليقه: «التصدير يخرج ما تراه
+    # الصفحة». وتصديرٌ يتجاهل المرشّحَ أسوأ من غيابه، لأنه يبدو أنه عمل.
+    #
+    # والمبالغُ خامٌ لا منسَّقة: الورقةُ تُجمَع في إكسل، ونصٌّ فيه فاصلةُ
+    # آلافٍ لا يُجمَع.
+    if wants_export(request):
+        return export(
+            rows,
+            name="المسدَّدة" if paid else "غير-المسدَّدة",
+            headers=[
+                "المزاد",
+                "اللوت",
+                "السيارة",
+                "اللوحة",
+                "رقم المطالبة",
+                "المشتري",
+                "سعر الترسية",
+                "المستحقّ",
+                "شامل الضريبة",
+                "الفاتورة",
+                "حالتها",
+                "حكم الشريك",
+            ],
+            cell=lambda row: [
+                row.auction.number,
+                row.lot_number,
+                f"{row.make} {row.model}",
+                row.plate_number,
+                row.claim_number,
+                row.awarded_to.full_name if row.awarded_to else "",
+                row.awarded_price,
+                _due_of(row),
+                _with_vat_of(row),
+                _invoice_of(row).number if _invoice_of(row) else "",
+                state_label(money.derive_invoice_state(_invoice_of(row)))
+                if _invoice_of(row)
+                else "رستْ ولم تُفوتَر بعد",
+                row.get_partner_decision_display() or "بانتظار قراره",
+            ],
+        )
+
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
@@ -1007,10 +1081,20 @@ def _settlement_screen(request, paid: bool):
             "issued_at", "id"
         )
     }
+
+    # **عمودُ الصورة في v1** — والصورةُ ليست زينةً في جدولِ تسوية: من يراجع
+    # مئتي صفٍّ يعرف السيارةَ بصورتها قبل أن يقرأ اسمَها، وv1 يضعها ثاني
+    # عمود. واستعلامٌ واحدٌ للصفحة: الغلافُ أوّلاً ثم أوّلُ صورةٍ بالترتيب.
+    covers: dict[int, object] = {}
+    for shot in VehicleImage.objects.filter(vehicle__in=page.object_list).order_by(
+        "vehicle_id", "-is_cover", "position", "id"
+    ):
+        covers.setdefault(shot.vehicle_id, shot)
     facts = _payment_facts(list(invoices.values())) if paid else {}
 
     for vehicle in page.object_list:
         invoice = invoices.get(vehicle.pk)
+        vehicle.cover = covers.get(vehicle.pk)
         vehicle.invoice = invoice
         vehicle.invoice_state = money.derive_invoice_state(invoice) if invoice else ""
         # **الاسمُ العربيُّ لا القيمة.** كان القالبُ يطبع `invoice_state`
@@ -1054,6 +1138,12 @@ def _settlement_screen(request, paid: bool):
             "totals": summary_for(partner),
             # رسما الشريحتين من السجلّ لا محرفين — T837. و`hourglass` هو
             # رسمُ «غير مباعة» في «كل السيارات»: الانتظارُ واحدٌ في اللوحة.
+            # **نسبةُ الضريبة في رأس العمود** كـ v1 («شامل الضريبة (15%)»):
+            # من يقرأ «شامل الضريبة» وحدَها يفترض النسبة، ومن يفترضها يخطئ
+            # يوم تتغيّر. ومن الإعداد لا مكتوبةً في القالب.
+            # ونصٌّ بلا أصفارٍ زائدة: «15%» لا «15.00%» — و`:g` لا تفعلها مع Decimal.
+            "vat_label": f"{(money.vat_rate() * 100).normalize()}%",
+            "icon_export": path_of("download"),
             "icon_unpaid": path_of("hourglass"),
             "icon_paid": path_of("check"),
             # ثلاثةُ أرقامِ v1 فوق الجدول: كم سيارةً · في كم مزاداً · وكم

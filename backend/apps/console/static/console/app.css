@@ -4244,6 +4244,23 @@ dialog.row-modal {
 }
 .page h1 small::before { content: "— "; }
 
+/* ---- عمودُ الصورة في جداول الشريك — ثاني أعمدة v1 ------------------- */
+/* الصورةُ في جدولِ تسويةٍ ليست زينة: من يراجع مئتي صفٍّ يعرف السيارةَ بصورتها
+   قبل أن يقرأ اسمَها. وبمقاسٍ ثابتٍ ومربّعٍ فارغٍ لمن لا صورةَ له — وإلّا
+   تذبذب ارتفاعُ الصفوف بين صفٍّ وصفّ. */
+.pv-thumb-h { inline-size: 4rem; }
+.pv-thumb { inline-size: 4rem; padding-block: .3rem !important; }
+.pv-thumb img,
+.pv-thumb__none {
+  display: block;
+  inline-size: 3.4rem;
+  block-size: 2.3rem;
+  object-fit: cover;
+  border-radius: .3rem;
+  border: 1px solid var(--line);
+  background: var(--raised);
+}
+
 /* ---- الأفعالُ الجماعيّةُ في شاشة القرار — شريطُ v1 فوق كلّ مزاد ------- */
 /* الشريكُ يحكم على أربعين مركبةً بعد كلّ مزاد، والشريطُ فوق جدولِ مزادِه لا
    فوق الصفحة: الحكمُ يقع على مزادٍ واحدٍ في المرّة، وشريطٌ واحدٌ للصفحة يجعل
