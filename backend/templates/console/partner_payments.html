@@ -8,7 +8,7 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
 جملةٌ يقرأها موظّف. وهنا الصفُّ فاتورةٌ وصل منها مال، ولها معرّفُها وتاريخُها
 من الدفتر.
 {% endcomment %}
-{% block title %}سجل دفعات الشريك{% endblock %}
+{% block title %}سجل الدفعات{% endblock %}
 {% comment %} واسمُ الشريك في الرأس: لا مُنتقيَ في الصفحة — كأخواتها في
    القسم. {% endcomment %}
 {% block heading %}سجل الدفعات{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
@@ -54,7 +54,20 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
      **دفعةً واحدة**، ويُقرأ عمودُ «التاريخ» — وهو `issued_at` — تاريخَ
      وصولِ المال وهو تاريخُ إصدار الفاتورة. وفي شاشةٍ اسمُها «سجل الدفعات»
      لا شيء يقول للقارئ غيرَ ذلك. {% endcomment %}
-  <div class="scroller scroller--wide">
+  {% comment %} **سبعةُ أعمدةٍ كـ v1، بلا روابطَ ولا «تفاصيل»** (قرار
+     المالكة، ٢٢ سبتمبر ٢٠٢٦، بعد لصق جدول v1: «دا بيانات الجدول ومافيش
+     تفاصيل ولا صفح داخلية — عدّل الجدول»).
+
+     وكانت أحدَ عشرَ عموداً: العميلُ والفاتورةُ والمرجعُ و«تفاصيل»، وثلاثةٌ
+     منها روابطُ تخرج من الشاشة. وهذا **سجلٌّ يُقرأ ويُطبع**: سطرٌ لكلّ
+     دفعةٍ يقول متى ولأيّ سيارةٍ وبكم — ومن أراد المركبةَ فتحها من «كل
+     السيارات».
+
+     وما سقط من الشاشة **باقٍ في ملفّ التصدير** (العميل والفاتورة والمرجع):
+     الورقةُ تُقرأ بعيداً عن اللوحة ويُطابَق بها الدفترُ، ولا تُزاحم عمودياً
+     أحداً — وهي حجّةُ عمود «الشاصي» في تصدير «كل السيارات» نفسُها.
+     {% endcomment %}
+  <div class="scroller">
     <table class="pd-tbl">
     <thead>
       <tr>
@@ -63,17 +76,11 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
         <th>اللوت</th>
         <th>اللوحة</th>
         <th>المزاد</th>
-        <th>العميل</th>
         <th>المبلغ</th>
-        <th>الفاتورة</th>
-        {% comment %} «ملاحظة» في v1 خانةٌ حرّةٌ يكتبها رافعُ الملفّ؛ وهنا
-           مصدرُ الدفعة ومرجعُها — مشتقَّين من مفتاحها في الدفتر. {% endcomment %}
-        <th>المصدر</th>
-        <th>المرجع</th>
-        {% comment %} «تفاصيل» آخرَ الصفّ حيث تكون الأفعالُ في جداول اللوحة
-           كلِّها — والرابطُ المخبوءُ في اسم السيارة لا يُقرأ بابَ دخول.
-           {% endcomment %}
-        <th>تفاصيل</th>
+        {% comment %} «ملاحظة» في v1 خانةٌ حرّةٌ يكتبها رافعُ الملفّ — وأكثرُها
+           فارغٌ في صفوفه. وهنا مصدرُ الدفعة، مشتقّاً من مفتاحها في الدفتر:
+           «من رصيد العميل» أو «مُرحَّلة من v1» أو «قيدُ موظّف». {% endcomment %}
+        <th>ملاحظة</th>
       </tr>
     </thead>
     <tbody>
@@ -82,38 +89,24 @@ v1 يعرض هنا ما رُفع بإكسل، ويقول في شاشته الأ�
           <td class="rm-when">{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
           <td class="pv-name">
             {% if row.vehicle %}
-              <a href="{% url 'console:vehicle-detail' row.vehicle.pk %}"><strong>{{ row.vehicle.display_title }}</strong></a>
+              <strong>{{ row.vehicle.display_title }}</strong>
               <small>{{ row.vehicle.year|unlocalize }}</small>
             {% else %}—{% endif %}
           </td>
           <td class="count">{% if row.vehicle %}{{ row.vehicle.lot_number|unlocalize }}{% else %}—{% endif %}</td>
           <td class="mono">{% if row.vehicle %}{{ row.vehicle.plate_number|default:"—" }}{% else %}—{% endif %}</td>
-          <td class="count">{% if row.vehicle %}{{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
-          <td>
-            {% if row.customer %}
-              <a href="{% url 'console:customer-detail' row.customer.pk %}">{{ row.customer.full_name }}</a>
-            {% else %}—{% endif %}
-          </td>
+          {% comment %} «مزاد 51» كـ v1، لا رقماً عارياً: العمودُ اسمُه
+             «المزاد» فيُقرأ رقمُه وحدَه رقمَ شيءٍ آخر. {% endcomment %}
+          <td>{% if row.vehicle %}مزاد {{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
           {% comment %} المبلغُ هو سببُ الشاشة، فيُقرأ أثقلَ من جاره. {% endcomment %}
           <td class="money inv-due">{{ row.amount|unlocalize }}</td>
-          <td class="inv-no">
-            {% if row.invoice %}
-              <a href="{% url 'console:invoice-detail' row.invoice.pk %}">{{ row.invoice.number }}</a>
-            {% else %}—{% endif %}
-          </td>
           <td>{{ row.source }}</td>
-          <td class="mono">{{ row.reference|default:"—" }}</td>
-          <td class="rf-act">
-            {% if row.vehicle %}
-              <a class="rf-go" href="{% url 'console:vehicle-detail' row.vehicle.pk %}">تفاصيل</a>
-            {% else %}—{% endif %}
-          </td>
         </tr>
       {% empty %}
         {% comment %} والفراغُ يقول متى يمتلئ كـ v1 («ستظهر هنا فور اعتمادها
            من المالك») — وهنا تظهر فور تقييد دفعةٍ على فاتورة، لا فور رفع
            ملفّ. {% endcomment %}
-        <tr><td colspan="11" class="empty">لا دفعات على سيارات هذا الشريك بعد —
+        <tr><td colspan="7" class="empty">لا دفعات على سيارات هذا الشريك بعد —
           تظهر هنا فور تقييد دفعةٍ على فاتورة إحداها.</td></tr>
       {% endfor %}
     </tbody>
