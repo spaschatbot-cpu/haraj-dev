@@ -80,13 +80,20 @@ audit entry is worth reading during a dispute.
              is information, not a missing value, so it is said rather than left
              as an empty cell. {% endcomment %}
           <td>{{ row.actor|default:"النظام" }}</td>
-          <td><span class="au-act" dir="ltr">{{ row.action }}</span></td>
+          <td><span class="au-act cell-clip clip-act" dir="ltr" title="{{ row.action }}">{{ row.action }}</span></td>
           {% comment %} المعرّفُ لاتينيٌّ في خانةٍ `rtl` — و`dir="ltr"` تمنع
              قلبَ النقطتين والرقم. {% endcomment %}
-          <td><span class="au-ent" dir="ltr">{{ row.entity_type }}:{{ row.entity_id }}</span></td>
+          <td><span class="au-ent cell-clip clip-act" dir="ltr" title="{{ row.entity_type }}:{{ row.entity_id }}">{{ row.entity_type }}:{{ row.entity_id }}</span></td>
           <td><pre class="au-snap" dir="ltr">{{ row.before|default:"—" }}</pre></td>
           <td><pre class="au-snap" dir="ltr">{{ row.after|default:"—" }}</pre></td>
-          <td class="au-why">{{ row.note|default:"—" }}</td>
+          <td class="au-why">
+            {% comment %} يُقَصُّ بثلاث نقاطٍ ويبقى كاملاً في `title`. T963.
+               `max-inline-size` على الخليّة وحدَها لا يكفي: `table-layout: auto`
+               يوسّع العمودَ فوق السقف حين يجد مكاناً. قِيس على 1394 بكسلاً —
+               «الملاحظة» في صندوق أودو **٤٤٧ بكسلاً** رغم سقف ١٨ريم، و«السبب»
+               في التدقيق ٢٨٨. والقصُّ على `span` محدودٌ بحقّ. {% endcomment %}
+            <span class="cell-clip clip-note" title="{{ row.note|default:'' }}">{{ row.note|default:"—" }}</span>
+          </td>
         </tr>
       {% empty %}
         <tr><td colspan="7" class="empty">لا قيود مطابقة.</td></tr>
