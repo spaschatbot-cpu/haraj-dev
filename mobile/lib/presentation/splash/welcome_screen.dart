@@ -102,6 +102,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                           // ثلاثة هواتف: بدونه يفيض iPhone SE فيلزم
                           // التمرير، والزرُّ يقع تحت الطيّة.
                           maxHeight: metrics.cardMax,
+                          // العرضُ من `LayoutBuilder` الخارجيّ ناقصاً الحشوة
+                          // الأفقيّة — فلا `LayoutBuilder` داخل `IntrinsicHeight`.
+                          width: box.maxWidth - 40,
                           topStart: cars.isEmpty
                               ? const <Widget>[]
                               : <Widget>[
