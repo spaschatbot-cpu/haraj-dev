@@ -983,8 +983,20 @@ def _settlement_groups(rows, paid: bool) -> list[dict]:
 
 
 def _settlement_screen(request, paid: bool):
-    """جسمُ شاشة التسوية — طابوران، ولكلٍّ صفُّه في السجلّ."""
-    partner = request.GET.get("partner", "")
+    """جسمُ شاشة التسوية — طابوران، ولكلٍّ صفُّه في السجلّ.
+
+    **وشريكٌ واحدٌ يُحسَم في العرض، بلا مُنتقٍ** — كلوحته وشاشات حال مزاده.
+    وهذه شاشةُ «كم لهذا الشريك وكم قبض»: تجميعُها بالمزاد وأرقامُها خلاصةٌ
+    عنه، و«كل الشركاء» فيها مجموعُ أموالِ شركاءَ لا يجمعهم شيء. والافتراضيُّ
+    أوّلُ الشركاء بالاسم، ويُبدَّل بـ`?partner=<id>`.
+    """
+    partner = (request.GET.get("partner") or "").strip()
+    companies = partners()
+    company = companies.filter(pk=int(partner)).first() if partner.isdigit() else None
+    if company is None:
+        company = companies.first()
+    partner = str(company.pk) if company else ""
+
     rows = settlement_of(partner, paid)
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
@@ -1036,9 +1048,14 @@ def _settlement_screen(request, paid: bool):
             "page": page,
             "groups": groups,
             "partner": partner,
-            "partners": partners(),
+            "partners": companies,
+            "company": company,
             "paid": paid,
             "totals": summary_for(partner),
+            # رسما الشريحتين من السجلّ لا محرفين — T837. و`hourglass` هو
+            # رسمُ «غير مباعة» في «كل السيارات»: الانتظارُ واحدٌ في اللوحة.
+            "icon_unpaid": path_of("hourglass"),
+            "icon_paid": path_of("check"),
             # ثلاثةُ أرقامِ v1 فوق الجدول: كم سيارةً · في كم مزاداً · وكم
             # مالُها. وهي **على الصفحة المعروضة** لا على الطابور كلِّه، ولذلك
             # تُسمّى في القالب باسمها.

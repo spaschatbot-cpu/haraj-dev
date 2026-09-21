@@ -12715,6 +12715,17 @@ a.pager__num:hover, a.pager__step:hover {
    الخروج. ورسمٌ أكبرُ في شريحةٍ صغيرة يسحب العينَ إليه بدل الكلمة، ورسمان
    بمقاسين في شاشةٍ واحدة لا يُقرآن مجموعةً (T837). */
 .pv-chip svg { inline-size: 1rem; block-size: 1rem; flex: 0 0 auto; stroke-width: 1.7; }
+/* عدّادُ الشريحة حبّةٌ لا رقمٌ عارٍ — كـ v1 (`.p-chip-n`: خلفيّةٌ خافتةٌ
+   وحوافُّ دائريّة). و«غير المسدَّدة 2» بلا حبّةٍ تُقرأ جملةً واحدةً، والرقمُ
+   فيها هو ما يُلتقط بالنظر. */
+.pv-chip b {
+  font-size: .72rem;
+  font-weight: 900;
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+.pv-chip.is-on b { background: color-mix(in srgb, #fff 28%, transparent); }
 /* **لكلِّ شريحةٍ نبرتُها**، وهي نبرةُ شارةِ الحالة التي تفتحها: المباعُ
    أخضرُ وغيرُ المباع برتقاليٌّ وما ينتظر قراراً أحمر. فلونُ المرشّح يقول ما
    يقوله لونُ الصفّ، ولا يُتعلَّم لونان لمعنًى واحد. والحدُّ ملوَّنٌ خافتاً

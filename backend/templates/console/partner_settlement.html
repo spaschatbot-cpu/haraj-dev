@@ -17,7 +17,10 @@
 «مُرحَّلة من v1» أو «قيدُ موظّف»، ولا يقول ما لم يُقيَّد.
 {% endcomment %}
 {% block title %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% endblock %}
-{% block heading %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% endblock %}
+{% comment %} واسمُ الشريك في الرأس: لا مُنتقيَ في الصفحة، وبلا
+   الاسمِ تصير جداولُ مالٍ بلا صاحب — كما في لوحته وشاشات حاله.
+{% endcomment %}
+{% block heading %}{% if paid %}المسدَّدة{% else %}غير المسدَّدة{% endif %}{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
 
 {% block content %}
   {% comment %} سطرُ تعريفٍ يقول من أين الرقم — وهو الفرقُ الذي تُبنى عليه
@@ -30,31 +33,24 @@
     أحد — ويعرض عليها زرَّ «اعتماد السداد».
   </p>
 
-  {% comment %} الطابوران كانا رابطين مسطورين تفصلهما نقطةٌ وسطى — تُقرأ سطرَ
-     نصٍّ لا تبويباً، ولا يُعرف أيُّهما المفتوح. فصارا بطاقتين: المفتوحةُ
-     مميّزةٌ والأخرى تُنقر. {% endcomment %}
-  <section class="sum-grid sum-grid--tight st-queues" aria-label="طابورا التسوية">
-    <a class="sum{% if not paid %} sum--on{% endif %}"
-       href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">
-      <p class="sum__label">غير المسدَّدة</p>
-      <p class="sum__value">{{ totals.unpaid|unlocalize }}</p>
-      <p class="sum__note">{% if paid %}اعرضها{% else %}معروضةٌ الآن{% endif %}</p>
-    </a>
-    <a class="sum{% if paid %} sum--on{% endif %}"
-       href="{% url 'console:partner-paid' %}?partner={{ partner }}">
-      <p class="sum__label">المسدَّدة</p>
-      <p class="sum__value">{{ totals.paid|unlocalize }}</p>
-      <p class="sum__note">{% if paid %}معروضةٌ الآن{% else %}اعرضها{% endif %}</p>
-    </a>
-  </section>
+  {% comment %} **شريحتان بعدّاديهما كـ v1** (`settlement.php`: «⏳ غير
+     المسددة (N) · 💰 المسددة (N)»). كانتا بطاقتين بعرض الشاشة، وهما
+     **تبويبٌ** لا رقمان يُقرآن: الشاشةُ واحدةٌ بحالين، والانتقالُ بينهما
+     نقرة. والبطاقةُ تقول «معروضةٌ الآن» في سطرها الصغير لتؤدّي ما تؤدّيه
+     الشريحةُ المميّزةُ بلونها.
 
-  {% comment %} الاستمارةُ كانت عاريةً بلا صنف: قائمةٌ وزرٌّ في الهواء. {% endcomment %}
-  <form method="get" class="filters filters--row">
-    <div class="filters__main">
-      {% include "console/_partner_pick.html" %}
-      <button type="submit" class="btn-primary">اعرض</button>
-    </div>
-  </form>
+     وهي شرائحُ القسم نفسُها (`pv-chip`) — فما يُنقر في «كل السيارات»
+     وفي شاشات حال المزاد يُنقر هنا بالشكل نفسه. {% endcomment %}
+  <nav class="pv-chips" aria-label="طابورا التسوية">
+    <a class="pv-chip{% if not paid %} is-on{% endif %}" data-tone="warn"
+       href="{% url 'console:partner-unpaid' %}?partner={{ partner }}">
+      {% include "console/_act_icon.html" with path=icon_unpaid %}
+      <span>غير المسدَّدة</span><b>{{ totals.unpaid|unlocalize }}</b></a>
+    <a class="pv-chip{% if paid %} is-on{% endif %}" data-tone="ok"
+       href="{% url 'console:partner-paid' %}?partner={{ partner }}">
+      {% include "console/_act_icon.html" with path=icon_paid %}
+      <span>المسدَّدة</span><b>{{ totals.paid|unlocalize }}</b></a>
+  </nav>
 
   {% comment %} **ثلاثةُ أرقام فوق الجدول، كما في v1.** كان الرقمُ الوحيد
      المعروضَ هو عدَّ الترقيم في ذيل الصفحة: من يسأل «كم مالُه المستحقُّ
@@ -84,7 +80,11 @@
      المزاد في جدولٍ مسطّحٍ لا يجيبه إلا بالعدّ باليد. {% endcomment %}
   {% for group in groups %}
     <h2 class="pd-auction">
-      <a href="{% url 'console:auction-detail' group.auction.pk %}">مزاد {{ group.auction.number|unlocalize }}</a>
+      {% comment %} نصٌّ لا رابط: صفحةُ المزاد تعرضه بمركباته كلِّها، وهذا
+         قسمُ **سيارات شريكٍ** فيه — والنقرةُ تنقل من سؤالٍ عنه إلى شاشةٍ لا
+         ذكرَ له فيها. وهو القرارُ نفسُه في «الأداء لكل مزاد» وتفصيل
+         المركبة. {% endcomment %}
+      مزاد {{ group.auction.number|unlocalize }}
       {% if group.auction.title %}<small>{{ group.auction.title }}</small>{% endif %}
       <span class="pill" data-tone="{% if paid %}ok{% else %}warn{% endif %}">
         {{ group.rows|length|unlocalize }} سيارة ·
