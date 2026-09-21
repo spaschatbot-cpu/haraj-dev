@@ -643,5 +643,10 @@ have to undo one in their head.
 {% endblock %}
 
 {% block scripts %}
-  <script src="{% static 'console/auctions.js' %}"></script>
+  {% comment %} **بوسم النسخة.** T962. كان بلا `?v=` — والمتصفّح يخزّن
+     السكربتَ بلا انتهاء، فإصلاحٌ فيه لا يصل من فتح الصفحةَ مرّةً. وهو ما
+     حجب إصلاحَ بذرة الأعمدة حتى قِيس بـ`curl` أن الخادمَ يقدّم الجديد
+     والمتصفّحَ يشغّل القديم. والأنماطُ كانت موسومةً أصلاً — السكربتُ وحدَه
+     نُسي. {% endcomment %}
+  <script src="{% static 'console/auctions.js' %}?v={{ asset_stamp }}"></script>
 {% endblock %}

@@ -175,14 +175,38 @@
      يعني حقلاً وهجرةً وطلبَ كتابةٍ عند كل نقرة خانة. */
   var KEY = "haraj.console.auctions.columns";
 
+  /* **ولا تخصيصَ محفوظ ⇐ يُقرأ ما رسمه الخادم، لا «لا شيء».** T962.
+
+     كانت `readHidden` تُرجع `[]` عند غياب المفتاح، و`applyColumns([])` يضع
+     `hidden = false` على **كلّ** خليّةٍ تحمل `data-col` — فيمحو إخفاءَ
+     الخادم في أوّل إطار.
+
+     وظهر ذلك حين صار لجدول سيارات المزاد أعمدةٌ مخفيّةٌ افتراضاً: الصفحةُ
+     تصل من الخادم و«الشاصي» و«رقم المطالبة» و«شركة التأمين» عليها `hidden`
+     (٧٨ خليّة، قِيس بـ`DOMParser` على النصّ الخام)، ثمّ تُرسَم كلُّها
+     ظاهرةً — وعرضُ الجدول يبقى 1649 في حاويةٍ 1394.
+
+     فالبذرةُ من DOM: ما وصل مخفيّاً يبقى مخفيّاً حتى يُظهره الموظّف بيده،
+     وعندها يُكتب اختيارُه في `localStorage` ويعلو على الافتراض. */
   function readHidden() {
     try {
-      return JSON.parse(window.localStorage.getItem(KEY) || "[]") || [];
+      var stored = window.localStorage.getItem(KEY);
+      if (stored) { return JSON.parse(stored) || []; }
     } catch (e) {
       /* التصفّح الخاص يرمي عند القراءة نفسها في بعض المتصفّحات. شاشةٌ
          تتعطّل لأن التفضيل لم يُقرأ أسوأ من شاشةٍ بكل أعمدتها. */
-      return [];
+      return seededFromDom();
     }
+    return seededFromDom();
+  }
+
+  function seededFromDom() {
+    var keys = [];
+    var marked = document.querySelectorAll("thead [data-col][hidden]");
+    for (var i = 0; i < marked.length; i++) {
+      keys.push(marked[i].getAttribute("data-col"));
+    }
+    return keys;
   }
 
   function applyColumns(hidden) {

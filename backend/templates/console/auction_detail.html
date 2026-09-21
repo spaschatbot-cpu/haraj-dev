@@ -254,6 +254,17 @@ somebody went looking for it.
       </h2>
     </div>
     <div class="table-bar__actions">
+      {% comment %} **مُنتقي الأعمدة — كان مبنيّاً ولا يُرسَم.** T962.
+
+         `auction_detail` يمرّر `columns_layout` و`columns_table_key` و
+         `cols_hidden` منذ T869، والسجلُّ يعرّف تسعةَ عشرَ عموداً لهذا
+         الجدول باسم `auction_vehicles` — **ولم يُشمَل المكوّنُ في القالب
+         قطّ**، لا قبل تحويله إلى جدولٍ ولا بعده. فالتخصيصُ محفوظٌ ومقروءٌ
+         ولا بابَ إليه.
+
+         وهو الفارقُ بين جدولٍ يُمرَّر يميناً وشمالاً وجدولٍ يُقرأ: من لا
+         يحتاج الشاصيَ يُخفيه مرّةً فيبقى مخفيّاً له وحدَه. {% endcomment %}
+      {% include "console/_columns.html" %}
       <a href="{% url 'console:vehicle-search' %}" class="btn-sm">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="inline-size:14px;block-size:14px;"><path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16M21 21l-4.4-4.4"/></svg>
         بحث في المركبات
@@ -374,22 +385,22 @@ somebody went looking for it.
         <tr>
           <th class="mv-pick"><input type="checkbox" data-pick-all autocomplete="off"
                  title="تحديد كلّ ما يعرضه المرشّح الآن" aria-label="تحديد الكلّ"></th>
-          <th>الصورة</th>
-          <th>الموقف</th>
-          <th>السيارة</th>
-          <th>سنة الصنع</th>
-          <th>رقم الشاصي</th>
-          <th>رقم المطالبة</th>
-          <th>رقم اللوحة</th>
-          <th>اللون</th>
-          <th>شركة التأمين</th>
-          <th>العدّاد</th>
-          <th>حالة المركبة</th>
-          <th>نوع الوقود</th>
-          <th>الصور</th>
-          <th>الحالة</th>
-          <th>التسويق</th>
-          <th>الإجراءات</th>
+          <th data-col="thumb"{% if "thumb" in cols_hidden %} hidden{% endif %}>الصورة</th>
+          <th data-col="lot"{% if "lot" in cols_hidden %} hidden{% endif %}>الموقف</th>
+          <th data-col="car"{% if "car" in cols_hidden %} hidden{% endif %}>السيارة</th>
+          <th data-col="year"{% if "year" in cols_hidden %} hidden{% endif %}>سنة الصنع</th>
+          <th data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %}>رقم الشاصي</th>
+          <th data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %}>رقم المطالبة</th>
+          <th data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %}>رقم اللوحة</th>
+          <th data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>اللون</th>
+          <th data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>شركة التأمين</th>
+          <th data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %}>العدّاد</th>
+          <th data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>حالة المركبة</th>
+          <th data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>نوع الوقود</th>
+          <th data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>الصور</th>
+          <th data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}>الحالة</th>
+          <th data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>التسويق</th>
+          <th data-col="actions"{% if "actions" in cols_hidden %} hidden{% endif %}>الإجراءات</th>
         </tr>
       </thead>
       <tbody>
@@ -405,7 +416,7 @@ somebody went looking for it.
                      data-pick autocomplete="off"
                      aria-label="تحديد اللوت {{ car.lot_number|unlocalize }}">
             </td>
-            <td class="mv-thumb">
+            <td data-col="thumb"{% if "thumb" in cols_hidden %} hidden{% endif %} class="mv-thumb">
               {% if can_manage %}
                 <button type="button" class="mv-thumb__btn" data-display-image
                         data-pk="{{ car.pk|unlocalize }}" title="اضغط لرفع صورة العرض">
@@ -428,20 +439,20 @@ somebody went looking for it.
                 </a>
               {% endif %}
             </td>
-            <td class="count">{{ car.lot_number|unlocalize }}</td>
-            <td class="pv-name">
+            <td data-col="lot"{% if "lot" in cols_hidden %} hidden{% endif %} class="count">{{ car.lot_number|unlocalize }}</td>
+            <td data-col="car"{% if "car" in cols_hidden %} hidden{% endif %} class="pv-name">
               <a href="{% url 'console:vehicle-detail' car.pk %}">{{ car.display_title }}</a>
             </td>
-            <td class="count">{{ car.year|unlocalize|default:"—" }}</td>
-            <td class="mono">{{ car.vin|default:"—" }}</td>
-            <td class="mono">{{ car.claim_number|default:"—" }}</td>
-            <td class="mono">{{ car.plate_number|default:"—" }}</td>
-            <td>{% if car.colour and car.colour != 'unknown' %}{{ car.get_colour_display }}{% else %}—{% endif %}</td>
-            <td>{{ car.insurance_company|default:"—" }}</td>
-            <td class="count">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }}{% else %}—{% endif %}</td>
-            <td>{% if car.condition and car.condition != 'unknown' %}{{ car.get_condition_display }}{% else %}—{% endif %}</td>
-            <td>{% if car.fuel_type and car.fuel_type != 'unknown' %}{{ car.get_fuel_type_display }}{% else %}—{% endif %}</td>
-            <td>
+            <td data-col="year"{% if "year" in cols_hidden %} hidden{% endif %} class="count">{{ car.year|unlocalize|default:"—" }}</td>
+            <td data-col="vin"{% if "vin" in cols_hidden %} hidden{% endif %} class="mono">{{ car.vin|default:"—" }}</td>
+            <td data-col="claim"{% if "claim" in cols_hidden %} hidden{% endif %} class="mono">{{ car.claim_number|default:"—" }}</td>
+            <td data-col="plate"{% if "plate" in cols_hidden %} hidden{% endif %} class="mono">{{ car.plate_number|default:"—" }}</td>
+            <td data-col="colour"{% if "colour" in cols_hidden %} hidden{% endif %}>{% if car.colour and car.colour != 'unknown' %}{{ car.get_colour_display }}{% else %}—{% endif %}</td>
+            <td data-col="insurance"{% if "insurance" in cols_hidden %} hidden{% endif %}>{{ car.insurance_company|default:"—" }}</td>
+            <td data-col="odometer"{% if "odometer" in cols_hidden %} hidden{% endif %} class="count">{% if car.odometer_km %}{{ car.odometer_km|unlocalize }}{% else %}—{% endif %}</td>
+            <td data-col="condition"{% if "condition" in cols_hidden %} hidden{% endif %}>{% if car.condition and car.condition != 'unknown' %}{{ car.get_condition_display }}{% else %}—{% endif %}</td>
+            <td data-col="fuel"{% if "fuel" in cols_hidden %} hidden{% endif %}>{% if car.fuel_type and car.fuel_type != 'unknown' %}{{ car.get_fuel_type_display }}{% else %}—{% endif %}</td>
+            <td data-col="images"{% if "images" in cols_hidden %} hidden{% endif %}>
               {% if can_manage %}
                 <button type="button" class="btn-sm" data-images-modal
                         data-url="{% url 'console:vehicle-images' car.pk %}?modal=1">{{ car.image_count|unlocalize }}</button>
@@ -449,8 +460,8 @@ somebody went looking for it.
                 <a class="btn-sm" href="{% url 'console:vehicle-images' car.pk %}">{{ car.image_count|unlocalize }}</a>
               {% endif %}
             </td>
-            <td><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
-            <td>
+            <td data-col="state"{% if "state" in cols_hidden %} hidden{% endif %}><span class="pill" data-tone="{{ car.tone }}">{{ car.get_state_display }}</span></td>
+            <td data-col="marketing"{% if "marketing" in cols_hidden %} hidden{% endif %}>
               {% comment %} زرُّ toggle لا حبّةُ عرض: التسويقُ مِلكيّة تُقلَب من
                  الصفّ فوراً بـAJAX كما في v1 (`js-vehicle-marketing`). {% endcomment %}
               {% if can_manage %}
@@ -927,7 +938,12 @@ somebody went looking for it.
 {% endblock %}
 
 {% block scripts %}
-  <script src="{% static 'console/auctions.js' %}"></script>
+  {% comment %} **بوسم النسخة.** T962. كان بلا `?v=` — والمتصفّح يخزّن
+     السكربتَ بلا انتهاء، فإصلاحٌ فيه لا يصل من فتح الصفحةَ مرّةً. وهو ما
+     حجب إصلاحَ بذرة الأعمدة حتى قِيس بـ`curl` أن الخادمَ يقدّم الجديد
+     والمتصفّحَ يشغّل القديم. والأنماطُ كانت موسومةً أصلاً — السكربتُ وحدَه
+     نُسي. {% endcomment %}
+  <script src="{% static 'console/auctions.js' %}?v={{ asset_stamp }}"></script>
   {% if can_manage %}
   <script>
   {% comment %} فلاترُ الأعمدة تحت الرأس — أسلوبُ v1، ولكن server-side كي لا

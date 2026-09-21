@@ -139,6 +139,9 @@ def _asset_stamp() -> str:
     for name in (
         "console/app.css",
         "console/theme.js",
+        # **و`auctions.js` كذلك** (T962): كان خارج القائمة وبلا `?v=` في
+        # القالب معاً، فكان تعديلُه لا يُبطل كاشاً ولا يصل متصفّحاً.
+        "console/auctions.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):
