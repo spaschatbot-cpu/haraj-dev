@@ -12863,3 +12863,10 @@ a.pager__num:hover, a.pager__step:hover {
   .clip-note { --clip: 10rem; }
   .clip-act { --clip: 9rem; }
 }
+
+/* شريطُ زرّ الأعمدة حين لا شريطَ أدواتٍ فوق الجدول. T964 */
+.cols-auto-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: .5rem;
+}

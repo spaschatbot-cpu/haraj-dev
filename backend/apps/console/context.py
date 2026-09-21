@@ -142,6 +142,7 @@ def _asset_stamp() -> str:
         # **و`auctions.js` كذلك** (T962): كان خارج القائمة وبلا `?v=` في
         # القالب معاً، فكان تعديلُه لا يُبطل كاشاً ولا يصل متصفّحاً.
         "console/auctions.js",
+        "console/columns_auto.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):
