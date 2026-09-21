@@ -267,8 +267,11 @@ def approve(request):
     يريد اعتمادَ سيارةٍ واحدةٍ هنا أن يرفع ملفّاً لأجلها.
     """
     if request.method == "POST":
-        if request.POST.get("op") == "pay":
+        op = request.POST.get("op")
+        if op == "pay":
             return _pay_one(request)
+        if op == "mark":
+            return _mark_one(request)
         return _upload(request)
 
     text = (request.GET.get("q") or "").strip()
@@ -319,6 +322,48 @@ def approve(request):
     )
 
 
+def _receipts_for(invoices) -> dict:
+    """إيصالُ الملفّ لكلّ فاتورةٍ قُيّدت منه — استعلامان لا استعلامٌ لكلّ صفّ."""
+    if not invoices:
+        return {}
+
+    keys = []
+    for invoice in invoices:
+        keys.append(Q(idempotency_key__startswith=f"{payments.KEY_BY_PK}{invoice.pk}:"))
+        keys.append(
+            Q(idempotency_key__startswith=f"{payments.KEY_BY_NUMBER}{invoice.number}:")
+        )
+
+    from functools import reduce
+    import operator
+
+    by_number = {invoice.number: invoice.pk for invoice in invoices}
+    by_pk = {invoice.pk: invoice.pk for invoice in invoices}
+
+    digests: dict[int, str] = {}
+    rows = payments.recorded().filter(reduce(operator.or_, keys))
+    for key in rows.values_list("idempotency_key", flat=True):
+        shape, value = payments.invoice_of(key)
+        pk = by_pk.get(value) if shape == "pk" else by_number.get(value)
+        tail = key.split(":", 2)[-1]
+        if pk is not None and tail.startswith("sheet:"):
+            digests.setdefault(pk, tail.split(":")[1])
+
+    if not digests:
+        return {}
+
+    sheets = {
+        sheet.digest[:12]: sheet
+        for sheet in PaymentSheet.objects.filter(
+            reduce(
+                operator.or_,
+                (Q(digest__startswith=d) for d in set(digests.values())),
+            )
+        ).exclude(receipt="")
+    }
+    return {pk: sheets[d] for pk, d in digests.items() if d in sheets}
+
+
 def partner_console_payment_dates(invoices) -> dict:
     """تاريخُ آخر دفعةٍ لكلّ فاتورة — تُقرأ من `partner_console` لا تُنسَخ.
 
@@ -359,6 +404,15 @@ def _decorate_cars(rows) -> None:
     # ومتى سُدِّدت — من الدفتر، بمفتاح المنع بشكليه (`console.payments`).
     paid_at = partner_console_payment_dates(list(invoices.values()))
 
+    # **عمودُ «الحوالة» في v1** — وهو إيصالُ الملفّ الذي قُيّدت منه الدفعة.
+    #
+    # ولا حقلَ إيصالٍ على المركبة هنا: الإيصالُ على **صفّ الملفّ**، إيصالٌ
+    # واحدٌ لكلّ صفوفه. والوصلةُ مرجعُ الدفعة نفسُه — `_upload` يكتبه
+    # `sheet:<اثنتا عشرة من البصمة>:<السطر>` — فتُقرأ منه البصمةُ ويُؤخذ
+    # الإيصال. ومن قُيّدت دفعتُه من النافذة أو يدويّاً لا إيصالَ له، وتلك
+    # شرطةٌ صادقة.
+    receipts = _receipts_for(list(invoices.values()))
+
     for car in rows:
         invoice = invoices.get(car.pk)
         car.invoice = invoice
@@ -367,6 +421,7 @@ def _decorate_cars(rows) -> None:
         car.paid_amount = invoice.amount_paid if invoice else ZERO
         car.due = invoice.outstanding if invoice else (car.awarded_price or ZERO)
         car.paid_at = paid_at.get(invoice.pk) if invoice else None
+        car.receipt = receipts.get(invoice.pk) if invoice else None
         # «مسدَّدة» هنا = **لا بقيّةَ على الفاتورة**، لا علمٌ يُرفع بملفّ.
         car.is_paid = bool(invoice) and invoice.outstanding <= ZERO
 
@@ -401,8 +456,24 @@ def _payment_log(limit: int = 50):
             pk__in={r.invoice.vehicle_id for r in rows if r.invoice}
         ).select_related("auction")
     }
+    # **عمودُ «الدفعة» في v1** (`batch_ref`): من أيّ ملفٍّ جاء هذا القيد.
+    # ويُقرأ من مرجعه — `sheet:<بصمة>:<سطر>` — فيُعرض اسمُ الملفّ لا بصمتُه.
+    # ومن قُيّد يدويّاً أو من النافذة يُقال فيه ذلك، لا يُترك فارغاً.
+    names = {
+        sheet.digest[:12]: (sheet.filename or sheet.digest[:12])
+        for sheet in PaymentSheet.objects.all()[:500]
+    }
     for row in rows:
         row.vehicle = cars.get(row.invoice.vehicle_id) if row.invoice else None
+        tail = row.idempotency_key.split(":", 2)[-1]
+        if tail.startswith("sheet:"):
+            row.batch = names.get(tail.split(":")[1], "ملفّ محذوف")
+        elif tail.startswith("mark:"):
+            row.batch = "تعليمٌ يدويّ"
+        elif tail.startswith("approve:"):
+            row.batch = "اعتمادٌ من الجدول"
+        else:
+            row.batch = row.source
     return rows
 
 
@@ -471,6 +542,121 @@ def _pay_one(request):
     )
     messages.success(
         request, f"قُيّد {amount} على الفاتورة {invoice.number} (لوط {vehicle.lot_number})."
+    )
+    return back
+
+
+def _mark_one(request):
+    """**علّم سيارةً واحدة يدويّاً** — بطاقةُ v1 الثانية، بزرَّيها.
+
+    v1 يضعها بجوار بطاقة الرفع: يُكتب رقمُ السيارة ويُضغط «✔ مسددة» أو
+    «✕ غير مسددة». وهي لمن بيده رقمُ سيارةٍ واحدة ولا يبني لها ملفّاً.
+
+    **و«غير مسددة» عكسُ قيدٍ لا محوُ علم.** في v1 العلمُ عمودٌ يُطفأ فتختفي
+    السيارةُ من صفحة الشريك ولا يبقى أثرٌ لما كان. وهنا الدفعةُ حركةٌ في
+    الدفتر، فإلغاؤها **يُقيَّد عكسُها** (`money.services.reverse`): يبقى
+    القيدان ومعهما من عكس ومتى ولماذا. وذلك ما يُسأل عنه بعد شهر.
+
+    **والمبلغُ مكتوبٌ أو يُرفض** — خانةُ v1 «اتركه فارغاً = أعلى عرض»
+    أُسقطت، وأثرُها مقيسٌ في الشاشة المجاورة: «خرج 29,990 مقابل مدفوع
+    20,000».
+    """
+    back = redirect("console:partner-payments-approve")
+    raw_id = (request.POST.get("vehicle_no") or "").strip()
+    vehicle = None
+    if raw_id.isdigit():
+        vehicle = Vehicle.objects.filter(pk=int(raw_id)).first()
+    if vehicle is None and raw_id:
+        # ورقمُ اللوط أو المطالبة يُقبلان كذلك: من بيده ورقةٌ لا يعرف معرّفَنا.
+        vehicle = Vehicle.objects.filter(
+            Q(claim_number=raw_id)
+            | (Q(lot_number=int(raw_id)) if raw_id.isdigit() else Q(pk=None))
+        ).first()
+    if vehicle is None:
+        messages.error(request, f"لا مركبةَ بالرقم «{raw_id}».")
+        return back
+    if vehicle.owner_company_id is None:
+        messages.error(request, f"المركبة {vehicle.pk} ليست سيارةَ تسويق.")
+        return back
+
+    invoice = (
+        Invoice.objects.filter(vehicle=vehicle).order_by("-issued_at", "-id").first()
+    )
+    if invoice is None:
+        messages.error(request, f"المركبة {vehicle.pk}: لا فاتورةَ عليها بعد.")
+        return back
+
+    if request.POST.get("paid") == "0":
+        return _unmark(request, vehicle, invoice, back)
+
+    raw = (request.POST.get("amount") or "").strip()
+    try:
+        amount = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        messages.error(request, "المبلغ مطلوبٌ ويُكتب رقماً — ولا يُفترض من أعلى عرض.")
+        return back
+
+    note = (request.POST.get("note") or "").strip()[:120]
+    try:
+        with transaction.atomic():
+            settlement.record_vehicle_payment(
+                invoice=invoice,
+                amount=amount,
+                source=InvoicePaymentSource.CASH,
+                reference=f"mark:{vehicle.pk}:{amount}",
+                by=request.user,
+            )
+    except Exception as refusal:
+        messages.error(request, f"المركبة {vehicle.pk}: {refusal}")
+        return back
+
+    audit.record(
+        action="console.partner_payment_marked",
+        entity=vehicle,
+        actor=request.user,
+        before={},
+        after={"amount": str(amount), "invoice": invoice.number},
+        note=note or "تعليمٌ يدويّ من شاشة مدفوعات الشريك",
+    )
+    messages.success(request, f"قُيّد {amount} على الفاتورة {invoice.number}.")
+    return back
+
+
+def _unmark(request, vehicle, invoice, back):
+    """«✕ غير مسددة» — يُعكَس ما قُيّد، ولا يُحذف.
+
+    v1 يطفئ عموداً فتختفي السيارةُ من صفحة الشريك بلا أثر. وهنا تُعكَس
+    **كلُّ** دفعاتِ هذه الفاتورة، ويبقى الأصلُ وعكسُه ومن عكس.
+    """
+    from apps.money import services as money
+
+    txns = payments.recorded().filter(
+        Q(idempotency_key__startswith=f"{payments.KEY_BY_PK}{invoice.pk}:")
+        | Q(idempotency_key__startswith=f"{payments.KEY_BY_NUMBER}{invoice.number}:")
+    )
+    done, failed = 0, ""
+    for txn in txns:
+        try:
+            with transaction.atomic():
+                money.reverse(txn, reason="إلغاء اعتماد السداد", by=request.user)
+            done += 1
+        except Exception as refusal:
+            failed = failed or str(refusal)
+
+    if not done:
+        messages.error(request, failed or "لا دفعاتٍ مقيَّدةٌ على هذه الفاتورة.")
+        return back
+
+    audit.record(
+        action="console.partner_payment_unmarked",
+        entity=vehicle,
+        actor=request.user,
+        before={},
+        after={"reversed": done, "invoice": invoice.number},
+        note="إلغاء اعتماد السداد — عكسُ قيدٍ لا حذف",
+    )
+    messages.success(
+        request, f"عُكست {done} دفعةً على الفاتورة {invoice.number} — والأصلُ باقٍ."
     )
     return back
 
