@@ -307,8 +307,35 @@ def dress(vehicles, *, auction: Auction, seen) -> None:
         vehicle.decision = decision_of(vehicle)
         vehicle.decision_label = DECISION_LABELS[vehicle.decision]
         vehicle.invoice = invoices.get(vehicle.pk)
+        # **فجوةُ الفوترة — والفاتورةُ الملغاة هي بابُها.** T967
+        #
+        # سؤالُ المالك (٢٢ سبتمبر ٢٠٢٦): «واللي كانت في مزاد قديم وليها فاتورة
+        # ملغية». وقِيس: من اثنتَي عشرةَ مركبةً مرسّاةً، **خمسٌ بلا فاتورةٍ
+        # حيّة**. أربعٌ منها حالتُها `awarded` — وهو الصواب: إلغاءُ الفاتورة
+        # أعادها إلى الطابور، و«إنشاء جميع الفواتير» يلتقطها.
+        #
+        # **والخامسةُ شاذّة**: لوت ٨، حالتُها `invoiced` وفاتورتُها الوحيدةُ
+        # ملغاة. فهي خارج مرشّح الدفعة (`state=awarded`) **ولا فاتورةَ لها** —
+        # تجلس صامتةً إلى الأبد ولا شيءَ على الشاشة يقول ذلك. فتُعلَّم.
+        vehicle.invoice_gap = (
+            vehicle.state in AWARDED_STATES
+            and vehicle.invoice is None
+            and vehicle.state != VehicleState.AWARDED
+        )
 
-        who = bid.bidder if (bid and seen.customer) else None
+        # **والاسمُ اسمُ الفائز متى رستْ، لا أعلى مزايدٍ قائم.** T967
+        #
+        # العطلُ مقيس: لوت ٦ في المزاد التجريبيّ رستْ على العميل 88077 بـ٥٬٠٠٠،
+        # **ولا مزايدةَ قائمةٌ عليها** (المزايدةُ الفائزةُ سُحبت أو استُبدلت
+        # بعد الترسية، أو رستْ خارج طريق المزايدة). فكان الصفُّ يعرض **السعرَ
+        # بلا اسم**: مبلغُ رسوٍّ وخانةُ مزايدٍ فارغة.
+        #
+        # وأخطرُ منها الحالةُ المقابلة: مركبةٌ رستْ على **الثاني** وأعلى عرضٍ
+        # قائمٍ للأوّل — فيُقرأ اسمُ الأوّل بجانب سعر الثاني، وذلك الرقمُ
+        # والاسمُ يدخلان حديثَ الفاتورة. وهو بعينه ما قاله المالك في v1
+        # (٢٠٢٦-٠٨-٢٣) ومكتوبٌ في `partners.py`.
+        winner = vehicle.awarded_to if vehicle.state in AWARDED_STATES else None
+        who = (winner or (bid.bidder if bid else None)) if seen.customer else None
         vehicle.buyer_name = who.full_name if who else ""
         vehicle.buyer_phone = who.phone if who else ""
 
@@ -317,9 +344,34 @@ def dress(vehicles, *, auction: Auction, seen) -> None:
         # **والرقمُ يدخل حديثَ الفاتورة**.
         offer = vehicle.awarded_price if vehicle.awarded_price else vehicle.top_bid
         vehicle.offer = offer if seen.money else None
-        vehicle.with_tax = (
-            money.tax_added_to(offer + fee).total if (seen.money and offer) else None
-        )
+        # **و«شامل الضريبة» من الفاتورة متى وُجدت، ويُحسَب متى لم توجد.** T967
+        #
+        # المكوّناتُ **تُختَم** في صفّ الفاتورة عند إصدارها
+        # (`money.issue_invoice`)، فتغييرُ رسم المزاد غداً لا يمسّ ما صدر
+        # اليوم. وعمودٌ يعيد الحسابَ في كلّ عرضٍ يفترق عن فاتورته أوّلَ ما
+        # يتغيّر الرسم — فيقرأ المالكُ رقماً على الشاشة وآخرَ في الفاتورة
+        # ولا يعرف أيُّهما المستحقّ.
+        #
+        # قِيس اليوم أنهما متطابقان في الأربع المفوترة (٢٣٬٩٢٠ · ٥٬٥٢٠ ·
+        # ٤٬٣٧٠ · ٦٬٦٧٠) — والتطابقُ اليومَ ليس ضمانةً غداً، وهو بالضبط نوعُ
+        # العطل الذي لا يُكتشَف إلّا بعد أن يُقال للعميل رقمٌ خطأ.
+        if not seen.money or not offer:
+            vehicle.with_tax = None
+        elif vehicle.invoice is not None:
+            vehicle.with_tax = vehicle.invoice.amount
+        else:
+            vehicle.with_tax = money.tax_added_to(offer + fee).total
+
+
+def _invoiced_vehicle_ids():
+    """مركباتٌ عليها فاتورةٌ **حيّة** — القيدُ `one_live_invoice_per_vehicle`
+    نفسُه مكتوباً استعلاماً: الملغاةُ لا تمنع فاتورةً ثانية، فلا تُعَدُّ
+    فاتورة."""
+    return (
+        Invoice.objects.exclude(state=InvoiceState.CANCELLED)
+        .filter(vehicle__isnull=False)
+        .values("vehicle_id")
+    )
 
 
 def totals(rows) -> dict:
@@ -328,7 +380,7 @@ def totals(rows) -> dict:
     وهي الرقمُ الذي يفتح المالكُ الشاشةَ لأجله: «كم بقي عليّ؟». وv1 لا يقوله
     إطلاقاً — يُعَدُّ بالعين في جدولٍ من ثلاثمئة صفّ.
     """
-    return rows.aggregate(
+    counts = rows.aggregate(
         all_rows=Count("pk", distinct=True),
         pending=Count(
             "pk", filter=Q(state__in=DECISION_STATES["pending"]), distinct=True
@@ -345,6 +397,24 @@ def totals(rows) -> dict:
         # الزرّ هو عددُ ما سيُفوتَر لا تقديرٌ له.
         to_invoice=Count("pk", filter=Q(state=VehicleState.AWARDED), distinct=True),
     )
+    # **وما سقط بين الاثنين** — حالةٌ بعد الفوترة بلا فاتورةٍ حيّة. ليست في
+    # الطابور ولا لها فاتورة، فلا يعدّها زرٌّ ولا يلتقطها استعلام.
+    #
+    # **واستعلامٌ ثانٍ لا شرطٌ في `aggregate`**: `Exists(OuterRef("pk"))` داخل
+    # تجميعٍ يفشل في القاعدة — جانغو يلفُّ المجموعَ في استعلامٍ فرعيٍّ فيضيع
+    # مرجعُ الجدول الخارجيّ (`missing FROM-clause entry for auctions_vehicle`).
+    # وهو عدٌّ رخيصٌ على مركبات مزادٍ واحد.
+    #
+    # ولا يُصلَح من هنا: إعادةُ الحالة إلى `awarded` كتابةٌ في طريق المال
+    # (`settlement.invoice_award` ترفض ما ليس `awarded`). فيُقال العددُ
+    # ويُترك القرارُ لصاحبه.
+    counts["no_invoice"] = (
+        rows.filter(state__in=AWARDED_STATES)
+        .exclude(state=VehicleState.AWARDED)
+        .exclude(pk__in=_invoiced_vehicle_ids())
+        .count()
+    )
+    return counts
 
 
 @console_page("console:owners-console")

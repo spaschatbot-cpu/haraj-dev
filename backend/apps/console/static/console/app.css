@@ -13106,3 +13106,7 @@ a.of-nav__card:hover {
 }
 .of-award input[type="text"] { inline-size: 8.5rem; min-inline-size: 0; margin: 0; }
 .of-award .btn-sm { flex: none; }
+
+/* «بلا فاتورة» — مركبةٌ أُلغيت فاتورتُها ولم تعد إلى طابور الفوترة. تحذيرٌ
+   لا خطأ: البيانُ سليم، والعملُ هو الناقص. */
+.of-gap { display: block; margin-block-start: .15rem; color: var(--warn); font-weight: 700; }
