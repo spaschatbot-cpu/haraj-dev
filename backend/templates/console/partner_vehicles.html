@@ -26,21 +26,26 @@
   </p>
 
   {% comment %} ثلاثةُ أرقامٍ كانت في سطرٍ واحدٍ عارٍ يفصلها نقاطٌ وسطى، فتُقرأ
-     جملةً لا أرقاماً. وهي من **المرشَّح نفسِه** تحتها. {% endcomment %}
+     جملةً لا أرقاماً.
+
+     **وهي من المرشَّح نفسِه تحتها — وكانت تقول ذلك ولا تفعله.** كانت تقرأ
+     `summary_for(partner)`: كلَّ سيارات الشريك أيّاً كانت الشريحةُ والبحث.
+     قِيس: «مباعة» أربعةُ صفوفٍ والبطاقةُ تقول ٩، و«كامري» صفّان والبطاقةُ
+     تقول ٩. {% endcomment %}
   <section class="sum-grid sum-grid--tight" aria-label="أرقام الشريك">
     <div class="sum">
       <p class="sum__label">سيارات مطابقة</p>
-      <p class="sum__value">{{ totals.vehicles|unlocalize }}</p>
+      <p class="sum__value">{{ matched.vehicles|unlocalize }}</p>
       <p class="sum__note">في المرشّح الحالي.</p>
     </div>
     <div class="sum">
       <p class="sum__label">مباعة منها</p>
-      <p class="sum__value">{{ totals.won|unlocalize }}</p>
+      <p class="sum__value">{{ matched.won|unlocalize }}</p>
       <p class="sum__note">رست على مزايد.</p>
     </div>
     <div class="sum sum--money">
       <p class="sum__label">إجمالي الترسية</p>
-      <p class="sum__value money">{{ totals.won_value|unlocalize }}</p>
+      <p class="sum__value money">{{ matched.won_value|unlocalize }}</p>
       <p class="sum__note">مجموعُ أسعار ما رسا.</p>
     </div>
   </section>

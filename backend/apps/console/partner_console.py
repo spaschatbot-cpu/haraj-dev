@@ -805,6 +805,21 @@ def partner_vehicles(request):
     page = Paginator(rows, PAGE_SIZE).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
+    # **أرقامُ المرشَّح، لا أرقامُ الشريك كلِّه.** البطاقةُ تقول «سيارات
+    # مطابقة … في المرشّح الحالي» وكانت تقرأ `summary_for(partner)` — أي كلَّ
+    # سياراته أيّاً كانت الشريحةُ والبحث. قِيس: «مباعة» تعرض أربعةَ صفوفٍ
+    # والبطاقةُ فوقها تقول ٩، و«كامري» تعرض صفّين والبطاقةُ تقول ٩. جملةٌ
+    # مكتوبةٌ على الشاشة تُكذّبها الشاشةُ نفسُها.
+    #
+    # **ومن استعلامٍ بلا وصلةِ مزايدات**: `rows` تصل `bids` لعمودَي «أعلى
+    # عرض» و«مزايدات»، فـ`Sum` عليها يتضاعف بعدد المزايدات — وهو عطلُ
+    # «كل المزادات» نفسُه (٣× المبلغ). فيُؤخذ منها المعرّفات وحدَها.
+    matched = Vehicle.objects.filter(pk__in=rows.values("pk")).aggregate(
+        n=Count("id"),
+        won=Count("id", filter=Q(state__in=AWARDED)),
+        value=Sum("awarded_price", filter=Q(state__in=AWARDED)),
+    )
+
     return render(
         request,
         "console/partner_vehicles.html",
@@ -814,7 +829,11 @@ def partner_vehicles(request):
             "partners": partners(),
             "which": which,
             "q": request.GET.get("q", ""),
-            "totals": summary_for(partner),
+            "matched": {
+                "vehicles": matched["n"] or 0,
+                "won": matched["won"] or 0,
+                "won_value": matched["value"] or ZERO,
+            },
             # الشرائحُ الأربعُ من مكانٍ واحد: القالبُ يرسمها والمنظرُ يعرفها،
             # فإضافةُ خامسةٍ يوماً سطرٌ واحد لا سطران يفترقان.
             # ورسمٌ لكلّ شريحة من `icons.py`: أربعُ كلماتٍ متشابهةِ الطول في
