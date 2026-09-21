@@ -52,7 +52,12 @@
     {% elif vehicle.owner_company_id %}
       <span class="pill" data-tone="warn">بانتظار قرار الشريك</span>
     {% endif %}
-    <a class="pill" data-tone="plain" href="{% url 'console:auction-detail' vehicle.auction.pk %}">مزاد {{ vehicle.auction.number|unlocalize }}</a>
+    {% comment %} **اسمُ المزاد نصٌّ لا رابط** (قرار المالكة، ٢١ سبتمبر
+       ٢٠٢٦: «خلي المزاد ثابتة مش بتفتح حاجة»). وصفحةُ المزاد تعرضه
+       بمركباته كلِّها، وهذه صفحةُ مركبةٍ واحدة — فالنقرةُ تنقل من سؤالٍ
+       عنها إلى شاشةٍ هي فيها صفٌّ من ثلاثمئة. وهو القرارُ نفسُه الذي
+       اتُّخذ في «الأداء لكل مزاد». {% endcomment %}
+    <span class="pill" data-tone="plain">مزاد {{ vehicle.auction.number|unlocalize }}</span>
   </p>
 
   {% comment %} سطرُ v1 نفسُه: يقول **أين** يُتخذ القرار و**متى** يجوز — فمن
@@ -163,7 +168,7 @@
   <h2 class="section-title">المزاد والنتيجة</h2>
   <dl class="vehicle-facts">
     <div><dt>المزاد</dt><dd>
-      <a href="{% url 'console:auction-detail' vehicle.auction.pk %}">{{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</a></dd></div>
+      {{ vehicle.auction.number|unlocalize }} — {{ vehicle.auction.title }}</dd></div>
     <div><dt>نهاية المزاد</dt><dd>{{ vehicle.auction.ends_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
     <div><dt>سعر الوقوف</dt><dd class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</dd></div>
     <div><dt>أعلى عرض</dt><dd class="money">
@@ -175,11 +180,7 @@
     <div><dt>عدد المزايدات</dt><dd>{{ bids_count|unlocalize }}</dd></div>
     <div><dt>عدد المزايدين</dt><dd>{{ bidders_count|unlocalize }}</dd></div>
     <div><dt>الحالة</dt><dd><span class="pill" data-tone="{{ vehicle.tone|default:'plain' }}">{{ vehicle.get_state_display }}</span></dd></div>
-    <div><dt>الفائز</dt><dd>
-      {% if shown.customer %}{{ vehicle.awarded_to.full_name|default:"—" }}
-      {% elif vehicle.awarded_to_id %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
-      {% else %}—{% endif %}</dd></div>
-    <div><dt>سعر الرسو</dt><dd class="money">
+    <div><dt>سعر البيع</dt><dd class="money">
       {% if shown.money %}{{ vehicle.awarded_price|default:"—"|unlocalize }}
       {% elif vehicle.awarded_price %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>
       {% else %}—{% endif %}</dd></div>
@@ -188,6 +189,10 @@
        سيارةٌ بدأت بـ٥٠ وانتهت بـ٥٢ لم يتنافس عليها أحد، وأخرى بلغت ١٢٠
        تنافس عليها كثيرون. والرقمان معاً يقولان ما لا يقوله أحدُهما.
        والمبالغُ خلف صلاحيتها كأخواتها. {% endcomment %}
+    <div><dt>المشتري</dt><dd>
+      {% if shown.customer %}{{ vehicle.awarded_to.full_name|default:"—" }}
+      {% elif vehicle.awarded_to_id %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>
+      {% else %}—{% endif %}</dd></div>
     <div><dt>وقت الترسية</dt><dd>{{ vehicle.awarded_at|date:"Y-m-d H:i"|default:"—" }}</dd></div>
   </dl>
   </section>
