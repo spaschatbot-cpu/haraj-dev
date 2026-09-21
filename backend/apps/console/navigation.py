@@ -737,6 +737,16 @@ PAGES: tuple[Page, ...] = (
         "receipt",
     ),
     Page(
+        "console:partner-payments-template",
+        "قالب دفعات الشريك",
+        Capability.PARTNERS_DECIDE,
+        # بلا قسم: تنزيلُ ملفٍّ لا شاشة، وصفٌّ في الشريط يُنزّل ورقةً بالنقر.
+        "",
+        "ورقةٌ تخرج مُعبّأةً بالمستحقّ ومراجعه، تُكتب فيها المبالغُ وتُرفَع كما هي.",
+        "download",
+        parent="console:partner-payments-approve",
+    ),
+    Page(
         "console:partner-payments-approve",
         "اعتماد مدفوعات الشريك",
         Capability.MONEY_ACT,

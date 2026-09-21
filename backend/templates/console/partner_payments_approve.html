@@ -47,12 +47,43 @@
     </div>
     <div class="sum">
       <p class="sum__label">آخر ملفٍّ مرفوع</p>
-      <p class="sum__value">{% if last_sheet %}{{ last_sheet.uploaded_at|date:"Y-m-d" }}{% else %}—{% endif %}</p>
-      <p class="sum__note">{% if last_sheet %}{{ last_sheet.rows_posted|unlocalize }} صفّاً قُيّد منه.{% else %}لم يُرفع ملفٌّ بعد.{% endif %}</p>
+      {% comment %} **اسمُ الملفّ لا تاريخُه** كـ v1 («آخر دفعة مرفوعة:
+         sheet_20260903_125353»): من يسأل «هل وصل ملفّي؟» يعرف ملفَّه باسمه،
+         والتاريخُ يقول «رُفع شيءٌ اليوم» ولا يقول أيُّه. والتاريخُ تحته.
+         {% endcomment %}
+      <p class="sum__value pa-lastname">{% if last_sheet %}{{ last_sheet.filename|default:"—" }}{% else %}—{% endif %}</p>
+      <p class="sum__note">{% if last_sheet %}{{ last_sheet.uploaded_at|date:"Y-m-d H:i" }} · {{ last_sheet.rows_posted|unlocalize }} صفّاً قُيّد منه.{% else %}لم يُرفع ملفٌّ بعد.{% endif %}</p>
     </div>
   </section>
 
   <h2 class="dd-sec">رفع ملفّ الدفعات <small>التعرّف على المحتوى لا على الامتداد · حتى خمسة ميجابايت</small></h2>
+
+  {% comment %} **«نزّل القالب» — زرُّ v1، وكان غائباً.** سؤالُ المالك هناك
+     مكتوبٌ في تعليقها: «وين الإكسل اللي أرفع بيه؟». فالورقةُ تخرج **مُعبّأةً
+     بالسيارات ومراجعها** — رقمُ المطالبة واللوط واللوحة والاسم والمبلغُ
+     المتبقّي — ولا يبقى إلا تعديلُ المبلغ ورفعُها كما هي. وبناؤها باليد يعني
+     خطأً في مرجعٍ يُسقط صفّاً عند الرفع.
+
+     ويُختار مزادُه وحالتُه قبل التنزيل (طلبُ المالك ٢٠٢٦-٠٩-٠٦): كان يخرج
+     بكلّ المزادات وبغير المسدَّدة وحدها، فيدفع لمزادٍ وهو يقرأ ورقةَ مزادين.
+
+     ونموذجُ `GET` لا زرّ: القيمُ تظهر في الرابط فيُحفظ ويُكرَّر. {% endcomment %}
+  <form method="get" action="{% url 'console:partner-payments-template' %}" class="filters filters--row pa-tmpl">
+    <div class="filters__main">
+      <select name="auction" aria-label="المزاد">
+        <option value="">كل المزادات</option>
+        {% for a in auctions %}
+          <option value="{{ a.number|unlocalize }}">مزاد {{ a.number|unlocalize }}{% if a.title %} — {{ a.title }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <select name="state" aria-label="الحالة">
+        <option value="unpaid">غير المسدَّدة (للدفع)</option>
+        <option value="paid">المسدَّدة (للمراجعة)</option>
+        <option value="all">الكل</option>
+      </select>
+      <button type="submit" class="xls-go">نزّل القالب</button>
+    </div>
+  </form>
 
   <form method="post" enctype="multipart/form-data" class="form-card pa-up">
     {% csrf_token %}
@@ -60,6 +91,16 @@
       <label for="sheet">ملفّ الجدول (إكسل أو CSV)</label>
       <input id="sheet" type="file" name="sheet" required>
     </div>
+    {% comment %} **إيصالُ الحوالة — خانةُ v1 الثانية.** واحدٌ يُرفَق بكلّ
+       صفوف هذه الدفعة، وهو ما يُراجَع بعد شهرٍ حين يُسأل «هذه الدفعة من
+       أين؟». والمسارُ المخزَّن **لنا لا لرافعه** (`bank_receipt_path`).
+       {% endcomment %}
+    <div class="pa-up__field">
+      <label for="receipt">إيصال الحوالة <small>PDF أو صورة — اختياريّ، حتى ثمانية ميجابايت</small></label>
+      <input id="receipt" type="file" name="receipt"
+             accept="application/pdf,image/jpeg,image/png,image/webp">
+    </div>
+
     <button type="submit" class="pa-up__go">ارفع واعتمد</button>
   </form>
 
@@ -94,6 +135,9 @@
         <th>قُيّد</th>
         <th>تُخطّي</th>
         <th>الإجمالي</th>
+        {% comment %} رابطُ الإيصال — وهو ما يُراجَع بعد شهرٍ حين يُسأل «هذه
+           الدفعة من أين؟». {% endcomment %}
+        <th>الإيصال</th>
       </tr>
     </thead>
     <tbody>
@@ -109,9 +153,14 @@
           <td class="count pa-ok">{{ sheet.rows_posted|unlocalize }}</td>
           <td class="count{% if sheet.rows_skipped %} pa-skip{% endif %}">{{ sheet.rows_skipped|unlocalize }}</td>
           <td class="money">{{ sheet.total|unlocalize }}</td>
+          <td>
+            {% if sheet.receipt %}
+              <a class="rf-go" href="{{ sheet.receipt.url }}" target="_blank" rel="noopener">عرض</a>
+            {% else %}<span class="empty">—</span>{% endif %}
+          </td>
         </tr>
       {% empty %}
-        <tr><td colspan="7" class="empty">لم يُرفع ملفٌّ بعد.</td></tr>
+        <tr><td colspan="8" class="empty">لم يُرفع ملفٌّ بعد.</td></tr>
       {% endfor %}
     </tbody>
   </table>

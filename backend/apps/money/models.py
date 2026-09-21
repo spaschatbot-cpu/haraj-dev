@@ -1077,6 +1077,17 @@ class PaymentSheet(models.Model):
     #: حدث**، لا كرصيدٍ يُقرأ: الرصيد يُجمع من الدفتر دائماً.
     total = models.DecimalField(**MONEY, default=ZERO)
 
+    #: **إيصالُ الحوالة — خانةُ v1 الثانية في بطاقة الرفع.** إيصالٌ واحدٌ
+    #: يُرفَق بكلّ صفوف هذه الدفعة، وهو ما يُراجَع بعد شهرٍ حين يُسأل «هذه
+    #: الدفعة من أين؟»: اسمُ الملفّ ومن رفعه ومتى **وصورةُ الحوالة**.
+    #:
+    #: والمسارُ من `bank_receipt_path` كإيصالات الشحن البنكيّ: الاسمُ
+    #: المخزَّن **لنا لا لرافعه**، فلا يختار أحدٌ أين يُكتب ملفُّه
+    #: (`ops/checks/one_upload_gate.py` يرفض حقلَ ملفٍّ لا يمرّ من هناك).
+    receipt = models.FileField(
+        upload_to=bank_receipt_path, blank=True, max_length=255
+    )
+
     class Meta:
         ordering = ["-uploaded_at", "-id"]
         verbose_name = "دفعة مرفوعة"

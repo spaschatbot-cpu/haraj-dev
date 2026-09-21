@@ -62,6 +62,7 @@ from apps.core.sheets import Sheet, SheetError
 from apps.money.models import Invoice, InvoicePaymentSource, PaymentSheet
 
 from . import payments
+from .exports import export
 from .icons import path_of
 from .views import console_page
 
@@ -70,6 +71,7 @@ ZERO = Decimal("0.00")
 #: ما يقبله الرفع. أكبرُ من ذلك خطأٌ — جدولُ الأسطول كلّه، أو صورةٌ أُعيدت
 #: تسميتها — وقراءتُه في الذاكرة لاكتشاف ذلك هي كيف تسقط لوحة.
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+MAX_RECEIPT_BYTES = 8 * 1024 * 1024
 
 #: ما يدخل شاشةَ الاعتماد: ما رسا ولم يخرج بعد. ومركبةٌ لم تُبع لا
 #: تُسدَّد — وv1 يعرضها ومعها زرُّ اعتماد (`فورد ميلان #12276`).
@@ -182,6 +184,71 @@ def read_rows(sheet: Sheet) -> tuple[list[dict], list[dict]]:
             continue
         good.append({"line": number, "key": key, "amount": amount, "note": note})
     return good, skipped
+
+
+@console_page("console:partner-payments-template")
+def payment_template(request):
+    """**نزّل القالب** — ورقةٌ تخرج مُعبّأةً بالمستحقّ ومراجعه. زرُّ v1.
+
+    سؤالُ المالك في v1 مكتوبٌ في تعليقها: «وين الإكسل اللي أرفع بيه؟». فالقالبُ
+    يخرج **بالسيارات ومراجعها** — رقمُ المطالبة واللوط واللوحة والاسم — ولا
+    يبقى إلا كتابةُ المبلغ ورفعُه كما هو. وبناءُ الورقة باليد يعني خطأً في
+    مرجعٍ يُسقط صفّاً عند الرفع.
+
+    **ويُختار مزادُه وحالتُه قبل التنزيل** (طلبُ المالك ٢٠٢٦-٠٩-٠٦: «اختار
+    المزاد اللي هنزّل الملف بتاعه، وفلتر هل بننزّل المسدّدة ولا إيه»): كان
+    يخرج بكلّ المزادات وبغير المسدَّدة وحدها، فيدفع لمزادٍ وهو يقرأ ورقةَ
+    مزادين.
+
+    **والمبلغُ مُعبّأٌ بالمتبقّي لا فارغاً**: الحالةُ الغالبة سدادٌ كامل،
+    ومن يريد جزئيّاً يعدّل الخانة. وهو عكسُ «اتركه فارغاً = أعلى عرض» في v1:
+    هناك الفراغُ يعني رقماً يختاره النظام، وهنا الرقمُ مكتوبٌ في الورقة
+    يراه من يرفعها.
+    """
+    auction = (request.GET.get("auction") or "").strip()
+    state = (request.GET.get("state") or "unpaid").strip()
+
+    rows = (
+        Vehicle.objects.filter(owner_company__isnull=False, state__in=SETTLING)
+        .select_related("auction")
+        .order_by("-auction__number", "lot_number")
+    )
+    if auction.isdigit():
+        rows = rows.filter(auction__number=int(auction))
+
+    cars = list(rows[:5000])
+    _decorate_cars(cars)
+    if state == "paid":
+        cars = [car for car in cars if car.is_paid]
+    elif state == "unpaid":
+        cars = [car for car in cars if not car.is_paid]
+
+    name = "قالب-دفعات-الشريك"
+    if auction.isdigit():
+        name += f"-مزاد-{auction}"
+    return export(
+        cars,
+        name=name,
+        headers=[
+            # أسماءُ الأعمدة التي يقبلها القارئُ نفسُه — فما يخرج يدخل.
+            "رقم المطالبة",
+            "اللوط",
+            "اللوحة",
+            "السيارة",
+            "المبلغ",
+            "التاريخ",
+            "ملاحظات",
+        ],
+        cell=lambda car: [
+            car.claim_number,
+            car.lot_number,
+            car.plate_number,
+            f"{car.make} {car.model}",
+            car.due,
+            "",
+            "",
+        ],
+    )
 
 
 @console_page("console:partner-payments-approve")
@@ -418,6 +485,14 @@ def _upload(request):
         messages.error(request, "الملفّ أكبر من خمسة ميجابايت.")
         return redirect("console:partner-payments-approve")
 
+    # **إيصالُ الحوالة — خانةُ v1 الثانية.** اختياريٌّ، وواحدٌ يُرفَق بكلّ
+    # صفوف هذه الدفعة. وحدُّه ثمانيةُ ميجابايت كـ v1: صورةُ حوالةٍ من هاتفٍ
+    # تبلغ خمسةً، والملفُّ الذي يبلغ عشرين ليس إيصالاً.
+    receipt = request.FILES.get("receipt")
+    if receipt is not None and receipt.size > MAX_RECEIPT_BYTES:
+        messages.error(request, "الإيصالُ أكبر من ثمانية ميجابايت.")
+        return redirect("console:partner-payments-approve")
+
     data = upload.read()
     digest = hashlib.sha256(data).hexdigest()
 
@@ -450,6 +525,9 @@ def _upload(request):
         rows_posted=len(posted),
         rows_skipped=len(skipped),
         total=total,
+        # وإيصالُ الحوالة على صفّ الملفّ لا على كلّ دفعة: واحدٌ يُرفَق بكلّ
+        # صفوفه، وهو ما يقوله سطرُ v1 تحت الخانة.
+        receipt=receipt or "",
     )
     audit.record(
         action="console.partner_payments_upload",

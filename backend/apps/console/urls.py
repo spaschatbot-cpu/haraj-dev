@@ -234,6 +234,11 @@ urlpatterns = [
         partner_payments.approve,
         name="partner-payments-approve",
     ),
+    path(
+        "partner/approve/template/",
+        partner_payments.payment_template,
+        name="partner-payments-template",
+    ),
     path("vehicles/", auctions.vehicles, name="vehicles"),
     path("vehicles/new/", auctions.vehicle_new, name="vehicle-new"),
     path("vehicles/export/", importexport.export, name="vehicles-export"),
