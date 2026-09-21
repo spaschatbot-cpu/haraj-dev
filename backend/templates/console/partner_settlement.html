@@ -121,6 +121,11 @@
               <th>المستحقّ</th><th>شامل الضريبة ({{ vat_label }})</th>
             {% endif %}
             <th>الفاتورة</th><th>القرار</th>
+            {% comment %} **عمودُ «تفاصيل» — آخرُ أعمدة v1.** واسمُ السيارة
+               رابطٌ إلى الصفحة نفسِها، لكنّه لا يُقرأ فعلاً: من يريد فتحَ
+               المركبة يبحث عن زرٍّ في آخر الصفّ حيث تكون الأفعالُ في كلّ
+               جداول اللوحة. ووجدتْه المالكةُ غائباً. {% endcomment %}
+            <th>تفاصيل</th>
           </tr>
         </thead>
         <tbody>
@@ -173,6 +178,7 @@
                 <td class="ps-nobill">رست ولم تُفوتَر بعد</td>
               {% endif %}
               <td><span class="pill" data-tone="{{ row.ruling_tone }}">{{ row.ruling }}</span></td>
+          <td class="rf-act"><a class="rf-go" href="{% url 'console:vehicle-detail' row.pk %}">تفاصيل</a></td>
             </tr>
           {% endfor %}
         </tbody>
