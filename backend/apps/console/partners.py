@@ -38,6 +38,7 @@ from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.bidding.models import Bid
 from apps.core import audit
+from apps.money import services as money
 
 from .archive import ARCHIVED
 from .exports import export, wants_export
@@ -121,6 +122,13 @@ def decisions(request):
     page = Paginator(rows, 25).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
+    # **«شامل الضريبة» جنبَ المبلغ — عمودُ v1.** والمبلغُ هو المعتمَد: ما
+    # رستْ به إن رستْ، وإلّا أعلى عرضٍ قائم. ولا تُضرب النسبةُ هنا:
+    # `money.tax_added_to` هي الموضعُ الوحيد الذي يضرب في المشروع.
+    for vehicle in page.object_list:
+        amount = vehicle.awarded_price or vehicle.top_amount
+        vehicle.amount_with_vat = money.tax_added_to(amount).total if amount else None
+
     return render(
         request,
         "console/partner_decisions.html",
@@ -169,6 +177,104 @@ def _group_by_auction(vehicles) -> list[dict]:
         if vehicle.partner_decided_at is None:
             groups[-1]["pending"] += 1
     return groups
+
+
+@console_page("console:partner-decide-many")
+def decide_many(request):
+    """اقبل أو ارفض **المحدَّد** — أزرارُ v1 الجماعيّة فوق الجدول.
+
+    الشريكُ يحكم على أربعين مركبةً بعد كلّ مزاد. وv1 يضع فوق الجدول «قبول
+    المحدَّد» و«رفض المحدَّد» ومربّعَ تحديدٍ في كلّ صفّ، ورأسَ عمودٍ يحدّد
+    مزاداً كاملاً — وبدونها أربعون نقرةً وأربعون إعادةَ تحميل.
+
+    **وكلُّ مركبةٍ تمرّ بالبابِ المفردِ نفسِه** (`award_top` و`reject`)، لا
+    بمسارٍ ثانٍ يكتب في القاعدة: شرطٌ يُفحص في أحدهما ويُنسى في الآخر هو كيف
+    تُرسى مركبةٌ في مزادٍ لم ينتهِ. فالجماعيُّ حلقةٌ على المفرد.
+
+    **ولا معاملةٌ واحدةٌ تضمّ الأربعين.** فشلُ المركبة السابعة لا يُلغي ستّاً
+    صحيحة — والشريكُ الذي ضغط «قبول» على أربعين يريد التسعةَ والثلاثين التي
+    تمرّ، ويريد أن يُقال له أيُّها لم تمرّ ولماذا. وv1 يفعلها كذلك (`Promise`
+    لكلّ صفّ).
+
+    والحصيلةُ سطرٌ واحد: كم مرّ وكم رُدّ ولماذا رُدَّ أوّلُها.
+    """
+    back = redirect(_back(request))
+    if request.method != "POST":
+        return back
+
+    action = (request.POST.get("op") or "").strip()
+    if action not in ("accept", "reject"):
+        messages.error(request, "فعلٌ غير معروف.")
+        return back
+
+    pks = [p for p in request.POST.getlist("pick") if p.isdigit()]
+    if not pks:
+        messages.error(request, "لم تُحدَّد مركبة.")
+        return back
+
+    rows = Vehicle.objects.select_related("auction").filter(pk__in=pks)
+    done, failed, first_why = 0, 0, ""
+    for vehicle in rows:
+        try:
+            if action == "accept":
+                _award_top_one(vehicle, request.user)
+            else:
+                _reject_one(vehicle, request.user)
+            done += 1
+        except Exception as refusal:
+            failed += 1
+            first_why = first_why or f"{vehicle.lot_number}: {refusal}"
+
+    word = "قُبلت" if action == "accept" else "رُفضت"
+    if done:
+        messages.success(request, f"{word} {done} مركبة.")
+    if failed:
+        messages.error(request, f"وردّت {failed} — أوّلُها {first_why}")
+    return back
+
+
+def _award_top_one(vehicle, actor) -> None:
+    """قبولُ أعلى عرضٍ على مركبةٍ واحدة — جسمُ `award_top` بلا طلبٍ ولا رسائل."""
+    top = (
+        Bid.objects.live()
+        .filter(vehicle=vehicle)
+        .order_by("-amount", "placed_at")
+        .first()
+    )
+    if top is None:
+        raise ValueError("لا عرضَ قائمٌ عليها — الرفضُ هو القرار")
+
+    before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
+    settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
+    vehicle.refresh_from_db()
+    _stamp(vehicle, "accepted", top, actor)
+    audit.record(
+        action="console.award_vehicle",
+        entity=vehicle,
+        actor=actor,
+        before=before,
+        after=audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"]),
+        note="قبول أعلى عرض — فعلٌ جماعيّ من شاشة القرار",
+    )
+    settlement.try_close(vehicle.auction)
+
+
+def _reject_one(vehicle, actor) -> None:
+    """رفضُ مركبةٍ واحدة — جسمُ `reject` بلا طلبٍ ولا رسائل."""
+    from apps.auctions.services import reject as reject_vehicle
+
+    before = audit.snapshot(vehicle, ["state"])
+    reject_vehicle(vehicle)
+    vehicle.refresh_from_db()
+    _stamp(vehicle, "rejected", None, actor)
+    audit.record(
+        action="console.reject_vehicle",
+        entity=vehicle,
+        actor=actor,
+        before=before,
+        after=audit.snapshot(vehicle, ["state"]),
+        note="رفض — فعلٌ جماعيّ من شاشة القرار",
+    )
 
 
 @console_page("console:partner-award-top")

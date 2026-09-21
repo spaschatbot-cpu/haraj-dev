@@ -1089,6 +1089,18 @@ DETAIL_PAGES: tuple[Page, ...] = (
     # قبولُ أعلى عرضٍ من صفّ شاشة القرار — فعلٌ على صفٍّ لا وجهةٌ في الشريط،
     # وقدرتُه قدرةُ الترسية نفسُها: هو ترسيةٌ بمزايدٍ لا يُختار.
     Page(
+        "console:partner-decide-many",
+        "قبول أو رفض المحدَّد",
+        Capability.PARTNERS_DECIDE,
+        # بلا قسم: فعلٌ على `POST` لا شاشة — ورابطٌ في الشريط ينهي أربعين
+        # قراراً من `<img src>`. وأخواتُه (`partner-award` و`partner-reject`)
+        # كذلك.
+        "",
+        "قبولُ أعلى عرضٍ أو رفضُ المحدَّد من مركبات شاشة القرار — أزرارُ v1 الجماعيّة.",
+        "list-check",
+        parent="console:partner-decisions",
+    ),
+    Page(
         "console:partner-award-top",
         "قبول أعلى عرض",
         Capability.PARTNERS_DECIDE,

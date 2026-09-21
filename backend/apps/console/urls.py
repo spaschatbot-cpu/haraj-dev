@@ -274,6 +274,11 @@ urlpatterns = [
         "vehicles/<int:pk>/relist/", auction_moves.vehicle_relist, name="vehicle-relist"
     ),
     path("partners/", partners.decisions, name="partner-decisions"),
+    path(
+        "partners/decide-many/",
+        partners.decide_many,
+        name="partner-decide-many",
+    ),
     path("partners/<int:pk>/", partners.offers, name="partner-offers"),
     path("partners/<int:pk>/award/", partners.award, name="partner-award"),
     path(

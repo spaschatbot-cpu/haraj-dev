@@ -54,18 +54,52 @@ sat in the vehicle list and the partner was told by telephone.
       </span>
     </h2>
 
+    {% comment %} **استمارةٌ لكلّ مزادٍ لا واحدةٌ للصفحة.** المربّعُ في
+       الرأس يحدّد «كلَّ الظاهر في هذا المزاد» كـ v1، والحكمُ يقع على مزادٍ
+       واحدٍ في المرّة — وهو كيف يُحكَم فعلاً: يُفتح بعد إغلاق مزادٍ بعينه.
+       واستمارةٌ واحدةٌ للصفحة تجعل «حدّد الكل» يمتدّ على مزاداتٍ لم تُقرأ.
+       {% endcomment %}
+    <form method="post" action="{% url 'console:partner-decide-many' %}" class="pd-bulk-form">
+      {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
+
+      {% comment %} **أفعالُ v1 الجماعيّة.** الشريكُ يحكم على أربعين مركبةً
+         بعد كلّ مزاد، وبلا هذه أربعون نقرةً وأربعون إعادةَ تحميل. وهي
+         `submit` لا جافاسكربت: الاستمارةُ تحمل المحدَّد، والزرُّ يقول أيَّ
+         فعل. {% endcomment %}
+      <div class="pd-bulk">
+        <button type="submit" name="op" value="accept" class="dc-btn dc-btn--yes">
+          {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول المحدَّد</span></button>
+        <button type="submit" name="op" value="reject" class="dc-btn dc-btn--no">
+          {% include "console/_act_icon.html" with path=icon_no %}<span>رفض المحدَّد</span></button>
+        <button type="reset" class="dc-btn dc-btn--ghost"><span>إلغاء التحديد</span></button>
+      </div>
+
     <div class="scroller">
       <table class="pd-tbl">
         <thead>
           <tr>
+            {% comment %} رأسُ عمود التحديد: «كلُّ الظاهر في هذا المزاد» —
+               ويحتاج سطرَ جافاسكربت واحداً، وهو السطرُ الوحيد في الصفحة.
+               {% endcomment %}
+            <th class="pd-ck"><input type="checkbox" class="js-pick-all"
+                                     title="تحديد كل الظاهر في هذا المزاد"></th>
             <th>اللوت</th><th>المركبة</th><th>اللوحة</th><th>رقم المطالبة</th>
-            <th>سعر الوقوف</th><th>أعلى عرض</th><th>المزايدون</th>
+            <th>سعر الوقوف</th><th>المبلغ المعتمد</th><th>شامل الضريبة</th><th>المزايدون</th>
             <th>الحالة</th><th>حكم الشريك</th><th>إجراء</th>
           </tr>
         </thead>
         <tbody>
           {% for vehicle in group.rows %}
             <tr>
+              {% comment %} ولا مربّعَ على مركبةٍ حُكم فيها: الفعلُ الجماعيّ
+                 سيردّها على أي حال، وعرضُ مربّعٍ يقود إلى «ردّت ٣» بلا سبب
+                 يفهمه من ضغط. {% endcomment %}
+              <td class="pd-ck">
+                {% if not vehicle.partner_decided_at %}
+                  <input type="checkbox" name="pick" value="{{ vehicle.pk }}"
+                         aria-label="تحديد اللوت {{ vehicle.lot_number|unlocalize }}">
+                {% endif %}
+              </td>
               <td class="inv-no"><a href="{% url 'console:partner-offers' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
               <td class="pv-name">
                 <strong>{{ vehicle.display_title }}</strong>
@@ -84,6 +118,11 @@ sat in the vehicle list and the partner was told by telephone.
                 {% elif vehicle.top_amount %}{{ vehicle.top_amount|unlocalize }}
                 {% else %}<span class="empty">لا عروض</span>{% endif %}
               </td>
+              {% comment %} **«شامل الضريبة» جنبَ المبلغ، كـ v1.** السؤال
+                 «ده شامل الضريبة؟» يتكرّر على كلّ شاشةِ مال، والعمودُ
+                 الواحد لا يجيب عنه — وهو القرارُ نفسُه في «غير المسدَّدة».
+                 {% endcomment %}
+              <td class="money">{{ vehicle.amount_with_vat|default:"—"|unlocalize }}</td>
               <td class="count">{{ vehicle.bidders|unlocalize }}</td>
               <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
               <td>
@@ -118,19 +157,29 @@ sat in the vehicle list and the partner was told by telephone.
                   <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
                     {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
                 {% else %}
+                  {% comment %} **`formaction` لا استمارةٌ داخل استمارة.**
+                     كان لكلّ زرٍّ `<form>` خاصّته، ولمّا لُفَّ الجدولُ
+                     باستمارةِ الفعل الجماعيّ صارت **استماراتٌ متداخلة** —
+                     وHTML لا يسمح بها: المتصفّحُ يُسقط الداخليّةَ ويضمّ
+                     الكلَّ في واحدة.
+
+                     وأثرُه مقيسٌ على الشاشة قبل الإصلاح: «حدّد كل الظاهر»
+                     في المزاد الأوّل يؤشّر **٢١** مربّعاً — منها ١٩ في
+                     مزاداتٍ أخرى. أي أن نقرةً واحدةً كانت تُرشّح للحكم
+                     مركباتٍ لم يرها القارئ.
+
+                     فالزرُّ يُرسل الاستمارةَ الجامعة إلى وجهته هو
+                     (`formaction`)، والرمزُ المانع (`csrf`) وحقلُ الرجوع
+                     فيها مرّةً واحدة. {% endcomment %}
                   <span class="dc-pair">
                     {% if vehicle.top_amount %}
-                      <form method="post" action="{% url 'console:partner-award-top' vehicle.pk %}" class="ex-inline">
-                        {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                        <button type="submit" class="dc-btn dc-btn--yes">
-                          {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول أعلى عرض</span></button>
-                      </form>
+                      <button type="submit" class="dc-btn dc-btn--yes"
+                              formaction="{% url 'console:partner-award-top' vehicle.pk %}">
+                        {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول أعلى عرض</span></button>
                     {% endif %}
-                    <form method="post" action="{% url 'console:partner-reject' vehicle.pk %}" class="ex-inline">
-                      {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                      <button type="submit" class="dc-btn dc-btn--no">
-                        {% include "console/_act_icon.html" with path=icon_no %}<span>رفض</span></button>
-                    </form>
+                    <button type="submit" class="dc-btn dc-btn--no"
+                            formaction="{% url 'console:partner-reject' vehicle.pk %}">
+                      {% include "console/_act_icon.html" with path=icon_no %}<span>رفض</span></button>
                   </span>
                   <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
                     {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
@@ -141,9 +190,24 @@ sat in the vehicle list and the partner was told by telephone.
         </tbody>
       </table>
     </div>
+    </form>
   {% empty %}
     <p class="empty">لا مركبة في مزادٍ منتهٍ.</p>
   {% endfor %}
 
   <p><b class="tf__n">{{ page.paginator.count }}</b> مركبة<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b></p>
+  {% comment %} سطرٌ واحدٌ لمربّع «كل الظاهر» — والبديلُ أن يُنقر أربعون
+     مربّعاً. وتفويضٌ على المستند لا ربطٌ لكلّ رأس: الجداولُ بعددِ
+     المزادات. {% endcomment %}
+  <script>
+  document.addEventListener('change', function (e) {
+    var head = e.target.closest('.js-pick-all');
+    if (!head) return;
+    var form = head.closest('form');
+    if (!form) return;
+    form.querySelectorAll('input[name="pick"]').forEach(function (box) {
+      box.checked = head.checked;
+    });
+  });
+  </script>
 {% endblock %}
