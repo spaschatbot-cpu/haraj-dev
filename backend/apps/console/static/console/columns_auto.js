@@ -42,7 +42,16 @@
   /** أقلُّ عددِ أعمدةٍ يستحقّ زرّاً. دونه لا يفيض الجدولُ ولا يُزدحم. */
   var MIN_COLUMNS = 9;
 
-  var STORE = "haraj.console.cols.";
+  /* **`v2` في المفتاح، ولها سبب.** T966.
+
+     كان التقليصُ يقيس قبل أن تستقرّ الخطوط، فيقرأ فائضاً يزول بعد لحظة —
+     ويُخفي عموداً **ويكتبه في التخزين للأبد**. قِيس على «اتخاذ القرار»:
+     «معرف المركبة» مخفيٌّ والجدولُ يتّسع بفائض **صفر** حين يُعاد إظهارُه.
+
+     والإصلاحُ تحت (انتظارُ `document.fonts.ready`) لا يمسّ ما كُتب أمس: من
+     فتح شاشةً بالأمس يحمل متصفّحُه قراراً خاطئاً لا يُراجَع. فيُبدَّل
+     المفتاحُ مرّةً واحدة، ويُعاد الحسابُ عند أوّل فتحة. */
+  var STORE = "haraj.console.cols.v2.";
 
   function textKey(th) {
     var explicit = th.getAttribute("data-col");
@@ -275,9 +284,43 @@
     for (var i = 0; i < tables.length; i++) setup(tables[i], i);
   }
 
+  /* **والقياسُ بعد استقرار الخطوط لا عند `DOMContentLoaded`.** T966.
+
+     عرضُ العمود دالّةُ الخطّ الذي يرسمه. و`DOMContentLoaded` يقع **قبل** أن
+     يصل خطُّ اللوحة، فيُقاس الجدولُ بخطّ النظام الاحتياطيّ — وهو أعرضُ —
+     فيُقرأ فائضٌ لا وجودَ له بعد لحظة. والقرارُ يُكتب في التخزين فيبقى.
+
+     **و`setTimeout` لا `requestAnimationFrame`.** كُتبت `rAF` هنا أوّلاً
+     بحجّةٍ سليمةٍ في ظاهرها — «قِسْ بعد أوّل رسمٍ بالخطّ الجديد» — وهي عطلٌ
+     مقيس: **`rAF` لا تُستدعى في تبويبٍ مخفيّ**. فمن فتح الشاشةَ في تبويبٍ
+     خلفيٍّ لم يحصل على مُنتقي أعمدةٍ ولا تقليصٍ إطلاقاً، ولا رسالةَ خطأٍ
+     تقول لماذا. قِيس: صفرُ `dialog.columns-modal` وصفرُ `.cols-auto-bar` على
+     جدولٍ من أربعةَ عشرَ عموداً.
+
+     والمؤقّتُ يفي في المخفيّ كما في الظاهر. و`getBoundingClientRect` تُجبر
+     المتصفّحَ على إعادة حساب التخطيط عند القراءة، فلا حاجةَ لانتظار الرسم.
+
+     واحتياطُ ١٥٠٠ مللي: `document.fonts` غيرُ موجودةٍ في متصفّحاتٍ قديمة،
+     و`ready` قد لا تفي إن فشل تحميلُ خطّ — وشاشةٌ بلا مُنتقي أعمدةٍ أسوأُ من
+     قياسٍ مبكّر. */
+  function boot() {
+    var fired = false;
+    function go() {
+      if (fired) return;
+      fired = true;
+      window.setTimeout(start, 0);
+    }
+    if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+      document.fonts.ready.then(go);
+      window.setTimeout(go, 1500);
+    } else {
+      go();
+    }
+  }
+
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
+    document.addEventListener("DOMContentLoaded", boot);
   } else {
-    start();
+    boot();
   }
 })();

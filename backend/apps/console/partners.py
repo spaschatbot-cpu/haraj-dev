@@ -265,12 +265,26 @@ def offers(request, pk: int):
         .order_by("-amount", "placed_at")
     )
 
+    # **قطعةٌ للنافذة، أو الصفحةُ كاملة — من العرض نفسِه.** T966
+    #
+    # طلبُ المالك: «قائمة المزايدين عايزها بوباب يعرض قائمة المزايدين بس».
+    # وقالبٌ ثانٍ يقرأ استعلاماً ثانياً كان سيتفارق مع الصفحة عند أوّل إصلاح
+    # — وهو عطلُ T922 بعينه. فالاستعلامُ واحدٌ والقالبان وجهان له.
+    from .sensitive import shown_to
+
+    seen = shown_to(request.user)
+    modal = request.GET.get("modal") == "1" or request.headers.get(
+        "X-Requested-With"
+    ) == "fetch"
+
     return render(
         request,
-        "console/partner_offers.html",
+        "console/_partner_offers_modal.html" if modal else "console/partner_offers.html",
         {
             "vehicle": vehicle,
             "bids": bids,
+            "show_money": seen.money,
+            "show_customer": seen.customer,
             # The number the partner is being asked about. Absent until there
             # is an award — an unawarded car has no accepted offer, and showing
             # the highest bid in that slot is exactly the v1 confusion.

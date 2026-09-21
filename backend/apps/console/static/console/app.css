@@ -12933,10 +12933,20 @@ a.pager__num:hover, a.pager__step:hover {
 }
 .of-table td.mono { font-size: .76rem; color: var(--ink-soft); }
 .of-table .pv-name { text-align: start; }
-.of-table td.actions { min-inline-size: 0; }
+/* **وخليّةُ الأفعال خليّةُ جدولٍ لا شبكة.** القاعدةُ العامّة
+   `td.actions { display: grid; grid-template-columns: repeat(3, 1.85rem) }`
+   مقاسُ أزرارِ رسمٍ ثلاثة؛ وهذه فيها زرّان بنصٍّ ورسمان، فيُحشَر محتواها في
+   مسارٍ عرضُه ٢٩٫٦ ويفيض من داخل الخليّة. و`scrollWidth` يعدُّ ذلك الفائضَ
+   فائضَ جدول — فيبقى «الجدولُ يفيض ٢٩ بكسلاً» مهما أُخفي من أعمدة، ولا رابطَ
+   بين السبب والعَرَض. قِيس: محتوىً ٢٧٧ في خليّةٍ ٢٤٧، في الخمسين صفّاً. */
+.of-table td.actions { display: table-cell; min-inline-size: 0; }
 .of-acts {
   display: flex;
-  flex-wrap: nowrap;
+  /* **يلتفُّ عند الضيق** — شبكةُ أمانٍ لا خيارَ أوّل. الخليّةُ لها حدٌّ أدنى
+     أسفلَ هذا، فالالتفافُ لا يقع إلّا على شاشةٍ أضيق. وبلا `wrap` يفيض
+     المحتوى من داخل الخليّة، و`scrollWidth` يعدّه — فيبقى الجدولُ «فائضاً»
+     مهما أُخفي من أعمدة. قِيس: ٢٦٤ بكسلاً في خليّةٍ ٢٢١. */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: .2rem;
@@ -12949,16 +12959,20 @@ a.pager__num:hover, a.pager__step:hover {
 
    ١) خانةُ الأفعال لها **حدٌّ أدنى**: `table-layout: auto` كان يعطيها ١٠٨
       ومحتواها ١٣٩، فتفيض من داخلها — والفائضُ يُحسَب في `scrollWidth` وإن
-      كان مجموعُ الأعمدة مساوياً للحاوية تماماً. وقِيس السلَّمُ كلُّه على
-      الشاشة: ٩٫٥rem → ١٥ بكسلاً، و١٠ → ١١، و١٠٫٥ → ٧، و١١ → ٣،
-      و**١١٫٥ → صفر**. وتصغيرُ الخطّ لا يُزحزحه — جرّبتُ ٠٫٧٦ و٠٫٧٤ فبقي
-      سبعةً: القيدُ بنيويٌّ لا نصّيّ.
+      كان مجموعُ الأعمدة مساوياً للحاوية تماماً — و`scrollWidth` يعدُّ فائضَ
+      الخليّة من داخلها. و**١٣rem تسع محتواها** (٢٠٢ بكسلاً بعد أن عاد
+      «قبول» و«رفض» كلمتين): دونها يفيض من داخلها فلا يراه المُقلِّص أصلاً،
+      وبها يصير الفائضُ فائضَ جدولٍ صادقاً — فيُخفي «معرف المركبة» ويتّسع.
+
+      وتصغيرُ الخطّ لا يُزحزح شيئاً: جُرّب ٠٫٧٦ و٠٫٧٤ فبقي الفائضُ كما هو.
+      والأعمدةُ الثلاثةَ عشرَ الأخرى عند حدودها الدنيا — كلُّ ١٦ بكسلاً تُزاد
+      للأفعال تُعيد ٨ فقط.
    ٢) والفراغُ بين الأزرار ٠٫٢ بدل ٠٫٣ — ١٤٠ تصير ١٢٣.
    ٣) وسقوفُ القصّ أضيقُ من العامّة: اسمُ المزايد وحدَه كان ١٩٩ بكسلاً.
    ٤) وحبّةُ التعادل «تعادُل ×٢» لا جملةً: الطويلةُ كانت تفرض ١٥٠ على عمود
       الاسم في صفٍّ واحدٍ من ٢٥٦. */
 .of-table th[data-col="actions"],
-.of-table td.actions { min-inline-size: 11.5rem; }
+.of-table td.actions { min-inline-size: 13rem; }
 .of-table .clip-name,
 .of-table .clip-model { --clip: 7.5rem; }
 .of-table .clip-buyer { --clip: 7rem; }
@@ -13031,3 +13045,20 @@ a.of-nav__card:hover {
 .act--yes:hover { background: var(--ok); border-color: var(--ok); color: #fff; }
 .act--no { color: var(--danger); border-color: var(--danger-line); }
 .act--no:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+/* نافذةُ المزايدين — أوسعُ من نافذة النماذج: خمسةُ أعمدةٍ فيها حقلُ سببٍ وزرّ. */
+.bidders-modal { inline-size: min(56rem, 94vw); padding: 0; }
+.bidders-modal .modal__head { padding: 1rem 1.1rem .6rem; position: relative; }
+.bidders-modal .modal__head h2 { margin: 0; }
+.bidders-modal .modal__head p { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); }
+.bidders-modal .modal__close {
+  position: absolute; inset-block-start: .8rem; inset-inline-start: .9rem;
+  background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem;
+}
+.bidders-modal .scroller { padding-inline: 1.1rem; }
+.bidders-modal .modal__foot { padding: .8rem 1.1rem 1rem; font-size: .82rem; }
+.of-bidders th, .of-bidders td { padding: .45rem .5rem; font-size: .82rem; text-align: center; }
+.of-bidders tr.is-awarded { background: var(--ok-soft); }
+.of-award { display: flex; gap: .35rem; margin: 0; padding: 0; max-width: none;
+  background: none; border: 0; box-shadow: none; }
+.of-award input[type="text"] { inline-size: 9rem; min-inline-size: 0; }

@@ -61,6 +61,45 @@
     });
   }
 
+  /* ── نافذةُ المزايدين ─────────────────────────────────────────────────────
+     طلبُ المالك: «قائمة المزايدين عايزها بوباب يعرض قائمة المزايدين بس».
+     وتُجلَب من `partners.offers` نفسِها بـ`?modal=1` — لا استعلامَ ثانٍ ولا
+     قالبَ يتفارق مع صفحته.
+
+     و«رسِّ على هذا» داخلها **يُرسَل كنموذجٍ عاديّ** لا بـAJAX: الترسيةُ فعلٌ
+     يغيّر الفاتورةَ والحجزَ ويكتب السجلَّ، ونتيجتُه رسالةٌ تُقرأ على الصفحة.
+     وصفحةٌ تُعاد بعده أصدقُ من نافذةٍ تُغلَق صامتةً. */
+  var bidders = document.querySelector("[data-bidders-dialog]");
+  var bidBody = bidders ? bidders.querySelector("[data-bidders-body]") : null;
+
+  if (bidders && bidBody && bidders.showModal) {
+    document.querySelectorAll("[data-bidders]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        bidBody.innerHTML = '<p class="empty">تُحمَّل قائمةُ المزايدين…</p>';
+        bidders.showModal();
+        fetch(button.getAttribute("data-url"), {
+          credentials: "same-origin",
+          headers: { "X-Requested-With": "fetch" },
+        })
+          .then(function (response) {
+            if (!response.ok) throw new Error(response.status);
+            return response.text();
+          })
+          .then(function (html) {
+            bidBody.innerHTML = html;
+            var closer = bidBody.querySelector("[data-modal-close]");
+            if (closer) {
+              closer.addEventListener("click", function () { bidders.close(); });
+            }
+          })
+          .catch(function () {
+            bidBody.innerHTML =
+              '<p class="empty">تعذّر تحميلُ قائمة المزايدين — أعِد المحاولة.</p>';
+          });
+      });
+    });
+  }
+
   // ── حارسُ الحكم ──────────────────────────────────────────────────────────
   document.querySelectorAll("[data-decide]").forEach(function (form) {
     form.addEventListener("submit", function (event) {

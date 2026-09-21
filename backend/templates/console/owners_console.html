@@ -133,24 +133,34 @@
         {% comment %} **أربعةَ عشرَ عموداً — هي أعمدةُ v1 بعينها وبترتيبها**
            (`admin2/bills/index.php:365-380`).
 
-           **و`data-keep` على ثلاثةَ عشرَ منها.** التقليصُ التلقائيُّ يُخفي
+           **و`data-keep` على أحدَ عشرَ منها.** التقليصُ التلقائيُّ يُخفي
            الأعرضَ حتى يتّسع الجدول (`columns_auto.js`)، وهو هنا يختار من بين
            أعمدةٍ طلبها المالكُ بعينها. فالمصونُ كلُّها إلّا **«معرف المركبة»**:
            هو مفتاحُ قاعدةِ بياناتٍ داخليّ، أقلُّ ما يُقرأ في مسحِ صفوفٍ وأكثرُ
            ما يُستغنى عنه — ويعود بضغطةٍ من «تخصيص الأعمدة».
 
+           **وأربعةٌ تحمل `data-drop`**: «معرف المركبة» و«تسويقي» و«عرض
+           الصور» و«الطراز». والأخيرُ لسببٍ في بياناتنا لا في الشاشة: قِيس
+           على ١٣٬٠٣١ مركبةً أن `make` و`model` **متطابقان في ١٢٬٥٧٧** منها
+           (٩٦٪) — فالعمودان يعرضان النصَّ نفسَه في تسعةَ عشرَ صفّاً من
+           عشرين. وأربعةَ عشرَ عموداً مع «قبول» و«رفض» **بالكلمة** تحتاج نحو
+           ١٥٠٠ بكسلاً، والمتاحُ على شاشةٍ 1440 هو ١٣٧٢ — قِيس الفائضُ ٤٩.
+           فإمّا تمريرٌ أفقيٌّ يرفضه المالك، أو عمودان يتنحّيان. وهذان
+           أقلُّها إخباراً: العلَمُ نفسُه في كلّ الصفوف تقريباً، والصورُ نافذةٌ
+           تُفتح بالضغط لا بياناً يُمسَح.
+
            وهذا يجعل ما يُخفى **معروفاً سلفاً**، لا ما يقع عليه قياسُ العرض في
-           تلك اللحظة. {% endcomment %}
+           تلك اللحظة. وكلُّه يعود بضغطةٍ من «تخصيص الأعمدة». {% endcomment %}
         <thead>
           <tr>
             <th data-col="id" data-drop>معرف المركبة</th>
-            <th data-col="mkt" data-keep>تسويقي</th>
+            <th data-col="mkt" data-drop>تسويقي</th>
             <th data-col="lot" data-keep>موقف المركبة</th>
             <th data-col="car" data-keep>اسم المركبة</th>
             <th data-col="year" data-keep>الموديل</th>
             <th data-col="plate" data-keep>رقم اللوحة</th>
-            <th data-col="model" data-keep>الطراز</th>
-            <th data-col="images" data-keep>عرض الصور</th>
+            <th data-col="model" data-drop>الطراز</th>
+            <th data-col="images" data-drop>عرض الصور</th>
             <th data-col="offer" data-keep>السعر</th>
             <th data-col="total" data-keep>السعر شامل الضريبة</th>
             <th data-col="bidder" data-keep>اسم أعلى مزايد</th>
@@ -233,7 +243,17 @@
                  والقبولُ والرفضُ يذهبان إلى `partner-award-top` و
                  `partner-reject`: تُرسيان وتكتبان السجلَّ وتغلقان المزادَ
                  وتحرّران تأميناتِ الخاسرين — بابٌ إلى منطقٍ قائم، لا نسخةٌ
-                 ثانيةٌ منه. {% endcomment %}
+                 ثانيةٌ منه.
+
+                 **والقبولُ والرفضُ بالنصّ، والآخران رسمان.** جعلتُها أربعتَها
+                 رسوماً ليتّسع الجدول، فسأل المالكُ: «فين زرار قبول؟؟؟؟» —
+                 وهو الجواب: هذان فعلان لا رجعةَ لهما يُبحَث عنهما بالكلمة، لا
+                 يُخمَّنان من رسمٍ في ٢٥ بكسلاً. وذانك وجهتان إلى **الصفحة
+                 نفسِها** (كما في v1: زرّاه يناديان `showBiddersModal` معاً)،
+                 فنصُّهما أقلُّ لزوماً، ويبقى في `title` و`aria-label`.
+
+                 والخليّةُ بذلك ١٦٥ بكسلاً لا ٣٩٤ — والأربعةَ عشرَ عموداً
+                 تبقى. {% endcomment %}
               {% comment %} والأزرارُ في `div` داخل الخليّة لا في الخليّة
                  نفسِها: `max-inline-size` على `<td>` تلميحٌ لا قيدٌ حين
                  `table-layout: auto` — يوسّع المتصفّحُ العمودَ فوق السقف متى
@@ -247,25 +267,33 @@
                       <form method="post" action="{% url 'console:partner-award-top' car.pk %}" class="ex-inline"
                             data-decide="قبولُ أعلى عرضٍ على الموقف {{ car.lot_number|unlocalize }} — {{ car.make }}؟">
                         {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                        <button type="submit" class="act act--yes" title="قبول" aria-label="قبول أعلى عرضٍ على الموقف {{ car.lot_number|unlocalize }}">
-                          {% include "console/_act_icon.html" with path=icon_yes %}</button>
+                        <button type="submit" class="dc-btn dc-btn--yes" aria-label="قبول أعلى عرضٍ على الموقف {{ car.lot_number|unlocalize }}">قبول</button>
                       </form>
                     {% endif %}
                     <form method="post" action="{% url 'console:partner-reject' car.pk %}" class="ex-inline"
                           data-decide="رفضُ كلّ العروض على الموقف {{ car.lot_number|unlocalize }} — {{ car.make }}؟ لا فائزَ لها.">
                       {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-                      <button type="submit" class="act act--no" title="رفض" aria-label="رفضُ كلّ العروض على الموقف {{ car.lot_number|unlocalize }}">
-                        {% include "console/_act_icon.html" with path=icon_no %}</button>
+                      <button type="submit" class="dc-btn dc-btn--no" aria-label="رفضُ كلّ العروض على الموقف {{ car.lot_number|unlocalize }}">رفض</button>
                     </form>
                   </span>
                 {% endif %}
-                <a class="act" href="{% url 'console:partner-offers' car.pk %}"
-                   title="تعديل الأسعار — يكون عندنا باعتماد عرضٍ آخر من صفحة العروض"
-                   aria-label="تعديل أسعار الموقف {{ car.lot_number|unlocalize }}">
-                  {% include "console/_act_icon.html" with path=icon_price %}</a>
-                <a class="act" href="{% url 'console:partner-offers' car.pk %}"
-                   title="قائمة المزايدين" aria-label="قائمة المزايدين على الموقف {{ car.lot_number|unlocalize }}">
-                  {% include "console/_act_icon.html" with path=icon_offers %}</a>
+                {% comment %} **نافذةٌ لا صفحة** — طلبُ المالك: «قائمة
+                   المزايدين عايزها بوباب يعرض قائمة المزايدين بس». ومن يقارن
+                   العرضَ الثانيَ بالأوّل على أربعين مركبةً كان يفتح أربعين
+                   صفحةً ويعود أربعين.
+
+                   والزرّان يفتحان النافذةَ نفسَها — **كما في v1 حرفياً**:
+                   `showBiddersModal` هي ما يناديه زرّاه. والسعرُ يتغيّر من
+                   داخلها باعتماد عرضٍ آخر. {% endcomment %}
+                <button type="button" class="act" data-bidders
+                        data-url="{% url 'console:partner-offers' car.pk %}?modal=1"
+                        title="تعديل الأسعار — باعتماد عرضٍ آخر من قائمة المزايدين"
+                        aria-label="تعديل أسعار الموقف {{ car.lot_number|unlocalize }}">
+                  {% include "console/_act_icon.html" with path=icon_price %}</button>
+                <button type="button" class="act" data-bidders
+                        data-url="{% url 'console:partner-offers' car.pk %}?modal=1"
+                        title="قائمة المزايدين" aria-label="قائمة المزايدين على الموقف {{ car.lot_number|unlocalize }}">
+                  {% include "console/_act_icon.html" with path=icon_offers %}</button>
                 </div>
               </td>
             </tr>
@@ -328,6 +356,12 @@
        شاشةُ المزاد — قالبٌ واحدٌ لمعرضٍ واحد. {% endcomment %}
     <dialog class="modal images-modal" data-gallery-dialog>
       <div data-gallery-body></div>
+    </dialog>
+
+    {% comment %} نافذةُ المزايدين — تُجلَب عند الضغط من `partners.offers`
+       نفسِها بـ`?modal=1`. {% endcomment %}
+    <dialog class="modal bidders-modal" data-bidders-dialog>
+      <div data-bidders-body></div>
     </dialog>
   {% endif %}
 {% endblock %}

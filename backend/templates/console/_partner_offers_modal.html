@@ -1,0 +1,71 @@
+{% load l10n %}
+{% comment %}
+قائمةُ المزايدين في نافذة — نظيرُ `showBiddersModal` في v1. T966
+
+طلبُ المالك (٢١ سبتمبر ٢٠٢٦): «قائمة المزايدين عايزها بوباب يعرض قائمة
+المزايدين بس». وكان الزرُّ يفتح **صفحةً** فيخرج من الجدول: من يقارن العرضَ
+الثانيَ بالأوّل على أربعين مركبةً يفتح أربعين صفحةً ويعود أربعين — وهو نفسُه
+ما قيل في `partners.award_top` عن أزرار الحكم.
+
+وهذه **قطعةٌ من صفحة العروض لا نسخةٌ ثانية**: العرضُ نفسُه يردّها
+(`partners.offers` بـ`?modal=1`)، والاستعلامُ واحدٌ والترتيبُ واحد. فما يُقرأ
+في النافذة هو ما يُقرأ في الصفحة بحكم البناء.
+
+والصفحةُ الكاملةُ تبقى: فيها الرفضُ وسعرُ الوقوف وحالةُ المركبة، ورابطُها في
+ذيل النافذة لمن يحتاجها.
+{% endcomment %}
+<header class="modal__head">
+  <h2>قائمة المزايدين — لوت {{ vehicle.lot_number|unlocalize }}</h2>
+  <p>{{ vehicle.make }} {{ vehicle.year|unlocalize }} · {{ bids|length }} عرضاً قائماً</p>
+  <button type="button" class="modal__close" data-modal-close aria-label="إغلاق">✕</button>
+</header>
+
+<div class="scroller">
+  <table class="of-bidders">
+    <thead>
+      <tr><th>المزايد</th><th>الجوال</th><th>المبلغ</th><th>وقتها</th><th>الترسية</th></tr>
+    </thead>
+    <tbody>
+      {% for bid in bids %}
+        <tr{% if bid.bidder_id == vehicle.awarded_to_id %} class="is-awarded"{% endif %}>
+          <td>
+            {% if show_customer %}{{ bid.bidder.full_name }}
+            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+            {% if bid.bidder_id == vehicle.awarded_to_id %}<strong>(المقبول)</strong>{% endif %}
+          </td>
+          <td class="mono">
+            {% if show_customer %}{{ bid.bidder.phone|unlocalize }}
+            {% else %}<span class="empty">محجوب</span>{% endif %}
+          </td>
+          <td class="money">
+            {% if show_money %}{{ bid.amount|unlocalize }}
+            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+          </td>
+          <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+          {% comment %} **وهذا هو «تعديل الأسعار» عندنا.** v1 يكتب فوق
+             `bids.amount`؛ والمزايدةُ عرضٌ قانونيٌّ وقع فلا يُكتب فوقه. فالسعرُ
+             يتغيّر باعتماد عرضٍ آخر: `replace_winner` تُلغي الفاتورةَ الأولى
+             وتفكّ حجزَ الفائز الأوّل في المعاملة نفسِها.
+
+             والسببُ حقلٌ لأن `replace_winner` **تشترطه**: من يسأل بعد شهرٍ
+             «لماذا تغيّر الفائز؟» لا يجيبه صفٌّ بسببٍ فارغ. {% endcomment %}
+          <td>
+            <form method="post" action="{% url 'console:partner-award' vehicle.pk %}" class="of-award">
+              {% csrf_token %}
+              <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
+              <input type="text" name="reason" maxlength="200"
+                     placeholder="السبب…" aria-label="سبب الترسية أو نقلها">
+              <button type="submit" class="btn-sm">رسِّ على هذا</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="empty">لا عروض قائمة على هذه المركبة.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<footer class="modal__foot">
+  <a href="{% url 'console:partner-offers' vehicle.pk %}">صفحة العروض الكاملة — فيها الرفضُ وسعرُ الوقوف ←</a>
+</footer>
