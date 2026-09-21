@@ -10,7 +10,7 @@
 فمن دخل من قسم الشريك يقرأ حصّةً ليست له، ويرى أزرارَ إدارةٍ لا شأنَ لسؤاله
 بها.
 
-ولا تحكم هذه الصفحة: القبولُ والرفضُ في «اتخاذ القرار» وحدَها كما في v1.
+ولا تحكم هذه الصفحة: القبولُ والرفضُ في «اتخاذ القرار للشريك» وحدَها كما في v1.
 {% endcomment %}
 {% block title %}سيارات الشريك في مزاد {{ auction.number|unlocalize }}{% endblock %}
 {% block heading %}مزاد {{ auction.number|unlocalize }}{% if company %} <small>{{ company.name }}</small>{% endif %}{% endblock %}
@@ -36,7 +36,7 @@
 
   {% if cars %}
     {% comment %} الأعمدةُ أعمدةُ v1، والقرارُ عمودُ قراءةٍ لا زرَّين: هذه
-       الصفحةُ للاطّلاع، والحكمُ في «اتخاذ القرار» — فلا يكون له مدخلان
+       الصفحةُ للاطّلاع، والحكمُ في «اتخاذ القرار للشريك» — فلا يكون له مدخلان
        أحدُهما بلا شرط انتهاء المزاد (٤٠٩ في v1). {% endcomment %}
     <div class="scroller scroller--wide">
       <table class="pd-tbl">
@@ -103,7 +103,7 @@
       <p class="notice notice--soft">
         {{ pending|unlocalize }} من سياراته في هذا المزاد تنتظر حكمَه —
         والقرار يُتخذ من
-        <a href="{% url 'console:partner-decisions' %}?partner={{ partner }}&amp;auction={{ auction.number|unlocalize }}">صفحة اتخاذ القرار</a>،
+        <a href="{% url 'console:partner-decisions' %}?partner={{ partner }}&amp;auction={{ auction.number|unlocalize }}">صفحة اتخاذ القرار للشريك</a>،
         وبعد انتهاء المزاد فقط.
       </p>
     {% endif %}
