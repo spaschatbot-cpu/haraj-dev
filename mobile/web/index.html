@@ -34,13 +34,271 @@
 </head>
 <body>
   <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+    شاشة البدء للويب — نسخةُ HTML من شاشة البدء الدارتيّة.
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+    حزمةُ الويب اثنا عشر ميغابايت تُنقل قبل أوّل إطارٍ من Flutter، وطوال ذلك
+    كانت الصفحةُ بيضاءَ فارغة تُقرأ عطلاً لا تحميلاً. وشاشةُ البدء الدارتيّة
+    لا تنفع هنا: هي نفسُها داخل تلك الحزمة.
+
+    ولماذا تُكتب مرّتين: كانت هذه شعاراً وسطراً فقط، فرآها المالك ناقصةً
+    بجانب التصميم. والصورةُ الأولى التي تُرى يجب أن تكون الصورةَ نفسَها،
+    وإلا قُرئ الانتقالُ إلى الدارتيّة قفزةً بين شاشتين. والألوانُ والمقاسات
+    من HarajPalette نفسِها — من بدّلها هناك يبدّلها هنا.
+
+    وما لا يُنسخ: النسبةُ والزرّ. النسبةُ في الدارتيّة كسرٌ من خطواتٍ منتهية،
+    ولا خطواتِ هنا تُقاس — فرقمٌ في HTML يكون مُخترعاً. والزرُّ بابٌ لا يفتح
+    شيئاً قبل أن تصل الحزمة. فشريطٌ بلا رقمٍ وبلا زرّ: يقول «يجري تحميل»
+    ولا يدّعي كم، ولا يعد بما لا يملك.
   -->
+  <style>
+    #boot {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      /* stretch لا center: الأبناءُ الذين يملأون العرض كانوا يأخذونه
+         بـinline-size:100% فيخرجون عن الحشوة ويُقصُّ آخرُ كلِّ سطر — رُئي
+         في اللقطة. وبـstretch يأخذون عرضَ المحتوى بلا نسبة، ومن يُتوسَّط
+         يُتوسَّط بـalign-self. */
+      align-items: stretch;
+      padding: 18px 24px 22px;
+      box-sizing: border-box;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0E2136 0%, #050D17 100%);
+      font-family: "IBMPlexSansArabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+      color: #fff;
+      direction: rtl;
+      transition: opacity .25s ease;
+    }
+    #boot.gone { opacity: 0; pointer-events: none; }
+
+    /* الشبكةُ والوهج — نظيرا _Backdrop و RadialGradient في دارت. */
+    #boot::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(143,196,247,.05) 1px, transparent 1px) 0 0 / 100% 34px,
+        linear-gradient(90deg, rgba(143,196,247,.05) 1px, transparent 1px) 0 0 / 34px 100%,
+        radial-gradient(60% 45% at 50% 39%, rgba(46,134,224,.20), transparent 70%);
+    }
+    #boot > * { position: relative; }
+
+    .boot-chip {
+      align-self: center;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      font-size: .78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.86);
+      white-space: nowrap;
+    }
+    .boot-live {
+      inline-size: 7px;
+      block-size: 7px;
+      border-radius: 50%;
+      background: #1F5F46;
+      box-shadow: 0 0 7px #1F5F46;
+    }
+
+    .boot-grow { flex: 1 1 auto; min-block-size: 8px; }
+
+    .boot-mark {
+      align-self: center;
+      position: relative;
+      inline-size: 236px;
+      block-size: 236px;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+    }
+    .boot-ring {
+      position: absolute;
+      inline-size: 236px;
+      block-size: 236px;
+      border-radius: 50%;
+      border: 1px solid rgba(143,196,247,.10);
+    }
+    .boot-ring.inner {
+      inline-size: 188px;
+      block-size: 188px;
+      border-color: rgba(143,196,247,.16);
+    }
+    .boot-mark img {
+      inline-size: 168px;
+      block-size: 168px;
+      object-fit: contain;
+      padding: 14px;
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(46,134,224,.22), transparent 70%);
+    }
+    .boot-badge {
+      position: absolute;
+      inset-block-end: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #1C6FD6;
+      box-shadow: 0 4px 18px rgba(28,111,214,.45);
+      font-size: .75rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .boot-title {
+      margin: 26px 0 0;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -.4px;
+      text-align: center;
+    }
+    .boot-tagline {
+      margin: 10px 0 0;
+      font-size: .9rem;
+      line-height: 1.6;
+      color: #8FC4F7;
+      text-align: center;
+    }
+
+    .boot-features {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-block-start: 20px;
+    }
+    .boot-features i {
+      inline-size: 3px;
+      block-size: 3px;
+      border-radius: 50%;
+      background: rgba(143,196,247,.5);
+    }
+    .boot-features span {
+      padding: 7px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      font-size: .78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.9);
+    }
+
+    .boot-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,.82);
+    }
+    .boot-status b {
+      inline-size: 7px;
+      block-size: 7px;
+      border-radius: 50%;
+      background: #8FC4F7;
+    }
+    .boot-bar {
+      block-size: 6px;
+      margin-block-start: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      overflow: hidden;
+      position: relative;
+    }
+    .boot-bar::after {
+      content: "";
+      position: absolute;
+      inset-block: 0;
+      inline-size: 38%;
+      border-radius: 999px;
+      background: #1C6FD6;
+      animation: boot-slide 1.2s ease-in-out infinite;
+    }
+    @keyframes boot-slide {
+      0%   { transform: translateX(120%); }
+      100% { transform: translateX(-300%); }
+    }
+
+    .boot-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-block-start: 22px;
+      font-size: .7rem;
+      color: rgba(143,196,247,.65);
+    }
+
+    /* من أطفأ الحركة يرى شريطاً ثابتاً لا نبضاً لا يتوقّف. */
+    @media (prefers-reduced-motion: reduce) {
+      .boot-bar::after { animation: none; inline-size: 35%; inset-inline-start: 0; }
+      #boot { transition: none; }
+    }
+
+    /* على شاشةٍ قصيرة يصغر الشعارُ بدل أن يُقصَّ الذيل. */
+    @media (max-height: 720px) {
+      .boot-mark, .boot-ring { inline-size: 168px; block-size: 168px; }
+      .boot-ring.inner { inline-size: 134px; block-size: 134px; }
+      .boot-mark img { inline-size: 120px; block-size: 120px; }
+      .boot-title { font-size: 1.45rem; margin-block-start: 18px; }
+      .boot-features { margin-block-start: 14px; }
+    }
+  </style>
+
+  <div id="boot" role="status" aria-live="polite">
+    <div class="boot-chip">
+      <span class="boot-live"></span>
+      بوابة المزادات الرقميّة المعتمدة
+      <span aria-hidden="true">✔</span>
+    </div>
+
+    <div class="boot-grow"></div>
+
+    <div class="boot-mark">
+      <span class="boot-ring"></span>
+      <span class="boot-ring inner"></span>
+      <img src="logo.png" alt="">
+      <span class="boot-badge">مزادٌ حيٌّ ومعتمد <span aria-hidden="true">✔</span></span>
+    </div>
+
+    <h1 class="boot-title">مزاد حراج واحد</h1>
+    <p class="boot-tagline">المنصّة الأولى لمزادات السيارات الفاخرة والنادرة بالمملكة</p>
+
+    <div class="boot-features">
+      <span>فحصٌ معتمد</span><i></i><span>مزايدةٌ حيّة</span><i></i><span>ضمانُ النقل</span>
+    </div>
+
+    <div class="boot-grow"></div>
+
+    <div class="boot-status"><b></b> جارٍ تحميل التطبيق…</div>
+    <div class="boot-bar" aria-hidden="true"></div>
+
+    <div class="boot-foot">
+      <span>المملكة العربية السعودية • الرياض</span>
+      <span>الإصدار 1.0.0</span>
+    </div>
+  </div>
+
+  <script>
+    // flutter-first-frame لا load: الثاني يقع حين تصل الملفّات، وبينه وبين
+    // أوّل إطارٍ مرسومٍ ثوانٍ على جهازٍ بطيء — فتُرفع الشاشة على بياض.
+    window.addEventListener('flutter-first-frame', function () {
+      var boot = document.getElementById('boot');
+      if (!boot) return;
+      boot.classList.add('gone');
+      setTimeout(function () { boot.remove(); }, 300);
+    });
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

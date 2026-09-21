@@ -2371,6 +2371,240 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'من تأمينك مرتبطٌ الآن'**
   String get walletInsuranceCommitted;
+
+  /// سطرٌ تحت الشعار في شاشة البدء يقول ما هي المنصّة
+  ///
+  /// In ar, this message translates to:
+  /// **'المنصة الأولى لمزادات السيارات الفاخرة والنادرة بالمملكة'**
+  String get splashTagline;
+
+  /// وصفُ مؤشّر التحميل في شاشة البدء — يقرؤه قارئُ الشاشة
+  ///
+  /// In ar, this message translates to:
+  /// **'جار تجهيز التطبيق'**
+  String get splashLoadingLabel;
+
+  /// شارةٌ على حافّة الشعار في شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'مزاد حي ومعتمد'**
+  String get splashLiveBadge;
+
+  /// اسمُ المنصّة كما يُعرض في شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'مزاد حراج واحد'**
+  String get splashHeadline;
+
+  /// خطوةُ الإقلاع الأولى في شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'تهيئة الواجهة…'**
+  String get splashStepBoot;
+
+  /// خطوةُ قراءة التخزين الآمن
+  ///
+  /// In ar, this message translates to:
+  /// **'التحقق من الجلسة…'**
+  String get splashStepSession;
+
+  /// خطوةُ جلب أوّل صفحة مزادات
+  ///
+  /// In ar, this message translates to:
+  /// **'مزامنة لوحة المزايدات الحية…'**
+  String get splashStepAuctions;
+
+  /// الحالةُ بعد اكتمال خطوات الإقلاع
+  ///
+  /// In ar, this message translates to:
+  /// **'جاهز'**
+  String get splashStepReady;
+
+  /// حين يفشل جلبُ المزادات في شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذرت المزامنة — تعاد داخل التطبيق'**
+  String get splashStepOffline;
+
+  /// زرُّ الدخول في شاشة البدء — لا تُغادَر الشاشةُ إلا بضغطه
+  ///
+  /// In ar, this message translates to:
+  /// **'التالي'**
+  String get splashEnter;
+
+  /// سطرُ الموقع في ذيل شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'المملكة العربية السعودية • الرياض'**
+  String get splashPlace;
+
+  /// رقمُ الإصدار في ذيل شاشة البدء
+  ///
+  /// In ar, this message translates to:
+  /// **'الإصدار {version}'**
+  String splashVersion(String version);
+
+  /// زرُّ تخطّي شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي'**
+  String get welcomeSkip;
+
+  /// سطرٌ تحت اسم المنصّة في رأس شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'المنصة الرسمية المعتمدة'**
+  String get welcomeBrandLine;
+
+  /// شارةٌ فوق عنوان شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'نخبة السيارات والمقتنيات النادرة'**
+  String get welcomeEyebrow;
+
+  /// الجزءُ الأوّل من عنوان شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'أندر المزادات الفاخرة،'**
+  String get welcomeHeadlineLead;
+
+  /// الجزءُ الملوَّن من عنوان شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'بين يديك'**
+  String get welcomeHeadlineAccent;
+
+  /// سطرُ الشرح في شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدة حية وموثقة بشفافية مطلقة، بضمان وإشراف رسمي.'**
+  String get welcomeBody;
+
+  /// زرُّ الدخول في شاشة الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'استكشف المزادات الحية'**
+  String get welcomeCta;
+
+  /// وصفُ نقاط الصفحات لقارئ الشاشة
+  ///
+  /// In ar, this message translates to:
+  /// **'الخطوة {index} من {total}'**
+  String welcomeStep(String index, String total);
+
+  /// شارة البث الحي على صورة كرت الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'مباشر'**
+  String get welcomeLive;
+
+  /// رقم اللوت على صورة كرت الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'اللوت {lot}'**
+  String welcomeLot(String lot);
+
+  /// عدد المركبات النشطة على صورة كرت الترحيب
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} مركبة نشطة'**
+  String welcomeActiveVehicles(String count);
+
+  /// شارة فوق عنوان الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'منصة المزادات المعتمدة'**
+  String get exploreEyebrow;
+
+  /// عنوان الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'كل ما تحتاجه لبيع وشراء سيارتك بالمزاد'**
+  String get exploreHeadline;
+
+  /// سطر الشرح في الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'تصفح مئات المركبات المفحوصة يومياً، مع ضمان نقل الملكية والدفع الإلكتروني الآمن وإمكانية الشحن لكافة المدن.'**
+  String get exploreBody;
+
+  /// شارة خدمة على صورة الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'تسليم مفتاح فوري'**
+  String get exploreChipKeys;
+
+  /// شارة خدمة على صورة الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'ضمان نقل الملكية'**
+  String get exploreChipTransfer;
+
+  /// شارة خدمة على صورة الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'شحن لكل المدن'**
+  String get exploreChipShipping;
+
+  /// زر الدخول في الصفحة الثالثة
+  ///
+  /// In ar, this message translates to:
+  /// **'ابدأ التصفح والمزايدة'**
+  String get exploreCta;
+
+  /// سطر تحت اسم المنصة في شاشة الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدة مغلقة على سيارات المزاد — من جوالك'**
+  String get signInTagline;
+
+  /// عنوان شريط المزاد في شاشة الدخول حين يكون جارياً
+  ///
+  /// In ar, this message translates to:
+  /// **'المزاد الجاري'**
+  String get signInLiveAuction;
+
+  /// عنوان شريط المزاد في شاشة الدخول حين لا مزاد جارياً
+  ///
+  /// In ar, this message translates to:
+  /// **'المزاد القادم'**
+  String get signInNextAuction;
+
+  /// عدد مركبات المزاد على شريط شاشة الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} سيارة'**
+  String signInVehicleCount(String count);
+
+  /// ضمانة على شاشة الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدة مغلقة: لا يرى أحد مبلغك'**
+  String get signInAssuranceSealed;
+
+  /// ضمانة على شاشة الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'بلا كلمة مرور — رمز لمرة واحدة'**
+  String get signInAssuranceOtp;
+
+  /// ضمانة على شاشة الدخول
+  ///
+  /// In ar, this message translates to:
+  /// **'التأمين وديعة تسترد بطلب منك'**
+  String get signInAssuranceDeposit;
+
+  /// سطر تحت اسم المنصة في شاشة الرمز
+  ///
+  /// In ar, this message translates to:
+  /// **'خطوة أخيرة — الرمز في رسالة على جوالك'**
+  String get verifyTagline;
+
+  /// سطر يظهر لمن لا حساب له في شاشة الرمز
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.'**
+  String get verifyNewAccountHint;
 }
 
 class _AppLocalizationsDelegate

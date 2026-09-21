@@ -139,10 +139,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                     // دخولٌ متتابع: الشعارُ ثمّ الشريطُ ثمّ اللوحة. تأخيرٌ
                     // يقود العينَ من أعلى إلى الحقل، لا ثلاثُ ودجاتٍ تظهر
                     // معاً.
-                    const AuthEntrance(
+                    AuthEntrance(
                       child: AuthBrand(
-                        title: 'مزاد حراج واحد',
-                        subtitle: 'مزايدةٌ مغلقة على سيّارات المزاد — من جوّالك',
+                        title: l10n.splashHeadline,
+                        subtitle: l10n.signInTagline,
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -280,6 +280,7 @@ class _LiveAuctionStrip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = HarajPalette.of(context);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     // `asData` لا `when`: الشريطُ يظهر حين تصل البيانات ويغيب قبلها وعند
     // الفشل — ولا رسالةَ خطأٍ في بابِ الدخول عن شيءٍ تزيينيّ.
@@ -334,7 +335,7 @@ class _LiveAuctionStrip extends ConsumerWidget {
                 const SizedBox(width: 7),
               ],
               Text(
-                live ? 'المزاد الجاري' : 'المزاد القادم',
+                live ? l10n.signInLiveAuction : l10n.signInNextAuction,
                 style: theme.textTheme.labelMedium?.copyWith(
                   color: accent,
                   fontWeight: FontWeight.w700,
@@ -343,7 +344,7 @@ class _LiveAuctionStrip extends ConsumerWidget {
               const Spacer(),
               if (shown.vehiclesCount != null)
                 Text(
-                  '${shown.vehiclesCount} سيّارة',
+                  l10n.signInVehicleCount('${shown.vehiclesCount}'),
                   textDirection: TextDirection.rtl,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: Colors.white.withValues(alpha: 0.85),
@@ -397,14 +398,18 @@ class _Assurances extends StatelessWidget {
   final HarajPalette palette;
   final ThemeData theme;
 
-  static const List<(IconData, String)> _items = <(IconData, String)>[
-    (Icons.visibility_off_outlined, 'مزايدةٌ مغلقة: لا يرى أحدٌ مبلغك'),
-    (Icons.password_rounded, 'بلا كلمة مرور — رمزٌ لمرّةٍ واحدة'),
-    (Icons.savings_outlined, 'التأمينُ وديعةٌ تُسترَدّ بطلبٍ منك'),
-  ];
+  /// **تُبنى في `build` لا `static const`.** كانت ثابتةً ونصوصُها مكتوبةٌ
+  /// في الشيفرة؛ ونصُّ الترجمة يحتاج `BuildContext` فلا يكون ثابتاً.
+  List<(IconData, String)> _items(AppLocalizations strings) =>
+      <(IconData, String)>[
+        (Icons.visibility_off_outlined, strings.signInAssuranceSealed),
+        (Icons.password_rounded, strings.signInAssuranceOtp),
+        (Icons.savings_outlined, strings.signInAssuranceDeposit),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final items = _items(AppLocalizations.of(context));
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
@@ -415,14 +420,14 @@ class _Assurances extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          for (var index = 0; index < _items.length; index += 1) ...<Widget>[
+          for (var index = 0; index < items.length; index += 1) ...<Widget>[
             Row(
               children: <Widget>[
-                Icon(_items[index].$1, size: 16, color: palette.goldOnDark),
+                Icon(items[index].$1, size: 16, color: palette.goldOnDark),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _items[index].$2,
+                    items[index].$2,
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: palette.inkMuted,
                       height: 1.5,
@@ -431,7 +436,7 @@ class _Assurances extends StatelessWidget {
                 ),
               ],
             ),
-            if (index != _items.length - 1) const SizedBox(height: 9),
+            if (index != items.length - 1) const SizedBox(height: 9),
           ],
         ],
       ),

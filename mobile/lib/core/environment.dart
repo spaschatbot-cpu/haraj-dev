@@ -40,3 +40,16 @@ final class AppConfig {
   final AppEnvironment environment;
   final String apiBaseUrl;
 }
+
+/// رقمُ الإصدار كما يُعرض للمستخدم (ذيلُ شاشة البدء).
+///
+/// **مكتوبٌ مرّتين بالضرورة**: `version:` في `pubspec.yaml` هو ما تقرأه
+/// المتاجر، ودارت لا تراه. وقراءتُه وقتَ التشغيل تحتاج `package_info_plus` —
+/// حزمةً كاملةً من أجل سطرٍ واحد. فالقيمةُ تُمرَّر من أمر البناء
+/// (`--dart-define=HARAJ_APP_VERSION=…`) ويقرؤها CI من `pubspec` نفسِه، ولا
+/// تفترقان. والافتراضيُّ هنا يطابق `pubspec` اليوم، فبناءٌ يدويٌّ بلا تمرير
+/// لا يكذب.
+const String kAppVersion = String.fromEnvironment(
+  'HARAJ_APP_VERSION',
+  defaultValue: '1.0.0',
+);

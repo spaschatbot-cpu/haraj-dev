@@ -1357,4 +1357,135 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get walletInsuranceCommitted => 'من تأمينك مرتبطٌ الآن';
+
+  @override
+  String get splashTagline =>
+      'المنصة الأولى لمزادات السيارات الفاخرة والنادرة بالمملكة';
+
+  @override
+  String get splashLoadingLabel => 'جار تجهيز التطبيق';
+
+  @override
+  String get splashLiveBadge => 'مزاد حي ومعتمد';
+
+  @override
+  String get splashHeadline => 'مزاد حراج واحد';
+
+  @override
+  String get splashStepBoot => 'تهيئة الواجهة…';
+
+  @override
+  String get splashStepSession => 'التحقق من الجلسة…';
+
+  @override
+  String get splashStepAuctions => 'مزامنة لوحة المزايدات الحية…';
+
+  @override
+  String get splashStepReady => 'جاهز';
+
+  @override
+  String get splashStepOffline => 'تعذرت المزامنة — تعاد داخل التطبيق';
+
+  @override
+  String get splashEnter => 'التالي';
+
+  @override
+  String get splashPlace => 'المملكة العربية السعودية • الرياض';
+
+  @override
+  String splashVersion(String version) {
+    return 'الإصدار $version';
+  }
+
+  @override
+  String get welcomeSkip => 'تخطي';
+
+  @override
+  String get welcomeBrandLine => 'المنصة الرسمية المعتمدة';
+
+  @override
+  String get welcomeEyebrow => 'نخبة السيارات والمقتنيات النادرة';
+
+  @override
+  String get welcomeHeadlineLead => 'أندر المزادات الفاخرة،';
+
+  @override
+  String get welcomeHeadlineAccent => 'بين يديك';
+
+  @override
+  String get welcomeBody =>
+      'مزايدة حية وموثقة بشفافية مطلقة، بضمان وإشراف رسمي.';
+
+  @override
+  String get welcomeCta => 'استكشف المزادات الحية';
+
+  @override
+  String welcomeStep(String index, String total) {
+    return 'الخطوة $index من $total';
+  }
+
+  @override
+  String get welcomeLive => 'مباشر';
+
+  @override
+  String welcomeLot(String lot) {
+    return 'اللوت $lot';
+  }
+
+  @override
+  String welcomeActiveVehicles(String count) {
+    return '$count مركبة نشطة';
+  }
+
+  @override
+  String get exploreEyebrow => 'منصة المزادات المعتمدة';
+
+  @override
+  String get exploreHeadline => 'كل ما تحتاجه لبيع وشراء سيارتك بالمزاد';
+
+  @override
+  String get exploreBody =>
+      'تصفح مئات المركبات المفحوصة يومياً، مع ضمان نقل الملكية والدفع الإلكتروني الآمن وإمكانية الشحن لكافة المدن.';
+
+  @override
+  String get exploreChipKeys => 'تسليم مفتاح فوري';
+
+  @override
+  String get exploreChipTransfer => 'ضمان نقل الملكية';
+
+  @override
+  String get exploreChipShipping => 'شحن لكل المدن';
+
+  @override
+  String get exploreCta => 'ابدأ التصفح والمزايدة';
+
+  @override
+  String get signInTagline => 'مزايدة مغلقة على سيارات المزاد — من جوالك';
+
+  @override
+  String get signInLiveAuction => 'المزاد الجاري';
+
+  @override
+  String get signInNextAuction => 'المزاد القادم';
+
+  @override
+  String signInVehicleCount(String count) {
+    return '$count سيارة';
+  }
+
+  @override
+  String get signInAssuranceSealed => 'مزايدة مغلقة: لا يرى أحد مبلغك';
+
+  @override
+  String get signInAssuranceOtp => 'بلا كلمة مرور — رمز لمرة واحدة';
+
+  @override
+  String get signInAssuranceDeposit => 'التأمين وديعة تسترد بطلب منك';
+
+  @override
+  String get verifyTagline => 'خطوة أخيرة — الرمز في رسالة على جوالك';
+
+  @override
+  String get verifyNewAccountHint =>
+      'حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.';
 }
