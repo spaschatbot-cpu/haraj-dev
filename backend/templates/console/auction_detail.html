@@ -318,10 +318,62 @@ somebody went looking for it.
   والصورةُ تبقى في العمود الأوّل مصغَّرةً وهي زرُّ **صورة العرض** كما كانت،
   فلا يضيع فعلٌ بتغيير الشكل.
   {% endcomment %}
+  {% comment %}
+  **الشريطُ المجمَّع وعمودُ التحديد.** T960.
+
+  `manage_vehicles.php` يحمل `mvSelectAll` وشريطاً بثلاثة أفعالٍ مجمَّعة
+  (`bulk-marketing` · `bulk-status` · `bulk-move-auction`). ونقطتُنا
+  `console:auction-vehicles-bulk` تدعم أربعةً — `state` و`marketing` و`move`
+  و`delete` — **ولا بابَ إليها إلا صفّاً صفّاً** عبر نافذتَي النقل والحذف.
+
+  وهو النمطُ نفسُه الذي أُصلح في T955: منطقٌ مبنيٌّ بلا زرٍّ يبلغه. ومن يريد
+  عرضَ مئتَي سيّارةٍ دفعةً واحدة كان يفتح مئتَي نافذة.
+
+  **والشريطُ لا يظهر إلا بتحديد**: شريطٌ دائمٌ بأزرارٍ معطَّلة ضجيجٌ فوق كلّ
+  جدول، وظهورُه عند أوّل تحديدٍ يقول إنّ ما يليه يخصّ ما اخترتَه.
+
+  و`form` واحدةٌ تلفّ الجدولَ والشريط: `vehicle` متعدّدٌ يُقرأ بـ`getlist`،
+  والفعلُ يُحسم بزرّ `submit` الذي ضُغط (`name="op"`). ونوافذُ الصفّ المفرد
+  **خارجها** — نموذجٌ داخل نموذجٍ غيرُ صالحٍ في HTML، ويسقط الداخليُّ صامتاً.
+  {% endcomment %}
+  <form method="post" action="{% url 'console:auction-vehicles-bulk' auction.pk %}"
+        data-bulk-form>
+    {% csrf_token %}
+    <div class="bulk-bar" data-bulk-bar hidden>
+      <span class="bulk-bar__count"><b data-bulk-count>0</b> مركبة محدَّدة</span>
+      <button type="submit" name="op" value="marketing" class="btn-sm"
+              formnovalidate>اقلب التسويق</button>
+      <label class="bulk-bar__field">
+        <select name="state" data-bulk-state>
+          <option value="">— الحالة —</option>
+          {% for value, label in bulk_states %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="state" class="btn-sm">طبّق</button>
+      </label>
+      <label class="bulk-bar__field">
+        <select name="target" data-bulk-target>
+          <option value="">— انقل إلى مزاد —</option>
+          {% for row in move_targets %}
+            <option value="{{ row.pk|unlocalize }}">مزاد {{ row.number|unlocalize }}{% if row.title %} — {{ row.title }}{% endif %}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" name="op" value="move" class="btn-sm">انقل</button>
+      </label>
+      {% comment %} السببُ اختياريٌّ في الواجهة وإلزاميٌّ حيث يلزم: الخدمةُ
+         نفسُها ترفض ما يحتاج سبباً بلا سبب، فلا تُكرَّر القاعدةُ هنا. {% endcomment %}
+      <input type="text" name="reason" class="bulk-bar__reason"
+             placeholder="سبب (يُسجَّل في السجلّ)" maxlength="200">
+      <button type="submit" name="op" value="delete" class="btn-danger-sm"
+              data-bulk-delete>احذف</button>
+    </div>
   <div class="scroller scroller--wide">
     <table class="pv-table mv-table">
       <thead>
         <tr>
+          <th class="mv-pick"><input type="checkbox" data-pick-all autocomplete="off"
+                 title="تحديد كلّ ما يعرضه المرشّح الآن" aria-label="تحديد الكلّ"></th>
           <th>الصورة</th>
           <th>الموقف</th>
           <th>السيارة</th>
@@ -348,6 +400,11 @@ somebody went looking for it.
                (`data-action="display-image"` في `manage.php`): الضغطُ يفتح
                منتقيَ ملفٍّ، وأولُ اختيارٍ يُرفع فوراً ويصير صورةَ العرض.
                ولغير المديرِ رابطٌ للمعرض: لا يرفع من لا يملك. {% endcomment %}
+            <td class="mv-pick">
+              <input type="checkbox" name="vehicle" value="{{ car.pk|unlocalize }}"
+                     data-pick autocomplete="off"
+                     aria-label="تحديد اللوت {{ car.lot_number|unlocalize }}">
+            </td>
             <td class="mv-thumb">
               {% if can_manage %}
                 <button type="button" class="mv-thumb__btn" data-display-image
@@ -442,11 +499,12 @@ somebody went looking for it.
             </td>
           </tr>
         {% empty %}
-          <tr><td colspan="16" class="empty">لا سيارات في هذا المزاد بعد — اضغط «إضافة مركبة» بالأعلى.</td></tr>
+          <tr><td colspan="17" class="empty">لا سيارات في هذا المزاد بعد — اضغط «إضافة مركبة» بالأعلى.</td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
+  </form>
 
   {% if can_manage %}
   {% comment %}
@@ -520,6 +578,45 @@ somebody went looking for it.
     }
     wire('data-row-move', moveModal);
     wire('data-row-delete', delModal);
+
+    // **الشريطُ المجمَّع يظهر بالتحديد.** T960.
+    //
+    // ولا إطارَ جافاسكربت: مربّعاتُ اختيارٍ داخل نموذجٍ واحد، والمتصفّحُ يرسل
+    // `vehicle` مكرّراً فيقرؤها `getlist`. وهذا الكودُ يعدّ ويُظهر ويُطابق
+    // "تحديد الكلّ" — لا أكثر.
+    var bar = document.querySelector('[data-bulk-bar]');
+    var all = document.querySelector('[data-pick-all]');
+    var picks = Array.prototype.slice.call(document.querySelectorAll('[data-pick]'));
+    var count = document.querySelector('[data-bulk-count]');
+    function refresh() {
+      var on = picks.filter(function (box) { return box.checked; }).length;
+      if (count) count.textContent = String(on);
+      if (bar) bar.hidden = on === 0;
+      if (all) {
+        all.checked = on > 0 && on === picks.length;
+        // حالةٌ ثالثة: بعضٌ لا كلّ. بدونها يقول المربّعُ "لا شيء" وقد اختير
+        // نصفُ الجدول.
+        all.indeterminate = on > 0 && on < picks.length;
+      }
+    }
+    picks.forEach(function (box) { box.addEventListener('change', refresh); });
+    if (all) {
+      all.addEventListener('change', function () {
+        picks.forEach(function (box) { box.checked = all.checked; });
+        refresh();
+      });
+    }
+    // **الحذفُ يُستأذَن فيه**: فعلٌ لا رجعةَ فيه على صفوفٍ عدّة، وv1 يسأل كذلك.
+    var wipe = document.querySelector('[data-bulk-delete]');
+    if (wipe) {
+      wipe.addEventListener('click', function (event) {
+        var on = picks.filter(function (box) { return box.checked; }).length;
+        if (!window.confirm('حذفُ ' + on + ' مركبةً من هذا المزاد. لا رجعةَ فيه — أتؤكّد؟')) {
+          event.preventDefault();
+        }
+      });
+    }
+    refresh();
   })();
   </script>
 

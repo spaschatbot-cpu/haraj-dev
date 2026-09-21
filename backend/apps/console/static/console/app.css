@@ -12771,3 +12771,32 @@ a.pager__num:hover, a.pager__step:hover {
    من ستّين صفّاً لا يُمسح بالعين بحثاً عن خليّةٍ صغيرة. */
 .mv-row--hidden > td { opacity: .55; }
 .mv-row--focus > td { background: var(--brand-soft); }
+
+/* ---- الشريطُ المجمَّع على مركبات المزاد — نظيرُ v1. T960 ---------------- */
+/* لا يظهر إلا بتحديد (`hidden` يرفعه الجافاسكربت): شريطٌ دائمٌ بأزرارٍ
+   معطَّلة ضجيجٌ فوق كلّ جدول، وظهورُه عند أوّل تحديدٍ يقول إنّ ما يليه يخصّ
+   ما اخترتَه. */
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  margin-block-end: .6rem;
+  padding: .55rem .7rem;
+  border: 1px solid var(--brand);
+  border-radius: var(--radius-sm);
+  background: var(--brand-soft);
+}
+.bulk-bar[hidden] { display: none; }
+.bulk-bar__count { font-weight: 700; color: var(--brand-dark); }
+.bulk-bar__count b { font-size: 1.05em; }
+.bulk-bar__field { display: inline-flex; align-items: center; gap: .3rem; }
+.bulk-bar__field select { max-inline-size: 15rem; }
+/* السببُ يأخذ ما بقي: هو الحقلُ الوحيدُ الذي يُكتب فيه كلام. */
+.bulk-bar__reason { flex: 1 1 12rem; min-inline-size: 9rem; }
+/* والحذفُ في الطرف المقابل، بعيداً عن «طبّق» و«انقل»: خطأُ الإصبع على فعلٍ
+   لا رجعةَ فيه أغلى من خطوةٍ زائدة. */
+.bulk-bar [data-bulk-delete] { margin-inline-start: auto; }
+
+.mv-pick { inline-size: 2.2rem; text-align: center; }
+.mv-pick input { inline-size: 1rem; block-size: 1rem; cursor: pointer; }
