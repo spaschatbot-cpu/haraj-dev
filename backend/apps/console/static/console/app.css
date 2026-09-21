@@ -4629,6 +4629,10 @@ dialog.row-modal {
    والعنصرُ المرن ينكمش افتراضياً — فقِيس عرضُ الرسم على الشاشة **صفراً**
    وارتفاعُه ١٤٫٤ (أي شريطٌ رأسيّ لا صليب). */
 .modal__close svg { inline-size: .9rem; block-size: .9rem; flex: none; }
+/* **ومربّعٌ فعلاً.** `inline-size: 2rem` وحدَها لا تكفي: حشوُ القاعدة العامّة
+   للأزرار يُضاف إليها (`box-sizing` الموروث)، فقِيس الزرُّ ٤٣×٣٢ — مستطيلٌ
+   يُقرأ خللاً بجانب عنوانٍ مرتّب. */
+.modal__close { padding: 0; flex: none; }
 .gallery-msgs { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .4rem; }
 
 /* بطاقةُ مزادٍ بلا سيارات في مُنتقي التعديل السريع: لا تُفتح، فتُعتّم ويغيب
@@ -13046,19 +13050,51 @@ a.of-nav__card:hover {
 .act--no { color: var(--danger); border-color: var(--danger-line); }
 .act--no:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
 
-/* نافذةُ المزايدين — أوسعُ من نافذة النماذج: خمسةُ أعمدةٍ فيها حقلُ سببٍ وزرّ. */
-.bidders-modal { inline-size: min(56rem, 94vw); padding: 0; }
-.bidders-modal .modal__head { padding: 1rem 1.1rem .6rem; position: relative; }
-.bidders-modal .modal__head h2 { margin: 0; }
-.bidders-modal .modal__head p { margin: .25rem 0 0; font-size: .8rem; color: var(--muted); }
-.bidders-modal .modal__close {
-  position: absolute; inset-block-start: .8rem; inset-inline-start: .9rem;
-  background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 1rem;
+/* نافذةُ المزايدين — أوسعُ من نافذة النماذج: خمسةُ أعمدةٍ فيها حقلُ سببٍ وزرّ.
+   ورأسُها `images-modal__head` نفسُه، فلا قاعدةَ ثانيةً له هنا — كتبتُ واحدةً
+   فخرج الزرُّ بلا شكلٍ في الجهة الخطأ فوق العنوان. */
+.bidders-modal { inline-size: min(58rem, 94vw); padding: 0; }
+.bidders-modal .images-modal__title small {
+  display: block;
+  margin-block-start: .25rem;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--muted);
 }
-.bidders-modal .scroller { padding-inline: 1.1rem; }
-.bidders-modal .modal__foot { padding: .8rem 1.1rem 1rem; font-size: .82rem; }
-.of-bidders th, .of-bidders td { padding: .45rem .5rem; font-size: .82rem; text-align: center; }
+/* والجسمُ يُمرَّر وحدَه: تسعةٌ وثمانون عرضاً على مركبةٍ واحدةٍ قِيست، ورأسٌ
+   يهرب مع التمرير يترك القارئَ لا يعرف أيَّ لوطٍ يقرأ. */
+.bidders-modal__scroll {
+  padding: 1rem 1.3rem 1.3rem;
+  max-block-size: min(62vh, 34rem);
+  overflow: auto;
+}
+/* ولا ذيلَ: حُذف رابطُ «صفحة العروض الكاملة» بقرار المالك، فبقي حشوٌ سفليٌّ
+   على جسم النافذة وحدَه. */
+.of-bidders { inline-size: 100%; }
+.of-bidders th, .of-bidders td {
+  padding: .5rem .55rem;
+  font-size: .82rem;
+  text-align: center;
+  vertical-align: middle;
+}
 .of-bidders tr.is-awarded { background: var(--ok-soft); }
-.of-award { display: flex; gap: .35rem; margin: 0; padding: 0; max-width: none;
-  background: none; border: 0; box-shadow: none; }
-.of-award input[type="text"] { inline-size: 9rem; min-inline-size: 0; }
+/* الصفُّ الفارغُ لا يلتصق بالرأس: «لا عروض» في نافذةٍ بارتفاعٍ ثابتٍ تبدو
+   خللاً في التحميل لا جواباً. */
+.of-bidders td.empty { padding-block: 2.2rem; }
+/* ونموذجُ الترسية ينزع بطاقةَ النماذج — القاعدةُ العامّة `form {…}` تُلبسها
+   كلَّ `<form>` في اللوحة فيصير الزرُّ داخل مربّعٍ بحدٍّ وظلّ داخل خليّة. */
+.of-award {
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.of-award input[type="text"] { inline-size: 8.5rem; min-inline-size: 0; margin: 0; }
+.of-award .btn-sm { flex: none; }
