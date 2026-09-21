@@ -193,10 +193,28 @@ class OnboardingCard extends StatelessWidget {
     this.bottomEnd = const <Widget>[],
     this.vehicleAt = 0,
     required this.maxHeight,
+    required this.width,
     super.key,
   });
 
   final HarajPalette palette;
+
+  /// عرضُ الكرت، **مُمرَّراً من الصفحة لا مقروءاً بـ`LayoutBuilder`**. T957.
+  ///
+  /// كان هنا `LayoutBuilder` يقرأ `box.maxWidth` ليحسب الارتفاع. والصفحةُ
+  /// تلفّ عمودَها بـ`IntrinsicHeight` (لأن فيه `Spacer`)، و`IntrinsicHeight`
+  /// يقيس أبناءَه — و`LayoutBuilder` **لا يملك أبعاداً جوهريّة** ويرمي:
+  ///
+  ///     LayoutBuilder does not support returning intrinsic dimensions.
+  ///
+  /// فسقط التخطيطُ كلُّه ورُسمت **شاشةٌ سوداء** بدل صفحة الترحيب. قِيس في
+  /// المتصفّح (٢١ سبتمبر ٢٠٢٦): الضغطُ على «التالي» يعطي فراغاً، و٣١ استثناءً
+  /// في الطرفيّة أوّلُها هذا.
+  ///
+  /// والعرضُ معلومٌ عند الأب أصلاً — `LayoutBuilder` الخارجيُّ في الصفحة
+  /// يعطيه — فتمريرُه يحذف المتداخلَ ويُبقي الحسابَ كما هو.
+  final double width;
+
   final VehicleFeed? feed;
   final bool loading;
 
@@ -260,10 +278,9 @@ class OnboardingCard extends StatelessWidget {
         // و`LayoutBuilder` لا `AspectRatio`: الأخيرُ تحت سقفِ ارتفاعٍ يضيّق
         // **العرضَ** ليحفظ النسبة، فيصير الكرتُ أضيقَ من الصفحة ويبدو
         // مزاحاً. وهنا العرضُ كاملٌ دائماً والارتفاعُ هو الذي ينزل.
-        child: LayoutBuilder(
-          builder: (context, box) => SizedBox(
-            height: math.min(box.maxWidth * 8 / 9, maxHeight),
-            child: Stack(
+        child: SizedBox(
+          height: math.min(width * 8 / 9, maxHeight),
+          child: Stack(
             fit: StackFit.expand,
             children: <Widget>[
               // **`cover` لا `contain`، ولا طبقةَ تمويهٍ خلفه.**
@@ -336,7 +353,6 @@ class OnboardingCard extends StatelessWidget {
                 ),
               ),
               ],
-            ),
           ),
         ),
       ),

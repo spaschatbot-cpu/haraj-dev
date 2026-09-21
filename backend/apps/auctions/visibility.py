@@ -114,6 +114,36 @@ def phase_of(auction_state: str) -> str:
     return _PHASE_OF_STATE.get(auction_state, "")
 
 
+def latest_ended_auction() -> models.QuerySet:
+    """المزادُ المنتهي **الأحدث** — صفٌّ واحدٌ أو لا شيء. T958.
+
+    ترتيبُ v1 نفسُه: ``ORDER BY a.end_time DESC, a.id DESC``
+    (`AuctionApiController.php:334`).
+
+    **و`ends_at` قد مضى شرطٌ زائدٌ عن v1، وسببُه قِيس.** بدونه اختار
+    الاستعلامُ مزاداً ينتهي **بعد شهرين** (المزاد ٥٩ — «امتحان المراجعة»،
+    حالتُه `ended` ووقتُه ديسمبر) وهو **بلا مركبةٍ واحدة**، فصار التبويبُ
+    فارغاً بينما تحته أربعةٌ وستّون مزاداً فيها سيّارات.
+
+    ولا يُسقط الشرطُ مزاداً أُنهي مبكّراً: `auction_end_now` **يثبّت
+    `ends_at`** عند الإنهاء («آلةُ الحالات تشترط بلوغَ وقت النهاية» —
+    `auction_quick.py:446`). فكلُّ مزادٍ انتهى بالباب الصحيح وقتُه مضى،
+    والمستثنى صفٌّ غيرُ متّسقٍ وحدَه. قِيس: واحدٌ من ٦٥.
+    """
+    from django.utils import timezone
+
+    from .models import Auction
+
+    return (
+        Auction.objects.filter(
+            state__in=sorted(PHASE_AUCTION_STATES[Phase.ENDED]),
+            ends_at__lte=timezone.now(),
+        )
+        .order_by("-ends_at", "-pk")
+        .values("pk")[:1]
+    )
+
+
 def phase_q(phase: str) -> Q:
     """The phase as a ``WHERE`` clause, to be **added** to the visibility rule.
 
@@ -121,7 +151,35 @@ def phase_q(phase: str) -> Q:
     car hidden from an anonymous visitor today does not become visible because
     somebody named the tab it would sit in. Every caller therefore builds this
     on top of :func:`visible_vehicles`, and a test says so.
+
+    ## و«المنتهي» مزادٌ واحد لا كلُّ ما مضى. T958
+
+    قاعدةُ v1، ومقيسةٌ في قاعدته الحيّة لا مستنتجةٌ من كوده: من **٥٦ مزاداً**
+    هناك، واحدٌ فقط حالتُه المخزَّنة `ended` (المزاد ١٠١٦ — «مزاد 52»)،
+    و**واحدٌ وخمسون** في `not_active` — وتلك مخفيّةٌ عن العميل تماماً
+    (`getStatusFilter` يردّها `1=0`). فتبويبُ «منتهي» عنده يعرض **آخر مزادٍ
+    انتهى** وحدَه.
+
+    وكان عندنا يعرض كلَّ ما مضى: قِيس على الإنتاج (٢١ سبتمبر ٢٠٢٦)
+    `ended: 6857` — مركباتُ كلِّ مزادٍ منذ الترحيل. وذلك ليس أرشيفاً مفيداً
+    بل قائمةٌ لا قاع لها: مَن يفتح «المنتهي» يسأل «بكم بيعت سيّارات آخر
+    مزاد؟»، لا «ما بيع منذ سنتين؟».
+
+    **والحدُّ بالمزاد لا بعدد الصفوف**: «آخر مئة سيّارة» يقصّ مزاداً في
+    منتصفه، فيرى العميلُ نصفَ نتائج ليلته ويظنّ الباقيَ لم يُبَع.
+
+    و`Subquery` لا استعلامٌ يُنفَّذ هنا: هذه الدالّة تُنادى أربعَ مرّاتٍ لكلّ
+    صفحة (ثلاثةُ عدّاداتٍ ومرشِّحٌ)، وقراءةُ الصفِّ في كلٍّ منها أربعُ رحلاتٍ
+    إلى القاعدة بدل واحدة. والجملةُ تبقى واحدةً، فالعدّادُ والقائمةُ يقرآن
+    المزادَ نفسَه في اللحظة نفسِها.
+
+    **ولا يمسّ هذا `phase_of`**: مركبةٌ في مزادٍ قديمٍ حالُها «منتهٍ» بحقّ،
+    وكرتُها يقول ذلك إن فُتح برابطٍ مباشر. الذي تغيّر هو ما **يُدرَج** في
+    التبويب، وهو تمييزٌ يقيمه v1 كذلك (حالةُ الصفّ شيءٌ ومرشِّحُ التبويب
+    شيءٌ آخر).
     """
+    if phase == Phase.ENDED:
+        return Q(auction_id__in=models.Subquery(latest_ended_auction()))
     return Q(auction__state__in=sorted(PHASE_AUCTION_STATES[phase]))
 
 

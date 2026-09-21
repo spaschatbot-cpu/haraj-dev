@@ -92,6 +92,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         // هواتف: بدونه يفيض iPhone SE فيلزم التمرير،
                         // والزرُّ يقع تحت الطيّة.
                         maxHeight: metrics.cardMax,
+                          // العرضُ من `LayoutBuilder` الخارجيّ ناقصاً الحشوة
+                          // الأفقيّة — فلا `LayoutBuilder` داخل `IntrinsicHeight`.
+                          width: box.maxWidth - 40,
                         vehicleAt: 1,
                         // `start` هي **اليمين** في صفحةٍ عربيّة و`end`
                         // اليسار. وكانت الثلاثُ معكوسةً عن التصميم: مفتاحٌ
