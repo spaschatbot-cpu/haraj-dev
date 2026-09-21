@@ -4275,6 +4275,47 @@ dialog.row-modal {
   .xls-go:hover, .xls-go:active { transform: none; }
 }
 
+/* ---- «السيارات حسب المزاد» في شاشة الاعتماد — مجموعاتٌ تُطوى ------- */
+/* المالكُ يعتمد مزاداً بعد إغلاقه، وأربعُمئة صفٍّ مفتوحةٍ معاً لا تُقرأ.
+   و`<details>` كـ v1: مفتوحةٌ ابتداءً ويُطوى ما فُرغ منه. */
+.pa-grp { margin: 0 0 .9rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.pa-grp > summary {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding: .7rem .9rem;
+  cursor: pointer;
+  font-size: .86rem;
+  list-style: none;
+}
+.pa-grp > summary::-webkit-details-marker { display: none; }
+/* مثلّثٌ يقول أتُطوى أم تُفتح — والصفُّ بلا علامةٍ يُقرأ عنواناً لا زرّاً. */
+.pa-grp > summary::before {
+  content: "▾";
+  color: var(--muted);
+  font-size: .8rem;
+  transition: transform .15s ease;
+}
+.pa-grp:not([open]) > summary::before { transform: rotate(90deg); }
+.pa-grp > summary:hover { background: var(--raised); }
+.pa-grp__no { font-weight: 900; color: var(--brand-dark); }
+.pa-grp__name { font-weight: 700; color: var(--muted); }
+.pa-grp .scroller { padding: 0 .5rem .5rem; }
+
+/* استمارةُ الاعتماد في الصفّ: مبلغٌ وتاريخٌ وزرّ، في سطرٍ واحدٍ ضيّق. */
+.pa-pay { display: inline-flex; align-items: center; gap: .3rem; }
+.pa-pay input[type="number"] { inline-size: 7rem; }
+.pa-pay input[type="date"] { inline-size: 8.5rem; }
+.pa-pay input {
+  padding: .3rem .45rem;
+  font-size: .78rem;
+  border: 1px solid var(--field-border);
+  border-radius: .35rem;
+  background: var(--panel);
+  color: var(--ink);
+}
+
 /* ---- عمودُ الصورة في جداول الشريك — ثاني أعمدة v1 ------------------- */
 /* الصورةُ في جدولِ تسويةٍ ليست زينة: من يراجع مئتي صفٍّ يعرف السيارةَ بصورتها
    قبل أن يقرأ اسمَها. وبمقاسٍ ثابتٍ ومربّعٍ فارغٍ لمن لا صورةَ له — وإلّا

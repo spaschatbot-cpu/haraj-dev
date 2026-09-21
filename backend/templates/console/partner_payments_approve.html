@@ -36,6 +36,20 @@
       <p class="sum__value">{{ count|unlocalize }}</p>
       <p class="sum__note">فاتورةً عليها دفعةٌ واحدةٌ على الأقل.</p>
     </div>
+    {% comment %} بطاقتا v1 الباقيتان: «عدد الصفوف» و«آخر دفعة مرفوعة». وهما
+       عن **الملفّات** لا عن الدفتر: كم صفّاً قُيّد من ملفٍّ مرفوع، ومتى آخرُ
+       رفع. ومن يسأل «هل وصل ملفّي؟» يجيبه الرقمان دون فتح الجدول تحت.
+       {% endcomment %}
+    <div class="sum">
+      <p class="sum__label">صفوفٌ قُيّدت من الملفّات</p>
+      <p class="sum__value">{{ rows_posted|unlocalize }}</p>
+      <p class="sum__note">مجموعُ ما قُرئ ونجح في كلّ ملفّ.</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">آخر ملفٍّ مرفوع</p>
+      <p class="sum__value">{% if last_sheet %}{{ last_sheet.uploaded_at|date:"Y-m-d" }}{% else %}—{% endif %}</p>
+      <p class="sum__note">{% if last_sheet %}{{ last_sheet.rows_posted|unlocalize }} صفّاً قُيّد منه.{% else %}لم يُرفع ملفٌّ بعد.{% endif %}</p>
+    </div>
   </section>
 
   <h2 class="dd-sec">رفع ملفّ الدفعات <small>التعرّف على المحتوى لا على الامتداد · حتى خمسة ميجابايت</small></h2>
@@ -107,4 +121,141 @@
     <a href="{% url 'console:partner-payments' %}">سجل دفعات الشريك ←</a> ·
     <a href="{% url 'console:partner-unpaid' %}">غير المسدَّدة ←</a>
   </p>
+
+  {% comment %} **«السيارات حسب المزاد» — قسمُ v1 الثالث، وهو عملُ الشاشة.**
+
+     تعليقُ v1 يقول طلبَ المالك بحرفه: «يعلّم المالك كلاً منها من هنا
+     مباشرةً **بدل أن يكتب رقمها غيباً**». وكان على من يريد اعتمادَ سيارةٍ
+     واحدةٍ هنا أن يرفع ملفّاً لأجلها.
+
+     ومجموعةٌ لكلّ مزادٍ تُطوى وتُفتح (`<details open>` كـ v1): المالكُ يعتمد
+     مزاداً بعد إغلاقه، وأربعُمئة صفٍّ مفتوحةٍ معاً لا تُقرأ. {% endcomment %}
+  <h2 class="dd-sec">السيارات حسب المزاد <small>اعتمِد السدادَ من صفّها — لا برفع ملفٍّ لسيارةٍ واحدة</small></h2>
+
+  {% comment %} مرشّحا v1: المزادُ والبحث. والبحثُ بالاسم أو اللوحة أو رقم
+     المطالبة — وهو ما بيد من يسأل. {% endcomment %}
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <select name="auction" aria-label="المزاد">
+        <option value="">كل المزادات</option>
+        {% for a in auctions %}
+          <option value="{{ a.number|unlocalize }}" {% if auction == a.number|stringformat:"s" %}selected{% endif %}>
+            مزاد {{ a.number|unlocalize }}{% if a.title %} — {{ a.title }}{% endif %}</option>
+        {% endfor %}
+      </select>
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم · لوحة · رقم مطالبة" aria-label="بحث">
+      <button type="submit" class="btn-primary">اعرض</button>
+    </div>
+  </form>
+
+  {% for group in groups %}
+    <details class="pa-grp" open>
+      <summary>
+        <span class="pa-grp__no">مزاد {{ group.auction.number|unlocalize }}</span>
+        {% if group.auction.title %}<span class="pa-grp__name">{{ group.auction.title }}</span>{% endif %}
+        <span class="pill" data-tone="plain">{{ group.cars|unlocalize }} سيارة</span>
+        <span class="pill" data-tone="ok">{{ group.paid|unlocalize }} مسدَّدة</span>
+        <span class="pill" data-tone="warn">{{ group.unpaid|unlocalize }} غير مسدَّدة</span>
+        <span class="pill" data-tone="info">{{ group.amount|unlocalize }} ر.س</span>
+      </summary>
+
+      <div class="scroller">
+        <table class="pd-tbl">
+          <thead>
+            <tr>
+              <th class="pv-thumb-h">صورة</th>
+              <th>اللوت</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
+              <th>سعر الترسية</th><th>الحالة</th><th>المبلغ المعتمد</th><th>المتبقّي</th>
+              <th>إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for car in group.rows %}
+              <tr>
+                <td class="pv-thumb">
+                  {% if car.cover %}
+                    <img src="{{ car.cover.thumbnail.url|default:car.cover.image.url }}"
+                         alt="" loading="lazy" decoding="async">
+                  {% else %}<span class="pv-thumb__none" aria-hidden="true"></span>{% endif %}
+                </td>
+                <td class="count">{{ car.lot_number|unlocalize }}</td>
+                <td class="pv-name">
+                  <strong>{{ car.display_title }}</strong>
+                  <small>{{ car.year|unlocalize }}</small>
+                </td>
+                <td class="mono">{{ car.plate_number|default:"—" }}</td>
+                <td class="mono">{{ car.claim_number|default:"—" }}</td>
+                <td class="money">{{ car.awarded_price|default:"—"|unlocalize }}</td>
+                <td>
+                  {% if car.is_paid %}<span class="pill" data-tone="ok">مسدَّدة</span>
+                  {% elif car.invoice %}<span class="pill" data-tone="warn">مستحقّة</span>
+                  {% else %}<span class="pill" data-tone="bad">بلا فاتورة</span>{% endif %}
+                </td>
+                <td class="money">{{ car.paid_amount|unlocalize }}</td>
+                <td class="money inv-due">{{ car.due|unlocalize }}</td>
+                {% comment %} **الاعتمادُ في الصفّ، ومبلغُه مكتوب.** خانةُ v1
+                   تقول «اتركه فارغاً = أعلى عرض» فتُقيَّد دفعةٌ على رقمٍ لم
+                   يكتبه أحد — وأثرُها مقيسٌ في الشاشة المجاورة: «خرج 29,990
+                   مقابل مدفوع 20,000». فالخانةُ هنا مُعبّأةٌ بالمتبقّي
+                   ويُعدّلها من يريد، ولا تُقبل فارغة. {% endcomment %}
+                <td class="actions dc-cell">
+                  {% if car.invoice and not car.is_paid %}
+                    <form method="post" class="pa-pay">
+                      {% csrf_token %}
+                      <input type="hidden" name="op" value="pay">
+                      <input type="hidden" name="vehicle" value="{{ car.pk }}">
+                      <input type="number" name="amount" step="0.01" min="0.01" required
+                             value="{{ car.due|unlocalize }}" aria-label="المبلغ">
+                      <input type="date" name="paid_at" aria-label="تاريخ الدفع">
+                      <button type="submit" class="dc-btn dc-btn--yes">
+                        {% include "console/_act_icon.html" with path=icon_pay %}<span>اعتمِد</span></button>
+                    </form>
+                  {% elif car.is_paid %}
+                    <span class="empty">لا بقيّةَ عليها</span>
+                  {% else %}
+                    <span class="empty">تُفوتَر أوّلاً</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  {% empty %}
+    <p class="empty">لا سيارات شركاءَ في هذا المرشّح.</p>
+  {% endfor %}
+
+  {% comment %} **«سجل الدفعات المعتمدة» — قسمُ v1 الأخير.** ولا زرَّ حذفٍ
+     فيه: حذفُ صفِّ دفعةٍ من الدفتر محوُ تدقيق، والقيدُ المغلوط **يُعكَس**
+     (`money.services.reverse`) فيبقى الاثنان ومعهما من عكس ولماذا. {% endcomment %}
+  <h2 class="dd-sec">سجل الدفعات المعتمدة <small>من الدفتر — وأحدثُ خمسين قيداً</small></h2>
+
+  <div class="scroller">
+    <table class="pd-tbl">
+      <thead>
+        <tr>
+          <th>التاريخ</th><th>السيارة</th><th>اللوت</th><th>اللوحة</th>
+          <th>المزاد</th><th>المبلغ</th><th>الفاتورة</th><th>المصدر</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in log %}
+          <tr>
+            <td class="rm-when">{{ row.occurred_at|date:"Y-m-d H:i" }}</td>
+            <td class="pv-name">{% if row.vehicle %}<strong>{{ row.vehicle.display_title }}</strong>{% else %}—{% endif %}</td>
+            <td class="count">{% if row.vehicle %}{{ row.vehicle.lot_number|unlocalize }}{% else %}—{% endif %}</td>
+            <td class="mono">{% if row.vehicle %}{{ row.vehicle.plate_number|default:"—" }}{% else %}—{% endif %}</td>
+            <td>{% if row.vehicle %}مزاد {{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
+            <td class="money inv-due">{{ row.amount|unlocalize }}</td>
+            <td class="mono">{% if row.invoice %}{{ row.invoice.number }}{% else %}—{% endif %}</td>
+            <td>{{ row.source }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="empty">لا دفعاتٍ مقيَّدةٌ بعد على سيارات الشركاء.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %}

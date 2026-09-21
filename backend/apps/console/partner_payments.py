@@ -52,13 +52,16 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from django.shortcuts import redirect, render
 
-from apps.auctions.models import Vehicle
+from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.core import audit
+from apps.core.arabic import search_q
 from apps.core.sheets import Sheet, SheetError
 from apps.money.models import Invoice, InvoicePaymentSource, PaymentSheet
 
+from . import payments
+from .icons import path_of
 from .views import console_page
 
 ZERO = Decimal("0.00")
@@ -66,6 +69,15 @@ ZERO = Decimal("0.00")
 #: ما يقبله الرفع. أكبرُ من ذلك خطأٌ — جدولُ الأسطول كلّه، أو صورةٌ أُعيدت
 #: تسميتها — وقراءتُه في الذاكرة لاكتشاف ذلك هي كيف تسقط لوحة.
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+#: ما يدخل شاشةَ الاعتماد: ما رسا ولم يخرج بعد. ومركبةٌ لم تُبع لا
+#: تُسدَّد — وv1 يعرضها ومعها زرُّ اعتماد (`فورد ميلان #12276`).
+SETTLING = (
+    VehicleState.AWARDED,
+    VehicleState.INVOICED,
+    VehicleState.PAID,
+    VehicleState.RELEASED,
+)
 
 #: أسماء الأعمدة المقبولة، بالعربية والإنجليزية كما في v1. والمفتاح خمسةٌ
 #: بدائل لأن الملفّ يأتي من نظامٍ لا نملكه، ولا يُعرف أيُّها فيه.
@@ -173,9 +185,42 @@ def read_rows(sheet: Sheet) -> tuple[list[dict], list[dict]]:
 
 @console_page("console:partner-payments-approve")
 def approve(request):
-    """اعتماد مدفوعات الشريك: ارفع الملفّ، فيُقيَّد كلُّ صفٍّ في الدفتر."""
+    """اعتماد مدفوعات الشريك — أقسامُ v1 الأربعة، وقيدٌ في الدفتر لا جدولٌ موازٍ.
+
+    v1 يضع في هذه الشاشة أربعةَ أشياء، وكان هنا واحدٌ منها (الرفع):
+
+    1. بطاقةَ رفعٍ ومعها **قالبٌ يُنزَّل** مرشَّحاً بالمزاد والحالة؛
+    2. بطاقةَ إحصاء: إجمالي المعتمد وعددُ الصفوف والسيارات وآخرُ دفعةٍ مرفوعة؛
+    3. **«السيارات حسب المزاد»** — كلُّ مركبةٍ تحت مزادها ومعها زرُّ اعتماد؛
+    4. **«سجل الدفعات المعتمدة»**.
+
+    والثالثُ هو عملُ الشاشة: طلبُ المالك في v1 مكتوبٌ في تعليقها — «يعلّم
+    المالك كلاً منها من هنا مباشرةً **بدل أن يكتب رقمها غيباً**». وكان على من
+    يريد اعتمادَ سيارةٍ واحدةٍ هنا أن يرفع ملفّاً لأجلها.
+    """
     if request.method == "POST":
+        if request.POST.get("op") == "pay":
+            return _pay_one(request)
         return _upload(request)
+
+    text = (request.GET.get("q") or "").strip()
+    auction = (request.GET.get("auction") or "").strip()
+
+    cars = (
+        Vehicle.objects.filter(owner_company__isnull=False, state__in=SETTLING)
+        .select_related("auction", "owner_company", "awarded_to")
+        .order_by("-auction__number", "lot_number")
+    )
+    if auction.isdigit():
+        cars = cars.filter(auction__number=int(auction))
+    if text:
+        cars = cars.filter(
+            search_q(text, "plate_number", "make", "model", "claim_number")
+        )
+
+    rows = list(cars[:400])
+    _decorate_cars(rows)
+    groups = _by_auction(rows)
 
     sheets = PaymentSheet.objects.select_related("uploaded_by")[:20]
     posted = Invoice.objects.filter(
@@ -186,10 +231,152 @@ def approve(request):
         "console/partner_payments_approve.html",
         {
             "sheets": sheets,
+            "groups": groups,
+            "log": _payment_log(),
+            "q": text,
+            "auction": auction,
+            "auctions": (
+                Auction.objects.filter(vehicles__owner_company__isnull=False)
+                .distinct()
+                .order_by("-number")[:60]
+            ),
             "total": posted.aggregate(t=Sum("amount_paid"))["t"] or ZERO,
             "count": posted.count(),
+            # بطاقةُ إحصاء v1: كم صفّاً قُيّد، وكم سيارةً، ومتى آخرُ ملفّ.
+            "rows_posted": PaymentSheet.objects.aggregate(t=Sum("rows_posted"))["t"] or 0,
+            "last_sheet": sheets[0] if sheets else None,
+            "icon_pay": path_of("coins"),
+            "icon_export": path_of("download"),
         },
     )
+
+
+def _decorate_cars(rows) -> None:
+    """أضِف لكلّ مركبةٍ فاتورتَها وصورتَها وما بقي عليها — استعلامان للصفحة."""
+    invoices = {
+        invoice.vehicle_id: invoice
+        for invoice in Invoice.objects.filter(vehicle__in=rows).order_by(
+            "issued_at", "id"
+        )
+    }
+    covers: dict[int, object] = {}
+    for shot in VehicleImage.objects.filter(vehicle__in=rows).order_by(
+        "vehicle_id", "-is_cover", "position", "id"
+    ):
+        covers.setdefault(shot.vehicle_id, shot)
+
+    for car in rows:
+        invoice = invoices.get(car.pk)
+        car.invoice = invoice
+        car.cover = covers.get(car.pk)
+        car.paid_amount = invoice.amount_paid if invoice else ZERO
+        car.due = invoice.outstanding if invoice else (car.awarded_price or ZERO)
+        # «مسدَّدة» هنا = **لا بقيّةَ على الفاتورة**، لا علمٌ يُرفع بملفّ.
+        car.is_paid = bool(invoice) and invoice.outstanding <= ZERO
+
+
+def _by_auction(rows) -> list[dict]:
+    """اجمع المركبات تحت مزاداتها بإحصاء v1: كم سيارة، كم مسدَّدة، وكم مالُها."""
+    groups: list[dict] = []
+    for car in rows:
+        if not groups or groups[-1]["auction"].pk != car.auction_id:
+            groups.append(
+                {"auction": car.auction, "rows": [], "paid": 0, "amount": ZERO}
+            )
+        group = groups[-1]
+        group["rows"].append(car)
+        group["paid"] += 1 if car.is_paid else 0
+        group["amount"] += car.awarded_price or ZERO
+    for group in groups:
+        group["cars"] = len(group["rows"])
+        group["unpaid"] = group["cars"] - group["paid"]
+    return groups
+
+
+def _payment_log(limit: int = 50):
+    """سجلُّ الدفعات المعتمدة — قسمُ v1 الأخير، من الدفتر لا من جدولٍ مرفوع."""
+    from apps.console import partner_console
+
+    rows = list(partner_console.payments_of("")[:limit])
+    payments.decorate(rows)
+    cars = {
+        car.pk: car
+        for car in Vehicle.objects.filter(
+            pk__in={r.invoice.vehicle_id for r in rows if r.invoice}
+        ).select_related("auction")
+    }
+    for row in rows:
+        row.vehicle = cars.get(row.invoice.vehicle_id) if row.invoice else None
+    return rows
+
+
+def _pay_one(request):
+    """اعتمِد سدادَ مركبةٍ واحدة — نافذةُ v1 «اعتماد سداد سيارة».
+
+    **وهي عملُ الشاشة الذي كان غائباً.** طلبُ المالك في v1 مكتوبٌ في تعليقها:
+    «يعلّم المالك كلاً منها من هنا مباشرةً بدل أن يكتب رقمها غيباً». وكان على
+    من يريد اعتمادَ سيارةٍ واحدةٍ هنا أن **يرفع ملفّاً لأجلها**.
+
+    والدفعةُ تمرّ من `settlement.record_vehicle_payment` كصفوفِ الملفّ — البابُ
+    نفسُه: قيدٌ في الدفتر ونقلُ المركبة إلى «مسدَّدة» في معاملةٍ واحدة. فلا
+    يصير للاعتماد طريقان أحدُهما ينسى نصفَ العمل.
+
+    **والمبلغُ مكتوبٌ أو يُرفض.** خانةُ v1 تقول «اتركه فارغاً = أعلى عرض»،
+    فتُقيَّد دفعةٌ على رقمٍ لم يكتبه أحد — وأثرُها مقيسٌ في الشاشة المجاورة:
+    «خرج 29,990 مقابل مدفوع 20,000». وهي الخانةُ نفسُها التي أُسقطت من «خصم
+    مباشر».
+    """
+    back = redirect("console:partner-payments-approve")
+    vehicle = Vehicle.objects.filter(pk=request.POST.get("vehicle") or 0).first()
+    if vehicle is None:
+        messages.error(request, "مركبةٌ غير معروفة.")
+        return back
+
+    invoice = (
+        Invoice.objects.filter(vehicle=vehicle).order_by("-issued_at", "-id").first()
+    )
+    if invoice is None:
+        messages.error(
+            request, f"لوط {vehicle.lot_number}: لا فاتورةَ عليها بعد — تُفوتَر أوّلاً."
+        )
+        return back
+
+    raw = (request.POST.get("amount") or "").strip()
+    try:
+        amount = Decimal(raw)
+    except (InvalidOperation, ValueError):
+        messages.error(request, "المبلغ مطلوبٌ ويُكتب رقماً — ولا يُفترض من أعلى عرض.")
+        return back
+
+    note = (request.POST.get("note") or "").strip()[:120]
+    # مرجعٌ يُميّز هذا القيدَ ويمنع تكرارَه بالضغط مرّتين على الزرّ نفسِه.
+    reference = f"approve:{vehicle.pk}:{request.POST.get('paid_at') or ''}:{amount}"
+
+    try:
+        with transaction.atomic():
+            settlement.record_vehicle_payment(
+                invoice=invoice,
+                amount=amount,
+                source=InvoicePaymentSource.CASH,
+                reference=reference,
+                by=request.user,
+            )
+    except Exception as refusal:
+        messages.error(request, f"لوط {vehicle.lot_number}: {refusal}")
+        return back
+
+    audit.record(
+        action="console.partner_payment_approved",
+        entity=vehicle,
+        actor=request.user,
+        before={},
+        after={"amount": str(amount), "invoice": invoice.number},
+        note=note or "اعتماد سداد من شاشة مدفوعات الشريك",
+    )
+    messages.success(
+        request, f"قُيّد {amount} على الفاتورة {invoice.number} (لوط {vehicle.lot_number})."
+    )
+    return back
 
 
 def _upload(request):
