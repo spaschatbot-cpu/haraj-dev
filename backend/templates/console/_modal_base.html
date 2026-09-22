@@ -28,7 +28,11 @@
 {% load static %}
 <div class="images-modal__head">
   <h3 class="images-modal__title">{% block heading %}{% endblock %}</h3>
-  <button type="button" class="modal__close" data-modal-close
+  {% comment %} **وسمان على الزرّ، ولهما سبب مقيس.** النافذةُ تُفتح من
+     غلافَين: غلافُ شاشة المزاد يربط `[data-close]`، والغلافُ العامُّ يربط
+     `[data-modal-close]`. ووسمٌ واحدٌ يعني زرَّ إغلاقٍ **لا يُغلق** في أحد
+     الغلافين — يُرى ويُضغَط ولا يحدث شيء. {% endcomment %}
+  <button type="button" class="modal__close" data-modal-close data-close
           aria-label="إغلاق">{% include "console/_act_icon.html" with path=close_icon %}</button>
 </div>
 <div class="page-modal__body">

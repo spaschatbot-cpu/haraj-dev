@@ -184,7 +184,6 @@ def _asset_stamp() -> str:
         "console/auctions.js",
         "console/columns_auto.js",
         "console/offers.js",
-        "console/modals.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):
