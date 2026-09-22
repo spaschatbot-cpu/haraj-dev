@@ -29,6 +29,81 @@
      الذي يحمل الخمسةَ أصلاً، وهذا فوقها. والأربعُ الباقيةُ لم تُحذف؛ هي في
      الشريط الجانبي تحت «قرارات المزايدات» كما كانت. {% endcomment %}
 
+  {% comment %} **الملخّصُ فوق الجدول لا في شاشةٍ ثانية.** T972
+
+     سؤالُ المالك (٢٢ سبتمبر ٢٠٢٦): «إيه الفرق بين المزايدات المقبولة وملخّص
+     المقبولة؟ لو شبه بعض ادمجهم». والجوابُ المقيس: **الاستعلامُ واحد**
+     (`decisions.awarded`)، والمرشّحان واحد (بحثٌ ومزاد)، **والجدولُ هو هذا
+     الجدولُ نفسُه** (`_accepted_table.html` عبر `awarded_page`). فرقُهما
+     ستُّ بطاقاتٍ وزرُّ فوترةٍ لا أكثر.
+
+     فصارت الشاشةُ واحدةً: الأرقامُ فوق صفوفها. ومن قرأ «رست ولم تُفوتَر ٢»
+     يرى أيَّها في السطر التالي بلا انتقال — وهو قرارُ المالك نفسُه في ١٧
+     سبتمبر: «الداتا تتعرض على طول». {% endcomment %}
+  {% comment %} الجدولُ كان صفوفَ «عنوان · قيمة» — وهي هيئةُ جدولٍ لبياناتٍ
+     ليست جدولاً: لا أعمدةَ تُقارَن ولا صفوفَ تُفرَز، ستُّ قيمٍ منفردة. والقيمةُ
+     كانت تقع في منتصف الصفّ وعنوانُها على الحافة المقابلة، بينهما عرضُ شاشة.
+
+     فصارت بطاقات: القيمةُ تحت عنوانها مباشرةً، والثلاثةُ الأولى عددٌ والثلاثةُ
+     الأخرى مال — والفرزُ بالشريط الجانبي لا بترتيبٍ يُحفظ. {% endcomment %}
+  <section class="sum-grid" aria-label="أرقام الملخّص">
+
+    <div class="sum sum--count">
+      <p class="sum__label">مركبات رست</p>
+      <p class="sum__value">{{ totals.count|unlocalize }}</p>
+      <p class="sum__note">في المدى المحدَّد أعلاه.</p>
+    </div>
+
+    <div class="sum sum--count">
+      <p class="sum__label">منها مفوتَرة</p>
+      <p class="sum__value">{{ totals.invoiced_count|unlocalize }}</p>
+      <p class="sum__note">صدرت عليها فاتورة.</p>
+    </div>
+
+    {% comment %} هذه هي البطاقةُ التي تُفتح الشاشةُ لأجلها، فلها لونُ التنبيه
+       ومكانُها في طرف صفِّ الأعداد لا في ذيل الستّة. {% endcomment %}
+    <div class="sum sum--wait">
+      <p class="sum__label">رست ولم تُفوتَر بعد</p>
+      <p class="sum__value">{{ totals.uninvoiced_count|unlocalize }}</p>
+      <p class="sum__note">عملٌ ينتظر — لا رقمٌ ناقص.</p>
+    </div>
+
+    {% comment %} الأعدادُ تبقى والمبالغُ تُحجَب — القاعدةُ نفسُها التي في
+       بطاقات أرشيف المزادات: «كم مركبةً رست وكم منها فُوتِرت» سؤالُ تشغيلٍ
+       يجيبه عدّ، و«كم ريالاً» مبلغ. **ومبلغٌ مجموعٌ على آلاف الصفوف ليس
+       أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر**. {% endcomment %}
+    <div class="sum sum--money">
+      <p class="sum__label">إجمالي أسعار الترسية</p>
+      {% if show_money %}
+        <p class="sum__value money">{{ totals.awarded_total|unlocalize }}</p>
+      {% else %}
+        <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
+      {% endif %}
+      <p class="sum__note">قبل الضريبة.</p>
+    </div>
+
+    <div class="sum sum--money">
+      <p class="sum__label">الضريبة على المفوتَر</p>
+      {% if show_money %}
+        <p class="sum__value money">{{ totals.invoiced_tax|unlocalize }}</p>
+      {% else %}
+        <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
+      {% endif %}
+      <p class="sum__note">على الفواتير الصادرة وحدها.</p>
+    </div>
+
+    <div class="sum sum--money">
+      <p class="sum__label">الإجمالي المفوتَر</p>
+      {% if show_money %}
+        <p class="sum__value money">{{ totals.invoiced_total|unlocalize }}</p>
+      {% else %}
+        <p class="sum__value sum__value--hidden" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</p>
+      {% endif %}
+      <p class="sum__note">شاملاً الضريبة.</p>
+    </div>
+
+  </section>
+
   {% comment %} بطاقةُ الإجراء الجماعيّ — نظيرُ «إجراءات جماعية للمقبولين»
      في v1. ولا تُبنى إلا حين يكون ثمّ ما يُفوتَر: بطاقةٌ بزرٍّ يقول «٠» تشغل
      ربعَ الشاشة وتعلّم قارئَها تجاهُلَها. {% endcomment %}
@@ -68,5 +143,4 @@
   {% include "console/_accepted_table.html" %}
 
   {% include "console/_pager.html" %}
-  <p><a href="{% url 'console:accepted-summary' %}?q={{ q }}&amp;auction={{ chosen }}">ملخّص هذه النتائج ←</a></p>
 {% endblock %}

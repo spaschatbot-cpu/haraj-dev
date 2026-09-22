@@ -45,6 +45,7 @@ from django.contrib import messages
 from django.db.models import Count, Max, Q, Sum
 from django.db.utils import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.http import urlencode
 from django.utils.timezone import localtime
 
@@ -273,6 +274,11 @@ def accepted_bids(request):
             # عددُ ما ينتظر فوترةً في **هذه النتائج** — يُكتب على زرّ الدفعة،
             # فمن يضغطه يعرف كم سيُصدر قبل أن يضغط لا بعده.
             "pending_invoices": rows.filter(state=VehicleState.AWARDED).count(),
+            # **وأرقامُ الملخّص معها** — T972. كانت شاشةً ثانيةً («ملخّص
+            # المقبولة») تستدعي `awarded()` نفسها بالمرشّحات نفسها وتعرض
+            # الجدولَ نفسَه، وفرقُها ستُّ بطاقاتٍ وزرُّ فوترةٍ غائب. فدُمجت
+            # بسؤال المالك: «لو شبه بعض ادمجهم وريّح دماغي».
+            "totals": summary(text=request.GET.get("q", ""), auction=chosen),
             # المرشّحاتُ كما هي، ليعود إليها بعد الفوترة: الموظّفُ يفوتر من
             # نتيجةِ بحثٍ، وعودةٌ إلى الصفحة عاريةً تعني بحثاً جديداً بعد كلّ
             # فاتورة.
@@ -333,43 +339,23 @@ def summary(*, text: str = "", auction: str = "") -> dict:
     }
 
 
-@console_page("console:accepted-summary")
 def accepted_summary(request):
-    """ملخّص المقبولة: ثلاثةُ أرقامٍ، وكلٌّ منها بابٌ إلى صفوفه."""
-    text = request.GET.get("q", "")
-    chosen = request.GET.get("auction", "")
+    """**دُمجت في «المزايدات المقبولة»** — T972، وتبقى تحويلاً لا شاشة.
 
-    # ثلاثةُ أرقامٍ من الستّة مبالغُ مجموعة، **ومبلغٌ مجموعٌ على آلاف الصفوف
-    # ليس أقلَّ حساسيّةً من مبلغِ فاتورةٍ واحدة بل أكثر** — الحجّةُ نفسُها
-    # التي حجبت بطاقات أرشيف المزادات. والأعدادُ الثلاثةُ تبقى: «كم مركبةً
-    # رست وكم منها فُوتِرت» سؤالُ تشغيلٍ يجيبه عدّ، وهو سببُ فتح الشاشة.
-    seen = shown_to(request.user)
+    سأل المالك (٢٢ سبتمبر ٢٠٢٦): «إيه الفرق بين المزايدات المقبولة وملخّص
+    المقبولة؟ لو شبه بعض ادمجهم وريّح دماغي — أنا مش عايز صفحات كتير على
+    الفاضي». والجوابُ المقيس أنهما شاشةٌ واحدة: `awarded()` نفسُها،
+    والمرشّحان نفسُهما (بحثٌ ومزاد)، و`_accepted_table.html` نفسُه عبر
+    `awarded_page`. والفرقُ **ستُّ بطاقاتٍ** — انتقلت فوق الجدول — وزرُّ
+    فوترةٍ كان غائباً هنا عمداً.
 
-    # **والصفوفُ تحت الأرقام، لا خلف زرّ.** كان في ذيل الشاشة «افتح الصفوف
-    # التي خلف هذه الأرقام» يقود إلى شاشةٍ ثانية — أي أن من يقرأ «٣٠٦ مركبة»
-    # ويريد أن يرى أيَّها ينتقل ويفقد سياق الرقم. وقرارُ المالك في ١٧ سبتمبر
-    # ٢٠٢٦: «الداتا تتعرض على طول». والجدولُ هو جدولُ «المزايدات المقبولة»
-    # نفسُه — قالبٌ واحدٌ ودالّةٌ واحدة، لا نسخةٌ ثانية تفترق.
-    rows = awarded(text=text, auction=chosen)
-    page = awarded_page(request, rows, seen)
-
-    return render(
-        request,
-        "console/accepted_summary.html",
-        {
-            "totals": summary(text=text, auction=chosen),
-            "page": page,
-            "pager": pager(request, page, "مركبةً مرساة"),
-            "show_money": seen.money,
-            "show_customer": seen.customer,
-            # زرُّ الفوترة لا يُعرض هنا: الشاشةُ شاشةُ قراءة، والفعلُ بابُه
-            # «المزايدات المقبولة». والقالبُ المشترَك يقرأ المتغيّر فيلزم.
-            "can_invoice": False,
-            "q": text,
-            "chosen": chosen,
-            "auctions": auction_choices(),
-        },
-    )
+    **والمسارُ يبقى تحويلاً لا يُحذف**: رابطٌ محفوظٌ في متصفّح، أو مكتوبٌ في
+    رسالةٍ قديمة، أو في سجلّ تدقيق — و٤٠٤ بعد دمجٍ داخليٍّ عقوبةٌ على من لم
+    يفعل شيئاً. والمرشّحاتُ تُحمَل معه فلا يفقد نتيجتَه.
+    """
+    query = request.GET.urlencode()
+    target = reverse("console:accepted-bids")
+    return redirect(f"{target}?{query}" if query else target)
 
 
 def accepted_invoice(request, pk: int):
