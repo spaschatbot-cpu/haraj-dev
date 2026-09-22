@@ -43,6 +43,7 @@ from apps.money.models import ZERO
 
 from .archive import ARCHIVED
 from .exports import export, wants_export
+from .partner_console import _scoped
 from .icons import path_of
 from .tones import with_tones
 from .views import console_page
@@ -88,9 +89,15 @@ def decisions(request):
         .order_by("auction__number", "lot_number", "urgency")
     )
 
+    # **ونطاقُها الشركاءُ وحدَهم.** كان الترشيحُ بالشريك يقع فقط حين يُمرَّر
+    # `?partner=`، فتعرض شاشةٌ اسمُها «اتخاذ القرار للشريك» كلَّ مركبةٍ في
+    # مزادٍ منتهٍ — ومنها سياراتُ الشركة نفسِها التي لا شريكَ لها. قِيس على
+    # سيرفر التجربة: البطاقاتُ تقول **١٢٬٩٦٣** مركبةً في **٥٤** مزاداً،
+    # وv1 على البيانات نفسِها يقول مئاتٍ في مزادين — لأن نطاقَه علمٌ على
+    # الصفّ (`av.is_marketing = 1`). والنظيرُ هنا `_scoped`: شريكٌ بعينه إن
+    # اختير، وإلّا **كلُّ من له شركة** لا كلُّ شيء.
     partner = request.GET.get("partner")
-    if partner and partner.isdigit():
-        rows = rows.filter(owner_company_id=int(partner))
+    rows = _scoped(rows, partner or "")
 
     # ترشيحٌ على مزادٍ واحد — البابُ الذي يفتحه زرُّ «مراجعة العروض» من صفّ
     # المزاد. T860
