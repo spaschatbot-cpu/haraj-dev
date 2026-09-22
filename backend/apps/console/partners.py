@@ -27,6 +27,7 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
+from django.db import transaction
 from django.db.models import (
     Case,
     Count,
@@ -332,9 +333,18 @@ def _award_top_one(vehicle, actor) -> None:
         raise ValueError("لا عرضَ قائمٌ عليها — الرفضُ هو القرار")
 
     before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
-    settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
+    # **الختمُ قبل النقلة، والاثنان في معاملةٍ واحدة.** كان العكس، وكانت
+    # الشاشةُ لا تحكم على شيء: `move_vehicle` تسأل `partner_lock_reason`
+    # فتجد `partner_decided_at` خالياً فترفض بـ«هذه السيارة للتسويق
+    # وبانتظار قرار التعاونية» — والشاشةُ **هي** موضعُ قرار الشريك. قِيس
+    # على سيرفر التجربة: «وردّت ٢ — أوّلُها 1: هذه السيارة للتسويق…».
+    #
+    # والمعاملةُ تجمعهما لأن ختماً بلا نقلةٍ حكمٌ مسجَّلٌ على مركبةٍ لم
+    # تتحرّك، ولا يُختَم مرّةً ثانيةً بعده.
+    with transaction.atomic():
+        _stamp(vehicle, "accepted", top, actor)
+        settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
     vehicle.refresh_from_db()
-    _stamp(vehicle, "accepted", top, actor)
     audit.record(
         action="console.award_vehicle",
         entity=vehicle,
@@ -351,9 +361,18 @@ def _reject_one(vehicle, actor) -> None:
     from apps.auctions.services import reject as reject_vehicle
 
     before = audit.snapshot(vehicle, ["state"])
-    reject_vehicle(vehicle)
+    # **الختمُ قبل النقلة، والاثنان في معاملةٍ واحدة.** كان العكس، وكانت
+    # الشاشةُ لا تحكم على شيء: `move_vehicle` تسأل `partner_lock_reason`
+    # فتجد `partner_decided_at` خالياً فترفض بـ«هذه السيارة للتسويق
+    # وبانتظار قرار التعاونية» — والشاشةُ **هي** موضعُ قرار الشريك. قِيس
+    # على سيرفر التجربة: «وردّت ٢ — أوّلُها 1: هذه السيارة للتسويق…».
+    #
+    # والمعاملةُ تجمعهما لأن ختماً بلا نقلةٍ حكمٌ مسجَّلٌ على مركبةٍ لم
+    # تتحرّك، ولا يُختَم مرّةً ثانيةً بعده.
+    with transaction.atomic():
+        _stamp(vehicle, "rejected", None, actor)
+        reject_vehicle(vehicle)
     vehicle.refresh_from_db()
-    _stamp(vehicle, "rejected", None, actor)
     audit.record(
         action="console.reject_vehicle",
         entity=vehicle,
@@ -392,14 +411,23 @@ def award_top(request, pk: int):
         return redirect(_back(request))
 
     before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
+    # **الختمُ قبل النقلة، والاثنان في معاملةٍ واحدة.** كان العكس، وكانت
+    # الشاشةُ لا تحكم على شيء: `move_vehicle` تسأل `partner_lock_reason`
+    # فتجد `partner_decided_at` خالياً فترفض بـ«هذه السيارة للتسويق
+    # وبانتظار قرار التعاونية» — والشاشةُ **هي** موضعُ قرار الشريك. قِيس
+    # على سيرفر التجربة: «وردّت ٢ — أوّلُها 1: هذه السيارة للتسويق…».
+    #
+    # والمعاملةُ تجمعهما لأن ختماً بلا نقلةٍ حكمٌ مسجَّلٌ على مركبةٍ لم
+    # تتحرّك، ولا يُختَم مرّةً ثانيةً بعده.
     try:
-        settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
+        with transaction.atomic():
+            _stamp(vehicle, "accepted", top, request.user)
+            settlement.award_to(vehicle, bidder=top.bidder, price=top.amount)
     except Exception as refusal:
         messages.error(request, str(refusal))
         return redirect(_back(request))
 
     vehicle.refresh_from_db()
-    _stamp(vehicle, "accepted", top, request.user)
     audit.record(
         action="console.award_vehicle",
         entity=vehicle,
@@ -418,7 +446,26 @@ def _stamp(vehicle, decision: str, bid, actor) -> None:
 
     وبلا هذا الختم لا تعرف شاشةُ المالك أن الشريك حكم، فتبقى تنتظره على مركبةٍ
     حُسم أمرُها. وv1 يختمه في `partner_decided_at` ويقرؤه في شاشة قراره.
+
+    **ويمرّ بالخدمة لا يكتب الأعمدة بيده** حين تكون المركبةُ للتسويق:
+    `record_partner_ruling` تقفل الصفَّ وترفض ختماً ثانياً («الحكمُ الأوّل
+    يبقى») وترفض الحكمَ قبل انتهاء المزاد. وكتابةٌ مباشرةٌ هنا تتخطّى
+    الثلاثة، وتترك ضغطتين متتاليتين تكتبان حكمين.
+
+    والمركبةُ التي ليست للتسويق لا شريكَ لها يحكم، فالخدمةُ ترفضها بحقّ —
+    ويبقى العمودُ ختماً لمن حسم من هذه الشاشة، فيُكتب هنا.
     """
+    from apps.auctions.services import record_partner_ruling
+
+    if vehicle.is_marketing:
+        record_partner_ruling(
+            vehicle,
+            decision=decision,
+            actor=actor if getattr(actor, "pk", None) else None,
+            bid=bid,
+        )
+        return
+
     vehicle.partner_decision = decision
     vehicle.partner_decided_at = timezone.now()
     vehicle.partner_decided_by = actor if getattr(actor, "pk", None) else None
@@ -575,12 +622,25 @@ def reject(request, pk: int):
     from apps.auctions.services import reject as reject_vehicle
 
     before = audit.snapshot(vehicle, ["state"])
+    # **الختمُ قبل النقلة، والاثنان في معاملةٍ واحدة.** كان العكس، وكانت
+    # الشاشةُ لا تحكم على شيء: `move_vehicle` تسأل `partner_lock_reason`
+    # فتجد `partner_decided_at` خالياً فترفض بـ«هذه السيارة للتسويق
+    # وبانتظار قرار التعاونية» — والشاشةُ **هي** موضعُ قرار الشريك. قِيس
+    # على سيرفر التجربة: «وردّت ٢ — أوّلُها 1: هذه السيارة للتسويق…».
+    #
+    # والمعاملةُ تجمعهما لأن ختماً بلا نقلةٍ حكمٌ مسجَّلٌ على مركبةٍ لم
+    # تتحرّك، ولا يُختَم مرّةً ثانيةً بعده.
     try:
-        reject_vehicle(vehicle)
+        with transaction.atomic():
+            # v1 يختم الرفضَ حتى حين **لا عرضَ قائمٌ أصلاً**: «لا توجد عروض —
+            # تم تسجيل الرفض»، لأن الشريك حكم وإن لم يكن ثمّ ما يُرفض.
+            _stamp(vehicle, "rejected", None, request.user)
+            reject_vehicle(vehicle)
     except Exception as refusal:
         messages.error(request, str(refusal))
-        return redirect("console:partner-offers", pk=pk)
+        return redirect(_back_or_offers(request, pk))
 
+    vehicle.refresh_from_db()
     audit.record(
         action="console.reject_vehicle",
         entity=vehicle,
@@ -592,10 +652,6 @@ def reject(request, pk: int):
     # قرارٌ على مركبةٍ قد يكون آخرَ ما كان ينتظره المزاد — فيُسأل عن الإغلاق
     # هنا، لا في استطلاعٍ يمرّ على كل مزادٍ منتهٍ كلَّ دقيقة. والدالةُ تصمت إن
     # بقي غيرُها.
-    # ختمُ قرار الشريك — وبدونه تبقى شاشةُ المالك تنتظره على مركبةٍ حُسم
-    # أمرُها. وv1 يختمه حتى حين **لا عرضَ قائمٌ أصلاً**: «لا توجد عروض — تم
-    # تسجيل الرفض»، لأن الشريك حكم وإن لم يكن ثمّ ما يُرفض.
-    _stamp(vehicle, "rejected", None, request.user)
     settlement.try_close(vehicle.auction)
     messages.success(request, "سُجّل الرفض.")
     asked_back = request.POST.get("back") is not None
