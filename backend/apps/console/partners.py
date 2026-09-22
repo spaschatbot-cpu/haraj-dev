@@ -27,8 +27,16 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
-from django.core.paginator import Paginator
-from django.db.models import Case, Count, IntegerField, Max, Value, When
+from django.db.models import (
+    Case,
+    Count,
+    IntegerField,
+    Max,
+    OuterRef,
+    Subquery,
+    Value,
+    When,
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -81,6 +89,12 @@ def decisions(request):
             ),
             bidders=Count("bids__bidder", distinct=True),
             top_amount=Max("bids__amount"),
+            top_bidder=Subquery(
+                Bid.objects.live()
+                .filter(vehicle=OuterRef("pk"))
+                .order_by("-amount", "placed_at")
+                .values("bidder__full_name")[:1]
+            ),
         )
         # **الترتيبُ برقم اللوط.** قاله مالكُ v1 في ٢٠٢٦-٠٨-٢٢: «الشريك يمشي في
         # الحوش بالترتيب، فالصفحة تُقرأ بجانب السيارات». وفي v1 العمودُ نصّيٌّ
@@ -116,24 +130,45 @@ def decisions(request):
         return export(
             rows,
             name="partner-decisions",
-            headers=["المزاد", "اللوت", "المركبة", "الشريك", "الحالة", "ينتظر منذ"],
+            headers=[
+                "المزاد",
+                "الموقف",
+                "السيارة",
+                "اللوحة",
+                "رقم المطالبة",
+                "المبلغ المعتمد",
+                "شامل الضريبة",
+                "عدد المزايدين",
+                "القرار",
+                "تاريخ القرار",
+                "الشريك",
+            ],
             cell=lambda v: [
                 v.auction.number,
                 v.lot_number,
                 f"{v.make} {v.model} {v.year}",
+                v.plate_number or "",
+                v.claim_number or "",
+                v.awarded_price or v.top_amount,
+                money.tax_added_to(v.awarded_price or v.top_amount).total
+                if (v.awarded_price or v.top_amount)
+                else None,
+                v.bidders,
+                v.get_partner_decision_display()
+                if v.partner_decided_at
+                else "بانتظار قراره",
+                v.partner_decided_at,
                 v.partner_name,
-                v.get_state_display(),
-                v.updated_at,
             ],
         )
 
-    page = Paginator(rows, 25).get_page(request.GET.get("page"))
-    with_tones(page.object_list)
+    cars = list(rows)
+    with_tones(cars)
 
     # **صورةُ المركبة — عمودُ v1 الثالث.** استعلامٌ واحدٌ للصفحة: الغلافُ
     # أوّلاً ثم أوّلُ صورةٍ بالترتيب.
     covers: dict[int, object] = {}
-    for shot in VehicleImage.objects.filter(vehicle__in=page.object_list).order_by(
+    for shot in VehicleImage.objects.filter(vehicle__in=cars).order_by(
         "vehicle_id", "-is_cover", "position", "id"
     ):
         covers.setdefault(shot.vehicle_id, shot)
@@ -141,7 +176,7 @@ def decisions(request):
     # **«شامل الضريبة» جنبَ المبلغ — عمودُ v1.** والمبلغُ هو المعتمَد: ما
     # رستْ به إن رستْ، وإلّا أعلى عرضٍ قائم. ولا تُضرب النسبةُ هنا:
     # `money.tax_added_to` هي الموضعُ الوحيد الذي يضرب في المشروع.
-    for vehicle in page.object_list:
+    for vehicle in cars:
         amount = vehicle.awarded_price or vehicle.top_amount
         vehicle.amount_with_vat = money.tax_added_to(amount).total if amount else None
         vehicle.cover = covers.get(vehicle.pk)
@@ -150,8 +185,8 @@ def decisions(request):
         request,
         "console/partner_decisions.html",
         {
-            "page": page,
-            "groups": _group_by_auction(page.object_list),
+            "groups": _group_by_auction(cars),
+            "total": len(cars),
             # **ثلاثةُ أرقامِ v1 فوق الصفحة**: كم ينتظر قراراً، وكم سيارةً في
             # مزاداتٍ منتهية، وفي كم مزاد. وهي على **الطابور كلِّه** لا على
             # الصفحة — من يسأل «كم بقي عليّ» يسأل عن الكلّ.
@@ -173,7 +208,6 @@ def decisions(request):
                 {
                     "partner": partner or "",
                     "auction": request.GET.get("auction", ""),
-                    "page": request.GET.get("page", ""),
                 }
             ),
             # رسومُ الحكم — من `icons.py` لا إيموجي (T837). والقبولُ والرفضُ
@@ -405,6 +439,12 @@ def _back(request) -> str:
     return f"/console/partners/?{query}" if query else "/console/partners/"
 
 
+def _back_or_offers(request, pk: int) -> str:
+    """إلى الشاشة التي أُرسلت منها الاستمارة، وإلّا إلى صفحة العروض."""
+    query = (request.POST.get("back") or "").strip()
+    return f"/console/partners/?{query}" if query else f"/console/partners/{pk}/"
+
+
 @console_page("console:partner-offers")
 def offers(request, pk: int):
     """Every live bid on one car, highest first, with the accepted one marked.
@@ -448,6 +488,11 @@ def offers(request, pk: int):
             # is an award — an unawarded car has no accepted offer, and showing
             # the highest bid in that slot is exactly the v1 confusion.
             "accepted": vehicle.awarded_price,
+            # **الرجوعُ إلى من فتح النافذة.** كانت الترسيةُ تردّ دائماً إلى
+            # صفحة العروض، فمن رسَّ من نافذةٍ في «اتخاذ القرار» خرج من
+            # الشاشة ومن مرشّحاتها ومن موضعه في أربعين صفّاً — وهو بعينه ما
+            # فُتحت النافذةُ لتمنعه.
+            "back": request.GET.get("back", ""),
             "reserve_met": [
                 bid
                 for bid in bids
@@ -493,7 +538,7 @@ def award(request, pk: int):
             )
     except Exception as refusal:
         messages.error(request, str(refusal))
-        return redirect("console:partner-offers", pk=pk)
+        return redirect(_back_or_offers(request, pk))
 
     vehicle.refresh_from_db()
     audit.record(
@@ -509,7 +554,7 @@ def award(request, pk: int):
     # بقي غيرُها.
     settlement.try_close(vehicle.auction)
     messages.success(request, f"رست على {bid.bidder.full_name} بمبلغ {bid.amount}.")
-    return redirect("console:partner-offers", pk=pk)
+    return redirect(_back_or_offers(request, pk))
 
 
 @console_page("console:partner-reject")

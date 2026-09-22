@@ -101,11 +101,14 @@
   }
 
   // ── حارسُ الحكم ──────────────────────────────────────────────────────────
-  document.querySelectorAll("[data-decide]").forEach(function (form) {
-    form.addEventListener("submit", function (event) {
-      if (!window.confirm(form.getAttribute("data-decide"))) {
-        event.preventDefault();
-      }
-    });
+  // **تفويضٌ على المستند** لا ربطٌ لكلّ استمارةٍ عند الإقلاع: استماراتُ
+  // «قبول» داخل نافذة المزايدين تُحقَن بعد أن يكون هذا السكربتُ قد عمل،
+  // فالربطُ المباشرُ لا يبلغها أبداً — وهي أخطرُها: ترسيةٌ لا رجعةَ لها.
+  document.addEventListener("submit", function (event) {
+    var form = event.target.closest ? event.target.closest("[data-decide]") : null;
+    if (!form) return;
+    if (!window.confirm(form.getAttribute("data-decide"))) {
+      event.preventDefault();
+    }
   });
 })();

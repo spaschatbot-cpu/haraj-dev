@@ -4438,13 +4438,25 @@ dialog.row-modal {
 /* الشريكُ يحكم على أربعين مركبةً بعد كلّ مزاد، والشريطُ فوق جدولِ مزادِه لا
    فوق الصفحة: الحكمُ يقع على مزادٍ واحدٍ في المرّة، وشريطٌ واحدٌ للصفحة يجعل
    «حدّد الكل» يمتدّ على مزاداتٍ لم تُقرأ. */
+/* **شريطٌ داكنٌ لاصقٌ فوق الصفحة كـ v1** (`#dBulk`): الفعلُ يقع على أربعين
+   مركبةً، والقارئُ يؤشّر وهو نازلٌ في جدولٍ من مئاتِ الصفوف — فشريطٌ يمشي
+   مع الصفحة يعني ألّا يصعد ليضغط. وكان شريطاً فاتحاً لكلّ مزاد. */
 .pd-bulk {
+  position: sticky;
+  inset-block-start: .4rem;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: .4rem;
   flex-wrap: wrap;
-  margin-block-end: .5rem;
+  margin-block: .6rem 1rem;
+  padding: .55rem .8rem;
+  border-radius: .8rem;
+  background: var(--ink);
+  color: var(--surface);
+  box-shadow: 0 6px 18px rgb(0 0 0 / .18);
 }
+.pd-bulk .dc-btn--ghost { color: var(--surface); border-color: rgb(255 255 255 / .35); background: transparent; }
 /* خانةُ التحديد ضيّقةٌ: عمودٌ بعرض الاسم لمربّعٍ واحدٍ يدفع الجدولَ يميناً. */
 .pd-ck { inline-size: 2.2rem; text-align: center; }
 .pd-ck input { inline-size: 1rem; block-size: 1rem; accent-color: var(--brand); cursor: pointer; }
@@ -13390,10 +13402,13 @@ a.of-nav__card:hover {
   margin-inline-end: auto;
   font-weight: 700;
   font-size: .85rem;
-  color: var(--ink);
+  color: inherit;
   font-variant-numeric: tabular-nums;
 }
-.pd-bulk__n[hidden] { display: none; }
+.pd-bulk__n b { font-weight: 900; }
+/* والشريطُ كلُّه يختفي حتى يُؤشَّر شيء كـ v1 — و`[hidden]` وحدَه لا يكفي
+   أمام `display:flex` أعلاه. */
+.pd-bulk[hidden] { display: none; }
 
 /* الزرُّ المعطَّل على الصفّ المحكوم فيه — يبقى مكانه كـ v1 ولا يختفي:
    اختفاؤه يُزحزح الخليّةَ فتختلف أعرضةُ العمود من صفٍّ إلى صفّ، ويُقرأ
@@ -13405,3 +13420,54 @@ a.of-nav__card:hover {
   filter: grayscale(.35);
 }
 .dc-btn[disabled]:hover { transform: none; }
+
+/* ---- قائمةُ المزايدين في النافذة — شكلُ v1 ---------------------------- */
+/* سطرٌ لكلّ عرض: ترتيبٌ ثم اسمٌ ثم مبلغٌ ثم زرُّ قبول. وكانت جدولاً بخمسة
+   أعمدة (المزايد والجوال والمبلغ ووقتها وخانةُ سبب) فيهبط زرُّ القبول تحت
+   الطيّ — وسؤالُ النافذة واحد: «على من أرسي؟». */
+.bd-list { list-style: none; margin: 0; padding: .4rem .2rem .6rem; display: grid; gap: .4rem; }
+.bd-row {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .5rem .6rem;
+  border: 1px solid var(--line);
+  border-radius: .6rem;
+  background: var(--surface);
+}
+/* الأعلى أوّلاً، والمقبولُ معلَّمٌ من الترسية — العينُ تجدهما بلا قراءة. */
+.bd-row.is-top { border-inline-start: 3px solid var(--brand); }
+.bd-row.is-acc { background: color-mix(in srgb, var(--ok) 9%, var(--surface)); border-color: var(--ok); }
+.bd-rank {
+  flex: none;
+  inline-size: 1.7rem;
+  block-size: 1.7rem;
+  display: grid;
+  place-items: center;
+  border-radius: .45rem;
+  background: var(--raised);
+  font-size: .78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.bd-row.is-top .bd-rank { background: var(--brand); color: #fff; }
+.bd-nm { flex: 1 1 auto; min-inline-size: 0; font-weight: 700; }
+.bd-am { flex: none; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bd-tag { flex: none; font-size: .7rem; font-weight: 800; padding: .1rem .4rem; border-radius: .35rem; }
+.bd-tag.t-acc { background: var(--ok); color: #fff; }
+/* والاستمارةُ ليست بطاقة: `.modal form` يلبس كلَّ استمارةٍ حدّاً وظلّاً. */
+.bd-go {
+  flex: none;
+  display: flex;
+  gap: .35rem;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  max-width: none;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.bd-go input[type="text"] { inline-size: 8rem; min-inline-size: 0; margin: 0; }
+.bd-note { padding: .8rem; text-align: center; color: var(--muted); }

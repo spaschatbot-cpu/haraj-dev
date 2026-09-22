@@ -37,48 +37,52 @@
 </div>
 
 <div class="bidders-modal__scroll">
-  <table class="of-bidders">
-    <thead>
-      <tr><th>المزايد</th><th>الجوال</th><th>المبلغ</th><th>وقتها</th><th>الترسية</th></tr>
-    </thead>
-    <tbody>
-      {% for bid in bids %}
-        <tr{% if bid.bidder_id == vehicle.awarded_to_id %} class="is-awarded"{% endif %}>
-          <td>
-            {% if show_customer %}{{ bid.bidder.full_name }}
-            {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
-            {% if bid.bidder_id == vehicle.awarded_to_id %}<strong>(المقبول)</strong>{% endif %}
-          </td>
-          <td class="mono">
-            {% if show_customer %}{{ bid.bidder.phone|unlocalize }}
-            {% else %}<span class="empty">محجوب</span>{% endif %}
-          </td>
-          <td class="money">
-            {% if show_money %}{{ bid.amount|unlocalize }}
-            {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
-          </td>
-          <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
-          {% comment %} **وهذا هو «تعديل الأسعار» عندنا.** v1 يكتب فوق
-             `bids.amount`؛ والمزايدةُ عرضٌ قانونيٌّ وقع فلا يُكتب فوقه. فالسعرُ
-             يتغيّر باعتماد عرضٍ آخر: `replace_winner` تُلغي الفاتورةَ الأولى
-             وتفكّ حجزَ الفائز الأوّل في المعاملة نفسِها.
+  {% comment %} **قائمةٌ لا جدولُ تدقيق — شكلُ v1 حرفاً.** كانت خمسةَ أعمدة:
+     المزايد والجوال والمبلغ ووقتها وخانةُ سببٍ مع زرّ. وقالت المالكةُ في
+     ٢٢ سبتمبر ٢٠٢٦ وأمامَها الاثنتان: «دي مش زي الاساسي».
 
-             والسببُ حقلٌ لأن `replace_winner` **تشترطه**: من يسأل بعد شهرٍ
-             «لماذا تغيّر الفائز؟» لا يجيبه صفٌّ بسببٍ فارغ. {% endcomment %}
-          <td>
-            <form method="post" action="{% url 'console:partner-award' vehicle.pk %}" class="of-award">
-              {% csrf_token %}
-              <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
-              <input type="text" name="reason" maxlength="200"
-                     placeholder="السبب…" aria-label="سبب الترسية أو نقلها">
-              <button type="submit" class="btn-sm">رسِّ على هذا</button>
-            </form>
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5" class="empty">لا عروض قائمة على هذه المركبة.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+     ونافذةُ v1 أربعةُ حقولٍ في سطر: **الترتيب · المزايد · المبلغ · قبول**
+     — لأن سؤالَها واحد: «على من أرسي؟». والجوّالُ والوقتُ جوابا سؤالٍ آخر
+     (مَن هو ومتى زايد) ومكانُهما صفحةُ العروض ومزايداتُ المركبة، وهما
+     يطيلان السطرَ فيهبط زرُّ القبول تحت الطيّ.
+
+     **والسببُ يظهر عند النقل وحدَه**: `replace_winner` تشترطه — من يسأل بعد
+     شهرٍ «لماذا تغيّر الفائز؟» لا يجيبه صفٌّ بسببٍ فارغ. أمّا الترسيةُ
+     الأولى فـ`award_to` ولا سببَ لها، فالخانةُ فيها حقلٌ يُملأ بلا داعٍ.
+     {% endcomment %}
+  <ol class="bd-list">
+    {% for bid in bids %}
+      {% comment %} الأعلى أوّلاً (الترتيبُ من العرض)، والمقبولُ معلَّمٌ من
+         الترسية لا بإعادة حسابِ الأعلى: مركبةٌ رستْ على الثاني كانت تعرض
+         رقمَ الأوّل في v1 — والرقمُ يدخل حديثَ الفاتورة. {% endcomment %}
+      <li class="bd-row{% if forloop.first %} is-top{% endif %}{% if bid.bidder_id == vehicle.awarded_to_id %} is-acc{% endif %}">
+        <span class="bd-rank">{{ forloop.counter|unlocalize }}</span>
+        <span class="bd-nm">
+          {% if show_customer %}{{ bid.bidder.full_name }}
+          {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
+        </span>
+        {% if bid.bidder_id == vehicle.awarded_to_id %}<span class="bd-tag t-acc">مقبول</span>{% endif %}
+        <span class="bd-am">
+          {% if show_money %}{{ bid.amount|unlocalize }}
+          {% else %}<span class="empty" title="المبالغُ خلف صلاحية «عرض الفواتير والمدفوعات»">محجوب</span>{% endif %}
+        </span>
+        {% comment %} زرُّ «قبول» في v1، ونصُّه هنا «رسِّ على هذا» لأنه هو
+           الفعلُ المسمّى في بقيّة اللوحة. و`data-decide` يُقرأ قبل الإرسال:
+           الترسيةُ لا رجعةَ لها من هذه النافذة. {% endcomment %}
+        <form method="post" action="{% url 'console:partner-award' vehicle.pk %}" class="bd-go"
+              data-decide="{% if vehicle.awarded_to_id %}نقلُ الترسية{% else %}ترسيةُ المركبة{% endif %} على «{{ bid.bidder.full_name }}» بمبلغ {{ bid.amount|unlocalize }} ر.س؟">
+          {% csrf_token %}
+          <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
+          <input type="hidden" name="back" value="{{ back|default:'' }}">
+          {% if vehicle.awarded_to_id and bid.bidder_id != vehicle.awarded_to_id %}
+            <input type="text" name="reason" maxlength="200" required
+                   placeholder="سببُ النقل…" aria-label="سبب نقل الترسية">
+          {% endif %}
+          <button type="submit" class="btn-sm"{% if bid.bidder_id == vehicle.awarded_to_id %} disabled{% endif %}>قبول</button>
+        </form>
+      </li>
+    {% empty %}
+      <li class="bd-note">لا عروض قائمة على هذه المركبة.</li>
+    {% endfor %}
+  </ol>
 </div>
-

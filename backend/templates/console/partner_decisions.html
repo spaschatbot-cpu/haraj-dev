@@ -58,7 +58,7 @@ sat in the vehicle list and the partner was told by telephone.
      يسأل الأوّلَ قبل أن ينزل. {% endcomment %}
   <section class="sum-grid sum-grid--tight" aria-label="أرقام القرار">
     <div class="sum sum--wait">
-      <p class="sum__label">بانتظار قراره</p>
+      <p class="sum__label">بانتظار قرارك</p>
       <p class="sum__value">{{ kpi.pending|unlocalize }}</p>
       <p class="sum__note">في المزادات المنتهية</p>
     </div>
@@ -80,22 +80,54 @@ sat in the vehicle list and the partner was told by telephone.
      تفقد الموضع. {% endcomment %}
   <div class="dd-filters">
     <input type="search" data-dd-find autocomplete="off"
-           placeholder="بحث بالاسم أو اللوحة أو رقم المطالبة أو اللوط" aria-label="بحث">
+           placeholder="بحث بالموقف أو اللوحة أو رقم المطالبة أو اسم السيارة أو المزايد…" aria-label="بحث">
     <select data-dd-state aria-label="القرار">
       <option value="">كل القرارات</option>
-      <option value="pending">بانتظار قراره</option>
-      <option value="accepted">قبِله</option>
-      <option value="rejected">رفضه</option>
+      <option value="pending">بانتظار قراري</option>
+      <option value="accepted">قبلتها</option>
+      <option value="rejected">رفضتها</option>
     </select>
     <span class="dd-count" data-dd-count></span>
   </div>
+
+  <form method="post" action="{% url 'console:partner-decide-many' %}" class="pd-bulk-form">
+    {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
+    {% comment %} **شريطٌ واحدٌ للصفحة كـ v1، لا شريطٌ لكلّ مزاد.**
+       (`#dBulk` هناك عنصرٌ واحدٌ فوق المجموعات كلِّها.) وكان هنا شريطاً
+       ومربّعاً لكلّ مزادٍ في استمارته، فرأى القارئُ ثلاثةَ شرائطَ متطابقةً
+       وسأل أيُّها يعمل.
+
+       **ولا استمارةٌ داخل استمارة**: الاستمارةُ واحدةٌ تلفّ المجموعاتِ
+       كلَّها، والأزرارُ في الصفوف تُرسلها إلى وجهتها بـ`formaction`. والعطلُ
+       الذي كان يخيفنا من الاستمارة الواحدة — «حدّد كل الظاهر» يؤشّر ٢١
+       مربّعاً منها ١٩ في مزاداتٍ أخرى — عِلاجُه أن يكون المربّعُ مقصوراً على
+       `.dd-grp` التي هو فيها، وهو ما يفعله v1 بالحرف (`all.closest('.d-group')`).
+
+       **ويُخفى حتى يُؤشَّر شيء** كـ v1 (`bulk.hidden = list.length === 0`):
+       شريطٌ داكنٌ دائمُ الحضور يقول «٠ سيارة محدَّدة» يشغل أعلى الشاشة بلا
+       فائدة. {% endcomment %}
+    <div class="pd-bulk" data-dd-bulk hidden>
+      {% comment %} **عدّادُ v1**: «N سيارة محدَّدة · X ر.س شامل الضريبة».
+         ومن يضغط «قبول المحدَّد» على عشرين مركبةً يريد أن يرى المبلغَ قبل
+         الضغط — وهو ما يدخل حديثَ الفاتورة. {% endcomment %}
+      <span class="pd-bulk__n"><b data-dd-n>0</b> سيارة محدَّدة · <b data-dd-sum>0</b> ر.س شامل الضريبة</span>
+      {% comment %} **أفعالُ v1 الجماعيّة.** الشريكُ يحكم على أربعين مركبةً
+         بعد كلّ مزاد، وبلا هذه أربعون نقرةً وأربعون إعادةَ تحميل. وهي
+         `submit` لا جافاسكربت: الاستمارةُ تحمل المحدَّد، والزرُّ يقول أيَّ
+         فعل — و`decide_many` حلقةٌ على البابِ المفردِ نفسِه. {% endcomment %}
+      <button type="submit" name="op" value="accept" class="dc-btn dc-btn--yes" data-dd-go="accept">
+        {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول المحدَّد</span></button>
+      <button type="submit" name="op" value="reject" class="dc-btn dc-btn--no" data-dd-go="reject">
+        {% include "console/_act_icon.html" with path=icon_no %}<span>رفض المحدَّد</span></button>
+      <button type="button" class="dc-btn dc-btn--ghost" data-dd-clear><span>إلغاء التحديد</span></button>
+    </div>
 
   {% for group in groups %}
     {% comment %} **رأسُ v1**: رقمُ المزاد واسمُه ومتى انتهى، ثم ثلاثُ
        شرائحَ — معلّق ومقبول ومرفوض — ومجموعُ ما شملَ الضريبة. وثلاثةُ أعدادٍ
        تقول **أين وصل** المزاد بنظرة؛ والواحدُ («ينتظر قرارَه N») يقول ما بقي
        ولا يقول ماذا جرى. {% endcomment %}
-    <div class="dd-grp">
+    <div class="dd-grp" data-group="{{ group.auction.pk }}">
     <h2 class="pd-auction">
       مزاد {{ group.auction.number|unlocalize }}
       {% if group.auction.title %}<small>{{ group.auction.title }}</small>{% endif %}
@@ -107,31 +139,6 @@ sat in the vehicle list and the partner was told by telephone.
         قبل الضريبة <b>{{ group.sum_net|unlocalize }}</b> ر.س ·
         شامل الضريبة <b>{{ group.sum_vat|unlocalize }}</b> ر.س</small>
     </h2>
-
-    {% comment %} **استمارةٌ لكلّ مزادٍ لا واحدةٌ للصفحة.** المربّعُ في
-       الرأس يحدّد «كلَّ الظاهر في هذا المزاد» كـ v1، والحكمُ يقع على مزادٍ
-       واحدٍ في المرّة — وهو كيف يُحكَم فعلاً: يُفتح بعد إغلاق مزادٍ بعينه.
-       واستمارةٌ واحدةٌ للصفحة تجعل «حدّد الكل» يمتدّ على مزاداتٍ لم تُقرأ.
-       {% endcomment %}
-    <form method="post" action="{% url 'console:partner-decide-many' %}" class="pd-bulk-form">
-      {% csrf_token %}<input type="hidden" name="back" value="{{ filters }}">
-
-      {% comment %} **أفعالُ v1 الجماعيّة.** الشريكُ يحكم على أربعين مركبةً
-         بعد كلّ مزاد، وبلا هذه أربعون نقرةً وأربعون إعادةَ تحميل. وهي
-         `submit` لا جافاسكربت: الاستمارةُ تحمل المحدَّد، والزرُّ يقول أيَّ
-         فعل. {% endcomment %}
-      <div class="pd-bulk">
-        {% comment %} **عدّادُ v1**: «N سيارة محدَّدة · X ر.س شامل الضريبة».
-           ومن يضغط «قبول المحدَّد» على عشرين مركبةً يريد أن يرى المبلغَ قبل
-           الضغط — وهو ما يدخل حديثَ الفاتورة. يُحسب في المتصفّح من الصفوف
-           المؤشَّرة. {% endcomment %}
-        <span class="pd-bulk__n" data-dd-sel hidden></span>
-        <button type="submit" name="op" value="accept" class="dc-btn dc-btn--yes">
-          {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول المحدَّد</span></button>
-        <button type="submit" name="op" value="reject" class="dc-btn dc-btn--no">
-          {% include "console/_act_icon.html" with path=icon_no %}<span>رفض المحدَّد</span></button>
-        <button type="reset" class="dc-btn dc-btn--ghost"><span>إلغاء التحديد</span></button>
-      </div>
 
     <div class="scroller">
       <table class="pd-tbl">
@@ -147,8 +154,12 @@ sat in the vehicle list and the partner was told by telephone.
                قبل اسمها. {% endcomment %}
             <th>الموقف</th><th class="pv-thumb-h">صورة</th><th>السيارة</th>
             <th>اللوحة</th><th>رقم المطالبة</th>
-            <th>المبلغ المعتمد</th><th>شامل الضريبة ({{ vat_label }})</th>
-            <th>عدد المزايدين</th><th>القرار</th><th>إجراء</th>
+            {% comment %} «شامل الضريبة» بلا نسبةٍ بين قوسين، وآخرُ عمودٍ
+               بلا عنوانٍ مرئيّ — رأسُ v1 حرفاً. والعنوانُ مكتوبٌ لقارئ
+               الشاشة وحدَه: عمودٌ بلا اسمٍ يُقرأ «عمود» في قائمة الأعمدة.
+               {% endcomment %}
+            <th>المبلغ المعتمد</th><th>شامل الضريبة</th>
+            <th>عدد المزايدين</th><th>القرار</th><th><span class="sr-only">إجراء</span></th>
           </tr>
         </thead>
         <tbody>
@@ -159,7 +170,8 @@ sat in the vehicle list and the partner was told by telephone.
             <tr class="dd-row"
                 data-state="{% if vehicle.partner_decided_at %}{{ vehicle.partner_decision }}{% else %}pending{% endif %}"
                 data-vat="{{ vehicle.amount_with_vat|default_if_none:0|unlocalize }}"
-                data-find="{{ vehicle.display_title|lower }} {{ vehicle.plate_number|default:'' }} {{ vehicle.claim_number|default:'' }} {{ vehicle.lot_number|unlocalize }}">
+                data-lot="{{ vehicle.lot_number|unlocalize }}"
+                data-find="{{ vehicle.lot_number|unlocalize }} {{ vehicle.plate_number|default:'' }} {{ vehicle.claim_number|default:'' }} {{ vehicle.display_title|lower }} {{ vehicle.top_bidder|default:''|lower }} {{ vehicle.pk|unlocalize }}">
               {% comment %} ولا مربّعَ على مركبةٍ حُكم فيها: الفعلُ الجماعيّ
                  سيردّها على أي حال، وعرضُ مربّعٍ يقود إلى «ردّت ٣» بلا سبب
                  يفهمه من ضغط. {% endcomment %}
@@ -204,9 +216,9 @@ sat in the vehicle list and the partner was told by telephone.
                      وقارئُ هذه الشاشة موظّفٌ يقرّر عنه، فالضميرُ يتبع
                      القارئ. {% endcomment %}
                   {% if vehicle.partner_decision == "accepted" %}
-                    <span class="pill" data-tone="ok">قبِله الشريك</span>
+                    <span class="pill" data-tone="ok">قبلتها</span>
                   {% else %}
-                    <span class="pill" data-tone="bad">رفضه الشريك</span>
+                    <span class="pill" data-tone="bad">رفضتها</span>
                   {% endif %}
                 {% else %}
                   {% comment %} نبضةٌ بطيئةٌ على المنتظِر وحدَه: الصفحةُ
@@ -214,7 +226,7 @@ sat in the vehicle list and the partner was told by telephone.
                      أن تجد الباقيَ دون قراءة عمودٍ كامل. وتعود إلى حيث بدأت
                      في كلّ دورة، فتجمّدُها في تبويبٍ مخفيٍّ لا يترك شيئاً
                      باهتاً — وهو العطلُ الذي وقع في `.ex-act`. {% endcomment %}
-                  <span class="pill dc-wait" data-tone="warn">ينتظر</span>
+                  <span class="pill dc-wait" data-tone="warn">بانتظار قرارك</span>
                 {% endif %}
               </td>
               {% comment %} **الفعلُ في الصفّ كـ v1.** كان في صفحةٍ ثانيةٍ لكلّ
@@ -234,16 +246,16 @@ sat in the vehicle list and the partner was told by telephone.
                  حكماً ثالثاً. {% endcomment %}
               {% comment %} **أربعةُ أفعالِ v1 في الصفّ، لا واحد.** كانت
                  الخليّةُ تعرض «العروض» وحدَها على المحكوم فيه، وv1 يعرض في
-                 كلّ صفّ: **تفاصيل** و**قبول** و**رفض** و**قائمة
-                 المزايدين** — والأخيران هما الجوابُ عن «ومن زايد عليها؟»
-                 و«وما حكايتها؟»، وهما ما يُسأل قبل الحكم لا بعده.
+                 كلّ صفّ: قبولاً ورفضاً و**قائمة المزايدين** — والأخيرةُ هي
+                 الجوابُ عن «ومن زايد عليها؟»، وهو ما يُسأل قبل الحكم لا
+                 بعده. و«تفاصيل» شيلَ بقرار المالكة في ٢٢ سبتمبر ٢٠٢٦
+                 («حتشيل التفاصيل»): صفحةُ المركبة بابٌ يخرج من شاشة القرار،
+                 والنافذةُ تجيب دون أن تُخرج.
 
                  والأزرارُ على الصفّ المحكوم فيه **تبقى معطّلةً كـ v1** لا
                  تختفي: اختفاؤها يُزحزح الخليّةَ فتختلف أعرضةُ العمود من
                  صفٍّ إلى صفّ، ويُقرأ «الزرُّ ضاع» لا «حُكم فيها». {% endcomment %}
               <td class="actions dc-cell">
-                <a class="dc-btn dc-btn--ghost" href="{% url 'console:vehicle-detail' vehicle.pk %}">
-                  {% include "console/_act_icon.html" with path=icon_detail %}<span>تفاصيل</span></a>
                 {% if vehicle.partner_decided_at %}
                   <span class="dc-pair">
                     <button type="button" class="dc-btn dc-btn--yes" disabled>
@@ -256,7 +268,7 @@ sat in the vehicle list and the partner was told by telephone.
                      فقط». ومن يراجع حكماً وقع يسأل عمّن زايد، لا يُمنع من
                      السؤال. {% endcomment %}
                   <button type="button" class="dc-btn dc-btn--ghost" data-bidders
-                          data-url="{% url 'console:partner-offers' vehicle.pk %}?modal=1">
+                          data-url="{% url 'console:partner-offers' vehicle.pk %}?modal=1&amp;back={{ filters|urlencode }}">
                     {% include "console/_act_icon.html" with path=icon_offers %}<span>قائمة المزايدين</span></button>
                 {% else %}
                   {% comment %} **`formaction` لا استمارةٌ داخل استمارة.**
@@ -300,7 +312,7 @@ sat in the vehicle list and the partner was told by telephone.
                      صفحةَ الترسية الكاملة يُقرأ فعلاً آخر لا نظيرَ له.
                      {% endcomment %}
                   <button type="button" class="dc-btn dc-btn--ghost" data-bidders
-                          data-url="{% url 'console:partner-offers' vehicle.pk %}?modal=1">
+                          data-url="{% url 'console:partner-offers' vehicle.pk %}?modal=1&amp;back={{ filters|urlencode }}">
                     {% include "console/_act_icon.html" with path=icon_bids %}<span>قائمة المزايدين</span></button>
                 {% endif %}
               </td>
@@ -309,13 +321,13 @@ sat in the vehicle list and the partner was told by telephone.
         </tbody>
       </table>
     </div>
-    </form>
     </div>
   {% empty %}
-    <p class="empty">لا مركبة في مزادٍ منتهٍ.</p>
+    <p class="empty">لا توجد سيارات في مزادات منتهية — تظهر السيارةُ هنا بعد انتهاء مزادها.</p>
   {% endfor %}
+  </form>
 
-  <p><b class="tf__n">{{ page.paginator.count }}</b> مركبة<span class="tf__sep" aria-hidden="true"></span>صفحة <b class="tf__n">{{ page.number }}</b> من <b class="tf__n">{{ page.paginator.num_pages }}</b></p>
+  <p><b class="tf__n">{{ total|unlocalize }}</b> سيارة في <b class="tf__n">{{ groups|length|unlocalize }}</b> مزاد</p>
   {% comment %} سطرٌ واحدٌ لمربّع «كل الظاهر» — والبديلُ أن يُنقر أربعون
      مربّعاً. وتفويضٌ على المستند لا ربطٌ لكلّ رأس: الجداولُ بعددِ
      المزادات. {% endcomment %}
@@ -330,72 +342,130 @@ sat in the vehicle list and the partner was told by telephone.
   (function () {
     var find  = document.querySelector('[data-dd-find]');
     var state = document.querySelector('[data-dd-state]');
-    var count = document.querySelector('[data-dd-count]');
+    var out   = document.querySelector('[data-dd-count]');
+    var bulk  = document.querySelector('[data-dd-bulk]');
+    var bulkN = document.querySelector('[data-dd-n]');
+    var bulkS = document.querySelector('[data-dd-sum]');
     var rows  = Array.prototype.slice.call(document.querySelectorAll('.dd-row'));
-    var money = function (n) { return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+    var money = function (n) { return n.toLocaleString('en-US', { maximumFractionDigits: 2 }); };
 
-    // «N سيارة محدَّدة · X ر.س شامل الضريبة» — عدّادُ v1. ويُحسب لكلّ
-    // استمارةٍ وحدَها: الاستمارةُ مزادٌ واحد، والحكمُ يقع عليه هو.
-    function tally() {
-      document.querySelectorAll('.pd-bulk-form').forEach(function (form) {
-        var slot = form.querySelector('[data-dd-sel]');
-        if (!slot) return;
-        var n = 0, sum = 0;
-        form.querySelectorAll('input[name="pick"]:checked').forEach(function (box) {
-          var row = box.closest('.dd-row');
-          if (!row || row.hidden) return;
-          n += 1;
-          sum += parseFloat(row.dataset.vat || '0') || 0;
-        });
-        slot.hidden = n === 0;
-        slot.textContent = n + ' سيارة محدَّدة · ' + money(sum) + ' ر.س شامل الضريبة';
-      });
-    }
-
-    // البحثُ والترشيحُ يخفيان الصفوفَ في مكانها بلا إعادة تحميل: الصفحةُ
-    // مجموعاتٌ مفتوحةٌ ومربّعاتٌ مؤشَّرة، وإعادةُ التحميل تفقد الاثنين.
-    function sift() {
-      if (!rows.length) return;
-      var q = (find ? find.value : '').trim().toLowerCase();
-      var want = state ? state.value : '';
+    // ── المرشّحان ──────────────────────────────────────────────────────
+    // كلماتٌ تُفصل بمسافة وتُطابَق **كلُّها** على مفتاحٍ واحدٍ يجمع الموقفَ
+    // واللوحةَ ورقمَ المطالبة واسمَ السيارة والمزايدَ والرقم — لأن الورقة
+    // التي بيد السائل قد تحمل أيّاً منها. وقراءةُ نصّ الخلايا الخام بدلَ
+    // المفتاح تُطابق كلماتِ الواجهة نفسَها («قبول»).
+    //
+    // وفي المتصفّح لا في الخادم: الصفوفُ كلُّها مرسومةٌ أصلاً، فالنتيجةُ
+    // فوريّةٌ بلا رحلة، ولا يتغيّر الاستعلامُ ولا التصدير.
+    function apply() {
+      var terms = (find ? find.value : '').toLowerCase().split(/\s+/).filter(Boolean);
+      var want  = state ? state.value : '';
       var shown = 0;
       rows.forEach(function (row) {
-        var ok = (!q || (row.dataset.find || '').indexOf(q) !== -1)
-              && (!want || row.dataset.state === want);
+        var key = row.getAttribute('data-find') || '';
+        var dec = row.getAttribute('data-state') || 'pending';
+        var ok = (want === '' || dec === want)
+              && terms.every(function (t) { return key.indexOf(t) !== -1; });
         row.hidden = !ok;
         if (ok) shown += 1;
       });
+      // المزادُ الذي لم يبقَ فيه صفٌّ يُطوى كلُّه: رأسٌ فوق جدولٍ فارغٍ
+      // يبدو عطلاً.
       document.querySelectorAll('.dd-grp').forEach(function (grp) {
-        grp.hidden = grp.querySelectorAll('.dd-row:not([hidden])').length === 0;
+        grp.hidden = !grp.querySelector('.dd-row:not([hidden])');
       });
-      if (count) {
-        count.textContent = (q || want)
-          ? shown + ' من ' + rows.length + ' في هذه الصفحة'
-          : rows.length + ' في هذه الصفحة';
+      if (out) {
+        out.textContent = (terms.length || want) ? (shown + ' من ' + rows.length + ' سيارة') : '';
       }
+      // المخفيُّ لا يُنفَّذ عليه شيء، لكنّ بقاءه محدَّداً في الخفاء يجعل
+      // العدّادَ يقفز حين يُمسح البحث. فيُلغى تحديدُه.
+      rows.forEach(function (row) {
+        if (!row.hidden) return;
+        var box = row.querySelector('input[name="pick"]');
+        if (box) box.checked = false;
+      });
       tally();
     }
 
-    if (find)  find.addEventListener('input', sift);
-    if (state) state.addEventListener('change', sift);
-    sift();
+    // ── التحديد ────────────────────────────────────────────────────────
+    function picked() {
+      return rows.filter(function (row) {
+        if (row.hidden) return false;
+        var box = row.querySelector('input[name="pick"]');
+        return !!(box && box.checked);
+      });
+    }
+
+    function tally() {
+      var list = picked();
+      var sum = list.reduce(function (t, row) {
+        return t + (parseFloat(row.getAttribute('data-vat')) || 0);
+      }, 0);
+      if (bulkN) bulkN.textContent = list.length;
+      if (bulkS) bulkS.textContent = money(sum);
+      if (bulk)  bulk.hidden = list.length === 0;
+      // ومربّعُ الرأس يعكس حالَ **مجموعته وحدَها**: كاملٌ أو جزئيٌّ أو فارغ.
+      document.querySelectorAll('.js-pick-all').forEach(function (head) {
+        var grp = head.closest('.dd-grp');
+        if (!grp) return;
+        var boxes = Array.prototype.slice
+          .call(grp.querySelectorAll('.dd-row input[name="pick"]'))
+          .filter(function (box) { return !box.closest('.dd-row').hidden; });
+        var on = boxes.filter(function (box) { return box.checked; }).length;
+        head.checked = boxes.length > 0 && on === boxes.length;
+        head.indeterminate = on > 0 && on < boxes.length;
+      });
+    }
 
     document.addEventListener('change', function (e) {
       var head = e.target.closest('.js-pick-all');
       if (head) {
-        var form = head.closest('form');
-        // «كلُّ الظاهر» حرفاً: الصفوفُ المخفيّةُ بالبحث لا تُؤشَّر — وإلا
-        // حكم على ما لم يقرأ.
-        if (form) form.querySelectorAll('input[name="pick"]').forEach(function (box) {
-          var row = box.closest('.dd-row');
-          if (row && row.hidden) return;
-          box.checked = head.checked;
+        var grp = head.closest('.dd-grp');
+        // «كلُّ الظاهر في هذا المزاد» حرفاً: مقصورٌ على `.dd-grp` التي هو
+        // فيها، والمخفيُّ بالبحث لا يُؤشَّر — وإلّا حُكم على ما لم يُقرأ.
+        if (grp) grp.querySelectorAll('.dd-row input[name="pick"]').forEach(function (box) {
+          if (!box.closest('.dd-row').hidden) box.checked = head.checked;
         });
       }
       if (head || e.target.name === 'pick') tally();
     });
-    // `type="reset"` يمسح المربّعات بعد هذا الحدث، فيُحسب بعده.
-    document.addEventListener('reset', function () { setTimeout(tally, 0); });
+
+    var clear = document.querySelector('[data-dd-clear]');
+    if (clear) clear.addEventListener('click', function () {
+      rows.forEach(function (row) {
+        var box = row.querySelector('input[name="pick"]');
+        if (box) box.checked = false;
+      });
+      tally();
+    });
+
+    // ── حارسُ الحكم الجماعيّ ────────────────────────────────────────────
+    // v1 يعرض العددَ والإجماليَّ والمواقفَ قبل التنفيذ ويقول إنه لا يُتراجع
+    // عنه — والفعلُ يقع على أربعين مركبةً بضغطةٍ واحدة.
+    document.querySelectorAll('[data-dd-go]').forEach(function (button) {
+      button.addEventListener('click', function (e) {
+        var list = picked();
+        if (!list.length) { e.preventDefault(); return; }
+        var accept = button.getAttribute('data-dd-go') === 'accept';
+        var sum = list.reduce(function (t, row) {
+          return t + (parseFloat(row.getAttribute('data-vat')) || 0);
+        }, 0);
+        var lots = list.slice(0, 12).map(function (row) {
+          return row.getAttribute('data-lot') || '';
+        }).join('، ') + (list.length > 12 ? ' …' : '');
+        var NL = String.fromCharCode(10);
+        var msg = accept
+          ? 'قبولُ أعلى عرضٍ على ' + list.length + ' سيارة؟' + NL + NL
+            + 'الإجمالي شامل الضريبة: ' + money(sum) + ' ر.س' + NL
+            + 'المواقف: ' + lots
+          : 'رفضُ كلّ العروض على ' + list.length + ' سيارة؟' + NL + NL + 'المواقف: ' + lots;
+        if (!window.confirm(msg + NL + NL + 'ولا يُتراجَع عنه من هذه الصفحة.')) e.preventDefault();
+      });
+    });
+
+    if (find)  find.addEventListener('input', apply);
+    if (state) state.addEventListener('change', apply);
+    apply();
   })();
   </script>
 {% endblock %}
