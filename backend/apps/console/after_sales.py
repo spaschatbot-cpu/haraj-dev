@@ -74,7 +74,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db.models import Count, F, OuterRef, Q, Subquery, Sum
-from django.shortcuts import render
+from django.shortcuts import redirect
 from django.urls import reverse
 
 from apps.auctions.models import Auction, Vehicle, VehicleImage
@@ -92,7 +92,7 @@ from .catalog import SOLD
 from .dashboard import Stat
 from .exports import export_table, oversize, refuse, wants_export
 from .icons import path_of
-from .sensitive import CUSTOMER, MONEY, columns_for, prepare, shown_to
+from .sensitive import CUSTOMER, MONEY, columns_for, prepare
 from .tones import tone_of, with_tones
 from .views import console_page
 
@@ -722,25 +722,32 @@ def sale_table(request, rows, *, chosen, sheet_ids, seen, screen, name, decided=
 
 @console_page("console:after-sales")
 def after_sales(request):
-    """ما بعد البيع: ما بيع، ولمن، وهل وصل مالُه."""
-    chosen = chosen_filters(request)
-    # تُحسب مرّةً للطلب كلِّه: الصفوفُ والبطاقاتُ والتصدير تقرؤها، فلا تتكرّر.
-    sheet_ids = sheet_settled_vehicle_ids()
-    rows = sold_rows(states=SOLD, sheet_ids=sheet_ids, **chosen)
-    seen = shown_to(request.user)
+    """**دُمجت في «القرارات المنتهية»** — T973، وتبقى تحويلاً لا شاشة.
 
-    built = sale_table(
-        request,
-        rows,
-        chosen=chosen,
-        sheet_ids=sheet_ids,
-        seen=seen,
-        screen="console:after-sales",
-        name="ما-بعد-البيع",
-    )
-    if not isinstance(built, dict):
-        return built
-    return render(request, "console/after_sales.html", built)
+    سأل المالك (٢٢ سبتمبر ٢٠٢٦) أن تُمسَح الشاشاتُ بحثاً عن متشابهات، فظهر
+    زوجٌ واحدٌ في الأربعين: هذه و«القرارات المنتهية». وقِيس أنهما شاشةٌ واحدة:
+
+    * **بانيا الصفوف واحد** — `sold_rows()`؛ لا استعلامَ ثانٍ (وذلك من T922).
+    * **والقالبُ واحد** — `ended_decisions.html` تمتدّ `after_sales.html`.
+    * **وخمسةَ عشرَ عموداً من ستّةَ عشرَ مشتركة**، والزائدُ «المزايدون».
+    * والفرقُ الحقيقيُّ **مجموعةُ الحالات**: `SOLD` هنا و`DECIDED` هناك —
+      وهي `SOLD` زائدَ `rejected`.
+
+    **والبرهانُ قِيس صفّاً بصفّ**: «ما بعد البيع» ≡ «القرارات المنتهية
+    `?which=awarded`» — اثنا عشرَ صفّاً في الاثنتين، صفرٌ زائدة وصفرٌ ناقصة.
+    أي أن شاشةً كاملةً كانت بقيمةِ مرشِّحٍ واحدٍ في الرابط.
+
+    **ولماذا بقيت تلك لا هذه؟** الاسمُ يجب أن يصدق على ما يُعرَض. و«ما بعد
+    البيع» لا تصدق على مركبةٍ **رفضها المالك** — لم يقع بيعٌ فلا «بعد» له.
+    و«القرارات المنتهية» تصدق على الاثنين.
+
+    **والمرشّحُ يُحمَل مع التحويل**: من حفظ رابطاً بمرشّحاتِ بحثٍ ومزادٍ يجدها
+    كما تركها، **ويُضاف `which=awarded`** فيرى ما كان يراه بالضبط لا مئتين
+    وتسعةً وثمانين صفّاً لم يطلبها.
+    """
+    query = request.GET.copy()
+    query.setdefault("which", "awarded")
+    return redirect(f"{reverse('console:ended-decisions')}?{query.urlencode()}")
 
 
 def state_label(value: str) -> str:

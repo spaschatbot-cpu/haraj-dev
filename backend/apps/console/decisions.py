@@ -339,6 +339,7 @@ def summary(*, text: str = "", auction: str = "") -> dict:
     }
 
 
+@console_page("console:accepted-summary")
 def accepted_summary(request):
     """**دُمجت في «المزايدات المقبولة»** — T972، وتبقى تحويلاً لا شاشة.
 
