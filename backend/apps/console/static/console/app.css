@@ -13430,3 +13430,16 @@ a.pager__num:hover, a.pager__step:hover {
 }
 .bd-go input[type="text"] { inline-size: 8rem; min-inline-size: 0; margin: 0; }
 .bd-note { padding: .8rem; text-align: center; color: var(--muted); }
+
+/* نافذةُ الشاشة الكاملة (`modal_base.html`) — أوسعُ من نافذة النماذج: تحمل
+   شاشةً بجدولها وبطاقاتها، لا حقلَين وزرّاً. T970 */
+.page-modal { inline-size: min(64rem, 94vw); padding: 0; }
+.page-modal__body { padding: 1rem 1.3rem; max-block-size: min(70vh, 40rem); overflow: auto; }
+/* والشاشةُ داخلها تفقد هوامشَها العلويّة: رأسُها صار رأسَ النافذة. */
+.page-modal__body > :first-child { margin-block-start: 0; }
+.page-modal__body .lede { margin-block-start: 0; }
+.page-modal__foot {
+  padding: .8rem 1.3rem 1rem;
+  border-block-start: 1px solid var(--line);
+  font-size: .82rem;
+}

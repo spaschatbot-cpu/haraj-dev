@@ -585,11 +585,11 @@ def _modal(request):
     في `<dialog>`. والطلبُ المباشر (رابطٌ مُشارَك، سجلّ متصفّح) يبقى صفحةً
     كاملة — فالوجهان من قالبٍ واحد.
     """
-    is_modal = (
-        request.GET.get("modal") == "1"
-        or request.headers.get("X-Requested-With") == "fetch"
-    )
-    return is_modal, "console/_modal_base.html" if is_modal else "console/base.html"
+    # **والشرطُ والاسمُ من `context` لا مكتوبَين هنا ثانيةً** — T970: كُتب
+    # التعريفُ مرّتين فافترقا، وصار إطارٌ ثالثٌ لا يعرف به هذا الملفّ.
+    from .context import _base_for, wants_modal
+
+    return wants_modal(request), _base_for(request)
 
 
 @console_page("console:vehicle-detail")

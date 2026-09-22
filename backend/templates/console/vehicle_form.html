@@ -1,4 +1,4 @@
-{% extends base_template|default:"console/base.html" %}
+{% extends base_template|default:console_base %}
 {% block title %}{% if vehicle %}تعديل مركبة{% else %}مركبة جديدة{% endif %}{% endblock %}
 {% block heading %}
   {% if vehicle %}تعديل {{ vehicle.display_title }}{% else %}مركبة جديدة{% endif %}

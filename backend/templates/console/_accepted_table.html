@@ -41,7 +41,7 @@
           <td><span class="acc-auction">مزاد {{ row.auction.number|unlocalize }}</span></td>
           <td><span class="acc-lot">{{ row.lot_number|unlocalize }}</span></td>
           <td>
-            <a href="{% url 'console:vehicle-detail' row.pk %}">{{ row.display_title }}</a>
+            <a data-modal href="{% url 'console:vehicle-detail' row.pk %}">{{ row.display_title }}</a>
             <small>{{ row.year|unlocalize }}</small>
           </td>
           <td class="acc-plate">{{ row.plate_number|default:"—" }}</td>
@@ -60,7 +60,7 @@
              فارغةٌ في القاعدة، وكتابةُ «محجوب» مكان اسمٍ فارغٍ لمن يراه
              عطلٌ وقع فعلاً وأُصلح. {% endcomment %}
           <td>
-            {% if row.buyer_name %}<a href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.buyer_name }}</a>
+            {% if row.buyer_name %}<a data-modal href="{% url 'console:customer-detail' row.awarded_to_id %}">{{ row.buyer_name }}</a>
             {% elif show_customer %}<span class="empty">—</span>
             {% else %}<span class="empty" title="بيانات العميل خلف صلاحية «عرض المستخدمين والشركات»">محجوب</span>{% endif %}
           </td>
@@ -73,7 +73,7 @@
              رابطٌ إلى جدولٍ فارغ نقرةٌ تُهدَر. {% endcomment %}
           <td class="acc-bids">
             {% if row.bid_count %}
-              <a href="{% url 'console:vehicle-bid-list' row.pk %}">{{ row.bid_count|unlocalize }}</a>
+              <a data-modal href="{% url 'console:vehicle-bid-list' row.pk %}">{{ row.bid_count|unlocalize }}</a>
             {% else %}<span class="empty">٠</span>{% endif %}
           </td>
           {% comment %} **أعلى مزايدةٍ قائمة** — لا أعلى ما وقع. المسحوبةُ
@@ -107,7 +107,7 @@
               {% comment %} والرقمُ نصٌّ بلا رابطٍ لمن لا يملك المال: صفحةُ
                  الفاتورة `invoices.view` أصلاً، فرابطٌ إليها من هنا وعدٌ
                  بـ`403` — وهو ما فعله كارتُ الأرشيف والكتالوج قبله. {% endcomment %}
-              {% if show_money %}<a href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
+              {% if show_money %}<a data-modal href="{% url 'console:invoice-detail' row.money.invoice.pk %}">{{ row.money.invoice.number }}</a>
               {% else %}<span class="mono">{{ row.money.invoice.number }}</span>{% endif %}
             </td>
             {% if show_money %}

@@ -72,7 +72,47 @@ def navigation(request) -> dict:
         # رسمُ الشاشة الحالية لرأسها — من السجلّ نفسِه الذي يرسم سطرَها في
         # الشريط، فلا يفترقان.
         "page_icon": _page_icon(request),
+        # **أيُّ شاشةٍ تُقرأ في نافذة** — T970.
+        #
+        # طلبُ المالك: «المركبة لما أضغط عليها، هي والفاتورة والمشتري وكل
+        # الداتا اللي ممكن تتعرض، المفروض تكون كلها بوبات».
+        #
+        # والإطارُ وحدَه هو ما يتغيّر: العرضُ نفسُه والاستعلامُ نفسُه والحارسُ
+        # نفسُه و`{% block content %}` نفسُه. وقالبُ قطعةٍ لكلّ وجهةٍ كان سيعني
+        # نسخةً ثانيةً من كلّ شاشةٍ تتفارق مع أصلها عند أوّل إصلاح — عطلُ T922
+        # بعدده.
+        #
+        # و`?modal=1` في الرابط لا الترويسةُ وحدَها: من يفتح الرابطَ بيده يرى
+        # ما يراه السكربت، فيُشخَّص العطلُ بلصق عنوانٍ في شريط المتصفّح.
+        "console_base": _base_for(request),
     }
+
+
+#: إطارُ النافذة العاري — **اسمٌ واحدٌ يقرؤه المعالجُ و`auctions._modal`
+#: معاً**. كُتب مرّةً في كلٍّ منهما فافترقا في T970 قبل أن يُدمجا.
+MODAL_BASE = "console/_modal_base.html"
+PAGE_BASE = "console/base.html"
+
+
+def wants_modal(request) -> bool:
+    """أيُطلَب هذا العرضُ نافذةً؟
+
+    شرطان لا واحد: `?modal=1` في الرابط **أو** ترويسةُ `fetch`. والأوّلُ
+    ليس زينة — من يفتح الرابطَ بيده يرى ما يراه السكربت، فيُشخَّص العطلُ
+    بلصق عنوانٍ في شريط المتصفّح بدل قراءة شبكة.
+    """
+    if request is None:
+        return False
+    get = getattr(request, "GET", None)
+    headers = getattr(request, "headers", {})
+    return (get is not None and get.get("modal") == "1") or headers.get(
+        "X-Requested-With"
+    ) == "fetch"
+
+
+def _base_for(request) -> str:
+    """إطارُ هذا الطلب: النافذةُ العارية، أو اللوحةُ كاملةً."""
+    return MODAL_BASE if wants_modal(request) else PAGE_BASE
 
 
 def _page_icon(request) -> str:
@@ -144,6 +184,7 @@ def _asset_stamp() -> str:
         "console/auctions.js",
         "console/columns_auto.js",
         "console/offers.js",
+        "console/modals.js",
         "console/fonts.css",
         "console/after_sales.js",
     ):

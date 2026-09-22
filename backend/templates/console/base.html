@@ -54,6 +54,9 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
   {% comment %} تخصيصُ أعمدةِ أيِّ جدولٍ — يقرأ الجدولَ نفسَه فلا يحتاج تسجيلاً
      ولا وسمَ خلايا. T964. ويتخطّى ما له مُنتقٍ أصلاً. {% endcomment %}
   <script defer src="{% static 'console/columns_auto.js' %}?v={{ asset_stamp }}"></script>
+  {% comment %} أيُّ رابطٍ عليه `data-modal` يُفتح نافذةً — الشاشةُ نفسُها في
+     إطارٍ عارٍ (`modal_base.html`)، لا قالبَ ثانياً يتفارق مع أصله. T970 {% endcomment %}
+  <script defer src="{% static 'console/modals.js' %}?v={{ asset_stamp }}"></script>
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -245,6 +248,12 @@ T833 أضاف إلى الإطار شيئين، وكلاهما هنا لا في �
         </header>
         {% block content %}{% endblock %}
       </main>
+      {% comment %} غلافُ النوافذ — واحدٌ للوحة كلِّها، يملؤه `modals.js` عند
+         الضغط. وواحدٌ لا واحدٌ لكلّ شاشة: نافذتان مفتوحتان تُخفي إحداهما
+         الأخرى، والقارئُ يفقد مكانَه. {% endcomment %}
+      <dialog class="modal page-modal" data-page-modal>
+        <div data-page-modal-body></div>
+      </dialog>
     </div>
   </div>
 
