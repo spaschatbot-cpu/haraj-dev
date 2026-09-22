@@ -33,12 +33,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import urlencode
 
-from apps.auctions.models import Auction, Vehicle
+from apps.auctions.models import Auction, Vehicle, VehicleImage
 from apps.auctions.states import VehicleState
 from apps.bidding import settlement
 from apps.bidding.models import Bid
 from apps.core import audit
 from apps.money import services as money
+from apps.money.models import ZERO
 
 from .archive import ARCHIVED
 from .exports import export, wants_export
@@ -122,12 +123,21 @@ def decisions(request):
     page = Paginator(rows, 25).get_page(request.GET.get("page"))
     with_tones(page.object_list)
 
+    # **صورةُ المركبة — عمودُ v1 الثالث.** استعلامٌ واحدٌ للصفحة: الغلافُ
+    # أوّلاً ثم أوّلُ صورةٍ بالترتيب.
+    covers: dict[int, object] = {}
+    for shot in VehicleImage.objects.filter(vehicle__in=page.object_list).order_by(
+        "vehicle_id", "-is_cover", "position", "id"
+    ):
+        covers.setdefault(shot.vehicle_id, shot)
+
     # **«شامل الضريبة» جنبَ المبلغ — عمودُ v1.** والمبلغُ هو المعتمَد: ما
     # رستْ به إن رستْ، وإلّا أعلى عرضٍ قائم. ولا تُضرب النسبةُ هنا:
     # `money.tax_added_to` هي الموضعُ الوحيد الذي يضرب في المشروع.
     for vehicle in page.object_list:
         amount = vehicle.awarded_price or vehicle.top_amount
         vehicle.amount_with_vat = money.tax_added_to(amount).total if amount else None
+        vehicle.cover = covers.get(vehicle.pk)
 
     return render(
         request,
@@ -135,7 +145,19 @@ def decisions(request):
         {
             "page": page,
             "groups": _group_by_auction(page.object_list),
+            # **ثلاثةُ أرقامِ v1 فوق الصفحة**: كم ينتظر قراراً، وكم سيارةً في
+            # مزاداتٍ منتهية، وفي كم مزاد. وهي على **الطابور كلِّه** لا على
+            # الصفحة — من يسأل «كم بقي عليّ» يسأل عن الكلّ.
+            "kpi": {
+                "pending": rows.filter(partner_decided_at__isnull=True).count(),
+                "vehicles": rows.count(),
+                "auctions": rows.values("auction").distinct().count(),
+            },
             "partner": partner or "",
+            # نسبةُ الضريبة في رأس العمود كـ v1 — تُقرأ من `money` لا تُكتب
+            # رقماً في القالب: النسبةُ تتغيّر بقرارٍ حكوميّ، ورقمٌ مكتوبٌ في
+            # قالبٍ يبقى ١٥٪ بعد أن يصير غيرَه.
+            "vat_label": f"{(money.vat_rate() * 100).normalize()}%",
             "auction_filter": auction_row,
             # المرشّحاتُ كما هي، ليعود إليها بعد كلّ حكم: الشريك يحكم على
             # أربعين مركبةً في مزادٍ واحد، وعودةٌ إلى الصفحة عاريةً تعني بحثاً
@@ -173,10 +195,31 @@ def _group_by_auction(vehicles) -> list[dict]:
     groups: list[dict] = []
     for vehicle in vehicles:
         if not groups or groups[-1]["auction"].pk != vehicle.auction_id:
-            groups.append({"auction": vehicle.auction, "rows": [], "pending": 0})
-        groups[-1]["rows"].append(vehicle)
+            groups.append(
+                {
+                    "auction": vehicle.auction,
+                    "rows": [],
+                    "pending": 0,
+                    # إحصاءُ رأس المجموعة في v1: معلّق · مقبول · مرفوض،
+                    # ومجموعُ ما شملَ الضريبة. وثلاثةُ أعدادٍ تقول أين وصل
+                    # المزادُ بنظرةٍ — والواحدُ («ينتظر قرارَه N») يقول ما بقي
+                    # ولا يقول ماذا جرى.
+                    "accepted": 0,
+                    "rejected": 0,
+                    "sum_net": ZERO,
+                    "sum_vat": ZERO,
+                }
+            )
+        group = groups[-1]
+        group["rows"].append(vehicle)
         if vehicle.partner_decided_at is None:
-            groups[-1]["pending"] += 1
+            group["pending"] += 1
+        elif vehicle.partner_decision == "accepted":
+            group["accepted"] += 1
+        else:
+            group["rejected"] += 1
+        group["sum_net"] += vehicle.awarded_price or vehicle.top_amount or ZERO
+        group["sum_vat"] += getattr(vehicle, "amount_with_vat", None) or ZERO
     return groups
 
 

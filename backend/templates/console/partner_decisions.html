@@ -53,13 +53,59 @@ sat in the vehicle list and the partner was told by telephone.
      بالمزاد لا بالسيارة: الشريك يفتح الصفحةَ بعد أن يُقفل مزادٌ بعينه ويريد
      أن يعرف «كم بقي عليّ في هذا المزاد» — رقمٌ لا يقوله المسطّحُ إلا بالعدّ
      باليد. {% endcomment %}
+  {% comment %} **ثلاثةُ أرقامِ v1 فوق الصفحة** (`d-kpis`): كم ينتظر
+     قراراً، وكم سيارةً في مزاداتٍ منتهية، وفي كم مزاد. ومن يفتح الشاشة
+     يسأل الأوّلَ قبل أن ينزل. {% endcomment %}
+  <section class="sum-grid sum-grid--tight" aria-label="أرقام القرار">
+    <div class="sum sum--wait">
+      <p class="sum__label">بانتظار قراره</p>
+      <p class="sum__value">{{ kpi.pending|unlocalize }}</p>
+      <p class="sum__note">في المزادات المنتهية</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">سيارة في مزادات منتهية</p>
+      <p class="sum__value">{{ kpi.vehicles|unlocalize }}</p>
+      <p class="sum__note">مجموعُ ما يُقرَّر فيه</p>
+    </div>
+    <div class="sum">
+      <p class="sum__label">مزاد</p>
+      <p class="sum__value">{{ kpi.auctions|unlocalize }}</p>
+      <p class="sum__note">مجموعاتُ الجدول تحت</p>
+    </div>
+  </section>
+
+  {% comment %} **مرشّحا v1** (`dSearch` و`dDecision`): بحثٌ يخفي الصفوفَ في
+     مكانها، وقائمةٌ تُظهر المعلّق أو المقبول أو المرفوض. وكلاهما بلا إعادة
+     تحميل — الشاشةُ خمسٌ وعشرون مركبةً في مجموعاتٍ مفتوحة، وإعادةُ التحميل
+     تفقد الموضع. {% endcomment %}
+  <div class="dd-filters">
+    <input type="search" data-dd-find autocomplete="off"
+           placeholder="بحث بالاسم أو اللوحة أو رقم المطالبة أو اللوط" aria-label="بحث">
+    <select data-dd-state aria-label="القرار">
+      <option value="">كل القرارات</option>
+      <option value="pending">بانتظار قراره</option>
+      <option value="accepted">قبِله</option>
+      <option value="rejected">رفضه</option>
+    </select>
+    <span class="dd-count" data-dd-count></span>
+  </div>
+
   {% for group in groups %}
+    {% comment %} **رأسُ v1**: رقمُ المزاد واسمُه ومتى انتهى، ثم ثلاثُ
+       شرائحَ — معلّق ومقبول ومرفوض — ومجموعُ ما شملَ الضريبة. وثلاثةُ أعدادٍ
+       تقول **أين وصل** المزاد بنظرة؛ والواحدُ («ينتظر قرارَه N») يقول ما بقي
+       ولا يقول ماذا جرى. {% endcomment %}
+    <div class="dd-grp">
     <h2 class="pd-auction">
       مزاد {{ group.auction.number|unlocalize }}
       {% if group.auction.title %}<small>{{ group.auction.title }}</small>{% endif %}
-      <span class="pill" data-tone="{% if group.pending %}warn{% else %}ok{% endif %}">
-        {{ group.rows|length|unlocalize }} مركبة · ينتظر قرارَه {{ group.pending|unlocalize }}
-      </span>
+      <small class="dd-end">انتهى {{ group.auction.ends_at|date:"Y-m-d" }}</small>
+      <span class="pill" data-tone="warn">{{ group.pending|unlocalize }} معلّق</span>
+      <span class="pill" data-tone="ok">{{ group.accepted|unlocalize }} مقبول</span>
+      <span class="pill" data-tone="bad">{{ group.rejected|unlocalize }} مرفوض</span>
+      <small class="dd-sums">إجمالي {{ group.rows|length|unlocalize }} سيارة —
+        قبل الضريبة <b>{{ group.sum_net|unlocalize }}</b> ر.س ·
+        شامل الضريبة <b>{{ group.sum_vat|unlocalize }}</b> ر.س</small>
     </h2>
 
     {% comment %} **استمارةٌ لكلّ مزادٍ لا واحدةٌ للصفحة.** المربّعُ في
@@ -75,6 +121,11 @@ sat in the vehicle list and the partner was told by telephone.
          `submit` لا جافاسكربت: الاستمارةُ تحمل المحدَّد، والزرُّ يقول أيَّ
          فعل. {% endcomment %}
       <div class="pd-bulk">
+        {% comment %} **عدّادُ v1**: «N سيارة محدَّدة · X ر.س شامل الضريبة».
+           ومن يضغط «قبول المحدَّد» على عشرين مركبةً يريد أن يرى المبلغَ قبل
+           الضغط — وهو ما يدخل حديثَ الفاتورة. يُحسب في المتصفّح من الصفوف
+           المؤشَّرة. {% endcomment %}
+        <span class="pd-bulk__n" data-dd-sel hidden></span>
         <button type="submit" name="op" value="accept" class="dc-btn dc-btn--yes">
           {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول المحدَّد</span></button>
         <button type="submit" name="op" value="reject" class="dc-btn dc-btn--no">
@@ -91,14 +142,24 @@ sat in the vehicle list and the partner was told by telephone.
                {% endcomment %}
             <th class="pd-ck"><input type="checkbox" class="js-pick-all"
                                      title="تحديد كل الظاهر في هذا المزاد"></th>
-            <th>اللوت</th><th>المركبة</th><th>اللوحة</th><th>رقم المطالبة</th>
-            <th>سعر الوقوف</th><th>المبلغ المعتمد</th><th>شامل الضريبة</th><th>المزايدون</th>
-            <th>الحالة</th><th>حكم الشريك</th><th>إجراء</th>
+            {% comment %} أعمدةُ v1 العشرة باسمائه: «الموقف» للّوط، وصورةٌ
+               ثالثةً — ومن يراجع خمسةً وعشرين صفّاً يعرف السيارةَ بصورتها
+               قبل اسمها. {% endcomment %}
+            <th>الموقف</th><th class="pv-thumb-h">صورة</th><th>السيارة</th>
+            <th>اللوحة</th><th>رقم المطالبة</th>
+            <th>المبلغ المعتمد</th><th>شامل الضريبة ({{ vat_label }})</th>
+            <th>عدد المزايدين</th><th>القرار</th><th>إجراء</th>
           </tr>
         </thead>
         <tbody>
           {% for vehicle in group.rows %}
-            <tr>
+            {% comment %} ما يحتاجه مرشّحا v1 والعدّاد، على الصفّ نفسِه:
+               نصٌّ يُبحث فيه، وحالةُ القرار، والمبلغُ شاملَ الضريبة ليُجمع
+               للمحدَّد. {% endcomment %}
+            <tr class="dd-row"
+                data-state="{% if vehicle.partner_decided_at %}{{ vehicle.partner_decision }}{% else %}pending{% endif %}"
+                data-vat="{{ vehicle.amount_with_vat|default_if_none:0|unlocalize }}"
+                data-find="{{ vehicle.display_title|lower }} {{ vehicle.plate_number|default:'' }} {{ vehicle.claim_number|default:'' }} {{ vehicle.lot_number|unlocalize }}">
               {% comment %} ولا مربّعَ على مركبةٍ حُكم فيها: الفعلُ الجماعيّ
                  سيردّها على أي حال، وعرضُ مربّعٍ يقود إلى «ردّت ٣» بلا سبب
                  يفهمه من ضغط. {% endcomment %}
@@ -108,14 +169,19 @@ sat in the vehicle list and the partner was told by telephone.
                          aria-label="تحديد اللوت {{ vehicle.lot_number|unlocalize }}">
                 {% endif %}
               </td>
-              <td class="inv-no"><a href="{% url 'console:partner-offers' vehicle.pk %}">{{ vehicle.lot_number|unlocalize }}</a></td>
+              <td class="count">{{ vehicle.lot_number|unlocalize }}</td>
+              <td class="pv-thumb">
+                {% if vehicle.cover %}
+                  <img src="{{ vehicle.cover.thumbnail.url|default:vehicle.cover.image.url }}"
+                       alt="" loading="lazy" decoding="async">
+                {% else %}<span class="pv-thumb__none" aria-hidden="true"></span>{% endif %}
+              </td>
               <td class="pv-name">
                 <strong>{{ vehicle.display_title }}</strong>
                 <small>{{ vehicle.year|unlocalize }}</small>
               </td>
               <td class="mono">{{ vehicle.plate_number|default:"—" }}</td>
               <td class="mono">{{ vehicle.claim_number|default:"—" }}</td>
-              <td class="money">{{ vehicle.reserve_price|default:"—"|unlocalize }}</td>
               {% comment %} **المبلغُ المعتمَد لا الأعلى دائماً.** متى رستْ
                  المركبةُ فالرقمُ هو ما رستْ به — وv1 كان يعيد حساب الأعلى في
                  كل عرض، فمركبةٌ رستْ على الثاني تعرض رقمَ الأول، **والرقمُ
@@ -132,10 +198,16 @@ sat in the vehicle list and the partner was told by telephone.
                  {% endcomment %}
               <td class="money">{{ vehicle.amount_with_vat|default:"—"|unlocalize }}</td>
               <td class="count">{{ vehicle.bidders|unlocalize }}</td>
-              <td><span class="pill" data-tone="{{ vehicle.tone }}">{{ vehicle.get_state_display }}</span></td>
               <td>
                 {% if vehicle.partner_decided_at %}
-                  <span class="pill" data-tone="{% if vehicle.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ vehicle.get_partner_decision_display|default:"حُكم" }}</span>
+                  {% comment %} v1 يكتب «قبلتها/رفضتها» لأن قارئَه الشريك؛
+                     وقارئُ هذه الشاشة موظّفٌ يقرّر عنه، فالضميرُ يتبع
+                     القارئ. {% endcomment %}
+                  {% if vehicle.partner_decision == "accepted" %}
+                    <span class="pill" data-tone="ok">قبِله الشريك</span>
+                  {% else %}
+                    <span class="pill" data-tone="bad">رفضه الشريك</span>
+                  {% endif %}
                 {% else %}
                   {% comment %} نبضةٌ بطيئةٌ على المنتظِر وحدَه: الصفحةُ
                      تُفتح على أربعين صفّاً أكثرُها محكومٌ فيه، والعينُ تحتاج
@@ -199,6 +271,7 @@ sat in the vehicle list and the partner was told by telephone.
       </table>
     </div>
     </form>
+    </div>
   {% empty %}
     <p class="empty">لا مركبة في مزادٍ منتهٍ.</p>
   {% endfor %}
@@ -208,14 +281,75 @@ sat in the vehicle list and the partner was told by telephone.
      مربّعاً. وتفويضٌ على المستند لا ربطٌ لكلّ رأس: الجداولُ بعددِ
      المزادات. {% endcomment %}
   <script>
-  document.addEventListener('change', function (e) {
-    var head = e.target.closest('.js-pick-all');
-    if (!head) return;
-    var form = head.closest('form');
-    if (!form) return;
-    form.querySelectorAll('input[name="pick"]').forEach(function (box) {
-      box.checked = head.checked;
+  (function () {
+    var find  = document.querySelector('[data-dd-find]');
+    var state = document.querySelector('[data-dd-state]');
+    var count = document.querySelector('[data-dd-count]');
+    var rows  = Array.prototype.slice.call(document.querySelectorAll('.dd-row'));
+    var money = function (n) { return n.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
+
+    // «N سيارة محدَّدة · X ر.س شامل الضريبة» — عدّادُ v1. ويُحسب لكلّ
+    // استمارةٍ وحدَها: الاستمارةُ مزادٌ واحد، والحكمُ يقع عليه هو.
+    function tally() {
+      document.querySelectorAll('.pd-bulk-form').forEach(function (form) {
+        var slot = form.querySelector('[data-dd-sel]');
+        if (!slot) return;
+        var n = 0, sum = 0;
+        form.querySelectorAll('input[name="pick"]:checked').forEach(function (box) {
+          var row = box.closest('.dd-row');
+          if (!row || row.hidden) return;
+          n += 1;
+          sum += parseFloat(row.dataset.vat || '0') || 0;
+        });
+        slot.hidden = n === 0;
+        slot.textContent = n + ' سيارة محدَّدة · ' + money(sum) + ' ر.س شامل الضريبة';
+      });
+    }
+
+    // البحثُ والترشيحُ يخفيان الصفوفَ في مكانها بلا إعادة تحميل: الصفحةُ
+    // مجموعاتٌ مفتوحةٌ ومربّعاتٌ مؤشَّرة، وإعادةُ التحميل تفقد الاثنين.
+    function sift() {
+      if (!rows.length) return;
+      var q = (find ? find.value : '').trim().toLowerCase();
+      var want = state ? state.value : '';
+      var shown = 0;
+      rows.forEach(function (row) {
+        var ok = (!q || (row.dataset.find || '').indexOf(q) !== -1)
+              && (!want || row.dataset.state === want);
+        row.hidden = !ok;
+        if (ok) shown += 1;
+      });
+      document.querySelectorAll('.dd-grp').forEach(function (grp) {
+        grp.hidden = grp.querySelectorAll('.dd-row:not([hidden])').length === 0;
+      });
+      if (count) {
+        count.textContent = (q || want)
+          ? shown + ' من ' + rows.length + ' في هذه الصفحة'
+          : rows.length + ' في هذه الصفحة';
+      }
+      tally();
+    }
+
+    if (find)  find.addEventListener('input', sift);
+    if (state) state.addEventListener('change', sift);
+    sift();
+
+    document.addEventListener('change', function (e) {
+      var head = e.target.closest('.js-pick-all');
+      if (head) {
+        var form = head.closest('form');
+        // «كلُّ الظاهر» حرفاً: الصفوفُ المخفيّةُ بالبحث لا تُؤشَّر — وإلا
+        // حكم على ما لم يقرأ.
+        if (form) form.querySelectorAll('input[name="pick"]').forEach(function (box) {
+          var row = box.closest('.dd-row');
+          if (row && row.hidden) return;
+          box.checked = head.checked;
+        });
+      }
+      if (head || e.target.name === 'pick') tally();
     });
-  });
+    // `type="reset"` يمسح المربّعات بعد هذا الحدث، فيُحسب بعده.
+    document.addEventListener('reset', function () { setTimeout(tally, 0); });
+  })();
   </script>
 {% endblock %}

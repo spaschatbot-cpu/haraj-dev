@@ -13356,3 +13356,41 @@ a.of-nav__card:hover {
 /* «بلا فاتورة» — مركبةٌ أُلغيت فاتورتُها ولم تعد إلى طابور الفوترة. تحذيرٌ
    لا خطأ: البيانُ سليم، والعملُ هو الناقص. */
 .of-gap { display: block; margin-block-start: .15rem; color: var(--warn); font-weight: 700; }
+
+/* ---- شاشةُ اتخاذ القرار: المرشّحان والعدّادان ------------------------ */
+/* مرشّحا v1 (`dSearch` و`dDecision`) يخفيان الصفوفَ في مكانها: الشاشةُ
+   مجموعاتٌ مفتوحةٌ ومربّعاتٌ مؤشَّرة، وإعادةُ التحميل تفقد الاثنين. */
+.dd-filters {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin: 1rem 0 .25rem;
+}
+.dd-filters input[type="search"] { flex: 1 1 22rem; min-inline-size: 0; margin: 0; }
+.dd-filters select { flex: 0 0 auto; margin: 0; }
+.dd-count { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+
+/* «انتهى …» ومجاميعُ المزاد في رأس المجموعة — بوزنٍ أخفَّ من اسم المزاد:
+   الرأسُ يُقرأ بالرقم أوّلاً ثم بالتفصيل. */
+.pd-auction .dd-end { font-weight: 600; color: var(--muted); }
+.pd-auction .dd-sums {
+  flex: 1 1 100%;
+  font-weight: 500;
+  font-size: .8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.pd-auction .dd-sums b { color: var(--ink); font-weight: 700; }
+
+/* عدّادُ التحديد: «N سيارة محدَّدة · X ر.س شامل الضريبة». ومن يضغط «قبول
+   المحدَّد» على عشرين مركبةً يريد أن يرى المبلغَ قبل الضغط — وهو ما يدخل
+   حديثَ الفاتورة. يُخفى حتى يُؤشَّر شيء، فلا يشغل السطرَ بصفرٍ دائم. */
+.pd-bulk__n {
+  margin-inline-end: auto;
+  font-weight: 700;
+  font-size: .85rem;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.pd-bulk__n[hidden] { display: none; }
