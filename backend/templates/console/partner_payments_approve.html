@@ -327,7 +327,9 @@
                    الذي قُيّدت منه الدفعة. ومن قُيّدت دفعتُه من النافذة أو
                    يدويّاً لا إيصالَ له، وتلك شرطةٌ صادقة. {% endcomment %}
                 <td>
-                  {% if car.receipt %}
+                  {% if car.payment_receipt %}
+                    <a class="rf-go" href="{{ car.payment_receipt.url }}" target="_blank" rel="noopener">عرض</a>
+                  {% elif car.receipt %}
                     <a class="rf-go" href="{{ car.receipt.receipt.url }}" target="_blank" rel="noopener">عرض</a>
                   {% else %}<span class="empty">—</span>{% endif %}
                 </td>
@@ -415,7 +417,7 @@
      و`<dialog>` لا `<div>`: المتصفّح يحبس التركيز ويُغلق بـEscape ويعتم
      الخلف — كنافذة المزايدات. {% endcomment %}
   <dialog class="modal pa-modal" data-pay-modal>
-    <form method="post" class="pa-modal__body">
+    <form method="post" enctype="multipart/form-data" class="pa-modal__body">
       {% csrf_token %}
       <input type="hidden" name="op" value="pay">
       <input type="hidden" name="vehicle" data-f="vehicle">
@@ -436,6 +438,16 @@
       <div class="pa-field">
         <label for="paNote">ملاحظة</label>
         <input id="paNote" type="text" name="note" maxlength="120" placeholder="تحويل بنكي…">
+      </div>
+
+      {% comment %} **صورةُ الحوالة — خانةُ v1 في هذه النافذة.** وتُحفظ على
+         **المركبة** (`payment_receipt`) كما يفعل v1 (`receipt_path` على صفّ
+         المركبة)، لا على الدفعة: السؤالُ بعد شهرٍ «هذه السيارة، بأيّ حوالةٍ
+         دُفعت؟». وعمودُ «الحوالة» في الجدول يقرؤها. {% endcomment %}
+      <div class="pa-field">
+        <label for="paReceipt">صورة الحوالة <small>PDF أو صورة — اختياريّ</small></label>
+        <input id="paReceipt" type="file" name="receipt"
+               accept="application/pdf,image/jpeg,image/png,image/webp">
       </div>
 
       <p class="notice notice--soft">

@@ -421,6 +421,8 @@ def _decorate_cars(rows) -> None:
         car.paid_amount = invoice.amount_paid if invoice else ZERO
         car.due = invoice.outstanding if invoice else (car.awarded_price or ZERO)
         car.paid_at = paid_at.get(invoice.pk) if invoice else None
+        # **إيصالُ المركبة أوّلاً، ثم إيصالُ الملفّ الذي قُيّدت منه.** ما
+        # رُفع مع اعتمادها بعينه أدلُّ من إيصالِ دفعةٍ ضمّت مئةَ سيارة.
         car.receipt = receipts.get(invoice.pk) if invoice else None
         # «مسدَّدة» هنا = **لا بقيّةَ على الفاتورة**، لا علمٌ يُرفع بملفّ.
         car.is_paid = bool(invoice) and invoice.outstanding <= ZERO
@@ -516,6 +518,15 @@ def _pay_one(request):
         return back
 
     note = (request.POST.get("note") or "").strip()[:120]
+
+    # **صورةُ الحوالة — خانةُ v1 في هذه النافذة، اختياريّة.** وتُفحص قبل
+    # القيد: ملفٌّ أكبرُ من الحدّ يُردّ **ولا تُقيَّد دفعتُه**، فلا يبقى قيدٌ
+    # في الدفتر بلا الإيصال الذي قُصد أن يُرفَق به.
+    receipt = request.FILES.get("receipt")
+    if receipt is not None and receipt.size > MAX_RECEIPT_BYTES:
+        messages.error(request, "الإيصالُ أكبر من ثمانية ميجابايت — لم يُقيَّد شيء.")
+        return back
+
     # مرجعٌ يُميّز هذا القيدَ ويمنع تكرارَه بالضغط مرّتين على الزرّ نفسِه.
     reference = f"approve:{vehicle.pk}:{request.POST.get('paid_at') or ''}:{amount}"
 
@@ -531,6 +542,10 @@ def _pay_one(request):
     except Exception as refusal:
         messages.error(request, f"لوط {vehicle.lot_number}: {refusal}")
         return back
+
+    if receipt is not None:
+        vehicle.payment_receipt = receipt
+        vehicle.save(update_fields=["payment_receipt"])
 
     audit.record(
         action="console.partner_payment_approved",

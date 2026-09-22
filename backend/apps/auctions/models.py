@@ -290,6 +290,22 @@ class Vehicle(models.Model):
     #: شركة التأمين — `insurance_company` (varchar 255).
     insurance_company = models.CharField(max_length=255, blank=True)
 
+    #: **إيصالُ حوالةِ السداد على المركبة** — نظيرُ `auction_vehicles.receipt_path`
+    #: في v1، وهو ما يقرؤه عمودُ «الحوالة» في شاشة «مدفوعات شريك التسويق».
+    #:
+    #: ولماذا على المركبة لا على الدفعة: لأن السؤال الذي يُسأل بعد شهرٍ هو
+    #: «هذه السيارة، بأيّ حوالةٍ دُفعت؟» — لا «هذه الحركةُ في الدفتر، ما
+    #: إيصالُها». وv1 يضعه هنا بعينه، وعمودُه في الجدول يقرؤه من صفّ المركبة.
+    #:
+    #: ولمن سُدِّد بملفٍّ مرفوع إيصالُ ذلك الملفّ (`money.PaymentSheet.receipt`)،
+    #: وهذا لمن اعتُمد من النافذة أو يدويّاً. والعمودُ يفضّل ما على المركبة.
+    #:
+    #: والمسارُ من `uploads.bank_receipt_path`: الاسمُ المخزَّن **لنا لا
+    #: لرافعه** — البوّابةُ التي يفرضها `ops/checks/one_upload_gate.py`.
+    payment_receipt = models.FileField(
+        upload_to=uploads.bank_receipt_path, blank=True, max_length=255
+    )
+
     #: حالة المحرّك — `runs_status`. «تعمل / لا تعمل / تدور ولا تتحرّك».
     runs_status = models.CharField(max_length=100, blank=True)
 
