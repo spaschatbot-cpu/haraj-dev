@@ -40,39 +40,18 @@
     قبل أول رفع تكون صفحته فارغة.
   </p>
 
-  <section class="sum-grid sum-grid--tight" aria-label="ما قُيّد حتى الآن">
-    <div class="sum sum--money">
-      <p class="sum__label">إجمالي ما قُيّد على سيارات الشركاء</p>
-      <p class="sum__value">{{ total|unlocalize }}</p>
-      <p class="sum__note">مجموعُ الدفعات المقيَّدة بالريال.</p>
-    </div>
-    <div class="sum">
-      <p class="sum__label">فواتير وصل منها مال</p>
-      <p class="sum__value">{{ count|unlocalize }}</p>
-      <p class="sum__note">فاتورةً عليها دفعةٌ واحدةٌ على الأقل.</p>
-    </div>
-    {% comment %} بطاقتا v1 الباقيتان: «عدد الصفوف» و«آخر دفعة مرفوعة». وهما
-       عن **الملفّات** لا عن الدفتر: كم صفّاً قُيّد من ملفٍّ مرفوع، ومتى آخرُ
-       رفع. ومن يسأل «هل وصل ملفّي؟» يجيبه الرقمان دون فتح الجدول تحت.
-       {% endcomment %}
-    <div class="sum">
-      <p class="sum__label">صفوفٌ قُيّدت من الملفّات</p>
-      <p class="sum__value">{{ rows_posted|unlocalize }}</p>
-      <p class="sum__note">مجموعُ ما قُرئ ونجح في كلّ ملفّ.</p>
-    </div>
-    <div class="sum">
-      <p class="sum__label">آخر ملفٍّ مرفوع</p>
-      {% comment %} **اسمُ الملفّ لا تاريخُه** كـ v1 («آخر دفعة مرفوعة:
-         sheet_20260903_125353»): من يسأل «هل وصل ملفّي؟» يعرف ملفَّه باسمه،
-         والتاريخُ يقول «رُفع شيءٌ اليوم» ولا يقول أيُّه. والتاريخُ تحته.
-         {% endcomment %}
-      <p class="sum__value pa-lastname">{% if last_sheet %}{{ last_sheet.filename|default:"—" }}{% else %}—{% endif %}</p>
-      <p class="sum__note">{% if last_sheet %}{{ last_sheet.uploaded_at|date:"Y-m-d H:i" }} · {{ last_sheet.rows_posted|unlocalize }} صفّاً قُيّد منه.{% else %}لم يُرفع ملفٌّ بعد.{% endif %}</p>
-    </div>
-  </section>
+  {% comment %} **عمودان كـ v1: بطاقةُ الرفع، وبجوارها بطاقةُ الأرقام.**
+     كانت أربعَ بطاقاتٍ بعرض الشاشة فوق النموذج، فيُمرَّر لتصل إلى ما تفعله
+     الشاشة. وv1 يضعهما صفّاً: النموذجُ يمينَه والحصيلةُ يسارَه — تُقرأ معاً
+     ولا يُمرَّر.
+
+     وأرقامُ بطاقته الأربعة في واحدة: «إجمالي المعتمد» كبيراً، وتحته عددُ
+     الصفوف وعددُ السيارات وآخرُ دفعةٍ مرفوعة. {% endcomment %}
 
   <h2 class="dd-sec">رفع ملفّ الدفعات <small>التعرّف على المحتوى لا على الامتداد · حتى خمسة ميجابايت</small></h2>
 
+  <div class="pa-cols">
+  <div class="pa-col">
   {% comment %} **«نزّل القالب» — زرُّ v1، وكان غائباً.** سؤالُ المالك هناك
      مكتوبٌ في تعليقها: «وين الإكسل اللي أرفع بيه؟». فالورقةُ تخرج **مُعبّأةً
      بالسيارات ومراجعها** — رقمُ المطالبة واللوط واللوحة والاسم والمبلغُ
@@ -184,6 +163,23 @@
       فاتورة هذه المركبة، فيبقى الأصلُ وعكسُه ومن عكس ومتى.
     </p>
   </form>
+
+  </div>
+
+  <aside class="pa-tile">
+    <p class="pa-tile__label">إجمالي المعتمد</p>
+    <p class="pa-tile__value">{{ total|unlocalize }}</p>
+    <dl class="pa-tile__rows">
+      <div><dt>عدد الصفوف</dt><dd>{{ rows_posted|unlocalize }}</dd></div>
+      <div><dt>عدد الفواتير</dt><dd>{{ count|unlocalize }}</dd></div>
+      <div><dt>آخر دفعة مرفوعة</dt>
+        <dd class="pa-tile__file">{% if last_sheet %}{{ last_sheet.filename|default:"—" }}{% else %}—{% endif %}</dd></div>
+      {% if last_sheet %}
+        <div><dt>متى</dt><dd>{{ last_sheet.uploaded_at|date:"Y-m-d H:i" }}</dd></div>
+      {% endif %}
+    </dl>
+  </aside>
+  </div>
 
   <h2 class="dd-sec">الملفّات المرفوعة <small>البصمةُ تحت اسم الملفّ، وهي ما يمنع رفعَه ثانيةً</small></h2>
   <div class="scroller scroller--wide">

@@ -4275,6 +4275,84 @@ dialog.row-modal {
   .xls-go:hover, .xls-go:active { transform: none; }
 }
 
+/* ---- «مدفوعات شريك التسويق»: عمودان كـ v1 وحركةٌ تقول أين أنت -------- */
+/* كانت أربعَ بطاقاتٍ بعرض الشاشة فوق النموذج، فيُمرَّر ليصل القارئُ إلى ما
+   تفعله الشاشة. وv1 يضع النموذجَ وبطاقةَ الأرقام صفّاً: تُقرآن معاً. */
+.pa-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  gap: 1rem;
+  align-items: start;
+  margin-block-end: 1.4rem;
+}
+@media (max-width: 62rem) { .pa-cols { grid-template-columns: minmax(0, 1fr); } }
+.pa-col { min-inline-size: 0; }
+
+.pa-tile {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 1.1rem 1.2rem 1.2rem;
+  position: sticky;
+  top: 1rem;
+}
+.pa-tile__label { margin: 0; font-size: .78rem; font-weight: 800; color: var(--muted); }
+.pa-tile__value {
+  margin: .2rem 0 .9rem;
+  font-size: 1.9rem;
+  font-weight: 900;
+  color: var(--ok);
+  font-variant-numeric: tabular-nums;
+  /* الرقمُ يعدّ حين يتغيّر — لا عند كلّ فتحة: حركةٌ تلفت إلى ما تغيّر. */
+  transition: color .2s ease;
+}
+.pa-tile__rows { margin: 0; display: grid; gap: .35rem; }
+.pa-tile__rows > div { display: flex; justify-content: space-between; gap: .6rem; font-size: .8rem; }
+.pa-tile__rows dt { margin: 0; color: var(--muted); font-weight: 700; }
+.pa-tile__rows dd { margin: 0; font-weight: 800; }
+.pa-tile__file { font-family: var(--mono, ui-monospace, monospace); font-size: .72rem; word-break: break-all; }
+
+/* خاناتُ «علّم سيارة واحدة» في سطرٍ واحد كـ v1، تنزل على الضيّق. */
+.pa-mark .pa-up__field { display: inline-block; margin-inline-end: .6rem; vertical-align: top; }
+.pa-mark .pa-up__field input[type="text"],
+.pa-mark .pa-up__field input[type="number"] { inline-size: 11rem; }
+
+/* ---- الحركة: تقول أين المؤشّر وما تغيّر، ولا تتحرّك لتتحرّك --------- */
+/* ولا حركةَ دخولٍ على العناصر: `.ex-act` انتهت مرّةً بـ`forwards` على
+   `opacity: 0` فتجمّدت في تبويبٍ مخفيٍّ وبقيت الأزرارُ غيرَ مرئيّة. فما
+   هنا انتقالاتٌ تعود إلى حيث بدأت. */
+.pa-grp,
+.pa-tile,
+.form-card.pa-up {
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.pa-grp:hover,
+.form-card.pa-up:focus-within {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+  box-shadow: 0 6px 20px -12px var(--brand);
+}
+/* صفُّ المركبة يُضاء تحت المؤشّر — الجدولُ أربعمئة صفّ، والعينُ تفقد سطرَها. */
+.pa-tbl tbody tr { transition: background .14s ease; }
+.pa-tbl tbody tr:hover { background: var(--raised); }
+.pa-tbl .pv-thumb img { transition: transform .18s ease; }
+.pa-tbl tbody tr:hover .pv-thumb img { transform: scale(1.08); }
+
+/* النافذةُ تدخل من مكانها لا من العدم: `@starting-style` يُحرّك الفتح فقط،
+   والإغلاقُ فوريّ — ولا حالةَ نهائيّةٍ شفّافة تتجمّد. */
+.pa-modal[open] { animation: paIn .18s ease both; }
+@keyframes paIn {
+  from { opacity: 0; transform: translateY(-6px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+.pa-modal::backdrop { background: rgb(8 12 20 / .45); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pa-grp, .pa-tile, .form-card.pa-up, .pa-tbl tbody tr,
+  .pa-tbl .pv-thumb img { transition: none; }
+  .pa-tbl tbody tr:hover .pv-thumb img { transform: none; }
+  .pa-modal[open] { animation: none; }
+}
+
 /* ---- نافذةُ «اعتماد سداد سيارة» — الصفحةُ الداخليّةُ في v1 ---------- */
 .pa-modal { inline-size: min(30rem, 92vw); }
 .pa-modal__body { padding: 1.15rem 1.25rem 1.25rem; }
