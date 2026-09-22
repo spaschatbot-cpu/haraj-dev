@@ -577,12 +577,23 @@ def award(request, pk: int):
     before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
 
     try:
-        if vehicle.awarded_to_id is None:
-            settlement.award_to(vehicle, bidder=bid.bidder, price=bid.amount)
-        else:
-            settlement.replace_winner(
-                vehicle, new_winner=bid.bidder, price=bid.amount, reason=reason
-            )
+        with transaction.atomic():
+            # **الختمُ قبل الترسية، كما في `award_top`.** كان هذا البابُ بلا
+            # ختمٍ أصلاً، فالقبولُ من نافذة المزايدين على سيارة شريكٍ يردّه
+            # `partner_lock_reason` بـ«هذه السيارة للتسويق وبانتظار قرار
+            # التعاونية» — والنافذةُ هي بابُ اختيار العرض الثاني، أي أنّ
+            # «أرسِ على غير الأعلى» كان لا يعمل على سيارات الشريك كلِّها.
+            #
+            # ولا يُختَم مرّتين: نقلُ ترسيةٍ قائمةٍ حكمٌ ثانٍ على مركبةٍ حُكم
+            # فيها، و`record_partner_ruling` ترفضه — فيُسأل عن الختم قبله.
+            if vehicle.partner_decided_at is None:
+                _stamp(vehicle, "accepted", bid, request.user)
+            if vehicle.awarded_to_id is None:
+                settlement.award_to(vehicle, bidder=bid.bidder, price=bid.amount)
+            else:
+                settlement.replace_winner(
+                    vehicle, new_winner=bid.bidder, price=bid.amount, reason=reason
+                )
     except Exception as refusal:
         messages.error(request, str(refusal))
         return redirect(_back_or_offers(request, pk))
