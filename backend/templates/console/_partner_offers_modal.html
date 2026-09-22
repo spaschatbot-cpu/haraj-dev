@@ -46,9 +46,11 @@
      (مَن هو ومتى زايد) ومكانُهما صفحةُ العروض ومزايداتُ المركبة، وهما
      يطيلان السطرَ فيهبط زرُّ القبول تحت الطيّ.
 
-     **والسببُ يظهر عند النقل وحدَه**: `replace_winner` تشترطه — من يسأل بعد
-     شهرٍ «لماذا تغيّر الفائز؟» لا يجيبه صفٌّ بسببٍ فارغ. أمّا الترسيةُ
-     الأولى فـ`award_to` ولا سببَ لها، فالخانةُ فيها حقلٌ يُملأ بلا داعٍ.
+     **ولا خانةَ سبب**، بقرار المالكة في ٢٢ سبتمبر ٢٠٢٦ («شيل دي»). وكانت
+     تظهر عند نقل ترسيةٍ قائمةٍ لأن `replace_winner` تشترط `reason`؛ وv1 بلا
+     خانةٍ أصلاً — يؤكّد ويُرسل. فالسببُ يُركَّب في العرض من الواقعة نفسِها
+     («نُقلت من فلانٍ إلى فلان…»)، وهو أصدقُ ممّا يُكتب بعجلةٍ في خانةٍ
+     ضيّقة، ولا يترك صفّاً بسببٍ فارغ.
      {% endcomment %}
   <ol class="bd-list">
     {% for bid in bids %}
@@ -74,10 +76,6 @@
           {% csrf_token %}
           <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
           <input type="hidden" name="back" value="{{ back|default:'' }}">
-          {% if vehicle.awarded_to_id and bid.bidder_id != vehicle.awarded_to_id %}
-            <input type="text" name="reason" maxlength="200" required
-                   placeholder="سببُ النقل…" aria-label="سبب نقل الترسية">
-          {% endif %}
           <button type="submit" class="btn-sm"{% if bid.bidder_id == vehicle.awarded_to_id %} disabled{% endif %}>قبول</button>
         </form>
       </li>

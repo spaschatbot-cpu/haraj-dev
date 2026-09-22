@@ -574,6 +574,18 @@ def award(request, pk: int):
         messages.error(request, "المزايدة المختارة لم تعد قائمة.")
         return redirect("console:partner-offers", pk=pk)
 
+    # **والسببُ يُركَّب من الواقعة حين لا يُكتب.** خانةُ السبب شيلت من نافذة
+    # المزايدين بقرار المالكة، وv1 بلا خانةٍ أصلاً. و`replace_winner` تشترط
+    # `reason` لأن «ترسيةً نُقلت بلا سببٍ مسجَّل صفٌّ لا يُشرح لأيّ من
+    # العميلين» — والجملةُ المركَّبةُ هنا تقول مَن ومَن وبكم، وهي أصدقُ
+    # ممّا يُكتب بعجلةٍ في خانةٍ ضيّقة.
+    if not reason and vehicle.awarded_to_id and vehicle.awarded_to_id != bid.bidder_id:
+        was = vehicle.awarded_to.full_name if vehicle.awarded_to else "—"
+        reason = (
+            f"نُقلت الترسيةُ من {was} ({vehicle.awarded_price}) "
+            f"إلى {bid.bidder.full_name} ({bid.amount}) من قائمة المزايدين."
+        )
+
     before = audit.snapshot(vehicle, ["state", "awarded_to_id", "awarded_price"])
 
     try:
