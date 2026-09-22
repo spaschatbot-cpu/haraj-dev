@@ -272,6 +272,8 @@ def approve(request):
             return _pay_one(request)
         if op == "mark":
             return _mark_one(request)
+        if op == "reverse":
+            return _reverse_one(request)
         return _upload(request)
 
     text = (request.GET.get("q") or "").strip()
@@ -557,6 +559,45 @@ def _pay_one(request):
     )
     messages.success(
         request, f"قُيّد {amount} على الفاتورة {invoice.number} (لوط {vehicle.lot_number})."
+    )
+    return back
+
+
+def _reverse_one(request):
+    """اعكِس حركةً واحدةً من السجلّ — عمودُ «حذف» في v1، بما يقع هنا.
+
+    v1 يحذف صفَّ الدفعة من جدوله فتختفي من صفحة الشريك. وحذفُ صفِّ دفعةٍ من
+    دفترٍ **محوُ تدقيق**: يبقى المبلغُ في حساب العميل ولا يبقى ما يفسّره.
+
+    فالعكسُ قيدٌ مرآةٌ (`money.services.reverse`): الأصلُ كما هو، وفوقه عكسُه
+    ومن عكس ومتى — وذلك ما يُعيد بناءَ رصيدٍ متنازَعٍ عليه بعد شهور.
+    """
+    from apps.money import services as money
+    from apps.money.models import Transaction
+
+    back = redirect("console:partner-payments-approve")
+    txn = Transaction.objects.filter(pk=request.POST.get("txn") or 0).first()
+    if txn is None:
+        messages.error(request, "حركةٌ غير معروفة.")
+        return back
+
+    try:
+        with transaction.atomic():
+            mirror = money.reverse(txn, reason="إلغاء اعتماد السداد", by=request.user)
+    except Exception as refusal:
+        messages.error(request, str(refusal))
+        return back
+
+    audit.record(
+        action="console.partner_payment_reversed",
+        entity=txn,
+        actor=request.user,
+        before={},
+        after={"reversal": mirror.pk},
+        note="عكسُ قيدِ سدادٍ من سجلّ مدفوعات الشريك",
+    )
+    messages.success(
+        request, f"قُيّد عكسُ الحركة {txn.pk} بالحركة {mirror.pk} — والأصلُ باقٍ."
     )
     return back
 

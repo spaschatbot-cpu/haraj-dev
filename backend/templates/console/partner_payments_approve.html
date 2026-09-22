@@ -346,7 +346,24 @@
                             data-due="{{ car.due|unlocalize }}">
                       {% include "console/_act_icon.html" with path=icon_pay %}<span>اعتماد السداد</span></button>
                   {% elif car.is_paid %}
-                    <span class="empty">لا بقيّةَ عليها</span>
+                    {% comment %} **v1 يضع هنا زرَّين على الصفّ المسدَّد**:
+                       «تعديل» يفتح النافذةَ بقيمه، و«إلغاء» يطفئ العلم.
+
+                       و«تعديل» لا يُنقل: هناك صفٌّ في جدولٍ يُعدَّل، وهنا
+                       **حركةٌ في دفتر** — والحركةُ لا تُعدَّل، تُعكَس ثمّ
+                       يُقيَّد غيرُها. فزرٌّ واحدٌ يقول ما يفعله: «إلغاء
+                       السداد»، ومن أراد مبلغاً آخر ألغى ثمّ اعتمد.
+
+                       والإلغاءُ **عكسُ قيدٍ لا حذف**: يبقى الأصلُ وعكسُه
+                       ومن عكس ومتى. ويُستأذن قبله. {% endcomment %}
+                    <form method="post" class="ex-inline"
+                          onsubmit="return confirm('إلغاءُ السداد يُقيَّد عكساً في الدفتر — والأصلُ يبقى. متأكّد؟');">
+                      {% csrf_token %}
+                      <input type="hidden" name="op" value="mark">
+                      <input type="hidden" name="paid" value="0">
+                      <input type="hidden" name="vehicle_no" value="{{ car.pk }}">
+                      <button type="submit" class="dc-btn dc-btn--no"><span>إلغاء السداد</span></button>
+                    </form>
                   {% else %}
                     <span class="empty">تُفوتَر أوّلاً</span>
                   {% endif %}
@@ -375,6 +392,10 @@
              جاء القيد. {% endcomment %}
           <th>#</th><th>التاريخ</th><th>السيارة</th><th>اللوط</th><th>اللوحة</th>
           <th>المزاد</th><th>المبلغ</th><th>الدفعة</th>
+          {% comment %} **v1 يضع «حذف» هنا** — وحذفُ صفِّ دفعةٍ محوُ تدقيق.
+             فالعمودُ «عكس»: يُقيَّد عكسُ هذه الحركة وحدَها، ويبقى الاثنان
+             ومعهما من عكس ومتى. {% endcomment %}
+          <th>عكس</th>
         </tr>
       </thead>
       <tbody>
@@ -388,9 +409,18 @@
             <td>{% if row.vehicle %}مزاد {{ row.vehicle.auction.number|unlocalize }}{% else %}—{% endif %}</td>
             <td class="money inv-due">{{ row.amount|unlocalize }}</td>
             <td class="pa-batch">{{ row.batch }}</td>
+            <td class="actions">
+              <form method="post" class="ex-inline"
+                    onsubmit="return confirm('يُقيَّد عكسُ هذه الحركة — والأصلُ يبقى. متأكّد؟');">
+                {% csrf_token %}
+                <input type="hidden" name="op" value="reverse">
+                <input type="hidden" name="txn" value="{{ row.pk }}">
+                <button type="submit" class="dc-btn dc-btn--no"><span>عكس</span></button>
+              </form>
+            </td>
           </tr>
         {% empty %}
-          <tr><td colspan="8" class="empty">لا دفعاتٍ مقيَّدةٌ بعد على سيارات الشركاء.</td></tr>
+          <tr><td colspan="9" class="empty">لا دفعاتٍ مقيَّدةٌ بعد على سيارات الشركاء.</td></tr>
         {% endfor %}
       </tbody>
     </table>
