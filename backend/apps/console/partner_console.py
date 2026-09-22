@@ -639,6 +639,20 @@ def partner_auction(request, pk: int):
     cars = cars_in(partner, [auction.pk], live).get(auction.pk, [])
     pending = sum(1 for car in cars if car.partner_decided_at is None)
 
+    # **صورةُ المركبة — عمودُ v1 الثاني** (`auction_vehicles.php:40`)، وسببُه
+    # مكتوبٌ في v1 نفسِه: «الشريك لا يقرّر على سيارة لا يراها» (المالك،
+    # ٢٠٢٦-٠٨-١٦). واستعلامٌ واحدٌ للصفحة: الغلافُ أوّلاً ثم أوّلُ صورةٍ
+    # بالترتيب.
+    from apps.auctions.models import VehicleImage
+
+    covers: dict[int, object] = {}
+    for shot in VehicleImage.objects.filter(vehicle__in=cars).order_by(
+        "vehicle_id", "-is_cover", "position", "id"
+    ):
+        covers.setdefault(shot.vehicle_id, shot)
+    for car in cars:
+        car.cover = covers.get(car.pk)
+
     return render(
         request,
         "console/partner_auction.html",

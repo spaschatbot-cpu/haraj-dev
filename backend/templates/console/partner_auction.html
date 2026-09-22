@@ -42,16 +42,26 @@
       <table class="pd-tbl">
         <thead>
           <tr>
-            <th>اللوت</th><th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
+            {% comment %} **وصورةٌ ثانيةً كـ v1** — وسببُه مكتوبٌ عنده:
+               «الشريك لا يقرّر على سيارة لا يراها» (المالك، ٢٠٢٦-٠٨-١٦).
+               وكانت غائبةً هنا وحدَها من بين شاشات القسم. {% endcomment %}
+            <th>اللوت</th><th class="pv-thumb-h">صورة</th>
+            <th>السيارة</th><th>اللوحة</th><th>رقم المطالبة</th>
             <th>سعر الوقوف</th><th>أعلى عرض</th><th>مزايدات</th>
             {% if ended %}<th>النتيجة</th>{% endif %}
-            <th>حكم الشريك</th><th>إجراء</th>
+            <th>قراري</th><th>إجراء</th>
           </tr>
         </thead>
         <tbody>
           {% for car in cars %}
             <tr>
               <td class="count">{{ car.lot_number|unlocalize }}</td>
+              <td class="pv-thumb">
+                {% if car.cover %}
+                  <img src="{{ car.cover.thumbnail.url|default:car.cover.image.url }}"
+                       alt="" loading="lazy" decoding="async">
+                {% else %}<span class="pv-thumb__none" aria-hidden="true"></span>{% endif %}
+              </td>
               <td class="pv-name">
                 <a href="{% url 'console:vehicle-detail' car.pk %}"><strong>{{ car.make }} {{ car.model }}</strong></a>
                 <small>{{ car.year|unlocalize }}</small>
@@ -73,9 +83,13 @@
               {% endif %}
               <td>
                 {% if car.partner_decided_at %}
-                  <span class="pill" data-tone="{% if car.partner_decision == 'accepted' %}ok{% else %}bad{% endif %}">{{ car.get_partner_decision_display|default:"حُكم فيها" }}</span>
+                  {% if car.partner_decision == "accepted" %}
+                    <span class="pill" data-tone="ok">قبلتها</span>
+                  {% else %}
+                    <span class="pill" data-tone="bad">رفضتها</span>
+                  {% endif %}
                 {% else %}
-                  <span class="pill dc-wait" data-tone="warn">بانتظار قراره</span>
+                  <span class="pill dc-wait" data-tone="warn">بانتظار قراري</span>
                 {% endif %}
               </td>
               {% comment %} **«المزايدات» في نافذة، كـ v1.** الزرُّ في عمود
