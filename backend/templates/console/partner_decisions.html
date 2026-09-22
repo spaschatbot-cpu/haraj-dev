@@ -232,10 +232,32 @@ sat in the vehicle list and the partner was told by telephone.
                  كلمتين متجاورتين بالطول نفسه)، والحكمان معاً في مجموعةٍ
                  واحدةٍ يفصلها خطٌّ عن «العروض» — فلا يُقرأ الثالثُ حكماً
                  ثالثاً. {% endcomment %}
+              {% comment %} **أربعةُ أفعالِ v1 في الصفّ، لا واحد.** كانت
+                 الخليّةُ تعرض «العروض» وحدَها على المحكوم فيه، وv1 يعرض في
+                 كلّ صفّ: **تفاصيل** و**قبول** و**رفض** و**قائمة
+                 المزايدين** — والأخيران هما الجوابُ عن «ومن زايد عليها؟»
+                 و«وما حكايتها؟»، وهما ما يُسأل قبل الحكم لا بعده.
+
+                 والأزرارُ على الصفّ المحكوم فيه **تبقى معطّلةً كـ v1** لا
+                 تختفي: اختفاؤها يُزحزح الخليّةَ فتختلف أعرضةُ العمود من
+                 صفٍّ إلى صفّ، ويُقرأ «الزرُّ ضاع» لا «حُكم فيها». {% endcomment %}
               <td class="actions dc-cell">
+                <a class="dc-btn dc-btn--ghost" href="{% url 'console:vehicle-detail' vehicle.pk %}">
+                  {% include "console/_act_icon.html" with path=icon_detail %}<span>تفاصيل</span></a>
                 {% if vehicle.partner_decided_at %}
-                  <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
-                    {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
+                  <span class="dc-pair">
+                    <button type="button" class="dc-btn dc-btn--yes" disabled>
+                      {% include "console/_act_icon.html" with path=icon_yes %}<span>قبول أعلى عرض</span></button>
+                    <button type="button" class="dc-btn dc-btn--no" disabled>
+                      {% include "console/_act_icon.html" with path=icon_no %}<span>رفض</span></button>
+                  </span>
+                  {% comment %} **«قائمة المزايدين» تبقى على المحكوم فيه**: v1
+                     يفتحها ويكتب فيها «تم اتخاذ القرار — القائمة للعرض
+                     فقط». ومن يراجع حكماً وقع يسأل عمّن زايد، لا يُمنع من
+                     السؤال. {% endcomment %}
+                  <button type="button" class="dc-btn dc-btn--ghost" data-bids-open
+                          data-url="{% url 'console:vehicle-bid-list' vehicle.pk %}">
+                    {% include "console/_act_icon.html" with path=icon_offers %}<span>قائمة المزايدين</span></button>
                 {% else %}
                   {% comment %} **`formaction` لا استمارةٌ داخل استمارة.**
                      كان لكلّ زرٍّ `<form>` خاصّته، ولمّا لُفَّ الجدولُ
@@ -261,6 +283,16 @@ sat in the vehicle list and the partner was told by telephone.
                             formaction="{% url 'console:partner-reject' vehicle.pk %}">
                       {% include "console/_act_icon.html" with path=icon_no %}<span>رفض</span></button>
                   </span>
+                  {% comment %} **قائمةُ المزايدين في نافذة، لا صفحةٌ ثانية.**
+                     «قبول أعلى عرض» هو الحالةُ الغالبةُ لا الوحيدة: قد
+                     ينسحب الأعلى فيُرسى على من يليه — وv1 يفتح القائمةَ
+                     ويُقبل منها أيُّ عرض. وفتحُ صفحةٍ للجواب يُفقد القارئَ
+                     مكانَه في أربعين صفّاً. والمحرّكُ هو نفسُه الذي في
+                     «مزايدات المركبات»، لا نسخةٌ ثانية. و«العروض ←» تبقى
+                     لمن يريد صفحةَ الترسية الكاملة. {% endcomment %}
+                  <button type="button" class="dc-btn dc-btn--ghost" data-bids-open
+                          data-url="{% url 'console:vehicle-bid-list' vehicle.pk %}">
+                    {% include "console/_act_icon.html" with path=icon_bids %}<span>قائمة المزايدين</span></button>
                   <a class="dc-btn dc-btn--ghost" href="{% url 'console:partner-offers' vehicle.pk %}">
                     {% include "console/_act_icon.html" with path=icon_offers %}<span>العروض</span></a>
                 {% endif %}
@@ -280,6 +312,8 @@ sat in the vehicle list and the partner was told by telephone.
   {% comment %} سطرٌ واحدٌ لمربّع «كل الظاهر» — والبديلُ أن يُنقر أربعون
      مربّعاً. وتفويضٌ على المستند لا ربطٌ لكلّ رأس: الجداولُ بعددِ
      المزادات. {% endcomment %}
+  {% include "console/_bids_modal.html" %}
+
   <script>
   (function () {
     var find  = document.querySelector('[data-dd-find]');

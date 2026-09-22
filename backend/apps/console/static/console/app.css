@@ -13394,3 +13394,14 @@ a.of-nav__card:hover {
   font-variant-numeric: tabular-nums;
 }
 .pd-bulk__n[hidden] { display: none; }
+
+/* الزرُّ المعطَّل على الصفّ المحكوم فيه — يبقى مكانه كـ v1 ولا يختفي:
+   اختفاؤه يُزحزح الخليّةَ فتختلف أعرضةُ العمود من صفٍّ إلى صفّ، ويُقرأ
+   «الزرُّ ضاع» لا «حُكم فيها». وبلا نبضةٍ ولا ظلّ: المعطَّلُ لا يدعو. */
+.dc-btn[disabled] {
+  opacity: .42;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: grayscale(.35);
+}
+.dc-btn[disabled]:hover { transform: none; }

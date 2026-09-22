@@ -183,6 +183,8 @@ def decisions(request):
             "icon_yes": path_of("check"),
             "icon_no": path_of("ban"),
             "icon_offers": path_of("eye"),
+            "icon_detail": path_of("file"),
+            "icon_bids": path_of("users"),
         },
     )
 
