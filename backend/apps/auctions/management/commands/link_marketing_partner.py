@@ -57,7 +57,8 @@ class Command(BaseCommand):
         unlinked = flagged.filter(owner_company__isnull=True)
         self.stdout.write(f"عليها علمُ التسويق: {flagged.count()}")
         self.stdout.write(f"منها بلا شركة:      {unlinked.count()}")
-        self.stdout.write(f"مركبات لها شركةٌ الآن: {Vehicle.objects.filter(owner_company__isnull=False).count()}")
+        linked_now = Vehicle.objects.filter(owner_company__isnull=False).count()
+        self.stdout.write(f"مركبات لها شركةٌ الآن: {linked_now}")
 
         if dry:
             self.stdout.write(self.style.WARNING("تجربةٌ بلا كتابة."))
@@ -84,7 +85,7 @@ class Command(BaseCommand):
             linked = unlinked.update(owner_company=company)
 
         self.stdout.write(self.style.SUCCESS(f"رُبطت {linked} مركبة."))
-        self.stdout.write(
-            "بلا شركةٍ بعده: "
-            f"{Vehicle.objects.filter(is_marketing=True, owner_company__isnull=True).count()}"
-        )
+        still_unlinked = Vehicle.objects.filter(
+            is_marketing=True, owner_company__isnull=True
+        ).count()
+        self.stdout.write(f"بلا شركةٍ بعده: {still_unlinked}")

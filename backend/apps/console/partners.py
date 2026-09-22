@@ -52,8 +52,8 @@ from apps.money.models import ZERO
 
 from .archive import ARCHIVED
 from .exports import export, wants_export
-from .partner_console import _scoped
 from .icons import path_of
+from .partner_console import _scoped
 from .tones import with_tones
 from .views import console_page
 

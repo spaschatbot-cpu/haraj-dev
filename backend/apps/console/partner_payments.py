@@ -336,8 +336,8 @@ def _receipts_for(invoices) -> dict:
             Q(idempotency_key__startswith=f"{payments.KEY_BY_NUMBER}{invoice.number}:")
         )
 
-    from functools import reduce
     import operator
+    from functools import reduce
 
     by_number = {invoice.number: invoice.pk for invoice in invoices}
     by_pk = {invoice.pk: invoice.pk for invoice in invoices}
@@ -374,7 +374,8 @@ def partner_console_payment_dates(invoices) -> dict:
     """
     from apps.console import partner_console
 
-    return {pk: when for pk, (when, _src) in partner_console._payment_facts(invoices).items()}
+    facts = partner_console._payment_facts(invoices)
+    return {pk: when for pk, (when, _src) in facts.items()}
 
 
 def _decorate_cars(rows) -> None:

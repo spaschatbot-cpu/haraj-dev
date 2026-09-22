@@ -50,7 +50,9 @@ class Command(BaseCommand):
         if options["marketing"]:
             rows = rows.filter(is_marketing=True)
 
-        rows = list(rows.select_related("auction").order_by("auction__number", "lot_number"))
+        rows = list(
+            rows.select_related("auction").order_by("auction__number", "lot_number")
+        )
         self.stdout.write(f"معروضةٌ وعليها مزايدات: {len(rows)}")
         if not rows:
             self.stdout.write(self.style.SUCCESS("لا شيءَ يُنقل."))
