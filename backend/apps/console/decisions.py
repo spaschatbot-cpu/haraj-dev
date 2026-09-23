@@ -56,7 +56,7 @@ from apps.core import audit
 from apps.core.arabic import search_q
 from apps.core.permissions import Capability, can
 from apps.money import services as money
-from apps.money.models import Invoice
+from apps.money.models import Invoice, InvoiceState
 
 from .exports import export_table, wants_export
 from .paging import paged, pager
@@ -320,22 +320,39 @@ def summary(*, text: str = "", auction: str = "") -> dict:
 
     awarded_total = rows.aggregate(t=Sum("awarded_price"))["t"] or ZERO
 
-    invoiced = Invoice.objects.filter(vehicle__in=rows)
+    # **الملغاةُ تُستثنى، والعدُّ عدُّ مركباتٍ لا فواتير.** T974
+    #
+    # العطلُ ظهر على الإنتاج بعددٍ **سالب**: «مركبات رست ٥٬٨٣١ · منها مفوترة
+    # ٥٬٩٠٧ · رست ولم تُفوتَر **−٧٦**». وهو مستحيلٌ بالتعريف، وسببُه أن السطرَ
+    # كان يطرح **عددَ فواتير** من **عددِ مركبات**: `invoiced.count()` يعدّ
+    # صفوفَ `Invoice`، والمركبةُ الواحدة قد تحمل أكثرَ من فاتورة — «فاتورةٌ
+    # تُلغى وتُصدَر ثانيةٌ حين تنتقل الترسيةُ إلى مزايدٍ آخر» (`issue_invoice`،
+    # وقيدُ `one_live_invoice_per_vehicle` يسمح بذلك صراحةً: يمنع **الحيّةَ**
+    # الثانية لا الملغاة).
+    #
+    # **والمبالغُ كانت تجمع الملغاة كذلك** — فاتورةٌ أُلغيت تُضاف إلى «الإجمالي
+    # المفوتَر» فيكبر عمّا استُحقّ فعلاً. وهو أخطرُ من العدّاد: رقمٌ ماليٌّ
+    # يُقرأ ولا شيءَ يقول إنه يحمل ما بطل.
+    live = Invoice.objects.filter(vehicle__in=rows).exclude(
+        state=InvoiceState.CANCELLED
+    )
     invoiced_total = ZERO
     invoiced_tax = ZERO
-    for invoice in invoiced.iterator():
+    for invoice in live.iterator():
         split = money.tax_of(invoice)
         invoiced_total += split.total
         invoiced_tax += split.tax
 
     count = rows.count()
+    # مركباتٌ لها فاتورةٌ حيّة — `distinct` لأن الوصلَ يعطي صفّاً لكلّ فاتورة.
+    invoiced_count = rows.filter(invoices__in=live).distinct().count()
     return {
         "count": count,
         "awarded_total": awarded_total,
-        "invoiced_count": invoiced.count(),
+        "invoiced_count": invoiced_count,
         "invoiced_total": invoiced_total,
         "invoiced_tax": invoiced_tax,
-        "uninvoiced_count": count - invoiced.count(),
+        "uninvoiced_count": count - invoiced_count,
     }
 
 
