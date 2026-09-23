@@ -67,11 +67,49 @@ function isDocumentNavigation(request: NextRequest): boolean {
   return (request.headers.get("accept") ?? "").includes("text/html");
 }
 
+/**
+ * تنقّلٌ **داخل** الموقع — ضغطُ `<Link>` لا تحميلُ وثيقة.
+ *
+ * نداءُ `rsc` بلا `next-router-prefetch`: رابطٌ ضُغط فعلاً. والجلبُ المسبقُ
+ * مستثنى كما في كلّ هذا الملفّ — رابطٌ لم يُضغط لا يأكل شيئاً.
+ */
+function isClientNavigation(request: NextRequest): boolean {
+  return (
+    request.method === "GET" &&
+    request.headers.get("rsc") !== null &&
+    !request.headers.get("next-router-prefetch")
+  );
+}
+
 export async function middleware(request: NextRequest) {
   const access = request.cookies.get(ACCESS_COOKIE)?.value;
   const refresh = request.cookies.get(REFRESH_COOKIE)?.value;
 
   const navigating = isDocumentNavigation(request);
+
+  /*
+    **رسالةُ المرّة الواحدة كانت تعيش مرّتين — وثلاثاً.** قِيس على
+    `haraj.spas.sa` في ٢٤ سبتمبر ٢٠٢٦: «سُجّل رقم الهوية» ظهرت في «تعديل
+    البيانات» كما يجب، ثم **تبعت العميلَ إلى صفحة السيارة** بلونِ الخطأ
+    (الصفحةُ لا تعرف رمزَها فتحسبه رفضاً)، وأزاحت صندوقَ المزايدة فوقع
+    الضغطُ على «دخول المزاد» في الفراغ.
+
+    والسبب: الرسالةُ تُستهلَك أدناه على **تحميل وثيقة** وحده. وفعلُ الخادم
+    يُعيد رسمَ صفحته في ردّه نفسِه — فتُعرض الرسالة هناك — ثم كلُّ ضغطة
+    `<Link>` بعدها نداءُ `rsc` لا وثيقة، فيبقى الكوكي ويُقرأ في كلّ صفحة
+    حتى يُحمَّل الموقعُ من جديد.
+
+    فعلى التنقّل الداخليّ تُنزَع **من الطلب** قبل الرسم (فلا تراها الصفحةُ
+    التالية) **ومن الرد** (فلا تعود). وهي قد عُرضت قبله: إمّا في ردّ الفعل
+    نفسِه، وإمّا في وثيقةٍ حُمِّلت.
+  */
+  const staleFlash = isClientNavigation(request) && request.cookies.has(FLASH_COOKIE);
+  if (staleFlash) {
+    request.cookies.delete(FLASH_COOKIE);
+    const response = NextResponse.next({ request });
+    response.cookies.delete(FLASH_COOKIE);
+    return response;
+  }
 
   /**
    * تمسح الرسالة من الرد إن كان هذا تنقّلاً — والجلبُ المسبق لا يمسح، وإلا
