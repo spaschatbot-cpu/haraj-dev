@@ -71,7 +71,7 @@ export default async function PurchasesPage({
                     {purchase.make} {purchase.model} <span className="tnum">{purchase.year}</span>
                   </p>
                   <p className="mt-1 text-sm text-neutral-600">
-                    لوت {count(purchase.lot_number)} · رست في{" "}
+                    لوت <span className="tnum">{purchase.lot_number}</span> · رست في{" "}
                     {dateTime(purchase.awarded_at)}
                   </p>
                 </div>

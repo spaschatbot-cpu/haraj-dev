@@ -102,6 +102,12 @@ export default async function AccountPage() {
           icon: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0",
         },
         {
+          href: "/account/documents",
+          title: "المستندات",
+          detail: "صورة الآيبان والهوية — الآيبان شرطٌ للاسترداد",
+          icon: "M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6",
+        },
+        {
           href: "/account/phone",
           title: "تغيير رقم الجوال",
           detail: "برمزين: للرقم الحالي وللجديد",

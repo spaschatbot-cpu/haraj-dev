@@ -18,8 +18,8 @@ v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا
      «لا نتائج» — فكان النصُّ الرئيسُ يُرسم بهيئة حالةِ فراغ. {% endcomment %}
   <p class="lede">
     قيدُ سدادٍ <strong>نقداً أو تحويلاً بنكياً</strong> على فاتورةٍ غير مسدَّدة.
-    والسدادُ من رصيد العميل فعلٌ آخر بابُه «الخصم المباشر»، والبطاقةُ لا تُسدَّد
-    بها سيّارة — يرفضها الدفترُ نفسُه لا هذه الشاشة.
+    وتأمينُ المزاد لا يُحتسب من ثمن المركبة، والبطاقةُ لا تُسدَّد بها سيّارة —
+    يرفضهما الدفترُ نفسُه لا هذه الشاشة.
   </p>
 
   {% comment %} الاستمارةُ كانت عاريةً بلا صنف: حقلٌ وزرٌّ في الهواء بلا لوحة. {% endcomment %}
@@ -67,8 +67,8 @@ v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا
         {% if row.wallet %}
           {% comment %} دفترُ التأمينات خلف `money.view` — يُعرَض لمن يملكها
              وحده، لأن سؤاله هنا «أله رصيدٌ يكفي بدل النقد؟». {% endcomment %}
-          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
-          <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.wallet.insurance_locked.balance|unlocalize }}</span></div>
+          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free|default:"0.00"|unlocalize }}</span></div>
+          <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.wallet.insurance_locked|default:"0.00"|unlocalize }}</span></div>
         {% endif %}
       </div>
 

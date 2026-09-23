@@ -269,8 +269,15 @@ def _recorded_screen(request):
                     "name": display_name(invoice.customer),
                     # الجوّالُ عَرَضٌ هنا لا موضوع — فيمرّ بحارسه.
                     "phone": invoice.customer.phone if seen.customer else "",
+                    # قاموسٌ بأسماء الدلاء — الشكلُ القديم (`insurance_free.balance`)
+                    # كان يُرسم فارغاً بلا خطأ. انظر `manual_payment.py`.
                     "wallet": (
-                        wallet_snapshot(invoice.customer) if seen.wallet else None
+                        {
+                            bucket.kind: bucket.amount
+                            for bucket in wallet_snapshot(invoice.customer).buckets
+                        }
+                        if seen.wallet
+                        else None
                     ),
                 }
                 for invoice in (found or [])

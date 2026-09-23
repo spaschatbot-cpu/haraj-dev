@@ -28,6 +28,7 @@ import { clearSession } from "@/lib/session";
 //: «تعديل البيانات» ثم وجد نفسَه في قائمة الأقسام يظنّ أن الحفظَ لم يقع.
 const PROFILE = "/account/profile";
 const PHONE = "/account/phone";
+const DOCUMENTS = "/account/documents";
 
 async function finish(error: unknown | null, done: string, back: string): Promise<never> {
   const store = await cookies();
@@ -187,4 +188,51 @@ export async function confirmPhoneChange(form: FormData): Promise<void> {
     message: "تغيّر رقمك. سجّل الدخول بالرقم الجديد.",
   }, "/sign-in");
   redirect("/sign-in");
+}
+
+/**
+ * رفعُ وثيقة — سجلٌّ تجاريّ، أو شهادةٌ ضريبيّة، أو هويّة، أو آيبان.
+ *
+ * قِيس على `haraj.spas.sa` في ٢٤ سبتمبر ٢٠٢٦: عميلٌ سدّد فاتورتَه وعاد تأمينُه
+ * متاحاً، فطلب استردادَه فقيل له «صورة الآيبان مطلوبة قبل طلب الاسترداد.
+ * ارفعها من ملفّك» — **ولم يكن في الموقع مكانٌ يرفع فيه**. النقطةُ قائمةٌ
+ * (`/api/v1/profile/documents/`) والشاشةُ غائبة، فكان الاستردادُ مقفولاً إلا
+ * بموظّف.
+ *
+ * والملفُّ يمرّ كما هو: فحصُه (نوعُه وحجمُه وتنظيفُ بياناته) في
+ * `apps/core/uploads.sanitise_image` عند الخلفيّة، ورسالتُها تعود بنصّها.
+ */
+export async function uploadDocument(form: FormData): Promise<void> {
+  const kind = String(form.get("kind") ?? "");
+  const file = form.get("file");
+  const note = String(form.get("note") ?? "").trim();
+
+  const headers = await authedHeaders();
+
+  if (!(file instanceof File) || file.size === 0) {
+    // الجملةُ الوحيدة التي تكتبها هذه الطبقة هنا: لا طلبَ ذهب إلى الخادم فيردّ.
+    const store = await cookies();
+    setFlash(store, { code: "no_file", message: "اختر ملفاً أولاً." }, DOCUMENTS);
+    redirect(DOCUMENTS);
+  }
+
+  const body = new FormData();
+  body.set("kind", kind);
+  body.set("file", file, file.name);
+  if (note) body.set("note", note);
+
+  try {
+    await request(() =>
+      api.POST("/api/v1/profile/documents/", {
+        headers,
+        // `FormData` كما هو: `openapi-fetch` يترك `Content-Type` فيضع `fetch`
+        // حدودَ `multipart` بنفسه. والنوعُ المولَّد يصف الحقول لا الحاوية.
+        body: body as unknown as never,
+        bodySerializer: (value: unknown) => value as FormData,
+      }),
+    );
+  } catch (error) {
+    return finish(error, "", DOCUMENTS);
+  }
+  return finish(null, "رُفعت الوثيقة.", DOCUMENTS);
 }

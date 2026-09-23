@@ -207,7 +207,7 @@
         <div class="fact"><span class="fact__k">المسدَّد</span><span class="fact__v money">{{ row.invoice.amount_paid|unlocalize }}</span></div>
         <div class="fact fact--lead"><span class="fact__k">الباقي</span><span class="fact__v money">{{ row.invoice.outstanding|unlocalize }}</span></div>
         {% if row.wallet %}
-          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free.balance|unlocalize }}</span></div>
+          <div class="fact"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.wallet.insurance_free|default:"0.00"|unlocalize }}</span></div>
         {% endif %}
       </div>
 

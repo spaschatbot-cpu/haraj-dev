@@ -150,10 +150,22 @@ def payment_create(request):
                 "name": display_name(invoice.customer),
                 # الجوّالُ عَرَضٌ على هذه الشاشة لا موضوعُها — فيمرّ بالحارس.
                 "phone": invoice.customer.phone if seen.customer else "",
-                # وأرصدةُ التأمين كذلك: تُعرض لأنها تجيب «أله رصيدٌ يكفي بدل
-                # النقد؟»، وهي دفترُ تأميناتٍ خلف `money.view`.
+                # وأرصدةُ التأمين كذلك، خلف `money.view`. **ولا تجيب «أله رصيدٌ
+                # يكفي بدل النقد؟»** — كان ذلك سببَ عرضها، وأسقطه قرارُ المالك
+                # (T954: التأمينُ لا يسدّد فاتورة). تُعرض لتقول ما المقفولُ على
+                # هذه الفاتورة وما يعود متاحاً بعد سدادها.
+                #
+                # **قاموسٌ بأسماء الدلاء** من `wallet_snapshot().buckets`. كان
+                # القالبُ يقرأ `wallet.insurance_free.balance` — شكلٌ قديمٌ للّقطة
+                # لم يعد موجوداً، فكانت الخانتان تُرسمان **فارغتين** بلا خطأ.
+                # قِيس على الخادم في ٢٤ سبتمبر ٢٠٢٦ على فاتورة V-12976-202609.
                 "wallet": (
-                    money.wallet_snapshot(invoice.customer) if seen.wallet else None
+                    {
+                        bucket.kind: bucket.amount
+                        for bucket in money.wallet_snapshot(invoice.customer).buckets
+                    }
+                    if seen.wallet
+                    else None
                 ),
             }
         )
