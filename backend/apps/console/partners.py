@@ -55,7 +55,7 @@ from .exports import export, wants_export
 from .icons import path_of
 from .partner_console import _scoped
 from .tones import with_tones
-from .views import console_page
+from .views import console_page, internal_next
 
 #: The states a partner decision is actually pending on. `awarded` is here
 #: because an award can still be moved to another bidder (T510) — a partner who
@@ -481,13 +481,25 @@ def _stamp(vehicle, decision: str, bid, actor) -> None:
 
 
 def _back(request) -> str:
-    """يعود إلى شاشة القرار بمرشّحاتها — لا إلى رأسها."""
+    """يعود إلى الشاشة التي جاء منها الطلب بمرشّحاتها — لا إلى رأسها.
+
+    **و«اتخاذ القرار» تنادي هذه النقاطَ نفسَها** (`offers.py`)، وكان الردُّ
+    دائماً إلى «اتخاذ القرار للشريك». قِيس على الخادم في ٢٤ سبتمبر ٢٠٢٦: قبولٌ
+    في «اتخاذ القرار» أوصل المالكَ إلى شاشة الشريك تقول «لا توجد سيارات في
+    مزاداتٍ منتهية» — والمزادُ الذي قرّر فيه للتوّ منتهٍ. فمن أرسل `next` عاد إليه.
+    """
+    target = internal_next(request)
+    if target:
+        return target
     query = request.POST.get("back", "")
     return f"/console/partners/?{query}" if query else "/console/partners/"
 
 
 def _back_or_offers(request, pk: int) -> str:
     """إلى الشاشة التي أُرسلت منها الاستمارة، وإلّا إلى صفحة العروض."""
+    target = internal_next(request)
+    if target:
+        return target
     query = (request.POST.get("back") or "").strip()
     return f"/console/partners/?{query}" if query else f"/console/partners/{pk}/"
 
@@ -540,6 +552,8 @@ def offers(request, pk: int):
             # الشاشة ومن مرشّحاتها ومن موضعه في أربعين صفّاً — وهو بعينه ما
             # فُتحت النافذةُ لتمنعه.
             "back": request.GET.get("back", ""),
+            # ومن فتحها من «اتخاذ القرار» يعود إليها بمرشّحاتها (`_back`).
+            "next": request.GET.get("next", ""),
             "reserve_met": [
                 bid
                 for bid in bids

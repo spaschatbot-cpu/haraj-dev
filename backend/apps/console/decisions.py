@@ -62,7 +62,7 @@ from .exports import export_table, wants_export
 from .paging import paged, pager
 from .sensitive import AWARDED_STATES, CUSTOMER, MONEY, columns_for, prepare, shown_to
 from .tones import with_tones
-from .views import console_page
+from .views import console_page, internal_next
 
 ZERO = Decimal("0.00")
 
@@ -453,18 +453,10 @@ def _back(request) -> str:
     # كلَّه بهذه النقطة نفسِها (T965)، وردُّها إلى «المزايدات المقبولة» يخرج
     # المالكَ من الشاشة التي كان يعمل فيها بعد كلّ دفعة.
     #
-    # ومسارٌ داخليٌّ وحدَه: `//host` و`\host` يقرؤهما المتصفّحُ عنواناً
-    # خارجيّاً، فتصير خانةُ نموذجٍ بابَ تحويلٍ إلى أيّ موقع.
-    target = (request.POST.get("next") or "").strip()
-    if (
-        target.startswith("/console/")
-        and "//" not in target
-        and "\\" not in target
-        # و`..` كذلك: `/console/../admin/` يمرّ البادئةَ ويحلُّه المتصفّحُ إلى
-        # `/admin/`. لا ثغرةَ فيه — الوجهةُ داخليّةٌ على أيّ حال — لكنّه ينقض
-        # ما قِيل أعلاه، وشرطٌ يُقرأ «داخل اللوحة» يجب أن يكون صادقاً.
-        and ".." not in target
-    ):
+    # والحارسُ (داخل اللوحة وحدها) في `views.internal_next` — صار له منادٍ
+    # ثانٍ في `partners.py`، وحارسان يكتب كلٌّ منهما شرطَه يفترقان يوماً.
+    target = internal_next(request)
+    if target:
         return target
     query = request.POST.get("back", "")
     return f"/console/bids/accepted/?{query}" if query else "/console/bids/accepted/"

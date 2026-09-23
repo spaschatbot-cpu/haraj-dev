@@ -27,6 +27,29 @@ from apps.core.permissions import can
 from .navigation import capability_for
 
 
+def internal_next(request) -> str | None:
+    """الشاشةُ التي أُرسلت منها الاستمارة (`next`) — إن كانت داخل اللوحة.
+
+    نقاطُ الكتابة يناديها أكثرُ من شاشة: الترسيةُ والرفضُ يناديهما «اتخاذ
+    القرار» و«اتخاذ القرار للشريك» معاً، والفوترةُ يناديها «اتخاذ القرار»
+    و«المزايدات المقبولة». فالشاشةُ تقول إلى أين تعود، وإلّا عادت كلُّ نقطةٍ
+    إلى شاشتها هي — وخرج الموظّفُ من الشاشة التي كان يعمل فيها بعد كلّ ضغطة.
+
+    ومسارٌ داخليٌّ وحدَه: `//host` و`\host` يقرؤهما المتصفّحُ عنواناً
+    خارجيّاً، فتصير خانةُ نموذجٍ بابَ تحويلٍ إلى أيّ موقع. و`..` كذلك:
+    `/console/../admin/` يمرّ البادئةَ ويحلّه المتصفّحُ خارجَها.
+    """
+    target = (request.POST.get("next") or "").strip()
+    if (
+        target.startswith("/console/")
+        and "//" not in target
+        and "\\" not in target
+        and ".." not in target
+    ):
+        return target
+    return None
+
+
 def console_page(url_name: str):
     """Guard a view with the capability its page is listed under.
 

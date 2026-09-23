@@ -76,6 +76,7 @@
           {% csrf_token %}
           <input type="hidden" name="bid" value="{{ bid.pk|unlocalize }}">
           <input type="hidden" name="back" value="{{ back|default:'' }}">
+          {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
           <button type="submit" class="btn-sm"{% if bid.bidder_id == vehicle.awarded_to_id %} disabled{% endif %}>قبول</button>
         </form>
       </li>
