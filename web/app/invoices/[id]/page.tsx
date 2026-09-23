@@ -18,7 +18,6 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
-import { payInvoice } from "@/features/wallet/actions";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
@@ -38,8 +37,6 @@ export const dynamic = "force-dynamic";
 //: Arabic name, so there is no label table here at all — which is the same rule
 //: the vehicle card follows: a translation kept in the web is a second
 //: definition of what a value is called, and it goes stale silently.
-type PaymentMethod = { method: string; label: string };
-
 export default async function InvoicePage({
   params,
 }: {
@@ -65,6 +62,11 @@ export default async function InvoicePage({
     }
     throw error;
   }
+
+  // حسابُ الشركة للحوالة — نقطةٌ عامّة (`AllowAny`)، وفشلُها لا يُسقط الفاتورة:
+  // تُعرض بلا رقم حسابٍ وبجملةٍ تقول ذلك، لا شاشةَ خطأٍ مكان فاتورةٍ صحيحة.
+  const bank = await request(() => api.GET("/api/v1/bank-transfer/", {})).catch(() => null);
+  const owed = Number(invoice.outstanding) > 0;
 
   return (
     <PageShell title={`فاتورة ${invoice.number}`}>
@@ -105,37 +107,62 @@ export default async function InvoicePage({
         </dl>
       </div>
 
-      {invoice.payment_methods.length > 0 ? (
-        <form
-          action={payInvoice}
-          className="mt-6 max-w-md rounded-lg border border-neutral-200 bg-white p-4"
-        >
-          <input type="hidden" name="invoice_id" value={invoice.id} />
-          <h2 className="mb-3 font-semibold">السداد</h2>
+      {/*
+        **حوالةٌ بنكيّةٌ وحدَها — ولا زرَّ «سدّد».** كان هنا نموذجٌ باختيارين
+        («من الرصيد» و«تحويل بنكي») يُرسَلان إلى نقطةٍ **مغلقةٍ بقرار المالك**
+        (T954) فيُرفضان دائماً: «رصيد التأمين ممنوع السداد منه للفواتير». والفاتورةُ
+        يسجّل سدادَها الموظّفُ أو أودو حين يؤكّد البنكُ الحوالة. فالصفحةُ تقول ما
+        يفعله العميل فعلاً: يحوّل المتبقّي إلى حساب الشركة، ثم يطلب استردادَ
+        تأمينه بعد السداد.
 
-          <div className="space-y-2">
-            {(invoice.payment_methods as PaymentMethod[]).map((option) => (
-              <label key={option.method} className="flex items-center gap-2 text-sm">
-                <input type="radio" name="method" value={option.method} required />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-
-          <button
-            type="submit"
-            className="mt-4 w-full rounded bg-neutral-900 px-4 py-2 text-white"
-          >
-            سدّد
-          </button>
-        </form>
+        و`Number()` هنا مقارنةٌ بالصفر لا حساب: هل بقي شيءٌ أم لا — والرقمُ
+        المعروض هو حقلُ الخادم `outstanding` كما هو.
+      */}
+      {owed ? (
+        <section className="mt-6 max-w-md rounded-lg border border-neutral-200 bg-white p-4">
+          <h2 className="mb-1 font-semibold">السداد بحوالة بنكية</h2>
+          <p className="mb-4 text-sm text-neutral-600">
+            حوّل المتبقّي <span className="money font-semibold">{amount(invoice.outstanding)}</span>{" "}
+            ريال إلى حساب الشركة، واكتب رقم الفاتورة <span className="money">{invoice.number}</span> في
+            بيان الحوالة. يُسجَّل السداد حين يؤكّده البنك.
+          </p>
+          {bank?.configured ? (
+            <dl className="space-y-2 rounded bg-neutral-50 p-3 text-sm">
+              {bank.beneficiary ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-neutral-500">المستفيد</dt>
+                  <dd>{bank.beneficiary}</dd>
+                </div>
+              ) : null}
+              {bank.bank ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-neutral-500">البنك</dt>
+                  <dd>{bank.bank}</dd>
+                </div>
+              ) : null}
+              <div className="flex justify-between gap-4">
+                <dt className="text-neutral-500">الآيبان</dt>
+                <dd className="money select-all" dir="ltr">{bank.iban}</dd>
+              </div>
+              {bank.account ? (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-neutral-500">رقم الحساب</dt>
+                  <dd className="money select-all" dir="ltr">{bank.account}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : (
+            <p className="rounded bg-amber-50 p-3 text-sm text-amber-800">
+              بيانات حساب الشركة غير متاحة الآن — تواصل مع الدعم للحصول عليها.
+            </p>
+          )}
+          <p className="mt-4 text-xs text-neutral-500">
+            تأمين المزاد لا يُحتسب من ثمن المركبة. بعد سداد الفاتورة كاملةً يمكنك طلب
+            استرداد تأمينك من «محفظتي».
+          </p>
+        </section>
       ) : (
-        /*
-          No methods offered means the server has none open for this invoice —
-          it is already paid, or cancelled, or awaiting something. The page says
-          so rather than showing a button that will be refused.
-        */
-        <p className="mt-6 text-sm text-neutral-600">لا توجد طريقة سداد متاحة الآن.</p>
+        <p className="mt-6 text-sm text-neutral-600">لا مبلغ متبقٍّ على هذه الفاتورة.</p>
       )}
     </PageShell>
   );

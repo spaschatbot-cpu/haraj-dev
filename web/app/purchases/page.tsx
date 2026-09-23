@@ -68,7 +68,7 @@ export default async function PurchasesPage({
               <li key={purchase.id} className="flex flex-wrap items-center gap-4 p-4">
                 <div className="min-w-0 grow">
                   <p className="font-medium">
-                    {purchase.make} {purchase.model} {count(purchase.year)}
+                    {purchase.make} {purchase.model} <span className="tnum">{purchase.year}</span>
                   </p>
                   <p className="mt-1 text-sm text-neutral-600">
                     لوت {count(purchase.lot_number)} · رست في{" "}

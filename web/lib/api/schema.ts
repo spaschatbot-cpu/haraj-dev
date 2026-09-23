@@ -180,6 +180,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/bank-transfer/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * حساب الحوالة البنكية
+         * @description `GET /api/v1/bank-transfer/` — حسابُ الشركة الذي يُحوَّل إليه. T954.
+         *
+         *     ## لماذا نقطةٌ لا نصٌّ في التطبيق
+         *
+         *     الحسابُ بيانُ شركةٍ يتغيّر، ومكتوباً في التطبيق يعني إصداراً جديداً على
+         *     المتجرَين لتغيير رقم. وv1 يخزّنه في `account_page_settings` ويحرّره من
+         *     اللوحة للسبب نفسِه. وهنا في بيئة الخادم (`BANK_TRANSFER_*`).
+         *
+         *     ## وما يُبنى عليها
+         *
+         *     قناتان لشحن التأمين — ميسر والحوالة — وكان زرُّ الحوالة يردّ «قريباً»
+         *     بلا رقم حساب. **والفاتورةُ حوالةٌ وحدَها** بعد أن أُغلق السدادُ من رصيد
+         *     التأمين (انظر :class:`InvoicePayView`).
+         *
+         *     ## ومفتوحةٌ لمن لم يدخل
+         *
+         *     `AllowAny` بقصد: من يقرأ الشروطَ قبل التسجيل يسأل «كيف أدفع؟»، والحسابُ
+         *     الذي تُعلنه الشركةُ لاستقبال الحوالات ليس سرّاً — هو على فواتيرها
+         *     وموقعها. وإخفاؤه خلف تسجيل دخولٍ يمنع سؤالاً مشروعاً ولا يحمي شيئاً.
+         */
+        get: operations["v1_bank_transfer_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bids/{id}/withdraw/": {
         parameters: {
             query?: never;
@@ -429,10 +467,34 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Settle one invoice from the balance the customer already has with us.
+        /**
+         * سداد فاتورة من الرصيد (مغلق)
+         * @deprecated
+         * @description `POST /api/v1/invoices/{id}/pay/` — **مغلقٌ بقرار المالك.** T954.
          *
-         *     There is no card branch here and no card purpose to reach for: a purchase is
-         *     paid from deposited money or by a bank transfer the bank confirms. */
+         *     ## القاعدة
+         *
+         *     «رصيد التأمين لا يمكن، وممنوع السداد منه للفواتير. بعد سداد فاتورة
+         *     العربية يقدر يسترد التأمين» — المالك، ١٩ سبتمبر ٢٠٢٦.
+         *
+         *     وهي المادةُ السادسة بنصّها: «مبلغ الضمان … **لا يُحتسب من ثمن المركبة**».
+         *     وكان هذا البابُ يحتسبه: `pay_invoice_from_balance` يصرف قفلَ الفاتورة ثمّ
+         *     الرصيدَ الحرّ، فيخرج الضمانُ ثمناً للسيّارة — وهو ما يمنعه العقد.
+         *
+         *     ## والفاتورةُ تحويلٌ بنكيٌّ وحدَه
+         *
+         *     يسجّلها `record_payment` حين يؤكّد البنكُ الحوالة عبر أودو. ولا يُفقَد
+         *     شيء: الرهنُ على الفاتورة (`HoldReason.DUES`) يتقلّص مع كلّ دفعةٍ حتى
+         *     الصفر (`_shrink_dues_claims`)، فيعود التأمينُ إلى `insurance_free` بعد
+         *     السداد الكامل — **وعندها** يطلب العميلُ استردادَه. وهو ترتيبُ المالك
+         *     نفسُه، ويعمل اليوم بلا تعديل.
+         *
+         *     ## ولماذا ردٌّ لا حذفُ مسار
+         *
+         *     تطبيقٌ على جوّالٍ لم يُحدَّث سيضغط «ادفع» غداً. و404 يُقرأ عطلاً فيُعاد
+         *     ويُتّصل بالدعم؛ ورفضٌ برسالةٍ عربيّةٍ يقول **لماذا** وماذا يفعل بدلاً
+         *     منه. ويُحذف المسارُ يوم لا يبقى إصدارٌ يعرفه.
+         */
         post: operations["v1_invoices_pay_create"];
         delete?: never;
         options?: never;
@@ -962,6 +1024,21 @@ export interface components {
             account_type: string;
             is_new: boolean;
         };
+        /** @description حسابُ الشركة كما يُعرَض للعميل ليحوّل إليه. T954.
+         *
+         *     أربعةُ نصوص، **ولا مبلغ**: الحوالةُ يقرّر مبلغَها العميل — يشحن تأميناً
+         *     أو يسدّد فاتورة — والخادمُ لا يعرف أيّهما حتى تصل.
+         *
+         *     و`configured` علمٌ صريحٌ لا استنتاجٌ من فراغ الحقول: شاشةٌ تقرأ أربعةَ
+         *     نصوصٍ فارغةٍ ترسمها أربعةَ أسطرٍ فارغةٍ وتظنّها بياناتٍ ناقصة، وعلمٌ
+         *     واحدٌ يقول «لم يُضبَط بعد» فتعرض الرسالةَ الصحيحة. */
+        BankTransfer: {
+            configured: boolean;
+            beneficiary: string;
+            bank: string;
+            iban: string;
+            account: string;
+        };
         /** @description A bid as the owner of it sees it.
          *
          *     Never anybody else's: a sealed auction's whole property is that bidders
@@ -978,6 +1055,7 @@ export interface components {
             placed_at: string;
             is_withdrawn: boolean;
             is_superseded: boolean;
+            vehicle?: components["schemas"]["VehicleCard"] | null;
         };
         BidPage: {
             total: number;
@@ -1136,14 +1214,6 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
-        /** @description ``method`` accepts only what :class:`PaymentMethod` declares.
-         *
-         *     ``card`` is not a member, so the schema itself rejects it and there is no
-         *     branch anywhere that could accidentally grow one. */
-        InvoicePay: {
-            /** @description الافتراضيّ حين لا يُرسَل الحقل: `balance`. */
-            method?: components["schemas"]["MethodEnum"];
-        };
         /**
          * @description * `draft` - مسودة
          *     * `open` - مستحقة
@@ -1187,12 +1257,6 @@ export interface components {
             /** @description سبب عربي جاهز للعرض */
             reason: string;
         };
-        /**
-         * @description * `balance` - من الرصيد
-         *     * `bank_transfer` - تحويل بنكي
-         * @enum {string}
-         */
-        MethodEnum: "balance" | "bank_transfer";
         /** @description Ten digits. Whether they are a *valid* identity is the service's call.
          *
          *     The length check is here because it is a property of the field; the checksum
@@ -1419,9 +1483,10 @@ export interface components {
          *     * `confirmed` - نُفِّذ
          *     * `rejected` - مرفوض
          *     * `cancelled` - ألغاه العميل
+         *     * `v1_paid` - صُرف في v1
          * @enum {string}
          */
-        RefundRequestStateEnum: "requested" | "sent" | "confirmed" | "rejected" | "cancelled";
+        RefundRequestStateEnum: "requested" | "sent" | "confirmed" | "rejected" | "cancelled" | "v1_paid";
         /** @description Ask for a code. */
         SendCode: {
             phone: string;
@@ -1873,6 +1938,34 @@ export interface operations {
             };
         };
     };
+    v1_bank_transfer_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankTransfer"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
     bids_withdraw: {
         parameters: {
             query?: never;
@@ -2225,21 +2318,14 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["InvoicePay"];
-                "application/x-www-form-urlencoded": components["schemas"]["InvoicePay"];
-                "multipart/form-data": components["schemas"]["InvoicePay"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            200: {
+            /** @description السداد من الرصيد ممنوع. */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": components["schemas"]["Invoice"];
-                };
+                content?: never;
             };
             /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
             default: {

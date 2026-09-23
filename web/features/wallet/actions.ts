@@ -102,35 +102,12 @@ export async function requestRefund(form: FormData): Promise<void> {
   redirect("/wallet");
 }
 
-/**
- * Pay an invoice.
- *
- * The method comes from the invoice's own `payment_methods` — the server says
- * which are open for this invoice, and the screen offers those. A list written
- * in the web would offer a card, and a purchase is never settled by a card
- * charge that can be reversed months later against a vehicle that has already
- * left the yard (`PaymentMethod` has no card member, deliberately).
+/*
+ * **لا فعلَ «سدّد» هنا، وعن قرار.** كان `payInvoice` يرسل `{method}` إلى
+ * `POST /api/v1/invoices/{id}/pay/`، والنقطةُ **مغلقةٌ بقرار المالك** (T954):
+ * «رصيد التأمين ممنوع السداد منه للفواتير» — والفاتورةُ حوالةٌ بنكيّةٌ وحدَها
+ * يسجّلها الموظّف أو أودو حين يؤكّد البنك. فكان الزرُّ يُرفض دائماً — ومن اختار
+ * «تحويل بنكي» يُقال له «لا يمكن السداد من رصيد التأمين» وهو لم يختر الرصيد.
+ * قِيس على `haraj.spas.sa` في ٢٤ سبتمبر ٢٠٢٦. وصفحةُ الفاتورة تعرض الآن حسابَ
+ * الشركة (`/api/v1/bank-transfer/`) بدل الزرّ.
  */
-export async function payInvoice(form: FormData): Promise<void> {
-  const invoiceId = Number(form.get("invoice_id"));
-  const method = String(form.get("method") ?? "");
-  const back = `/invoices/${invoiceId}`;
-
-  const headers = await authedHeaders();
-
-  try {
-    await request(() =>
-      api.POST("/api/v1/invoices/{id}/pay/", {
-        params: { path: { id: invoiceId } },
-        headers,
-        body: { method: method as "balance" | "bank_transfer" },
-      }),
-    );
-  } catch (error) {
-    return refuse(error, back);
-  }
-
-  const store = await cookies();
-  setFlash(store, { code: "invoice_paid", message: "سُجّل السداد." }, back);
-  redirect(back);
-}
