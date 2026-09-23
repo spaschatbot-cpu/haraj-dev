@@ -26,7 +26,26 @@ Group=ubuntu
 WorkingDirectory=/srv/haraj/backend
 Environment=DJANGO_SETTINGS_MODULE=config.settings.staging
 EnvironmentFile=/srv/haraj/backend/.env
-ExecStart=/srv/haraj/backend/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 60 --access-logfile - --error-logfile -
+# ‏**عمّالٌ بخيوط (`gthread`) لا متزامنون — لأن `/api/v1/live/` بثٌّ مفتوح.**
+#
+# كان `--workers 3` بلا نوع، أي `sync`: كلُّ عاملٍ يخدم طلباً واحداً حتى
+# ينتهي. والبثُّ الحيّ (`apps/bidding/api/views.py::_live_frames`) لا ينتهي
+# — يعيش ربعَ ساعةٍ ينام ثانيتين بين كلّ إطار. فكلُّ صفحةِ سيارةٍ مفتوحة
+# **تحجز عاملاً كاملاً** حتى تقتله مهلةُ الستّين ثانية. قِيس على الخادم في
+# ٢٤ سبتمبر ٢٠٢٦: `WORKER TIMEOUT` ثم `SIGKILL` كلَّ دقيقةٍ لكلّ صفحة، و
+# `/live/` يردّ 500 فتقول الصفحة «انقطع الاتصال». وثلاثةُ عملاءَ يفتحون ثلاثَ
+# سيارات = **الواجهةُ البرمجيّة كلُّها واقفة**، ولوحةُ الإدارة معها — في
+# الدقيقة الأخيرة من المزاد بالضبط، حين يفتح الجميعُ صفحاتهم.
+#
+# و`gthread`: كلُّ عاملٍ ١٦ خيطاً، والبثُّ يأخذ خيطاً لا عاملاً، والمهلةُ
+# تُحسب على نبض العامل لا على طول الطلب فلا يُقتل البثّ. ٣ × ١٦ = ٤٨ اتصالاً
+# متزامناً، وكلُّ بثٍّ يُمسك اتصالَ قاعدةٍ طوال عمره — و`max_connections`
+# في PostgreSQL مئة.
+#
+# **وليس هذا سقفَ الإنتاج.** ثمانيةٌ وأربعون مشاهداً متزامناً تكفي خادمَ
+# تطوير، ومزادٌ حقيقيٌّ في دقيقته الأخيرة يتجاوزها. العلاجُ هناك بثٌّ على
+# ASGI أو استطلاعٌ قصير بدل البثّ — قرارُ معماريّةٍ لا سطرُ إعداد.
+ExecStart=/srv/haraj/backend/.venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --worker-class gthread --threads 16 --timeout 60 --access-logfile - --error-logfile -
 Restart=always
 RestartSec=5
 
