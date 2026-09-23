@@ -104,11 +104,58 @@
   // **تفويضٌ على المستند** لا ربطٌ لكلّ استمارةٍ عند الإقلاع: استماراتُ
   // «قبول» داخل نافذة المزايدين تُحقَن بعد أن يكون هذا السكربتُ قد عمل،
   // فالربطُ المباشرُ لا يبلغها أبداً — وهي أخطرُها: ترسيةٌ لا رجعةَ لها.
+  //
+  // **والسؤالُ نافذةُ اللوحة لا `window.confirm`** (٢٤ سبتمبر ٢٠٢٦). كان
+  // `confirm` أصليّاً: يرسمه نظامُ التشغيل بأسلوبه وخطّه وعنوانه («haraj.spas.sa
+  // يقول»)، ويجمّد الصفحةَ كلَّها وهو مفتوح — بينما كلُّ سؤالٍ آخرَ في اللوحة
+  // نافذةٌ منها («إنهاء فوري» و«تغيير الحالة» في شاشة المزادات). وقاعدةُ T837
+  // في `app.css` هي نفسُها: ما يرسمه النظامُ يختلف بين جهازٍ وجهاز. وظهر ذلك
+  // في اختبار المسار الكامل على الخادم: الضغطُ على «قبول» جمّد الصفحة ولم
+  // يستطع مُشغِّلُ المتصفّح الآليّ أن يجيب النافذة الأصليّة.
+  var ask = null;
+
+  function decide(text, yes) {
+    if (typeof HTMLDialogElement === "undefined") {
+      // متصفّحٌ بلا `<dialog>` — السؤالُ الأصليّ خيرٌ من ترسيةٍ بلا سؤال.
+      if (window.confirm(text)) yes();
+      return;
+    }
+    if (!ask) {
+      ask = document.createElement("dialog");
+      ask.className = "modal";
+      ask.innerHTML =
+        '<form method="dialog">' +
+        "<h2>تأكيد القرار</h2>" +
+        "<p data-decide-text></p>" +
+        '<p class="modal__buttons">' +
+        '<button type="submit" value="yes">تأكيد</button>' +
+        '<button type="submit" value="no">تراجع</button>' +
+        "</p></form>";
+      document.body.appendChild(ask);
+    }
+    // `textContent` لا `innerHTML`: السؤالُ يحمل اسمَ المزايد كما كتبه هو.
+    ask.querySelector("[data-decide-text]").textContent = text;
+    ask.returnValue = "";
+    ask.onclose = function () {
+      if (ask.returnValue === "yes") yes();
+    };
+    ask.showModal();
+  }
+
   document.addEventListener("submit", function (event) {
     var form = event.target.closest ? event.target.closest("[data-decide]") : null;
     if (!form) return;
-    if (!window.confirm(form.getAttribute("data-decide"))) {
-      event.preventDefault();
+    // أُجيب السؤالُ للتوّ: الإرسالُ الثاني هو الإرسال.
+    if (form.getAttribute("data-decided") === "1") {
+      form.removeAttribute("data-decided");
+      return;
     }
+    event.preventDefault();
+    var submitter = event.submitter || null;
+    decide(form.getAttribute("data-decide"), function () {
+      form.setAttribute("data-decided", "1");
+      if (form.requestSubmit) form.requestSubmit(submitter);
+      else form.submit();
+    });
   });
 })();
