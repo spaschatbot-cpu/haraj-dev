@@ -21,7 +21,7 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader } from "@/lib/session";
+import { authedHeaders } from "@/lib/authed";
 
 async function refuse(error: unknown, back: string): Promise<never> {
   const store = await cookies();
@@ -45,7 +45,7 @@ export async function startTopup(form: FormData): Promise<void> {
   const auctionRaw = String(form.get("auction") ?? "").trim();
   const auction = Number.parseInt(auctionRaw, 10);
 
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   let intent;
   try {
@@ -81,7 +81,7 @@ export async function requestRefund(form: FormData): Promise<void> {
   // would put a refund through a binary float on its way to a decimal ledger.
   const refundAmount = String(form.get("amount") ?? "").trim();
 
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   try {
     await request(() =>
@@ -116,7 +116,7 @@ export async function payInvoice(form: FormData): Promise<void> {
   const method = String(form.get("method") ?? "");
   const back = `/invoices/${invoiceId}`;
 
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   try {
     await request(() =>

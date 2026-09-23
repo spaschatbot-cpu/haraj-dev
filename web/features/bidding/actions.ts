@@ -33,7 +33,8 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader, clearSession } from "@/lib/session";
+import { authedHeaders } from "@/lib/authed";
+import { clearSession } from "@/lib/session";
 
 /**
  * رفضٌ سببه أن الجلسة انتهت — لا رفضُ مزايدة.
@@ -84,7 +85,7 @@ export async function placeBid(form: FormData): Promise<void> {
   const confirmLower = form.get("confirm_lower") === "1";
   const back = `/vehicles/${vehicleId}`;
 
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   try {
     await request(() =>
@@ -118,7 +119,7 @@ export async function placeBid(form: FormData): Promise<void> {
 export async function withdrawBid(form: FormData): Promise<void> {
   const bidId = Number(form.get("bid_id"));
 
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   try {
     await request(() =>

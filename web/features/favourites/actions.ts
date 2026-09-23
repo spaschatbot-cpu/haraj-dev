@@ -19,10 +19,10 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader } from "@/lib/session";
+import { authedHeaders } from "@/lib/authed";
 
 async function toggle(vehicleId: number, on: boolean, back: string): Promise<void> {
-  const headers = await authHeader(await cookies());
+  const headers = await authedHeaders();
 
   try {
     if (on) {

@@ -21,7 +21,8 @@ import { cookies } from "next/headers";
 
 import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
-import { authHeader, clearSession } from "@/lib/session";
+import { authedHeaders } from "@/lib/authed";
+import { clearSession } from "@/lib/session";
 
 //: كلُّ نموذجٍ يعود إلى صفحته الداخليّة لا إلى «حسابي»: من حفظ بريدَه في
 //: «تعديل البيانات» ثم وجد نفسَه في قائمة الأقسام يظنّ أن الحفظَ لم يقع.
@@ -48,7 +49,7 @@ async function finish(error: unknown | null, done: string, back: string): Promis
 
 /** The header this server sends on the customer's behalf. */
 async function auth(): Promise<Record<string, string>> {
-  return authHeader(await cookies());
+  return authedHeaders();
 }
 
 export async function saveProfile(form: FormData): Promise<void> {
