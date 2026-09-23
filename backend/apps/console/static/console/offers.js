@@ -129,8 +129,14 @@
         "<p data-decide-text></p>" +
         '<p class="modal__buttons">' +
         '<button type="submit" value="yes">تأكيد</button>' +
-        '<button type="submit" value="no">تراجع</button>' +
+        // «تراجع» زرٌّ عاديّ لا إرسال — هيئةُ «إلغاء» في بقيّة نوافذ اللوحة
+        // (`type="button" data-close`). كان `submit` فأخذ لونَ «تأكيد» نفسَه،
+        // وزرّان متطابقان تحت سؤالٍ لا رجعةَ فيه يُضغط أحدُهما بلا قراءة.
+        '<button type="button" data-close>تراجع</button>' +
         "</p></form>";
+      ask.querySelector("[data-close]").addEventListener("click", function () {
+        ask.close("no");
+      });
       document.body.appendChild(ask);
     }
     // `textContent` لا `innerHTML`: السؤالُ يحمل اسمَ المزايد كما كتبه هو.
