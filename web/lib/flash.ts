@@ -46,8 +46,22 @@ export interface Flash {
   detail?: Record<string, unknown>;
 }
 
-export function setFlash(store: CookieStore, flash: Flash): void {
-  store.set(FLASH_COOKIE, JSON.stringify(flash), {
+/**
+ * ضَعِ الرسالة — **للصفحة التي يُحوَّل إليها وحدها**.
+ *
+ * ‏`path` إلزاميٌّ عن قصد، ويُمرَّر هو نفسُه الذي يُمرَّر لـ`redirect()` بعده.
+ * قِيس على `haraj.spas.sa` في ٢٤ سبتمبر ٢٠٢٦: «سُجّلت مزايدتك» ظهرت في صفحة
+ * السيارة كما يجب، ثم **تبعت العميلَ إلى «محفظتي»** بضغطة رابط، و«سُجّل رقم
+ * الهوية» تبعته من «تعديل البيانات» إلى صفحة سيارة بلون الخطأ فأزاحت صندوقَ
+ * المزايدة. فالكوكي يُقرأ في أيّ رسمٍ يحمله — والتنقّلُ بالروابط والجلبُ
+ * المسبقُ لروابط الرأس كلاهما يحمله قبل أن يمسحه أحد.
+ *
+ * فالرسالةُ تحمل عنوانَ صفحتها، و`middleware.ts` ينزعها من كلّ طلبٍ لغيرها.
+ * وإلزاميّتُه في النوع لا في الذاكرة: فعلٌ جديدٌ يضع رسالةً بلا عنوانٍ لا يُبنى.
+ */
+export function setFlash(store: CookieStore, flash: Flash, path: string): void {
+  const payload = { ...flash, path: path.split("?")[0] };
+  store.set(FLASH_COOKIE, JSON.stringify(payload), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

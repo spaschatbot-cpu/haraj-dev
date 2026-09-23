@@ -56,7 +56,7 @@ async function refuse(error: unknown, back: string): Promise<never> {
     setFlash(store, {
       code: SESSION_GONE,
       message: "انتهت جلستك. سجّل دخولك ثم أعد المحاولة.",
-    });
+    }, "/sign-in");
     redirect(`/sign-in?next=${encodeURIComponent(back)}`);
   }
 
@@ -68,7 +68,7 @@ async function refuse(error: unknown, back: string): Promise<never> {
     code: error instanceof ApiError ? error.code : "",
     message: messageOf(error),
     ...(error instanceof ApiError ? { detail: error.detail } : {}),
-  });
+  }, back);
   redirect(back);
 }
 
@@ -103,7 +103,7 @@ export async function placeBid(form: FormData): Promise<void> {
   }
 
   const store = await cookies();
-  setFlash(store, { code: "bid_placed", message: "سُجّلت مزايدتك." });
+  setFlash(store, { code: "bid_placed", message: "سُجّلت مزايدتك." }, back);
   redirect(back);
 }
 
@@ -133,6 +133,6 @@ export async function withdrawBid(form: FormData): Promise<void> {
   }
 
   const store = await cookies();
-  setFlash(store, { code: "bid_withdrawn", message: "سُحبت مزايدتك." });
+  setFlash(store, { code: "bid_withdrawn", message: "سُحبت مزايدتك." }, "/bids");
   redirect("/bids");
 }

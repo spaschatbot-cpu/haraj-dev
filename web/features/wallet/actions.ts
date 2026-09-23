@@ -29,7 +29,7 @@ async function refuse(error: unknown, back: string): Promise<never> {
     code: error instanceof ApiError ? error.code : "",
     message: messageOf(error),
     ...(error instanceof ApiError ? { detail: error.detail } : {}),
-  });
+  }, back);
   redirect(back);
 }
 
@@ -98,7 +98,7 @@ export async function requestRefund(form: FormData): Promise<void> {
   setFlash(store, {
     code: "refund_requested",
     message: "سُجّل طلب الاسترداد. تُنفّذه المحاسبة ويظهر في حركاتك عند تنفيذه.",
-  });
+  }, "/wallet");
   redirect("/wallet");
 }
 
@@ -131,6 +131,6 @@ export async function payInvoice(form: FormData): Promise<void> {
   }
 
   const store = await cookies();
-  setFlash(store, { code: "invoice_paid", message: "سُجّل السداد." });
+  setFlash(store, { code: "invoice_paid", message: "سُجّل السداد." }, back);
   redirect(back);
 }

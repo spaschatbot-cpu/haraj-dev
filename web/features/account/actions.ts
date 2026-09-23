@@ -43,6 +43,7 @@ async function finish(error: unknown | null, done: string, back: string): Promis
           code: error instanceof ApiError ? error.code : "",
           message: messageOf(error),
         },
+    back,
   );
   redirect(back);
 }
@@ -184,6 +185,6 @@ export async function confirmPhoneChange(form: FormData): Promise<void> {
   setFlash(store, {
     code: "phone_changed",
     message: "تغيّر رقمك. سجّل الدخول بالرقم الجديد.",
-  });
+  }, "/sign-in");
   redirect("/sign-in");
 }

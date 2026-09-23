@@ -67,18 +67,16 @@ function isDocumentNavigation(request: NextRequest): boolean {
   return (request.headers.get("accept") ?? "").includes("text/html");
 }
 
-/**
- * تنقّلٌ **داخل** الموقع — ضغطُ `<Link>` لا تحميلُ وثيقة.
- *
- * نداءُ `rsc` بلا `next-router-prefetch`: رابطٌ ضُغط فعلاً. والجلبُ المسبقُ
- * مستثنى كما في كلّ هذا الملفّ — رابطٌ لم يُضغط لا يأكل شيئاً.
- */
-function isClientNavigation(request: NextRequest): boolean {
-  return (
-    request.method === "GET" &&
-    request.headers.get("rsc") !== null &&
-    !request.headers.get("next-router-prefetch")
-  );
+/** عنوانُ الصفحة التي وُضعت لها الرسالة (`setFlash`)، أو `null`. */
+function flashPath(request: NextRequest): string | null {
+  const raw = request.cookies.get(FLASH_COOKIE)?.value;
+  if (!raw) return null;
+  try {
+    const path = (JSON.parse(raw) as { path?: unknown }).path;
+    return typeof path === "string" ? path : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function middleware(request: NextRequest) {
@@ -88,35 +86,34 @@ export async function middleware(request: NextRequest) {
   const navigating = isDocumentNavigation(request);
 
   /*
-    **رسالةُ المرّة الواحدة كانت تعيش مرّتين — وثلاثاً.** قِيس على
-    `haraj.spas.sa` في ٢٤ سبتمبر ٢٠٢٦: «سُجّل رقم الهوية» ظهرت في «تعديل
-    البيانات» كما يجب، ثم **تبعت العميلَ إلى صفحة السيارة** بلونِ الخطأ
-    (الصفحةُ لا تعرف رمزَها فتحسبه رفضاً)، وأزاحت صندوقَ المزايدة فوقع
-    الضغطُ على «دخول المزاد» في الفراغ.
+    **رسالةُ المرّة الواحدة لصفحتها وحدها.** قِيس على `haraj.spas.sa` في
+    ٢٤ سبتمبر ٢٠٢٦ مرّتين: «سُجّل رقم الهوية» تبعت العميلَ من «تعديل البيانات»
+    إلى صفحة سيارة بلون الخطأ فأزاحت صندوقَ المزايدة، و«سُجّلت مزايدتك» تبعته
+    من صفحة السيارة إلى «محفظتي».
 
-    والسبب: الرسالةُ تُستهلَك أدناه على **تحميل وثيقة** وحده. وفعلُ الخادم
-    يُعيد رسمَ صفحته في ردّه نفسِه — فتُعرض الرسالة هناك — ثم كلُّ ضغطة
-    `<Link>` بعدها نداءُ `rsc` لا وثيقة، فيبقى الكوكي ويُقرأ في كلّ صفحة
-    حتى يُحمَّل الموقعُ من جديد.
+    والاستهلاكُ أدناه على **تحميل وثيقة** وحده، وفعلُ الخادم يرسم صفحتَه في
+    ردّه نفسِه ثم يمضي العميلُ بروابط — نداءاتُ `rsc` لا وثائق — فيبقى الكوكي
+    ويُقرأ في كلّ صفحة. **وجُرِّب أوّلاً نزعُه على التنقّل الداخليّ فلم يكفِ**
+    (`61b1c1e`): روابطُ الرأس تُجلَب مسبقاً والرسالةُ ما زالت في الكوكي، فتُخزَّن
+    الصفحةُ برسالتها في ذاكرة الموجّه، والضغطةُ تعرض المخزَّن بلا طلبٍ جديد.
 
-    فعلى التنقّل الداخليّ تُنزَع **من الطلب** قبل الرسم (فلا تراها الصفحةُ
-    التالية) **ومن الرد** (فلا تعود). وهي قد عُرضت قبله: إمّا في ردّ الفعل
-    نفسِه، وإمّا في وثيقةٍ حُمِّلت.
+    فالرسالةُ صارت تحمل عنوانَ صفحتها (`setFlash(…, path)`)، وكلُّ طلبٍ لغيرها —
+    تنقّلاً كان أو جلباً مسبقاً — تُنزَع منه قبل الرسم وتُمسَح من ردّه.
   */
-  const staleFlash = isClientNavigation(request) && request.cookies.has(FLASH_COOKIE);
-  if (staleFlash) {
-    request.cookies.delete(FLASH_COOKIE);
-    const response = NextResponse.next({ request });
-    response.cookies.delete(FLASH_COOKIE);
-    return response;
-  }
+  //: لا `return` مبكّر هنا: تنقّلُ وثيقةٍ إلى صفحةٍ أخرى برمزٍ منتهٍ يحتاج
+  //: التجديدَ أدناه كما يحتاج نزعَ الرسالة. فالنزعُ من الطلب الآن، والمسحُ من
+  //: الرد في `consumeFlash` — على أيّ ردٍّ يُبنى.
+  const target = flashPath(request);
+  const foreign = target !== null && request.nextUrl.pathname !== target;
+  if (foreign) request.cookies.delete(FLASH_COOKIE);
 
   /**
-   * تمسح الرسالة من الرد إن كان هذا تنقّلاً — والجلبُ المسبق لا يمسح، وإلا
-   * أكل رابطٌ لم يُضغط رسالةً لم تُعرض بعد.
+   * تمسح الرسالة من الرد إن كان هذا تنقّلاً إلى صفحتها — والجلبُ المسبق لا
+   * يمسح، وإلا أكل رابطٌ لم يُضغط رسالةً لم تُعرض بعد — أو إن كان الطلبُ
+   * لصفحةٍ غيرِ صفحتها، جلباً كان أو تنقّلاً.
    */
   const consumeFlash = (response: NextResponse) => {
-    if (navigating && request.cookies.has(FLASH_COOKIE)) {
+    if (foreign || (navigating && request.cookies.has(FLASH_COOKIE))) {
       response.cookies.delete(FLASH_COOKIE);
     }
     return response;
@@ -124,8 +121,10 @@ export async function middleware(request: NextRequest) {
 
   //: رمزٌ حيّ، أو زائرٌ بلا جلسة أصلاً — لا تحديث في الحالتين، والرسالة
   //: تُستهلَك على أي حال: زائرٌ بلا جلسة يرى رفض الدخول ثم يمضي.
+  //: و`{ request }` لأن الطلبَ عُدِّل (نُزعت منه الرسالة): بدونه يُرسَم
+  //: بكوكيّاته الأصليّة، فتعود الرسالةُ المنزوعة.
   if (access || !refresh || !navigating) {
-    return consumeFlash(NextResponse.next());
+    return consumeFlash(NextResponse.next({ request }));
   }
 
   /*
@@ -173,13 +172,13 @@ export async function middleware(request: NextRequest) {
     //: الخلفية لم تُجب. لا تُمسح الجلسة على عطلِ شبكة — العميل لم يُخطئ،
     //: ورمزه ما زال صالحاً على الأرجح. يمرّ الطلب بلا رمز، فتُرسَم الصفحة
     //: العامة، والمحاولة التالية تُعيد الكرّة.
-    return consumeFlash(NextResponse.next());
+    return consumeFlash(NextResponse.next({ request }));
   }
 
   if (pair === null) {
     //: رُفض الرمز — منتهٍ أو مُبطَل أو مُعاد استعماله. يُمسح الاثنان معاً:
     //: رمزُ تحديثٍ مرفوض لن يُقبل غداً، وتركُه يعني رفضاً في كل صفحة.
-    const refused = NextResponse.next();
+    const refused = NextResponse.next({ request });
     refused.cookies.delete(ACCESS_COOKIE);
     refused.cookies.delete(REFRESH_COOKIE);
     return consumeFlash(refused);

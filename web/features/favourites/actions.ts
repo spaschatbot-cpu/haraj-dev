@@ -45,7 +45,7 @@ async function toggle(vehicleId: number, on: boolean, back: string): Promise<voi
     setFlash(store, {
       code: error instanceof ApiError ? error.code : "",
       message: messageOf(error),
-    });
+    }, back);
   }
 
   // Both the page the customer is on and the favourites list: marking from a
