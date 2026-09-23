@@ -23,9 +23,12 @@ import { ApiError, api, messageOf, request } from "@/lib/api";
 import { setFlash } from "@/lib/flash";
 import { authHeader, clearSession } from "@/lib/session";
 
-const ACCOUNT = "/account";
+//: كلُّ نموذجٍ يعود إلى صفحته الداخليّة لا إلى «حسابي»: من حفظ بريدَه في
+//: «تعديل البيانات» ثم وجد نفسَه في قائمة الأقسام يظنّ أن الحفظَ لم يقع.
+const PROFILE = "/account/profile";
+const PHONE = "/account/phone";
 
-async function finish(error: unknown | null, done: string): Promise<never> {
+async function finish(error: unknown | null, done: string, back: string): Promise<never> {
   const store = await cookies();
 
   setFlash(
@@ -40,7 +43,7 @@ async function finish(error: unknown | null, done: string): Promise<never> {
           message: messageOf(error),
         },
   );
-  redirect(ACCOUNT);
+  redirect(back);
 }
 
 /** The header this server sends on the customer's behalf. */
@@ -59,9 +62,9 @@ export async function saveProfile(form: FormData): Promise<void> {
       api.PATCH("/api/v1/profile/", { headers, body: { full_name, email } }),
     );
   } catch (error) {
-    return finish(error, "");
+    return finish(error, "", PROFILE);
   }
-  return finish(null, "حُفظت بياناتك.");
+  return finish(null, "حُفظت بياناتك.", PROFILE);
 }
 
 /**
@@ -93,9 +96,9 @@ export async function saveCompany(form: FormData): Promise<void> {
   try {
     await request(() => api.PUT("/api/v1/profile/company/", { headers, body }));
   } catch (error) {
-    return finish(error, "");
+    return finish(error, "", PROFILE);
   }
-  return finish(null, "حُفظت بيانات الشركة.");
+  return finish(null, "حُفظت بيانات الشركة.", PROFILE);
 }
 
 /**
@@ -120,9 +123,9 @@ export async function saveNationalId(form: FormData): Promise<void> {
       api.PUT("/api/v1/profile/national-id/", { headers, body: { national_id } }),
     );
   } catch (error) {
-    return finish(error, "");
+    return finish(error, "", PROFILE);
   }
-  return finish(null, "سُجّل رقم الهوية.");
+  return finish(null, "سُجّل رقم الهوية.", PROFILE);
 }
 
 /**
@@ -146,9 +149,9 @@ export async function startPhoneChange(form: FormData): Promise<void> {
       api.POST("/api/v1/auth/phone/change/", { headers, body: { new_phone } }),
     );
   } catch (error) {
-    return finish(error, "");
+    return finish(error, "", PHONE);
   }
-  return finish(null, "أُرسل رمزان: واحدٌ إلى رقمك الحالي وواحدٌ إلى الجديد.");
+  return finish(null, "أُرسل رمزان: واحدٌ إلى رقمك الحالي وواحدٌ إلى الجديد.", PHONE);
 }
 
 /**
@@ -172,7 +175,7 @@ export async function confirmPhoneChange(form: FormData): Promise<void> {
       api.POST("/api/v1/auth/phone/change/confirm/", { headers, body }),
     );
   } catch (error) {
-    return finish(error, "");
+    return finish(error, "", PHONE);
   }
 
   const store = await cookies();

@@ -17,7 +17,7 @@ import { amount } from "@/lib/format";
 
 export function RefundRequestForm({ available }: { available: string }) {
   return (
-    <section className="mt-12 rounded-lg border border-neutral-200 bg-white p-4">
+    <section id="refund" className="mt-12 scroll-mt-24 rounded-lg border border-neutral-200 bg-white p-4">
       <h2 className="mb-1 font-semibold">طلب استرداد</h2>
       <p className="mb-4 text-sm text-neutral-600">
         المتاح الآن <span className="money">{amount(available)}</span>. الطلب لا
