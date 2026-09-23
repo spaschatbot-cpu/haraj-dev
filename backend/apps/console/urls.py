@@ -42,6 +42,7 @@ from . import (
     support,
     vehicle_bulk,
     vehicle_images,
+    wallet,
 )
 from . import (
     dashboard as dashboard_views,
@@ -340,6 +341,8 @@ urlpatterns = [
     path("money/", money.ledger, name="money-ledger"),
     path("money/<int:pk>/", money.customer_ledger, name="money-customer"),
     path("money/<int:pk>/actions/", actions.actions, name="money-actions"),
+    # «إيداع يدوي» — أُعيد بقرار المالك في ٢٤ سبتمبر ٢٠٢٦ (السببُ في `wallet.py`).
+    path("money/deposit/", wallet.wallet_credit, name="wallet-credit"),
     path(
         "money/holds/<int:pk>/confiscate/",
         actions.confiscate,

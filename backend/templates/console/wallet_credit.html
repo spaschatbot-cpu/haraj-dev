@@ -1,0 +1,78 @@
+{% extends "console/base.html" %}
+{% load l10n %}
+{% comment %}
+إيداع يدوي — أُعيد بقرار المالك في ٢٤ سبتمبر ٢٠٢٦. القرارُ وسببُه وما تغيّر
+عن النسخة الأولى في `apps/console/wallet.py`.
+
+وكانت النسخةُ الأولى تحمل تحت «مرجع الحوالة» سطراً «يدخل مذكّرة القيد وسجلَّ
+التدقيق» **بلا خانةٍ فوقه** — أي أن السببَ يُقرأ في الخادم ولا يُرسم في الشاشة،
+فكلُّ قيدٍ يُكتب بلا سبب. وهنا الخانةُ موجودة.
+{% endcomment %}
+{% block title %}إيداع يدوي{% endblock %}
+{% block heading %}إيداع يدوي في المحفظة{% endblock %}
+
+{% block content %}
+  <p class="lede">
+    إيداعُ تأمينٍ لعميلٍ وصل مالُه نقداً أو بحوالة. <strong>وديعةٌ كاملة</strong>:
+    <span class="money">{{ unit|unlocalize }}</span> ريال أو مضاعفاتُها — وما سواها
+    لا يصير تأميناً.
+  </p>
+
+  <form method="get" class="filters filters--row">
+    <div class="filters__main">
+      <input type="search" name="q" value="{{ q }}"
+             placeholder="اسم العميل أو رقم جواله" aria-label="بحث">
+      <button type="submit" class="btn-primary">بحث</button>
+    </div>
+  </form>
+
+  {% if not searched %}
+    <div class="blank">
+      <p class="blank__say">ابحث باسم العميل أو رقم جوّاله لعرض رصيده وإتمام الإيداع.</p>
+      <p class="blank__hint">الإيداعُ يلزمه مبلغٌ من مضاعفات الوديعة ومرجعٌ لا يتكرّر.</p>
+    </div>
+  {% elif not rows %}
+    <div class="blank">
+      <p class="blank__say">لا عميلَ يطابق ما كتبت.</p>
+      <p class="blank__hint">جرّب الاسمَ كاملاً أو رقمَ الجوّال بصيغته المسجَّلة.</p>
+    </div>
+  {% else %}
+    {% for row in rows %}
+      <h2>
+        {{ row.person.full_name }}
+        <small class="money">{{ row.person.phone|unlocalize }}</small>
+      </h2>
+      <div class="facts">
+        <div class="fact fact--lead"><span class="fact__k">تأمين متاح</span><span class="fact__v money">{{ row.buckets.insurance_free|default:"0.00"|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">محجوز لمزاد</span><span class="fact__v money">{{ row.buckets.insurance_held|default:"0.00"|unlocalize }}</span></div>
+        <div class="fact"><span class="fact__k">مقفول لمستحقات</span><span class="fact__v money">{{ row.buckets.insurance_locked|default:"0.00"|unlocalize }}</span></div>
+      </div>
+
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="customer" value="{{ row.person.pk|unlocalize }}">
+        <input type="hidden" name="q" value="{{ q }}">
+        <p>
+          <label for="amount-{{ row.person.pk|unlocalize }}">المبلغ</label>
+          <input id="amount-{{ row.person.pk|unlocalize }}" type="number"
+                 step="{{ unit|unlocalize }}" min="{{ unit|unlocalize }}"
+                 value="{{ unit|unlocalize }}" name="amount" required>
+        </p>
+        <p>
+          <label for="ref-{{ row.person.pk|unlocalize }}">مرجع الإيداع</label>
+          <input id="ref-{{ row.person.pk|unlocalize }}" type="text" name="reference" required
+                 placeholder="رقم الحوالة أو سند القبض">
+          <small>مفتاحُ التفرّد: المرجعُ نفسُه لا يُقيَّد مرّتين مهما ضُغط الزرّ.</small>
+        </p>
+        <p>
+          <label for="reason-{{ row.person.pk|unlocalize }}">ملاحظة (اختياري)</label>
+          <input id="reason-{{ row.person.pk|unlocalize }}" type="text" name="reason" maxlength="300"
+                 placeholder="تدخل مذكّرةَ القيد وسجلَّ التدقيق">
+        </p>
+        <button type="submit">أودِع</button>
+      </form>
+
+      <p><a href="{% url 'console:money-customer' row.person.pk %}">دفتر هذا العميل ←</a></p>
+    {% endfor %}
+  {% endif %}
+{% endblock %}
