@@ -30,7 +30,7 @@ export function AuctionCard({ auction }: { auction: Auction }) {
           </span>
         </div>
 
-        <p className="mt-1 text-sm text-neutral-600">مزاد رقم {count(auction.number)}</p>
+        <p className="mt-1 text-sm text-neutral-600">مزاد رقم <span className="tnum">{auction.number}</span></p>
 
         <dl className="mt-3 space-y-1 text-sm text-neutral-700">
           <div className="flex gap-2">

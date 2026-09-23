@@ -149,7 +149,7 @@ export function VehicleCard({
             <h3 className="text-headline-sm">{vehicle.title}</h3>
             {/* «الموقف» وحده. رقم المزاد لا يظهر على كرت v1. */}
             <span className="shrink-0 rounded-sm bg-surface-container px-2 py-0.5 text-label-sm font-medium">
-              الموقف <span className="tnum">{count(vehicle.lot_number)}</span>
+              الموقف <span className="tnum">{vehicle.lot_number}</span>
             </span>
           </div>
 

@@ -207,7 +207,7 @@ export default async function VehiclePage({ params }: Params) {
             مركبة 25970 (مزادُها رقمُه 992833 ومفتاحُه 61): الرابطُ بالرقم
             يردّ 404 وبالمفتاح 200. */}
         <Link href={`/auctions/${vehicle.auction_id}`} className="hover:underline">
-          مزاد {count(vehicle.auction_number)}
+          مزاد <span className="tnum">{vehicle.auction_number}</span>
         </Link>
       </nav>
 
@@ -240,7 +240,7 @@ export default async function VehiclePage({ params }: Params) {
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <p className="text-sm text-neutral-600">
-              الموقف {count(vehicle.lot_number)}
+              الموقف <span className="tnum">{vehicle.lot_number}</span>
             </p>
             {signedIn ? (
               <FavouriteButton
