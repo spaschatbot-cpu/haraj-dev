@@ -15,7 +15,7 @@ import logging
 from datetime import timedelta
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.accounts import identity
@@ -26,6 +26,7 @@ from apps.accounts.errors import (
     CompanyProfileIncomplete,
     NationalIdAlreadyVerified,
     NationalIdInvalid,
+    NationalIdTaken,
     OtpAlreadyUsed,
     OtpExpired,
     OtpIncorrect,
@@ -597,9 +598,23 @@ def set_national_id(*, user: User, national_id: str) -> User:
     if not identity.is_valid(national_id):
         raise NationalIdInvalid(f"{national_id!r} is not a well-formed identity")
 
+    # **ويُسأل عن صاحبه قبل الكتابة.** القيدُ في القاعدة
+    # (`user_national_id_unique_when_set`) يحمل رسالتَه العربيّة، لكنّ الحفظَ
+    # بـ`update_fields` يتخطّى `full_clean()` — فيقع القيدُ في القاعدة ويعود
+    # `IntegrityError`. مقيسٌ على سيرفر التجربة: حسابٌ ثانٍ يكتب رقماً
+    # مسجَّلاً يتلقّى **500** ورقمَ حادثة، وهو خطأٌ لا يفعل العميلُ به شيئاً.
+    #
+    # والسؤالُ لا يكفي وحدَه — بين القراءة والكتابة يمرّ غيرُه — فيُلتقط
+    # القيدُ أيضاً ويُترجَم إلى الرفض نفسِه.
+    if User.objects.filter(national_id=national_id).exclude(pk=user.pk).exists():
+        raise NationalIdTaken(f"{national_id!r} belongs to another account")
+
     before = audit.snapshot(user, ["national_id"])
     user.national_id = national_id
-    user.save(update_fields=["national_id"])
+    try:
+        user.save(update_fields=["national_id"])
+    except IntegrityError as clash:
+        raise NationalIdTaken(f"{national_id!r} belongs to another account") from clash
 
     audit.record(
         action="accounts.set_national_id",

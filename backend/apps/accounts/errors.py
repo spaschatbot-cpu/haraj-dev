@@ -179,6 +179,24 @@ class NationalIdAlreadyVerified(DomainError):
     default_message = "رقم الهوية مثبَّت ولا يمكن تغييره. راجع الدعم لو فيه خطأ."
 
 
+class NationalIdTaken(DomainError):
+    """The number is well-formed and belongs to somebody else.
+
+    **The 500 this replaces.** `user_national_id_unique_when_set` carries its
+    own Arabic message, but `set_national_id` saves with `update_fields`, which
+    skips `full_clean()` — so the constraint fired in the database and came back
+    an `IntegrityError`. Measured on the staging server: a second account typing
+    an id already on file got **HTTP 500** with an incident number, and the row
+    that explains it is a stack trace no customer can act on.
+
+    A refusal, not a fault: one number names one person, and the customer who
+    typed somebody else's digit can retype their own.
+    """
+
+    code = "national_id_taken"
+    default_message = "رقم الهوية مسجَّل على حساب آخر."
+
+
 class NationalIdInvalid(DomainError):
     """Ten digits, starting with 1 or 2, and a checksum that holds."""
 
