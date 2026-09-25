@@ -103,8 +103,27 @@ class Command(BaseCommand):
         ends = now + timezone.timedelta(hours=options["hours"])
 
         with transaction.atomic():
+            # **رقمٌ تالٍ حين لا يُفتح القائم.** رأسُ هذا الملفّ يقول إنه
+            # «يصنع مزاداً جديداً» لأن `ended → live` نقلةٌ غيرُ موجودة —
+            # ثمّ كان يثبّت الرقمَ 1900 ويردّ «احذفه من اللوحة ثم أعد
+            # الأمر». فأوّلُ مشيةٍ كاملةٍ لدورة العميل تُغلق المزادَ (وهي
+            # خطوةٌ من الدورة)، والمشيةُ الثانية تقف قبل أن تبدأ.
+            #
+            # والحذفُ ليس جواباً: مزادٌ فيه مزايداتٌ وفواتير لا يُحذف
+            # لتُعاد تجربة. فيُؤخذ الرقمُ التالي الحرّ.
+            number = NUMBER
+            while True:
+                existing = Auction.objects.filter(number=number).first()
+                if existing is None or existing.state in (
+                    AuctionState.DRAFT,
+                    AuctionState.SCHEDULED,
+                    AuctionState.LIVE,
+                ):
+                    break
+                number += 1
+
             auction, created = Auction.objects.get_or_create(
-                number=NUMBER,
+                number=number,
                 defaults={
                     "title": TITLE,
                     # يبدأ في الماضي: شرطُ النقلة إلى `live` هو بلوغُ وقت
@@ -118,7 +137,7 @@ class Command(BaseCommand):
             if not created:
                 Auction.objects.filter(pk=auction.pk).update(ends_at=ends)
                 auction.refresh_from_db()
-                self.stdout.write(f"مُدّدت نافذة المزاد {NUMBER} إلى {ends:%Y-%m-%d}")
+                self.stdout.write(f"مُدّدت نافذة المزاد {number} إلى {ends:%Y-%m-%d}")
 
         # **المركباتُ قبل الجدولة، لا بعدها**: شرطُ `draft → scheduled` أن
         # يكون في المزاد مركبةٌ واحدة على الأقل — وهو شرطٌ محقّ: مزادٌ مجدولٌ
@@ -136,13 +155,13 @@ class Command(BaseCommand):
             # حالةٌ لا يُخرجها هذا الأمر من نفسه (انتهى وهو مفتوح؟) — تُقال
             # ولا تُصلَح بقلب عمود.
             self.stdout.write(
-                f"⚠ المزاد {NUMBER} حالته {auction.state} لا live — "
+                f"⚠ المزاد {auction.number} حالته {auction.state} لا live — "
                 "احذفه من اللوحة ثم أعد الأمر"
             )
             return
 
         self.stdout.write(
-            f"المزاد {NUMBER} حيٌّ حتى {ends:%Y-%m-%d %H:%M} — {moved} مركبة"
+            f"المزاد {auction.number} حيٌّ حتى {ends:%Y-%m-%d %H:%M} — {moved} مركبة"
         )
 
     def _fill(self, auction: Auction) -> int:
@@ -166,7 +185,18 @@ class Command(BaseCommand):
             self.stdout.write("لا مزاد منتهٍ تُنقل مركباتُه — شغّل seed_demo أوّلاً")
             return 0
 
-        return Vehicle.objects.filter(auction=source).update(auction=auction)
+        # **وما حُسم أمرُه يبقى في مزاده.** كانت تنقل مركباتِ المصدر كلَّها
+        # بحالاتها، فيمتلئ «الجاري» بمركباتٍ `paid` و`invoiced` و`awarded`
+        # لا تُزايَد — والعطلُ مكتوبٌ في توثيق `_stock` تحتها ولم يُصلَح هنا.
+        #
+        # وأثرُه مقيسٌ: مشيةُ دورة العميل وقعت على المركبة 12976 وحالتُها
+        # «مسدَّدة» داخل مزادٍ حيّ، فردّ الخادمُ «المركبة «مسدَّدة» ولا تقبل
+        # مزايدة» — وهو الحارسُ يعمل، والبيانُ هو الكاذب. والعميلُ يراها في
+        # المزاد الجاري ويضغط فيُردّ.
+        movable = Vehicle.objects.filter(
+            auction=source, state__in=(VehicleState.LISTED, VehicleState.BIDDING)
+        )
+        return movable.update(auction=auction)
 
     def _stock(self, auction: Auction, count: int) -> int:
         """انسخ مركباتٍ حقيقيّةً إلى المزاد **معروضةً** وبكامل بياناتها. T946.
