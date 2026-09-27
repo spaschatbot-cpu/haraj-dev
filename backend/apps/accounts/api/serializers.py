@@ -16,7 +16,28 @@ from apps.accounts.models import (
     PHONE_PATTERN,
     DocumentKind,
     OtpPurpose,
+    normalise_saudi_mobile,
 )
+
+
+class PhoneField(serializers.RegexField):
+    """رقمُ جوّالٍ يكتبه إنسان — يُطبَّع قبل أن يُطابَق.
+
+    الصنفُ موضعٌ واحدٌ لأن الرقمَ يُكتب في أربع نقاط (إرسالُ الرمز، التحقّق،
+    وطرفا تغيير الرقم)، وتطبيعٌ في واحدةٍ دون أخواتها يجعل الرقمَ يُقبل في
+    شاشةٍ ويُردّ في التالية — وهو أسوأُ من الردّ في الاثنتين.
+
+    وسببُ التطبيع في :func:`~apps.accounts.models.normalise_saudi_mobile`.
+    """
+
+    def __init__(self, **kwargs):
+        kwargs.setdefault("error_messages", {"invalid": PHONE_ERROR})
+        super().__init__(PHONE_PATTERN, **kwargs)
+
+    def to_internal_value(self, data):
+        if isinstance(data, str):
+            data = normalise_saudi_mobile(data)
+        return super().to_internal_value(data)
 
 # الرابطُ يُبنى في موضعٍ واحد (المادة ٤-٥): عميلُ التطبيق ليس الخادم، ومسارٌ
 # نسبيٌّ يجعله يطلب `/media/...` من أصلِه هو فيعود 404 — وقع ذلك في الكروت.
@@ -26,7 +47,7 @@ from apps.auctions.cards import media_url
 class SendCodeSerializer(serializers.Serializer):
     """Ask for a code."""
 
-    phone = serializers.RegexField(PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR})
+    phone = PhoneField()
     purpose = serializers.ChoiceField(
         choices=OtpPurpose.choices, default=OtpPurpose.LOGIN
     )
@@ -43,7 +64,7 @@ class SendCodeResponseSerializer(serializers.Serializer):
 class VerifyCodeSerializer(serializers.Serializer):
     """Prove the number."""
 
-    phone = serializers.RegexField(PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR})
+    phone = PhoneField()
     code = serializers.CharField(min_length=4, max_length=8, trim_whitespace=True)
     full_name = serializers.CharField(
         max_length=200,
@@ -60,9 +81,7 @@ class RefreshSerializer(serializers.Serializer):
 class StartPhoneChangeSerializer(serializers.Serializer):
     """Ask for the pair of codes that a phone change needs."""
 
-    new_phone = serializers.RegexField(
-        PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR}
-    )
+    new_phone = PhoneField()
 
 
 class StartPhoneChangeResponseSerializer(serializers.Serializer):
@@ -87,9 +106,7 @@ class ConfirmPhoneChangeSerializer(serializers.Serializer):
     T604 exists to make impossible.
     """
 
-    new_phone = serializers.RegexField(
-        PHONE_PATTERN, error_messages={"invalid": PHONE_ERROR}
-    )
+    new_phone = PhoneField()
     current_code = serializers.CharField(
         min_length=4,
         max_length=8,
