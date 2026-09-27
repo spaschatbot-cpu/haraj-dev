@@ -35,13 +35,25 @@ from django.core.management.base import BaseCommand, CommandError
 class Command(BaseCommand):
     help = "امشِ دورةَ العميل كاملةً: من إنشاء الحساب إلى استرداد التأمين."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--confirm",
+            action="store_true",
+            help="أقرّ بأنها تكتب في قاعدة هذه البيئة.",
+        )
+
     def handle(self, *args, **options):
-        # يكتب حساباً ومزايدةً وفاتورةً وقيوداً في الدفتر. وبيئةُ الإنتاج
-        # ليست موضعَ مشيةٍ تجريبيّة — كما في `open_test_auction`.
-        if not settings.DEBUG:
+        # **البوّابةُ إقرارٌ لا `DEBUG`.** المشيةُ تكتب حساباً ومزايدةً
+        # وفاتورةً وقيوداً في الدفتر، فلها بوّابة. لكنّ `DEBUG` لا يصلح
+        # بوّابةً هنا: سيرفرُ التجربة يعمل بـ`DEBUG=False` — وهو موضعُها —
+        # وتشغيلُه بـ`DJANGO_DEBUG=1` يقلب `ALLOWED_HOSTS` فيسقط أوّلُ طلبٍ
+        # بـ`DisallowedHost`. قِيس، فردّ الخطوةُ الأولى 400 بجسمٍ فارغ.
+        #
+        # والإقرارُ أصدق: من يكتبه يعرف في أيّ قاعدةٍ هو.
+        if not options["confirm"]:
             raise CommandError(
-                "مشيةُ دورة العميل لا تعمل خارج DEBUG: تكتب حساباً ومزايدةً "
-                "وفاتورةً وقيوداً في الدفتر."
+                "المشيةُ تكتب في القاعدة: حساباً ومزايدةً وفاتورةً وقيوداً في "
+                "الدفتر. أعِد الأمر بـ--confirm."
             )
         _walk(self.stdout)
 
@@ -58,7 +70,8 @@ def _walk(out):
         from apps.bidding.models import Bid
         from apps.money.models import Account, Invoice
 
-        HOST = dict(SERVER_NAME="haraj.spas.sa", secure=True)
+        _hosts = [h for h in settings.ALLOWED_HOSTS if h and not h.startswith("*")]
+        HOST = dict(SERVER_NAME=_hosts[0] if _hosts else "testserver", secure=True)
         c = Client()
         W = out.write
         step_no = [0]
