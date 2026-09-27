@@ -97,6 +97,36 @@ export default async function SignInPage({
               تغيير الرقم
             </a>
           </form>
+        ) : null}
+
+        {sent ? (
+          /*
+            إعادةُ الإرسال — وكانت غائبة. v1 يعرض عدّاداً ينزل من ١٢٠ ثانيةً
+            ثمّ يُفعّل «إعادة الإرسال» (`log2/verify.php`)، وهنا لم يكن للعميل
+            بابٌ إلى رمزٍ ثانٍ إلا أن يعرف أن «تغيير الرقم» ثمّ إعادةَ كتابة
+            الرقم نفسِه تُرسله — وهو ما لا يخطر لأحد. والرسالةُ التي لا تصل
+            هي أوّلُ ما يحدث للعميل حين يُغلق الطريق.
+
+            واستمارةٌ ثانيةٌ لا زرٌّ في الأولى: زرّان في استمارةٍ واحدةٍ
+            يُرسلان إلى وجهةٍ واحدة، والفصلُ يُبقي الصفحةَ تعمل بلا جافاسكربت
+            كما هي.
+
+            ولا عدّادَ ينزل: العدّادُ جافاسكربت، والخادمُ يحرس المهلةَ على أيّ
+            حال (`OtpResendTooSoon`) فيقول متى يُعاد. والمكتوبُ تحته يقول
+            المدّةَ سلفاً فلا يُضغط في فراغ.
+          */
+          <form action={sendCode} className="mt-6 border-t border-neutral-200 pt-4">
+            <input type="hidden" name="phone" value={phone} />
+            <button
+              type="submit"
+              className="w-full rounded border border-neutral-500 px-4 py-2 text-sm"
+            >
+              أعِد إرسال الرمز
+            </button>
+            <p className="mt-2 text-center text-xs text-neutral-600">
+              لم تصلك الرسالة؟ يمكن طلبُ رمزٍ جديد بعد دقيقة من إرسال السابق.
+            </p>
+          </form>
         ) : (
           <form action={sendCode} className="space-y-4">
             <label className="flex flex-col gap-1 text-sm">
@@ -108,7 +138,10 @@ export default async function SignInPage({
                 inputMode="tel"
                 autoComplete="tel"
                 required
-                placeholder="9665XXXXXXXX"
+                /* والصيغةُ أيُّها: الخادمُ يطبّع 05… و5… و+966… و966…
+                   (`normalise_saudi_mobile`). والمثالُ ما يكتبه الناسُ فعلاً
+                   لا ما يخزّنه العمود. */
+                placeholder="05XXXXXXXX"
                 className="money rounded border border-neutral-500 px-3 py-2 text-lg"
               />
             </label>
