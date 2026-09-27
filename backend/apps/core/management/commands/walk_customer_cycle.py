@@ -29,6 +29,7 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 
 
@@ -55,6 +56,18 @@ class Command(BaseCommand):
                 "المشيةُ تكتب في القاعدة: حساباً ومزايدةً وفاتورةً وقيوداً في "
                 "الدفتر. أعِد الأمر بـ--confirm."
             )
+        # **تفتح مزادَها بنفسها.** المشيةُ **تُغلق** المزادَ في الخطوة ٢٠ —
+        # وهي خطوةٌ منها لا أثرٌ جانبيّ — فالتشغيلُ الثاني يجد الساحةَ فارغةً
+        # ويقف عند «حيٌّ منها 0». وكان على من يشغّلها أن يتذكّر
+        # `open_test_auction` قبلها في كلّ مرّة، وهو تذكّرٌ يُنسى مرّةً من كلّ
+        # مرّتين.
+        from apps.auctions.models import Auction
+        from apps.auctions.states import AuctionState
+
+        if not Auction.objects.filter(state=AuctionState.LIVE).exists():
+            self.stdout.write("لا مزادَ حيّاً — يُفتح واحدٌ للمشية:")
+            call_command("open_test_auction", hours=72, cars=6)
+
         _walk(self.stdout)
 
 
