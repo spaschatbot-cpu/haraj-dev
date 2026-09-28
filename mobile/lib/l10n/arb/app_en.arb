@@ -661,7 +661,7 @@
   "@splashStepSession": {},
   "splashStepAuctions": "Syncing the live auction board…",
   "@splashStepAuctions": {},
-  "splashStepReady": "Ready",
+  "splashStepReady": "Ready • Connected to the server",
   "@splashStepReady": {},
   "splashStepOffline": "Sync failed — it retries inside the app",
   "@splashStepOffline": {},

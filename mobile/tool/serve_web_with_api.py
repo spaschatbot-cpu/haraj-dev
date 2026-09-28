@@ -7,7 +7,7 @@
 
 للمعاينة على هذا الجهاز وحدَه — لا يُنشَر، ولا يُستعمل أمام شبكة.
 
-    flutter build web --dart-define=HARAJ_API_BASE_URL=http://localhost:8090
+    flutter build web --pwa-strategy=none --dart-define=HARAJ_API_BASE_URL=http://localhost:8090
     python tool/serve_web_with_api.py            # 8090 ← build/web + 127.0.0.1:8001
 """
 
@@ -61,6 +61,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return super().do_GET()
 
     do_GET = _route  # noqa: N815
+
+    def end_headers(self) -> None:
+        # **لا كاش للملفّات الثابتة**: كلُّ بناءٍ جديدٍ يُرى بتحديث الصفحة. كان
+        # المتصفّحُ يُعيد `main.dart.js` القديم فيبدو التعديلُ كأنه لم يُرفع —
+        # «عايز التعديلات تظهر مباشرة» (المالك، ٢٩ سبتمبر ٢٠٢٦).
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store")
+        super().end_headers()
 
     def do_POST(self):  # noqa: N802
         return self._proxy()

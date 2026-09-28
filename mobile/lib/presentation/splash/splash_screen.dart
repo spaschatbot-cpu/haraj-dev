@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,18 +33,14 @@ import 'onboarding_parts.dart';
 /// سطراً («تعذّرت المزامنة») ويُفتح البابُ على أي حال — التصفّح لا يحتاج
 /// جلسةً ولا يحتاج أن تكون المزامنةُ نجحت.
 ///
-/// **ولا تُغادَر الشاشةُ من نفسها.** بأمر المالك (١٩ سبتمبر ٢٠٢٦): «خلى
-/// فيها زر التالي اما اضغط عليه يدخلني، مش تظهر وتختفي بعد ثواني». فلا
-/// مؤقّتَ خروجٍ ولا حدَّ أدنى للبقاء — الخروجُ ضغطةٌ واحدة على «التالي»،
-/// ولا غير.
+/// **وتُغادَر الشاشةُ من نفسها حين تجهز** — بأمر المالك (٢٩ سبتمبر ٢٠٢٦):
+/// «شيل البروجريس بار وزرار التالي». وكان قد طلب الزرَّ في ١٩ سبتمبر («مش
+/// تظهر وتختفي بعد ثواني»)؛ والأمرُ الأحدث يعلو. فلا شريطَ ولا نسبةَ ولا
+/// زرّ: حبّةُ الحالة تقول ما يجري، ثمّ يُفتح الباب.
 ///
-/// وثمنُ ذلك مذكور: فتحةٌ إضافيّةٌ في كلّ إقلاع. وهو مقصودٌ — الشاشةُ صارت
-/// لوحةَ ترحيبٍ تُقرأ، لا ومضةً تمرّ.
-///
-/// **والسقفُ باقٍ ومعناه تغيّر** ([_hardCeiling]): كان يُخرج المستخدم بعد
-/// سبع ثوانٍ، وصار **يُمكّن الزرَّ** بعدها. تخزينٌ آمنٌ لا يجيب — يقع على
-/// أجهزةٍ فيها عطبٌ في `Keystore` — أو شبكةٌ معلَّقة، كانا سيتركان الزرَّ
-/// معطَّلاً إلى الأبد، أي بابٌ مرسومٌ لا يُفتح.
+/// **والسقفُ باقٍ** ([_hardCeiling]): بعده يُفتح البابُ ولو لم تنتهِ
+/// الخطوات. تخزينٌ آمنٌ لا يجيب — يقع على أجهزةٍ فيها عطبٌ في `Keystore` —
+/// أو شبكةٌ معلَّقة، كانا سيتركان الشاشةَ قائمةً إلى الأبد.
 ///
 /// **والرسمُ لا يعتمد على الحركة:** من أطفأها في جهازه يرى المشهدَ كاملاً
 /// ثابتاً لا نصفَه — `MediaQuery.disableAnimationsOf` تُقرأ ويُقفز إلى
@@ -71,8 +68,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   _Step _step = _Step.boot;
 
-  /// يُفتح البابُ وإن لم تنتهِ الخطوات — انظر [_hardCeiling].
-  bool _timedOut = false;
   bool _syncFailed = false;
   bool _sessionDone = false;
   bool _auctionsDone = false;
@@ -83,9 +78,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
     _motion.forward();
-    _ceiling = Timer(_hardCeiling, () {
-      if (mounted) setState(() => _timedOut = true);
-    });
+    _ceiling = Timer(_hardCeiling, _leave);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _advance(_Step.session);
       unawaited(_syncAuctions());
@@ -143,9 +136,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!_sessionDone || !_auctionsDone) return;
     _advance(_Step.ready);
     _ceiling?.cancel();
+    // لحظةٌ تُقرأ فيها «جاهز» ثمّ يُفتح الباب — لا قفزةٌ في الإطار نفسه.
+    Timer(const Duration(milliseconds: 700), _leave);
   }
 
-  /// ينتقل إلى صفحة الترحيب مرّةً واحدة — **بضغطة «التالي» وحدها**.
+  /// ينتقل إلى صفحة الترحيب مرّةً واحدة — حين تجهز الخطوات، أو عند السقف.
   ///
   /// و`go` لا `push`: شاشةُ البدء ليست محطّةً يُرجَع إليها، ولا يصحّ أن
   /// يعيد زرُّ الرجوع عرضَ الشعار بعد أن انتهت خطواتُه.
@@ -172,83 +167,57 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final strings = AppLocalizations.of(context);
     final still = MediaQuery.disableAnimationsOf(context);
 
-    return Scaffold(
-      backgroundColor: palette.heroBottom,
-      body: DecoratedBox(
-        // التدرّجُ نفسُه الذي في لافتة الرئيسية وشاشة الدخول: شاشةُ البدء
-        // وعدٌ بما يليها، وأرضيّةٌ ثالثةٌ تجعل الانتقال يُقرأ قفزة.
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[palette.heroTop, palette.heroBottom],
+    // **أرضيّةٌ فاتحة لا كحليّة** — تصميمُ المالك (٢٨ سبتمبر ٢٠٢٦): قرصُ الشعار
+    // الداكن وحدَه على صفحةٍ فاتحة، فيصير هو مركزَ الشاشة لا جزءاً من ظلامها.
+    // والأرضيّةُ `pageBackground` نفسُها التي تحت كلّ شاشةٍ بعدها، فلا قفزةَ
+    // لونٍ عند «التالي».
+    return Theme(
+      data: theme,
+      child: Scaffold(
+        backgroundColor: palette.pageBackground,
+        body: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.04),
+                  palette.pageBackground,
+                ),
+                palette.pageBackground,
+                Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.07),
+                  palette.pageBackground,
+                ),
+              ],
+            ),
           ),
-        ),
-        child: Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            // الشبكةُ والنقاط: عمقٌ بلا صورةٍ تُحمَّل. `RepaintBoundary` لأن
-            // الشريطَ يُعاد رسمُه عشراتِ المرّات ولا شأن للخلفيّة به.
-            RepaintBoundary(
-              child: CustomPaint(
-                painter: _Backdrop(
-                  line: palette.goldOnDark.withValues(alpha: 0.05),
-                  dot: palette.heroGlow,
-                ),
-              ),
-            ),
-            // وهجٌ خلف الشعار — يرفعه عن الأرضيّة بلا حدٍّ يرسمه.
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: const Alignment(0, -0.22),
-                  radius: 0.85,
-                  colors: <Color>[
-                    palette.heroGlow.withValues(alpha: 0.20),
-                    palette.heroGlow.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-            SafeArea(
-              child: LayoutBuilder(
-                builder: (context, box) => SingleChildScrollView(
-                  // الشاشةُ طويلةُ المحتوى: على هاتفٍ قصيرٍ تفيض بالبكسلات
-                  // الصفراء. فتُمرَّر، وتبقى موزَّعةً حين يتّسع المكان.
-                  //
-                  // **و`IntrinsicHeight` ليست زينة.** `Spacer` يقتسم ما
-                  // **بقي** من ارتفاع، وداخل غلافٍ قابلٍ للتمرير لا حدَّ
-                  // للارتفاع — فيحسب الباقي صفراً وينكمش، فيتكوّم المحتوى
-                  // في الأعلى ويبقى الثلثُ السفليُّ فارغاً. رُئي في اللقطة
-                  // قبل أن يُصلَح. و`ConstrainedBox` وحدَها لا تكفي: هي
-                  // تعطي حدّاً أدنى للطفل، لا ارتفاعاً يقتسمه.
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ConstrainedBox(
-                    // **ارتفاعٌ فقط، ولا `maxWidth` هنا.** الغلافُ خصم
-                    // حشوتَه (٢٤×٢) من العرض أصلاً، وإعطاءُ الطفل عرضَ
-                    // الشاشة كاملاً يجعله أوسعَ من مكانه بثمانيةٍ وأربعين
-                    // بكسلاً — فيخرج الزرُّ من الحافّة ويُقصّ آخرُ كل سطر.
-                    // رُئي في اللقطة.
-                    constraints: BoxConstraints(minHeight: box.maxHeight),
-                    child: IntrinsicHeight(
-                      child: _Layout(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, box) => SingleChildScrollView(
+                // الشاشةُ تُمرَّر على الهاتف القصير ولا تفيض، وتبقى موزَّعةً حين
+                // يتّسع المكان. و`IntrinsicHeight` لأن `Spacer` داخل غلافٍ قابلٍ
+                // للتمرير يحسب الباقي صفراً فيتكوّم المحتوى في الأعلى.
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: box.maxHeight),
+                  child: IntrinsicHeight(
+                    child: _Layout(
                       metrics: OnboardingMetrics.of(box.maxHeight),
-                        theme: theme,
-                        palette: palette,
-                        strings: strings,
-                        motion: _motion,
-                        still: still,
-                        step: _step,
-                        syncFailed: _syncFailed,
-                        timedOut: _timedOut,
-                        onEnter: _leave,
-                      ),
+                      theme: theme,
+                      palette: palette,
+                      strings: strings,
+                      motion: _motion,
+                      still: still,
+                      step: _step,
+                      syncFailed: _syncFailed,
                     ),
                   ),
                 ),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -275,8 +244,6 @@ class _Layout extends StatelessWidget {
     required this.still,
     required this.step,
     required this.syncFailed,
-    required this.timedOut,
-    required this.onEnter,
     required this.metrics,
   });
 
@@ -287,35 +254,21 @@ class _Layout extends StatelessWidget {
   final bool still;
   final _Step step;
   final bool syncFailed;
-  final bool timedOut;
-  final VoidCallback onEnter;
   final OnboardingMetrics metrics;
 
   @override
   Widget build(BuildContext context) {
-    final ready = step == _Step.ready || timedOut;
-
     return Column(
       children: <Widget>[
-        // **حُذفت الشارةُ العليا وصفُّ الميزات** بأمر المالك: «قلل المحتوى
-        // فى الصفحه دى شويه». وكلاهما كان يقول ما يُقال مرّتين:
-        //
-        // * «بوابة المزادات الرقمية المعتمدة» فوق الشعار، وتحته مباشرةً
-        //   «مزاد حي ومعتمد» — كلمةُ «معتمد» مرّتين في أربعة سنتيمترات.
-        // * و«فحص معتمد · مزايدة حية · ضمان النقل» هي بعينها وعودُ الصفحة
-        //   الثالثة، وتُقرأ هناك في سياقها لا في شاشةِ إقلاع.
-        //
-        // فبقي ما تُفتح الشاشةُ لأجله: الشعارُ والاسمُ وسطرٌ يقول ما هي،
-        // وأثرُ الانتظار، والباب.
         const Spacer(flex: 3),
         _Mark(
           palette: palette,
           motion: motion,
           still: still,
           strings: strings,
-          size: metrics.mark,
+          size: metrics.mark * 1.1,
         ),
-        SizedBox(height: metrics.gap),
+        SizedBox(height: metrics.gap * 1.5),
         _Rise(
           motion: motion,
           still: still,
@@ -325,9 +278,12 @@ class _Layout extends StatelessWidget {
               Text(
                 strings.splashHeadline,
                 textAlign: TextAlign.center,
+                // الحجمُ صريح: `headlineMedium` في هذا الثيم يُرسم أصغرَ من
+                // سطر الوصف تحته، والتصميمُ عنوانُه أكبرُ ما في الشاشة.
                 style: theme.textTheme.headlineMedium?.copyWith(
+                  fontSize: 30,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: palette.ink,
                   letterSpacing: -0.4,
                 ),
               ),
@@ -335,8 +291,8 @@ class _Layout extends StatelessWidget {
               Text(
                 strings.splashTagline,
                 textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: palette.goldOnDark,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: palette.inkMuted,
                   height: 1.6,
                 ),
               ),
@@ -350,21 +306,19 @@ class _Layout extends StatelessWidget {
           strings: strings,
           step: step,
           syncFailed: syncFailed,
-          still: still,
-        ),
-        SizedBox(height: metrics.tight),
-        _EnterButton(
-          palette: palette,
-          theme: theme,
-          label: strings.splashEnter,
-          // **الزرُّ لا يُخفى قبل الجاهزيّة، يُعطَّل.** زرٌّ يظهر فجأةً
-          // يُفوَّت، وزرٌّ معطَّلٌ يقول «هذا هو الباب، وهو يُفتح الآن».
-          // وهو **المخرجُ الوحيد**: الشاشةُ لا تُغادَر من نفسها.
-          onPressed: ready ? onEnter : null,
         ),
         SizedBox(height: metrics.gap),
+        if (step != _Step.ready)
+          _Waiting(
+            palette: palette,
+            theme: theme,
+            label: strings.splashLoadingLabel,
+          )
+        else
+          const SizedBox(height: 40),
+        SizedBox(height: metrics.gap * 1.5),
         _Footer(palette: palette, theme: theme, strings: strings),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -374,7 +328,14 @@ class _Layout extends StatelessWidget {
 // القطع
 // ---------------------------------------------------------------------------
 
-/// الشعارُ في حلقته، وشارةُ «مزادٌ حيّ» على حافّته.
+/// نجاحٌ تمّ — حبّةُ «جاهز». قيمُ `--color-ok` في الموقع نفسُها.
+const Color _okInk = Color(0xFF047857);
+const Color _okSurface = Color(0xFFECFDF5);
+const Color _okLine = Color(0xFFA7F3D0);
+
+/// الشعارُ في قرصٍ داكنٍ بإطارٍ أبيض، وحلقتان حوله — الداخليّةُ متقطّعة.
+///
+/// **وسقطت شارةُ «مزاد حي ومعتمد»** عن حافّة القرص بأمر المالك (٢٩ سبتمبر).
 class _Mark extends StatelessWidget {
   const _Mark({
     required this.palette,
@@ -389,8 +350,8 @@ class _Mark extends StatelessWidget {
   final bool still;
   final AppLocalizations strings;
 
-  /// قطرُ الحلقة الخارجيّة. **يتقلّص على الشاشة القصيرة** — قرصٌ ٢٣٦ بكسلاً
-  /// على هاتفٍ متاحُه ٥٨٧ يدفع الشريطَ والزرَّ خارج الشاشة.
+  /// قطرُ الحلقة الخارجيّة. **يتقلّص على الشاشة القصيرة** ويتقلّص المشهدُ
+  /// كلُّه معه، لأن كلَّ ما فيه نسبةٌ منه.
   final double size;
 
   @override
@@ -400,10 +361,8 @@ class _Mark extends StatelessWidget {
       curve: const Interval(0, 0.65, curve: Curves.easeOutBack),
     );
 
-    // الحلقاتُ والقرصُ نِسَبٌ من [size] لا أرقامٌ ثابتة، فيتقلّص المشهدُ
-    // كلُّه معاً لا الإطارُ وحدَه.
-    final inner = size * 188 / 236;
-    final disc = size * 168 / 236;
+    final dashed = size * 0.81;
+    final disc = size * 0.54;
 
     final mark = SizedBox(
       width: size,
@@ -412,43 +371,63 @@ class _Mark extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: <Widget>[
-          // حلقتان خافتتان: عمقٌ حول الشعار بلا إطارٍ يحبسه.
-          _Ring(color: palette.goldOnDark.withValues(alpha: 0.10), size: size),
-          _Ring(color: palette.goldOnDark.withValues(alpha: 0.16), size: inner),
+          // الحلقةُ الخارجيّة ووهجٌ فاتحٌ داخلها يرفع القرصَ عن الصفحة.
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: palette.gold.withValues(alpha: 0.12)),
+              gradient: RadialGradient(
+                colors: <Color>[
+                  palette.gold.withValues(alpha: 0.10),
+                  palette.gold.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+          CustomPaint(
+            size: Size.square(dashed),
+            painter: _DashedRing(color: palette.gold.withValues(alpha: 0.30)),
+          ),
           Container(
             width: disc,
             height: disc,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: RadialGradient(
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
                 colors: <Color>[
-                  palette.heroGlow.withValues(alpha: 0.22),
-                  palette.heroGlow.withValues(alpha: 0),
+                  Color.alphaBlend(
+                    palette.gold.withValues(alpha: 0.35),
+                    palette.heroTop,
+                  ),
+                  palette.heroBottom,
                 ],
               ),
+              border: Border.all(color: Colors.white, width: disc * 0.035),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: palette.gold.withValues(alpha: 0.28),
+                  blurRadius: 36,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-            // **الشعارُ هو `assets/images/logo.png`** لا حرفٌ في دائرة —
-            // الصورةُ هي التي تجعل الشاشةَ تُقرأ «حراج» قبل أن يُقرأ سطر.
-            // و`errorBuilder` لأن شاشةَ بدءٍ لا تسقط لأجل صورة: بدونه يبقى
-            // المستخدم أمام أرضيّةٍ كحليّةٍ بلا خبر.
+            // **الشعارُ هو `assets/images/logo.png`** لا حرفٌ في دائرة.
+            // و`errorBuilder` لأن شاشةَ بدءٍ لا تسقط لأجل صورة.
             child: Padding(
-              padding: EdgeInsets.all(disc * 0.085),
+              padding: EdgeInsets.all(disc * 0.2),
               child: Image.asset(
                 'assets/images/logo.png',
                 fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => Icon(
+                errorBuilder: (_, _, _) => const Icon(
                   Icons.gavel_rounded,
-                  color: palette.goldOnDark,
-                  size: 64,
+                  color: Colors.white,
+                  size: 56,
                 ),
               ),
-            ),
-          ),
-          Positioned(
-            bottom: size * 0.07,
-            child: _LiveBadge(
-              palette: palette,
-              label: strings.splashLiveBadge,
             ),
           ),
         ],
@@ -464,67 +443,37 @@ class _Mark extends StatelessWidget {
   }
 }
 
-class _Ring extends StatelessWidget {
-  const _Ring({required this.color, required this.size});
+/// حلقةٌ متقطّعة — `Border` في Flutter لا يعرف التقطيع، فتُرسم أقواساً.
+class _DashedRing extends CustomPainter {
+  const _DashedRing({required this.color});
 
   final Color color;
-  final double size;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: size,
-    height: size,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      border: Border.all(color: color),
-    ),
-  );
-}
-
-class _LiveBadge extends StatelessWidget {
-  const _LiveBadge({required this.palette, required this.label});
-
-  final HarajPalette palette;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: palette.gold,
-        borderRadius: BorderRadius.circular(999),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.gold.withValues(alpha: 0.45),
-            blurRadius: 18,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 6),
-          const Icon(Icons.verified_rounded, size: 14, color: Colors.white),
-        ],
-      ),
-    );
+  void paint(Canvas canvas, Size size) {
+    final pen = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final rect = Offset.zero & size;
+    const dashes = 72;
+    const sweep = 2 * math.pi / dashes;
+    for (var index = 0; index < dashes; index += 1) {
+      canvas.drawArc(rect, index * sweep, sweep * 0.55, false, pen);
+    }
   }
+
+  @override
+  bool shouldRepaint(_DashedRing old) => old.color != color;
 }
 
-/// سطرُ الخطوة والنسبة، وتحته الشريط.
+/// حبّةُ الحالة — الخطوةُ الجارية باسمها. **بلا نسبةٍ ولا شريط** بأمر المالك
+/// (٢٩ سبتمبر). خضراءُ حين تمّ كلُّ شيء، وكهرمانيّةٌ حين تعذّرت المزامنة،
+/// وزرقاءُ ما دام العملُ جارياً.
 ///
-/// **النسبةُ كسرٌ من خطواتٍ منتهية**، لا رقمٌ يتحرّك مع الزمن: ثلاثُ خطواتٍ،
-/// فالقيمُ ٠ و⅓ و⅔ و١ — ولا تقول ٩٩٪ وهي تنتظر.
+/// والتصميمُ كتب فيها «اتصال آمن ومشفّر»، وكُتب هنا «متصل بالخادم»: هذا ما
+/// قاسته الشاشةُ فعلاً (نجحت المزامنة)، والتشفيرُ صفةُ الرابط لا شيءٌ تتحقّق
+/// منه — وبناءُ التطوير على `http` أصلاً.
 class _Progress extends StatelessWidget {
   const _Progress({
     required this.palette,
@@ -532,7 +481,6 @@ class _Progress extends StatelessWidget {
     required this.strings,
     required this.step,
     required this.syncFailed,
-    required this.still,
   });
 
   final HarajPalette palette;
@@ -540,11 +488,10 @@ class _Progress extends StatelessWidget {
   final AppLocalizations strings;
   final _Step step;
   final bool syncFailed;
-  final bool still;
 
   @override
   Widget build(BuildContext context) {
-    final value = step.index / (_Step.values.length - 1);
+    final done = step == _Step.ready;
     final label = switch (step) {
       _Step.boot => strings.splashStepBoot,
       _Step.session => strings.splashStepSession,
@@ -552,6 +499,19 @@ class _Progress extends StatelessWidget {
       _Step.ready =>
         syncFailed ? strings.splashStepOffline : strings.splashStepReady,
     };
+    final (Color ink, Color surface, Color line) = !done
+        ? (
+            palette.gold,
+            palette.gold.withValues(alpha: 0.08),
+            palette.gold.withValues(alpha: 0.25),
+          )
+        : syncFailed
+        ? (
+            const Color(0xFFB45309),
+            const Color(0xFFFFFBEB),
+            const Color(0xFFFDE68A),
+          )
+        : (_okInk, _okSurface, _okLine);
 
     return Semantics(
       label: strings.splashLoadingLabel,
@@ -560,57 +520,39 @@ class _Progress extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 7,
-                height: 7,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: syncFailed ? palette.gold : palette.goldOnDark,
-                ),
+          Center(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 260),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: line),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontWeight: FontWeight.w600,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: ink,
+                    ),
                   ),
-                ),
-              ),
-              Text(
-                '${(value * 100).round()}%',
-                // الأرقامُ لاتينيّةٌ مستقيمة: نسبةٌ تتغيّر في مكانها تقفز
-                // يميناً ويساراً إن اختلفت عروضُ الخانات.
-                textDirection: TextDirection.ltr,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontFeatures: const <FontFeature>[
-                    FontFeature.tabularFigures(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween<double>(begin: 0, end: value),
-              duration: still
-                  ? Duration.zero
-                  : const Duration(milliseconds: 420),
-              curve: Curves.easeOut,
-              builder: (context, shown, _) => LinearProgressIndicator(
-                value: shown,
-                minHeight: 6,
-                backgroundColor: Colors.white.withValues(alpha: 0.10),
-                valueColor: AlwaysStoppedAnimation<Color>(palette.gold),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: ink,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -620,60 +562,42 @@ class _Progress extends StatelessWidget {
   }
 }
 
-class _EnterButton extends StatelessWidget {
-  const _EnterButton({
+/// سطرُ الانتظار بدوّامته إلى أن يُفتح الباب.
+class _Waiting extends StatelessWidget {
+  const _Waiting({
     required this.palette,
     required this.theme,
     required this.label,
-    required this.onPressed,
   });
 
   final HarajPalette palette;
   final ThemeData theme;
   final String label;
-  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final on = onPressed != null;
     return SizedBox(
-      // **`double.infinity` صراحةً.** الزرُّ في عمودٍ محاذاتُه العرضيّة
-      // `center`، فيأخذ عرضَ محتواه لا عرضَ الشاشة. وكان يملؤها قبلُ
-      // بالصدفة: الصفُّ الذي بداخله كان يتمدّد. فلمّا حُذف الصفُّ انكمش
-      // الزرُّ إلى كلمةٍ واحدة — رُئي في لقطة المالك.
-      width: double.infinity,
       height: 56,
-      child: FilledButton(
-        onPressed: onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: palette.gold,
-          disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
-          foregroundColor: Colors.white,
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
-          elevation: on ? 8 : 0,
-          shadowColor: palette.gold.withValues(alpha: 0.5),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: palette.gold,
+              backgroundColor: palette.gold.withValues(alpha: 0.15),
+            ),
           ),
-          textStyle: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
+          const SizedBox(width: 10),
+          Text(
+            '$label…',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.inkMuted,
+            ),
           ),
-        ),
-        // **السهمُ هنا وحدَه.** حُذف من الأزرار الثلاثة، ثمّ أُعيد إلى هذا
-        // بأمر المالك: «خلى السهم ف الصفحه دى بس». وله معنى هنا أكثرَ من
-        // أختيه — زرُّ شاشة البدء **يُفتح بعد انتظار**، والسهمُ يقول إن
-        // الانتظار انتهى وإن ما بعده بابٌ لا مجرّد صفحةٍ تالية.
-        //
-        // و`arrow_forward` لا `arrow_back`: Flutter يمرئي السهمَ مع
-        // الاتّجاه، فـ`back` في صفحةٍ عربيّةٍ يشير يميناً — أي إلى الوراء.
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(label),
-            const SizedBox(width: 10),
-            const Icon(Icons.arrow_forward_rounded, size: 20),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -692,77 +616,35 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = theme.textTheme.labelSmall?.copyWith(
-      color: palette.goldOnDark.withValues(alpha: 0.65),
-    );
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: <Widget>[
-        Flexible(
-          child: Text(strings.splashPlace, style: style, maxLines: 1),
+    final style = theme.textTheme.bodySmall?.copyWith(color: palette.inkMuted);
+    return Container(
+      padding: const EdgeInsets.only(top: 14),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: palette.navInactive.withValues(alpha: 0.6)),
         ),
-        const SizedBox(width: 12),
-        Text(
-          strings.splashVersion(kAppVersion),
-          style: style?.copyWith(letterSpacing: 1.2),
-        ),
-      ],
+      ),
+      child: Row(
+        children: <Widget>[
+          Icon(Icons.place_outlined, size: 18, color: palette.gold),
+          const SizedBox(width: 6),
+          Expanded(child: Text(strings.splashPlace, style: style, maxLines: 1)),
+          const SizedBox(width: 12),
+          Text(
+            strings.splashVersion(kAppVersion),
+            style: style?.copyWith(
+              color: palette.inkMuted.withValues(alpha: 0.75),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 // ---------------------------------------------------------------------------
-// الخلفيّة والحركة
+// الحركة
 // ---------------------------------------------------------------------------
-
-/// شبكةٌ خافتةٌ ونقاطٌ على الحافّة العليا.
-///
-/// **رسمٌ لا صورة**: صورةُ خلفيّةٍ تزن مئاتِ الكيلوبايتات وتُحمَّل قبل أوّل
-/// إطارٍ — في شاشةٍ وجودُها كلُّه أن تسدّ فراغ الانتظار. والخطوط تُرسم في
-/// أجزاءٍ من الملّي ثانية.
-class _Backdrop extends CustomPainter {
-  const _Backdrop({required this.line, required this.dot});
-
-  final Color line;
-  final Color dot;
-
-  static const double _cell = 34;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final pen = Paint()
-      ..color = line
-      ..strokeWidth = 1;
-    for (double x = 0; x < size.width; x += _cell) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), pen);
-    }
-    for (double y = 0; y < size.height; y += _cell) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), pen);
-    }
-
-    // نقاطٌ على الحافّة العليا بأنصبةٍ ثابتةٍ لا عشوائيّة: عشوائيٌّ يعني
-    // نقاطاً تقفز مع كل إعادة رسم.
-    const spots = <(double, double, double)>[
-      (0.08, 3.0, 0.9),
-      (0.21, 2.0, 0.5),
-      (0.34, 2.5, 0.7),
-      (0.47, 1.8, 0.4),
-      (0.62, 3.0, 0.85),
-      (0.76, 2.2, 0.55),
-      (0.89, 2.6, 0.75),
-    ];
-    for (final (at, radius, alpha) in spots) {
-      canvas.drawCircle(
-        Offset(size.width * at, 6),
-        radius,
-        Paint()..color = dot.withValues(alpha: alpha),
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_Backdrop old) => old.line != line || old.dot != dot;
-}
 
 /// يظهر صاعداً بعد تأخيرٍ نسبيّ — أو كاملاً ثابتاً حين تُطفأ الحركة.
 class _Rise extends StatelessWidget {

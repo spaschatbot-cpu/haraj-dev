@@ -34,8 +34,12 @@ class HarajApp extends ConsumerWidget {
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
+      // **فاتحٌ دائماً** بأمر المالك (٢٩ سبتمبر ٢٠٢٦): «الثيم بتاع التطبيق كله
+      // نفس الثيم الفاتح والألوان». كان يتبع الجهاز، فيراه صاحبُ هاتفٍ داكنٍ
+      // بلونٍ غير الذي صُمّم. و`HarajTheme.dark()` باقٍ بلا مستعمل — رجوعُه
+      // سطرٌ واحد هنا.
       theme: HarajTheme.light(),
-      darkTheme: HarajTheme.dark(),
+      themeMode: ThemeMode.light,
       routerConfig: ref.watch(routerProvider),
       debugShowCheckedModeBanner: false,
       // **لافتةُ البيئة مُطفأة بقرار المالك (٩ سبتمبر ٢٠٢٦).**

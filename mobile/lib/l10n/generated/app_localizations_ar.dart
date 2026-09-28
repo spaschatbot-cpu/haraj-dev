@@ -1381,7 +1381,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get splashStepAuctions => 'مزامنة لوحة المزايدات الحية…';
 
   @override
-  String get splashStepReady => 'جاهز';
+  String get splashStepReady => 'جاهز • متصل بالخادم';
 
   @override
   String get splashStepOffline => 'تعذرت المزامنة — تعاد داخل التطبيق';

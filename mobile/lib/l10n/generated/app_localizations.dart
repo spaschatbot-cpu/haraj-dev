@@ -2417,7 +2417,7 @@ abstract class AppLocalizations {
   /// الحالةُ بعد اكتمال خطوات الإقلاع
   ///
   /// In ar, this message translates to:
-  /// **'جاهز'**
+  /// **'جاهز • متصل بالخادم'**
   String get splashStepReady;
 
   /// حين يفشل جلبُ المزادات في شاشة البدء

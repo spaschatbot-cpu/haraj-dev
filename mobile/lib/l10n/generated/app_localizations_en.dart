@@ -1378,7 +1378,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get splashStepAuctions => 'Syncing the live auction board…';
 
   @override
-  String get splashStepReady => 'Ready';
+  String get splashStepReady => 'Ready • Connected to the server';
 
   @override
   String get splashStepOffline => 'Sync failed — it retries inside the app';

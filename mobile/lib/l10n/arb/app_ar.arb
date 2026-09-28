@@ -1246,7 +1246,7 @@
   "@splashStepAuctions": {
     "description": "خطوةُ جلب أوّل صفحة مزادات"
   },
-  "splashStepReady": "جاهز",
+  "splashStepReady": "جاهز • متصل بالخادم",
   "@splashStepReady": {
     "description": "الحالةُ بعد اكتمال خطوات الإقلاع"
   },
