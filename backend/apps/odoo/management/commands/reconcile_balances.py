@@ -23,6 +23,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from apps.odoo import reconciliation
@@ -39,6 +40,20 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        # **والتكاملُ المطفأ يُقال مرّةً لا أربعةَ عشرَ ألفاً.** أوّلُ تشغيلٍ
+        # للوحدة الليليّة طبع «تعذّر: 14706 — تكامل أودو مطفأ في هذه البيئة»:
+        # سطرٌ صحيحٌ في معناه، كاذبٌ في هيئته — يقرأ من يراه أن أربعةَ عشرَ
+        # ألفَ عميلٍ فشلوا، والواقعُ إعدادٌ واحدٌ مغلق. وسطرٌ كهذا كلَّ ليلةٍ
+        # يُعلّم الناسَ تجاهلَ المخرَج، فيختفي فيه فشلٌ حقيقيٌّ يوم يقع.
+        if not settings.ODOO_ENABLED:
+            self.stdout.write(
+                self.style.WARNING(
+                    "تكاملُ أودو مطفأ في هذه البيئة (ODOO_ENABLED=False) — "
+                    "لا مطابقة. اضبطه لتعمل."
+                )
+            )
+            return
+
         links = CustomerLink.objects.select_related("user").order_by("pk")
         if options["limit"]:
             links = links[: options["limit"]]
