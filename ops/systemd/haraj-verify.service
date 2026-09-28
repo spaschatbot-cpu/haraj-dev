@@ -1,0 +1,19 @@
+[Unit]
+Description=Haraj nightly ledger check (verify_ledger + Odoo reconciliation)
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/srv/haraj/backend
+Environment=DJANGO_SETTINGS_MODULE=config.settings.staging
+EnvironmentFile=/srv/haraj/backend/.env
+
+# اثنان في وحدةٍ واحدةٍ لأنهما سؤالان عن الشيء نفسِه في ليلةٍ واحدة:
+# «هل يتّسق دفترُنا مع نفسه؟» ثم «وهل يتّفق مع المحاسبة؟». وفصلُهما وحدتين
+# يجعل إحداهما تُعطَّل وحدَها ويبقى الاسمُ يوحي بأن الفحصَ يجري.
+#
+# و`-` قبل الثانية: المطابقةُ مع أودو تعتمد على خدمةٍ خارجيّة، وانقطاعُها
+# لا يجعل الوحدةَ فاشلةً — ولو فشلت لأخفت نتيجةَ الأولى في `systemctl status`.
+ExecStart=/srv/haraj/backend/.venv/bin/python manage.py verify_ledger
+ExecStart=-/srv/haraj/backend/.venv/bin/python manage.py reconcile_balances

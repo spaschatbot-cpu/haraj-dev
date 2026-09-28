@@ -11,6 +11,15 @@
 | `haraj-web.service` | `next start` على `127.0.0.1:3000` — واجهة العميل |
 | `haraj-deploy.service` | نداءٌ واحدٌ لـ`ops/deploy.sh` داخل `flock` |
 | `haraj-deploy.timer` | يُطلقه كلَّ دقيقتين |
+| `haraj-verify.service` | `verify_ledger` ثمّ `reconcile_balances` — نداءان |
+| `haraj-verify.timer` | يُطلقهما الثالثةَ فجراً، و`Persistent` يُدرك ما فات |
+
+**ولماذا أُضيفت** (٢٨ سبتمبر ٢٠٢٦): قاعدةُ المحفظة تقول «تُطابَق سجلاتُ
+المنصّة **دورياً** مع النظام المحاسبيّ، وأيُّ فرقٍ يُفتح كحالةٍ وتُسوّى».
+وكان الفحصان مكتوبين ولا يشغّلهما شيء: `verify_ledger` أمرٌ يُنادى باليد
+(وتوثيقُه يقول إنه كُتب ليعمل «nightly cron»)، و`apps/odoo/reconciliation.py`
+بلا أمرٍ أصلاً. وقِيس على الخادم: `systemctl list-timers` لا يحمل إلا مؤقّتَ
+النشر.
 
 و**nginx ليس هنا**: ملفّاه (`sites-available/haraj` و`haraj-proxy.conf`)
 يحملان أسماءَ نطاقاتٍ ومساراتِ شهادات، وتُنسَخان حين يُقرَّر ذلك صراحةً.
