@@ -28,6 +28,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.auctions import services as auctions
+from apps.auctions import engine
 from apps.auctions.models import Vehicle
 from apps.auctions.states import VehicleState
 from apps.core import audit
@@ -35,7 +36,7 @@ from apps.core.errors import DomainError
 from apps.money import services as money
 from apps.money.models import MONEY, ZERO, Hold, HoldReason, HoldState
 
-from .eligibility import Eligibility, check_eligibility
+from .eligibility import ENDED_PHASES, Eligibility, check_eligibility
 from .models import Bid, BidRefusal
 
 __all__ = [
@@ -384,6 +385,32 @@ def withdraw_bid(*, user, bid: Bid, now: datetime | None = None) -> Bid:
         raise BiddingError(
             f"bid {bid.pk} was already replaced by a later one",
             user_message="هذه المزايدة استُبدلت بمزايدة أحدث.",
+        )
+
+    # **ولا سحبَ بعد إغلاق المزاد.** كان الحارسُ يفحص الملكيّةَ والاستبدالَ
+    # وحدَهما — والمزادُ محمَّلٌ أمامه في `locked_vehicle.auction` ولا يُسأل.
+    #
+    # وأثرُه مقيسٌ على سيرفر التجربة، على مركبةٍ مشت الدورةَ كاملة: المركبة
+    # 13059 حالتُها `released` — رستْ وفُوترت وسُدِّدت وأُفرج عنها — والفائزُ
+    # نفسُه يسحب عرضَه الفائز فيردّ الخادمُ **200**. فتبقى الترسيةُ قائمةً
+    # على عرضٍ مسحوب، و«مزايداتٌ حيّةٌ باقية: **صفر**» على مركبةٍ مباعة.
+    # وأيُّ شاشةٍ تُعيد حسابَ «أعلى عرضٍ قائم» بعدها تخالف الترسيةَ — وهو
+    # العطلُ الذي يحرسه المشروعُ في كلّ موضعٍ آخر («مركبةٌ رستْ على الثاني
+    # كانت تعرض رقمَ الأوّل»).
+    #
+    # وv1 لا يقع فيه: أزرارُ الحذف والتعديل في «مزايداتي» «تظهر فقط أثناء
+    # نشاط المزاد وتختفي فور انتهائه» (تعليقُه بحرفه) — لكنّه إخفاءٌ في
+    # الواجهة، وهذا رفضٌ في الخادم.
+    #
+    # والمرحلةُ من المحرّك لا من مقارنةٍ بالساعة: `check_eligibility` تقرؤها
+    # هكذا، ومقارنةٌ ثانيةٌ هنا تجعل للسؤال جوابين.
+    current = engine.phase(locked_vehicle.auction, now=now)
+    if current in ENDED_PHASES or current not in engine.BIDDABLE_PHASES:
+        raise BiddingError(
+            f"auction {locked_vehicle.auction_id} is {current}, not open",
+            user_message=(
+                "انتهى وقت هذا المزاد، ولا يمكن سحب المزايدة بعد إغلاقه."
+            ),
         )
 
     before = _bid_state(locked_bid)
