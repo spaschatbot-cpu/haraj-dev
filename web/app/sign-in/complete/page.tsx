@@ -90,19 +90,87 @@ export default async function CompleteRegistrationPage({
   */
   const fresh = !profile.full_name.trim() && !profile.has_company_profile;
   if (fresh && !asked) {
+    /*
+      **تصميمُ المالك** (٢٨ سبتمبر ٢٠٢٦) — بطاقتان باختيارٍ ظاهر وزرٌّ واحدٌ
+      أسفلَ الشاشة، بدل بطاقتين كلٌّ منهما رابط. والخطواتُ فوقها خطواتُنا
+      الخمس لا الثلاث التي في التصميم، والنصوصُ وقائعُ النظام: التصميمُ كان
+      يعد بـ«النفاذ الوطني» و«إضافة ممثّلين» و«ترقية الحساب لاحقاً»، وليس في
+      النظام منها شيء — ووعدٌ في شاشة التسجيل أوّلُ ما يُكذَّب.
+
+      **استمارةُ `GET` لا جافاسكربت:** الاختيارُ `radio` حقيقيّ، والإرسالُ يفتح
+      `?type=` نفسَه الذي كانت الروابطُ تفتحه. وهيئةُ البطاقة المختارة من
+      `has-checked:` في CSS — تعمل بلا سطرٍ واحدٍ في المتصفّح.
+    */
     return (
       <PageShell>
-        <div className="mx-auto max-w-lg">
+        <form method="get" action="/sign-in/complete" className="mx-auto max-w-lg pb-28">
           <Steps current={3} />
-          <h1 className="mb-1 text-headline-lg">نوع الحساب</h1>
-          <p className="mb-6 text-body-sm text-on-surface-variant">
-            تحقّقنا من رقمك. اختر نوع الحساب لنطلب البيانات المناسبة.
+
+          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-ok-line bg-ok-surface px-3 py-1.5 text-label-md text-ok">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4-7 7z" />
+            </svg>
+            تم التحقق من رقم الجوال بنجاح
           </p>
-          <div className="grid grid-cols-2 gap-4">
-            <TypeCard href="/sign-in/complete?type=individual" title="فرد" detail="بالاسم ورقم الهوية" icon="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0" />
-            <TypeCard href="/sign-in/complete?type=company" title="شركة / مؤسسة" detail="بالسجل التجاري والرقم الضريبي" icon="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2" />
+
+          <h1 className="text-headline-lg">حدد نوع حسابك</h1>
+          <p className="mt-1 mb-6 text-body-md text-on-surface-variant">
+            اختر نوع الحساب لنطلب منك البيانات المناسبة له فقط.
+          </p>
+
+          <div className="space-y-4">
+            <TypeOption
+              value="individual"
+              checked
+              title="حساب فرد"
+              subtitle="بالاسم ورقم الهوية أو الإقامة"
+              detail="للمزايدين الأفراد. نطلب الاسم الكامل ورقم الهوية والمدينة."
+              icon="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0"
+              perks={[
+                { text: "مزايدة بعد إيداع التأمين", tone: "ok" },
+                { text: "بدون رسوم فتح حساب", tone: "plain" },
+              ]}
+            />
+            <TypeOption
+              value="company"
+              title="شركة / مؤسسة"
+              subtitle="بالسجل التجاري والرقم الضريبي"
+              detail="للشركات ومعارض السيارات والمؤسسات. تصدر الفواتير باسم المنشأة وعنوانها الوطني."
+              icon="M4 21V5l8-3 8 3v16M9 21v-5h6v5M8 9h2M14 9h2M8 13h2M14 13h2"
+              perks={[
+                { text: "فواتير ضريبية باسم المنشأة", tone: "accent" },
+                { text: "باسم المفوّض ورقم هويته", tone: "plain" },
+              ]}
+            />
           </div>
-        </div>
+
+          <p className="mt-5 flex items-start gap-2.5 rounded-2xl border border-secondary/20 bg-surface-low px-4 py-3.5 text-body-sm text-on-surface-variant">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 11v5M12 8h.01" />
+            </svg>
+            <span>
+              <strong className="text-on-surface">بعدها:</strong> البيانات المطلوبة لنوع
+              حسابك، ثم المستندات — اختياريّة، إلّا صورة الآيبان فهي شرط استرداد التأمين.
+            </span>
+          </p>
+
+          {/*
+            الزرُّ ثابتٌ أسفلَ الشاشة كما في التصميم: البطاقتان تطولان على الجوّال،
+            والزرُّ الذي يختفي تحت الطيّ يُقرأ كصفحةٍ بلا مخرج.
+          */}
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant/60 bg-surface/95 px-4 py-3 backdrop-blur">
+            <button
+              type="submit"
+              className="mx-auto flex h-14 w-full max-w-lg items-center justify-center gap-2 rounded-2xl bg-primary text-headline-sm text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+            >
+              متابعة استكمال البيانات
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M11 6l-6 6 6 6" />
+              </svg>
+            </button>
+          </div>
+        </form>
       </PageShell>
     );
   }
@@ -248,19 +316,69 @@ function Steps({ current }: { current: number }) {
   );
 }
 
-function TypeCard({ href, title, detail, icon }: { href: string; title: string; detail: string; icon: string }) {
+type Perk = { text: string; tone: "ok" | "accent" | "plain" };
+
+//: بطاقةُ نوعٍ بالهيئة التي اعتمدها المالك: أيقونةٌ في مربّع، وعنوانٌ وسطرٌ أزرق
+//: ووصف، وتحتها ميزتان — والاختيارُ دائرةٌ في الطرف. والمختارةُ تُعرف من
+//: `has-checked:` (الإطار والأيقونة يمتلئان بالأزرق) بلا جافاسكربت.
+function TypeOption({
+  value,
+  checked,
+  title,
+  subtitle,
+  detail,
+  icon,
+  perks,
+}: {
+  value: string;
+  checked?: boolean;
+  title: string;
+  subtitle: string;
+  detail: string;
+  icon: string;
+  perks: Perk[];
+}) {
   return (
-    <Link
-      href={href}
-      className="flex flex-col items-center gap-3 rounded-2xl border border-outline-variant/60 bg-surface-lowest p-6 text-center transition-colors hover:border-secondary hover:bg-surface-low"
-    >
-      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-container text-secondary">
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d={icon} />
-        </svg>
+    <label className="group block cursor-pointer rounded-3xl border-2 border-outline-variant/60 bg-surface-lowest p-5 transition-all hover:border-secondary/40 has-checked:border-secondary has-checked:shadow-lg has-checked:shadow-secondary/10">
+      <div className="flex items-start gap-4">
+        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface transition-colors group-has-checked:bg-secondary group-has-checked:text-on-secondary">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d={icon} />
+          </svg>
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-headline-md text-on-surface">{title}</span>
+          <span className="mt-0.5 block text-label-md text-on-surface group-has-checked:text-secondary">{subtitle}</span>
+          <span className="mt-1.5 block text-body-sm text-on-surface-variant">{detail}</span>
+        </span>
+        <input
+          type="radio"
+          name="type"
+          value={value}
+          defaultChecked={checked}
+          required
+          className="mt-1 h-6 w-6 shrink-0 cursor-pointer appearance-none rounded-full border-2 border-outline-variant bg-surface-lowest transition-all checked:border-[7px] checked:border-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
+        />
+      </div>
+      <span className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-outline-variant/50 pt-3 text-body-sm">
+        {perks.map((perk, index) => (
+          <span key={perk.text} className="inline-flex items-center gap-1.5">
+            {index > 0 ? <span aria-hidden="true" className="me-1.5 h-1 w-1 rounded-full bg-outline-variant" /> : null}
+            {perk.tone === "ok" ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-ok" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            ) : perk.tone === "accent" ? (
+              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" />
+              </svg>
+            ) : null}
+            <span className={perk.tone === "ok" ? "text-ok" : perk.tone === "accent" ? "text-secondary" : "text-on-surface-variant"}>
+              {perk.text}
+            </span>
+          </span>
+        ))}
       </span>
-      <span className="text-headline-sm">{title}</span>
-      <span className="text-body-sm text-on-surface-variant">{detail}</span>
-    </Link>
+    </label>
   );
 }
