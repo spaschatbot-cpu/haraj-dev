@@ -559,7 +559,11 @@ def deposit_amount_for(*, auction=None) -> Decimal:
 
 
 class NotWholeDeposits(MoneyError):
-    """An amount that is not a whole number of deposits tried to become insurance."""
+    """An amount that is not a whole number of deposits tried to move.
+
+    Both directions. It used to guard only the way in — and the way out was
+    open at a halala.
+    """
 
 
 def whole_deposits_in(amount: Decimal) -> Decimal | None:
@@ -1450,6 +1454,33 @@ def request_refund(
         raise InvalidAmount(
             f"refund amount {amount!r}",
             user_message="مبلغ الاسترداد لازم يكون أكبر من صفر.",
+        )
+
+    # **والوديعةُ تخرج كما دخلت: وحدةً كاملة.** `whole_deposits_in` مكتوبةٌ
+    # منذ `PHASE_02` §1-1 ومطبَّقةٌ على كلّ باب **دخول** (`deposit_insurance`
+    # و«إيداع يدوي» في اللوحة)، وكان بابُ الخروج وحدَه بلا قيد. مقيسٌ على
+    # سيرفر التجربة على وديعةٍ واحدةٍ حرّةٍ قدرُها ١٠٬٠٠٠:
+    #
+    #     0.01     ✅ قُبل        9999.99  ✅ قُبل
+    #     1.00     ✅ قُبل        10000    ✅ قُبل
+    #     999.99   ✅ قُبل        15000    ❌ (بالرصيد لا بالوحدة)
+    #
+    # أي أن التأمينَ يدخل بعشرة آلافٍ ويخرج بهللة. وهو بعينه ما يصفه توثيقُ
+    # `whole_deposits_in`: «وديعةُ اختبارٍ بريالٍ واحد تُحتسب جواباً لاستردادٍ
+    # بعشرة آلاف» — من الجهة المقابلة: عشرةُ آلافٍ تُستنزف بألف طلبِ هللة،
+    # وكلُّ واحدٍ منها تحويلٌ بنكيٌّ له رسمُه وأثرُه في الكشف.
+    #
+    # وقبل الآيبان وقفلِ الصفّ: أرخصُ فحصٍ أوّلاً.
+    if whole_deposits_in(amount) is None:
+        unit = deposit_amount_for()
+        raise NotWholeDeposits(
+            f"refund amount {amount} is not a whole multiple of {unit}",
+            user_message=(
+                f"وديعةُ التأمين وحدةٌ لا تُجزَّأ: {unit} ريال للوديعة الواحدة. "
+                f"يُسترَدّ مضاعفُها كاملاً ({unit} أو {unit * 2} …) لا مبلغٌ "
+                "جزئيّ."
+            ),
+            detail={"deposit_unit": str(unit), "requested": str(amount)},
         )
 
     # **صورةُ الآيبان شرطٌ، كما في v1 حرفيّاً.** الآيبانُ حقلٌ نصّيّ يكتبه من
