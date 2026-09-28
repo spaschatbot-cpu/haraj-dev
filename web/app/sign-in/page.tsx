@@ -72,20 +72,11 @@ export default async function SignInPage({
             </label>
 
             {/*
-              Optional, and only used when the backend decides this is a new
-              customer. The web does not look the number up first to find out —
-              that is a rule, and rules live on the server.
+              **لا اسمَ هنا.** كان حقلٌ «الاسم (للتسجيل الجديد فقط)» يُرسَل مع
+              الرمز، فيُتجاهَل لحسابٍ موجودٍ باسمٍ فارغ ولا يعرف العميلُ لماذا
+              لم يُحفظ. البياناتُ كلُّها — للجديد والناقص معاً — في «أكمل
+              تسجيلك» بعد الرمز (`verifyCode` → `/sign-in/complete`).
             */}
-            <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600">الاسم (للتسجيل الجديد فقط)</span>
-              <input
-                type="text"
-                name="full_name"
-                autoComplete="name"
-                className="rounded border border-neutral-500 px-3 py-2"
-              />
-            </label>
-
             <button
               type="submit"
               className="w-full rounded bg-neutral-900 px-4 py-2 text-white"

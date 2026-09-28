@@ -313,7 +313,9 @@ def user_for_verified_phone(*, phone: str, full_name: str = "") -> tuple[User, b
     return user, False
 
 
-def sign_in_with_code(*, phone: str, code: str, full_name: str = "") -> tuple[User, bool]:
+def sign_in_with_code(
+    *, phone: str, code: str, full_name: str = "", defer_profile: bool = False
+) -> tuple[User, bool]:
     """The whole of signing in: check the code, then hand back the account.
 
     Returns ``(user, created)``. This exists so the view has exactly one call to
@@ -331,7 +333,17 @@ def sign_in_with_code(*, phone: str, code: str, full_name: str = "") -> tuple[Us
     full_name = full_name.strip()
     existing = User.objects.filter(phone=phone).first()
 
-    if existing is None and not full_name:
+    # **`defer_profile`: الرمزُ أوّلاً، والبياناتُ بعده.** طلبُ المالك (٢٨ سبتمبر
+    # ٢٠٢٦): «أوّل حاجة أدخل الرقم، بعد كده الـverification، بعد كده يعمل
+    # detection: الحساب موجود؟ بياناته ناقصة؟ جديد؟» — كترتيب v1 بالحرف
+    # (`log2/index.php`: جوال ← رمز ← نوع الحساب ← البيانات ← المستندات). وكان
+    # الويب يطلب الاسمَ في شاشة الرمز نفسِها، فيُتجاهَل الاسمُ لحسابٍ منقولٍ من
+    # v1 باسمٍ فارغ (قِيس على حساب المالك: ٢١٩٥٧، أُنشئ ١٧ سبتمبر، اسمه فارغ).
+    #
+    # فمن يطلب التأجيلَ يُنشأ حسابُه بلا اسم، ويُكمل بياناتِه في شاشةٍ بعده
+    # (`registration_gaps`). ومن لا يطلبه — تطبيقُ الجوّال بإصداره الحاليّ —
+    # يبقى على العقد القديم كما هو، فلا ينكسر تطبيقٌ على المتجر بسطرٍ هنا.
+    if existing is None and not full_name and not defer_profile:
         raise RegistrationNeedsName(f"{phone} has no account and no name was given")
 
     check_verification_code(phone=phone, code=code)
@@ -677,7 +689,16 @@ def save_company_profile(*, user: User, fields: dict) -> Company:
         "commercial_register",
         "vat_number",
     }
-    address_fields = {"building_number", "street", "district", "city", "postal_code"}
+    # و`additional_number` — كان غائباً عن الاستمارة والخدمة معاً، وv1 يطلبه
+    # للشركات (`ClientProfileGuard`) والعنوانُ الوطنيُّ النظاميّ يحمله.
+    address_fields = {
+        "building_number",
+        "street",
+        "district",
+        "city",
+        "postal_code",
+        "additional_number",
+    }
 
     for field, value in fields.items():
         if field in company_direct_fields:
@@ -722,6 +743,68 @@ def company_profile_is_complete(company: Company | None) -> bool:
     if company is None:
         return False
     return all(getattr(company, field, "") for field in REQUIRED_COMPANY_FIELDS)
+
+
+def registration_gaps(user: User) -> list[tuple[str, str]]:
+    """ما ينقص ملفَّ العميل ليُعدّ مسجَّلاً — ``[(الحقل، اسمُه بالعربيّة)]``.
+
+    **قاعدةُ v1 نفسُها** (`src/Support/ClientProfileGuard::missingFields`)، بطلب
+    المالك: «شوف الحقول المطلوبة في التسجيل في النظام القديم… ما تعمليش تسجيل
+    ناقص داتا». وهناك:
+
+    * **الفرد**: الاسمُ الكامل، والمدينة، ورقمُ الهوية.
+    * **الشركة**: اسمُ المنشأة، والسجلّ التجاريّ، والرقمُ الضريبيّ، والعنوانُ
+      الوطنيّ كلُّه (المدينة، الحيّ، الشارع، رقمُ المبنى، الرقمُ الإضافيّ،
+      الرمزُ البريديّ).
+
+    **وزِيد على v1 رقمُ الهويّة للشركة أيضاً**، لأن بوّابةَ المزايدة في v2
+    (`bidding.eligibility._profile_gap`) تطلبه من كلّ مزايد. وتسجيلٌ يُعلَن
+    مكتملاً ثم يُرفَض صاحبُه عند أوّل مزايدةٍ بـ«ملفك ناقص» هو بعينه التسجيلُ
+    الناقصُ الذي طُلب منعُه.
+
+    ويُقرأ من هنا وحده: شاشةُ «أكمل تسجيلك» في الويب وقرارُ ما بعد الرمز كلاهما
+    يسألان هذه الدالّة، فلا يصير لـ«مكتمل» تعريفان.
+    """
+    gaps: list[tuple[str, str]] = []
+    address = getattr(user, "national_address", None) if user.pk else None
+
+    def addr(field: str) -> str:
+        return str(getattr(address, field, "") or "").strip() if address else ""
+
+    if not (user.full_name or "").strip():
+        gaps.append(("full_name", "الاسم الكامل"))
+    if not identity.is_valid(user.national_id or ""):
+        gaps.append(("national_id", "رقم الهوية"))
+
+    if user.account_type == AccountType.COMPANY:
+        company = Company.objects.filter(user=user).first()
+        for field, label in (
+            ("name", "اسم المنشأة"),
+            ("commercial_register", "السجل التجاري"),
+            ("vat_number", "الرقم الضريبي"),
+        ):
+            if not str(getattr(company, field, "") or "").strip():
+                gaps.append((field, label))
+        for field, label in (
+            ("city", "المدينة"),
+            ("district", "الحي"),
+            ("street", "الشارع"),
+            ("building_number", "رقم المبنى"),
+            ("additional_number", "الرقم الإضافي"),
+            ("postal_code", "الرمز البريدي"),
+        ):
+            if not addr(field):
+                gaps.append((field, label))
+    elif not addr("city"):
+        gaps.append(("city", "المدينة"))
+    return gaps
+
+
+def save_city(*, user: User, city: str) -> None:
+    """مدينةُ الفرد — في العنوان الوطنيّ كعنوان الشركة، لا عمودٌ ثانٍ على المستخدم."""
+    from apps.accounts.models import NationalAddress
+
+    NationalAddress.objects.update_or_create(user=user, defaults={"city": city.strip()})
 
 
 def _gate(phone: str, purpose: str) -> PhoneVerification:

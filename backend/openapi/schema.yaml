@@ -2064,6 +2064,9 @@ components:
         postal_code:
           type: string
           maxLength: 8
+        additional_number:
+          type: string
+          maxLength: 4
     CompanyProfileRead:
       type: object
       description: The same fields plus whether they add up to something invoiceable.
@@ -2095,6 +2098,9 @@ components:
         postal_code:
           type: string
           maxLength: 8
+        additional_number:
+          type: string
+          maxLength: 4
         is_complete:
           type: boolean
           readOnly: true
@@ -2562,6 +2568,9 @@ components:
             format: email
           - type: string
             maxLength: 0
+        city:
+          type: string
+          maxLength: 100
     PaymentIntent:
       type: object
       properties:
@@ -2742,8 +2751,18 @@ components:
           items:
             $ref: '#/components/schemas/LockedField'
           readOnly: true
+        city:
+          type: string
+          readOnly: true
+        registration_missing:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegistrationGap'
+          readOnly: true
+          description: ما ينقص ليُعدّ التسجيلُ مكتملاً — فارغةٌ للملف المكتمل
       required:
       - account_type
+      - city
       - company_profile_complete
       - display_name
       - full_name
@@ -2754,6 +2773,7 @@ components:
       - national_id_verified
       - phone
       - phone_verified_at
+      - registration_missing
     Purchase:
       type: object
       description: A vehicle this customer won, with the invoice that followed it.
@@ -2869,6 +2889,17 @@ components:
         * `rejected` - مرفوض
         * `cancelled` - ألغاه العميل
         * `v1_paid` - صُرف في v1
+    RegistrationGap:
+      type: object
+      properties:
+        field:
+          type: string
+        label:
+          type: string
+          description: اسمُ الحقل بالعربيّة، جاهزٌ للعرض
+      required:
+      - field
+      - label
     SendCode:
       type: object
       description: Ask for a code.
@@ -3136,6 +3167,12 @@ components:
           type: string
           description: يُستعمل عند إنشاء الحساب لأول مرة فقط
           maxLength: 200
+        defer_profile:
+          type: boolean
+          default: false
+          description: 'أنشئ الحسابَ الجديد بلا اسمٍ ودَع العميلَ يُكمل بياناته بعد
+            الرمز (`registration_missing` في الملف). بدونه يبقى العقدُ القديم: حسابٌ
+            جديدٌ بلا اسمٍ يُرفَض بـ`registration_needs_name`.'
       required:
       - code
       - phone

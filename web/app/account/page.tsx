@@ -122,6 +122,25 @@ export default async function AccountPage() {
       <Notice message={flash?.message ?? ""} tone={flash?.code === "saved" ? "info" : "error"} />
 
       <div className="mx-auto max-w-3xl">
+        {/*
+          التسجيلُ الناقص يُقال أوّلَ الصفحة ويُفتح بابُه — لمن خرج من «أكمل
+          تسجيلك» قبل أن يُنهيها، أو دخل من تطبيقٍ لا يسأل. والناقصُ جوابُ الخادم
+          (`registration_missing`)، والمزايدةُ ترفض صاحبَه على أيّ حال.
+        */}
+        {profile.registration_missing.length > 0 ? (
+          <Link
+            href="/sign-in/complete"
+            className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-warn-line bg-warn-surface px-5 py-4 text-warn transition-opacity hover:opacity-90"
+          >
+            <span>
+              <span className="block text-label-md">أكمل تسجيلك</span>
+              <span className="text-body-sm">
+                ينقص: {profile.registration_missing.map((gap) => gap.label).join("، ")}
+              </span>
+            </span>
+            <span className="text-label-md">أكمل ←</span>
+          </Link>
+        ) : null}
         {/* ── بطاقةُ الملخّص ─────────────────────────────────────────────── */}
         <section className="relative overflow-hidden rounded-3xl bg-primary p-6 text-on-primary md:p-8">
           <div

@@ -72,6 +72,15 @@ class VerifyCodeSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="يُستعمل عند إنشاء الحساب لأول مرة فقط",
     )
+    defer_profile = serializers.BooleanField(
+        required=False,
+        default=False,
+        help_text=(
+            "أنشئ الحسابَ الجديد بلا اسمٍ ودَع العميلَ يُكمل بياناته بعد الرمز "
+            "(`registration_missing` في الملف). بدونه يبقى العقدُ القديم: "
+            "حسابٌ جديدٌ بلا اسمٍ يُرفَض بـ`registration_needs_name`."
+        ),
+    )
 
 
 class RefreshSerializer(serializers.Serializer):
@@ -152,6 +161,11 @@ class LockedFieldSerializer(serializers.Serializer):
     reason = serializers.CharField(help_text="سبب عربي جاهز للعرض")
 
 
+class RegistrationGapSerializer(serializers.Serializer):
+    field = serializers.CharField()
+    label = serializers.CharField(help_text="اسمُ الحقل بالعربيّة، جاهزٌ للعرض")
+
+
 class ProfileSerializer(serializers.Serializer):
     """The caller's own account, as a screen shows it.
 
@@ -173,6 +187,12 @@ class ProfileSerializer(serializers.Serializer):
     has_company_profile = serializers.BooleanField(read_only=True)
     company_profile_complete = serializers.BooleanField(read_only=True)
     locked_fields = LockedFieldSerializer(many=True, read_only=True)
+    city = serializers.CharField(read_only=True, allow_blank=True)
+    registration_missing = RegistrationGapSerializer(
+        many=True,
+        read_only=True,
+        help_text="ما ينقص ليُعدّ التسجيلُ مكتملاً — فارغةٌ للملف المكتمل",
+    )
 
 
 class ProfileUpdateSerializer(serializers.Serializer):
@@ -189,6 +209,26 @@ class ProfileUpdateSerializer(serializers.Serializer):
 
     full_name = serializers.CharField(max_length=200, required=False)
     email = serializers.EmailField(required=False, allow_blank=True)
+    city = serializers.CharField(max_length=100, required=False)
+
+    def validate_full_name(self, value: str) -> str:
+        """قاعدةُ v1 للاسم (المالك، ٢٧ يونيو ٢٠٢٦ — `ClientProfileGuard::validate`).
+
+        **لا أرقامَ في الاسم** — كان الناسُ يكتبون جوّالَهم في خانة الاسم. **والاسمُ
+        الكاملُ أطولُ من ١٢ حرفاً بالمسافات**: «محمد» وحده ليس اسماً على فاتورة.
+        والأرقامُ العربيّةُ والفارسيّةُ أرقامٌ أيضاً — لوحةُ الجوّال السعوديّ
+        تكتبها، وكانت تمرّ من فحصٍ يعرف 0-9 وحدها.
+        """
+        import re
+
+        value = value.strip()
+        if re.search(r"[0-9٠-٩۰-۹]", value):
+            raise serializers.ValidationError("الاسم لا يجوز أن يحتوي أرقاماً.")
+        if len(value) <= 12:
+            raise serializers.ValidationError(
+                "اكتب الاسم الكامل — أكثر من ١٢ حرفاً مع المسافات."
+            )
+        return value
 
     def validate(self, attrs: dict) -> dict:
         unknown = set(self.initial_data) - set(self.fields)
@@ -241,6 +281,9 @@ class CompanyProfileSerializer(serializers.Serializer):
     district = serializers.CharField(max_length=200, required=False, allow_blank=True)
     city = serializers.CharField(max_length=100, required=False, allow_blank=True)
     postal_code = serializers.CharField(max_length=8, required=False, allow_blank=True)
+    additional_number = serializers.CharField(
+        max_length=4, required=False, allow_blank=True
+    )
 
     def validate(self, attrs: dict) -> dict:
         unknown = set(self.initial_data) - set(self.fields)
@@ -248,7 +291,41 @@ class CompanyProfileSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {name: "حقل غير معروف." for name in sorted(unknown)}
             )
-        return attrs
+        return _check_company_formats(attrs)
+
+
+#: قواعدُ الصيغة من v1 (`ClientProfileGuard::validate`) — فاتورةُ الزكاة لا تقبل
+#: سجلّاً من تسعة أرقام ولا رقماً ضريبيّاً لا يبدأ بـ3. وتُفحص **القيمةُ المكتوبة
+#: وحدها**: الحقلُ الفارغ شأنُ `save_company_profile` (الإعفاءُ للشركات القديمة)
+#: لا شأنُ الصيغة.
+_COMPANY_FORMATS = {
+    "commercial_register": (r"^\d{10}$", "السجل التجاري عشرة أرقام."),
+    "vat_number": (r"^3\d{13}3$", "الرقم الضريبي ١٥ رقماً يبدأ وينتهي بالرقم 3."),
+    "building_number": (r"^\d{4}$", "رقم المبنى أربعة أرقام."),
+    "additional_number": (r"^\d{4}$", "الرقم الإضافي أربعة أرقام."),
+    "postal_code": (r"^\d{5}$", "الرمز البريدي خمسة أرقام."),
+}
+
+#: الأرقامُ العربيّةُ والفارسيّة إلى لاتينيّة — لوحةُ الجوّال السعوديّ تكتبها،
+#: وكان v1 يرفض بها سجلّاً صحيحاً حتى أضاف `normalizeDigits`.
+_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+
+def _check_company_formats(attrs: dict) -> dict:
+    import re
+
+    errors = {}
+    for field, (pattern, message) in _COMPANY_FORMATS.items():
+        value = attrs.get(field)
+        if not value:
+            continue
+        value = value.translate(_DIGITS).strip()
+        attrs[field] = value
+        if not re.match(pattern, value):
+            errors[field] = message
+    if errors:
+        raise serializers.ValidationError(errors)
+    return attrs
 
 
 class CompanyProfileReadSerializer(CompanyProfileSerializer):

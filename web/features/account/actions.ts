@@ -236,3 +236,111 @@ export async function uploadDocument(form: FormData): Promise<void> {
   }
   return finish(null, "رُفعت الوثيقة.", DOCUMENTS);
 }
+
+const COMPLETE = "/sign-in/complete";
+
+/** رفضٌ برسالته **وتفاصيل حقوله** — لتُكتب كلُّ جملةٍ تحت خانتها. */
+async function refuseWithFields(error: unknown, back: string): Promise<never> {
+  const store = await cookies();
+  setFlash(
+    store,
+    {
+      code: error instanceof ApiError ? error.code : "",
+      message: messageOf(error),
+      ...(error instanceof ApiError ? { detail: error.detail } : {}),
+    },
+    back,
+  );
+  redirect(back);
+}
+
+/**
+ * «أكمل تسجيلك» — كلُّ ما ينقص الملفَّ في استمارةٍ واحدة، كخطوة البيانات في v1.
+ *
+ * ثلاثةُ نداءاتٍ لأن الخادمَ يملك ثلاثةَ أبواب: الملفُّ (الاسمُ والمدينة)،
+ * والهويّةُ (تُثبَّت مرّةً — `set_national_id`)، والمنشأةُ (وحفظُها هو ما يجعل
+ * الحسابَ حسابَ شركة — `save_company_profile`). وكلٌّ يُحفظ وحده: خطأٌ في
+ * الرقم الضريبيّ لا يمحو الاسمَ الذي كُتب صحيحاً.
+ *
+ * ثمّ **يُسأل الخادمُ لا الاستمارة**: هل بقي شيء؟ (`registration_missing`).
+ * فإن بقي عادت الصفحةُ تسمّيه، وإلّا فالمستنداتُ — الخطوةُ الخامسة في v1،
+ * واختياريّةٌ هناك كما هنا.
+ */
+export async function completeRegistration(form: FormData): Promise<void> {
+  const type = form.get("type") === "company" ? "company" : "individual";
+  const back = `${COMPLETE}?type=${type}`;
+  const text = (key: string) => String(form.get(key) ?? "").trim();
+  const headers = await authedHeaders();
+
+  // الاسمُ يُرسَل إن تغيّر وحده: اسمٌ قديمٌ قصيرٌ من v1 لا يُعاد فحصُه على
+  // عميلٍ جاء يُكمل مدينتَه، فيُحبَس في شاشةٍ بسبب حقلٍ لم يلمسه.
+  const profileBody: { full_name?: string; city?: string } = {};
+  if (text("full_name") && text("full_name") !== text("current_full_name")) {
+    profileBody.full_name = text("full_name");
+  }
+  if (type === "individual" && text("city")) profileBody.city = text("city");
+  if (profileBody.full_name || profileBody.city) {
+    try {
+      await request(() => api.PATCH("/api/v1/profile/", { headers, body: profileBody }));
+    } catch (error) {
+      return refuseWithFields(error, back);
+    }
+  }
+
+  if (text("national_id")) {
+    try {
+      await request(() =>
+        api.PUT("/api/v1/profile/national-id/", {
+          headers,
+          body: { national_id: text("national_id") },
+        }),
+      );
+    } catch (error) {
+      return refuseWithFields(error, back);
+    }
+  }
+
+  if (type === "company") {
+    const body = {
+      name: text("name"),
+      representative_name: text("full_name"),
+      commercial_register: text("commercial_register"),
+      vat_number: text("vat_number"),
+      building_number: text("building_number"),
+      additional_number: text("additional_number"),
+      street: text("street"),
+      district: text("district"),
+      city: text("city"),
+      postal_code: text("postal_code"),
+    };
+    try {
+      await request(() => api.PUT("/api/v1/profile/company/", { headers, body }));
+    } catch (error) {
+      return refuseWithFields(error, back);
+    }
+  }
+
+  const profile = await request(() => api.GET("/api/v1/profile/", { headers }));
+  const store = await cookies();
+  if (profile.registration_missing.length > 0) {
+    setFlash(
+      store,
+      {
+        code: "registration_incomplete",
+        message: `لا يزال ناقصاً: ${profile.registration_missing.map((gap) => gap.label).join("، ")}.`,
+      },
+      back,
+    );
+    redirect(back);
+  }
+
+  setFlash(
+    store,
+    {
+      code: "saved",
+      message: "اكتمل تسجيلك. ارفع مستنداتك الآن أو لاحقاً — صورةُ الآيبان شرطٌ للاسترداد.",
+    },
+    "/account/documents",
+  );
+  redirect("/account/documents");
+}

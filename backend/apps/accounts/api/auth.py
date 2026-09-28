@@ -93,6 +93,7 @@ class VerifyCodeView(APIView):
             phone=payload.validated_data["phone"],
             code=payload.validated_data["code"],
             full_name=payload.validated_data.get("full_name", ""),
+            defer_profile=payload.validated_data.get("defer_profile", False),
         )
         pair = token_service.issue_pair(user)
         pair["user"] = {

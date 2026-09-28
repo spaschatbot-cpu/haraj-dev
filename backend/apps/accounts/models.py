@@ -162,7 +162,14 @@ class User(AbstractBaseUser, PermissionsMixin):
         default="",
         validators=[staff_username, not_a_phone_number],
     )
-    full_name = models.CharField("الاسم الكامل", max_length=200)
+    # ‏`blank=True` (٢٨ سبتمبر ٢٠٢٦) — والقاعدةُ فيها الفراغُ أصلاً: حساباتٌ منقولةٌ
+    # من v1 بلا اسم (منها حسابُ المالك نفسِه، ٢١٩٥٧). وتسجيلُ «الرمز أوّلاً»
+    # (`services.sign_in_with_code(defer_profile=True)`) يُنشئ الحسابَ قبل أن
+    # يُكتب الاسم، و`create_user` يستدعي `full_clean` فكان يرفضه. والاسمُ ليس
+    # أقلَّ وجوباً بهذا: `registration_gaps` تُبقي العميلَ في «أكمل تسجيلك» حتى
+    # يكتبه، وبوّابةُ المزايدة (`_profile_gap`) ترفض من لا اسمَ له. لا قيدَ في
+    # القاعدة على العمود، فالهجرةُ بلا SQL.
+    full_name = models.CharField("الاسم الكامل", max_length=200, blank=True)
     name_ar = models.CharField("الاسم بالعربي", max_length=255, blank=True)
     name_en = models.CharField("الاسم بالإنجليزي", max_length=255, blank=True)
     email = models.EmailField("البريد", blank=True)

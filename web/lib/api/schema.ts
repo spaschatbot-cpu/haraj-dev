@@ -1102,6 +1102,7 @@ export interface components {
             district?: string;
             city?: string;
             postal_code?: string;
+            additional_number?: string;
         };
         /** @description The same fields plus whether they add up to something invoiceable. */
         CompanyProfileRead: {
@@ -1114,6 +1115,7 @@ export interface components {
             district?: string;
             city?: string;
             postal_code?: string;
+            additional_number?: string;
             readonly is_complete: boolean;
         };
         /** @description Both codes, in one request.
@@ -1343,6 +1345,7 @@ export interface components {
         PatchedProfileUpdate: {
             full_name?: string;
             email?: string;
+            city?: string;
         };
         PaymentIntent: {
             reference: string;
@@ -1433,6 +1436,9 @@ export interface components {
             readonly has_company_profile: boolean;
             readonly company_profile_complete: boolean;
             readonly locked_fields: components["schemas"]["LockedField"][];
+            readonly city: string;
+            /** @description ما ينقص ليُعدّ التسجيلُ مكتملاً — فارغةٌ للملف المكتمل */
+            readonly registration_missing: components["schemas"]["RegistrationGap"][];
         };
         /** @description A vehicle this customer won, with the invoice that followed it. */
         Purchase: {
@@ -1487,6 +1493,11 @@ export interface components {
          * @enum {string}
          */
         RefundRequestStateEnum: "requested" | "sent" | "confirmed" | "rejected" | "cancelled" | "v1_paid";
+        RegistrationGap: {
+            field: string;
+            /** @description اسمُ الحقل بالعربيّة، جاهزٌ للعرض */
+            label: string;
+        };
         /** @description Ask for a code. */
         SendCode: {
             phone: string;
@@ -1608,6 +1619,11 @@ export interface components {
             code: string;
             /** @description يُستعمل عند إنشاء الحساب لأول مرة فقط */
             full_name?: string;
+            /**
+             * @description أنشئ الحسابَ الجديد بلا اسمٍ ودَع العميلَ يُكمل بياناته بعد الرمز (`registration_missing` في الملف). بدونه يبقى العقدُ القديم: حسابٌ جديدٌ بلا اسمٍ يُرفَض بـ`registration_needs_name`.
+             * @default false
+             */
+            defer_profile: boolean;
         };
         Wallet: {
             currency: string;

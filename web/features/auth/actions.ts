@@ -34,6 +34,9 @@ import { setSession } from "@/lib/session";
 /** Where a signed-in visitor lands. */
 const AFTER_SIGN_IN = "/account";
 
+//: «أكمل تسجيلك» — حيث يذهب من ينقص ملفَّه شيءٌ بعد الرمز. انظر `verifyCode`.
+const COMPLETE_REGISTRATION = "/sign-in/complete";
+
 async function fail(error: unknown, back: string): Promise<never> {
   const store = await cookies();
   setFlash(store, {
@@ -73,23 +76,30 @@ export async function sendCode(form: FormData): Promise<void> {
 /**
  * Step two: verify the code, and become signed in.
  *
- * `full_name` is sent when present because the same endpoint registers a new
- * customer and signs in an existing one — the backend decides which, and this
- * layer does not try to guess by looking the number up first (that would be a
- * rule, and rules live on the server).
+ * The same endpoint registers a new customer and signs in an existing one — the
+ * backend decides which, and this layer does not look the number up first (that
+ * would be a rule, and rules live on the server). What the account still lacks
+ * is the server's answer too (`registration_missing`), read right after.
  */
 export async function verifyCode(form: FormData): Promise<void> {
   const phone = String(form.get("phone") ?? "").trim();
   const code = String(form.get("code") ?? "").trim();
-  const fullName = String(form.get("full_name") ?? "").trim();
   const back = `/sign-in?phone=${encodeURIComponent(phone)}&sent=1`;
 
+  /*
+    **الرمزُ وحدَه، ثمّ القرار** — ترتيبُ v1 وطلبُ المالك (٢٨ سبتمبر ٢٠٢٦):
+    «أوّل حاجة أدخل الرقم، بعد كده الـverification، بعد كده يعمل detection:
+    الحساب موجود؟ بياناته ناقصة؟ جديد؟».
+
+    وكان الاسمُ يُطلب هنا مع الرمز «للتسجيل الجديد فقط»، فيُتجاهَل بصمتٍ لكلّ
+    حسابٍ موجودٍ باسمٍ فارغ — والمنقولون من v1 كثيرٌ منهم كذلك (قِيس على حساب
+    المالك نفسِه). و`defer_profile` يُنشئ الحسابَ الجديدَ بلا اسم، ثمّ يُسأل
+    الخادمُ عمّا ينقص (`registration_missing`) — والقرارُ قرارُه.
+  */
   let tokens;
   try {
     tokens = await request(() =>
-      api.POST("/api/v1/auth/verify/", {
-        body: { phone, code, ...(fullName ? { full_name: fullName } : {}) },
-      }),
+      api.POST("/api/v1/auth/verify/", { body: { phone, code, defer_profile: true } }),
     );
   } catch (error) {
     return fail(error, back);
@@ -105,7 +115,15 @@ export async function verifyCode(form: FormData): Promise<void> {
     expiresIn: tokens.expires_in,
   });
 
-  redirect(AFTER_SIGN_IN);
+  // ماذا ينقص؟ بالرمز الجديد نفسِه — الكوكي كُتب للتوّ ولا يُقرأ في هذا الطلب.
+  // وفشلُ هذا السؤال لا يُسقط الدخول: الجلسةُ قائمة، و«حسابي» تسأل ثانيةً.
+  const missing = await request(() =>
+    api.GET("/api/v1/profile/", { headers: { Authorization: `Bearer ${tokens.access}` } }),
+  )
+    .then((profile) => profile.registration_missing.length)
+    .catch(() => 0);
+
+  redirect(missing > 0 ? COMPLETE_REGISTRATION : AFTER_SIGN_IN);
 }
 
 /**

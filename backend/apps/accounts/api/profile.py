@@ -55,6 +55,11 @@ def profile_of(user) -> dict:
         "has_company_profile": company is not None,
         "company_profile_complete": services.company_profile_is_complete(company),
         "locked_fields": services.locked_fields(user),
+        "city": getattr(getattr(user, "national_address", None), "city", "") or "",
+        "registration_missing": [
+            {"field": field, "label": label}
+            for field, label in services.registration_gaps(user)
+        ],
     }
 
 
@@ -83,10 +88,15 @@ class ProfileView(APIView):
         payload = ProfileUpdateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
 
+        changes = dict(payload.validated_data)
+        # المدينةُ في العنوان الوطنيّ لا على المستخدم — `update_profile` تكتب
+        # أعمدةَ المستخدم وحدها، فتُنزع منها وتُحفظ في موضعها.
+        city = changes.pop("city", None)
+        if city is not None:
+            services.save_city(user=request.user, city=city)
         try:
-            services.update_profile(
-                user=request.user, changes=dict(payload.validated_data)
-            )
+            if changes:
+                services.update_profile(user=request.user, changes=changes)
         except ValueError as unknown:
             # Belt and braces. The serializer already refuses an unknown key, so
             # reaching here means the allowlist and the serializer disagreed —
