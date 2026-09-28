@@ -101,24 +101,27 @@ export default async function CompleteRegistrationPage({
       `?type=` نفسَه الذي كانت الروابطُ تفتحه. وهيئةُ البطاقة المختارة من
       `has-checked:` في CSS — تعمل بلا سطرٍ واحدٍ في المتصفّح.
     */
+    /*
+      **بلا رأسِ الموقع ولا تمرير** (طلبُ المالك ٢٨ سبتمبر): روابطُ «المزادات»
+      في خطوةٍ لم يكتمل فيها الحساب طريقُ خروجٍ من التسجيل لا أكثر، والشاشةُ
+      التي تُمرَّر لتُرى بطاقتُها الثانية تُخفي نصفَ الاختيار. فبقي ما يلزم
+      للقرار وحده: الخطوات، وسطرُ النجاح، والبطاقتان بنصّهما، والزرّ.
+    */
     return (
-      <PageShell>
-        <form method="get" action="/sign-in/complete" className="mx-auto max-w-lg pb-28">
+      <main className="bg-gradient-to-b from-surface-low to-surface px-4 pt-6 pb-28">
+        <form method="get" action="/sign-in/complete" className="mx-auto flex w-full max-w-md flex-col">
           <Steps current={3} />
 
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-ok-line bg-ok-surface px-3 py-1.5 text-label-md text-ok">
+          <p className="mb-3 inline-flex items-center gap-2 self-start rounded-full border border-ok-line bg-ok-surface px-3 py-1 text-label-sm text-ok">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
               <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4-7 7z" />
             </svg>
-            تم التحقق من رقم الجوال بنجاح
+            تم التحقق من رقم الجوال
           </p>
 
-          <h1 className="text-headline-lg">حدد نوع حسابك</h1>
-          <p className="mt-1 mb-6 text-body-md text-on-surface-variant">
-            اختر نوع الحساب لنطلب منك البيانات المناسبة له فقط.
-          </p>
+          <h1 className="mb-5 text-headline-lg">حدد نوع حسابك</h1>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <TypeOption
               value="individual"
               checked
@@ -144,34 +147,23 @@ export default async function CompleteRegistrationPage({
             />
           </div>
 
-          <p className="mt-5 flex items-start gap-2.5 rounded-2xl border border-secondary/20 bg-surface-low px-4 py-3.5 text-body-sm text-on-surface-variant">
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-secondary" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="9" />
-              <path d="M12 11v5M12 8h.01" />
-            </svg>
-            <span>
-              <strong className="text-on-surface">بعدها:</strong> البيانات المطلوبة لنوع
-              حسابك، ثم المستندات — اختياريّة، إلّا صورة الآيبان فهي شرط استرداد التأمين.
-            </span>
-          </p>
-
           {/*
-            الزرُّ ثابتٌ أسفلَ الشاشة كما في التصميم: البطاقتان تطولان على الجوّال،
-            والزرُّ الذي يختفي تحت الطيّ يُقرأ كصفحةٍ بلا مخرج.
+            الزرُّ ثابتٌ أسفلَ الشاشة لا `mt-auto` في عمودٍ بطول الشاشة: شريطُ
+            «بيئة تطوير» فوق الصفحة يزيدها ٢٦ نقطةً فتُمرَّر لأجلها وحدها.
           */}
           <div className="fixed inset-x-0 bottom-0 z-30 border-t border-outline-variant/60 bg-surface/95 px-4 py-3 backdrop-blur">
             <button
               type="submit"
-              className="mx-auto flex h-14 w-full max-w-lg items-center justify-center gap-2 rounded-2xl bg-primary text-headline-sm text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
+              className="mx-auto flex h-14 w-full max-w-md items-center justify-center gap-2 rounded-2xl bg-primary text-headline-sm text-on-primary shadow-lg shadow-primary/20 transition-opacity hover:opacity-90"
             >
-              متابعة استكمال البيانات
+              متابعة
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M11 6l-6 6 6 6" />
               </svg>
             </button>
           </div>
         </form>
-      </PageShell>
+      </main>
     );
   }
 
@@ -320,7 +312,8 @@ type Perk = { text: string; tone: "ok" | "accent" | "plain" };
 
 //: بطاقةُ نوعٍ بالهيئة التي اعتمدها المالك: أيقونةٌ في مربّع، وعنوانٌ وسطرٌ أزرق
 //: ووصف، وتحتها ميزتان — والاختيارُ دائرةٌ في الطرف. والمختارةُ تُعرف من
-//: `has-checked:` (الإطار والأيقونة يمتلئان بالأزرق) بلا جافاسكربت.
+//: `has-checked:` (الإطار والأيقونة يمتلئان بالأزرق) بلا جافاسكربت. والحشوُ
+//: مضغوطٌ لتسع الشاشةُ البطاقتين بلا تمرير.
 function TypeOption({
   value,
   checked,
@@ -339,17 +332,17 @@ function TypeOption({
   perks: Perk[];
 }) {
   return (
-    <label className="group block cursor-pointer rounded-3xl border-2 border-outline-variant/60 bg-surface-lowest p-5 transition-all hover:border-secondary/40 has-checked:border-secondary has-checked:shadow-lg has-checked:shadow-secondary/10">
-      <div className="flex items-start gap-4">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface transition-colors group-has-checked:bg-secondary group-has-checked:text-on-secondary">
-          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <label className="group block cursor-pointer rounded-2xl border-2 border-outline-variant/60 bg-surface-lowest p-4 transition-all hover:border-secondary/40 has-checked:border-secondary has-checked:shadow-lg has-checked:shadow-secondary/10">
+      <div className="flex items-start gap-3.5">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-surface-container text-on-surface transition-colors group-has-checked:bg-secondary group-has-checked:text-on-secondary">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d={icon} />
           </svg>
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-headline-md text-on-surface">{title}</span>
-          <span className="mt-0.5 block text-label-md text-on-surface group-has-checked:text-secondary">{subtitle}</span>
-          <span className="mt-1.5 block text-body-sm text-on-surface-variant">{detail}</span>
+          <span className="block text-headline-sm text-on-surface">{title}</span>
+          <span className="block text-label-md text-on-surface group-has-checked:text-secondary">{subtitle}</span>
+          <span className="mt-1 block text-body-sm text-on-surface-variant">{detail}</span>
         </span>
         <input
           type="radio"
@@ -360,7 +353,7 @@ function TypeOption({
           className="mt-1 h-6 w-6 shrink-0 cursor-pointer appearance-none rounded-full border-2 border-outline-variant bg-surface-lowest transition-all checked:border-[7px] checked:border-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary"
         />
       </div>
-      <span className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-outline-variant/50 pt-3 text-body-sm">
+      <span className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-outline-variant/50 pt-2.5 text-body-sm">
         {perks.map((perk, index) => (
           <span key={perk.text} className="inline-flex items-center gap-1.5">
             {index > 0 ? <span aria-hidden="true" className="me-1.5 h-1 w-1 rounded-full bg-outline-variant" /> : null}
