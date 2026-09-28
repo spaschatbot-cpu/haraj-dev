@@ -64,130 +64,135 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           builder: (context, box) {
             final metrics = OnboardingMetrics.of(box.maxHeight);
             return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-            child: ConstrainedBox(
-              // `IntrinsicHeight` كي يعمل `Spacer` داخل غلافٍ قابلٍ للتمرير:
-              // بدونه يحسب الباقيَ صفراً فيتكوّم المحتوى في الأعلى.
-              constraints: BoxConstraints(minHeight: box.maxHeight - 32),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    OnboardingHeader(
-                      theme: theme,
-                      palette: palette,
-                      strings: strings,
-                      onSkip: _enter,
-                      metrics: metrics,
-                    ),
-                    SizedBox(height: metrics.gap),
-                    FutureBuilder<VehicleFeed?>(
-                      future: _feed,
-                      builder: (context, snap) => OnboardingCard(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              child: ConstrainedBox(
+                // `IntrinsicHeight` كي يعمل `Spacer` داخل غلافٍ قابلٍ للتمرير:
+                // بدونه يحسب الباقيَ صفراً فيتكوّم المحتوى في الأعلى.
+                constraints: BoxConstraints(minHeight: box.maxHeight - 32),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      OnboardingHeader(
+                        theme: theme,
                         palette: palette,
-                        feed: snap.data,
-                        loading:
-                            snap.connectionState == ConnectionState.waiting,
-                        // **٤٢٪ من الارتفاع المتاح سقفاً.** قِيس على ثلاثة
-                        // هواتف: بدونه يفيض iPhone SE فيلزم التمرير،
-                        // والزرُّ يقع تحت الطيّة.
-                        maxHeight: metrics.cardMax,
+                        strings: strings,
+                        onSkip: _enter,
+                        metrics: metrics,
+                      ),
+                      SizedBox(height: metrics.gap),
+                      FutureBuilder<VehicleFeed?>(
+                        future: _feed,
+                        builder: (context, snap) => OnboardingCard(
+                          palette: palette,
+                          feed: snap.data,
+                          loading:
+                              snap.connectionState == ConnectionState.waiting,
+                          // **٤٢٪ من الارتفاع المتاح سقفاً.** قِيس على ثلاثة
+                          // هواتف: بدونه يفيض iPhone SE فيلزم التمرير،
+                          // والزرُّ يقع تحت الطيّة.
+                          maxHeight: metrics.cardMax,
                           // العرضُ من `LayoutBuilder` الخارجيّ ناقصاً الحشوة
                           // الأفقيّة — فلا `LayoutBuilder` داخل `IntrinsicHeight`.
                           width: box.maxWidth - 40,
-                        vehicleAt: 1,
-                        // `start` هي **اليمين** في صفحةٍ عربيّة و`end`
-                        // اليسار. وكانت الثلاثُ معكوسةً عن التصميم: مفتاحٌ
-                        // يساراً وضمانٌ يميناً. رُئي في اللقطة.
-                        topStart: <Widget>[
-                          OnboardingChip(
+                          // مبنى المزاد والمطرقة والسيّارة — والطرفُ الأيمن
+                          // من الصورة (شعارٌ ونصٌّ مطبوعان) خارجَ الإطار.
+                          asset: 'assets/images/home_hero.png',
+                          assetAlignment: const Alignment(-0.62, 0),
+                          // `start` هي **اليمين** في صفحةٍ عربيّة و`end`
+                          // اليسار. وكانت الثلاثُ معكوسةً عن التصميم: مفتاحٌ
+                          // يساراً وضمانٌ يميناً. رُئي في اللقطة.
+                          topStart: <Widget>[
+                            OnboardingChip(
+                              theme: theme,
+                              tint: palette.timerBadge,
+                              icon: Icons.vpn_key_outlined,
+                              label: strings.exploreChipKeys,
+                            ),
+                          ],
+                          bottomStart: <Widget>[
+                            OnboardingChip(
+                              theme: theme,
+                              tint: palette.goldOnDark,
+                              icon: Icons.assignment_turned_in_outlined,
+                              label: strings.exploreChipTransfer,
+                            ),
+                          ],
+                          bottomEnd: <Widget>[
+                            OnboardingChip(
+                              theme: theme,
+                              tint: palette.gold,
+                              icon: Icons.local_shipping_outlined,
+                              label: strings.exploreChipShipping,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // **الفراغُ يُقسَم ٢:٢:١ على ثلاثة مواضع.** كان كلُّه
+                      // فوق النصّ فحفر حفرةً تحت الكرت، ثمّ صار ٣:٢ فبقيت
+                      // الكتلةُ ملتصقةً بحافّة الشاشة السفلى. والثلثُ الأخير
+                      // **تحت سطر الترخيص** يرفع الزرَّ والكلامَ عن الحافّة.
+                      const Spacer(flex: 2),
+                      SizedBox(height: metrics.gap),
+                      // **الكلامُ في الوسط**: الوعدُ يقف وسطَ الشاشة،
+                      // والحاشيةُ تلزم حافّتها.
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: <Widget>[
+                          OnboardingEyebrow(
                             theme: theme,
-                            tint: palette.timerBadge,
-                            icon: Icons.vpn_key_outlined,
-                            label: strings.exploreChipKeys,
+                            palette: palette,
+                            label: strings.exploreEyebrow,
                           ),
-                        ],
-                        bottomStart: <Widget>[
-                          OnboardingChip(
-                            theme: theme,
-                            tint: palette.goldOnDark,
-                            icon: Icons.assignment_turned_in_outlined,
-                            label: strings.exploreChipTransfer,
+                          const SizedBox(height: 14),
+                          Text(
+                            strings.exploreHeadline,
+                            textAlign: TextAlign.center,
+                            style:
+                                (metrics.compact
+                                        ? theme.textTheme.titleLarge
+                                        : theme.textTheme.headlineSmall)
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: palette.ink,
+                                      height: 1.4,
+                                      letterSpacing: -0.2,
+                                    ),
                           ),
-                        ],
-                        bottomEnd: <Widget>[
-                          OnboardingChip(
-                            theme: theme,
-                            tint: palette.gold,
-                            icon: Icons.local_shipping_outlined,
-                            label: strings.exploreChipShipping,
+                          const SizedBox(height: 9),
+                          Text(
+                            strings.exploreBody,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: palette.inkMuted,
+                              height: 1.8,
+                            ),
                           ),
                         ],
                       ),
-                    ),
-                    // **الفراغُ يُقسَم ٢:٢:١ على ثلاثة مواضع.** كان كلُّه
-                    // فوق النصّ فحفر حفرةً تحت الكرت، ثمّ صار ٣:٢ فبقيت
-                    // الكتلةُ ملتصقةً بحافّة الشاشة السفلى. والثلثُ الأخير
-                    // **تحت سطر الترخيص** يرفع الزرَّ والكلامَ عن الحافّة.
-                    const Spacer(flex: 2),
-                    SizedBox(height: metrics.gap),
-                    // **الكلامُ في الوسط**: الوعدُ يقف وسطَ الشاشة،
-                    // والحاشيةُ تلزم حافّتها.
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
-                        OnboardingEyebrow(
-                          theme: theme,
-                          palette: palette,
-                          label: strings.exploreEyebrow,
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          strings.exploreHeadline,
-                          textAlign: TextAlign.center,
-                          style: (metrics.compact
-                                  ? theme.textTheme.titleLarge
-                                  : theme.textTheme.headlineSmall)?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: palette.ink,
-                            height: 1.4,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        const SizedBox(height: 9),
-                        Text(
-                          strings.exploreBody,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: palette.inkMuted,
-                            height: 1.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(flex: 2),
-                    SizedBox(height: metrics.tight),
-                    OnboardingDots(
-                      palette: palette,
-                      strings: strings,
-                      count: 3,
-                      current: 3,
-                    ),
-                    SizedBox(height: metrics.tight),
-                    OnboardingCta(
-                      theme: theme,
-                      label: strings.exploreCta,
-                      // **أزرقُ كالصفحة قبلها** بأمر المالك. وكان كحليّاً
-                      // ليقول «هذه النهاية»؛ والقرارُ أن يتشابه الزرّان،
-                      // فالتدرّجُ في النقاط لا في اللون.
-                      fill: palette.gold,
-                      onPressed: _enter,
-                      metrics: metrics,
-                    ),
-                    // سطرُ الترخيص حُذف بأمر المالك. والفراغُ الذي كان
-                    // تحته يبقى: هو الذي يرفع الزرَّ عن حافّة الشاشة.
-                    const Spacer(flex: 1),
-                  ],
+                      const Spacer(flex: 2),
+                      SizedBox(height: metrics.tight),
+                      OnboardingDots(
+                        palette: palette,
+                        strings: strings,
+                        count: 3,
+                        current: 3,
+                      ),
+                      SizedBox(height: metrics.tight),
+                      OnboardingCta(
+                        theme: theme,
+                        label: strings.exploreCta,
+                        // **أزرقُ كالصفحة قبلها** بأمر المالك. وكان كحليّاً
+                        // ليقول «هذه النهاية»؛ والقرارُ أن يتشابه الزرّان،
+                        // فالتدرّجُ في النقاط لا في اللون.
+                        fill: palette.gold,
+                        onPressed: _enter,
+                        metrics: metrics,
+                      ),
+                      // سطرُ الترخيص حُذف بأمر المالك. والفراغُ الذي كان
+                      // تحته يبقى: هو الذي يرفع الزرَّ عن حافّة الشاشة.
+                      const Spacer(flex: 1),
+                    ],
                   ),
                 ),
               ),

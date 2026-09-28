@@ -68,155 +68,151 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
           builder: (context, box) {
             final metrics = OnboardingMetrics.of(box.maxHeight);
             return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: box.maxHeight - 32),
-              child: IntrinsicHeight(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    OnboardingHeader(
-                      theme: theme,
-                      palette: palette,
-                      strings: strings,
-                      onSkip: _skip,
-                      metrics: metrics,
-                    ),
-                    SizedBox(height: metrics.gap),
-                    FutureBuilder<VehicleFeed?>(
-                      future: _feed,
-                      builder: (context, snap) {
-                        final feed = snap.data;
-                        final cars =
-                            feed?.page.vehicles ?? const <VehicleSummary>[];
-                        // شاراتُ **حالة المزاد**، فلا تُعرض بلا مركبةٍ
-                        // حقيقيّة: «مباشر» على صورةٍ من الأصول ادّعاءٌ لا
-                        // مصدرَ له. وشاراتُ الخدمة في الصفحة الثالثة تُعرض
-                        // دائماً لأنها وصفُ المنصّة لا وصفُ صفقة.
-                        return OnboardingCard(
-                          palette: palette,
-                          feed: feed,
-                          loading:
-                              snap.connectionState == ConnectionState.waiting,
-                          // **٤٢٪ من الارتفاع المتاح سقفاً.** قِيس على
-                          // ثلاثة هواتف: بدونه يفيض iPhone SE فيلزم
-                          // التمرير، والزرُّ يقع تحت الطيّة.
-                          maxHeight: metrics.cardMax,
-                          // العرضُ من `LayoutBuilder` الخارجيّ ناقصاً الحشوة
-                          // الأفقيّة — فلا `LayoutBuilder` داخل `IntrinsicHeight`.
-                          width: box.maxWidth - 40,
-                          topStart: cars.isEmpty
-                              ? const <Widget>[]
-                              : <Widget>[
-                                  OnboardingChip(
-                                    theme: theme,
-                                    tint: kLiveRed,
-                                    label: strings.welcomeLive,
-                                    pulse: true,
-                                  ),
-                                ],
-                          topEnd: cars.isEmpty
-                              ? const <Widget>[]
-                              : <Widget>[
-                                  OnboardingChip(
-                                    theme: theme,
-                                    tint: palette.gold,
-                                    icon: Icons.sell_outlined,
-                                    label: strings.welcomeLot(
-                                      cars.first.lotNumber,
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: box.maxHeight - 32),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      OnboardingHeader(
+                        theme: theme,
+                        palette: palette,
+                        strings: strings,
+                        onSkip: _skip,
+                        metrics: metrics,
+                      ),
+                      SizedBox(height: metrics.gap),
+                      FutureBuilder<VehicleFeed?>(
+                        future: _feed,
+                        builder: (context, snap) {
+                          final feed = snap.data;
+                          final cars =
+                              feed?.page.vehicles ?? const <VehicleSummary>[];
+                          // شاراتُ **حالة المزاد**، فلا تُعرض بلا مركبةٍ
+                          // حقيقيّة: «مباشر» على صورةٍ من الأصول ادّعاءٌ لا
+                          // مصدرَ له. وشاراتُ الخدمة في الصفحة الثالثة تُعرض
+                          // دائماً لأنها وصفُ المنصّة لا وصفُ صفقة.
+                          return OnboardingCard(
+                            palette: palette,
+                            feed: feed,
+                            loading:
+                                snap.connectionState == ConnectionState.waiting,
+                            // **٤٢٪ من الارتفاع المتاح سقفاً.** قِيس على
+                            // ثلاثة هواتف: بدونه يفيض iPhone SE فيلزم
+                            // التمرير، والزرُّ يقع تحت الطيّة.
+                            maxHeight: metrics.cardMax,
+                            // العرضُ من `LayoutBuilder` الخارجيّ ناقصاً الحشوة
+                            // الأفقيّة — فلا `LayoutBuilder` داخل `IntrinsicHeight`.
+                            width: box.maxWidth - 40,
+                            topStart: cars.isEmpty
+                                ? const <Widget>[]
+                                : <Widget>[
+                                    OnboardingChip(
+                                      theme: theme,
+                                      tint: kLiveRed,
+                                      label: strings.welcomeLive,
+                                      pulse: true,
                                     ),
-                                  ),
-                                ],
-                          bottomEnd: cars.isEmpty
-                              ? const <Widget>[]
-                              : <Widget>[
-                                  OnboardingChip(
-                                    theme: theme,
-                                    tint: palette.timerBadge,
-                                    icon: Icons.directions_car_filled_outlined,
-                                    label: strings.welcomeActiveVehicles(
-                                      '${feed?.counts.active ?? cars.length}',
+                                  ],
+                            // المرسيدسُ في وسط الثلث الأيسر من الصورة العريضة.
+                            assetAlignment: const Alignment(-0.45, 0),
+                            // **لا شارةَ «اللوت»**: كانت رقمَ المركبة المعروضة،
+                            // والصورةُ صارت من الأصول لا من المزاد. وبقيت
+                            // «مباشر» وعددُ المركبات: وصفُ المزاد لا الصورة.
+                            bottomEnd: cars.isEmpty
+                                ? const <Widget>[]
+                                : <Widget>[
+                                    OnboardingChip(
+                                      theme: theme,
+                                      tint: palette.timerBadge,
+                                      icon:
+                                          Icons.directions_car_filled_outlined,
+                                      label: strings.welcomeActiveVehicles(
+                                        '${feed?.counts.active ?? cars.length}',
+                                      ),
                                     ),
-                                  ),
-                                ],
-                        );
-                      },
-                    ),
-                    // **الفراغُ يُقسَم ٢:٢:١ على ثلاثة مواضع.** كان كلُّه
-                    // فوق النصّ فحفر حفرةً تحت الكرت، ثمّ صار ٣:٢ فبقيت
-                    // الكتلةُ ملتصقةً بحافّة الشاشة السفلى. والثلثُ الأخير
-                    // **تحت سطر الترخيص** يرفع الزرَّ والكلامَ عن الحافّة.
-                    const Spacer(flex: 2),
-                    SizedBox(height: metrics.gap),
-                    // **الكلامُ على الحافّة لا في الوسط**: هذه الصفحةُ تعرض
-                    // صفقةً، فنصُّها حاشيةٌ على الكرت. والثالثةُ تعرض وعداً
-                    // فيقف كلامُها في الوسط.
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        OnboardingEyebrow(
-                          theme: theme,
-                          palette: palette,
-                          label: strings.welcomeEyebrow,
-                        ),
-                        const SizedBox(height: 14),
-                        // عنوانٌ بلونين في فقرةٍ واحدة: `Text.rich` لا نصّان
-                        // متجاوران — النصّان ينكسران عند حافّتين مختلفتين.
-                        Text.rich(
-                          TextSpan(
-                            children: <InlineSpan>[
-                              TextSpan(
-                                text: '${strings.welcomeHeadlineLead} ',
-                              ),
-                              TextSpan(
-                                text: strings.welcomeHeadlineAccent,
-                                style: TextStyle(color: palette.gold),
-                              ),
-                            ],
+                                  ],
+                          );
+                        },
+                      ),
+                      // **الفراغُ يُقسَم ٢:٢:١ على ثلاثة مواضع.** كان كلُّه
+                      // فوق النصّ فحفر حفرةً تحت الكرت، ثمّ صار ٣:٢ فبقيت
+                      // الكتلةُ ملتصقةً بحافّة الشاشة السفلى. والثلثُ الأخير
+                      // **تحت سطر الترخيص** يرفع الزرَّ والكلامَ عن الحافّة.
+                      const Spacer(flex: 2),
+                      SizedBox(height: metrics.gap),
+                      // **الكلامُ على الحافّة لا في الوسط**: هذه الصفحةُ تعرض
+                      // صفقةً، فنصُّها حاشيةٌ على الكرت. والثالثةُ تعرض وعداً
+                      // فيقف كلامُها في الوسط.
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          OnboardingEyebrow(
+                            theme: theme,
+                            palette: palette,
+                            label: strings.welcomeEyebrow,
                           ),
-                          style: (metrics.compact
-                                  ? theme.textTheme.titleLarge
-                                  : theme.textTheme.headlineSmall)?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: palette.ink,
-                            height: 1.4,
-                            letterSpacing: -0.2,
+                          const SizedBox(height: 14),
+                          // عنوانٌ بلونين في فقرةٍ واحدة: `Text.rich` لا نصّان
+                          // متجاوران — النصّان ينكسران عند حافّتين مختلفتين.
+                          Text.rich(
+                            TextSpan(
+                              children: <InlineSpan>[
+                                TextSpan(
+                                  text: '${strings.welcomeHeadlineLead} ',
+                                ),
+                                TextSpan(
+                                  text: strings.welcomeHeadlineAccent,
+                                  style: TextStyle(color: palette.gold),
+                                ),
+                              ],
+                            ),
+                            style:
+                                (metrics.compact
+                                        ? theme.textTheme.titleLarge
+                                        : theme.textTheme.headlineSmall)
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: palette.ink,
+                                      height: 1.4,
+                                      letterSpacing: -0.2,
+                                    ),
                           ),
-                        ),
-                        const SizedBox(height: 9),
-                        // **ولا سقفَ عرضٍ هنا.** جرّبتُ `maxWidth` لأمنع
-                        // الكلمةَ اليتيمة في آخر السطر فزادها سوءاً: يقصّ
-                        // السطرَ الأوّل مبكّراً ويتركها وحدها كما كانت.
-                        // والعلاجُ في الجملة — قُصِّرت كلمةً فملأت سطرها.
-                        Text(
-                          strings.welcomeBody,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: palette.inkMuted,
-                            height: 1.8,
+                          const SizedBox(height: 9),
+                          // **ولا سقفَ عرضٍ هنا.** جرّبتُ `maxWidth` لأمنع
+                          // الكلمةَ اليتيمة في آخر السطر فزادها سوءاً: يقصّ
+                          // السطرَ الأوّل مبكّراً ويتركها وحدها كما كانت.
+                          // والعلاجُ في الجملة — قُصِّرت كلمةً فملأت سطرها.
+                          Text(
+                            strings.welcomeBody,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: palette.inkMuted,
+                              height: 1.8,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(flex: 2),
-                    SizedBox(height: metrics.tight),
-                    OnboardingDots(
-                      palette: palette,
-                      strings: strings,
-                      count: 3,
-                      current: 2,
-                    ),
-                    SizedBox(height: metrics.tight),
-                    OnboardingCta(
-                      theme: theme,
-                      label: strings.welcomeCta,
-                      fill: palette.gold,
-                      onPressed: _next,
-                      metrics: metrics,
-                    ),
-                    // سطرُ الترخيص حُذف بأمر المالك. والفراغُ الذي كان
-                    // تحته يبقى: هو الذي يرفع الزرَّ عن حافّة الشاشة.
-                    const Spacer(flex: 1),
-                  ],
+                        ],
+                      ),
+                      const Spacer(flex: 2),
+                      SizedBox(height: metrics.tight),
+                      OnboardingDots(
+                        palette: palette,
+                        strings: strings,
+                        count: 3,
+                        current: 2,
+                      ),
+                      SizedBox(height: metrics.tight),
+                      OnboardingCta(
+                        theme: theme,
+                        label: strings.welcomeCta,
+                        fill: palette.gold,
+                        onPressed: _next,
+                        metrics: metrics,
+                      ),
+                      // سطرُ الترخيص حُذف بأمر المالك. والفراغُ الذي كان
+                      // تحته يبقى: هو الذي يرفع الزرَّ عن حافّة الشاشة.
+                      const Spacer(flex: 1),
+                    ],
                   ),
                 ),
               ),

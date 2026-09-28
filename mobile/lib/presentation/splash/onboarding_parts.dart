@@ -4,9 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/theme.dart';
 import '../../domain/catalog/entities/vehicle_feed.dart';
-import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../catalog/widgets/remote_image.dart';
 
 /// قطعُ شاشات الترحيب — **مكتوبةٌ مرّةً وتقرؤها الشاشتان**.
 ///
@@ -33,10 +31,7 @@ const Color kLiveRed = Color(0xFFE5484D);
 /// يُقرأ في موضعٍ واحد، فتغييرُ العتبة يحرّك الشاشات الثلاث معاً.
 @immutable
 class OnboardingMetrics {
-  const OnboardingMetrics._({
-    required this.compact,
-    required this.available,
-  });
+  const OnboardingMetrics._({required this.compact, required this.available});
 
   factory OnboardingMetrics.of(double available) => OnboardingMetrics._(
     compact: available < _compactBelow,
@@ -191,7 +186,8 @@ class OnboardingCard extends StatelessWidget {
     this.topEnd = const <Widget>[],
     this.bottomStart = const <Widget>[],
     this.bottomEnd = const <Widget>[],
-    this.vehicleAt = 0,
+    this.asset = 'assets/images/hero_car.png',
+    this.assetAlignment = Alignment.center,
     required this.maxHeight,
     required this.width,
     super.key,
@@ -236,17 +232,19 @@ class OnboardingCard extends StatelessWidget {
   /// ويُقتطع من أعلاها وأسفلها، وهو أرخصُ من كرتٍ أضيقَ من الصفحة.
   final double maxHeight;
 
-  /// أيُّ مركبةٍ من الصفحة تُعرض. **الصفحتان تعرضان سيّارتين مختلفتين** حين
-  /// تتوفّران: صورةٌ واحدةٌ مكرّرةٌ في شاشتين متتاليتين تُقرأ عطلاً في الرسم.
-  final int vehicleAt;
+  /// **صورةٌ من الأصول دائماً، لا صورةُ مركبةٍ من المزاد** — بأمر المالك (٢٩
+  /// سبتمبر ٢٠٢٦): «اعمل صورة احترافية وشكلها جذاب». كانت أوّلَ مركبةٍ في
+  /// المزاد الجاري، فظهرت على خادم التطوير **صورةُ اختبارٍ مرسومة** («TEST
+  /// IMAGE — not a real vehicle photo»)، وفي الإنتاج تكون صورةَ ساحةٍ بهاتفٍ
+  /// لا تصلح غلافاً. والشاشتان تأخذان صورتين مختلفتين — صورةٌ مكرّرةٌ في
+  /// شاشتين متتاليتين تُقرأ عطلاً في الرسم.
+  final String asset;
+
+  /// أيُّ جزءٍ من الصورة العريضة يقع في الإطار الأطول منها.
+  final Alignment assetAlignment;
 
   @override
   Widget build(BuildContext context) {
-    final vehicles = feed?.page.vehicles ?? const <VehicleSummary>[];
-    final car = vehicles.isEmpty
-        ? null
-        : vehicles[vehicleAt.clamp(0, vehicles.length - 1)];
-
     final hasOverlay =
         topStart.isNotEmpty ||
         topEnd.isNotEmpty ||
@@ -283,28 +281,13 @@ class OnboardingCard extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: <Widget>[
-              // **`cover` لا `contain`، ولا طبقةَ تمويهٍ خلفه.**
-              //
-              // كانت هنا طبقتان — صورةٌ بـ`contain` وخلفها نسخةٌ مموّهةٌ
-              // تملأ ما يفضل — وبُنيت على ظنٍّ أن المصغَّرة عريضة (١٦:٩).
-              // وهي ليست كذلك: **قِيست فوُجدت ٧٦٠×٨٠٠**، أي أطولَ من عرضها
-              // (٠٫٩٥) والإطارُ أعرضُ منها (١٫١٢٥). فـ`contain` يملأ الارتفاع
-              // ويترك التمويهَ شريطين على **الجانبين** — وهما «الخطوط
-              // السودا» التي رآها المالك.
-              //
-              // و`cover` يملأ الإطار فلا شريطَ في أي جهة، وثمنُه قصُّ ١٦٪ من
-              // الارتفاع — وهو ربحٌ لا خسارة هنا: المصغَّرةُ نفسُها تحمل
-              // فراغاً داكناً فوق السيّارة وتحتها، والقصُّ يأكله.
-              if (car?.thumbnailUrl != null)
-                RemoteImage(url: car!.thumbnailUrl, decodeWidth: 1000)
-              else
-                Image.asset(
-                  'assets/images/hero_car.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  errorBuilder: (_, _, _) =>
-                      ColoredBox(color: palette.heroBottom),
-                ),
+              Image.asset(
+                asset,
+                fit: BoxFit.cover,
+                alignment: assetAlignment,
+                errorBuilder: (_, _, _) =>
+                    ColoredBox(color: palette.heroBottom),
+              ),
               if (hasOverlay) ...<Widget>[
                 // **ستارٌ في الحافّتين لا على الصورة كلّها.** الشارةُ على
                 // صورةٍ ساطعةٍ لا تُقرأ، والحلُّ المعتاد تعتيمُ الصورة —
@@ -352,7 +335,7 @@ class OnboardingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              ],
+            ],
           ),
         ),
       ),
