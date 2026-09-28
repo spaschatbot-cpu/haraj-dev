@@ -24,6 +24,14 @@ abstract final class ProfileFields {
   static const String nationalId = 'national_id';
 }
 
+/// حقلٌ ينقص التسجيلَ، واسمُه بالعربيّة كما قاله الخادم (`registration_missing`).
+final class RegistrationGap {
+  const RegistrationGap({required this.field, required this.label});
+
+  final String field;
+  final String label;
+}
+
 final class CustomerProfile {
   const CustomerProfile({
     required this.displayName,
@@ -36,6 +44,8 @@ final class CustomerProfile {
     required this.hasCompanyProfile,
     required this.companyProfileComplete,
     required this.lockedFields,
+    this.city = '',
+    this.registrationMissing = const <RegistrationGap>[],
   });
 
   /// الاسم الذي يعرض به الخادم صاحب الحساب — شركةً كان أو فرداً.
@@ -55,6 +65,15 @@ final class CustomerProfile {
   final bool companyProfileComplete;
 
   final List<LockedField> lockedFields;
+
+  /// مدينةُ الفرد — في العنوان الوطنيّ على الخادم.
+  final String city;
+
+  /// ما ينقص ليُعدّ التسجيلُ مكتملاً — **جوابُ الخادم** (`registration_gaps`،
+  /// قاعدةُ v1 نفسُها). فارغةٌ للملف المكتمل، ولا يُحسب «مكتمل» في التطبيق.
+  final List<RegistrationGap> registrationMissing;
+
+  bool get isRegistered => registrationMissing.isEmpty;
 
   /// سبب قفل [field]، أو `null` إن لم يكن مقفولاً.
   ///
@@ -80,6 +99,7 @@ final class CompanyProfile {
     required this.city,
     required this.postalCode,
     required this.isComplete,
+    this.additionalNumber = '',
   });
 
   /// شركة فارغة — للحساب الذي لا شركة له بعد (الخادم يردّ 404).
@@ -93,6 +113,7 @@ final class CompanyProfile {
       district = '',
       city = '',
       postalCode = '',
+      additionalNumber = '',
       isComplete = false;
 
   final String name;
@@ -104,6 +125,9 @@ final class CompanyProfile {
   final String district;
   final String city;
   final String postalCode;
+
+  /// الرقمُ الإضافيّ في العنوان الوطنيّ — يطلبه v1 للشركات وكان غائباً هنا.
+  final String additionalNumber;
 
   /// هل تكفي البيانات لإصدار فاتورة ضريبية — **الخادم** يقرّرها.
   ///

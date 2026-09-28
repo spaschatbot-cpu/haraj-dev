@@ -11,7 +11,7 @@ abstract interface class ProfileRepository {
   /// الحقول المرسَلة هي المتغيّرة وحدها: الخادم يرفض جسماً فارغاً، ورفضه
   /// صحيح — طلب لا يغيّر شيئاً هو عطب في العميل غالباً، والردّ عليه بـ200
   /// يخفي العطب خلف نجاح.
-  Future<CustomerProfile> update({String? fullName, String? email});
+  Future<CustomerProfile> update({String? fullName, String? email, String? city});
 
   /// يثبّت رقم الهوية. الخادم يرفض تغيير هوية صحيحة، ويقبل تصحيح خاطئة.
   Future<CustomerProfile> setNationalId(String nationalId);

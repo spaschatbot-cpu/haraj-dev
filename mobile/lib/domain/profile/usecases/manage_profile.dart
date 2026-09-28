@@ -14,8 +14,8 @@ final class ManageProfile {
 
   Future<Snapshot<CustomerProfile>> load() => _repository.load();
 
-  Future<CustomerProfile> save({String? fullName, String? email}) =>
-      _repository.update(fullName: fullName, email: email);
+  Future<CustomerProfile> save({String? fullName, String? email, String? city}) =>
+      _repository.update(fullName: fullName, email: email, city: city);
 
   Future<CustomerProfile> pinNationalId(String nationalId) =>
       _repository.setNationalId(nationalId);

@@ -19,6 +19,7 @@ class Wallet {
     required this.lockedForDues,
     required this.buckets,
     required this.holds,
+    required this.depositUnit,
     required this.asOf,
   });
 
@@ -33,6 +34,8 @@ class Wallet {
   final String lockedForDues;
   final List<Bucket> buckets;
   final List<Hold> holds;
+  @JsonKey(name: 'deposit_unit')
+  final String depositUnit;
   @JsonKey(name: 'as_of')
   final DateTime asOf;
 

@@ -208,8 +208,27 @@ class ProfileUpdateSerializer(serializers.Serializer):
     """
 
     full_name = serializers.CharField(max_length=200, required=False)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    # **`CharField` بفحص بريدٍ لا `EmailField`.** `EmailField(allow_blank=True)`
+    # يخرج في المخطط `oneOf: [email, enum [""]]`، فيولّده عميلُ التطبيق
+    # (`swagger_parser`) `dynamic` ويضيفه إلى الاستمارة **بلا فحصٍ لـnull** —
+    # فكلُّ تعديلٍ بلا بريدٍ (اسمٌ أو مدينةٌ وحدَها) يسقط في التطبيق بـ`TypeError`
+    # قبل أن يُرسَل. قِيس في نسخة الويب من التطبيق في ٢٨ سبتمبر ٢٠٢٦: «أكمل
+    # تسجيلك» ⇐ «حدث خطأ غير متوقع»، ولا طلبَ وصل الخادم. والقاعدةُ هي هي.
+    email = serializers.CharField(
+        max_length=254, required=False, allow_blank=True, trim_whitespace=True
+    )
     city = serializers.CharField(max_length=100, required=False)
+
+    def validate_email(self, value: str) -> str:
+        if value:
+            from django.core.exceptions import ValidationError as DjangoValidationError
+            from django.core.validators import validate_email
+
+            try:
+                validate_email(value)
+            except DjangoValidationError as bad:
+                raise serializers.ValidationError("أدخل بريداً إلكترونياً صحيحاً.") from bad
+        return value
 
     def validate_full_name(self, value: str) -> str:
         """قاعدةُ v1 للاسم (المالك، ٢٧ يونيو ٢٠٢٦ — `ClientProfileGuard::validate`).

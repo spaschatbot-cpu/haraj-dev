@@ -30,7 +30,8 @@ abstract class ProfileApi {
   @PATCH('/api/v1/profile/')
   Future<Profile> profileUpdate({
     @Part(name: 'full_name') String? fullName,
-    @Part(name: 'email') dynamic email,
+    @Part(name: 'email') String? email,
+    @Part(name: 'city') String? city,
   });
 
   /// ملف الشركة.
@@ -54,6 +55,7 @@ abstract class ProfileApi {
     @Part(name: 'district') String? district,
     @Part(name: 'city') String? city,
     @Part(name: 'postal_code') String? postalCode,
+    @Part(name: 'additional_number') String? additionalNumber,
   });
 
   /// الساري من كل نوع — أربعةُ صفوفٍ دائماً، والغائبُ `file: null`.

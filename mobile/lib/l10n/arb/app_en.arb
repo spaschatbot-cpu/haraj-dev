@@ -760,5 +760,75 @@
   "verifyTagline": "One last step — the code is in a message on your phone",
   "@verifyTagline": {},
   "verifyNewAccountHint": "New account — write your name as in your ID to finish signing up.",
-  "@verifyNewAccountHint": {}
+  "@verifyNewAccountHint": {},
+  "registrationTypeTitle": "Account type",
+  "@registrationTypeTitle": {},
+  "registrationTypeSubtitle": "Your number is verified. Choose the account type so we ask for the right details.",
+  "@registrationTypeSubtitle": {},
+  "registrationIndividual": "Individual",
+  "@registrationIndividual": {},
+  "registrationIndividualHint": "Name and national ID",
+  "@registrationIndividualHint": {},
+  "registrationCompany": "Company",
+  "@registrationCompany": {},
+  "registrationCompanyHint": "Commercial registration and VAT number",
+  "@registrationCompanyHint": {},
+  "registrationCompleteTitle": "Complete your registration",
+  "@registrationCompleteTitle": {},
+  "registrationMissing": "Your account is missing: {fields}",
+  "@registrationMissing": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationAccountType": "Account type: {type}",
+  "@registrationAccountType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationChangeType": "Change",
+  "@registrationChangeType": {},
+  "registrationFullName": "Full name",
+  "@registrationFullName": {},
+  "registrationRepresentative": "Authorised representative",
+  "@registrationRepresentative": {},
+  "registrationNameHint": "As on your ID — no digits",
+  "@registrationNameHint": {},
+  "registrationNationalId": "National ID / Iqama",
+  "@registrationNationalId": {},
+  "registrationNationalIdHint": "10 digits — set once",
+  "@registrationNationalIdHint": {},
+  "registrationCity": "City",
+  "@registrationCity": {},
+  "registrationOrgName": "Establishment name",
+  "@registrationOrgName": {},
+  "registrationAdditionalNumber": "Additional number",
+  "@registrationAdditionalNumber": {},
+  "registrationCompanySection": "Establishment and national address",
+  "@registrationCompanySection": {},
+  "registrationSave": "Save and continue",
+  "@registrationSave": {},
+  "registrationDone": "Registration complete. The IBAN image is uploaded when you request a deposit refund.",
+  "@registrationDone": {},
+  "registrationStillMissing": "Still missing: {fields}",
+  "@registrationStillMissing": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationBanner": "Complete your registration — missing: {fields}",
+  "@registrationBanner": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  }
 }

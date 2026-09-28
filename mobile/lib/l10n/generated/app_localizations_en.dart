@@ -1488,4 +1488,84 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get verifyNewAccountHint =>
       'New account — write your name as in your ID to finish signing up.';
+
+  @override
+  String get registrationTypeTitle => 'Account type';
+
+  @override
+  String get registrationTypeSubtitle =>
+      'Your number is verified. Choose the account type so we ask for the right details.';
+
+  @override
+  String get registrationIndividual => 'Individual';
+
+  @override
+  String get registrationIndividualHint => 'Name and national ID';
+
+  @override
+  String get registrationCompany => 'Company';
+
+  @override
+  String get registrationCompanyHint =>
+      'Commercial registration and VAT number';
+
+  @override
+  String get registrationCompleteTitle => 'Complete your registration';
+
+  @override
+  String registrationMissing(String fields) {
+    return 'Your account is missing: $fields';
+  }
+
+  @override
+  String registrationAccountType(String type) {
+    return 'Account type: $type';
+  }
+
+  @override
+  String get registrationChangeType => 'Change';
+
+  @override
+  String get registrationFullName => 'Full name';
+
+  @override
+  String get registrationRepresentative => 'Authorised representative';
+
+  @override
+  String get registrationNameHint => 'As on your ID — no digits';
+
+  @override
+  String get registrationNationalId => 'National ID / Iqama';
+
+  @override
+  String get registrationNationalIdHint => '10 digits — set once';
+
+  @override
+  String get registrationCity => 'City';
+
+  @override
+  String get registrationOrgName => 'Establishment name';
+
+  @override
+  String get registrationAdditionalNumber => 'Additional number';
+
+  @override
+  String get registrationCompanySection => 'Establishment and national address';
+
+  @override
+  String get registrationSave => 'Save and continue';
+
+  @override
+  String get registrationDone =>
+      'Registration complete. The IBAN image is uploaded when you request a deposit refund.';
+
+  @override
+  String registrationStillMissing(String fields) {
+    return 'Still missing: $fields';
+  }
+
+  @override
+  String registrationBanner(String fields) {
+    return 'Complete your registration — missing: $fields';
+  }
 }

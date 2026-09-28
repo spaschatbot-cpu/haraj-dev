@@ -75,6 +75,25 @@ class _ProfileBody extends ConsumerWidget {
       ),
       children: [
         StaleDataBanner(snapshot: snapshot),
+        // التسجيلُ الناقص يُقال أوّلَ الصفحة ويُفتح بابُه — لمن خرج من «أكمل
+        // تسجيلك» قبل أن يُنهيها. والناقصُ جوابُ الخادم (`registrationMissing`)،
+        // والمزايدةُ ترفض صاحبَه على أيّ حال.
+        if (!profile.isRegistered) ...<Widget>[
+          Card(
+            color: Theme.of(context).colorScheme.errorContainer,
+            child: ListTile(
+              leading: const Icon(Icons.assignment_late_outlined),
+              title: Text(
+                l10n.registrationBanner(
+                  profile.registrationMissing.map((gap) => gap.label).join('، '),
+                ),
+              ),
+              trailing: const Icon(Icons.chevron_left),
+              onTap: () => context.pushNamed(Routes.completeRegistration),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         _ProfileHeaderCard(profile: profile, balance: balance),
         const SizedBox(height: 20),
 

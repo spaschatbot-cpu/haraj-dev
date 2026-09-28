@@ -20,6 +20,7 @@ class CompanyProfileRead {
     this.district,
     this.city,
     this.postalCode,
+    this.additionalNumber,
   });
 
   factory CompanyProfileRead.fromJson(Map<String, Object?> json) =>
@@ -39,6 +40,8 @@ class CompanyProfileRead {
   final String? city;
   @JsonKey(name: 'postal_code')
   final String? postalCode;
+  @JsonKey(name: 'additional_number')
+  final String? additionalNumber;
   @JsonKey(name: 'is_complete')
   final bool isComplete;
 

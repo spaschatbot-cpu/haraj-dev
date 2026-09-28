@@ -78,11 +78,14 @@ abstract class AuthApi {
   /// `POST /api/v1/auth/verify/` — exchange a correct code for a token pair.
   ///
   /// [fullName] - يُستعمل عند إنشاء الحساب لأول مرة فقط.
+  ///
+  /// [deferProfile] - أنشئ الحسابَ الجديد بلا اسمٍ ودَع العميلَ يُكمل بياناته بعد الرمز (`registration_missing` في الملف). بدونه يبقى العقدُ القديم: حسابٌ جديدٌ بلا اسمٍ يُرفَض بـ`registration_needs_name`.
   @MultiPart()
   @POST('/api/v1/auth/verify/')
   Future<TokenPair> v1AuthVerifyCreate({
     @Part(name: 'phone') required String phone,
     @Part(name: 'code') required String code,
+    @Part(name: 'defer_profile') bool? deferProfile = false,
     @Part(name: 'full_name') String? fullName,
   });
 }

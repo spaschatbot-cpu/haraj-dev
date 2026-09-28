@@ -18,6 +18,7 @@ CompanyProfileRead _$CompanyProfileReadFromJson(Map<String, dynamic> json) =>
       district: json['district'] as String?,
       city: json['city'] as String?,
       postalCode: json['postal_code'] as String?,
+      additionalNumber: json['additional_number'] as String?,
     );
 
 Map<String, dynamic> _$CompanyProfileReadToJson(CompanyProfileRead instance) =>
@@ -31,5 +32,6 @@ Map<String, dynamic> _$CompanyProfileReadToJson(CompanyProfileRead instance) =>
       'district': instance.district,
       'city': instance.city,
       'postal_code': instance.postalCode,
+      'additional_number': instance.additionalNumber,
       'is_complete': instance.isComplete,
     };

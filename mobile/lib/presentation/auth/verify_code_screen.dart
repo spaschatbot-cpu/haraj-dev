@@ -8,6 +8,7 @@ import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/common/failure_codes.dart';
+import '../../domain/profile/entities/customer_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/cooldown_button.dart';
 import '../common/failure_view.dart';
@@ -51,10 +52,8 @@ class VerifyCodeScreen extends ConsumerStatefulWidget {
 
 class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   final TextEditingController _code = TextEditingController();
-  final TextEditingController _fullName = TextEditingController();
 
   bool _busy = false;
-  bool _needsName = false;
   Failure? _failure;
   int _cooldownSeconds = 0;
   int _cooldownToken = 0;
@@ -73,7 +72,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
   @override
   void dispose() {
     _code.dispose();
-    _fullName.dispose();
     super.dispose();
   }
 
@@ -86,24 +84,41 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     try {
       await ref
           .read(signInWithCodeProvider)
-          .submitCode(
-            phone: phone,
-            code: _code.text.trim(),
-            fullName: _fullName.text.trim(),
-          );
+          .submitCode(phone: phone, code: _code.text.trim());
+
+      // **الرمزُ وحدَه، ثمّ القرار** — ترتيبُ v1 وطلبُ المالك (٢٨ سبتمبر ٢٠٢٦):
+      // مكتملٌ ⇐ الرئيسية على طول؛ جديدٌ أو ناقصٌ ⇐ «أكمل تسجيلك». وكان الاسمُ
+      // يُطلب هنا بعد رفض `registration_needs_name` للحساب الجديد وحده، فيبقى
+      // حسابٌ منقولٌ من v1 باسمٍ فارغ ناقصاً بلا أن يُسأل.
+      //
+      // وما ينقص جوابُ الخادم (`registrationMissing`). وفشلُ السؤال لا يُسقط
+      // الدخول: الجلسةُ قائمة، والرئيسيةُ أصدقُ من شاشة خطأٍ بعد رمزٍ صحيح.
+      final profile = await ref
+          .read(manageProfileProvider)
+          .load()
+          .then<CustomerProfile?>((snapshot) => snapshot.value)
+          .catchError((Object _) => null);
+      if (!mounted) return;
+
+      // **والدخولُ يُعلَن بعد السؤال لا قبله.** `markSignedIn` يوقظ الموجّه،
+      // وقاعدتُه تردّ كلَّ داخلٍ عن مسار الدخول إلى الرئيسية فوراً — فكانت هذه
+      // الشاشةُ تُغلَق قبل أن يعود جوابُ «ما ينقص»، و`mounted` بعدها كاذبة، فيبقى
+      // الحسابُ الجديدُ في الرئيسية بلا اسم. قِيس في نسخة الويب من التطبيق: رمزٌ
+      // صحيح ⇐ الرئيسية، و`GET /profile/` يعود بثلاثة نواقص بعد أن أُغلقت الشاشة.
+      // والرموزُ محفوظةٌ في `submitCode`، فالسؤالُ يعمل قبل الإعلان.
       ref.read(sessionControllerProvider.notifier).markSignedIn();
       ref.read(pendingSignInProvider.notifier).clear();
-      if (mounted) context.goNamed(Routes.home);
+      if (profile != null && !profile.isRegistered) {
+        context.goNamed(Routes.completeRegistration);
+      } else {
+        context.goNamed(Routes.home);
+      }
     } on Failure catch (failure) {
       if (!mounted) return;
       setState(() {
         _failure = failure;
         _rejections += 1;
-        if (failure is ApiFailure) {
-          // الاسم مطلوب: يظهر الحقل، ورسالة الخادم فوقه تشرح لماذا.
-          _needsName |= failure.code == FailureCodes.registrationNeedsName;
-          _applyCooldown(failure);
-        }
+        if (failure is ApiFailure) _applyCooldown(failure);
       });
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -261,26 +276,6 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
             onSubmitted: (_) => _canSubmit ? _submit(phone) : null,
           ),
         ),
-        if (_needsName) ...<Widget>[
-          const SizedBox(height: 14),
-          AuthNotice(
-            icon: Icons.person_add_alt_1_outlined,
-            text: l10n.verifyNewAccountHint,
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: _fullName,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: l10n.verifyFullNameLabel,
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ],
         const SizedBox(height: 16),
         // تبديلٌ ناعمٌ بين الزرّ والدوّار: قفزةٌ بينهما تُقرأ وميضاً.
         AnimatedSwitcher(
@@ -329,11 +324,8 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     );
   }
 
-  bool get _canSubmit {
-    if (_code.text.trim().isEmpty) return false;
-    // الاسم شرط فقط بعد أن يطلبه الخادم لهذا الرقم.
-    return !_needsName || _fullName.text.trim().isNotEmpty;
-  }
+  // الرمزُ وحدَه شرطُ الإرسال — البياناتُ في «أكمل تسجيلك» بعده.
+  bool get _canSubmit => _code.text.trim().isNotEmpty;
 }
 
 /// «أرسلنا رمزاً إلى …» ومعه وقتُ الانتهاء وزرُّ تعديل الرقم.

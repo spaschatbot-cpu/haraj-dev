@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../domain/profile/entities/customer_profile.dart';
+import '../auth/session_controller.dart';
 
 final companyProfileControllerProvider =
     AsyncNotifierProvider<CompanyProfileController, CompanyProfile?>(
@@ -15,8 +16,12 @@ final companyProfileControllerProvider =
 /// الصفحة، ولما استطاع إنشاء شركته أصلاً.
 final class CompanyProfileController extends AsyncNotifier<CompanyProfile?> {
   @override
-  Future<CompanyProfile?> build() =>
-      ref.watch(manageProfileProvider).loadCompany();
+  Future<CompanyProfile?> build() {
+    // مع كلّ تغيّرٍ في الجلسة، كملفّ العميل (`profile_controller.dart`): منشأةُ
+    // من خرج لا تُعرض لمن دخل بعده.
+    ref.watch(sessionControllerProvider);
+    return ref.watch(manageProfileProvider).loadCompany();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();

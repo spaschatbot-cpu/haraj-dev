@@ -27,6 +27,9 @@ abstract final class Routes {
   static const String home = 'home';
   static const String signIn = 'signIn';
   static const String verifyCode = 'verifyCode';
+
+  /// «أكمل تسجيلك» — بعد الرمز لكلّ حسابٍ ينقصه شيء (ترتيبُ v1).
+  static const String completeRegistration = 'completeRegistration';
   static const String profile = 'profile';
   static const String companyProfile = 'companyProfile';
   static const String changePhone = 'changePhone';
@@ -102,6 +105,10 @@ abstract final class Routes {
   static const String homePath = '/';
   static const String signInPath = '/sign-in';
   static const String verifyCodePath = '/sign-in/code';
+
+  /// **خارجَ `/sign-in`** عمداً: الموجّه يردّ كلَّ داخلٍ عن مسار الدخول إلى
+  /// الرئيسية (`signedIn && onSignInFlow`)، وصاحبُ هذه الشاشة داخلٌ بالفعل.
+  static const String completeRegistrationPath = '/complete-registration';
   static const String profilePath = '/profile';
   static const String auctionPath = '/auctions/:auctionId';
   static const String bidsPath = '/bids';

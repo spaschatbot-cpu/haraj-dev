@@ -170,6 +170,7 @@ class _AuthApi implements AuthApi {
   Future<TokenPair> v1AuthVerifyCreate({
     required String phone,
     required String code,
+    bool? deferProfile = false,
     String? fullName,
   }) async {
     final _extra = <String, dynamic>{};
@@ -179,6 +180,9 @@ class _AuthApi implements AuthApi {
     final _data = FormData();
     _data.fields.add(MapEntry('phone', phone));
     _data.fields.add(MapEntry('code', code));
+    if (deferProfile != null) {
+      _data.fields.add(MapEntry('defer_profile', deferProfile.toString()));
+    }
     if (fullName != null) {
       _data.fields.add(MapEntry('full_name', fullName));
     }

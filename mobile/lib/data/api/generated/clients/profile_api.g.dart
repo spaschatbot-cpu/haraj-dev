@@ -47,7 +47,11 @@ class _ProfileApi implements ProfileApi {
   }
 
   @override
-  Future<Profile> profileUpdate({String? fullName, dynamic email}) async {
+  Future<Profile> profileUpdate({
+    String? fullName,
+    String? email,
+    String? city,
+  }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     queryParameters.removeWhere((k, v) => v == null);
@@ -56,7 +60,12 @@ class _ProfileApi implements ProfileApi {
     if (fullName != null) {
       _data.fields.add(MapEntry('full_name', fullName));
     }
-    _data.fields.add(MapEntry('email', email));
+    if (email != null) {
+      _data.fields.add(MapEntry('email', email));
+    }
+    if (city != null) {
+      _data.fields.add(MapEntry('city', city));
+    }
     final _options = _setStreamType<Profile>(
       Options(
             method: 'PATCH',
@@ -121,6 +130,7 @@ class _ProfileApi implements ProfileApi {
     String? district,
     String? city,
     String? postalCode,
+    String? additionalNumber,
   }) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
@@ -153,6 +163,9 @@ class _ProfileApi implements ProfileApi {
     }
     if (postalCode != null) {
       _data.fields.add(MapEntry('postal_code', postalCode));
+    }
+    if (additionalNumber != null) {
+      _data.fields.add(MapEntry('additional_number', additionalNumber));
     }
     final _options = _setStreamType<CompanyProfileRead>(
       Options(

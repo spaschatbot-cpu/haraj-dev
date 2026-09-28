@@ -1401,5 +1401,75 @@
   "verifyNewAccountHint": "حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.",
   "@verifyNewAccountHint": {
     "description": "سطر يظهر لمن لا حساب له في شاشة الرمز"
+  },
+  "registrationTypeTitle": "نوع الحساب",
+  "@registrationTypeTitle": {},
+  "registrationTypeSubtitle": "تحقّقنا من رقمك. اختر نوع الحساب لنطلب البيانات المناسبة.",
+  "@registrationTypeSubtitle": {},
+  "registrationIndividual": "فرد",
+  "@registrationIndividual": {},
+  "registrationIndividualHint": "بالاسم ورقم الهوية",
+  "@registrationIndividualHint": {},
+  "registrationCompany": "شركة / مؤسسة",
+  "@registrationCompany": {},
+  "registrationCompanyHint": "بالسجل التجاري والرقم الضريبي",
+  "@registrationCompanyHint": {},
+  "registrationCompleteTitle": "أكمل تسجيلك",
+  "@registrationCompleteTitle": {},
+  "registrationMissing": "ينقص حسابك: {fields}",
+  "@registrationMissing": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationAccountType": "نوع الحساب: {type}",
+  "@registrationAccountType": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationChangeType": "تغيير",
+  "@registrationChangeType": {},
+  "registrationFullName": "الاسم الكامل",
+  "@registrationFullName": {},
+  "registrationRepresentative": "اسم المفوّض / المسؤول",
+  "@registrationRepresentative": {},
+  "registrationNameHint": "الاسم كما في الهوية — بلا أرقام",
+  "@registrationNameHint": {},
+  "registrationNationalId": "رقم الهوية أو الإقامة",
+  "@registrationNationalId": {},
+  "registrationNationalIdHint": "١٠ أرقام — يُسجَّل مرّةً واحدة",
+  "@registrationNationalIdHint": {},
+  "registrationCity": "المدينة",
+  "@registrationCity": {},
+  "registrationOrgName": "اسم المنشأة",
+  "@registrationOrgName": {},
+  "registrationAdditionalNumber": "الرقم الإضافي",
+  "@registrationAdditionalNumber": {},
+  "registrationCompanySection": "بيانات المنشأة والعنوان الوطني",
+  "@registrationCompanySection": {},
+  "registrationSave": "حفظ ومتابعة",
+  "@registrationSave": {},
+  "registrationDone": "اكتمل تسجيلك. صورةُ الآيبان تُرفع عند طلب استرداد التأمين.",
+  "@registrationDone": {},
+  "registrationStillMissing": "لا يزال ناقصاً: {fields}",
+  "@registrationStillMissing": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
+  },
+  "registrationBanner": "أكمل تسجيلك — ينقص: {fields}",
+  "@registrationBanner": {
+    "placeholders": {
+      "fields": {
+        "type": "String"
+      }
+    }
   }
 }

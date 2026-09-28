@@ -18,6 +18,7 @@ Wallet _$WalletFromJson(Map<String, dynamic> json) => Wallet(
   holds: (json['holds'] as List<dynamic>)
       .map((e) => Hold.fromJson(e as Map<String, dynamic>))
       .toList(),
+  depositUnit: json['deposit_unit'] as String,
   asOf: DateTime.parse(json['as_of'] as String),
 );
 
@@ -29,5 +30,6 @@ Map<String, dynamic> _$WalletToJson(Wallet instance) => <String, dynamic>{
   'locked_for_dues': instance.lockedForDues,
   'buckets': instance.buckets,
   'holds': instance.holds,
+  'deposit_unit': instance.depositUnit,
   'as_of': instance.asOf.toIso8601String(),
 };

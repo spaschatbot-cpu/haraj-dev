@@ -5,6 +5,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'locked_field.dart';
+import 'registration_gap.dart';
 
 part 'profile.g.dart';
 
@@ -28,6 +29,8 @@ class Profile {
     required this.hasCompanyProfile,
     required this.companyProfileComplete,
     required this.lockedFields,
+    required this.city,
+    required this.registrationMissing,
     this.email,
   });
 
@@ -57,6 +60,11 @@ class Profile {
   final bool companyProfileComplete;
   @JsonKey(name: 'locked_fields')
   final List<LockedField> lockedFields;
+  final String city;
+
+  /// ما ينقص ليُعدّ التسجيلُ مكتملاً — فارغةٌ للملف المكتمل
+  @JsonKey(name: 'registration_missing')
+  final List<RegistrationGap> registrationMissing;
 
   Map<String, Object?> toJson() => _$ProfileToJson(this);
 }

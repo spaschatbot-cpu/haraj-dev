@@ -51,6 +51,7 @@ export 'models/purchase.dart';
 export 'models/reason_enum.dart';
 export 'models/refund_request.dart';
 export 'models/refund_request_state_enum.dart';
+export 'models/registration_gap.dart';
 export 'models/send_code_purpose_enum.dart';
 export 'models/send_code_response.dart';
 export 'models/start_phone_change_response.dart';

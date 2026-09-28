@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../domain/common/snapshot.dart';
 import '../../domain/profile/entities/customer_profile.dart';
+import '../auth/session_controller.dart';
 
 final profileControllerProvider =
     AsyncNotifierProvider<ProfileController, Snapshot<CustomerProfile>>(
@@ -16,8 +17,16 @@ final profileControllerProvider =
 /// العرض تكون العلامة تخميناً.
 final class ProfileController extends AsyncNotifier<Snapshot<CustomerProfile>> {
   @override
-  Future<Snapshot<CustomerProfile>> build() =>
-      ref.watch(manageProfileProvider).load();
+  Future<Snapshot<CustomerProfile>> build() {
+    // **يُعاد البناءُ مع كلّ تغيّرٍ في الجلسة.** المتحكّمُ يعيش عمرَ التطبيق،
+    // فكان ملفُّ من خرج يبقى في الذاكرة ويُعرض لمن دخل بعده على الجهاز نفسِه —
+    // قِيس في نسخة الويب من التطبيق (٢٨ سبتمبر ٢٠٢٦): خرج حسابٌ ودخل آخرُ جديد،
+    // فعرضت «أكمل تسجيلك» اسمَ الأوّل ومدينتَه و«ينقص حسابك:» فارغة، ولو حُفظ
+    // لكُتب اسمُ الأوّل على الثاني. والخروجُ نفسُه يمسح الكاش (`signOut`) لا
+    // حالةَ Riverpod — فالمراقبةُ هنا هي ما يمسحها.
+    ref.watch(sessionControllerProvider);
+    return ref.watch(manageProfileProvider).load();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
@@ -30,10 +39,10 @@ final class ProfileController extends AsyncNotifier<Snapshot<CustomerProfile>> {
   ///
   /// الرمي لا الابتلاع: رفض الخادم رسالةٌ عربية تخصّ هذا الحقل، وابتلاعها في
   /// `AsyncError` يمسح النموذج المملوء من الشاشة ويترك المستخدم بلا سبب.
-  Future<void> save({String? fullName, String? email}) async {
+  Future<void> save({String? fullName, String? email, String? city}) async {
     final updated = await ref
         .read(manageProfileProvider)
-        .save(fullName: fullName, email: email);
+        .save(fullName: fullName, email: email, city: city);
     _replaceWith(updated);
   }
 

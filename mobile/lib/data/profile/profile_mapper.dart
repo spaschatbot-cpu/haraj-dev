@@ -25,6 +25,10 @@ extension ProfileMapper on api.Profile {
     lockedFields: lockedFields
         .map((locked) => locked.toDomain())
         .toList(growable: false),
+    city: city,
+    registrationMissing: registrationMissing
+        .map((gap) => RegistrationGap(field: gap.field, label: gap.label))
+        .toList(growable: false),
   );
 }
 
@@ -43,6 +47,7 @@ extension CompanyProfileReadMapper on api.CompanyProfileRead {
     district: district ?? '',
     city: city ?? '',
     postalCode: postalCode ?? '',
+    additionalNumber: additionalNumber ?? '',
     isComplete: isComplete,
   );
 }

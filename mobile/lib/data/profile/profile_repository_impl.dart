@@ -75,9 +75,13 @@ final class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   @override
-  Future<CustomerProfile> update({String? fullName, String? email}) async {
+  Future<CustomerProfile> update({
+    String? fullName,
+    String? email,
+    String? city,
+  }) async {
     final profile = await callApi(
-      () => _api.profileUpdate(fullName: fullName, email: email),
+      () => _api.profileUpdate(fullName: fullName, email: email, city: city),
     );
     await _remember(profile);
     return profile.toDomain();
@@ -120,6 +124,7 @@ final class ProfileRepositoryImpl implements ProfileRepository {
         district: company.district,
         city: company.city,
         postalCode: company.postalCode,
+        additionalNumber: company.additionalNumber,
       ),
     );
     return saved.toDomain();

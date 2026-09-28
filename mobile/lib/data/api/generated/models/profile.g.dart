@@ -22,6 +22,10 @@ Profile _$ProfileFromJson(Map<String, dynamic> json) => Profile(
   lockedFields: (json['locked_fields'] as List<dynamic>)
       .map((e) => LockedField.fromJson(e as Map<String, dynamic>))
       .toList(),
+  city: json['city'] as String,
+  registrationMissing: (json['registration_missing'] as List<dynamic>)
+      .map((e) => RegistrationGap.fromJson(e as Map<String, dynamic>))
+      .toList(),
   email: json['email'],
 );
 
@@ -38,4 +42,6 @@ Map<String, dynamic> _$ProfileToJson(Profile instance) => <String, dynamic>{
   'has_company_profile': instance.hasCompanyProfile,
   'company_profile_complete': instance.companyProfileComplete,
   'locked_fields': instance.lockedFields,
+  'city': instance.city,
+  'registration_missing': instance.registrationMissing,
 };

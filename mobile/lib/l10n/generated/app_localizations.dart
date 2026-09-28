@@ -2605,6 +2605,144 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.'**
   String get verifyNewAccountHint;
+
+  /// No description provided for @registrationTypeTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الحساب'**
+  String get registrationTypeTitle;
+
+  /// No description provided for @registrationTypeSubtitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحقّقنا من رقمك. اختر نوع الحساب لنطلب البيانات المناسبة.'**
+  String get registrationTypeSubtitle;
+
+  /// No description provided for @registrationIndividual.
+  ///
+  /// In ar, this message translates to:
+  /// **'فرد'**
+  String get registrationIndividual;
+
+  /// No description provided for @registrationIndividualHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'بالاسم ورقم الهوية'**
+  String get registrationIndividualHint;
+
+  /// No description provided for @registrationCompany.
+  ///
+  /// In ar, this message translates to:
+  /// **'شركة / مؤسسة'**
+  String get registrationCompany;
+
+  /// No description provided for @registrationCompanyHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'بالسجل التجاري والرقم الضريبي'**
+  String get registrationCompanyHint;
+
+  /// No description provided for @registrationCompleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكمل تسجيلك'**
+  String get registrationCompleteTitle;
+
+  /// No description provided for @registrationMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'ينقص حسابك: {fields}'**
+  String registrationMissing(String fields);
+
+  /// No description provided for @registrationAccountType.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الحساب: {type}'**
+  String registrationAccountType(String type);
+
+  /// No description provided for @registrationChangeType.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير'**
+  String get registrationChangeType;
+
+  /// No description provided for @registrationFullName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الكامل'**
+  String get registrationFullName;
+
+  /// No description provided for @registrationRepresentative.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المفوّض / المسؤول'**
+  String get registrationRepresentative;
+
+  /// No description provided for @registrationNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم كما في الهوية — بلا أرقام'**
+  String get registrationNameHint;
+
+  /// No description provided for @registrationNationalId.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الهوية أو الإقامة'**
+  String get registrationNationalId;
+
+  /// No description provided for @registrationNationalIdHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'١٠ أرقام — يُسجَّل مرّةً واحدة'**
+  String get registrationNationalIdHint;
+
+  /// No description provided for @registrationCity.
+  ///
+  /// In ar, this message translates to:
+  /// **'المدينة'**
+  String get registrationCity;
+
+  /// No description provided for @registrationOrgName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المنشأة'**
+  String get registrationOrgName;
+
+  /// No description provided for @registrationAdditionalNumber.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم الإضافي'**
+  String get registrationAdditionalNumber;
+
+  /// No description provided for @registrationCompanySection.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيانات المنشأة والعنوان الوطني'**
+  String get registrationCompanySection;
+
+  /// No description provided for @registrationSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ ومتابعة'**
+  String get registrationSave;
+
+  /// No description provided for @registrationDone.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتمل تسجيلك. صورةُ الآيبان تُرفع عند طلب استرداد التأمين.'**
+  String get registrationDone;
+
+  /// No description provided for @registrationStillMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يزال ناقصاً: {fields}'**
+  String registrationStillMissing(String fields);
+
+  /// No description provided for @registrationBanner.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكمل تسجيلك — ينقص: {fields}'**
+  String registrationBanner(String fields);
 }
 
 class _AppLocalizationsDelegate

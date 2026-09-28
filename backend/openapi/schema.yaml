@@ -2597,11 +2597,8 @@ components:
           type: string
           maxLength: 200
         email:
-          oneOf:
-          - type: string
-            format: email
-          - type: string
-            maxLength: 0
+          type: string
+          maxLength: 254
         city:
           type: string
           maxLength: 100

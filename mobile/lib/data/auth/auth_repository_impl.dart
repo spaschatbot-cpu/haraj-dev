@@ -40,9 +40,17 @@ final class AuthRepositoryImpl implements AuthRepository {
     required String code,
     String fullName = '',
   }) async {
+    // **`deferProfile: true` دائماً** — الرمزُ أوّلاً ثمّ «أكمل تسجيلك»، ترتيبُ
+    // v1 وطلبُ المالك (٢٨ سبتمبر ٢٠٢٦). الخادمُ يُنشئ الحسابَ الجديد بلا اسم،
+    // والتطبيقُ يسأله بعدها عمّا ينقص (`registrationMissing`). و`fullName` باقٍ
+    // في العقد لمن يرسله، ولا تطلبه شاشةُ الرمز بعد اليوم.
     final pair = await callApi(
-      () =>
-          _api.v1AuthVerifyCreate(phone: phone, code: code, fullName: fullName),
+      () => _api.v1AuthVerifyCreate(
+        phone: phone,
+        code: code,
+        deferProfile: true,
+        fullName: fullName.isEmpty ? null : fullName,
+      ),
     );
     await _tokens.save(access: pair.access, refresh: pair.refresh);
     return AuthSession(

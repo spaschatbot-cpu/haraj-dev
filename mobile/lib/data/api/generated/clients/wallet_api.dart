@@ -31,6 +31,17 @@ abstract class WalletApi {
     @Part(name: 'note') String? note,
   });
 
+  /// `POST /api/v1/wallet/refund-requests/{reference}/cancel/` — نظيرُ.
+  /// `cancel_refund.php`.
+  ///
+  /// ورسالةُ الرفض في المزايدة تَعِد بهذا البابِ بنصّها: «تأمينك محجوز له حتى.
+  /// يُنفَّذ **أو يُلغى**» — وكان الوعدُ بلا باب. والمرجعُ في المسار لا المعرّفُ.
+  /// الرقميّ: هو ما يحمله جسمُ الطلب أصلاً في كلّ ردّ، وهو مبهَمٌ لا يُخمَّن.
+  @POST('/api/v1/wallet/refund-requests/{reference}/cancel/')
+  Future<RefundRequest> v1WalletRefundRequestsCancelCreate({
+    @Path('reference') required String reference,
+  });
+
   /// Start a card top-up, or list the ones this customer started.
   @GET('/api/v1/wallet/topups/')
   Future<List<PaymentIntent>> v1WalletTopupsList();

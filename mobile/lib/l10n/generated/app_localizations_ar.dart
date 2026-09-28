@@ -1488,4 +1488,83 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get verifyNewAccountHint =>
       'حساب جديد — اكتب اسمك كما في الهوية لنكمل التسجيل.';
+
+  @override
+  String get registrationTypeTitle => 'نوع الحساب';
+
+  @override
+  String get registrationTypeSubtitle =>
+      'تحقّقنا من رقمك. اختر نوع الحساب لنطلب البيانات المناسبة.';
+
+  @override
+  String get registrationIndividual => 'فرد';
+
+  @override
+  String get registrationIndividualHint => 'بالاسم ورقم الهوية';
+
+  @override
+  String get registrationCompany => 'شركة / مؤسسة';
+
+  @override
+  String get registrationCompanyHint => 'بالسجل التجاري والرقم الضريبي';
+
+  @override
+  String get registrationCompleteTitle => 'أكمل تسجيلك';
+
+  @override
+  String registrationMissing(String fields) {
+    return 'ينقص حسابك: $fields';
+  }
+
+  @override
+  String registrationAccountType(String type) {
+    return 'نوع الحساب: $type';
+  }
+
+  @override
+  String get registrationChangeType => 'تغيير';
+
+  @override
+  String get registrationFullName => 'الاسم الكامل';
+
+  @override
+  String get registrationRepresentative => 'اسم المفوّض / المسؤول';
+
+  @override
+  String get registrationNameHint => 'الاسم كما في الهوية — بلا أرقام';
+
+  @override
+  String get registrationNationalId => 'رقم الهوية أو الإقامة';
+
+  @override
+  String get registrationNationalIdHint => '١٠ أرقام — يُسجَّل مرّةً واحدة';
+
+  @override
+  String get registrationCity => 'المدينة';
+
+  @override
+  String get registrationOrgName => 'اسم المنشأة';
+
+  @override
+  String get registrationAdditionalNumber => 'الرقم الإضافي';
+
+  @override
+  String get registrationCompanySection => 'بيانات المنشأة والعنوان الوطني';
+
+  @override
+  String get registrationSave => 'حفظ ومتابعة';
+
+  @override
+  String get registrationDone =>
+      'اكتمل تسجيلك. صورةُ الآيبان تُرفع عند طلب استرداد التأمين.';
+
+  @override
+  String registrationStillMissing(String fields) {
+    return 'لا يزال ناقصاً: $fields';
+  }
+
+  @override
+  String registrationBanner(String fields) {
+    return 'أكمل تسجيلك — ينقص: $fields';
+  }
 }

@@ -15,6 +15,7 @@ import '../presentation/account/support_screen.dart';
 import '../presentation/account/terms_screen.dart';
 import '../presentation/account/wallet_guide_screen.dart';
 import '../presentation/activity/my_activity_screen.dart';
+import '../presentation/auth/complete_registration_screen.dart';
 import '../presentation/auth/pending_sign_in.dart';
 import '../presentation/auth/session_controller.dart';
 import '../presentation/auth/sign_in_screen.dart';
@@ -277,6 +278,14 @@ List<RouteBase> appRoutes() => <RouteBase>[
       ),
     ],
   ),
+
+  // «أكمل تسجيلك» خارج القشرة كالدخول: شريطٌ سفليٌّ يفتح المزايدةَ والمحفظة
+  // لمن لم يُكمل ملفَّه بعد يعرض أقساماً ترفضه بـ«ملفك ناقص».
+  GoRoute(
+    path: Routes.completeRegistrationPath,
+    name: Routes.completeRegistration,
+    builder: (context, state) => const CompleteRegistrationScreen(),
+  ),
 ];
 
 /// المسارات التي لا معنى لها بلا جلسة — **قائمة واحدة بجوار الجدول**.
@@ -289,6 +298,7 @@ List<RouteBase> appRoutes() => <RouteBase>[
 /// يشاهد فشل شبكة بلا سبب ولا مخرج.
 const Set<String> authenticatedRoutes = <String>{
   Routes.profilePath,
+  Routes.completeRegistrationPath,
   Routes.walletPath,
   Routes.bidsPath,
   Routes.myActivityPath,
