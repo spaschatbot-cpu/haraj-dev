@@ -1230,6 +1230,64 @@ def expire_stale_intents(*, user=None, now=None) -> int:
 
 
 @db_transaction.atomic
+def cancel_refund_request(*, user, refund: RefundRequest) -> RefundRequest:
+    """ألغِ طلبَ استردادٍ لم يُنفَّذ، بطلب صاحبه — نظيرُ `cancel_refund.php`.
+
+    **الحالةُ التي لم يكن يكتبها شيء.** `RefundRequestState.CANCELLED` معرَّفةٌ
+    في النموذج ولافتتُها «ألغاه العميل» — ولا سطرَ في المشروع كلِّه يضعها.
+    وv1 له `cancel_refund.php` منذ البداية.
+
+    **وليست ترفاً: هي بابُ خروجٍ من حبسٍ.** طلبُ الاستردادِ القائم **يمنع
+    المزايدة** — `eligibility` تردّ بـ`refund_pending` ورسالتُها بنصّها:
+    «تأمينك محجوز له **حتى يُنفَّذ أو يُلغى**». فالرسالةُ تَعِد ببابٍ لا وجودَ
+    له، ومن طلب استردادَه ثم رأى سيّارةً يريدها يبقى محبوساً حتى تتحرّك
+    المالية. مقيسٌ على سيرفر التجربة: `مسموح=True` قبل الطلب، و
+    `refund_pending` بعده، ولا طريقَ للرجوع.
+
+    ولا يُلغى إلا المفتوح (`open_states`): طلبٌ نُفِّذ إلغاؤه إخفاءٌ لتحويلٍ
+    وقع، ومرفوضٌ أو ملغيٌّ منتهٍ أصلاً. والقفلُ قبل القراءة لأن المالية قد
+    تكون تنقله إلى `sent` في هذه اللحظة بعينها — وهو أضيقُ من أن يُترك
+    للصدفة: الطلبُ الواحدُ المفتوحُ قاعدةٌ في القاعدة
+    (`one_open_refund_request_per_customer`)، فإلغاءٌ يسبق إرسالاً بجزءٍ من
+    ثانيةٍ يفتح لصاحبه طلباً ثانياً على المال نفسِه.
+
+    ولا يُمسّ الدفتر: الطلبُ لم يُحرّك قيداً حين فُتح، فإلغاؤه لا يعكس شيئاً.
+    والوديعةُ تعود صالحةً للمزايدة لأن `refund_pending` تقرأ الطلبَ المفتوح
+    ولم يبقَ مفتوحاً.
+    """
+    row = (
+        RefundRequest.objects.select_for_update()
+        .filter(pk=refund.pk, user=user)
+        .first()
+    )
+    if row is None:
+        raise MoneyError(
+            f"refund {refund.pk} does not belong to user {user.pk}",
+            user_message="هذا الطلب غير موجود.",
+        )
+    if row.state not in RefundRequestState.open_states():
+        raise MoneyError(
+            f"refund {row.reference} is {row.state}, not open",
+            user_message=(
+                f"لا يمكن إلغاء الطلب في حالته الحالية ({row.get_state_display()})."
+            ),
+        )
+
+    row.state = RefundRequestState.CANCELLED
+    row.save(update_fields=["state", "updated_at"])
+
+    audit.record(
+        action="money.cancel_refund_request",
+        entity=row,
+        actor=user,
+        after={"state": row.state, "amount": str(row.amount)},
+        note="ألغاه العميل قبل التنفيذ.",
+    )
+    log.info("refund %s cancelled by its owner", row.reference)
+    return row
+
+
+@db_transaction.atomic
 def cancel_topup(*, user, intent: PaymentIntent) -> PaymentIntent:
     """ألغِ نيّةَ دفعٍ لم تُدفع، بطلب صاحبها.
 

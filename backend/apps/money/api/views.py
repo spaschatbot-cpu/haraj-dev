@@ -441,6 +441,24 @@ class PaymentCallbackView(APIView):
 # ---------------------------------------------------------------------------
 
 
+class RefundRequestCancelView(APIView):
+    """`POST /api/v1/wallet/refund-requests/{reference}/cancel/` — نظيرُ
+    `cancel_refund.php`.
+
+    ورسالةُ الرفض في المزايدة تَعِد بهذا البابِ بنصّها: «تأمينك محجوز له حتى
+    يُنفَّذ **أو يُلغى**» — وكان الوعدُ بلا باب. والمرجعُ في المسار لا المعرّفُ
+    الرقميّ: هو ما يحمله جسمُ الطلب أصلاً في كلّ ردّ، وهو مبهَمٌ لا يُخمَّن.
+    """
+
+    @extend_schema(request=None, responses=RefundRequestSerializer)
+    def post(self, request, reference: str):
+        refund = get_object_or_404(
+            RefundRequest, reference=reference, user=request.user
+        )
+        refund = services.cancel_refund_request(user=request.user, refund=refund)
+        return Response(RefundRequestSerializer(refund).data)
+
+
 class RefundRequestListCreateView(APIView):
     @extend_schema(responses=RefundRequestSerializer(many=True))
     def get(self, request):

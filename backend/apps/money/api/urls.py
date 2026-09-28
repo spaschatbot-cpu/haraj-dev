@@ -38,6 +38,11 @@ urlpatterns = [
         views.RefundRequestListCreateView.as_view(),
         name="refund-request-list",
     ),
+    path(
+        "wallet/refund-requests/<str:reference>/cancel/",
+        views.RefundRequestCancelView.as_view(),
+        name="refund-request-cancel",
+    ),
     path("purchases/", views.PurchaseListView.as_view(), name="purchase-list"),
     path("invoices/", views.InvoiceListView.as_view(), name="invoice-list"),
     path("invoices/<int:pk>/", views.InvoiceDetailView.as_view(), name="invoice-detail"),
