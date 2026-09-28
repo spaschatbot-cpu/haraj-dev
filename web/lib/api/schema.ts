@@ -887,6 +887,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/wallet/refund-requests/{reference}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description `POST /api/v1/wallet/refund-requests/{reference}/cancel/` — نظيرُ
+         *     `cancel_refund.php`.
+         *
+         *     ورسالةُ الرفض في المزايدة تَعِد بهذا البابِ بنصّها: «تأمينك محجوز له حتى
+         *     يُنفَّذ **أو يُلغى**» — وكان الوعدُ بلا باب. والمرجعُ في المسار لا المعرّفُ
+         *     الرقميّ: هو ما يحمله جسمُ الطلب أصلاً في كلّ ردّ، وهو مبهَمٌ لا يُخمَّن. */
+        post: operations["v1_wallet_refund_requests_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/wallet/topups/": {
         parameters: {
             query?: never;
@@ -1637,6 +1659,8 @@ export interface components {
             locked_for_dues: string;
             buckets: components["schemas"]["Bucket"][];
             holds: components["schemas"]["Hold"][];
+            /** Format: decimal */
+            deposit_unit: string;
             /** Format: date-time */
             as_of: string;
         };
@@ -2910,6 +2934,36 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["RefundRequestCreate"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefundRequest"];
+                };
+            };
+            /** @description رفضٌ أو خطأ، بالغلاف الموحَّد. */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorEnvelope"];
+                };
+            };
+        };
+    };
+    v1_wallet_refund_requests_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reference: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

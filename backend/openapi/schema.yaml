@@ -1621,6 +1621,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiErrorEnvelope'
+  /api/v1/wallet/refund-requests/{reference}/cancel/:
+    post:
+      operationId: v1_wallet_refund_requests_cancel_create
+      description: |-
+        `POST /api/v1/wallet/refund-requests/{reference}/cancel/` — نظيرُ
+        `cancel_refund.php`.
+
+        ورسالةُ الرفض في المزايدة تَعِد بهذا البابِ بنصّها: «تأمينك محجوز له حتى
+        يُنفَّذ **أو يُلغى**» — وكان الوعدُ بلا باب. والمرجعُ في المسار لا المعرّفُ
+        الرقميّ: هو ما يحمله جسمُ الطلب أصلاً في كلّ ردّ، وهو مبهَمٌ لا يُخمَّن.
+      parameters:
+      - in: path
+        name: reference
+        schema:
+          type: string
+        required: true
+      tags:
+      - wallet
+      security:
+      - bearerAuth: []
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundRequest'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/wallet/topups/:
     get:
       operationId: v1_wallet_topups_list
@@ -3205,6 +3239,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Hold'
+        deposit_unit:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
         as_of:
           type: string
           format: date-time
@@ -3213,6 +3251,7 @@ components:
       - available
       - buckets
       - currency
+      - deposit_unit
       - held_for_auctions
       - holds
       - locked_for_dues

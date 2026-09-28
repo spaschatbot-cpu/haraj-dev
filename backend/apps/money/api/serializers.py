@@ -117,6 +117,11 @@ class WalletSerializer(serializers.Serializer):
     locked_for_dues = MoneyField()
     buckets = BucketSerializer(many=True)
     holds = HoldSerializer(many=True)
+    #: وحدةُ الوديعة — عشرةُ آلافٍ لا تُجزَّأ. تخرج مع المحفظة لأن الشاشةَ
+    #: تحتاج أن تقول القاعدةَ **قبل** أن يكتب العميلُ مبلغاً يُردّ، ورقمٌ
+    #: مكتوبٌ في الواجهة يفترق عن `INSURANCE_DEPOSIT_AMOUNT` يوم يتغيّر
+    #: (المادة ٤-٥: القاعدةُ في موضعٍ واحد).
+    deposit_unit = MoneyField()
     as_of = serializers.DateTimeField()
 
 

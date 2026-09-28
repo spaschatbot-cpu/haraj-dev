@@ -57,6 +57,26 @@ export default async function WalletPage() {
     throw error;
   }
 
+  /*
+    الطلبُ القائم — وكان لا يُعرَض أصلاً: يضغط العميلُ «أرسل» فيُقال له «لديك
+    طلبٌ قائم» وهو لا يراه في الصفحة ولا يملك إنهاءه. وهو **يمنع المزايدة**
+    (`refund_pending`)، فغيابُه عن الشاشة يجعل المنعَ بلا سبب ظاهر.
+
+    وفشلُ الجلب لا يُسقط المحفظة: الأرصدةُ هي سببُ الصفحة، وقائمةُ الطلبات
+    زيادةٌ عليها.
+  */
+  let openRefund = null;
+  try {
+    const refunds = await request(() =>
+      api.GET("/api/v1/wallet/refund-requests/", { headers }),
+    );
+    openRefund =
+      (refunds ?? []).find((row) => row.state === "requested" || row.state === "sent") ??
+      null;
+  } catch {
+    openRefund = null;
+  }
+
   return (
     <PageShell title="محفظتي">
       <Notice
@@ -147,7 +167,11 @@ export default async function WalletPage() {
         </ul>
       )}
 
-      <RefundRequestForm available={wallet.available} />
+      <RefundRequestForm
+        available={wallet.available}
+        unit={wallet.deposit_unit}
+        open={openRefund}
+      />
     </PageShell>
   );
 }

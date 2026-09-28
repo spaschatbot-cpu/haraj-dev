@@ -1,45 +1,91 @@
 /**
- * طلب استرداد — T1022.
+ * طلب استرداد، والطلبُ القائمُ فوقه — T1022.
  *
- * The customer names the amount and the server decides everything else. There is
- * no `max` here derived from the available balance and no client-side comparison:
- * one open request per customer is a **database constraint**, not a check a
- * screen performs, and the reason is a v1 incident — ten requests each passed
- * the same check against the same untouched balance, and accounting was
- * instructed to pay out ten times the money.
+ * **والوديعةُ وحدةٌ لا رصيد**: عشرةُ آلافٍ بالضبط، ويُسترَدّ مضاعفُها كاملاً.
+ * والخادمُ يحرسها (`whole_deposits_in`)؛ والخانةُ هنا تقول القاعدةَ سلفاً
+ * وتبدأ بوحدةٍ واحدة، فلا يكتب العميلُ ٥٬٠٠٠ ثم يُردّ. ولا `max` مشتقٌّ من
+ * الرصيد ولا مقارنةٌ في المتصفّح: «طلبٌ واحدٌ مفتوح» قيدٌ في القاعدة لا فحصٌ
+ * تجريه شاشة — والسببُ حادثةُ v1: عشرةُ طلباتٍ مرّت على الفحص نفسِه أمام
+ * الرصيد نفسِه، فصدرت تعليماتٌ بصرف عشرة أضعاف المال.
  *
- * The available figure is shown beside the box because it is useful to know, not
- * because it is being enforced.
+ * **والطلبُ القائم يُعرَض ومعه زرُّ إلغائه.** كان لا يُعرَض أصلاً: يضغط العميلُ
+ * «أرسل» فيُقال له «لديك طلبٌ قائم» وهو لا يراه في الصفحة، ولا يملك إنهاءه.
+ * وv1 يعرض آخرَ عشرة طلباتٍ وزرَّ إلغاء.
  */
 
-import { requestRefund } from "@/features/wallet/actions";
+import { cancelRefund, requestRefund } from "@/features/wallet/actions";
 import { amount } from "@/lib/format";
 
-export function RefundRequestForm({ available }: { available: string }) {
+type OpenRefund = {
+  reference: string;
+  amount: string;
+  state_label?: string;
+};
+
+export function RefundRequestForm({
+  available,
+  unit,
+  open,
+}: {
+  available: string;
+  unit: string;
+  open?: OpenRefund | null;
+}) {
   return (
     <section id="refund" className="mt-12 scroll-mt-24 rounded-lg border border-neutral-200 bg-white p-4">
       <h2 className="mb-1 font-semibold">طلب استرداد</h2>
-      <p className="mb-4 text-sm text-neutral-600">
-        المتاح الآن <span className="money">{amount(available)}</span>. الطلب لا
-        يحرّك رصيدك؛ المحاسبة تنفّذه ويظهر في حركاتك عند التنفيذ.
-      </p>
 
-      <form action={requestRefund} className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-neutral-600">المبلغ</span>
-          <input
-            type="text"
-            name="amount"
-            inputMode="decimal"
-            required
-            className="money rounded border border-neutral-500 px-3 py-2"
-          />
-        </label>
+      {open ? (
+        <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
+          <p className="text-sm">
+            لديك طلبٌ قائم بمبلغ{" "}
+            <span className="money font-semibold">{amount(open.amount)}</span>
+            {open.state_label ? ` · ${open.state_label}` : null}.
+          </p>
+          <p className="mt-1 text-xs text-neutral-700">
+            وتأمينك محجوزٌ له فلا تُقبل منك مزايدةٌ حتى يُنفَّذ أو يُلغى.
+          </p>
+          <form action={cancelRefund} className="mt-3">
+            <input type="hidden" name="reference" value={open.reference} />
+            <button
+              type="submit"
+              className="rounded border border-neutral-500 px-3 py-1.5 text-sm"
+            >
+              ألغِ الطلب
+            </button>
+          </form>
+        </div>
+      ) : (
+        <>
+          <p className="mb-1 text-sm text-neutral-600">
+            المتاح الآن <span className="money">{amount(available)}</span>. الطلب لا
+            يحرّك رصيدك؛ المحاسبة تنفّذه ويظهر في حركاتك عند التنفيذ.
+          </p>
+          <p className="mb-4 text-sm text-neutral-600">
+            وديعة التأمين وحدةٌ لا تُجزَّأ:{" "}
+            <span className="money">{amount(unit)}</span> للوديعة الواحدة —
+            يُسترَدّ مضاعفُها كاملاً لا مبلغٌ جزئيّ.
+          </p>
 
-        <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white">
-          أرسل الطلب
-        </button>
-      </form>
+          <form action={requestRefund} className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-neutral-600">المبلغ</span>
+              <input
+                type="text"
+                name="amount"
+                inputMode="decimal"
+                defaultValue={unit}
+                required
+                className="money rounded border border-neutral-500 px-3 py-2"
+              />
+            </label>
+
+            <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white">
+              أرسل الطلب
+            </button>
+          </form>
+        </>
+      )}
     </section>
   );
 }

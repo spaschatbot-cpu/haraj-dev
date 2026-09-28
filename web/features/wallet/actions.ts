@@ -102,6 +102,36 @@ export async function requestRefund(form: FormData): Promise<void> {
   redirect("/wallet");
 }
 
+/**
+ * ألغِ طلبَ استردادٍ لم يُنفَّذ — نظيرُ `cancel_refund.php` في v1.
+ *
+ * وليس ترفاً: الطلبُ القائم **يمنع المزايدة** (`refund_pending`)، ورسالةُ
+ * الرفض تَعِد بهذا البابِ بنصّها «حتى يُنفَّذ أو يُلغى». وكان الوعدُ بلا باب:
+ * من طلب استردادَه ثم رأى سيّارةً يريدها يبقى محبوساً حتى تتحرّك المالية.
+ */
+export async function cancelRefund(form: FormData): Promise<void> {
+  const reference = String(form.get("reference") ?? "").trim();
+  const headers = await authedHeaders();
+
+  try {
+    await request(() =>
+      api.POST("/api/v1/wallet/refund-requests/{reference}/cancel/", {
+        headers,
+        params: { path: { reference } },
+      }),
+    );
+  } catch (error) {
+    return refuse(error, "/wallet");
+  }
+
+  const store = await cookies();
+  setFlash(store, {
+    code: "refund_cancelled",
+    message: "أُلغي طلب الاسترداد. تأمينك متاحٌ للمزايدة من جديد.",
+  }, "/wallet");
+  redirect("/wallet");
+}
+
 /*
  * **لا فعلَ «سدّد» هنا، وعن قرار.** كان `payInvoice` يرسل `{method}` إلى
  * `POST /api/v1/invoices/{id}/pay/`، والنقطةُ **مغلقةٌ بقرار المالك** (T954):

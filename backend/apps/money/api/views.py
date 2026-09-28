@@ -78,6 +78,10 @@ class WalletView(APIView):
             "locked_for_dues": by_kind[AccountKind.INSURANCE_LOCKED],
             "buckets": snapshot.buckets,
             "holds": snapshot.holds,
+            # وحدةُ الوديعة من `deposit_amount_for` لا رقماً مكتوباً: الشاشةُ
+            # تقول القاعدةَ قبل أن يكتب العميلُ مبلغاً يُردّ، والرقمُ واحدٌ
+            # في الخادم والواجهة بحكم البناء.
+            "deposit_unit": services.deposit_amount_for(),
             "as_of": snapshot.as_of,
         }
         context = {
