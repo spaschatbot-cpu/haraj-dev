@@ -9,6 +9,12 @@
 
     flutter build web --pwa-strategy=none --dart-define=HARAJ_API_BASE_URL=http://localhost:8090
     python tool/serve_web_with_api.py            # 8090 ← build/web + 127.0.0.1:8001
+    python tool/serve_web_with_api.py https://haraj.spas.sa   # على خادم التطوير
+
+**والصورُ تمرّ من هنا أيضاً** (`/media/`): الخادمُ يكتب روابطها مطلقةً على أصله،
+وFlutter على الويب يجلب الصورة بـ`fetch` فيحتاج CORS لا يرسله الخادم — فكانت
+صورُ السيّارات لا تُرسم. فتُعاد كتابةُ أصلِ الخادم في ردود JSON إلى هذا الأصل،
+وتُمرَّر `/media/` كما تُمرَّر `/api/`.
 """
 
 from __future__ import annotations
@@ -21,7 +27,8 @@ import urllib.request
 from pathlib import Path
 
 PORT = int(os.environ.get("PORT", "8090"))
-BACKEND = os.environ.get("BACKEND", "http://127.0.0.1:8001")
+#: الخادم: وسيطٌ أوّل على سطر الأمر، ثمّ `BACKEND`، ثمّ المحلّي.
+BACKEND = (sys.argv[1] if len(sys.argv) > 1 else os.environ.get("BACKEND", "http://127.0.0.1:8001")).rstrip("/")
 ROOT = Path(__file__).resolve().parent.parent / "build" / "web"
 
 #: ترويساتٌ لا تُمرَّر: تخصّ الاتّصالَ نفسَه لا الطلب.
@@ -37,13 +44,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         body = self.rfile.read(length) if length else None
         request = urllib.request.Request(BACKEND + self.path, data=body, method=self.command)
         for name, value in self.headers.items():
-            if name.lower() not in HOP:
+            # بلا `Accept-Encoding`: ردٌّ مضغوطٌ لا تُعاد كتابةُ روابط صوره.
+            if name.lower() not in HOP and name.lower() != "accept-encoding":
                 request.add_header(name, value)
         try:
             response = urllib.request.urlopen(request, timeout=60)
             status, headers, payload = response.status, response.headers, response.read()
         except urllib.error.HTTPError as refusal:
             status, headers, payload = refusal.code, refusal.headers, refusal.read()
+        if "json" in (headers.get("Content-Type") or ""):
+            here = f"http://{self.headers.get('Host', f'localhost:{PORT}')}"
+            payload = payload.replace(f"{BACKEND}/media/".encode(), f"{here}/media/".encode())
         self.send_response(status)
         for name, value in headers.items():
             if name.lower() not in HOP and name.lower() != "content-length":
@@ -53,7 +64,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.wfile.write(payload)
 
     def _route(self) -> None:
-        if self.path.startswith("/api/"):
+        if self.path.startswith(("/api/", "/media/")):
             return self._proxy()
         # تطبيقُ صفحةٍ واحدة: كلُّ مسارٍ ليس ملفّاً يعود إلى index.html.
         if not (ROOT / self.path.lstrip("/").split("?")[0]).is_file():
@@ -66,7 +77,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # **لا كاش للملفّات الثابتة**: كلُّ بناءٍ جديدٍ يُرى بتحديث الصفحة. كان
         # المتصفّحُ يُعيد `main.dart.js` القديم فيبدو التعديلُ كأنه لم يُرفع —
         # «عايز التعديلات تظهر مباشرة» (المالك، ٢٩ سبتمبر ٢٠٢٦).
-        if not self.path.startswith("/api/"):
+        if not self.path.startswith(("/api/", "/media/")):
             self.send_header("Cache-Control", "no-store")
         super().end_headers()
 

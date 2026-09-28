@@ -57,7 +57,8 @@
       "name": "mobile-web",
       "runtimeExecutable": "backend/.venv/Scripts/python.exe",
       "runtimeArgs": [
-        "mobile/tool/serve_web_with_api.py"
+        "mobile/tool/serve_web_with_api.py",
+        "https://haraj.spas.sa"
       ],
       "port": 8090
     }
