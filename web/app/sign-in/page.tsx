@@ -20,6 +20,9 @@
  * عبر النفاذ الوطني»، و«الدعم الفني» (لا صفحةَ له بعد)، و«استرجاعُ التأمين
  * بلحظات» — الاستردادُ تنفّذه المحاسبة، ووعدٌ في شاشة الدخول أوّلُ ما يُكذَّب.
  *
+ * **ومختصرةٌ لتُرى بلا تمرير** (طلبُ المالك في اليوم نفسه): شعارٌ أصغر، وكرتُ
+ * المزاد سطران، والميزاتُ عناوينُ بلا شرح، وسقط «مثال: 5…» لأن الخانةَ تقوله.
+ *
  * **ولا `PageShell` هنا:** شاشةُ دخولٍ مركّزة بلا شريط أقسامٍ لا يفتح منها شيءٌ
  * لغير الداخل، والخروجُ منها زرٌّ واضح (✕ و«المتابعة كزائر») إلى المزادات.
  */
@@ -76,7 +79,7 @@ export default async function SignInPage({
   const now = await respondedAt();
 
   return (
-    <main className="min-h-dvh bg-gradient-to-b from-surface-low to-surface px-4 pt-5 pb-10">
+    <main className="bg-gradient-to-b from-surface-low to-surface px-4 pt-3 pb-3">
       <div className="mx-auto max-w-md">
         {/* ── الشريطُ العلويّ ─────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -87,7 +90,7 @@ export default async function SignInPage({
           <Link
             href="/"
             aria-label="إغلاق والعودة إلى المزادات"
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-lowest text-on-surface shadow-sm transition-colors hover:bg-surface-low"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-lowest text-on-surface shadow-sm transition-colors hover:bg-surface-low"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -96,54 +99,44 @@ export default async function SignInPage({
         </div>
 
         {/* ── الشعار ───────────────────────────────────────────────────── */}
-        <div className="mt-4 flex flex-col items-center text-center">
-          <span className="relative flex h-28 w-28 items-center justify-center rounded-full bg-primary shadow-xl shadow-primary/25 ring-4 ring-surface-lowest">
-            <span aria-hidden="true" className="absolute inset-2.5 rounded-full border border-on-primary/15" />
+        <div className="-mt-4 flex flex-col items-center text-center">
+          <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-xl shadow-primary/25 ring-4 ring-surface-lowest">
+            <span aria-hidden="true" className="absolute inset-2 rounded-full border border-on-primary/15" />
             {/*
               الشعارُ لا الحرف، أبيضُ على الكحليّ كما في رأس الموقع. و`alt=""`
               لأن الاسم مكتوبٌ نصّاً تحته: بديلٌ يقوله ثانيةً يُقرأ مرّتين.
             */}
-            <Image src="/brand/logo-light.png" alt="" width={507} height={455} className="h-14 w-14 object-contain" priority />
+            <Image src="/brand/logo-light.png" alt="" width={507} height={455} className="h-10 w-10 object-contain" priority />
             <span className="tnum absolute -bottom-2 rounded-full bg-secondary px-2.5 py-0.5 text-label-sm text-on-secondary ring-2 ring-surface-lowest">
               V2
             </span>
           </span>
-          <h1 className="mt-5 text-headline-lg">مزاد حراج واحد</h1>
-          <p className="mt-1 text-body-sm text-on-surface-variant">مزايدة مغلقة على سيارات المزاد — من جوالك</p>
+          <h1 className="mt-4 text-headline-md">مزاد حراج واحد</h1>
+          <p className="text-body-sm text-on-surface-variant">مزايدة مغلقة على سيارات المزاد — من جوالك</p>
         </div>
 
         {/* ── المزادُ الجاري ───────────────────────────────────────────── */}
         {live ? (
-          <section className={`${CARD} mt-6`} aria-label="المزاد الجاري">
-            <div className="flex items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-label-md">
+          <section className="mt-3 rounded-2xl border border-outline-variant/60 bg-surface-lowest p-3.5 shadow-sm" aria-label="المزاد الجاري">
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 whitespace-nowrap text-label-md">
                 <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-ok" />
-                المزاد الجاري
+                المزاد الجاري · مزاد <span className="tnum">{live.number}</span>
               </span>
               {live.vehicle_count !== null ? (
-                <span className="rounded-xl bg-surface-container px-3 py-1.5 text-label-md text-secondary">
+                <span className="rounded-lg bg-surface-container px-2.5 py-1 text-label-sm text-secondary">
                   <span className="money">{count(live.vehicle_count)}</span> سيارة
                 </span>
               ) : null}
             </div>
-            <div className="mt-4 flex items-end justify-between gap-3 border-t border-outline-variant/50 pt-4">
-              <div className="min-w-0">
-                <p className="text-caption text-on-surface-variant">رقم الجلسة</p>
-                <p className="truncate text-headline-md">
-                  مزاد <span className="tnum">{live.number}</span>
-                </p>
-              </div>
-              <div className="shrink-0">
-                <Countdown endsAt={live.ends_at} initial={remaining(live.ends_at, now)} now={now} label="ينتهي بعد" />
-              </div>
-            </div>
+            <Countdown endsAt={live.ends_at} initial={remaining(live.ends_at, now)} now={now} label="ينتهي بعد" />
           </section>
         ) : null}
 
         {/* ── الدخول ───────────────────────────────────────────────────── */}
-        <section className={`${CARD} mt-5`}>
-          <div className="mb-4 flex items-center gap-3 border-b border-outline-variant/50 pb-4">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-surface-container text-secondary">
+        <section className={`${CARD} mt-4`}>
+          <div className="mb-3 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container text-secondary">
               <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="5" y="11" width="14" height="10" rx="2" />
                 <path d="M8 11V8a4 4 0 0 1 8 0v3" />
@@ -204,7 +197,7 @@ export default async function SignInPage({
                 و5… و+966… و966… (`normalise_saudi_mobile`)، فالبادئةُ تذكيرٌ لا
                 جزءٌ من القيمة — ومن كتب 05 كاملةً لا يُرفض.
               */}
-              <label className="flex h-16 items-stretch overflow-hidden rounded-2xl border-2 border-outline-variant bg-surface-lowest focus-within:border-secondary focus-within:ring-4 focus-within:ring-secondary/15" dir="ltr">
+              <label className="flex h-14 items-stretch overflow-hidden rounded-2xl border-2 border-outline-variant bg-surface-lowest focus-within:border-secondary focus-within:ring-4 focus-within:ring-secondary/15" dir="ltr">
                 <span className="flex items-center gap-2 border-e border-outline-variant/60 bg-surface-low px-4 text-headline-sm">
                   {/* العلمُ رسمٌ لا إيموجي: ويندوز لا يرسم أعلامَ الإيموجي فيكتب «SA»
                       حرفين — قِيس في كروم على هذا الجهاز. */}
@@ -227,10 +220,6 @@ export default async function SignInPage({
                   className="money min-w-0 flex-1 bg-transparent px-4 text-headline-sm tracking-wider placeholder:text-outline focus:outline-none"
                 />
               </label>
-              <p className="text-caption text-on-surface-variant">
-                مثال: <span className="money" dir="ltr">501234567</span>
-              </p>
-
               <button
                 type="submit"
                 className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-secondary text-headline-sm text-on-secondary shadow-lg shadow-secondary/25 transition-opacity hover:opacity-90"
@@ -277,26 +266,23 @@ export default async function SignInPage({
             </p>
           </form>
         ) : (
-          <ul className={`${CARD} mt-5 divide-y divide-outline-variant/50 p-0`}>
+          <ul className="mt-3 space-y-1.5 px-1">
             <Feature
               title="مزايدة مغلقة: لا يرى أحد مبلغك"
-              detail="كلُّ مزايدٍ يرى عرضه وحده، والأعلى يُعرف عند نهاية المزاد."
               icon="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7a13 13 0 0 1-2.6 3.9M6.6 6.6A13 13 0 0 0 2 12c1 2.5 5 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"
             />
             <Feature
               title="بلا كلمة مرور — رمز لمرة واحدة"
-              detail="رمز تحقق يصل برسالة نصية إلى جوالك في كل دخول."
               icon="M15 7a4 4 0 1 1-3.9 4.9L3 20v-3l2-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7zM16 9h.01"
             />
             <Feature
               title="التأمين وديعة مستردة بطلبك"
-              detail="بعد سداد فواتيرك تطلب استرداد تأمينك إلى حسابك البنكي."
               icon="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7zM9 12l2 2 4-4"
             />
           </ul>
         )}
 
-        <Link href="/" className="mt-6 block text-center text-label-md text-on-surface-variant hover:text-on-surface">
+        <Link href="/" className="mt-3 block text-center text-label-md text-on-surface-variant hover:text-on-surface">
           إغلاق والمتابعة كزائر
         </Link>
       </div>
@@ -304,18 +290,13 @@ export default async function SignInPage({
   );
 }
 
-function Feature({ title, detail, icon }: { title: string; detail: string; icon: string }) {
+function Feature({ title, icon }: { title: string; icon: string }) {
   return (
-    <li className="flex items-start gap-3.5 px-5 py-4">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface-container text-secondary">
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d={icon} />
-        </svg>
-      </span>
-      <span className="min-w-0">
-        <span className="block text-label-md text-on-surface">{title}</span>
-        <span className="mt-0.5 block text-body-sm text-on-surface-variant">{detail}</span>
-      </span>
+    <li className="flex items-center gap-2.5 text-body-sm text-on-surface-variant">
+      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0 text-secondary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d={icon} />
+      </svg>
+      {title}
     </li>
   );
 }
