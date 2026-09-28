@@ -121,4 +121,25 @@ def oursms_backend(*, phone: str, body: str) -> None:
             f"oursms answered {response.status_code}: {response.text[:200]}",
             provider="oursms",
         )
+
+    # **والجسمُ يُقرأ لا الكودُ وحدَه.** OURSMS يردّ 200 على رفضٍ أحياناً ويقول
+    # الرفضَ في الجسم (`{"status": "error", ...}`) — رصيدٌ نفد، مرسِلٌ غير
+    # معتمَد، رقمٌ لا يُقبل. وكان هذا السطرُ يكتب «accepted» على كلّ ما دون 400،
+    # أي أن نفادَ الرصيد — وهو بعينه عطلُ v1 «تعذّر إرسال رمز التحقق» الذي عاش
+    # بلا أن يُخبر أحدٌ أحداً — يُقرأ هنا نجاحاً أيضاً. وv1 نفسُه (في
+    # `AuthApiController::sendOtp`) يفحص `status` بهذه القيم الثلاث؛ فهذا نقلٌ
+    # لسلوكه لا اختراع. قِيس الربطُ على الخادم في ٢٨ سبتمبر ٢٠٢٦ برسالةٍ وصلت.
+    #
+    # وجسمٌ ليس JSON لا يُعدّ رفضاً: الكودُ قال نعم، ولا شيءَ يقول لا.
+    try:
+        answer = response.json()
+    except ValueError:
+        answer = None
+    if isinstance(answer, dict):
+        status = str(answer.get("status", "")).strip().lower()
+        if status in {"error", "failed", "failure"}:
+            raise SmsSendFailed(
+                f"oursms refused in its body: {response.text[:200]}",
+                provider="oursms",
+            )
     log.info("SMS to %s accepted by oursms", phone)
