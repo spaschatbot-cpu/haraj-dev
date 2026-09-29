@@ -53,7 +53,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except urllib.error.HTTPError as refusal:
             status, headers, payload = refusal.code, refusal.headers, refusal.read()
         if "json" in (headers.get("Content-Type") or ""):
-            here = f"http://{self.headers.get('Host', f'localhost:{PORT}')}"
+            # `PUBLIC_ORIGIN` حين يقف أمام هذا الوسيط وسيطٌ آخر (خادمُ `flutter
+            # run` في `dev_web.py`): الصورةُ تُطلب من الأصل الذي يراه المتصفّح.
+            here = os.environ.get("PUBLIC_ORIGIN") or f"http://{self.headers.get('Host', f'localhost:{PORT}')}"
             payload = payload.replace(f"{BACKEND}/media/".encode(), f"{here}/media/".encode())
         self.send_response(status)
         for name, value in headers.items():
@@ -88,7 +90,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    if not ROOT.is_dir():
+    if not ROOT.is_dir() and not os.environ.get("PUBLIC_ORIGIN"):
         sys.exit(f"لا بناءَ في {ROOT} — شغّل flutter build web أوّلاً.")
     print(f"http://localhost:{PORT}  ←  {ROOT}  +  /api → {BACKEND}", flush=True)
     http.server.ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()

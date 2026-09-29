@@ -1,0 +1,10 @@
+# خادمُ `flutter run -d chrome` يمرّر /api/ و/media/ إلى وسيط `serve_web_with_api.py`
+# على 8091، وهو يمرّرها إلى الخادم ويعيد كتابة روابط الصور — فالتطبيقُ في
+# المتصفّح يكلّم خادمَ التطوير من أصلٍ واحد، بلا CORS. يشغّلهما معاً:
+#     python tool/dev_web.py
+server:
+  proxy:
+    - prefix: "/api/"
+      target: "http://127.0.0.1:8091/"
+    - prefix: "/media/"
+      target: "http://127.0.0.1:8091/"
