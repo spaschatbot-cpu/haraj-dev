@@ -19,7 +19,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { withdrawBid } from "@/features/bidding/actions";
+import { placeBid, withdrawBid } from "@/features/bidding/actions";
 import { Pagination } from "@/features/catalog/Pagination";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
@@ -102,13 +102,52 @@ export default async function BidsPage({
                 </p>
               </div>
 
-              {!bid.is_withdrawn && !bid.is_superseded ? (
-                <form action={withdrawBid}>
-                  <input type="hidden" name="bid_id" value={bid.id} />
-                  <button type="submit" className="text-sm text-red-700 underline">
-                    سحب
-                  </button>
-                </form>
+              {/*
+                **تعديلٌ وسحبٌ — وكلاهما يختفي بانتهاء المزاد.**
+
+                v1 يضع الاثنين في الصفّ و«تظهر فقط أثناء نشاط المزاد وتختفي
+                فور انتهائه» (تعليقُ `my_bids.php` بحرفه). وكان عندنا «سحب»
+                وحدَه، ويُعرض على مزادٍ منتهٍ: زرٌّ يقود إلى رفضٍ مؤكَّد بعد
+                أن صار الخادمُ يرفض السحبَ بعد الإغلاق — وزرٌّ ميّتٌ أسوأُ من
+                زرٍّ غائب.
+
+                و«can_change» جوابُ الخادم لا حسابُ الشاشة: المرحلةُ من
+                المحرّك نفسِه الذي يقرؤه `withdraw_bid`، فلا تقول الشاشةُ
+                شيئاً ويقول الخادمُ غيرَه.
+
+                والتعديلُ **مزايدةٌ جديدة** على المركبة نفسِها لا مسارٌ ثانٍ:
+                الخفضُ يحتاج تأكيداً كما في صفحة المركبة، والدفترُ يرى ما
+                يراه هناك.
+              */}
+              {bid.can_change ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <form action={placeBid} className="flex items-center gap-2">
+                    <input type="hidden" name="vehicle_id" value={bid.vehicle_id} />
+                    <input type="hidden" name="back" value="bids" />
+                    <label className="sr-only" htmlFor={`amount-${bid.id}`}>
+                      المبلغ الجديد
+                    </label>
+                    <input
+                      id={`amount-${bid.id}`}
+                      type="text"
+                      name="amount"
+                      inputMode="decimal"
+                      defaultValue={bid.amount}
+                      required
+                      className="money w-32 rounded border border-neutral-500 px-2 py-1 text-sm"
+                    />
+                    <button type="submit" className="text-sm underline">
+                      تعديل
+                    </button>
+                  </form>
+
+                  <form action={withdrawBid}>
+                    <input type="hidden" name="bid_id" value={bid.id} />
+                    <button type="submit" className="text-sm text-red-700 underline">
+                      سحب
+                    </button>
+                  </form>
+                </div>
               ) : null}
             </li>
           ))}

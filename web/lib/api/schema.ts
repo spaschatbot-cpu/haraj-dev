@@ -1077,6 +1077,7 @@ export interface components {
             placed_at: string;
             is_withdrawn: boolean;
             is_superseded: boolean;
+            can_change: boolean;
             vehicle?: components["schemas"]["VehicleCard"] | null;
         };
         BidPage: {

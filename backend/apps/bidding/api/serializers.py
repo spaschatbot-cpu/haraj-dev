@@ -50,6 +50,9 @@ class BidSerializer(serializers.Serializer):
     placed_at = serializers.DateTimeField()
     is_withdrawn = serializers.BooleanField()
     is_superseded = serializers.BooleanField()
+    #: هل يبقى فعلٌ على هذه المزايدة — سحبٌ أو تعديل. من المحرّك لا من
+    #: مقارنةٍ في الشاشة.
+    can_change = serializers.BooleanField()
 
     #: كرتُ المركبة كاملاً — **مع المزايدة لا بطلبٍ بعدها**. T951.
     #:

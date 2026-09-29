@@ -83,7 +83,11 @@ export async function placeBid(form: FormData): Promise<void> {
   const vehicleId = Number(form.get("vehicle_id"));
   const amount = String(form.get("amount") ?? "").trim();
   const confirmLower = form.get("confirm_lower") === "1";
-  const back = `/vehicles/${vehicleId}`;
+  //: و«مزايداتي» تُرسل إلى الفعل نفسِه: التعديلُ **مزايدةٌ جديدة** لا مسارٌ
+  //: ثانٍ — نفسُ البوّابة ونفسُ الخفضِ المؤكَّد ونفسُ الأثر في الدفتر.
+  //: و`back` يقول من أين جاء، فيعود القارئُ إلى قائمته لا إلى صفحة المركبة.
+  const back =
+    String(form.get("back") ?? "") === "bids" ? "/bids" : `/vehicles/${vehicleId}`;
 
   const headers = await authedHeaders();
 

@@ -36,6 +36,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.auctions.cards import auction_card
+from apps.auctions import engine
 from apps.auctions.models import Auction, Vehicle
 from apps.auctions.visibility import current_auction_ids, visible_vehicles
 from apps.bidding import live, services
@@ -82,6 +83,21 @@ def bid_row(bid: Bid, *, card: dict | None = None) -> dict:
         "placed_at": bid.placed_at,
         "is_withdrawn": bid.is_withdrawn,
         "is_superseded": bid.is_superseded,
+        # **هل يبقى لهذه المزايدة فعلٌ؟ — جوابُ الخادم لا حسابُ الشاشة.**
+        #
+        # كان الصفُّ يحمل `is_withdrawn` و`is_superseded` وحدَهما، **ولا شيءَ
+        # عن المزاد**. فعرضت «مزايداتي» زرَّ «سحب» على مزادٍ منتهٍ — وv1 يُخفي
+        # أزرارَه «فور انتهائه» (تعليقُ `my_bids.php` بحرفه). وحين صار
+        # `withdraw_bid` يرفض بعد الإغلاق صار الزرُّ يقود إلى رفضٍ مؤكَّد:
+        # زرٌّ ميّتٌ أسوأُ من زرٍّ غائب.
+        #
+        # والمرحلةُ من المحرّك نفسِه الذي تقرؤه `check_eligibility` و
+        # `withdraw_bid`، فلا تقول الشاشةُ شيئاً ويقول الخادمُ غيرَه.
+        "can_change": (
+            not bid.is_withdrawn
+            and not bid.is_superseded
+            and engine.phase(vehicle.auction) in engine.BIDDABLE_PHASES
+        ),
         # **الكرتُ مع المزايدة، لا بطلبٍ لكلّ صفّ.** T951.
         #
         # قِيس في سجلّ الخادم (١٩ سبتمبر ٢٠٢٦) بعد دخولٍ واحد: سبعُ مزايدات

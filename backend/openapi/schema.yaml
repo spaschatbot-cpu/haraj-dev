@@ -1981,6 +1981,8 @@ components:
           type: boolean
         is_superseded:
           type: boolean
+        can_change:
+          type: boolean
         vehicle:
           allOf:
           - $ref: '#/components/schemas/VehicleCard'
@@ -1988,6 +1990,7 @@ components:
       required:
       - amount
       - auction_id
+      - can_change
       - id
       - is_superseded
       - is_withdrawn
