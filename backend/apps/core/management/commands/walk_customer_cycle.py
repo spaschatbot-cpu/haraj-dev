@@ -162,6 +162,8 @@ def _walk(out):
         _otp.generate_code = _spy
 
 
+        from apps.auctions import services as auc
+        from apps.bidding import settlement as settle
         from apps.bidding.eligibility import BIDDABLE_VEHICLE_STATES, check_eligibility
         from apps.money import services as money_svc
 
@@ -386,6 +388,19 @@ def _walk(out):
             + " · حالةُ المركبة " + car.state)
 
 # ═════ ٢٣ ═════
+        step("فاتورةُ الفوز كما يراها العميل  GET /invoices/")
+        s, b = api("get", "/invoices/", TOK)
+        rows = b.get("results", b) if isinstance(b, dict) else b
+        INV = rows[0] if rows else None
+        if INV:
+            ok("HTTP " + str(s) + " · " + str(len(rows)) + " فاتورة · #"
+               + str(INV.get("id")) + " رقم " + str(INV.get("number", "—"))
+               + " · إجمالي " + str(INV.get("amount", "—"))
+               + " · حالة " + str(INV.get("state", "—")))
+        else:
+            dbi = Invoice.objects.filter(vehicle=car).first()
+            bad("لا فاتورةَ في الـAPI · وفي القاعدة: " + (dbi.number if dbi else "لا شيء"))
+
         step("تفاصيلُ الفاتورة  GET /invoices/<id>/")
         if INV:
             s, b = api("get", "/invoices/" + str(INV["id"]) + "/", TOK)
