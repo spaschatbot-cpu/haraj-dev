@@ -20,16 +20,19 @@ type OpenRefund = {
   reference: string;
   amount: string;
   state_label?: string;
+  iban?: string;
 };
 
 export function RefundRequestForm({
   available,
   unit,
   open,
+  iban,
 }: {
   available: string;
   unit: string;
   open?: OpenRefund | null;
+  iban?: string;
 }) {
   return (
     <section id="refund" className="mt-12 scroll-mt-24 rounded-lg border border-neutral-200 bg-white p-4">
@@ -42,6 +45,11 @@ export function RefundRequestForm({
             <span className="money font-semibold">{amount(open.amount)}</span>
             {open.state_label ? ` · ${open.state_label}` : null}.
           </p>
+          {open.iban ? (
+            <p className="mt-1 text-xs text-neutral-700">
+              إلى الآيبان <code dir="ltr">{open.iban}</code>
+            </p>
+          ) : null}
           <p className="mt-1 text-xs text-neutral-700">
             وتأمينك محجوزٌ له فلا تُقبل منك مزايدةٌ حتى يُنفَّذ أو يُلغى.
           </p>
@@ -77,6 +85,29 @@ export function RefundRequestForm({
                 defaultValue={unit}
                 required
                 className="money rounded border border-neutral-500 px-3 py-2"
+              />
+            </label>
+
+            {/*
+              **رقم الآيبان — وكان غائباً.** v1 يطلبه في استمارته مع الصورة
+              (`refunds_requests.iban_account`)، وكانت عندنا الصورةُ وحدَها:
+              فصرفُ عشرة آلافٍ يبدأ بقراءة رقمٍ من صورةٍ ثمّ كتابتِه بيد، وهو
+              الموضعُ الذي يُخطئ فيه رقمٌ واحد. وعمودُ «الآيبان» في شاشة
+              المالية كان يعرض الملاحظةَ في مكانه.
+
+              ويُملأ سلفاً بآيبان الطلب السابق إن وُجد، ويُطبَّع في الخادم:
+              البنوكُ تعرضه مجزّأً بمسافاتٍ كلَّ أربعة وهو ما يُنسَخ فعلاً.
+            */}
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-neutral-600">رقم الآيبان</span>
+              <input
+                type="text"
+                name="iban"
+                defaultValue={iban ?? ""}
+                placeholder="SA00 0000 0000 0000 0000 0000"
+                required
+                dir="ltr"
+                className="money w-72 rounded border border-neutral-500 px-3 py-2 text-left"
               />
             </label>
 

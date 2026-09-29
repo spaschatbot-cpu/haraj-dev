@@ -259,6 +259,11 @@ class RefundRequestCreateSerializer(serializers.Serializer):
     #: in ``services.request_refund``; a second copy of that rule at the edge
     #: would be a second place to keep in step with it.
     amount = MoneyField()
+    #: الآيبانُ الذي يُحوَّل إليه — حقلٌ يطلبه v1 في استمارته مع الصورة.
+    #: و`allow_blank` لأن من طلب قبلُ يجد آيبانَه محفوظاً على حسابه، والخدمةُ
+    #: تقرؤه حينئذ. والصيغةُ تُفحص هناك لا هنا: مدقّقٌ ثانٍ عند الحدّ نسخةٌ
+    #: ثانيةٌ من القاعدة (المادة ٤-٥).
+    iban = serializers.CharField(required=False, allow_blank=True, max_length=40)
     #: ما يكتبه العميل مع طلبه — الآيبان الذي يريد التحويل إليه وما يوضّحه.
     #: اختياريّ: شاشةُ الويب تطلب المبلغَ وحدَه، وشاشةُ التطبيق تطلب آيباناً
     #: وملاحظات. ولولا هذا الحقل لجمعتهما ورمتهما، ثم سألت المحاسبةُ العميلَ
@@ -274,7 +279,17 @@ class RefundRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RefundRequest
-        fields = ["id", "reference", "amount", "state", "state_label", "created_at"]
+        #: والآيبانُ يعود لصاحبه: من قدّم الطلبَ يراجع الرقمَ الذي قدّمه —
+        #: وهو ما يراجعه إن تأخّر الصرف.
+        fields = [
+            "id",
+            "reference",
+            "amount",
+            "iban",
+            "state",
+            "state_label",
+            "created_at",
+        ]
 
     def get_state_label(self, request) -> str:
         return label_for(RefundRequestState, request.state, "قيد المعالجة")

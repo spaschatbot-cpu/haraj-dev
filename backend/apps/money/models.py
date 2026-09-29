@@ -779,6 +779,19 @@ class RefundRequest(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="refund_requests"
     )
     amount = models.DecimalField(**MONEY)
+    #: **الآيبانُ الذي يُحوَّل إليه، كما كتبه صاحبُه.** وv1 يحمله عموداً
+    #: (`refunds_requests.iban_account`) ومعه الصورة. وكان عندنا الصورةُ
+    #: وحدَها: `User.iban` حقلٌ في النموذج بلا بابٍ يصل إليه العميل، وعمودُ
+    #: «الآيبان» في شاشة المالية يعرض `note` نصّاً حرّاً.
+    #:
+    #: وأثرُه أن صرفَ عشرة آلافٍ يبدأ بقراءة رقمٍ من **صورة** ثمّ كتابتِه
+    #: بيد — وهو الموضعُ الذي يُخطئ فيه رقمٌ واحد.
+    #:
+    #: **وعلى الطلب لا على العميل**: من غيّر مصرفَه بين طلبين يجب أن يبقى
+    #: كلُّ طلبٍ حاملاً الرقمَ الذي قُدّم به — وحقلٌ واحدٌ على الحساب يُكتب
+    #: فوقه فيضيع ما صُرف عليه الأوّل.
+    iban = models.CharField("الآيبان", max_length=34, blank=True)
+
     reference = models.CharField(max_length=64, unique=True)
 
     state = models.CharField(

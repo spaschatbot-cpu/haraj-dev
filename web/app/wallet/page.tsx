@@ -66,13 +66,17 @@ export default async function WalletPage() {
     زيادةٌ عليها.
   */
   let openRefund = null;
+  //: وآيبانُ آخر طلبٍ يُملأ به الحقلُ سلفاً — من طلب مرّةً لا يُعيد كتابة
+  //: أربعةٍ وعشرين محرفاً، وإعادةُ كتابتها هي الموضعُ الذي يُخطئ فيه رقم.
+  let lastIban = "";
   try {
     const refunds = await request(() =>
       api.GET("/api/v1/wallet/refund-requests/", { headers }),
     );
+    const rows = refunds ?? [];
     openRefund =
-      (refunds ?? []).find((row) => row.state === "requested" || row.state === "sent") ??
-      null;
+      rows.find((row) => row.state === "requested" || row.state === "sent") ?? null;
+    lastIban = rows.find((row) => row.iban)?.iban ?? "";
   } catch {
     openRefund = null;
   }
@@ -171,6 +175,7 @@ export default async function WalletPage() {
         available={wallet.available}
         unit={wallet.deposit_unit}
         open={openRefund}
+        iban={openRefund?.iban ?? lastIban}
       />
     </PageShell>
   );

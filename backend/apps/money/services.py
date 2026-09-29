@@ -1486,7 +1486,12 @@ def apply_gateway_payment(
 
 @db_transaction.atomic
 def request_refund(
-    *, user, amount: Decimal, client_key: str | None = None, note: str = ""
+    *,
+    user,
+    amount: Decimal,
+    iban: str = "",
+    client_key: str | None = None,
+    note: str = "",
 ) -> RefundRequest:
     """Queue a refund of the customer's *free* insurance.
 
@@ -1548,7 +1553,30 @@ def request_refund(
     #
     # وقبل الحساب لا بعده: الرفضُ بعد قفل الصفّ يكلّف قفلاً بلا داعٍ، والرفضُ
     # بعد فتح الطلب يترك طلباً يمنع صاحبَه من طلبٍ آخر.
-    from apps.accounts.models import CustomerDocument, DocumentKind
+    # **ورقمُ الآيبان، لا الصورةُ وحدَها.** v1 يحمله عموداً
+    # (`refunds_requests.iban_account`) ويطلبه في الاستمارة مع الصورة؛ وكان
+    # عندنا الصورةُ وحدَها، فصرفُ عشرة آلافٍ يبدأ بقراءة رقمٍ من صورةٍ ثمّ
+    # كتابتِه بيد — وهو الموضعُ الذي يُخطئ فيه رقمٌ واحد. وعمودُ «الآيبان»
+    # في شاشة المالية كان يعرض `note` نصّاً حرّاً في مكانه.
+    #
+    # ويُطبَّع قبل المطابقة: البنوكُ تعرضه مجزّأً بمسافاتٍ كلَّ أربعة وهو ما
+    # يُنسَخ فعلاً.
+    from apps.accounts.models import (
+        IBAN_ERROR,
+        CustomerDocument,
+        DocumentKind,
+        normalise_saudi_iban,
+        saudi_iban,
+    )
+
+    iban = normalise_saudi_iban(iban) or (user.iban or "").strip()
+    try:
+        saudi_iban(iban)
+    except Exception as bad:
+        raise InvalidAmount(
+            f"refund iban {iban!r} is not a Saudi IBAN",
+            user_message=IBAN_ERROR + ".",
+        ) from bad
 
     if CustomerDocument.current(user, DocumentKind.IBAN) is None:
         raise MoneyError(
@@ -1656,9 +1684,16 @@ def request_refund(
     # ولا يُفسَّر هنا ولا يُقسَّم إلى حقول: هو **ما كتبه العميل كما كتبه**،
     # يقرؤه موظّفٌ في شاشة الاستردادات. وأوّلُ من يقصّه إلى «آيبان» و«ملاحظة»
     # يكتب متحقّقاً من صيغة الآيبان، وذلك تاسكٌ بذاته لا سطرٌ هنا.
+    # والآيبانُ يُحفظ على **الحساب** أيضاً ليُقترَح في الطلب التالي — ولا
+    # يُقرأ منه: الطلبُ يحمل نسختَه فلا يُكتب فوقها بتغييرٍ لاحق.
+    if user.iban != iban:
+        user.iban = iban
+        user.save(update_fields=["iban"])
+
     return RefundRequest.objects.create(
         user=user,
         amount=amount,
+        iban=iban,
         reference=reference,
         outbox_message=outbox,
         note=note.strip()[:1000],

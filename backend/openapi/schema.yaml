@@ -2877,6 +2877,10 @@ components:
           format: decimal
           pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
           readOnly: true
+        iban:
+          type: string
+          title: الآيبان
+          maxLength: 34
         state:
           $ref: '#/components/schemas/RefundRequestStateEnum'
         state_label:
@@ -2899,6 +2903,9 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        iban:
+          type: string
+          maxLength: 40
         note:
           type: string
           maxLength: 1000

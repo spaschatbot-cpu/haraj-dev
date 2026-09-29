@@ -1495,6 +1495,8 @@ export interface components {
             reference: string;
             /** Format: decimal */
             readonly amount: string;
+            /** الآيبان */
+            iban?: string;
             state?: components["schemas"]["RefundRequestStateEnum"];
             readonly state_label: string;
             /** Format: date-time */
@@ -1503,6 +1505,7 @@ export interface components {
         RefundRequestCreate: {
             /** Format: decimal */
             amount: string;
+            iban?: string;
             note?: string;
         };
         /**

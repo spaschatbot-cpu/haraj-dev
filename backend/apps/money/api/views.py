@@ -479,6 +479,7 @@ class RefundRequestListCreateView(APIView):
         refund = services.request_refund(
             user=request.user,
             amount=form.validated_data["amount"],
+            iban=form.validated_data.get("iban", ""),
             client_key=request.headers.get("Idempotency-Key") or None,
             note=form.validated_data.get("note", ""),
         )

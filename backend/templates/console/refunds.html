@@ -169,13 +169,24 @@
             </td>
             {% comment %} المبلغُ سببُ الصفّ، فيُقرأ أثقلَ من جيرانه. {% endcomment %}
             <td class="money rf-amount">{{ row.amount|unlocalize }}</td>
-            {% comment %} ما كتبه العميلُ كما كتبه — الآيبانُ الذي يريد التحويل
-               إليه وما يوضّحه. وv1 يحمل `iban_account` عموداً و`iban_image`
-               صورةً؛ وعندنا الصورةُ مستندٌ في ملفّ العميل (`DocumentKind.IBAN`)
-               و`request_refund` ترفض الطلبَ بدونها أصلاً. {% endcomment %}
+            {% comment %} **الآيبانُ كما كتبه صاحبُ الطلب، ومعه ما أوضحه.**
+               وكان هذا العمودُ يعرض `note` وحدَه — نصّاً حرّاً في مكان رقمٍ
+               يُحوَّل إليه عشرةُ آلاف. وv1 يحمل `iban_account` عموداً
+               و`iban_image` صورةً؛ وكانت عندنا الصورةُ وحدَها، فصرفُ الطلب
+               يبدأ بقراءة رقمٍ من صورةٍ ثمّ كتابتِه بيد — وهو الموضعُ الذي
+               يُخطئ فيه رقمٌ واحد.
+
+               وهو من **الطلب** لا من الحساب: من غيّر مصرفَه بين طلبين يبقى
+               كلُّ طلبٍ حاملاً الرقمَ الذي قُدّم به. {% endcomment %}
             <td class="rf-said">
-              {% if row.note %}<span class="cell-clip clip-said" title="{{ row.note }}">{{ row.note }}</span>
-              {% else %}<span class="empty">—</span>{% endif %}
+              {% if row.iban %}
+                <code class="rf-iban">{{ row.iban }}</code>
+              {% else %}
+                {% comment %} طلباتٌ قُدّمت قبل العمود — لا تُخترع لها قيمة.
+                   {% endcomment %}
+                <span class="empty" title="طلبٌ قُدّم قبل إضافة عمود الآيبان">—</span>
+              {% endif %}
+              {% if row.note %}<small class="cell-clip clip-said" title="{{ row.note }}">{{ row.note }}</small>{% endif %}
             </td>
             <td><span class="pill" data-tone="{{ row.tone }}">{{ row.get_state_display }}</span></td>
             <td class="rf-trace">

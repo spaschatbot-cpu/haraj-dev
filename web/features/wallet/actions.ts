@@ -80,6 +80,9 @@ export async function requestRefund(form: FormData): Promise<void> {
   // Straight from the form to the body as text. Reading it as a number here
   // would put a refund through a binary float on its way to a decimal ledger.
   const refundAmount = String(form.get("amount") ?? "").trim();
+  //: والآيبانُ نصّاً كما كُتب — تطبيعُه وفحصُ صيغته في الخادم، لا نسخةٌ
+  //: ثانيةٌ من القاعدة هنا.
+  const refundIban = String(form.get("iban") ?? "").trim();
 
   const headers = await authedHeaders();
 
@@ -87,7 +90,7 @@ export async function requestRefund(form: FormData): Promise<void> {
     await request(() =>
       api.POST("/api/v1/wallet/refund-requests/", {
         headers,
-        body: { amount: refundAmount },
+        body: { amount: refundAmount, iban: refundIban },
       }),
     );
   } catch (error) {
