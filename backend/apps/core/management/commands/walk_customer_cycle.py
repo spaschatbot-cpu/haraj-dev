@@ -482,8 +482,10 @@ def _walk(out):
 
 
         # ═════ جهةُ الموظّف: طابورُ الاستردادات ═════
-        step("طلبُ الاسترداد في طابور اللوحة  GET /console/refunds/queue/")
-        r = console("/refunds/queue/")
+        # `/refunds/queue/` شاشةُ **العجوزات** (`RefundShortfall`) لا الطلبات —
+        # وكانت المشيةُ تقرؤها فتقول «الطلبُ لا يصل المالية» وهو يصل.
+        step("طلبُ الاسترداد في شاشة المالية  GET /console/refunds/")
+        r = console("/refunds/")
         body = r.content.decode() if r.status_code == 200 else ""
         (ok if r.status_code == 200 else bad)("HTTP " + str(r.status_code))
         (ok if PHONE in body else bad)("طلبُ العميل ظاهرٌ للمالية: " + str(PHONE in body))
