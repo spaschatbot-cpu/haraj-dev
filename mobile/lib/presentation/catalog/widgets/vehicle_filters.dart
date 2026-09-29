@@ -16,8 +16,17 @@ class VehicleSearchField extends StatefulWidget {
   const VehicleSearchField({
     required this.search,
     required this.onSubmitted,
+    this.hint,
+    this.trailing,
     super.key,
   });
+
+  /// نصُّ التلميح — الافتراضيُّ «ابحث عن سيارة».
+  final String? hint;
+
+  /// ما يقف في طرف الحقل الفارغ (زرُّ «تصفية» في الرئيسية). حين يُمرَّر تنتقل
+  /// العدسةُ إلى بدايته — هيئةُ تصميم المالك (٣٠ سبتمبر ٢٠٢٦).
+  final Widget? trailing;
 
   /// النصّ القائم في المعايير. يُقرأ مرّةً عند البناء الأول: من كتب «كامري»
   /// ثم بدّل التبويب يجب أن يجد كلمته مكتوبةً كما تركها.
@@ -52,7 +61,7 @@ class _VehicleSearchFieldState extends State<VehicleSearchField> {
       onSubmitted: widget.onSubmitted,
       style: theme.textTheme.bodyMedium?.copyWith(color: palette.ink),
       decoration: InputDecoration(
-        hintText: l10n.searchHint,
+        hintText: widget.hint ?? l10n.searchHint,
         hintStyle: theme.textTheme.bodyMedium?.copyWith(
           color: palette.inkMuted,
         ),
@@ -60,11 +69,26 @@ class _VehicleSearchFieldState extends State<VehicleSearchField> {
         fillColor: palette.cardSurface,
         // **`suffixIcon` لا `prefixIcon`:** البادئة في RTL تُرسم على اليمين
         // حيث يبدأ النصّ، فتزاحم أول حرفٍ يكتبه. والعدسة في الطرف الفارغ.
-        suffixIcon: IconButton(
-          icon: Icon(Icons.search_rounded, color: palette.gold),
-          tooltip: l10n.searchHint,
-          onPressed: () => widget.onSubmitted(_controller.text),
-        ),
+        prefixIcon: widget.trailing == null
+            ? null
+            : IconButton(
+                icon: Icon(Icons.search_rounded, color: palette.inkMuted),
+                tooltip: l10n.searchHint,
+                onPressed: () => widget.onSubmitted(_controller.text),
+              ),
+        suffixIcon: widget.trailing == null
+            ? IconButton(
+                icon: Icon(Icons.search_rounded, color: palette.gold),
+                tooltip: l10n.searchHint,
+                onPressed: () => widget.onSubmitted(_controller.text),
+              )
+            : Padding(
+                padding: const EdgeInsetsDirectional.only(end: 6),
+                child: widget.trailing,
+              ),
+        suffixIconConstraints: widget.trailing == null
+            ? null
+            : const BoxConstraints(minHeight: 36),
         isDense: true,
         // **١١ رأسياً لا ١٤**: الحقلُ صار داخل شريحةٍ ثابتة ارتفاعُها ٤٨،
         // و١٤+١٤+سطرٌ بحجم ١٤ تبلغ الثمانيةَ والأربعين بالضبط — فتفيض عند
@@ -125,20 +149,14 @@ class VehicleFiltersButton extends StatelessWidget {
   final void Function(VehicleQuery query) onApply;
   final void Function(AuctionPhase phase)? onPhase;
 
-  Future<void> _open(BuildContext context) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => _FiltersSheet(
-        query: query,
-        phase: phase,
-        counts: counts,
-        onApply: onApply,
-        onPhase: onPhase,
-      ),
-    );
-  }
+  Future<void> _open(BuildContext context) => showVehicleFilters(
+    context,
+    query: query,
+    phase: phase,
+    counts: counts,
+    onApply: onApply,
+    onPhase: onPhase,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -464,3 +482,25 @@ class _YearField extends StatelessWidget {
     ),
   );
 }
+
+/// يفتح ورقة الفرز والتصفية — لمن يرسم زرَّه بنفسه (زرُّ «تصفية» داخل حقل
+/// البحث في الرئيسية).
+Future<void> showVehicleFilters(
+  BuildContext context, {
+  required VehicleQuery query,
+  required AuctionPhase? phase,
+  required PhaseCounts? counts,
+  required void Function(VehicleQuery query) onApply,
+  void Function(AuctionPhase phase)? onPhase,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  backgroundColor: Colors.transparent,
+  builder: (sheetContext) => _FiltersSheet(
+    query: query,
+    phase: phase,
+    counts: counts,
+    onApply: onApply,
+    onPhase: onPhase,
+  ),
+);

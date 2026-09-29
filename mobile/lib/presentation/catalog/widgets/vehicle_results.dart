@@ -35,6 +35,8 @@ class VehicleResults extends StatelessWidget {
     this.header,
     this.pinnedHeader,
     this.pinnedHeaderExtent = 0,
+    this.listHeader,
+    this.listFooter,
     this.showCount = true,
     this.prefetchThreshold = 3,
     super.key,
@@ -104,6 +106,13 @@ class VehicleResults extends StatelessWidget {
   /// يقيسه، فالمكوّنُ يُبنى بارتفاعٍ مضبوطٍ في الشاشة المضيفة ويُمرَّر معه.
   final double pinnedHeaderExtent;
 
+  /// ما يقف **بعد** الشريحة الثابتة وقبل أوّل كرت — عنوانُ القسم في الرئيسية
+  /// («مركبات المظاريف المغلقة» وعدُّها). ينزلق مع القائمة.
+  final Widget? listHeader;
+
+  /// ما يقف بعد آخر كرت — سطرُ «العروض سرّية» في الرئيسية.
+  final Widget? listFooter;
+
   /// كم مركبة قبل نهاية القائمة نطلب الصفحة التالية.
   final int prefetchThreshold;
 
@@ -131,6 +140,8 @@ class VehicleResults extends StatelessWidget {
               child: ColoredBox(color: palette.pageBackground, child: widget),
             ),
           ),
+        if (listHeader case final Widget widget)
+          SliverToBoxAdapter(child: widget),
         // **الفراغُ شريحةٌ لا خروجٌ مبكّر**: كان `return Center` قبل بناء
         // القائمة، فيأخذ معه الترويسةَ — ومن بحث عن كلمةٍ لم تطابق كان يفقد
         // حقلَ بحثه فلا يستطيع تصحيحها.
@@ -171,6 +182,8 @@ class VehicleResults extends StatelessWidget {
           ),
         if (vehicles.isNotEmpty) _cards(),
         if (vehicles.isNotEmpty) SliverToBoxAdapter(child: _tail()),
+        if (vehicles.isNotEmpty && listFooter != null)
+          SliverToBoxAdapter(child: listFooter),
         // مكانُ الشريط السفليّ، من `MediaQuery` لا رقماً مكتوباً: القشرة هي
         // التي تعرف ارتفاعه، وتضيفه إلى الحشوة. بلا هذا يقع آخر صفٍّ تحته
         // فيُقرأ نصفه.
@@ -276,7 +289,7 @@ class _PinnedHeader extends SliverPersistentHeaderDelegate {
 }
 
 /// أوسعُ ما يبلغه عمودٌ واحد من الكروت — حدُّ الكرت نفسه.
-const double _maxColumnWidth = 440;
+const double _maxColumnWidth = 560;
 
 /// ارتفاعُ خليّة الشبكة.
 ///
@@ -284,4 +297,6 @@ const double _maxColumnWidth = 440;
 /// ١٩٢ بطلب المالك في ٩ سبتمبر ٢٠٢٦: الكرتُ على اللوح أوسع، فصورتُه أوسع،
 /// فارتفاعٌ يساوي ارتفاعَ الجوّال يجعله مفلطحاً.
 /// ورُفع إلى ٢٠٨ مع ارتفاع الكرت الأدنى (١٦٠) في ١٣ سبتمبر ٢٠٢٦.
-const double _cardExtent = 208;
+/// ورُفع إلى ٢٧٠ مع كرت تصميم المالك (٣٠ سبتمبر ٢٠٢٦): صورةٌ أطول، وخاناتٌ
+/// في صفّين، وزرٌّ بارتفاع ٤٤.
+const double _cardExtent = 270;

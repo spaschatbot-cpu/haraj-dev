@@ -1567,4 +1567,42 @@ class AppLocalizationsAr extends AppLocalizations {
   String registrationBanner(String fields) {
     return 'أكمل تسجيلك — ينقص: $fields';
   }
+
+  @override
+  String get homeBrandSubtitle => 'المنصة الرسمية المعتمدة للمزادات';
+
+  @override
+  String get homeFilter => 'تصفية';
+
+  @override
+  String get homeSearchHintFull => 'ابحث عن سيارة أو رقم الموقف';
+
+  @override
+  String homeAllChip(int count) {
+    return 'الكل ($count مركبات)';
+  }
+
+  @override
+  String get homeSectionTitle => 'مركبات المظاريف المغلقة';
+
+  @override
+  String homeAvailableCount(int count) {
+    return '$count متاحة';
+  }
+
+  @override
+  String get homeSealedNote =>
+      'العروض سرّية: لا يرى أحدٌ مبلغك، ويُعرف الأعلى عند نهاية المزاد.';
+
+  @override
+  String get homeSealedPill => 'مزايدة مغلقة';
+
+  @override
+  String get vehicleSealedBidAction => 'زايد الآن';
+
+  @override
+  String get vehicleSealedBadge => 'سري';
+
+  @override
+  String get vehicleStatusOpen => 'متاحة';
 }

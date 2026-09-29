@@ -27,6 +27,7 @@ final class VehicleSummary {
     required this.colourLabel,
     required this.conditionLabel,
     required this.location,
+    this.make = '',
   });
 
   final String id;
@@ -107,4 +108,8 @@ final class VehicleSummary {
   /// نصٌّ واحد لا مدينةٌ وفرعٌ منفصلان: الخادم يرسله مركّباً، وقسمتُه هنا
   /// على `/` تفترض شكلاً لم يَعِد به أحد.
   final String location;
+
+  /// الماركةُ كما يرسلها الخادم (`make`) — لشرائح الماركات في الرئيسية.
+  /// فارغةٌ في الكيانات المبنيّة يدوياً (الكاش القديم)، فلا تُعرض لها شريحة.
+  final String make;
 }

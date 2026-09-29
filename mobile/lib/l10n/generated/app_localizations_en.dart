@@ -1568,4 +1568,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String registrationBanner(String fields) {
     return 'Complete your registration — missing: $fields';
   }
+
+  @override
+  String get homeBrandSubtitle => 'The official certified auction platform';
+
+  @override
+  String get homeFilter => 'Filter';
+
+  @override
+  String get homeSearchHintFull => 'Search a car or lot number';
+
+  @override
+  String homeAllChip(int count) {
+    return 'All ($count vehicles)';
+  }
+
+  @override
+  String get homeSectionTitle => 'Sealed-bid vehicles';
+
+  @override
+  String homeAvailableCount(int count) {
+    return '$count available';
+  }
+
+  @override
+  String get homeSealedNote =>
+      'Bids are sealed: no one sees your amount, and the highest is known when the auction ends.';
+
+  @override
+  String get homeSealedPill => 'Sealed bidding';
+
+  @override
+  String get vehicleSealedBidAction => 'Bid now';
+
+  @override
+  String get vehicleSealedBadge => 'Sealed';
+
+  @override
+  String get vehicleStatusOpen => 'Open';
 }

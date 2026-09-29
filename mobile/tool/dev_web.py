@@ -77,6 +77,26 @@ def watch(flutter: subprocess.Popen[str]) -> None:
             pending = ""
 
 
+def relay(flutter: subprocess.Popen[str]) -> None:
+    """يطبع خرجَ flutter كما هو، ويعيد التشغيلَ حين يُرفض التحميلُ الساخن.
+
+    التحميلُ الساخن لا يقبل تغييراً في بنية صنفٍ ثابت (حقلٌ يُحذف أو يُضاف)،
+    فيطبع «Hot reload rejected… Try performing a hot restart». وكان ذلك يترك
+    التطبيقَ على النسخة القديمة حتى يُضغط R باليد — وهو ما طُلب ألّا يكون.
+    """
+    assert flutter.stdout is not None
+    for line in flutter.stdout:
+        print(line, end="", flush=True)
+        if "Hot reload rejected" in line or "Try performing a hot restart" in line:
+            print("[dev_web] التحميل الساخن رُفض ← إعادة تشغيل", flush=True)
+            try:
+                assert flutter.stdin is not None
+                flutter.stdin.write("R")
+                flutter.stdin.flush()
+            except (OSError, ValueError):
+                return
+
+
 def main() -> None:
     proxy = subprocess.Popen(
         [sys.executable, str(HERE / "tool" / "serve_web_with_api.py"), BACKEND],
@@ -96,11 +116,16 @@ def main() -> None:
         ],
         cwd=HERE,
         stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         # `flutter` على ويندوز ملفُّ bat — لا يُشغَّل إلا عبر الصدفة.
         shell=os.name == "nt",
     )
     threading.Thread(target=watch, args=(flutter,), daemon=True).start()
+    threading.Thread(target=relay, args=(flutter,), daemon=True).start()
     try:
         flutter.wait()
     except KeyboardInterrupt:

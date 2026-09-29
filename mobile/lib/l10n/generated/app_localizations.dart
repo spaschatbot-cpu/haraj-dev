@@ -2743,6 +2743,72 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أكمل تسجيلك — ينقص: {fields}'**
   String registrationBanner(String fields);
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'المنصة الرسمية المعتمدة للمزادات'**
+  String get homeBrandSubtitle;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'تصفية'**
+  String get homeFilter;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث عن سيارة أو رقم الموقف'**
+  String get homeSearchHintFull;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل ({count} مركبات)'**
+  String homeAllChip(int count);
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'مركبات المظاريف المغلقة'**
+  String get homeSectionTitle;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'{count} متاحة'**
+  String homeAvailableCount(int count);
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'العروض سرّية: لا يرى أحدٌ مبلغك، ويُعرف الأعلى عند نهاية المزاد.'**
+  String get homeSealedNote;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'مزايدة مغلقة'**
+  String get homeSealedPill;
+
+  /// زرّ المزايدة على الكرت — «زايد الآن» بطلب المالك (٣٠ سبتمبر ٢٠٢٦) بدل «قدّم سومتك السرية»
+  ///
+  /// In ar, this message translates to:
+  /// **'زايد الآن'**
+  String get vehicleSealedBidAction;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'سري'**
+  String get vehicleSealedBadge;
+
+  /// الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'متاحة'**
+  String get vehicleStatusOpen;
 }
 
 class _AppLocalizationsDelegate

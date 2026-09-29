@@ -155,7 +155,8 @@ class _GoldNavigationBar extends StatelessWidget {
   /// يصلح للزجاج — يُظهر المحتوى من تحته فيبدو الطمس. والداكنُ الصُّلب العائم
   /// يترك شريطاً كريميّاً تحته يُقرأ فراغاً منسيّاً، والممتدُّ يقفل الصفحة من
   /// أسفلها كما يقفلها الهيدر من أعلاها.
-  static const double _radius = 22;
+  // مسطّحٌ بحدٍّ علويّ رفيع — تصميمُ المالك (٣٠ سبتمبر ٢٠٢٦).
+  static const double _radius = 0;
 
   /// حشوةُ الشريط حول صفّه.
   static const double _padTop = 8;
@@ -214,15 +215,8 @@ class _GoldNavigationBar extends StatelessWidget {
             // اتّجاهاً رأسيّاً. لونان قريبان لا متطابقان جعلا الفوتر يُقرأ
             // أعتم من الهيدر على الشاشة نفسها، واتّجاهان مختلفان يجعلان
             // الحافّتين المتقابلتين تفترقان في الإضاءة.
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[
-                // **بيبي بلو** كرأس الرئيسية (`HarajSky`) — بأمر المالك.
-                HarajSky.top.withValues(alpha: _opacity),
-                HarajSky.bottom.withValues(alpha: _opacity),
-              ],
-            ),
+            // **أبيضُ** بتصميم المالك (٣٠ سبتمبر ٢٠٢٦) — كان بيبي بلو ثم كحليّاً.
+            color: palette.cardSurface.withValues(alpha: _opacity),
           ),
           child: Stack(
             children: <Widget>[
@@ -243,11 +237,7 @@ class _GoldNavigationBar extends StatelessWidget {
                   height: 1.5,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: <Color>[
-                        palette.gold.withValues(alpha: 0),
-                        palette.gold.withValues(alpha: 0.5),
-                        palette.gold.withValues(alpha: 0),
-                      ],
+                      colors: <Color>[palette.navInactive, palette.navInactive],
                     ),
                   ),
                 ),
@@ -359,23 +349,46 @@ class _NavigationItemState extends State<_NavigationItem> {
                   // رفعةٌ محسوسةٌ لا مرئيّة: ٤٪ تكفي ليشعر المؤشّر بأن العنصر
                   // حيّ، وأكثرُ منها يزيح جاره في صفٍّ ضيّق.
                   scale: _hovered && !selected ? 1.04 : 1,
-                  child: Icon(
-                    selected ? section.selectedIcon : section.icon,
-                    // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
-                    size: selected ? 24 : 21,
-                    color: colour,
-                    // هالةٌ ذهبيّة خلف المختار: ضوءٌ لا حدّ، فيبقى الشكل
-                    // واحداً في الحالتين ويتغيّر إضاءةً لا هيئة.
-                    shadows: selected
-                        ? <Shadow>[
-                            // هالةٌ أضيق بعد قصّ الشريط: نفس الوهج على
-                            // أيقونةٍ أصغر يفيض عليها فيُقرأ ضباباً لا ضوءاً.
-                            Shadow(
-                              color: palette.gold.withValues(alpha: 0.30),
-                              blurRadius: 9,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: <Widget>[
+                      Icon(
+                        selected ? section.selectedIcon : section.icon,
+                        // حجمان لا حجمٌ واحد: المختار أكبر بقدرٍ يُلحَظ ولا يقفز.
+                        size: selected ? 26 : 23,
+                        color: colour,
+                        // هالةٌ ذهبيّة خلف المختار: ضوءٌ لا حدّ، فيبقى الشكل
+                        // واحداً في الحالتين ويتغيّر إضاءةً لا هيئة.
+                        shadows: selected
+                            ? <Shadow>[
+                                // هالةٌ أضيق بعد قصّ الشريط: نفس الوهج على
+                                // أيقونةٍ أصغر يفيض عليها فيُقرأ ضباباً لا ضوءاً.
+                                Shadow(
+                                  color: palette.gold.withValues(alpha: 0.0),
+                                  blurRadius: 0,
+                                ),
+                              ]
+                            : const <Shadow>[],
+                      ),
+                      // نقطةٌ زرقاء على طرف الأيقونة المختارة — علامةُ التصميم.
+                      if (selected)
+                        PositionedDirectional(
+                          top: -2,
+                          end: -4,
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: palette.gold,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: palette.cardSurface,
+                                width: 1.2,
+                              ),
                             ),
-                          ]
-                        : const <Shadow>[],
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -415,7 +428,8 @@ class _NavigationItemState extends State<_NavigationItem> {
                 AnimatedContainer(
                   duration: _duration,
                   curve: Curves.easeOutCubic,
-                  width: selected ? 18 : 0,
+                  // الخطُّ تحت الاسم حلّت محلَّه نقطةُ الأيقونة.
+                  width: 0,
                   height: 2,
                   decoration: BoxDecoration(
                     color: palette.gold,

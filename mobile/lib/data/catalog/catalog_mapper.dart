@@ -58,6 +58,7 @@ extension VehicleCardMapper on api.VehicleCard {
     colourLabel: colourLabel,
     conditionLabel: conditionLabel,
     location: location,
+    make: make,
   );
 
   /// المواصفات من حقول الكرت نفسها.

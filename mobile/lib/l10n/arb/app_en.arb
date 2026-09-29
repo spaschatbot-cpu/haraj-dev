@@ -830,5 +830,59 @@
         "type": "String"
       }
     }
+  },
+  "homeBrandSubtitle": "The official certified auction platform",
+  "@homeBrandSubtitle": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "homeFilter": "Filter",
+  "@homeFilter": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "homeSearchHintFull": "Search a car or lot number",
+  "@homeSearchHintFull": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "homeAllChip": "All ({count} vehicles)",
+  "@homeAllChip": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeSectionTitle": "Sealed-bid vehicles",
+  "@homeSectionTitle": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "homeAvailableCount": "{count} available",
+  "@homeAvailableCount": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeSealedNote": "Bids are sealed: no one sees your amount, and the highest is known when the auction ends.",
+  "@homeSealedNote": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "homeSealedPill": "Sealed bidding",
+  "@homeSealedPill": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleSealedBidAction": "Bid now",
+  "@vehicleSealedBidAction": {
+    "description": "زرّ المزايدة على الكرت — «زايد الآن» بطلب المالك (٣٠ سبتمبر ٢٠٢٦) بدل «قدّم سومتك السرية»"
+  },
+  "vehicleSealedBadge": "Sealed",
+  "@vehicleSealedBadge": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStatusOpen": "Open",
+  "@vehicleStatusOpen": {
+    "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
   }
 }

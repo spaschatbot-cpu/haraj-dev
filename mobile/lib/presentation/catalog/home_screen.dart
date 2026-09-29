@@ -14,28 +14,27 @@ import '../../domain/common/failure.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/snapshot_view.dart';
-import 'widgets/home_hero.dart';
 import 'widgets/vehicle_filters.dart';
 import 'widgets/vehicle_results.dart';
 
-/// الرئيسية: **قائمة مركبات مسطّحة عبر المزادات، تحت لوحة فتحٍ داكنة.**
+/// الرئيسية: **قائمة مركبات مسطّحة عبر المزادات.**
 ///
 /// المزاد واحد في الأسبوع وحالته تتغيّر، فالسؤال الذي يفتح به العميل التطبيق
 /// ليس «أي المزادات موجود؟» بل «إيش المعروض دلوقتي؟». ولذلك حلّت المركبات محلّ
 /// قائمة المزادات، وصار الطور عملياً هو «أي مزادٍ أنظر إليه الآن».
 ///
+/// **هيئةُ تصميم المالك** (٣٠ سبتمبر ٢٠٢٦): رأسٌ أبيض بالشعار والاسم وزرَّي
+/// الإشعارات والحساب، ثم حقلُ بحثٍ في طرفه «تصفية»، ثم شرائحُ الماركات، ثم
+/// عنوانُ القسم وعدُّه، ثم الكروت، وفي آخرها سطرُ «العروض سرّية». وحلّ هذا
+/// محلَّ لوحة الصورة الداكنة ومفتاحِ الأطوار الثلاثيّ.
+///
 /// **القسمة والعدّ من الخادم.** الطور يأتي في `phase` لكل مركبة، والعدّادات
-/// الثلاثة تأتي مع الصفحة في **طلبٍ واحد**. لا الشاشة تصنّف مزاداً بنفسها، ولا
-/// تعدّ الأطوار من طول القائمة: في v1 كانت الأرقام الثلاثة تُطلب في ستّة
-/// طلبات، فيصير كل رقم من لحظة، ويقع التبويب على «٣» ثم يُفتح فيه صفر.
+/// الثلاثة تأتي مع الصفحة في **طلبٍ واحد** — في v1 كانت الأرقام الثلاثة تُطلب
+/// في ستّة طلبات، فيصير كل رقم من لحظة.
 ///
 /// **الطور في العنوان** (`?phase=active`) لا في حالة الشاشة وحدها: الرابط
 /// يُشارَك، ويصمد عبر إعادة الفتح، ويفتحه الإشعار على طوره (H6). ومقبضُه
-/// انتقل من شريط تبويباتٍ أسفل الهيدر إلى ورقة «الفرز والتصفية» — نفس
-/// المسار، بلا صفٍّ ثالث يأكل من الشاشة.
-///
-/// **ولا `AppBar` هنا.** بقيّة الشاشات تحمل `HarajAppBar` الأخضر؛ وهذه وحدها
-/// تحمل `HomeHero` — والسبب مكتوب عنده.
+/// قائمةٌ صغيرة على طرف عنوان القسم، وفي ورقة «تصفية» أيضاً.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({this.phase = AuctionPhase.defaultTab, super.key});
 
@@ -46,56 +45,9 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-/// ارتفاعُ حقل البحث داخل صندوق البحث.
-const double _searchHeight = 48;
-
-/// حاشيةُ صندوق البحث العلويّة.
-///
-/// **عشرةٌ** بطلب المالك (١٣ سبتمبر ٢٠٢٦): هي الفراغُ فوق الحقل حين تثبت
-/// الشريحةُ في رأس الشاشة — بصفرٍ كان يلتصق بالحافّة. ولا يُفقَد التراكبُ
-/// على الصورة: `_searchOverlap` زِيد بقدرها.
-const double _searchCardTop = 10;
-
-/// ارتفاعُ الشريحة المثبَّتة **بالضبط** — `SliverPersistentHeader` يفرضه ولا
-/// يقيسه، فأيُّ زيادةٍ في محتواه تفيض وتُقصّ. وهو مجموعُ ما فيه:
-/// الحاشيةُ العلويّة + حقلُ البحث + الفاصلُ + حاويةُ التبويبات (٤٢).
-const double _searchCardExtent =
-    _searchCardTop + _searchHeight + 12 + 42 + _searchCardBottom;
-
-/// فراغٌ أسفل التبويبات قبل أول كرت — بطلب المالك (١٣ سبتمبر ٢٠٢٦): كانت
-/// حاويةُ الأطوار تلامس حافّة الكرت الأول فتُقرأان كتلةً واحدة.
-const double _searchCardBottom = 10;
-
-/// ارتفاعُ اللوحة الغنيّة **بلا** حاشية النظام العلويّة — تُضاف في البناء.
-///
-/// مكتوبٌ لا مقيس، لأن `SliverPersistentHeader` يفرض ارتفاعه: حاشيةٌ علويّة
-/// (١٢) + صفُّ العلامة (٣٦ بعد أن حلّ الشعارُ محلّ الأيقونة) + فاصلٌ (١٠) +
-/// سطرُ التمهيد (١٣) + فاصلٌ (٦) + العنوان (١٨) + حاشيةٌ سفلى (٢٦)، وبكسلان
-/// احتياطاً.
-///
-/// **والرقمُ يُراجَع مع كل تغييرٍ في محتوى اللوحة**: الشريحةُ تفرض ارتفاعها
-/// ولا تقيسه، فبكسلان ناقصان يُخرجان شريطَ الفيضان الأصفر — وهو ما حدث حين
-/// كبُر صفُّ العلامة من ٣٤ إلى ٣٦ (١٤ سبتمبر ٢٠٢٦).
-const double _heroExtent = 124;
-
-/// العرضُ الذي تنقلب عنده الترويسة إلى صفٍّ واحد.
-///
-/// **٨٦٠**: دون ذلك لا يسع الصفُّ نصَّ اللوحة وصندوقَ بحثٍ بعرض ٤٤٠ معاً.
-const double _wideAt = 860;
-
-/// ارتفاعُ ترويسة اللاب — صفُّ العلامة والنصُّ، وصندوقُ البحث والتبويبات
-/// فوق الصورة. رُفع إلى ٢١٦ حين نزل العنوانُ وكبُر خطُّه.
-const double _wideHeaderExtent = 216;
-
-/// فراغٌ بين أسفل الصورة وأول صفٍّ من الكروت على اللاب — بطلب المالك: كانت
-/// الكروتُ تلتصق بحافّة الصورة فتُقرأ امتداداً لها.
-const double _wideHeaderGap = 16;
-
-/// كم يعلو صندوقُ البحث على أسفل صورة اللوحة، على موكاب المالك.
-///
-/// ويتلاشى مع الانطواء: بلا تلاشٍ يبقى شريطٌ شفّافٌ بعرض عشرين فوق الشريحة
-/// المثبَّتة، تظهر فيه الكروتُ وهي تمرّ من خلف الحقل.
-const double _searchOverlap = 30;
+/// ارتفاعُ الشريحة الثابتة **بالضبط** — `SliverPersistentHeader` يفرضه ولا
+/// يقيسه: حاشيةٌ (١٠) + البحث (٥٢) + فاصلٌ (١٠) + الشرائح (٤٠) + حاشيةٌ (٨).
+const double _pinnedExtent = 10 + 52 + 10 + 40 + 8;
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   VehicleQuery _query = const VehicleQuery();
@@ -109,13 +61,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Failure? _moreFailure;
 
   /// كل طلبٍ جديد يبطل ما قبله: ردٌّ بطيء لطورٍ غادره العميل كان سيصل بعد ردّ
-  /// الطور الذي يقف فيه فيدهسه، فيرى مركبات طورٍ آخر تحت عنوان طوره.
+  /// الطور الذي يقف فيه فيدهسه.
   int _generation = 0;
 
-  /// آخر عدّادات وصلت — رقمُ كل تبويب. تبقى معروضة أثناء تحميل الطور التالي
-  /// بدل أن تختفي الأرقام ثم تعود: وميضٌ يجعل الخانات الثلاث ترقص عند كل
-  /// ضغطة.
+  /// آخر عدّادات وصلت — تبقى معروضةً أثناء تحميل الطور التالي.
   PhaseCounts? _counts;
+
+  /// ماركاتُ الشرائح — **من المركبات نفسها لا قائمةٌ مكتوبة**: ما في المزاد
+  /// الآن. تُجمع من الصفحة غير المرشَّحة وتبقى حين يُختار أحدها، وإلا
+  /// اختفت الشرائحُ الأخرى بمجرّد الضغط على واحدة.
+  List<String> _makes = const <String>[];
 
   @override
   void initState() {
@@ -126,10 +81,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void didUpdateWidget(HomeScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // الطور تغيّر من العنوان (اختيارٌ في الورقة، أو رجوع، أو رابط). المعايير
-    // تبقى: من بحث عن «كامري» ثم بدّل الطور يسأل عن كامري في الطور الجديد،
-    // لا يبدأ من الصفر.
-    if (oldWidget.phase != widget.phase) _reload();
+    if (oldWidget.phase != widget.phase) {
+      _makes = const <String>[];
+      _reload();
+    }
   }
 
   Future<void> _reload() async {
@@ -154,16 +109,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _totalCount = snapshot.value.page.totalCount;
         _hasMore = snapshot.value.page.hasMore;
         _counts = snapshot.value.counts;
+        if ((_query.make ?? '').isEmpty) _makes = _makesOf(_vehicles);
       });
     } on Object catch (error, stackTrace) {
-      // `Object` لا `Failure`: عطبٌ غير متوقّع يجب أن يظهر مصنَّفاً في الشاشة،
-      // لا أن يُفلت من فجوة غير متزامنة فيسقط في السجلّ وحده والشاشة تدور.
       if (!mounted || generation != _generation) return;
       setState(
         () =>
             _first = AsyncValue<Snapshot<VehicleFeed>>.error(error, stackTrace),
       );
     }
+  }
+
+  static List<String> _makesOf(List<VehicleSummary> vehicles) {
+    final seen = <String>{};
+    for (final vehicle in vehicles) {
+      final make = vehicle.make.trim();
+      if (make.isNotEmpty) seen.add(make);
+    }
+    return seen.toList(growable: false);
   }
 
   Future<void> _loadMore() async {
@@ -182,10 +145,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _vehicles.addAll(snapshot.value.page.vehicles);
         _totalCount = snapshot.value.page.totalCount;
         _hasMore = snapshot.value.page.hasMore;
-        // العدّادات تُحدَّث مع كل صفحة لأنها تصل معها: رقمٌ من الصفحة الأولى
-        // يبقى معروضاً بينما الصفحة الثالثة تعرف رقماً أحدث كذبةٌ مجانية.
         _counts = snapshot.value.counts;
         _loadingMore = false;
+        if ((_query.make ?? '').isEmpty) {
+          _makes = <String>{..._makes, ..._makesOf(_vehicles)}.toList();
+        }
       });
     } on Object catch (error, stackTrace) {
       if (!mounted || generation != _generation) return;
@@ -212,23 +176,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ),
   );
 
+  void _pickMake(String? make) => _apply(
+    VehicleQuery(
+      search: _query.search,
+      make: make,
+      yearFrom: _query.yearFrom,
+      yearTo: _query.yearTo,
+    ),
+  );
+
+  void _openFilters() => showVehicleFilters(
+    context,
+    query: _query,
+    phase: widget.phase,
+    counts: _counts,
+    onApply: _apply,
+    onPhase: (phase) => Routes.goToPhase(context, phase),
+  );
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // ساعةُ النظام وبطّاريّتُه فوق لوحةٍ داكنة: تُركا للثيم الفاتح كانا
-      // سيُرسمان أسودَين على أسود.
+      // الرأسُ أبيض: ساعةُ النظام وبطّاريّتُه داكنتان فوقه.
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        // **الهيدرُ ينزلق والبحثُ يثبت** بطلب المالك (١٣ سبتمبر ٢٠٢٦، على
-        // سلوك v1): اللوحةُ الغنيّة شريحةٌ أولى تمضي إلى أعلى مع الكروت،
-        // وصندوقُ البحث والتبويبات شريحةٌ **مثبَّتة** تبقى فوق القائمة — فهما
-        // مقبضاها، ومن نزل عشرين كرتاً ثم أراد تبديل الطور لا يصعد كلَّها.
-        //
-        // وبهذا ذهبت الورقةُ الكريميّة ذاتُ الزاويتين المدوّرتين: كانت تحيط
-        // بعمودٍ ثابتٍ فوق القائمة، ولا عمودَ الآن. وحافّةُ الهيدر السفلى
-        // مدوّرةٌ أصلاً (`HomeHero`) فلا يُفقَد شيءٌ من الشكل.
+        backgroundColor: palette.pageBackground,
         body: SnapshotView<VehicleFeed>(
           state: _first,
           onRetry: _reload,
@@ -245,126 +220,81 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
             emptyMessage: _emptyMessage(l10n),
             showCount: false,
-            // **هيئتان للترويسة**: على الجوّال شريحةٌ تنطوي — اللوحةُ تنزلق
-            // وصندوقُ البحث يثبت. وعلى اللاب صفٌّ واحد: النصُّ يميناً
-            // وصندوقُ البحث والتبويبات شمالاً داخل الصورة، على هيئة v1
-            // (بطلب المالك، ١٣ سبتمبر ٢٠٢٦) — ولا تثبيتَ هناك لأن الشاشة
-            // العريضة لا يضيق بها الطول.
-            sliverHeader: MediaQuery.sizeOf(context).width >= _wideAt
-                ? SliverToBoxAdapter(child: _wideHeader(context))
-                : SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _HomeHeader(
-                      palette: HarajPalette.of(context),
-                      heroExtent:
-                          _heroExtent + MediaQuery.paddingOf(context).top,
-                      card: _searchCard(),
-                      hero: HomeHero(
-                        onOpenNotifications: () =>
-                            context.go(Routes.myActivityPath),
-                        onOpenAccount: () => context.go(Routes.profilePath),
-                      ),
-                    ),
-                  ),
-            // **لا زرّ فرزٍ ولا ورقة تصفية** — مُحي بطلب المالك في ٩ سبتمبر
-            // ٢٠٢٦، مرّتين: من سطر العدّ أوّلاً، ثم من جانب حقل البحث.
-            //
-            // وثمنُه مكتوبٌ هنا لأنه لا يُرى في الشاشة: الماركةُ والسنتان
-            // (`VehicleQuery.make` و`yearFrom` و`yearTo`) تعمل ويرسلها
-            // `_apply` إلى الخادم، **ولا مقبضَ لها في الرئيسية**.
-            // و`VehicleFiltersButton` باقيةٌ تعمل في شاشة مركبات المزاد.
-            // والطورُ له مفتاحُه في الترويسة.
+            // **الرأسُ ينزلق، والبحثُ والشرائحُ تثبت** — هما مقبضا القائمة،
+            // ومن نزل عشرين كرتاً ثم أراد ماركةً أخرى لا يصعد كلَّها.
+            header: _BrandBar(
+              onOpenNotifications: () => context.go(Routes.myActivityPath),
+              onOpenAccount: () => context.go(Routes.profilePath),
+            ),
+            pinnedHeader: _searchAndMakes(l10n, palette),
+            pinnedHeaderExtent: _pinnedExtent,
+            listHeader: _SectionTitle(
+              phase: widget.phase,
+              count: _totalCount,
+              counts: _counts,
+              onPhase: (phase) => Routes.goToPhase(context, phase),
+            ),
+            listFooter: const _SealedNote(),
           ),
         ),
       ),
     );
   }
 
-  /// صندوقُ البحث والتبويبات — متراكبٌ على أسفل صورة الهيدر بلا بطاقةٍ تحته.
-  ///
-  /// **قوائمُ الترشيح (الكل/الماركة/السعر/من-إلى) بصريّةٌ بعد**: الماركةُ
-  /// والسنتان تعملان في `VehicleQuery` بلا منتقٍ في الرئيسية، فالقوائمُ تقول
-  /// «لم يُفعَّل بعد» بدل منتقٍ لا يفتح — تُوصَل حين يُبنى المنتقي.
-  Widget _searchCard() => Container(
-    margin: const EdgeInsets.fromLTRB(14, _searchCardTop, 14, 0),
-    // **بلا أرضيّةٍ بيضاءَ خلف صندوق البحث** بطلب المالك (١٣ سبتمبر ٢٠٢٦):
-    // كانت بطاقةٌ بيضاءُ شفّافةٌ بظلٍّ تحمل الحقلَ والتبويبات، فصارت ثلاثةَ
-    // صناديقَ متداخلة — الحقلُ أبيضُ أصلاً والتبويباتُ لها حوضُها، فالأرضيّةُ
-    // الثالثة زائدة.
-    //
-    // ولا إزاحةَ تسحبه فوق الصورة بعد اليوم: صار شريحةً مثبَّتةً داخل
-    // القائمة، وما يعلو حدَّها يقصّه إطارُ التمرير عند التثبيت.
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        SizedBox(
-          height: _searchHeight,
-          child: VehicleSearchField(
-            search: _query.search,
-            onSubmitted: _search,
-          ),
-        ),
-        // صفُّ قوائم الترشيح (الكل/الماركة/السعر/من-إلى) حُذف بطلب المالك
-        // (١٣ سبتمبر ٢٠٢٦).
-        const SizedBox(height: 12),
-        _PhaseTabs(
-          current: widget.phase,
-          counts: _counts,
-          onSelect: (phase) => Routes.goToPhase(context, phase),
-        ),
-      ],
-    ),
-  );
-
-  /// ترويسةُ اللاب: النصُّ يميناً وصندوقُ البحث شمالاً **داخل الصورة**.
-  ///
-  /// `PositionedDirectional` لا `Positioned`: «شمال» في العربية هي `end`،
-  /// و`left` مكتوبةً تضع الصندوقَ في الجهة الخطأ لو فُتح التطبيق بالإنجليزية.
-  Widget _wideHeader(BuildContext context) => Container(
-    height: _wideHeaderExtent,
-    margin: const EdgeInsets.only(bottom: _wideHeaderGap),
-    child: Stack(
-      children: <Widget>[
-        Positioned.fill(
-          child: HomeHero(
-            onOpenNotifications: () => context.go(Routes.myActivityPath),
-            onOpenAccount: () => context.go(Routes.profilePath),
-          ),
-        ),
-        PositionedDirectional(
-          end: 24,
-          top: 64,
-          width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              SizedBox(
-                height: _searchHeight,
-                child: VehicleSearchField(
-                  search: _query.search,
-                  onSubmitted: _search,
+  Widget _searchAndMakes(AppLocalizations l10n, HarajPalette palette) {
+    final selected = (_query.make ?? '').trim();
+    final all = _counts?.of(widget.phase) ?? _totalCount;
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              height: 52,
+              child: VehicleSearchField(
+                search: _query.search,
+                onSubmitted: _search,
+                hint: l10n.homeSearchHintFull,
+                trailing: _FilterButton(
+                  label: l10n.homeFilter,
+                  active: _query.isFiltered,
+                  onTap: _openFilters,
                 ),
               ),
-              const SizedBox(height: 12),
-              _PhaseTabs(
-                current: widget.phase,
-                counts: _counts,
-                onSelect: (phase) => Routes.goToPhase(context, phase),
-              ),
-            ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: <Widget>[
+                _MakeChip(
+                  label: l10n.homeAllChip(all),
+                  selected: selected.isEmpty,
+                  onTap: () => _pickMake(null),
+                ),
+                for (final make in _makes) ...<Widget>[
+                  const SizedBox(width: 8),
+                  _MakeChip(
+                    label: make,
+                    selected: selected == make,
+                    onTap: () => _pickMake(make),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  /// الطور الفارغ يقول **لماذا** هو فارغ.
-  ///
-  /// وفراغُ بحثٍ غير فراغِ طور: من بحث عن «لكزس» في طورٍ نشط ولم يجد يجب أن
-  /// يقرأ «لا مركبات مطابقة» لا «لا مزاد نشط الآن» — الثانية تقول له إن المزاد
-  /// مقفل وهو مفتوح، فيغلق التطبيق.
+  /// الطور الفارغ يقول **لماذا** هو فارغ — وفراغُ بحثٍ غيرُ فراغِ طور.
   String _emptyMessage(AppLocalizations l10n) {
     if (_query.isFiltered) return l10n.vehiclesEmpty;
     return switch (widget.phase) {
@@ -375,147 +305,305 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-/// تبويبات الطور الثلاثة تحت حقل البحث — **مفتاحٌ مقسوم، لا ثلاثةُ صناديق**.
-///
-/// جُرِّبت ثلاثُ هيئاتٍ قبلها وردَّها المالك: خاناتٌ بأرضيّةٍ بنّيّة، ثم
-/// خاناتٌ بإطارٍ ذهبيٍّ محيط، ثم خاناتٌ بشريطٍ ذهبيٍّ جانبيّ. وعلّتُها واحدة:
-/// **ثلاثةُ صناديق منفصلة فوق قائمةِ كروتٍ كلُّها صناديق** — فلا تُقرأ مفتاحاً
-/// يختار واحداً من ثلاثة، بل ثلاثةَ أزرارٍ لا رابط بينها. والحاوية الواحدة
-/// هي الرابط: الأقسامُ داخلها فلا تُقرأ إلا معاً.
-///
-/// **الترتيب من `AuctionPhase.tabs` لا مكتوباً هنا**: التعداد يعرف ترتيبه،
-/// وقائمةٌ ثانية تفترق عنه عند أول تعديل فيُفتح التبويبُ الخطأ (المادة ٤-٥).
-///
-/// **والاختيار يمرّ بالعنوان** (`?phase=`) لا بحالةٍ في الشاشة: الرابطُ
-/// يُشارَك، ويصمد عبر إعادة الفتح، ويفتحه الإشعار على طوره (H6).
-///
-/// **والعدّاد على كلٍّ منها** — يصل مع الصفحة في نفس الطلب. وهو ما يجعل
-/// التبويب الفارغ مفهوماً: من يفتح «نشط» فيجده خالياً يرى «قريباً ٢» بجانبه
-/// فيعرف إلى أين يذهب، بدل أن يظنّ التطبيق معطّلاً.
-class _PhaseTabs extends StatelessWidget {
-  const _PhaseTabs({
-    required this.current,
-    required this.counts,
-    required this.onSelect,
+/// الرأسُ الأبيض: الشعارُ في مربّعٍ أزرق، والاسمُ وشارةُ الإصدار، وسطرُ
+/// التعريف، وفي الطرف الآخر زرّا الإشعارات والحساب.
+class _BrandBar extends StatelessWidget {
+  const _BrandBar({
+    required this.onOpenNotifications,
+    required this.onOpenAccount,
   });
 
-  final AuctionPhase current;
-
-  /// `null` قبل وصول أول صفحة. الرقم يُستبدل بشَرطةٍ ولا يُخفى: قسمٌ بلا رقمٍ
-  /// ثم يظهر له رقمٌ يزحف بنصّه، والثلاثةُ تتزحزح معه.
-  final PhaseCounts? counts;
-
-  final void Function(AuctionPhase phase) onSelect;
-
-  /// حشوةُ الحاوية حول اللوح — هي ما يجعل اللوح **داخلها** لا مساوياً لها.
-  static const double _track = 4;
-
-  static const double _height = 42;
-  static const double _radius = 13;
-  static const Duration _duration = Duration(milliseconds: 240);
+  final VoidCallback onOpenNotifications;
+  final VoidCallback onOpenAccount;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
-    final tabs = AuctionPhase.tabs;
+    final top = MediaQuery.paddingOf(context).top;
 
-    // `unknown` ليس قسماً، ورقمُه `-1` كان سيضع اللوح خارج الحاوية.
-    final index = tabs.contains(current) ? tabs.indexOf(current) : 0;
-
-    return Center(
-      child: ConstrainedBox(
-        // **بعرضٍ محدود لا بعرض الشاشة** — نفس حدّ لوحة الترحيب فوقها.
-        // على شاشةٍ عريضة كان القسم الواحد يبلغ ٤٥٠ بكسلاً لكلمةٍ ورقم.
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
-          // **بلا حاشيةٍ سفلى** (١٣ سبتمبر ٢٠٢٦): الصندوقُ مزاحٌ بعشرين
-          // فوق الصورة، والتسعةُ تُضاف إليها فتصير الفجوةُ إلى أول كرتٍ
-          // أربعين — ضِعفَ ما بين كرتين.
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-          child: SizedBox(
-            height: _height,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(_radius),
-                // **أرضيّةٌ غائرة**: أغمقُ قليلاً من ورقة الصفحة لا أفتح.
-                // الحاوية حوضٌ يجلس فيه اللوح، وحوضٌ أفتحُ من ورقته يطفو
-                // فوقها فيصير صندوقاً رابعاً.
-                color: Color.alphaBlend(
-                  palette.gold.withValues(alpha: 0.09),
-                  palette.pageBackground,
-                ),
-                border: Border.all(color: palette.gold.withValues(alpha: 0.18)),
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, top + 14, 16, 14),
+      decoration: BoxDecoration(
+        color: palette.cardSurface,
+        border: Border(
+          bottom: BorderSide(color: palette.navInactive.withValues(alpha: 0.6)),
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 52,
+            height: 52,
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: <Color>[palette.gold, palette.goldDeep],
               ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  // عرضُ القسم يُقسَم هنا لا يُخمَّن: اللوح يقف على قسمٍ
-                  // بعينه، ورقمٌ مكتوبٌ سلفاً يزيغ عنه على كل عرضٍ آخر.
-                  final segment =
-                      (constraints.maxWidth - _track * 2) / tabs.length;
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: palette.gold.withValues(alpha: 0.30),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) =>
+                  const Icon(Icons.gavel_rounded, color: Colors.white),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        l10n.homeBrand,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: palette.ink,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: palette.gold.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'v2',
+                        textDirection: TextDirection.ltr,
+                        style: TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: palette.gold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  l10n.homeBrandSubtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 12,
+                    color: palette.inkMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          _SquareAction(
+            icon: Icons.notifications_none_rounded,
+            tooltip: l10n.homeNotifications,
+            onTap: onOpenNotifications,
+            badge: true,
+          ),
+          const SizedBox(width: 8),
+          _SquareAction(
+            icon: Icons.person_rounded,
+            tooltip: l10n.homeAccountAction,
+            onTap: onOpenAccount,
+            tinted: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-                  return Stack(
-                    children: <Widget>[
-                      // اللوح الذهبيّ — **ينزلق** ولا يظهر ويختفي.
-                      //
-                      // الانزلاق هو ما يجعل الثلاثة مفتاحاً واحداً: العين
-                      // تتبع اللوح من قسمٍ إلى قسم فتفهم أنه واحدٌ ينتقل.
-                      // وظهورٌ واختفاءٌ في مكانين يُقرأ ضوءَين ينطفئ أحدهما.
-                      AnimatedPositionedDirectional(
-                        duration: _duration,
-                        curve: Curves.easeOutCubic,
-                        start: _track + segment * index,
-                        top: _track,
-                        bottom: _track,
-                        width: segment,
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(_radius - 4),
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: <Color>[palette.gold, palette.goldDeep],
-                            ),
-                            boxShadow: <BoxShadow>[
-                              BoxShadow(
-                                color: palette.goldDeep.withValues(alpha: 0.35),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // **`Positioned.fill` لا صفٌّ عارٍ**: `Stack` محاذاتُه
-                      // `topStart` و`fit` رخو، فابنٌ غيرُ موضَّع يأخذ ارتفاع
-                      // محتواه ويلتصق بالأعلى. فوقف النصُّ في أعلى الحاوية
-                      // واللوحُ ممتدٌّ بارتفاعها كلِّها تحته — يُقرأ كلاماً
-                      // فوق مربّعٍ لا كلاماً في وسطه. والملءُ يعطي كل قسمٍ
-                      // ارتفاع الحاوية فيتوسّط نصُّه فيه.
-                      Positioned.fill(
-                        child: Row(
-                          children: <Widget>[
-                            for (final phase in tabs)
-                              Expanded(
-                                child: _Segment(
-                                  label: switch (phase) {
-                                    AuctionPhase.upcoming =>
-                                      l10n.homeTabUpcoming,
-                                    AuctionPhase.active => l10n.homeTabActive,
-                                    AuctionPhase.ended ||
-                                    AuctionPhase.unknown => l10n.homeTabEnded,
-                                  },
-                                  count: counts?.of(phase),
-                                  selected: phase == current,
-                                  onTap: () => onSelect(phase),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
+class _SquareAction extends StatelessWidget {
+  const _SquareAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.badge = false,
+    this.tinted = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool badge;
+
+  /// المربّعُ المظلَّل بالأزرق — زرُّ الحساب في التصميم.
+  final bool tinted;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Material(
+            color: tinted
+                ? palette.gold.withValues(alpha: 0.10)
+                : palette.cardSurface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: BorderSide(
+                color: tinted
+                    ? palette.gold.withValues(alpha: 0.25)
+                    : palette.navInactive,
+              ),
+            ),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: SizedBox(
+                width: 44,
+                height: 44,
+                child: Icon(
+                  icon,
+                  size: 22,
+                  color: tinted ? palette.gold : palette.ink,
+                ),
+              ),
+            ),
+          ),
+          if (badge)
+            PositionedDirectional(
+              top: 8,
+              end: 9,
+              child: Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFE53935),
+                  border: Border.all(color: palette.cardSurface, width: 1.5),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// «تصفية» داخل حقل البحث — يفتح ورقةَ الطور والماركة والسنتين. ونقطةٌ عليه
+/// حين يكون ترشيحٌ قائماً: بدونها لا شيء يقول إن النتائج مُضيَّقة.
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Material(
+      color: palette.gold.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(11),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(11),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(Icons.tune_rounded, size: 17, color: palette.ink),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
+              ),
+              if (active) ...<Widget>[
+                const SizedBox(width: 5),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: palette.gold,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MakeChip extends StatelessWidget {
+  const _MakeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: selected ? palette.gold : palette.cardSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: selected ? palette.gold : palette.navInactive,
+          ),
+        ),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected ? Colors.white : palette.ink,
+                ),
               ),
             ),
           ),
@@ -525,89 +613,173 @@ class _PhaseTabs extends StatelessWidget {
   }
 }
 
-/// قسمٌ واحد من المفتاح: اسمٌ ورقمُه، **بلا أرضيّةٍ ولا حدّ**.
-///
-/// اللوحُ الذهبيّ يمرّ تحته من `_PhaseTabs`، وهذا لا يرسم إلا نصَّه — فلو
-/// رسم لنفسه أرضيّةً حجب اللوحَ الذي ينزلق تحته.
-class _Segment extends StatelessWidget {
-  const _Segment({
-    required this.label,
+/// عنوانُ القسم وعدُّه، وفي الطرف الآخر الطورُ المعروض — قائمةٌ تبدّله.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.phase,
     required this.count,
-    required this.selected,
-    required this.onTap,
+    required this.counts,
+    required this.onPhase,
   });
 
-  final String label;
-  final int? count;
-  final bool selected;
-  final VoidCallback onTap;
+  final AuctionPhase phase;
+  final int count;
+  final PhaseCounts? counts;
+  final void Function(AuctionPhase phase) onPhase;
 
-  static const Duration _duration = Duration(milliseconds: 240);
+  String _label(AppLocalizations l10n, AuctionPhase phase) => switch (phase) {
+    AuctionPhase.upcoming => l10n.homeTabUpcoming,
+    AuctionPhase.active || AuctionPhase.unknown => l10n.homeTabActive,
+    AuctionPhase.ended => l10n.homeTabEnded,
+  };
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
+    final pill = phase == AuctionPhase.active || phase == AuctionPhase.unknown
+        ? l10n.homeAvailableCount(count)
+        : l10n.homeTabWithCount(_label(l10n, phase), count);
 
-    // **نصٌّ شبه أسود على الذهبيّ الممتلئ لا أبيض**: الأبيض على `#B8860B`
-    // نسبتُه ٣٫٣:١ وهي دون حدِّ النصّ الصغير، وهذا يبلغ نحو ٧:١. وهو
-    // `heroBottom` — لونُ أسفل اللوحة الداكنة — لا لونٌ جديد.
-    final colour = selected ? palette.heroBottom : palette.inkMuted;
-
-    return Semantics(
-      selected: selected,
-      button: true,
-      // القارئ الصوتيّ يقول «مختار» ولا يترك الفرق للّون ولا للوزن.
-      label: label,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(9),
-          splashColor: palette.goldMuted,
-          highlightColor: palette.goldMuted,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Flexible(
-                child: AnimatedDefaultTextStyle(
-                  duration: _duration,
-                  curve: Curves.easeOutCubic,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+      child: Row(
+        children: <Widget>[
+          // **يصغر ولا يُقصّ** — «مركبات المظا…» رُئيت على عرض ٣٧٥.
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.homeSectionTitle,
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+            decoration: BoxDecoration(
+              color: palette.gold.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: palette.gold.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              pill,
+              style: TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                color: palette.gold,
+              ),
+            ),
+          ),
+          const Spacer(),
+          PopupMenuButton<AuctionPhase>(
+            tooltip: l10n.filterPhase,
+            onSelected: onPhase,
+            itemBuilder: (context) => <PopupMenuEntry<AuctionPhase>>[
+              for (final option in AuctionPhase.tabs)
+                PopupMenuItem<AuctionPhase>(
+                  value: option,
+                  child: Text(
+                    counts == null
+                        ? _label(l10n, option)
+                        : l10n.homeTabWithCount(
+                            _label(l10n, option),
+                            counts!.of(option),
+                          ),
+                  ),
+                ),
+            ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  _label(l10n, phase),
                   style: TextStyle(
                     fontFamily: HarajTheme.fontFamily,
-                    fontSize: 12,
-                    // الوزنُ يتغيّر مع اللون: عينٌ لا تفرّق الذهبيَّ عن
-                    // الكريميّ تفرّق العريضَ عن المتوسّط.
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                    color: colour,
-                    height: 1.2,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: palette.inkMuted,
                   ),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    // القصّ لا الالتفاف: «منتهي» في قسمٍ بتسعين بكسلاً على
-                    // شاشةٍ ضيّقة، وسطرٌ ثانٍ يطيل الحاوية كلَّها.
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
+                ),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: 18,
+                  color: palette.inkMuted,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// سطرُ الختام: قاعدةُ المزايدة المغلقة كما هي في الخادم — لا يرى أحدٌ مبلغَ
+/// غيره، والأعلى يُعرف عند النهاية.
+///
+/// **والتصميمُ كتب «تُحفظ بتشفيرٍ آمن وتُفتح آلياً بحضور لجنة المزاد»**، ولا
+/// لجنةَ في النظام ولا فتحَ آليّاً بحضورها — فكُتب ما يفعله النظام فعلاً.
+class _SealedNote extends StatelessWidget {
+  const _SealedNote();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 560),
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          decoration: BoxDecoration(
+            color: palette.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: palette.navInactive.withValues(alpha: 0.6),
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(Icons.lock_rounded, size: 20, color: palette.gold),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  l10n.homeSealedNote,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 12.5,
+                    color: palette.inkMuted,
+                    height: 1.5,
                   ),
                 ),
               ),
-              const SizedBox(width: 5),
-              // **الرقم بنفس اللون مخفَّفاً، لا في حوضٍ ملوّن**: حوضٌ داخل
-              // اللوح الذهبيّ شكلٌ داخل شكلٍ داخل حاوية، وثلاثةُ حدودٍ
-              // متداخلة في أربعين بكسلاً هي بعينها الفوضى التي رُفض من
-              // أجلها الشكلُ السابق. والتخفيفُ يكفي ليُقرأ عدّاداً لا جزءاً
-              // من الاسم.
-              AnimatedDefaultTextStyle(
-                duration: _duration,
-                curve: Curves.easeOutCubic,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: colour.withValues(alpha: selected ? 0.7 : 0.85),
-                  height: 1.2,
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: palette.pageBackground,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text(count?.toString() ?? '—'),
+                child: Text(
+                  l10n.homeSealedPill,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: palette.ink,
+                  ),
+                ),
               ),
             ],
           ),
@@ -615,85 +787,4 @@ class _Segment extends StatelessWidget {
       ),
     );
   }
-}
-
-/// ترويسةُ الرئيسية: **لوحةٌ تنطوي وصندوقُ بحثٍ يثبت**.
-///
-/// شريحةٌ واحدة لا شريحتان، لأن صندوق البحث يتراكب على أسفل صورة اللوحة —
-/// وتراكبُ شريحتين منفصلتين يقصّه إطارُ التمرير. فاللوحةُ هنا تنزلق إلى أعلى
-/// داخل الترويسة (`top: -shrinkOffset`)، والصندوقُ يلزم أسفلَها حتى يبلغ
-/// رأسَ الشاشة فيثبت وحده.
-///
-/// وأرضيّةُ الصندوق **تنزل عشرين ثم تصعد معه**: في الأعلى تبدأ تحت الحقل
-/// فيظهر الحقلُ على الصورة، وعند الانطواء تغطّي الشريحةَ كلَّها — وبلا ذلك
-/// يبقى شريطٌ شفّافٌ تمرّ فيه الكروتُ من خلف الحقل.
-class _HomeHeader extends SliverPersistentHeaderDelegate {
-  const _HomeHeader({
-    required this.palette,
-    required this.heroExtent,
-    required this.hero,
-    required this.card,
-  });
-
-  final HarajPalette palette;
-  final double heroExtent;
-  final Widget hero;
-  final Widget card;
-
-  @override
-  double get minExtent => _searchCardExtent;
-
-  @override
-  double get maxExtent => heroExtent + _searchCardExtent - _searchOverlap;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final travel = maxExtent - minExtent;
-    final progress = travel <= 0
-        ? 1.0
-        : (shrinkOffset / travel).clamp(0.0, 1.0);
-    return Stack(
-      clipBehavior: Clip.hardEdge,
-      children: <Widget>[
-        Positioned(
-          top: -shrinkOffset,
-          left: 0,
-          right: 0,
-          height: heroExtent,
-          child: hero,
-        ),
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: _searchCardExtent,
-          child: Stack(
-            children: <Widget>[
-              Positioned(
-                top: _searchOverlap * (1 - progress),
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: ColoredBox(color: palette.pageBackground),
-              ),
-              // **`Positioned.fill` لا طفلاً حرّاً**: الطفلُ الحرّ في `Stack`
-              // يأخذ عرضَه الطبيعيّ، وعمودُ الصندوق بلا عرضٍ طبيعيّ فينكمش.
-              Positioned.fill(child: card),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  @override
-  bool shouldRebuild(_HomeHeader old) =>
-      old.heroExtent != heroExtent ||
-      old.hero != hero ||
-      old.card != card ||
-      old.palette != palette;
 }
