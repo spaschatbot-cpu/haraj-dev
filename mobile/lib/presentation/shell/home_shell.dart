@@ -197,7 +197,7 @@ class _GoldNavigationBar extends StatelessWidget {
           // وأضيقُ بعد القصّ: ظلٌّ بعشرين تحت شريطٍ بسبعين يصعد ثلثَ ارتفاعه
           // فيُقرأ الشريط أطولَ ممّا هو، وهو عكسُ المطلوب.
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.16),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 14,
             offset: const Offset(0, -3),
           ),
@@ -218,8 +218,9 @@ class _GoldNavigationBar extends StatelessWidget {
               begin: Alignment.topRight,
               end: Alignment.bottomLeft,
               colors: <Color>[
-                palette.heroTop.withValues(alpha: _opacity),
-                palette.heroBottom.withValues(alpha: _opacity),
+                // **بيبي بلو** كرأس الرئيسية (`HarajSky`) — بأمر المالك.
+                HarajSky.top.withValues(alpha: _opacity),
+                HarajSky.bottom.withValues(alpha: _opacity),
               ],
             ),
           ),
@@ -243,9 +244,9 @@ class _GoldNavigationBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: <Color>[
-                        palette.goldOnDark.withValues(alpha: 0),
-                        palette.goldOnDark.withValues(alpha: 0.65),
-                        palette.goldOnDark.withValues(alpha: 0),
+                        palette.gold.withValues(alpha: 0),
+                        palette.gold.withValues(alpha: 0.5),
+                        palette.gold.withValues(alpha: 0),
                       ],
                     ),
                   ),
@@ -323,11 +324,13 @@ class _NavigationItemState extends State<_NavigationItem> {
     final label = section.label(l10n);
     // الهافر يُقرّب اللون نحو الذهبيّ ولا يقفز إليه: قفزةٌ كاملة تجعل العنصر
     // المُحوَّم عليه يبدو مختاراً، فيضيع الفرق بين «هنا أنت» و«هنا مؤشّرك».
+    // على البيبي بلو: المختارُ أزرقُ `gold` والباقي كحليٌّ باهت — `navInactive`
+    // الفاتحُ كان مصنوعاً للأرضيّة الكحليّة ويختفي على الفاتحة.
     final colour = selected
-        ? palette.goldOnDark
+        ? palette.gold
         : _hovered
-        ? Color.lerp(palette.navInactive, palette.goldOnDark, 0.55)!
-        : palette.navInactive;
+        ? Color.lerp(palette.inkMuted, palette.gold, 0.55)!
+        : palette.inkMuted;
 
     return Semantics(
       // القارئ الصوتيّ يقول «مختار» ولا يترك الفرق للّون: اللون لا يُقرأ.
@@ -344,7 +347,7 @@ class _NavigationItemState extends State<_NavigationItem> {
           // يكاد يظهر.
           splashColor: palette.goldMuted,
           highlightColor: palette.goldMuted,
-          hoverColor: palette.goldOnDark.withValues(alpha: 0.08),
+          hoverColor: palette.gold.withValues(alpha: 0.08),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 3),
             child: Column(
@@ -368,7 +371,7 @@ class _NavigationItemState extends State<_NavigationItem> {
                             // هالةٌ أضيق بعد قصّ الشريط: نفس الوهج على
                             // أيقونةٍ أصغر يفيض عليها فيُقرأ ضباباً لا ضوءاً.
                             Shadow(
-                              color: palette.goldOnDark.withValues(alpha: 0.45),
+                              color: palette.gold.withValues(alpha: 0.30),
                               blurRadius: 9,
                             ),
                           ]
@@ -415,12 +418,12 @@ class _NavigationItemState extends State<_NavigationItem> {
                   width: selected ? 18 : 0,
                   height: 2,
                   decoration: BoxDecoration(
-                    color: palette.goldOnDark,
+                    color: palette.gold,
                     borderRadius: BorderRadius.circular(2),
                     boxShadow: selected
                         ? <BoxShadow>[
                             BoxShadow(
-                              color: palette.goldOnDark.withValues(alpha: 0.5),
+                              color: palette.gold.withValues(alpha: 0.4),
                               blurRadius: 5,
                             ),
                           ]

@@ -223,6 +223,19 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   );
 }
 
+/// **البيبي بلو** — أرضيّةُ رأس الرئيسية وشريطِ الأقسام السفليّ.
+///
+/// بأمر المالك (٢٩ سبتمبر ٢٠٢٦): «في الصفحة الرئيسية الألوان بيبي بلو، مش
+/// البلو الغامق». كان الاثنان على `heroTop`/`heroBottom` الكحليّين. وبقي ذلك
+/// الزوجُ لما سواهما (هيدرُ الشاشات الداخليّة، وقرصُ الشعار) — لم يُطلب.
+///
+/// **والنصُّ فوقه كحليٌّ لا أبيض**: الأبيضُ على `#BBDEFB` نسبتُه ١٫٤:١ فلا
+/// يُقرأ، و`ink` عليه ١١:١.
+abstract final class HarajSky {
+  static const Color top = Color(0xFFE3F2FD);
+  static const Color bottom = Color(0xFFBBDEFB);
+}
+
 abstract final class HarajTheme {
   /// عائلة الخط معرَّفة في `pubspec.yaml` تحت `fonts:`.
   static const String fontFamily = 'IBMPlexSansArabic';

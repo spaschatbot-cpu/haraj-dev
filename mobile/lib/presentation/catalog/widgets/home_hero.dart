@@ -77,8 +77,8 @@ class _RichHero extends StatelessWidget {
     final wide = MediaQuery.sizeOf(context).width >= 860;
 
     return DecoratedBox(
-      // خلفٌ كحليٌّ يظهر لو تعذّرت الصورة، وتحت حوافّها الشفّافة.
-      decoration: BoxDecoration(color: palette.heroTop),
+      // خلفٌ فاتحٌ يظهر لو تعذّرت الصورة، وتحت حوافّها الشفّافة.
+      decoration: const BoxDecoration(color: HarajSky.top),
       child: Stack(
         children: <Widget>[
           // الصورةُ خلفيّةً كاملة.
@@ -91,8 +91,8 @@ class _RichHero extends StatelessWidget {
               errorBuilder: (_, _, _) => const SizedBox.shrink(),
             ),
           ),
-          // سِتارٌ مزدوج: أفقيٌّ يُعتم اليمين (حيث النصّ)، ورأسيٌّ يُعتم الأعلى
-          // (صفُّ العلامة) — فيُقرأ النصُّ الأبيضُ فوق السماء والغيوم.
+          // سِتارٌ مزدوج بالبيبي بلو: أفقيٌّ يغطّي اليمين (حيث النصّ)، ورأسيٌّ
+          // يغطّي الأعلى (صفُّ العلامة) — فيُقرأ النصُّ الكحليُّ فوق الصورة.
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -100,9 +100,9 @@ class _RichHero extends StatelessWidget {
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
                   colors: <Color>[
-                    palette.heroBottom.withValues(alpha: 0.88),
-                    palette.heroBottom.withValues(alpha: 0.55),
-                    palette.heroBottom.withValues(alpha: 0.05),
+                    HarajSky.top.withValues(alpha: 0.94),
+                    HarajSky.top.withValues(alpha: 0.7),
+                    HarajSky.top.withValues(alpha: 0.05),
                   ],
                   stops: const <double>[0, 0.5, 0.95],
                 ),
@@ -116,8 +116,8 @@ class _RichHero extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: <Color>[
-                    palette.heroBottom.withValues(alpha: 0.55),
-                    palette.heroBottom.withValues(alpha: 0),
+                    HarajSky.top.withValues(alpha: 0.75),
+                    HarajSky.top.withValues(alpha: 0),
                   ],
                   stops: const <double>[0, 0.4],
                 ),
@@ -173,10 +173,7 @@ class _RichHero extends StatelessWidget {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(2),
                           gradient: LinearGradient(
-                            colors: <Color>[
-                              palette.goldOnDark,
-                              palette.heroGlow,
-                            ],
+                            colors: <Color>[palette.gold, palette.heroGlow],
                           ),
                         ),
                       ),
@@ -187,12 +184,12 @@ class _RichHero extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
+                            color: palette.inkMuted,
                             fontSize: wide ? 15.5 : 9.5,
                             fontWeight: FontWeight.w600,
                             fontFamily: HarajTheme.fontFamily,
                             shadows: const <Shadow>[
-                              Shadow(color: Colors.black54, blurRadius: 8),
+                              Shadow(color: Colors.white70, blurRadius: 8),
                             ],
                           ),
                         ),
@@ -210,17 +207,17 @@ class _RichHero extends StatelessWidget {
                         height: 1.3,
                         fontFamily: HarajTheme.fontFamily,
                         shadows: const <Shadow>[
-                          Shadow(color: Colors.black54, blurRadius: 12),
+                          Shadow(color: Colors.white70, blurRadius: 12),
                         ],
                       ),
                       children: <InlineSpan>[
                         TextSpan(
                           text: '${l10n.heroHeadline} ',
-                          style: const TextStyle(color: Colors.white),
+                          style: TextStyle(color: palette.ink),
                         ),
                         TextSpan(
                           text: l10n.heroHeadlineAccent,
-                          style: TextStyle(color: palette.goldOnDark),
+                          style: TextStyle(color: palette.gold),
                         ),
                       ],
                     ),
@@ -264,7 +261,7 @@ class _CompactHero extends StatelessWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topRight,
                   end: Alignment.bottomLeft,
-                  colors: <Color>[palette.heroTop, palette.heroBottom],
+                  colors: <Color>[HarajSky.top, HarajSky.bottom],
                 ),
               ),
             ),
@@ -276,9 +273,9 @@ class _CompactHero extends StatelessWidget {
                   center: const Alignment(0.55, -0.35),
                   radius: 1.05,
                   colors: <Color>[
-                    palette.heroGlow.withValues(alpha: 0.34),
-                    palette.heroGlow.withValues(alpha: 0.10),
-                    palette.heroGlow.withValues(alpha: 0),
+                    Colors.white.withValues(alpha: 0.55),
+                    Colors.white.withValues(alpha: 0.15),
+                    Colors.white.withValues(alpha: 0),
                   ],
                   stops: const <double>[0, 0.42, 1],
                 ),
@@ -322,9 +319,9 @@ Widget _goldEdge(HarajPalette palette) => Positioned(
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: <Color>[
-          palette.goldOnDark.withValues(alpha: 0),
-          palette.goldOnDark.withValues(alpha: 0.75),
-          palette.goldOnDark.withValues(alpha: 0),
+          palette.gold.withValues(alpha: 0),
+          palette.gold.withValues(alpha: 0.55),
+          palette.gold.withValues(alpha: 0),
         ],
       ),
     ),
@@ -375,7 +372,7 @@ class _Brand extends StatelessWidget {
             HomeHero.brandAsset,
             fit: BoxFit.contain,
             errorBuilder: (_, _, _) =>
-                Icon(Icons.gavel_rounded, size: 18, color: palette.goldOnDark),
+                Icon(Icons.gavel_rounded, size: 18, color: palette.gold),
           ),
         ),
       ),
@@ -390,11 +387,11 @@ class _Brand extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
+                color: palette.ink,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.5,
                 shadows: const <Shadow>[
-                  Shadow(color: Colors.black87, blurRadius: 12),
+                  Shadow(color: Colors.white70, blurRadius: 12),
                 ],
               ),
             ),
@@ -414,9 +411,7 @@ class _Dots extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
     return RepaintBoundary(
-      child: ClipRect(
-        child: CustomPaint(painter: _DotsPainter(palette.goldOnDark)),
-      ),
+      child: ClipRect(child: CustomPaint(painter: _DotsPainter(palette.gold))),
     );
   }
 }
@@ -485,18 +480,16 @@ class _CircleAction extends StatelessWidget {
         clipBehavior: Clip.none,
         children: <Widget>[
           Material(
-            color: palette.heroBottom.withValues(alpha: 0.45),
+            color: Colors.white.withValues(alpha: 0.75),
             shape: CircleBorder(
-              side: BorderSide(
-                color: palette.goldOnDark.withValues(alpha: 0.30),
-              ),
+              side: BorderSide(color: palette.gold.withValues(alpha: 0.25)),
             ),
             child: InkWell(
               onTap: onTap,
               customBorder: const CircleBorder(),
               child: Padding(
                 padding: const EdgeInsets.all(8),
-                child: Icon(icon, size: 18, color: Colors.white),
+                child: Icon(icon, size: 18, color: palette.ink),
               ),
             ),
           ),
@@ -510,7 +503,7 @@ class _CircleAction extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: const Color(0xFFE53935),
-                  border: Border.all(color: palette.heroTop, width: 1.5),
+                  border: Border.all(color: Colors.white, width: 1.5),
                 ),
               ),
             ),

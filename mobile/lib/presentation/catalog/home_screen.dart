@@ -219,7 +219,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       // ساعةُ النظام وبطّاريّتُه فوق لوحةٍ داكنة: تُركا للثيم الفاتح كانا
       // سيُرسمان أسودَين على أسود.
-      value: SystemUiOverlayStyle.light,
+      value: SystemUiOverlayStyle.dark,
       child: Scaffold(
         // **الهيدرُ ينزلق والبحثُ يثبت** بطلب المالك (١٣ سبتمبر ٢٠٢٦، على
         // سلوك v1): اللوحةُ الغنيّة شريحةٌ أولى تمضي إلى أعلى مع الكروت،
