@@ -138,19 +138,28 @@ def _walk(out):
         PHONE = "9665" + str(int(time.time()))[-8:]
         W(f"عميلٌ جديد: {PHONE}\n")
 
-        # **الرمزُ يُلتقط من حيث يُسلَّم، لا من القاعدة.** `code_hash` في الجدول
-        # SHA-256 عن قصد: «الأرقامُ توجد في موضعٍ واحدٍ — الرسالة — ولا تعود في أيّ
-        # جواب» (T601). وفي بيئة التجربة `SMS_BACKEND=console_backend` يكتبها في
-        # السجلّ، فيُلتقط السطرُ نفسُه هنا. وقراءةُ العمود كانت تعطي الهاشَ فيُردّ
-        # بـ«لا تتجاوز 8 حروف» — وهو الحارسُ يعمل، لا عطل.
-        import logging, re as _re
-        class _Catch(logging.Handler):
-            body = ''
-            def emit(self, record):
-                a = record.args or ()
-                _Catch.body = str(a[1]) if len(a) > 1 else record.getMessage()
-        _lg = logging.getLogger('apps.accounts.sms')
-        _lg.addHandler(_Catch()); _lg.setLevel(logging.INFO)
+        # **الرمزُ يُؤخذ من مولّده، لا من نصّ الرسالة.** `code_hash` في الجدول
+        # SHA-256 عن قصد: «الأرقامُ توجد في موضعٍ واحدٍ — الرسالة — ولا تعود
+        # في أيّ جواب» (T601). وكانت المشيةُ تقرؤه من سطر السجلّ، فتبعَت
+        # **نصَّ الرسالة**: تغيّر النصُّ مرّةً فالتُقط ذيلُ الجوّال، وتغيّر
+        # ثانيةً فالتُقط فراغ — ومرّتان كافيتان.
+        #
+        # و`generate_code` مصدرُه الوحيد: يُلَفّ فيُحتفظ بآخر ما ولّده. ولا
+        # يُضعِف شيئاً — العمليّةُ هي التي تطلب الرمزَ أصلاً، والحلقةُ كلُّها
+        # داخلها.
+        import re as _re
+        from apps.accounts import otp as _otp
+
+        class _Catch:
+            body = ""
+
+        _real_generate = _otp.generate_code
+
+        def _spy():
+            _Catch.body = _real_generate()
+            return _Catch.body
+
+        _otp.generate_code = _spy
 
 
         from apps.bidding.eligibility import BIDDABLE_VEHICLE_STATES, check_eligibility
@@ -170,10 +179,7 @@ def _walk(out):
         # «SMS to 9665… : رمز التحقق: 123456»، فالتقاطُ أوّلِ مجموعةِ أرقامٍ
         # يعطي ذيلَ الجوّال — وقع ذلك حين تغيّر نصُّ الرسالة، فردّ الخادمُ
         # «الرمز غير صحيح» ووقفت المشيةُ عند خطوتها الثانية.
-        _m = _re.search(r"رمز التحقق:\s*([0-9]{4,8})", _Catch.body)
-        if _m is None:
-            _m = _re.search(r"([0-9]{4,8})\s*$", _Catch.body.split(chr(10))[0])
-        code = _m.group(1) if _m else ""
+        code = _Catch.body
         v = PhoneVerification.objects.filter(phone=PHONE).order_by("-id").first()
         _hh = getattr(v, "code_hash", "") or ""
         note("الرمزُ كما سُلِّم في الرسالة: " + code + " · وفي القاعدة هاشٌ لا رقم (" + str(len(_hh)) + " محرفاً)")
