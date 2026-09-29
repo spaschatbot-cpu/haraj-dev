@@ -172,8 +172,7 @@ def _walk(out):
         # «الرمز غير صحيح» ووقفت المشيةُ عند خطوتها الثانية.
         _m = _re.search(r"رمز التحقق:\s*([0-9]{4,8})", _Catch.body)
         if _m is None:
-            _m = _re.search(r"([0-9]{4,8})\s*$", _Catch.body.split("
-")[0])
+            _m = _re.search(r"([0-9]{4,8})\s*$", _Catch.body.split(chr(10))[0])
         code = _m.group(1) if _m else ""
         v = PhoneVerification.objects.filter(phone=PHONE).order_by("-id").first()
         _hh = getattr(v, "code_hash", "") or ""
