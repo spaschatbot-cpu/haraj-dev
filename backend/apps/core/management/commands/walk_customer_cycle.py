@@ -83,6 +83,21 @@ def _walk(out):
         from apps.bidding.models import Bid
         from apps.money.models import Account, Invoice
 
+        # **موظّفٌ إلى جانب العميل.** خطواتُ الموظّف كانت تنادي الخدماتِ
+        # مباشرةً (`auc.end`، `settle.award_to`، `money.record_payment`)، فتقول
+        # المشيةُ «الدورةُ تعمل» وهي لم تلمس زرّاً واحداً في اللوحة. والقاعدةُ
+        # نفسُها التي تجعل خطواتِ العميل تمرّ بالـAPI: خدمةٌ تُنادى من سكربتٍ
+        # تتخطّى الحارسَ والاستمارةَ والقدرة.
+        #
+        # فصار لكلّ فعلِ موظّفٍ بابُه في `/console/`، ويُسجَّل الدخولُ بحسابٍ
+        # له القدراتُ فعلاً.
+        _staff = (
+            get_user_model().objects.filter(is_superuser=True, is_staff=True).first()
+        )
+        admin = Client()
+        if _staff is not None:
+            admin.force_login(_staff)
+
         _hosts = [h for h in settings.ALLOWED_HOSTS if h and not h.startswith("*")]
         HOST = dict(SERVER_NAME=_hosts[0] if _hosts else "testserver", secure=True)
         c = Client()
@@ -112,6 +127,13 @@ def _walk(out):
             except Exception:
                 body = {}
             return r.status_code, body
+
+        def console(path, data=None):
+            """اضغط زرّاً في اللوحة — نفسَ المسار الذي تُرسل إليه الاستمارة."""
+            url = "/console" + path
+            if data is None:
+                return admin.get(url, **HOST)
+            return admin.post(url, data, **HOST, follow=False)
 
         PHONE = "9665" + str(int(time.time()))[-8:]
         W(f"عميلٌ جديد: {PHONE}\n")
@@ -262,18 +284,19 @@ def _walk(out):
             note("وهنا تقف دورةُ العميل على هذه البيئة: لا مفاتيحَ بوّابةٍ في `.env`")
 
         # ═════ ١٣ ═════
-        step("قيدُ التأمين — بديلٌ عن البوّابة الغائبة")
-        note("ليس طريقَ عميل: البوّابةُ غيرُ مضبوطةٍ هنا، فيُقيَّد المبلغُ بالخدمة")
-        note("التي يناديها مفسّرُ الويبهوك نفسُه، ليُمشى ما بعده")
-        u = get_user_model().objects.get(pk=USER["id"])
-        try:
-            money_svc.credit_payment(user=u, amount=Decimal(str(AMT)), source="card",
-                                     reference=REF, memo="مشيةُ دورة العميل")
-            ok("قُيّد " + str(AMT))
-        except Exception as e:
-            bad("تعذّر القيد: " + str(e)[:170])
+        step("شحنُ التأمين من اللوحة — «إيداع يدوي»  POST /console/money/deposit/")
+        note("بابُ الموظّف حين لا بوّابةَ بطاقة — وv1 له نظيرُه، وأُعيد بقرار")
+        note("المالك في ٢٤ سبتمبر ٢٠٢٦. وكان هنا نداءُ خدمةٍ يتخطّى الشاشة.")
+        r = console("/money/deposit/", {
+            "customer": USER["id"],
+            "amount": str(AMT),
+            "reference": "walk-" + PHONE,
+            "reason": "شحنُ تأمينٍ في مشية دورة العميل",
+        })
+        (ok if r.status_code in (200, 302) else bad)(
+            "HTTP " + str(r.status_code) + " · " + str(r.get("Location", ""))[:60])
 
-        # ═════ ١٤ ═════
+# ═════ ١٤ ═════
         step("المحفظة بعد الشحن  GET /wallet/")
         s, b = api("get", "/wallet/", TOK)
         (ok if s == 200 else bad)("HTTP " + str(s) + " · إجمالي " + str(b.get("total")) + " · متاح " + str(b.get("available")) + " · محجوز " + str(b.get("held_for_auctions")))
@@ -312,17 +335,18 @@ def _walk(out):
         (ok if s == 200 else bad)("/live/ → HTTP " + str(s) + " · " + json.dumps(b, ensure_ascii=False)[:100])
 
         # ═════ ٢٠ ═════
-        step("إغلاقُ المزاد — جهةُ الموظّف")
-        from apps.auctions import services as auc
-        from apps.bidding import settlement as settle
-        car.refresh_from_db(); auction = car.auction
+        step("إغلاقُ المزاد من اللوحة  POST /console/auctions/<pk>/end-now/")
+        car.refresh_from_db()
+        auction = car.auction
         auction.ends_at = timezone.now() - timezone.timedelta(minutes=1)
         auction.save(update_fields=["ends_at"])
-        try:
-            auc.end(auction); ok("أُغلق المزاد " + str(auction.number) + " · حالتُه " + auction.state)
-        except Exception as e:
-            bad("الإغلاق: " + str(e)[:140])
-        car.refresh_from_db(); note("حالةُ المركبة بعد الإغلاق: " + car.state)
+        r = console("/auctions/%s/end-now/" % auction.pk, {})
+        auction.refresh_from_db()
+        (ok if auction.state == "ended" else bad)(
+            "HTTP " + str(r.status_code) + " · المزاد " + str(auction.number)
+            + " حالتُه " + auction.state)
+        car.refresh_from_db()
+        note("حالةُ المركبة بعد الإغلاق: " + car.state)
         try:
             outcomes = settle.settle_holds(auction)
             kept = [o for o in outcomes if o.action == "kept"]
@@ -330,45 +354,26 @@ def _walk(out):
         except Exception as e:
             bad("تسويةُ الرهون: " + str(e)[:140])
 
-        # ═════ ٢١ ═════
-        step("الترسية — جهةُ الموظّف")
-        try:
-            top = Bid.objects.live().filter(vehicle=car).order_by("-amount").first()
-            settle.award_to(car, bidder=top.bidder, price=top.amount)
-            car.refresh_from_db()
-            ok("رستْ على #" + str(top.bidder_id) + " بمبلغ " + str(top.amount) + " · حالتُها " + car.state)
-        except Exception as e:
-            bad("الترسية: " + str(e)[:160])
+        step("الترسية من شاشة اتخاذ القرار  POST /console/partners/<pk>/award-top/")
+        r = console("/partners/%s/award-top/" % car.pk, {"back": ""})
+        car.refresh_from_db()
+        (ok if car.state == "awarded" else bad)(
+            "HTTP " + str(r.status_code) + " · حالتُها " + car.state
+            + " · الفائز #" + str(car.awarded_to_id) + " بـ" + str(car.awarded_price))
 
-        # ═════ ٢٢ ═════
-        step("إصدارُ الفاتورة — جهةُ الموظّف")
+# ═════ ٢٢ ═════
+        step("الفوترة من «المزايدات المقبولة»  POST /console/bids/accepted/<pk>/invoice/")
         note("الفوترةُ فعلٌ مستقلٌّ لا يتبع الترسيةَ تلقائياً — ولوحةُ الموظّف")
         note("فيها شاشةُ «رست ولم تُفوتَر» لهذا بعينه")
-        try:
-            car.refresh_from_db()
-            # **`settlement.invoice_award` لا `money.issue_invoice` مباشرةً.** الأولى
-            # تنقل رهنَ المزايدة إلى قفلٍ على الفاتورة (`lock_for_invoice`) في
-            # المعاملة نفسِها؛ والثانية تُصدر الفاتورةَ وحدَها. ومشيةٌ سابقةٌ نادت
-            # الثانيةَ فبقي تأمينُ العميل **محجوزاً للمزاد** بعد سدادٍ كاملٍ وإفراج،
-            # ووقف طلبُ الاسترداد. كان خطأَ المشية لا خطأَ المنتج — ويُكتب هنا لأن
-            # من يقرأ السكربتَ لاحقاً سيسأل لماذا لا تُنادى الأقصرُ.
-            inv0 = settle.invoice_award(car); car.refresh_from_db()
-            ok("صدرت " + inv0.number + " بمبلغ " + str(inv0.amount) + " · حالةُ المركبة " + car.state)
-        except Exception as e:
-            bad("الفوترة: " + str(e)[:170])
+        r = console("/bids/accepted/%s/invoice/" % car.pk, {})
+        car.refresh_from_db()
+        inv0 = Invoice.objects.filter(vehicle=car).order_by("-id").first()
+        (ok if inv0 is not None else bad)(
+            "HTTP " + str(r.status_code) + " · "
+            + (("صدرت " + inv0.number + " بمبلغ " + str(inv0.amount)) if inv0 else "لا فاتورة")
+            + " · حالةُ المركبة " + car.state)
 
-
-        step("فاتورةُ الفوز  GET /invoices/")
-        s, b = api("get", "/invoices/", TOK)
-        rows = b.get("results", b) if isinstance(b, dict) else b
-        INV = rows[0] if rows else None
-        if INV:
-            ok("HTTP " + str(s) + " · " + str(len(rows)) + " فاتورة · #" + str(INV.get("id")) + " رقم " + str(INV.get("number","—")) + " · إجمالي " + str(INV.get("amount","—")) + " · حالة " + str(INV.get("state","—")))
-        else:
-            dbi = Invoice.objects.filter(vehicle=car).first()
-            bad("لا فاتورةَ في الـAPI · وفي القاعدة: " + (dbi.number if dbi else "لا شيء"))
-
-        # ═════ ٢٣ ═════
+# ═════ ٢٣ ═════
         step("تفاصيلُ الفاتورة  GET /invoices/<id>/")
         if INV:
             s, b = api("get", "/invoices/" + str(INV["id"]) + "/", TOK)
@@ -387,26 +392,25 @@ def _walk(out):
         (ok if s == 200 else bad)("HTTP " + str(s) + " · " + json.dumps(b, ensure_ascii=False)[:170])
 
         # ═════ ٢٦ ═════
-        step("قيدُ الحوالة — جهةُ الموظّف")
+        step("قيدُ الحوالة من «إنشاء دفعة»  POST /console/payments/create/")
         if INV:
-            try:
-                inv = Invoice.objects.get(pk=INV["id"])
-                money_svc.record_payment(invoice=inv, amount=inv.amount - inv.amount_paid, source="cash",
-                                         reference="cycle-" + PHONE)
-                if car.state == "invoiced":
-                    auc.mark_paid(car)
-                inv.refresh_from_db(); ok("قُيّدت " + str(inv.amount) + " · حالةُ الفاتورة " + inv.state)
-            except Exception as e:
-                bad("القيد: " + str(e)[:170])
+            inv = Invoice.objects.get(pk=INV["id"])
+            r = console("/payments/create/", {
+                "invoice": inv.pk,
+                "amount": str(inv.amount - inv.amount_paid),
+                "reference": "walk-" + PHONE,
+                "reason": "حوالةٌ بنكيّة في مشية دورة العميل",
+            })
+            inv.refresh_from_db()
+            car.refresh_from_db()
+            if car.state == "invoiced":
+                auc.mark_paid(car)
+                car.refresh_from_db()
+            (ok if inv.state == "paid" else bad)(
+                "HTTP " + str(r.status_code) + " · الفاتورة " + inv.state
+                + " · المركبة " + car.state)
 
-        # ═════ ٢٧ ═════
-        step("الفاتورةُ والمركبةُ بعد السداد")
-        if INV:
-            s, b = api("get", "/invoices/" + str(INV["id"]) + "/", TOK)
-            (ok if s == 200 else bad)("HTTP " + str(s) + " · حالة " + str(b.get("state","—")) + " · متبقٍّ " + str(b.get("outstanding","—")))
-        car.refresh_from_db(); note("حالةُ المركبة: " + car.state)
-
-        # ═════ ٢٨ ═════
+# ═════ ٢٨ ═════
         step("مشترياتي  GET /purchases/")
         s, b = api("get", "/purchases/", TOK)
         rows = b.get("results", b) if isinstance(b, dict) else b
@@ -442,8 +446,26 @@ def _walk(out):
         (ok if r.status_code in (200, 201) else bad)("HTTP " + str(r.status_code) + " · " + json.dumps(rb, ensure_ascii=False)[:150])
 
         step("طلبُ استرداد التأمين  POST /wallet/refund-requests/")
-        s, b = api("post", "/wallet/refund-requests/", TOK, data={"amount": "1000"})
+        # **وحدةٌ كاملةٌ ومعها الآيبان** — والوديعةُ لا تُجزَّأ، والرقمُ هو ما
+        # يُحوَّل إليه. وكانت المشيةُ تطلب ١٬٠٠٠ فتمرّ، وهو العطلُ الذي أُصلح.
+        s, b = api("post", "/wallet/refund-requests/", TOK,
+                   data={"amount": str(money_svc.deposit_amount_for()),
+                         "iban": "SA0380000000608010167519"})
         (ok if s in (200, 201) else bad)("HTTP " + str(s) + " · " + json.dumps(b, ensure_ascii=False)[:150])
+
+
+        # ═════ جهةُ الموظّف: طابورُ الاستردادات ═════
+        step("طلبُ الاسترداد في طابور اللوحة  GET /console/refunds/queue/")
+        r = console("/refunds/queue/")
+        body = r.content.decode() if r.status_code == 200 else ""
+        (ok if r.status_code == 200 else bad)("HTTP " + str(r.status_code))
+        (ok if PHONE in body else bad)("طلبُ العميل ظاهرٌ للمالية: " + str(PHONE in body))
+        from apps.money.models import RefundRequest as _RR
+        _req = _RR.objects.filter(user__phone=PHONE).order_by("-id").first()
+        if _req is not None:
+            (ok if _req.iban else bad)("الآيبانُ على الطلب: " + (_req.iban or "— فارغ"))
+            (ok if (_req.iban and _req.iban in body) else bad)(
+                "ويظهر في شاشة المالية: " + str(bool(_req.iban and _req.iban in body)))
 
         W("\n" + "═"*72 + "\n")
         W("الخطوات: " + str(step_no[0]) + " · نجحت " + str(step_no[0]-len(fails)) + " · فشلت " + str(len(fails)) + "\n")
