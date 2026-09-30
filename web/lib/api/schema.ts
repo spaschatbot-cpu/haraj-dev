@@ -1603,6 +1603,12 @@ export interface components {
             odometer_km: number | null;
             condition: string;
             condition_label: string;
+            vin: string;
+            fuel_type_label: string;
+            transmission_label: string;
+            plate_type_label: string;
+            runs_status: string;
+            key_status: string;
             location: string;
             is_favourite: boolean;
             admin_fee: string;

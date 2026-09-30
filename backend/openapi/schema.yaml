@@ -3093,6 +3093,18 @@ components:
           type: string
         condition_label:
           type: string
+        vin:
+          type: string
+        fuel_type_label:
+          type: string
+        transmission_label:
+          type: string
+        plate_type_label:
+          type: string
+        runs_status:
+          type: string
+        key_status:
+          type: string
         location:
           type: string
         is_favourite:
@@ -3119,18 +3131,24 @@ components:
       - colour_label
       - condition
       - condition_label
+      - fuel_type_label
       - id
       - is_favourite
+      - key_status
       - location
       - lot_number
       - make
       - model
       - odometer_km
       - phase
+      - plate_type_label
       - reference
+      - runs_status
       - state
       - thumbnail_url
       - title
+      - transmission_label
+      - vin
       - year
     VehicleImage:
       type: object

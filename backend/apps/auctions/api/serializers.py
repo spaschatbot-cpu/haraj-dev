@@ -166,6 +166,15 @@ class VehicleCardSerializer(serializers.Serializer):
     condition = serializers.CharField()
     condition_label = serializers.CharField()
 
+    #: «مواصفات المركبة» في نافذة v1 — فراغٌ حين لا قيمة، لا `null`: v1 يعرض
+    #: الخانةَ بشرطة، والعميلُ يقرّر العرض.
+    vin = serializers.CharField(allow_blank=True)
+    fuel_type_label = serializers.CharField(allow_blank=True)
+    transmission_label = serializers.CharField(allow_blank=True)
+    plate_type_label = serializers.CharField(allow_blank=True)
+    runs_status = serializers.CharField(allow_blank=True)
+    key_status = serializers.CharField(allow_blank=True)
+
     #: موقع المزاد كما يعرضه كرت v1: «الرياض / طريق الحائر».
     location = serializers.CharField(allow_blank=True)
 

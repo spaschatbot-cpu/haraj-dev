@@ -21,6 +21,9 @@ from django.conf import settings
 from django.db.models import Prefetch
 
 from .models import (
+    FuelType,
+    PlateType,
+    Transmission,
     Vehicle,
     VehicleColour,
     VehicleCondition,
@@ -170,6 +173,17 @@ _BUILDERS: dict[str, Callable[[Vehicle], object]] = {
     "odometer_km": lambda v: v.odometer_km,
     "condition": lambda v: v.condition,
     "condition_label": lambda v: _label(VehicleCondition, v.condition),
+    # «مواصفات المركبة» في نافذة v1 (`specsModal`): رقمُ الهيكل، والوقود،
+    # وحالةُ المحرّك، والمفاتيح — وشارةُ نوع اللوحة على صورة كرته. كانت في
+    # القاعدة ولا يحملها الكرت، فعرضت صفحةُ التفاصيل في التطبيق ستّ خاناتٍ
+    # حيث عرض v1 أكثر (طلبُ المالك، ٣٠ سبتمبر ٢٠٢٦). والناقلُ معها: حقلٌ
+    # نملكه ويسأل عنه المشتري.
+    "vin": lambda v: v.vin,
+    "fuel_type_label": lambda v: _label(FuelType, v.fuel_type),
+    "transmission_label": lambda v: _label(Transmission, v.transmission),
+    "plate_type_label": lambda v: _label(PlateType, v.plate_type),
+    "runs_status": lambda v: v.runs_status,
+    "key_status": lambda v: v.key_status,
     # موقع المزاد: «الرياض / طريق الحائر». على المزاد لا على المركبة.
     "location": lambda v: v.auction.location,
     # «تفاصيل المزايدة» في نافذة v1: «رسوم إدارية ٨٠٠ ر.س» و«الرسوم +
