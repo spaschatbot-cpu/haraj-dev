@@ -8,11 +8,13 @@ part 'registration_gap.g.dart';
 
 @JsonSerializable()
 class RegistrationGap {
-  const RegistrationGap({required this.field, required this.label});
-
-  factory RegistrationGap.fromJson(Map<String, Object?> json) =>
-      _$RegistrationGapFromJson(json);
-
+  const RegistrationGap({
+    required this.field,
+    required this.label,
+  });
+  
+  factory RegistrationGap.fromJson(Map<String, Object?> json) => _$RegistrationGapFromJson(json);
+  
   final String field;
 
   /// اسمُ الحقل بالعربيّة، جاهزٌ للعرض

@@ -1006,5 +1006,33 @@
   "vehicleStageNow": "Now",
   "@vehicleStageNow": {
     "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleSpecId": "Vehicle ID",
+  "@vehicleSpecId": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecVin": "Chassis number",
+  "@vehicleSpecVin": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecEngine": "Engine condition",
+  "@vehicleSpecEngine": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecKeys": "Keys",
+  "@vehicleSpecKeys": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecFuel": "Fuel",
+  "@vehicleSpecFuel": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecTransmission": "Transmission",
+  "@vehicleSpecTransmission": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
+  },
+  "vehicleSpecPlateType": "Plate type",
+  "@vehicleSpecPlateType": {
+    "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
   }
 }

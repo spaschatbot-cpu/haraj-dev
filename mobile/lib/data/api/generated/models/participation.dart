@@ -16,10 +16,9 @@ class Participation {
     required this.bidsCount,
     required this.insurance,
   });
-
-  factory Participation.fromJson(Map<String, Object?> json) =>
-      _$ParticipationFromJson(json);
-
+  
+  factory Participation.fromJson(Map<String, Object?> json) => _$ParticipationFromJson(json);
+  
   final AuctionCard auction;
   @JsonKey(name: 'bids_count')
   final int bidsCount;

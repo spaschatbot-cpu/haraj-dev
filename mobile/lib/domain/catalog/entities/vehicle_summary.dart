@@ -28,6 +28,12 @@ final class VehicleSummary {
     required this.conditionLabel,
     required this.location,
     this.make = '',
+    this.vin = '',
+    this.fuelTypeLabel = '',
+    this.transmissionLabel = '',
+    this.plateTypeLabel = '',
+    this.runsStatus = '',
+    this.keyStatus = '',
   });
 
   final String id;
@@ -112,4 +118,13 @@ final class VehicleSummary {
   /// الماركةُ كما يرسلها الخادم (`make`) — لشرائح الماركات في الرئيسية.
   /// فارغةٌ في الكيانات المبنيّة يدوياً (الكاش القديم)، فلا تُعرض لها شريحة.
   final String make;
+
+  /// «مواصفات المركبة» في نافذة v1 — رقمُ الهيكل والوقودُ والناقلُ ونوعُ
+  /// اللوحة وحالةُ المحرّك والمفاتيح. فراغٌ حين لا قيمة، وتُعرض شرطةً.
+  final String vin;
+  final String fuelTypeLabel;
+  final String transmissionLabel;
+  final String plateTypeLabel;
+  final String runsStatus;
+  final String keyStatus;
 }

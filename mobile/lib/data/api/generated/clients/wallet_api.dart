@@ -28,6 +28,7 @@ abstract class WalletApi {
   @POST('/api/v1/wallet/refund-requests/')
   Future<RefundRequest> v1WalletRefundRequestsCreate({
     @Part(name: 'amount') required String amount,
+    @Part(name: 'iban') String? iban,
     @Part(name: 'note') String? note,
   });
 

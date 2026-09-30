@@ -19,10 +19,9 @@ class ParticipationInsurance {
     required this.amount,
     required this.currency,
   });
-
-  factory ParticipationInsurance.fromJson(Map<String, Object?> json) =>
-      _$ParticipationInsuranceFromJson(json);
-
+  
+  factory ParticipationInsurance.fromJson(Map<String, Object?> json) => _$ParticipationInsuranceFromJson(json);
+  
   final String state;
   @JsonKey(name: 'state_label')
   final String stateLabel;

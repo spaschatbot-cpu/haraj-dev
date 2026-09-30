@@ -14,10 +14,9 @@ class BidQuote {
     required this.tax,
     required this.total,
   });
-
-  factory BidQuote.fromJson(Map<String, Object?> json) =>
-      _$BidQuoteFromJson(json);
-
+  
+  factory BidQuote.fromJson(Map<String, Object?> json) => _$BidQuoteFromJson(json);
+  
   final String amount;
   final String tax;
   final String total;

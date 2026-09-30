@@ -16,15 +16,16 @@ class RefundRequest {
     required this.amount,
     required this.stateLabel,
     required this.createdAt,
+    this.iban,
     this.state,
   });
-
-  factory RefundRequest.fromJson(Map<String, Object?> json) =>
-      _$RefundRequestFromJson(json);
-
+  
+  factory RefundRequest.fromJson(Map<String, Object?> json) => _$RefundRequestFromJson(json);
+  
   final int id;
   final String reference;
   final String amount;
+  final String? iban;
   final RefundRequestStateEnum? state;
   @JsonKey(name: 'state_label')
   final String stateLabel;

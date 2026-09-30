@@ -10,11 +10,13 @@ part 'participation_page.g.dart';
 
 @JsonSerializable()
 class ParticipationPage {
-  const ParticipationPage({required this.total, required this.results});
-
-  factory ParticipationPage.fromJson(Map<String, Object?> json) =>
-      _$ParticipationPageFromJson(json);
-
+  const ParticipationPage({
+    required this.total,
+    required this.results,
+  });
+  
+  factory ParticipationPage.fromJson(Map<String, Object?> json) => _$ParticipationPageFromJson(json);
+  
   final int total;
   final List<Participation> results;
 

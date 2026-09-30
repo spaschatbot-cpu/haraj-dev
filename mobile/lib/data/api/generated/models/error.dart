@@ -13,9 +13,9 @@ class Error {
     required this.message,
     required this.detail,
   });
-
+  
   factory Error.fromJson(Map<String, Object?> json) => _$ErrorFromJson(json);
-
+  
   /// رمزٌ ثابت يفرّق سببَ الرفض عن سببٍ آخر. **هو ما يُفرَّع عليه في العميل**، لا الرسالة ولا رمز HTTP.
   final String code;
 

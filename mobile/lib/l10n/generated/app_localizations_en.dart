@@ -1700,4 +1700,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleStageNow => 'Now';
+
+  @override
+  String get vehicleSpecId => 'Vehicle ID';
+
+  @override
+  String get vehicleSpecVin => 'Chassis number';
+
+  @override
+  String get vehicleSpecEngine => 'Engine condition';
+
+  @override
+  String get vehicleSpecKeys => 'Keys';
+
+  @override
+  String get vehicleSpecFuel => 'Fuel';
+
+  @override
+  String get vehicleSpecTransmission => 'Transmission';
+
+  @override
+  String get vehicleSpecPlateType => 'Plate type';
 }

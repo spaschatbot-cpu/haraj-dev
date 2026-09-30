@@ -18,10 +18,9 @@ class PhaseCounts {
     required this.active,
     required this.ended,
   });
-
-  factory PhaseCounts.fromJson(Map<String, Object?> json) =>
-      _$PhaseCountsFromJson(json);
-
+  
+  factory PhaseCounts.fromJson(Map<String, Object?> json) => _$PhaseCountsFromJson(json);
+  
   final int soon;
   final int active;
   final int ended;

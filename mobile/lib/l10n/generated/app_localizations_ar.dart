@@ -1697,4 +1697,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleStageNow => 'جارية الآن';
+
+  @override
+  String get vehicleSpecId => 'معرّف المركبة';
+
+  @override
+  String get vehicleSpecVin => 'رقم الهيكل';
+
+  @override
+  String get vehicleSpecEngine => 'حالة المحرك';
+
+  @override
+  String get vehicleSpecKeys => 'المفاتيح';
+
+  @override
+  String get vehicleSpecFuel => 'الوقود';
+
+  @override
+  String get vehicleSpecTransmission => 'ناقل الحركة';
+
+  @override
+  String get vehicleSpecPlateType => 'نوع اللوحة';
 }

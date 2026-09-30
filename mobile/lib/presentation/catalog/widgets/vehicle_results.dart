@@ -242,7 +242,11 @@ class VehicleResults extends StatelessWidget {
     final vehicle = vehicles[index];
     // **بلا `onTap`**: الكرتُ يفتح صندوقَ المزايدة بنفسه منذ حُذفت صفحةُ
     // المركبة في ٩ سبتمبر ٢٠٢٦، فلا وجهةَ تُمرَّر إليه من الشاشة المضيفة.
-    return VehicleCard(key: ValueKey<String>(vehicle.id), vehicle: vehicle);
+    return VehicleCard(
+      key: ValueKey<String>(vehicle.id),
+      vehicle: vehicle,
+      siblings: vehicles,
+    );
   }
 
   Widget _tail() {

@@ -20,10 +20,9 @@ class AuctionCard {
     required this.vehicleCount,
     required this.openVehicleCount,
   });
-
-  factory AuctionCard.fromJson(Map<String, Object?> json) =>
-      _$AuctionCardFromJson(json);
-
+  
+  factory AuctionCard.fromJson(Map<String, Object?> json) => _$AuctionCardFromJson(json);
+  
   final int id;
   final int number;
   final String title;

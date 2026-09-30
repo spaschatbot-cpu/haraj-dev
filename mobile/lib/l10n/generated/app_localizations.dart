@@ -2977,6 +2977,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'جارية الآن'**
   String get vehicleStageNow;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'معرّف المركبة'**
+  String get vehicleSpecId;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم الهيكل'**
+  String get vehicleSpecVin;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'حالة المحرك'**
+  String get vehicleSpecEngine;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'المفاتيح'**
+  String get vehicleSpecKeys;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'الوقود'**
+  String get vehicleSpecFuel;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'ناقل الحركة'**
+  String get vehicleSpecTransmission;
+
+  /// مواصفات المركبة كما في نافذة v1 (specsModal)
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع اللوحة'**
+  String get vehicleSpecPlateType;
 }
 
 class _AppLocalizationsDelegate

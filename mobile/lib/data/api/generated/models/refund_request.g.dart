@@ -13,6 +13,7 @@ RefundRequest _$RefundRequestFromJson(Map<String, dynamic> json) =>
       amount: json['amount'] as String,
       stateLabel: json['state_label'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
+      iban: json['iban'] as String?,
       state: json['state'] == null
           ? null
           : RefundRequestStateEnum.fromJson(json['state'] as String),
@@ -23,6 +24,7 @@ Map<String, dynamic> _$RefundRequestToJson(RefundRequest instance) =>
       'id': instance.id,
       'reference': instance.reference,
       'amount': instance.amount,
+      'iban': instance.iban,
       'state': _$RefundRequestStateEnumEnumMap[instance.state],
       'state_label': instance.stateLabel,
       'created_at': instance.createdAt.toIso8601String(),

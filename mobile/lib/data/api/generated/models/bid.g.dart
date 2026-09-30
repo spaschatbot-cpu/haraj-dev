@@ -16,6 +16,7 @@ Bid _$BidFromJson(Map<String, dynamic> json) => Bid(
   placedAt: DateTime.parse(json['placed_at'] as String),
   isWithdrawn: json['is_withdrawn'] as bool,
   isSuperseded: json['is_superseded'] as bool,
+  canChange: json['can_change'] as bool,
   vehicle: json['vehicle'] == null
       ? null
       : VehicleCard.fromJson(json['vehicle'] as Map<String, dynamic>),
@@ -31,5 +32,6 @@ Map<String, dynamic> _$BidToJson(Bid instance) => <String, dynamic>{
   'placed_at': instance.placedAt.toIso8601String(),
   'is_withdrawn': instance.isWithdrawn,
   'is_superseded': instance.isSuperseded,
+  'can_change': instance.canChange,
   'vehicle': instance.vehicle,
 };

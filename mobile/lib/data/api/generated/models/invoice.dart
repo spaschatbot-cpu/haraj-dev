@@ -22,10 +22,9 @@ class Invoice {
     this.state,
     this.dueAt,
   });
-
-  factory Invoice.fromJson(Map<String, Object?> json) =>
-      _$InvoiceFromJson(json);
-
+  
+  factory Invoice.fromJson(Map<String, Object?> json) => _$InvoiceFromJson(json);
+  
   final int id;
   final String number;
   final String amount;

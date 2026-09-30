@@ -28,9 +28,13 @@ import 'remote_image.dart';
 /// `auctionEndsAt` بساعة الجهاز ليستنتجه — عدّادُ v1 على ساعة العميل كتب
 /// «انتهى» على مزادٍ مفتوحٍ لمن ساعته متقدّمة دقيقتين.
 class VehicleCard extends StatelessWidget {
-  const VehicleCard({required this.vehicle, super.key});
+  const VehicleCard({required this.vehicle, this.siblings, super.key});
 
   final VehicleSummary vehicle;
+
+  /// القائمةُ التي يقف فيها الكرت — لتتنقّل صفحةُ التفاصيل بالسحب بين
+  /// مركباتها.
+  final List<VehicleSummary>? siblings;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +61,11 @@ class VehicleCard extends StatelessWidget {
             child: InkWell(
               // الكرتُ كلُّه يفتح **صفحةَ التفاصيل** (٣٠ سبتمبر ٢٠٢٦) — حلّت
               // محلَّ نافذة المزايدة، والمزايدةُ من زرّها السفليّ.
-              onTap: () => openVehicleDetails(context, vehicle: vehicle),
+              onTap: () => openVehicleDetails(
+                context,
+                vehicle: vehicle,
+                siblings: siblings,
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(9),
                 child: IntrinsicHeight(
@@ -79,8 +87,11 @@ class VehicleCard extends StatelessWidget {
                           vehicle: vehicle,
                           palette: palette,
                           l10n: l10n,
-                          onBid: () =>
-                              openVehicleDetails(context, vehicle: vehicle),
+                          onBid: () => openVehicleDetails(
+                            context,
+                            vehicle: vehicle,
+                            siblings: siblings,
+                          ),
                         ),
                       ),
                     ],

@@ -22,10 +22,9 @@ class CompanyProfileRead {
     this.postalCode,
     this.additionalNumber,
   });
-
-  factory CompanyProfileRead.fromJson(Map<String, Object?> json) =>
-      _$CompanyProfileReadFromJson(json);
-
+  
+  factory CompanyProfileRead.fromJson(Map<String, Object?> json) => _$CompanyProfileReadFromJson(json);
+  
   final String? name;
   @JsonKey(name: 'representative_name')
   final String? representativeName;

@@ -22,9 +22,9 @@ class Wallet {
     required this.depositUnit,
     required this.asOf,
   });
-
+  
   factory Wallet.fromJson(Map<String, Object?> json) => _$WalletFromJson(json);
-
+  
   final String currency;
   final String total;
   final String available;

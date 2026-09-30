@@ -21,10 +21,9 @@ class LedgerEntry {
     required this.occurredAt,
     required this.memo,
   });
-
-  factory LedgerEntry.fromJson(Map<String, Object?> json) =>
-      _$LedgerEntryFromJson(json);
-
+  
+  factory LedgerEntry.fromJson(Map<String, Object?> json) => _$LedgerEntryFromJson(json);
+  
   final int id;
   final String transaction;
   final String kind;

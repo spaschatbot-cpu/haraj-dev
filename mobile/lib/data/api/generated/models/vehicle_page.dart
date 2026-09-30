@@ -22,10 +22,9 @@ class VehiclePage {
     required this.counts,
     required this.results,
   });
-
-  factory VehiclePage.fromJson(Map<String, Object?> json) =>
-      _$VehiclePageFromJson(json);
-
+  
+  factory VehiclePage.fromJson(Map<String, Object?> json) => _$VehiclePageFromJson(json);
+  
   final int total;
   final PhaseCounts counts;
   final List<VehicleCard> results;

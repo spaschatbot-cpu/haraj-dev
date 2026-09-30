@@ -14,10 +14,9 @@ class SendCodeResponse {
     required this.expiresAt,
     required this.resendAfter,
   });
-
-  factory SendCodeResponse.fromJson(Map<String, Object?> json) =>
-      _$SendCodeResponseFromJson(json);
-
+  
+  factory SendCodeResponse.fromJson(Map<String, Object?> json) => _$SendCodeResponseFromJson(json);
+  
   final bool sent;
   @JsonKey(name: 'expires_at')
   final DateTime expiresAt;

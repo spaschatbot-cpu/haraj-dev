@@ -25,11 +25,12 @@ class Bid {
     required this.placedAt,
     required this.isWithdrawn,
     required this.isSuperseded,
+    required this.canChange,
     this.vehicle,
   });
-
+  
   factory Bid.fromJson(Map<String, Object?> json) => _$BidFromJson(json);
-
+  
   final int id;
   @JsonKey(name: 'vehicle_id')
   final int vehicleId;
@@ -46,6 +47,8 @@ class Bid {
   final bool isWithdrawn;
   @JsonKey(name: 'is_superseded')
   final bool isSuperseded;
+  @JsonKey(name: 'can_change')
+  final bool canChange;
   final VehicleCard? vehicle;
 
   Map<String, Object?> toJson() => _$BidToJson(this);

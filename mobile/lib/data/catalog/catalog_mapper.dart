@@ -59,6 +59,12 @@ extension VehicleCardMapper on api.VehicleCard {
     conditionLabel: conditionLabel,
     location: location,
     make: make,
+    vin: vin,
+    fuelTypeLabel: fuelTypeLabel,
+    transmissionLabel: transmissionLabel,
+    plateTypeLabel: plateTypeLabel,
+    runsStatus: runsStatus,
+    keyStatus: keyStatus,
   );
 
   /// المواصفات من حقول الكرت نفسها.

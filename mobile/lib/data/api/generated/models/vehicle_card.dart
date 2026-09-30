@@ -34,6 +34,12 @@ class VehicleCard {
     required this.odometerKm,
     required this.condition,
     required this.conditionLabel,
+    required this.vin,
+    required this.fuelTypeLabel,
+    required this.transmissionLabel,
+    required this.plateTypeLabel,
+    required this.runsStatus,
+    required this.keyStatus,
     required this.location,
     required this.isFavourite,
     required this.adminFee,
@@ -41,10 +47,9 @@ class VehicleCard {
     required this.state,
     required this.thumbnailUrl,
   });
-
-  factory VehicleCard.fromJson(Map<String, Object?> json) =>
-      _$VehicleCardFromJson(json);
-
+  
+  factory VehicleCard.fromJson(Map<String, Object?> json) => _$VehicleCardFromJson(json);
+  
   final int id;
   @JsonKey(name: 'auction_id')
   final int auctionId;
@@ -76,6 +81,17 @@ class VehicleCard {
   final String condition;
   @JsonKey(name: 'condition_label')
   final String conditionLabel;
+  final String vin;
+  @JsonKey(name: 'fuel_type_label')
+  final String fuelTypeLabel;
+  @JsonKey(name: 'transmission_label')
+  final String transmissionLabel;
+  @JsonKey(name: 'plate_type_label')
+  final String plateTypeLabel;
+  @JsonKey(name: 'runs_status')
+  final String runsStatus;
+  @JsonKey(name: 'key_status')
+  final String keyStatus;
   final String location;
   @JsonKey(name: 'is_favourite')
   final bool isFavourite;

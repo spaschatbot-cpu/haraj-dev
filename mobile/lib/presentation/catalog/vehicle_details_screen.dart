@@ -10,19 +10,90 @@ import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/money_text.dart';
 import 'favourites_controller.dart';
-import 'widgets/countdown_text.dart';
 import 'widgets/remote_image.dart';
 import 'widgets/vehicle_bid_sheet.dart';
 
 /// يفتح صفحةَ تفاصيل المركبة فوق القشرة — بلا الشريط السفليّ، فللصفحة شريطُها.
+///
+/// و[siblings] القائمةُ التي فُتحت منها (الرئيسية، المفضلة…): بها يُسحب إلى
+/// السابقة والتالية. وبلا قائمةٍ تُفتح المركبةُ وحدها.
 Future<void> openVehicleDetails(
   BuildContext context, {
   required VehicleSummary vehicle,
-}) => Navigator.of(context, rootNavigator: true).push(
-  MaterialPageRoute<void>(
-    builder: (_) => VehicleDetailsScreen(vehicle: vehicle),
-  ),
-);
+  List<VehicleSummary>? siblings,
+}) {
+  final list = (siblings != null && siblings.any((v) => v.id == vehicle.id))
+      ? List<VehicleSummary>.of(siblings)
+      : <VehicleSummary>[vehicle];
+  final index = list.indexWhere((v) => v.id == vehicle.id);
+  return Navigator.of(context, rootNavigator: true).push(
+    MaterialPageRoute<void>(
+      builder: (_) => VehicleDetailsScreen(vehicles: list, initialIndex: index),
+    ),
+  );
+}
+
+/// المركباتُ صفحاتٌ متتالية — **السحبُ يميناً أو شمالاً ينقل إلى السابقة
+/// والتالية** بطلب المالك (٣٠ سبتمبر ٢٠٢٦): «طريقة سهلة للتنقّل بين
+/// السيارات… أسحب من أيّ منطقة ما فيهاش صورة».
+///
+/// **`PageView` داخل `PageView`**: معرضُ الصور صفحاتٌ أفقيّةٌ أيضاً، والسحبُ
+/// الذي يبدأ عليه يأخذه هو (يقلّب الصور)، والذي يبدأ في أيّ مكانٍ آخر تأخذه
+/// الصفحاتُ الخارجيّة (تنقل المركبة). ذلك تحكيمُ الإيماءات في Flutter نفسه:
+/// أعمقُ متعرّفٍ يفوز بما بدأ عليه — فلا منطقةَ تُحسب باليد.
+///
+/// وفي الشاشة العربيّة التاليةُ تأتي من الشمال: السحبُ يميناً ← التالية، كما
+/// تُقلَّب صفحاتُ كتابٍ عربيّ.
+class VehicleDetailsScreen extends StatefulWidget {
+  const VehicleDetailsScreen({
+    required this.vehicles,
+    required this.initialIndex,
+    super.key,
+  });
+
+  final List<VehicleSummary> vehicles;
+  final int initialIndex;
+
+  @override
+  State<VehicleDetailsScreen> createState() => _VehicleDetailsScreenState();
+}
+
+class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
+  late final PageController _vehicles = PageController(
+    initialPage: widget.initialIndex,
+  );
+  late int _current = widget.initialIndex;
+
+  @override
+  void dispose() {
+    _vehicles.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Scaffold(
+      backgroundColor: palette.pageBackground,
+      body: SafeArea(
+        bottom: false,
+        child: PageView.builder(
+          controller: _vehicles,
+          itemCount: widget.vehicles.length,
+          onPageChanged: (index) => setState(() => _current = index),
+          itemBuilder: (context, index) => _VehicleDetailsPage(
+            key: ValueKey<String>(widget.vehicles[index].id),
+            vehicle: widget.vehicles[index],
+            position: widget.vehicles.length > 1
+                ? '${index + 1} / ${widget.vehicles.length}'
+                : null,
+            active: index == _current,
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// صفحةُ تفاصيل المركبة — **مكانَ نافذة المزايدة** بطلب المالك (٣٠ سبتمبر
 /// ٢٠٢٦) وعلى تصميمه: معرضُ صور، وبطاقةُ الاسم والموعد، والمواصفات، وقواعدُ
@@ -34,17 +105,29 @@ Future<void> openVehicleDetails(
 /// التصميم ما لا يرسله الخادم: المحرّكُ وناقلُ الحركة والدفعُ والفرشُ الداخليّ،
 /// و«تقرير الفحص» ودرجتُه وملفُّه، و«جولة 360»، و«المزايدة الحالية» — المزادُ
 /// مغلقٌ فلا سعرَ جارياً يُعرض (قرارٌ في `ce013b9`).
-class VehicleDetailsScreen extends ConsumerStatefulWidget {
-  const VehicleDetailsScreen({required this.vehicle, super.key});
+class _VehicleDetailsPage extends ConsumerStatefulWidget {
+  const _VehicleDetailsPage({
+    required this.vehicle,
+    required this.position,
+    required this.active,
+    super.key,
+  });
 
   final VehicleSummary vehicle;
 
+  /// «٣ / ١٨» — موضعُ المركبة في قائمتها، أو `null` حين تُفتح وحدها.
+  final String? position;
+
+  /// الصفحةُ المعروضة الآن. الجارتان تُبنيان مسبقاً للسحب، ولا تطلبان صورَهما
+  /// إلا حين تصلهما العين.
+  final bool active;
+
   @override
-  ConsumerState<VehicleDetailsScreen> createState() =>
-      _VehicleDetailsScreenState();
+  ConsumerState<_VehicleDetailsPage> createState() =>
+      _VehicleDetailsPageState();
 }
 
-class _VehicleDetailsScreenState extends ConsumerState<VehicleDetailsScreen> {
+class _VehicleDetailsPageState extends ConsumerState<_VehicleDetailsPage> {
   final PageController _pages = PageController();
   int _page = 0;
 
@@ -96,7 +179,9 @@ class _VehicleDetailsScreenState extends ConsumerState<VehicleDetailsScreen> {
     final palette = HarajPalette.of(context);
     // الصورُ من نداءٍ ثانٍ؛ وحتى يصل تُعرض المصغَّرةُ وحدها — صفحةٌ لا تنتظر
     // صورَها لتُقرأ.
-    final detail = ref.watch(vehicleProvider(vehicle.id)).asData?.value.value;
+    final detail = widget.active
+        ? ref.watch(vehicleProvider(vehicle.id)).asData?.value.value
+        : null;
     final images = (detail?.imageUrls.isNotEmpty ?? false)
         ? detail!.imageUrls
         : <String>[if (vehicle.thumbnailUrl != null) vehicle.thumbnailUrl!];
@@ -104,76 +189,64 @@ class _VehicleDetailsScreenState extends ConsumerState<VehicleDetailsScreen> {
     final endsAt = vehicle.auctionEndsAt.toLocal();
     final when = DateFormat('EEEE HH:mm', locale).format(endsAt);
 
-    return Scaffold(
-      backgroundColor: palette.pageBackground,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: <Widget>[
-            _TopBar(
-              title: l10n.vehicleDetailsTitle,
-              lot: l10n.vehicleLotPosition(vehicle.lotNumber),
-              isFavourite: _isFavourite,
-              onBack: () => Navigator.of(context).maybePop(),
-              onShare: _share,
-              onFavourite: _toggleFavourite,
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.only(bottom: 16),
-                children: <Widget>[
-                  _Gallery(
+    return ColoredBox(
+      color: palette.pageBackground,
+      child: Column(
+        children: <Widget>[
+          _TopBar(
+            // **اسمُ المركبة في رأس الصفحة** مكانَ «تفاصيل المركبة» — بطلب
+            // المالك (٣٠ سبتمبر ٢٠٢٦).
+            title: '${vehicle.title} ${vehicle.year}',
+            lot: widget.position == null
+                ? l10n.vehicleLotPosition(vehicle.lotNumber)
+                : '${l10n.vehicleLotPosition(vehicle.lotNumber)} • ${widget.position}',
+            isFavourite: _isFavourite,
+            onBack: () => Navigator.of(context).maybePop(),
+            onShare: _share,
+            onFavourite: _toggleFavourite,
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 16),
+              children: <Widget>[
+                _Gallery(
+                  images: images,
+                  controller: _pages,
+                  page: _page,
+                  onPage: (page) => setState(() => _page = page),
+                  lotBadge:
+                      '${l10n.vehicleLotPosition(vehicle.lotNumber)} • ${vehicle.reference}',
+                  sealedBadge: l10n.vehicleSealedEnvelope,
+                ),
+                if (images.length > 1)
+                  _Thumbnails(
                     images: images,
-                    controller: _pages,
                     page: _page,
-                    onPage: (page) => setState(() => _page = page),
-                    lotBadge:
-                        '${l10n.vehicleLotPosition(vehicle.lotNumber)} • ${vehicle.reference}',
-                    sealedBadge: l10n.vehicleSealedEnvelope,
-                  ),
-                  if (images.length > 1)
-                    _Thumbnails(
-                      images: images,
-                      page: _page,
-                      onTap: (index) => _pages.animateToPage(
-                        index,
-                        duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOut,
-                      ),
-                    ),
-                  const SizedBox(height: 12),
-                  _Section(
-                    child: _Headline(
-                      vehicle: vehicle,
-                      when: when,
-                      l10n: l10n,
-                      palette: palette,
+                    onTap: (index) => _pages.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOut,
                     ),
                   ),
-                  _Section(
-                    title: l10n.vehicleSpecifications,
-                    child: _Specs(vehicle: vehicle, l10n: l10n),
+                const SizedBox(height: 12),
+                _Section(
+                  child: _Headline(
+                    vehicle: vehicle,
+                    when: when,
+                    l10n: l10n,
+                    palette: palette,
                   ),
-                  _Section(
-                    icon: Icons.shield_outlined,
-                    title: l10n.vehicleRulesTitle,
-                    subtitle: l10n.vehicleRulesSubtitle,
-                    child: _Rules(vehicle: vehicle, l10n: l10n),
-                  ),
-                  _Section(
-                    title: l10n.vehicleStagesTitle,
-                    child: _Stages(
-                      when: when,
-                      phase: vehicle.phase,
-                      l10n: l10n,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                _Section(
+                  title: l10n.vehicleSpecifications,
+                  child: _Specs(vehicle: vehicle, l10n: l10n),
+                ),
+                // **قواعدُ المزايدة ومراحلُ المزاد أُلغيتا** بطلب المالك.
+              ],
             ),
-            _BottomBar(vehicle: vehicle, l10n: l10n),
-          ],
-        ),
+          ),
+          _BottomBar(vehicle: vehicle, l10n: l10n),
+        ],
       ),
     );
   }
@@ -400,12 +473,10 @@ class _Thumbnails extends StatelessWidget {
 
 /// بطاقةُ قسمٍ بيضاء بعنوانٍ اختياريّ.
 class _Section extends StatelessWidget {
-  const _Section({required this.child, this.title, this.subtitle, this.icon});
+  const _Section({required this.child, this.title});
 
   final Widget child;
   final String? title;
-  final String? subtitle;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -422,46 +493,14 @@ class _Section extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           if (title != null) ...<Widget>[
-            Row(
-              children: <Widget>[
-                if (icon != null) ...<Widget>[
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: palette.heroTop,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, size: 19, color: Colors.white),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: <Widget>[
-                      Text(
-                        title!,
-                        style: TextStyle(
-                          fontFamily: HarajTheme.fontFamily,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: palette.ink,
-                        ),
-                      ),
-                      if (subtitle != null)
-                        Text(
-                          subtitle!,
-                          style: TextStyle(
-                            fontFamily: HarajTheme.fontFamily,
-                            fontSize: 12,
-                            color: palette.inkMuted,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
+            Text(
+              title!,
+              style: TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: palette.ink,
+              ),
             ),
             const SizedBox(height: 12),
           ],
@@ -488,7 +527,6 @@ class _Headline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ended = vehicle.phase == AuctionPhase.ended;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -502,16 +540,6 @@ class _Headline extends StatelessWidget {
             fontSize: 12.5,
             fontWeight: FontWeight.w600,
             color: palette.gold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${vehicle.title} ${vehicle.year}',
-          style: TextStyle(
-            fontFamily: HarajTheme.fontFamily,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            color: palette.ink,
           ),
         ),
         const SizedBox(height: 6),
@@ -531,81 +559,6 @@ class _Headline extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          decoration: BoxDecoration(
-            color: palette.gold.withValues(alpha: 0.06),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: palette.gold.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: <Widget>[
-              Icon(Icons.schedule_rounded, size: 20, color: palette.gold),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      ended
-                          ? l10n.vehicleAuctionEnded
-                          : l10n.vehicleEndsAt(when),
-                      style: TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: palette.ink,
-                      ),
-                    ),
-                    if (!ended)
-                      Row(
-                        children: <Widget>[
-                          Text(
-                            '${l10n.vehicleRemainingLabel} ',
-                            style: TextStyle(
-                              fontFamily: HarajTheme.fontFamily,
-                              fontSize: 12,
-                              color: palette.inkMuted,
-                            ),
-                          ),
-                          CountdownText(
-                            at: vehicle.auctionEndsAt,
-                            target: CountdownTarget.end,
-                            style: TextStyle(
-                              fontFamily: HarajTheme.fontFamily,
-                              fontSize: 12,
-                              color: palette.inkMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-              if (!ended)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: palette.gold,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    l10n.vehicleLiveNow,
-                    style: const TextStyle(
-                      fontFamily: HarajTheme.fontFamily,
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
       ],
     );
   }
@@ -621,22 +574,53 @@ class _Specs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final odometer = vehicle.odometerKm;
+    // **ترتيبُ v1 وحقولُه**: نافذةُ «مواصفات المركبة» (`specsModal`) — المعرّف،
+    // والموديل، ورقمُ الهيكل، والسنة، وحالةُ المركبة، وحالةُ المحرّك،
+    // والمفاتيح، والوقود — ثمّ ما في نافذة المزايدة: اللونُ والممشى والمدينة،
+    // ومعها نوعُ اللوحة (شارةُ كرت v1) والناقل. والغيابُ شرطةٌ كما في v1، لا
+    // صفرٌ ولا خانةٌ تختفي فتتزحزح الشبكة.
+    String or(String value) => value.trim().isEmpty ? '—' : value;
     final tiles = <(IconData, String, String)>[
-      if (vehicle.make.isNotEmpty)
-        (Icons.directions_car_outlined, l10n.vehicleSpecMake, vehicle.make),
+      (Icons.tag_rounded, l10n.vehicleSpecId, vehicle.reference),
       (Icons.badge_outlined, l10n.vehicleSpecModel, vehicle.title),
+      (Icons.qr_code_2_rounded, l10n.vehicleSpecVin, or(vehicle.vin)),
       (Icons.calendar_today_outlined, l10n.vehicleSpecYear, '${vehicle.year}'),
-      // الغيابُ شرطةٌ لا صفر: «٠ كم» ادّعاءٌ لم يقله أحد.
+      (
+        Icons.build_circle_outlined,
+        l10n.vehicleSpecCondition,
+        or(vehicle.conditionLabel),
+      ),
+      (
+        Icons.settings_suggest_outlined,
+        l10n.vehicleSpecEngine,
+        or(vehicle.runsStatus),
+      ),
+      (Icons.key_outlined, l10n.vehicleSpecKeys, or(vehicle.keyStatus)),
+      (
+        Icons.local_gas_station_outlined,
+        l10n.vehicleSpecFuel,
+        or(vehicle.fuelTypeLabel),
+      ),
+      (
+        Icons.settings_outlined,
+        l10n.vehicleSpecTransmission,
+        or(vehicle.transmissionLabel),
+      ),
+      (Icons.palette_outlined, l10n.vehicleSpecColour, or(vehicle.colourLabel)),
       (
         Icons.speed_rounded,
         l10n.vehicleSpecOdometer,
         odometer == null ? '—' : l10n.vehicleOdometerShort(odometer),
       ),
-      (Icons.palette_outlined, l10n.vehicleSpecColour, vehicle.colourLabel),
       (
-        Icons.build_circle_outlined,
-        l10n.vehicleSpecCondition,
-        vehicle.conditionLabel,
+        Icons.credit_card_outlined,
+        l10n.vehicleSpecPlateType,
+        or(vehicle.plateTypeLabel),
+      ),
+      (
+        Icons.location_city_outlined,
+        l10n.vehicleSpecCity,
+        or(vehicle.location),
       ),
     ];
     return LayoutBuilder(
@@ -719,251 +703,6 @@ class _SpecTile extends StatelessWidget {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// قواعدُ المزايدة المغلقة — كما يطبّقها الخادم لا وعودُ التصميم.
-class _Rules extends StatelessWidget {
-  const _Rules({required this.vehicle, required this.l10n});
-
-  final VehicleSummary vehicle;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Column(
-      children: <Widget>[
-        _Rule(
-          icon: Icons.lock_outline_rounded,
-          title: l10n.vehicleRuleSealedTitle,
-          body: l10n.vehicleRuleSealedBody,
-        ),
-        const SizedBox(height: 8),
-        _Rule(
-          icon: Icons.receipt_long_outlined,
-          title: l10n.vehicleRuleFeesTitle,
-          body: l10n.vehicleRuleFeesBody,
-          trailing: Wrap(
-            spacing: 8,
-            children: <Widget>[
-              MoneyText(
-                vehicle.adminFee,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: palette.ink,
-                ),
-              ),
-              Text('•', style: TextStyle(color: palette.inkMuted)),
-              Text(
-                l10n.vehicleAdminFeeWithVat,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 12,
-                  color: palette.inkMuted,
-                ),
-              ),
-              MoneyText(
-                vehicle.adminFeeWithVat,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: palette.gold,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        _Rule(
-          icon: Icons.account_balance_wallet_outlined,
-          title: l10n.vehicleRuleDepositTitle,
-          body: l10n.vehicleRuleDepositBody,
-        ),
-      ],
-    );
-  }
-}
-
-class _Rule extends StatelessWidget {
-  const _Rule({
-    required this.icon,
-    required this.title,
-    required this.body,
-    this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final String body;
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: palette.pageBackground,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(icon, size: 19, color: palette.gold),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    color: palette.ink,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  body,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 12.5,
-                    color: palette.inkMuted,
-                    height: 1.5,
-                  ),
-                ),
-                if (trailing != null) ...<Widget>[
-                  const SizedBox(height: 6),
-                  trailing!,
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// مراحلُ المزاد الثلاث، والجاريةُ منها مضاءة — من طور المزاد كما أرسله الخادم.
-class _Stages extends StatelessWidget {
-  const _Stages({required this.when, required this.phase, required this.l10n});
-
-  final String when;
-  final AuctionPhase phase;
-  final AppLocalizations l10n;
-
-  @override
-  Widget build(BuildContext context) {
-    final current = switch (phase) {
-      AuctionPhase.ended => 1,
-      _ => 0,
-    };
-    final stages = <(String, String)>[
-      (l10n.vehicleStageBids, l10n.vehicleStageBidsSub(when)),
-      (l10n.vehicleStageAward, l10n.vehicleStageAwardSub),
-      (l10n.vehicleStagePay, l10n.vehicleStagePaySub),
-    ];
-    return Column(
-      children: <Widget>[
-        for (var index = 0; index < stages.length; index += 1)
-          _Stage(
-            number: index + 1,
-            title: stages[index].$1,
-            subtitle: stages[index].$2,
-            active: index == current,
-            nowLabel: l10n.vehicleStageNow,
-            last: index == stages.length - 1,
-          ),
-      ],
-    );
-  }
-}
-
-class _Stage extends StatelessWidget {
-  const _Stage({
-    required this.number,
-    required this.title,
-    required this.subtitle,
-    required this.active,
-    required this.nowLabel,
-    required this.last,
-  });
-
-  final int number;
-  final String title;
-  final String subtitle;
-  final bool active;
-  final String nowLabel;
-  final bool last;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Column(
-            children: <Widget>[
-              Container(
-                width: 14,
-                height: 14,
-                margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: active ? palette.gold : palette.navInactive,
-                  border: Border.all(
-                    color: active
-                        ? palette.gold.withValues(alpha: 0.25)
-                        : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-              ),
-              if (!last)
-                Expanded(
-                  child: Container(width: 2, color: palette.navInactive),
-                ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: last ? 0 : 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    active ? '$number. $title ($nowLabel)' : '$number. $title',
-                    style: TextStyle(
-                      fontFamily: HarajTheme.fontFamily,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: active ? palette.ink : palette.inkMuted,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontFamily: HarajTheme.fontFamily,
-                      fontSize: 12,
-                      color: palette.inkMuted,
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
         ],

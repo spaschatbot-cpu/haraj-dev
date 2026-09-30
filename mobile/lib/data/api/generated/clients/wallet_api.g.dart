@@ -78,6 +78,7 @@ class _WalletApi implements WalletApi {
   @override
   Future<RefundRequest> v1WalletRefundRequestsCreate({
     required String amount,
+    String? iban,
     String? note,
   }) async {
     final _extra = <String, dynamic>{};
@@ -86,6 +87,9 @@ class _WalletApi implements WalletApi {
     final _headers = <String, dynamic>{};
     final _data = FormData();
     _data.fields.add(MapEntry('amount', amount));
+    if (iban != null) {
+      _data.fields.add(MapEntry('iban', iban));
+    }
     if (note != null) {
       _data.fields.add(MapEntry('note', note));
     }

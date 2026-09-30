@@ -20,9 +20,9 @@ class Hold {
     required this.invoice,
     required this.createdAt,
   });
-
+  
   factory Hold.fromJson(Map<String, Object?> json) => _$HoldFromJson(json);
-
+  
   final int id;
   final String amount;
   final ReasonEnum reason;

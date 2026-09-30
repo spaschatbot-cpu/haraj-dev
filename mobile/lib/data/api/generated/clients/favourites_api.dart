@@ -45,7 +45,9 @@ abstract class FavouritesApi {
   /// which car it asked about, and a body here would be a second place the mark's.
   /// shape is described.
   @PUT('/api/v1/favourites/{id}/')
-  Future<void> favouritesMark({@Path('id') required int id});
+  Future<void> favouritesMark({
+    @Path('id') required int id,
+  });
 
   /// إزالة من المفضّلة.
   ///
@@ -61,5 +63,7 @@ abstract class FavouritesApi {
   /// which car it asked about, and a body here would be a second place the mark's.
   /// shape is described.
   @DELETE('/api/v1/favourites/{id}/')
-  Future<void> favouritesUnmark({@Path('id') required int id});
+  Future<void> favouritesUnmark({
+    @Path('id') required int id,
+  });
 }

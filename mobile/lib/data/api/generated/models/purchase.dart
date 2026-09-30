@@ -21,10 +21,9 @@ class Purchase {
     required this.auction,
     required this.invoice,
   });
-
-  factory Purchase.fromJson(Map<String, Object?> json) =>
-      _$PurchaseFromJson(json);
-
+  
+  factory Purchase.fromJson(Map<String, Object?> json) => _$PurchaseFromJson(json);
+  
   final int id;
   @JsonKey(name: 'lot_number')
   final int lotNumber;
