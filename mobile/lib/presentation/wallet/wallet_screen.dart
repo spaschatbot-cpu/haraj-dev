@@ -391,9 +391,7 @@ class _InsuranceCard extends StatelessWidget {
     } else {
       // المحجوزُ أوّلاً حين يجتمعان: هو المؤقّتُ الذي يعود بلا فعلٍ من العميل،
       // والمقفولُ يحتاج سداداً — والأولُ طمأنةٌ والثاني مطالبة.
-      statusLine = held
-          ? l10n.walletInsuranceHeld
-          : l10n.walletInsuranceLocked;
+      statusLine = held ? l10n.walletInsuranceHeld : l10n.walletInsuranceLocked;
     }
 
     // ولا «خطأ» أحمرُ لمالٍ قائم: المحجوزُ حالةٌ طبيعيّةٌ في مزادٍ جارٍ.

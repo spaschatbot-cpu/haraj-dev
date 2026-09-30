@@ -56,7 +56,9 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     try {
       final sent = await ref
           .read(changePhoneNumberProvider)
-          .requestCodes(newPhone: SaudiPhoneField.toServerFormat(_newPhone.text));
+          .requestCodes(
+            newPhone: SaudiPhoneField.toServerFormat(_newPhone.text),
+          );
       setState(() {
         _sent = sent;
         _cooldownSeconds = sent.delivery.resendAfterSeconds;
@@ -139,15 +141,23 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                   label: l10n.changePhoneSendCodes,
                   seconds: _cooldownSeconds,
                   token: _cooldownToken,
-                  onPressed: SaudiPhoneField.isBlank(_newPhone.text) ? null : _sendCodes,
+                  onPressed: SaudiPhoneField.isBlank(_newPhone.text)
+                      ? null
+                      : _sendCodes,
                 )
               else
                 FilledButton(
-                  onPressed: SaudiPhoneField.isBlank(_newPhone.text) ? null : _sendCodes,
+                  onPressed: SaudiPhoneField.isBlank(_newPhone.text)
+                      ? null
+                      : _sendCodes,
                   child: Text(l10n.changePhoneSendCodes),
                 ),
             ] else ...[
-              Text(l10n.changePhoneSentNotice(SaudiPhoneField.toServerFormat(_newPhone.text))),
+              Text(
+                l10n.changePhoneSentNotice(
+                  SaudiPhoneField.toServerFormat(_newPhone.text),
+                ),
+              ),
               const SizedBox(height: 16),
               TextField(
                 controller: _currentCode,

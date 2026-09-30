@@ -350,13 +350,18 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: <Widget>[
-        Text(l10n.registrationMissing(missing), style: theme.textTheme.bodyMedium),
+        Text(
+          l10n.registrationMissing(missing),
+          style: theme.textTheme.bodyMedium,
+        ),
         const SizedBox(height: 12),
         Card(
           child: ListTile(
             title: Text(
               l10n.registrationAccountType(
-                _company ? l10n.registrationCompany : l10n.registrationIndividual,
+                _company
+                    ? l10n.registrationCompany
+                    : l10n.registrationIndividual,
               ),
             ),
             trailing: widget.onChangeKind == null
@@ -370,7 +375,9 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
         const SizedBox(height: 8),
         _field(
           'full_name',
-          _company ? l10n.registrationRepresentative : l10n.registrationFullName,
+          _company
+              ? l10n.registrationRepresentative
+              : l10n.registrationFullName,
           hint: l10n.registrationNameHint,
         ),
         if (_missing('national_id'))
@@ -383,7 +390,10 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
         if (!_company) _field('city', l10n.registrationCity),
         if (_company) ...<Widget>[
           const SizedBox(height: 16),
-          Text(l10n.registrationCompanySection, style: theme.textTheme.titleMedium),
+          Text(
+            l10n.registrationCompanySection,
+            style: theme.textTheme.titleMedium,
+          ),
           const SizedBox(height: 4),
           if (!_companyLoaded)
             const Padding(
@@ -431,7 +441,9 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
         controller: _controller(name),
-        keyboardType: digits == null ? TextInputType.text : TextInputType.number,
+        keyboardType: digits == null
+            ? TextInputType.text
+            : TextInputType.number,
         textDirection: digits == null ? null : TextDirection.ltr,
         maxLength: digits,
         inputFormatters: digits == null

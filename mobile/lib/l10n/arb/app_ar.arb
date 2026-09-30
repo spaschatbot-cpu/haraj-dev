@@ -1525,5 +1525,33 @@
   "vehicleStatusOpen": "متاحة",
   "@vehicleStatusOpen": {
     "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInSystemPill": "منظومة المزادات v2",
+  "@signInSystemPill": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInSessionLabel": "المزاد",
+  "@signInSessionLabel": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInEndsIn": "ينتهي بعد",
+  "@signInEndsIn": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInStartsIn": "يبدأ بعد",
+  "@signInStartsIn": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInIntroFull": "أدخل رقم جوالك ونرسل لك رمز تحقق سريع بلا كلمة مرور.",
+  "@signInIntroFull": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInFootnote": "الحساب الجديد يُنشأ عند التحقق من الرمز، ثم تُكمل بياناتك.",
+  "@signInFootnote": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInDismissGuest": "إغلاق والمتابعة كزائر",
+  "@signInDismissGuest": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
   }
 }

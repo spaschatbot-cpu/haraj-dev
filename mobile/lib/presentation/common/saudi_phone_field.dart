@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app/theme.dart';
+
 /// حقلُ جوّالٍ سعوديّ: **الرمزُ مكتوبٌ أمام العميل، وهو يكتب رقمَه**.
 ///
 /// ## العطل الذي وُلد هذا لأجله
@@ -31,7 +33,13 @@ class SaudiPhoneField extends StatelessWidget {
     this.enabled = true,
     this.onChanged,
     this.autofocus = false,
+    this.boxed = false,
   });
+
+  /// هيئةُ شاشة الدخول (تصميم المالك، ٣٠ سبتمبر ٢٠٢٦): العلمُ و`+966` في
+  /// صندوقٍ مظلَّلٍ بحدٍّ فاصل، والأرقامُ كبيرة، بلا تسميةٍ عائمة — الشاشةُ
+  /// تقول فوقه ما يُكتب. والهيئةُ الأصليّة باقيةٌ لتغيير الرقم في الحساب.
+  final bool boxed;
 
   final TextEditingController controller;
   final String label;
@@ -69,6 +77,7 @@ class SaudiPhoneField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (boxed) return _boxed(context);
     return TextField(
       controller: controller,
       enabled: enabled,
@@ -112,6 +121,103 @@ class SaudiPhoneField extends StatelessWidget {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onChanged: onChanged,
+    );
+  }
+
+  Widget _boxed(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    OutlineInputBorder edge(Color colour, [double width = 1.4]) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: colour, width: width),
+        );
+    // **الخانةُ كلُّها `ltr`**: رمزُ الدولة على الشمال قبل الرقم كما يُكتب
+    // الرقمُ الدوليّ — بطلب المالك (٣٠ سبتمبر ٢٠٢٦). والحدُّ والتدويرُ
+    // اتّجاهيّان، فيتبعان البادئةَ حيث وقفت.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: TextField(
+        controller: controller,
+        enabled: enabled,
+        autofocus: autofocus,
+        keyboardType: TextInputType.phone,
+        textDirection: TextDirection.ltr,
+        autofillHints: const <String>[AutofillHints.telephoneNumber],
+        inputFormatters: <TextInputFormatter>[
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ],
+        style: TextStyle(
+          fontFamily: HarajTheme.fontFamily,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.5,
+          color: palette.ink,
+        ),
+        decoration: InputDecoration(
+          prefixIcon: Container(
+            margin: const EdgeInsetsDirectional.only(end: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: palette.pageBackground,
+              border: BorderDirectional(
+                end: BorderSide(color: palette.navInactive),
+              ),
+              borderRadius: const BorderRadiusDirectional.horizontal(
+                start: Radius.circular(15),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              textDirection: TextDirection.ltr,
+              children: <Widget>[
+                // العلمُ رسمٌ لا إيموجي: ويندوز لا يرسم أعلامَ الإيموجي فيكتب
+                // «SA» حرفين — قِيس على الموقع في ٢٨ سبتمبر.
+                Container(
+                  width: 24,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF006C35),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  alignment: Alignment.center,
+                  child: Container(width: 14, height: 1.4, color: Colors.white),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '+$countryCode',
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: palette.ink,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 0,
+            minHeight: 56,
+          ),
+          hintText: '5X XXX XXXX',
+          hintTextDirection: TextDirection.ltr,
+          hintStyle: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 20,
+            letterSpacing: 1.5,
+            color: palette.inkMuted.withValues(alpha: 0.6),
+          ),
+          filled: true,
+          fillColor: palette.cardSurface,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+          border: edge(palette.navInactive),
+          enabledBorder: edge(palette.navInactive),
+          focusedBorder: edge(palette.gold, 1.8),
+        ),
+        onChanged: onChanged,
+      ),
     );
   }
 }

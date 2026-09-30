@@ -377,11 +377,7 @@ class _SentTo extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: <Widget>[
-              Icon(
-                Icons.timelapse_rounded,
-                size: 15,
-                color: palette.inkMuted,
-              ),
+              Icon(Icons.timelapse_rounded, size: 15, color: palette.inkMuted),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(

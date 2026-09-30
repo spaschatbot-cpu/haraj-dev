@@ -85,7 +85,9 @@ class _ProfileBody extends ConsumerWidget {
               leading: const Icon(Icons.assignment_late_outlined),
               title: Text(
                 l10n.registrationBanner(
-                  profile.registrationMissing.map((gap) => gap.label).join('، '),
+                  profile.registrationMissing
+                      .map((gap) => gap.label)
+                      .join('، '),
                 ),
               ),
               trailing: const Icon(Icons.chevron_left),

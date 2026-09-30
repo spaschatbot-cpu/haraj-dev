@@ -105,78 +105,70 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     final l10n = AppLocalizations.of(context);
     final expired =
         ref.watch(sessionControllerProvider) == SessionState.expired;
-
     final palette = HarajPalette.of(context);
-    final theme = Theme.of(context);
 
-    // **لوحةٌ في وسط الصفحة لا صفحةٌ كاملة** — بطلب المالك في ٩ سبتمبر ٢٠٢٦.
+    // **تصميمُ المالك** (٣٠ سبتمبر ٢٠٢٦): شريطٌ علويّ (اسمُ المنظومة وزرُّ
+    // الإغلاق)، والشعارُ في دائرةٍ بشارة V2، وكرتُ المزاد الجاري، وبطاقةُ
+    // الدخول، وثلاثُ ميزات، و«المتابعة كزائر».
     //
-    // الشاشةُ الكاملة تقول «هذه محطّتُك الآن»، وتسجيلُ الدخول ليس محطّة: هو
-    // بابٌ يُفتح في طريقٍ إلى شيءٍ آخر (مفضّلة، مشاركات، مزايدة). واللوحةُ
-    // فوق أرضيّةٍ ساكنة تقول ذلك: افعل أو أغلق وارجع.
+    // **وبلا تمرير** (طلبُه الثاني في اليوم نفسه): أحجامٌ أصغر، وسقط الشريطُ
+    // العلويّ وشارةُ V2 وسطرُ الحاشية تحت الزرّ.
     //
-    // **ولا `AppBar`**: زرُّ الرجوع فيه مقبضٌ ثانٍ لما يفعله «إغلاق» أسفل
-    // اللوحة، ومقبضان لفعلٍ واحدٍ في شاشةٍ من حقلٍ واحد ضجيج.
+    // **وبقدرٍ وسط** بطلبه: «لا داتا كتير قوي تخلّي العميل يعمل سكرول، ولا
+    // قليلة قوي». فالميزاتُ عناوينُ بلا شرح، وسقط من التصميم «مثال: 5…» (الخانةُ
+    // تقوله) و«الدعم الفني» و«موثّق عبر النفاذ الوطني» — لا صفحةَ دعمٍ ولا ربطَ
+    // بالنفاذ في النظام، ووعدٌ في شاشة الدخول أوّلُ ما يُكذَّب.
     return Scaffold(
       backgroundColor: palette.pageBackground,
-      // الأرضيّةُ والشعارُ واللوحةُ **مشتركةٌ مع شاشة الرمز** ([AuthBackdrop]
-      // و[AuthBrand] و[AuthPanel] في `auth_shell.dart`). كانت هنا نسخةٌ
-      // خاصّةٌ منها، ونسختان من هيكلٍ واحدٍ تفترقان عند أوّل تعديل — فيعبر
-      // العميلُ من خطوةٍ إلى خطوةٍ فيظنّ أنه خرج من التطبيق. T948
-      body: AuthBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-              child: ConstrainedBox(
-                // **٤٠٠ لا عرضُ الشاشة**: حقلٌ واحد ممتدٌّ على شاشةٍ عريضة
-                // يُقرأ نموذجاً طويلاً، وهو حقلٌ واحد.
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    // دخولٌ متتابع: الشعارُ ثمّ الشريطُ ثمّ اللوحة. تأخيرٌ
-                    // يقود العينَ من أعلى إلى الحقل، لا ثلاثُ ودجاتٍ تظهر
-                    // معاً.
-                    AuthEntrance(
-                      child: AuthBrand(
-                        title: l10n.splashHeadline,
-                        subtitle: l10n.signInTagline,
-                      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // **بلا «منظومة المزادات v2»** بطلب المالك: زرُّ الإغلاق وحده.
+                  Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: _CloseButton(
+                      onClose: () => context.go(Routes.homePath),
+                      tooltip: l10n.signInDismiss,
                     ),
-                    const SizedBox(height: 18),
-                    const AuthEntrance(
-                      delay: Duration(milliseconds: 90),
-                      child: _LiveAuctionStrip(),
+                  ),
+                  AuthEntrance(
+                    child: _BrandMark(
+                      title: l10n.splashHeadline,
+                      subtitle: l10n.signInTagline,
                     ),
-                    const SizedBox(height: 14),
-                    AuthEntrance(
-                      delay: const Duration(milliseconds: 170),
-                      child: AuthPanel(
-                        title: l10n.signInTitle,
-                        icon: Icons.lock_outline_rounded,
-                        child: _form(l10n, palette, theme, expired: expired),
-                      ),
+                  ),
+                  const SizedBox(height: 12),
+                  const AuthEntrance(
+                    delay: Duration(milliseconds: 90),
+                    child: _LiveAuctionCard(),
+                  ),
+                  const SizedBox(height: 10),
+                  AuthEntrance(
+                    delay: const Duration(milliseconds: 170),
+                    child: _Card(child: _form(l10n, palette, expired: expired)),
+                  ),
+                  const SizedBox(height: 10),
+                  const AuthEntrance(
+                    delay: Duration(milliseconds: 240),
+                    child: _Assurances(),
+                  ),
+                  // «إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق.
+                  TextButton(
+                    onPressed: () => context.go(Routes.homePath),
+                    style: TextButton.styleFrom(foregroundColor: palette.ink),
+                    child: Text(
+                      l10n.signInDismissGuest,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(height: 14),
-                    AuthEntrance(
-                      delay: const Duration(milliseconds: 240),
-                      child: _Assurances(palette: palette, theme: theme),
-                    ),
-                    const SizedBox(height: 4),
-                    // **«إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق**:
-                    // اللوحةُ مسارٌ في الشجرة لا نافذةٌ فوقها، ولا شيء
-                    // تحتها يُكشف بالإغلاق.
-                    TextButton(
-                      onPressed: () => context.go(Routes.homePath),
-                      style: TextButton.styleFrom(
-                        foregroundColor: palette.inkMuted,
-                      ),
-                      child: Text(l10n.signInDismiss),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -187,32 +179,55 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   Widget _form(
     AppLocalizations l10n,
-    HarajPalette palette,
-    ThemeData theme, {
+    HarajPalette palette, {
     required bool expired,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        Row(
+          children: <Widget>[
+            _IconTile(icon: Icons.lock_outline_rounded, palette: palette),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.signInTitle,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Divider(height: 1, color: palette.navInactive),
+        ),
         if (expired) ...<Widget>[
-          AuthNotice(
-            icon: Icons.schedule_rounded,
-            text: l10n.sessionExpiredNotice,
-          ),
-          const SizedBox(height: 14),
+          _ExpiredNotice(text: l10n.sessionExpiredNotice, palette: palette),
+          const SizedBox(height: 12),
         ],
         Text(
-          l10n.signInIntro,
-          style: theme.textTheme.bodyMedium?.copyWith(color: palette.inkMuted),
+          l10n.signInIntroFull,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 12.5,
+            color: palette.inkMuted,
+            height: 1.4,
+          ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         SaudiPhoneField(
           controller: _phone,
           label: l10n.signInPhoneLabel,
+          boxed: true,
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (_sending)
           const Center(child: CircularProgressIndicator())
         else if (_cooldownSeconds > 0)
@@ -225,22 +240,21 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         else
           FilledButton.icon(
             onPressed: SaudiPhoneField.isBlank(_phone.text) ? null : _send,
-            icon: const Icon(Icons.sms_outlined, size: 18),
+            icon: const Icon(Icons.sms_outlined, size: 19),
             label: Text(l10n.signInSendCode),
             style: FilledButton.styleFrom(
-              backgroundColor: palette.goldDeep,
+              backgroundColor: palette.gold,
               foregroundColor: Colors.white,
-              disabledBackgroundColor: palette.navInactive.withValues(
-                alpha: 0.45,
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 15),
+              disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
+              disabledForegroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(48),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
               ),
               textStyle: const TextStyle(
                 fontFamily: HarajTheme.fontFamily,
                 fontWeight: FontWeight.w700,
-                fontSize: 15,
+                fontSize: 16,
               ),
             ),
           ),
@@ -254,36 +268,202 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// أجزاءُ الشاشة. T947
+// أجزاءُ الشاشة.
 // ---------------------------------------------------------------------------
 
-/// **المزادُ الجاري** — لا ثلاثةُ عدّادات. T947
+/// بطاقةٌ بيضاء بحدٍّ فاتح — الوعاءُ الواحد لكرت المزاد والدخول والميزات.
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding = const EdgeInsets.all(14)});
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: palette.cardSurface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.palette});
+
+  final IconData icon;
+  final HarajPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 34,
+    height: 34,
+    decoration: BoxDecoration(
+      color: palette.gold.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(icon, size: 18, color: palette.gold),
+  );
+}
+
+/// زرُّ الإغلاق — يرجع إلى الرئيسية.
+class _CloseButton extends StatelessWidget {
+  const _CloseButton({required this.onClose, required this.tooltip});
+
+  final VoidCallback onClose;
+  final String tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Material(
+      color: palette.cardSurface,
+      shape: CircleBorder(side: BorderSide(color: palette.navInactive)),
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onClose,
+        visualDensity: VisualDensity.compact,
+        icon: Icon(Icons.close_rounded, color: palette.ink, size: 20),
+      ),
+    );
+  }
+}
+
+/// الشعارُ في دائرةٍ داكنة بإطارٍ أبيض، ثم الاسمُ وسطرُ التعريف — بلا شارة V2
+/// بطلب المالك.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Column(
+      children: <Widget>[
+        Container(
+          width: 72,
+          height: 72,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: <Color>[
+                Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.25),
+                  palette.heroTop,
+                ),
+                palette.heroBottom,
+              ],
+            ),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: palette.ink.withValues(alpha: 0.22),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) =>
+                const Icon(Icons.gavel_rounded, color: Colors.white),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+            color: palette.ink,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 13.5,
+            color: palette.inkMuted,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// سطرُ «انتهت جلستك» داخل بطاقة الدخول.
+class _ExpiredNotice extends StatelessWidget {
+  const _ExpiredNotice({required this.text, required this.palette});
+
+  final String text;
+  final HarajPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    decoration: BoxDecoration(
+      color: palette.pageBackground,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: palette.navInactive),
+    ),
+    child: Row(
+      children: <Widget>[
+        Icon(Icons.schedule_rounded, size: 20, color: palette.gold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 13,
+              color: palette.ink,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// **المزادُ الجاري** — اسمُه وكم سيّارةً فيه وكم بقي على إغلاقه. T947
 ///
-/// كانت هنا ثلاثةُ صناديق: «تُزايَد الآن ٣٤ · قريباً ٠ · مزادات سابقة ١٠٣٧».
-/// وقرارُ المالك (١٩ سبتمبر ٢٠٢٦): «الغِ دول واستبدلهم بحاجة أحسن».
+/// وحين لا مزادَ جارياً يقول متى يبدأ القادم، وحين لا هذا ولا ذاك **لا يُعرَض
+/// شيء**: كرتٌ فارغٌ في بابِ الدخول أسوأُ من لا كرت. والمصدرُ
+/// `homeAuctionsProvider` نفسُه الذي تقرؤه الرئيسيّة.
 ///
-/// **وكانت أرقاماً لا خبراً.** «١٠٣٧ مزاداً سابقاً» ماضٍ لا يدعو أحداً إلى
-/// شيء، و«قريباً ٠» صفرٌ يُقرأ نقصاً وهو حقيقةٌ عاديّة بين مزادين. ومن يقف
-/// على باب الدخول يسأل سؤالاً واحداً: **«فيه إيه دلوقتي؟»**
-///
-/// فصار شريطاً واحداً يجيبه: اسمُ المزاد الجاري، وكم سيّارةً فيه، **وكم بقي
-/// على إغلاقه — عدّاداً يتحرّك**. وحين لا مزادَ جارياً يقول متى يبدأ القادم،
-/// وحين لا هذا ولا ذاك **لا يُعرَض شيء**: شريطٌ فارغٌ في بابِ الدخول أسوأُ من
-/// لا شريط.
-///
-/// والمصدرُ `homeAuctionsProvider` نفسُه الذي تقرؤه الرئيسيّة — فلا يقول هذا
-/// مزاداً وتقول تلك غيرَه.
-class _LiveAuctionStrip extends ConsumerWidget {
-  const _LiveAuctionStrip();
+/// والتصميمُ يكتب «رقم الجلسة: مزاد 54»، والكرتُ لا يحمل رقمَ المزاد — يحمل
+/// اسمَه («مزاد 54» أصلاً في بيانات v1 المنقولة)، فيُعرض الاسم.
+class _LiveAuctionCard extends ConsumerWidget {
+  const _LiveAuctionCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = HarajPalette.of(context);
-    final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
-    // `asData` لا `when`: الشريطُ يظهر حين تصل البيانات ويغيب قبلها وعند
-    // الفشل — ولا رسالةَ خطأٍ في بابِ الدخول عن شيءٍ تزيينيّ.
+    // `asData` لا `when`: الكرتُ يظهر حين تصل البيانات ويغيب قبلها وعند الفشل.
     final auctions = ref.watch(homeAuctionsProvider).asData?.value.value;
     if (auctions == null) return const SizedBox.shrink();
 
@@ -291,92 +471,135 @@ class _LiveAuctionStrip extends ConsumerWidget {
     final next = auctions.upcoming.isEmpty ? null : auctions.upcoming.first;
     final shown = running ?? next;
     if (shown == null) return const SizedBox.shrink();
-
     final live = running != null;
-    final accent = live ? palette.goldOnDark : Colors.white;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topRight,
-          end: Alignment.bottomLeft,
-          colors: <Color>[
-            palette.heroTop.withValues(alpha: 0.95),
-            palette.heroBottom.withValues(alpha: 0.95),
-          ],
-        ),
-        border: Border.all(
-          color: accent.withValues(alpha: live ? 0.45 : 0.22),
-        ),
-      ),
+    return _Card(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
-              // نقطةٌ تقول «حيّ» — ولا تُعرَض للمجدول، فالمجدولُ ليس حيّاً.
-              if (live) ...<Widget>[
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: palette.goldOnDark,
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: palette.goldOnDark.withValues(alpha: 0.7),
-                        blurRadius: 8,
-                      ),
-                    ],
-                  ),
+              Container(
+                width: 9,
+                height: 9,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: live ? const Color(0xFF10B981) : palette.gold,
                 ),
-                const SizedBox(width: 7),
-              ],
+              ),
+              const SizedBox(width: 8),
               Text(
                 live ? l10n.signInLiveAuction : l10n.signInNextAuction,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: accent,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
+                  color: palette.ink,
                 ),
               ),
               const Spacer(),
               if (shown.vehiclesCount != null)
-                Text(
-                  l10n.signInVehicleCount('${shown.vehiclesCount}'),
-                  textDirection: TextDirection.rtl,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: palette.gold.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: palette.gold.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Text(
+                    l10n.signInVehicleCount('${shown.vehiclesCount}'),
+                    style: TextStyle(
+                      fontFamily: HarajTheme.fontFamily,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: palette.gold,
+                    ),
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 7),
-          Text(
-            shown.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Divider(height: 1, color: palette.navInactive),
           ),
-          const SizedBox(height: 8),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: <Widget>[
-              Icon(
-                live ? Icons.timer_outlined : Icons.event_outlined,
-                size: 15,
-                color: Colors.white.withValues(alpha: 0.75),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.signInSessionLabel,
+                      style: TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 12,
+                        color: palette.inkMuted,
+                      ),
+                    ),
+                    Text(
+                      shown.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: palette.ink,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(width: 6),
-              // العدّادُ نفسُه الذي على كروت الرئيسيّة — لا نسخةٌ ثانية منه.
-              CountdownText(
-                at: live ? shown.endsAt : shown.startsAt,
-                target: live ? CountdownTarget.end : CountdownTarget.start,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
+              const SizedBox(width: 10),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFBEB),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFFDE68A)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const Icon(
+                      Icons.schedule_rounded,
+                      size: 15,
+                      color: Color(0xFFB45309),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${live ? l10n.signInEndsIn : l10n.signInStartsIn}: ',
+                      style: const TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 12,
+                        color: Color(0xFFB45309),
+                      ),
+                    ),
+                    // العدّادُ نفسُه الذي على كروت الرئيسيّة — لا نسخةٌ ثانية.
+                    CountdownText(
+                      at: live ? shown.endsAt : shown.startsAt,
+                      target: live
+                          ? CountdownTarget.end
+                          : CountdownTarget.start,
+                      digital: true,
+                      style: const TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF92400E),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -387,57 +610,46 @@ class _LiveAuctionStrip extends ConsumerWidget {
   }
 }
 
-/// ثلاثةُ أسطرٍ تقول ما وراء الباب — **وكلُّها قواعدُ مبنيّةٌ في الخادم**.
-///
-/// لا وعدٌ تسويقيّ: المزايدةُ مغلقةٌ فعلاً (لا يرى أحدٌ مبلغَ غيره)، والدخولُ
-/// برمزٍ لمرّةٍ لا بكلمة مرور (`apps/accounts/otp.py`)، والوديعةُ تُسترَدّ
-/// بطلبٍ من التطبيق (`money.RefundRequest`).
+/// ثلاثةُ أسطرٍ تقول ما وراء الباب — **وكلُّها قواعدُ مبنيّةٌ في الخادم**:
+/// المزايدةُ مغلقة، والدخولُ برمزٍ لمرّة (`apps/accounts/otp.py`)، والوديعةُ
+/// تُسترَدّ بطلب (`money.RefundRequest`). عناوينُ بلا شرح — القدرُ الوسط.
 class _Assurances extends StatelessWidget {
-  const _Assurances({required this.palette, required this.theme});
-
-  final HarajPalette palette;
-  final ThemeData theme;
-
-  /// **تُبنى في `build` لا `static const`.** كانت ثابتةً ونصوصُها مكتوبةٌ
-  /// في الشيفرة؛ ونصُّ الترجمة يحتاج `BuildContext` فلا يكون ثابتاً.
-  List<(IconData, String)> _items(AppLocalizations strings) =>
-      <(IconData, String)>[
-        (Icons.visibility_off_outlined, strings.signInAssuranceSealed),
-        (Icons.password_rounded, strings.signInAssuranceOtp),
-        (Icons.savings_outlined, strings.signInAssuranceDeposit),
-      ];
+  const _Assurances();
 
   @override
   Widget build(BuildContext context) {
-    final items = _items(AppLocalizations.of(context));
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-      decoration: BoxDecoration(
-        color: palette.cardSurface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.navInactive.withValues(alpha: 0.3)),
-      ),
+    final strings = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
+    final items = <(IconData, String)>[
+      (Icons.visibility_off_outlined, strings.signInAssuranceSealed),
+      (Icons.key_rounded, strings.signInAssuranceOtp),
+      (Icons.verified_user_outlined, strings.signInAssuranceDeposit),
+    ];
+    return _Card(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          for (var index = 0; index < items.length; index += 1) ...<Widget>[
-            Row(
-              children: <Widget>[
-                Icon(items[index].$1, size: 16, color: palette.goldOnDark),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    items[index].$2,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: palette.inkMuted,
-                      height: 1.5,
+          for (final (icon, text) in items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: <Widget>[
+                  Icon(icon, size: 17, color: palette.gold),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      text,
+                      style: TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: palette.ink,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            if (index != items.length - 1) const SizedBox(height: 9),
-          ],
         ],
       ),
     );

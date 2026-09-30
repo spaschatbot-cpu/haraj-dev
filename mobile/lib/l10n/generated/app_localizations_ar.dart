@@ -1605,4 +1605,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleStatusOpen => 'متاحة';
+
+  @override
+  String get signInSystemPill => 'منظومة المزادات v2';
+
+  @override
+  String get signInSessionLabel => 'المزاد';
+
+  @override
+  String get signInEndsIn => 'ينتهي بعد';
+
+  @override
+  String get signInStartsIn => 'يبدأ بعد';
+
+  @override
+  String get signInIntroFull =>
+      'أدخل رقم جوالك ونرسل لك رمز تحقق سريع بلا كلمة مرور.';
+
+  @override
+  String get signInFootnote =>
+      'الحساب الجديد يُنشأ عند التحقق من الرمز، ثم تُكمل بياناتك.';
+
+  @override
+  String get signInDismissGuest => 'إغلاق والمتابعة كزائر';
 }

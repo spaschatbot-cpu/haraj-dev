@@ -84,7 +84,12 @@ class _Glow extends StatelessWidget {
 /// والهالةُ **تتنفّس**: تكبر وتصغر في ثلاث ثوانٍ. حركةٌ بطيئةٌ لا تُلاحَظ
 /// قصداً وتجعل الشاشةَ حيّةً لا صورةً ساكنة — وتُطفأ لمن أطفأ الحركة.
 class AuthBrand extends StatefulWidget {
-  const AuthBrand({required this.title, this.subtitle, this.size = 78, super.key});
+  const AuthBrand({
+    required this.title,
+    this.subtitle,
+    this.size = 78,
+    super.key,
+  });
 
   final String title;
   final String? subtitle;
@@ -332,7 +337,10 @@ class AuthEntrance extends StatelessWidget {
       // يحتاج `dispose` ويترك بناءً بعد إزالةِ الشجرة.
       builder: (context, t, child) => Opacity(
         opacity: t.clamp(0, 1),
-        child: Transform.translate(offset: Offset(0, (1 - t) * 14), child: child),
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 14),
+          child: child,
+        ),
       ),
       child: child,
     );
@@ -390,5 +398,4 @@ class _ShakeOnChangeState extends State<ShakeOnChange>
       child: widget.child,
     );
   }
-
 }

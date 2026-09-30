@@ -1606,4 +1606,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleStatusOpen => 'Open';
+
+  @override
+  String get signInSystemPill => 'Auctions system v2';
+
+  @override
+  String get signInSessionLabel => 'Auction';
+
+  @override
+  String get signInEndsIn => 'Ends in';
+
+  @override
+  String get signInStartsIn => 'Starts in';
+
+  @override
+  String get signInIntroFull =>
+      'Enter your mobile number and we\'ll text you a quick code — no password.';
+
+  @override
+  String get signInFootnote =>
+      'A new account is created once the code is verified; then you complete your details.';
+
+  @override
+  String get signInDismissGuest => 'Close and continue as guest';
 }

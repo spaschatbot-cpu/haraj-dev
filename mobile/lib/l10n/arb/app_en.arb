@@ -884,5 +884,33 @@
   "vehicleStatusOpen": "Open",
   "@vehicleStatusOpen": {
     "description": "الرئيسية بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInSystemPill": "Auctions system v2",
+  "@signInSystemPill": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInSessionLabel": "Auction",
+  "@signInSessionLabel": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInEndsIn": "Ends in",
+  "@signInEndsIn": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInStartsIn": "Starts in",
+  "@signInStartsIn": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInIntroFull": "Enter your mobile number and we'll text you a quick code — no password.",
+  "@signInIntroFull": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInFootnote": "A new account is created once the code is verified; then you complete your details.",
+  "@signInFootnote": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "signInDismissGuest": "Close and continue as guest",
+  "@signInDismissGuest": {
+    "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
   }
 }

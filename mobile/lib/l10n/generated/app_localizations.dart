@@ -2809,6 +2809,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'متاحة'**
   String get vehicleStatusOpen;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'منظومة المزادات v2'**
+  String get signInSystemPill;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'المزاد'**
+  String get signInSessionLabel;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي بعد'**
+  String get signInEndsIn;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'يبدأ بعد'**
+  String get signInStartsIn;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'أدخل رقم جوالك ونرسل لك رمز تحقق سريع بلا كلمة مرور.'**
+  String get signInIntroFull;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'الحساب الجديد يُنشأ عند التحقق من الرمز، ثم تُكمل بياناتك.'**
+  String get signInFootnote;
+
+  /// شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'إغلاق والمتابعة كزائر'**
+  String get signInDismissGuest;
 }
 
 class _AppLocalizationsDelegate
