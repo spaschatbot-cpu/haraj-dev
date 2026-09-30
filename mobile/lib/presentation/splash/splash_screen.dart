@@ -9,6 +9,7 @@ import '../../app/providers.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
 import '../../core/environment.dart';
+import '../../data/local/onboarding_store.dart';
 import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../auth/session_controller.dart';
@@ -140,15 +141,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     Timer(const Duration(milliseconds: 700), _leave);
   }
 
-  /// ينتقل إلى صفحة الترحيب مرّةً واحدة — حين تجهز الخطوات، أو عند السقف.
+  /// يغادر مرّةً واحدة — حين تجهز الخطوات، أو عند السقف.
   ///
-  /// و`go` لا `push`: شاشةُ البدء ليست محطّةً يُرجَع إليها، ولا يصحّ أن
-  /// يعيد زرُّ الرجوع عرضَ الشعار بعد أن انتهت خطواتُه.
-  void _leave() {
+  /// **إلى الترحيب في أوّل مرّةٍ وحدها** (أمر المالك، ٣٠ سبتمبر ٢٠٢٦)، وإلى
+  /// الرئيسية بعدها — وكذلك من دخل بحسابه: من سجّل دخوله رأى التطبيقَ قبلُ
+  /// ولو كان هذا جهازاً جديداً.
+  ///
+  /// و`go` لا `push`: شاشةُ البدء ليست محطّةً يُرجَع إليها.
+  Future<void> _leave() async {
     if (_left || !mounted) return;
     _left = true;
     _ceiling?.cancel();
-    context.go(Routes.welcomePath);
+    final signedIn =
+        ref.read(sessionControllerProvider) == SessionState.signedIn;
+    final seen = signedIn || await ref.read(onboardingStoreProvider).seen();
+    if (!mounted) return;
+    context.go(seen ? Routes.homePath : Routes.welcomePath);
   }
 
   @override

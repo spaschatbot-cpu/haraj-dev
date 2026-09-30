@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/routes.dart';
 import '../../app/theme.dart';
+import '../../data/local/onboarding_store.dart';
 import '../../domain/catalog/entities/auction_phase.dart';
 import '../../domain/catalog/entities/vehicle_feed.dart';
 import '../../domain/catalog/entities/vehicle_query.dart';
@@ -49,6 +50,15 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
       const VehicleQuery(phase: AuctionPhase.active),
     );
     return snapshot.value;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // **يُحفظ «رآه» عند ظهوره لا عند آخره**: من أغلق التطبيق في منتصف
+    // الترحيب رأى منه ما يكفي، وإعادتُه عليه في الإقلاع التالي هي بعينها ما
+    // طلب المالك ألّا يكون.
+    ref.read(onboardingStoreProvider).markSeen();
   }
 
   void _next() => context.go(Routes.explorePath);
