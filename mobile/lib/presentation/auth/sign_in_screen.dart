@@ -121,54 +121,77 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     return Scaffold(
       backgroundColor: palette.pageBackground,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // **بلا «منظومة المزادات v2»** بطلب المالك: زرُّ الإغلاق وحده.
-                  Align(
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: _CloseButton(
-                      onClose: () => context.go(Routes.homePath),
-                      tooltip: l10n.signInDismiss,
-                    ),
+        // **موزَّعةٌ على طول الشاشة لا مكوَّمة** (طلبُ المالك الثالث، ٣٠
+        // سبتمبر): «التوزيع مريح للعين، مش مضغوطة في بعضها». فالفراغُ يُقسَم
+        // بـ`Spacer` بين الكتل — أوسعُه فوق الشعار وتحت الميزات — ويتّسع مع
+        // الهاتف الطويل ويضيق مع القصير، وتمريرٌ لا يقع إلا على شاشةٍ أقصرَ من
+        // المحتوى نفسه.
+        //
+        // و`IntrinsicHeight` لأن `Spacer` داخل غلافٍ قابلٍ للتمرير يحسب الباقي
+        // صفراً — الحيلةُ نفسُها التي في شاشة البدء.
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: box.maxHeight,
+                  maxWidth: 440,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const SizedBox(height: 8),
+                      // **بلا «منظومة المزادات v2»** بطلب المالك: زرُّ الإغلاق وحده.
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: _CloseButton(
+                          onClose: () => context.go(Routes.homePath),
+                          tooltip: l10n.signInDismiss,
+                        ),
+                      ),
+                      const Spacer(flex: 2),
+                      AuthEntrance(
+                        child: _BrandMark(
+                          title: l10n.splashHeadline,
+                          subtitle: l10n.signInTagline,
+                        ),
+                      ),
+                      const Spacer(flex: 2),
+                      const AuthEntrance(
+                        delay: Duration(milliseconds: 90),
+                        child: _LiveAuctionCard(),
+                      ),
+                      const SizedBox(height: 16),
+                      AuthEntrance(
+                        delay: const Duration(milliseconds: 170),
+                        child: _Card(
+                          padding: const EdgeInsets.all(18),
+                          child: _form(l10n, palette, expired: expired),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const AuthEntrance(
+                        delay: Duration(milliseconds: 240),
+                        child: _Assurances(),
+                      ),
+                      const Spacer(flex: 3),
+                      // «إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق.
+                      TextButton(
+                        onPressed: () => context.go(Routes.homePath),
+                        style: TextButton.styleFrom(
+                          foregroundColor: palette.ink,
+                        ),
+                        child: Text(
+                          l10n.signInDismissGuest,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                   ),
-                  AuthEntrance(
-                    child: _BrandMark(
-                      title: l10n.splashHeadline,
-                      subtitle: l10n.signInTagline,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const AuthEntrance(
-                    delay: Duration(milliseconds: 90),
-                    child: _LiveAuctionCard(),
-                  ),
-                  const SizedBox(height: 10),
-                  AuthEntrance(
-                    delay: const Duration(milliseconds: 170),
-                    child: _Card(child: _form(l10n, palette, expired: expired)),
-                  ),
-                  const SizedBox(height: 10),
-                  const AuthEntrance(
-                    delay: Duration(milliseconds: 240),
-                    child: _Assurances(),
-                  ),
-                  // «إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق.
-                  TextButton(
-                    onPressed: () => context.go(Routes.homePath),
-                    style: TextButton.styleFrom(foregroundColor: palette.ink),
-                    child: Text(
-                      l10n.signInDismissGuest,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -204,7 +227,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           child: Divider(height: 1, color: palette.navInactive),
         ),
         if (expired) ...<Widget>[
@@ -217,17 +240,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             fontFamily: HarajTheme.fontFamily,
             fontSize: 12.5,
             color: palette.inkMuted,
-            height: 1.4,
+            height: 1.5,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
         SaudiPhoneField(
           controller: _phone,
           label: l10n.signInPhoneLabel,
           boxed: true,
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         if (_sending)
           const Center(child: CircularProgressIndicator())
         else if (_cooldownSeconds > 0)
@@ -247,7 +270,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               foregroundColor: Colors.white,
               disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
               disabledForegroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(48),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -387,7 +410,7 @@ class _BrandMark extends StatelessWidget {
                 const Icon(Icons.gavel_rounded, color: Colors.white),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           title,
           textAlign: TextAlign.center,
@@ -398,7 +421,7 @@ class _BrandMark extends StatelessWidget {
             color: palette.ink,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           subtitle,
           textAlign: TextAlign.center,
@@ -474,7 +497,7 @@ class _LiveAuctionCard extends ConsumerWidget {
     final live = running != null;
 
     return _Card(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
@@ -525,7 +548,7 @@ class _LiveAuctionCard extends ConsumerWidget {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: Divider(height: 1, color: palette.navInactive),
           ),
           Row(
@@ -626,15 +649,15 @@ class _Assurances extends StatelessWidget {
       (Icons.verified_user_outlined, strings.signInAssuranceDeposit),
     ];
     return _Card(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         children: <Widget>[
           for (final (icon, text) in items)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(
                 children: <Widget>[
-                  Icon(icon, size: 17, color: palette.gold),
+                  Icon(icon, size: 18, color: palette.gold),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
