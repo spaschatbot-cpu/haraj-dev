@@ -912,5 +912,99 @@
   "signInDismissGuest": "Close and continue as guest",
   "@signInDismissGuest": {
     "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleDetailsTitle": "Vehicle details",
+  "@vehicleDetailsTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleSealedEnvelope": "Sealed bid",
+  "@vehicleSealedEnvelope": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleEndsAt": "Bids close: {when}",
+  "@vehicleEndsAt": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleRemainingLabel": "Remaining",
+  "@vehicleRemainingLabel": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleLiveNow": "Live now",
+  "@vehicleLiveNow": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRulesTitle": "Sealed bidding rules",
+  "@vehicleRulesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRulesSubtitle": "As the system applies them to every bid",
+  "@vehicleRulesSubtitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleSealedTitle": "Fully sealed",
+  "@vehicleRuleSealedTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleSealedBody": "No one sees your amount; the highest is known when the auction ends.",
+  "@vehicleRuleSealedBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleFeesTitle": "Admin fee",
+  "@vehicleRuleFeesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleFeesBody": "Added to the winner's invoice.",
+  "@vehicleRuleFeesBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleDepositTitle": "Deposit",
+  "@vehicleRuleDepositTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleDepositBody": "Held for this auction, locked to the invoice on award, and refunded on request after payment or if you don't win.",
+  "@vehicleRuleDepositBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagesTitle": "Auction stages",
+  "@vehicleStagesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageBids": "Sealed bids open",
+  "@vehicleStageBids": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageBidsSub": "Until {when}",
+  "@vehicleStageBidsSub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleStageAward": "Award and invoice",
+  "@vehicleStageAward": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageAwardSub": "After the auction ends, the highest bid wins",
+  "@vehicleStageAwardSub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagePay": "Payment and pickup",
+  "@vehicleStagePay": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagePaySub": "Bank transfer, then an exit order from the yard",
+  "@vehicleStagePaySub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageNow": "Now",
+  "@vehicleStageNow": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
   }
 }

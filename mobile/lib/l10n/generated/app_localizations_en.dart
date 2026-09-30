@@ -1629,4 +1629,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get signInDismissGuest => 'Close and continue as guest';
+
+  @override
+  String get vehicleDetailsTitle => 'Vehicle details';
+
+  @override
+  String get vehicleSealedEnvelope => 'Sealed bid';
+
+  @override
+  String vehicleEndsAt(String when) {
+    return 'Bids close: $when';
+  }
+
+  @override
+  String get vehicleRemainingLabel => 'Remaining';
+
+  @override
+  String get vehicleLiveNow => 'Live now';
+
+  @override
+  String get vehicleRulesTitle => 'Sealed bidding rules';
+
+  @override
+  String get vehicleRulesSubtitle => 'As the system applies them to every bid';
+
+  @override
+  String get vehicleRuleSealedTitle => 'Fully sealed';
+
+  @override
+  String get vehicleRuleSealedBody =>
+      'No one sees your amount; the highest is known when the auction ends.';
+
+  @override
+  String get vehicleRuleFeesTitle => 'Admin fee';
+
+  @override
+  String get vehicleRuleFeesBody => 'Added to the winner\'s invoice.';
+
+  @override
+  String get vehicleRuleDepositTitle => 'Deposit';
+
+  @override
+  String get vehicleRuleDepositBody =>
+      'Held for this auction, locked to the invoice on award, and refunded on request after payment or if you don\'t win.';
+
+  @override
+  String get vehicleStagesTitle => 'Auction stages';
+
+  @override
+  String get vehicleStageBids => 'Sealed bids open';
+
+  @override
+  String vehicleStageBidsSub(String when) {
+    return 'Until $when';
+  }
+
+  @override
+  String get vehicleStageAward => 'Award and invoice';
+
+  @override
+  String get vehicleStageAwardSub =>
+      'After the auction ends, the highest bid wins';
+
+  @override
+  String get vehicleStagePay => 'Payment and pickup';
+
+  @override
+  String get vehicleStagePaySub =>
+      'Bank transfer, then an exit order from the yard';
+
+  @override
+  String get vehicleStageNow => 'Now';
 }

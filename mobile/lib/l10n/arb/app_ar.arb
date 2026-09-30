@@ -1553,5 +1553,99 @@
   "signInDismissGuest": "إغلاق والمتابعة كزائر",
   "@signInDismissGuest": {
     "description": "شاشة الدخول بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleDetailsTitle": "تفاصيل المركبة",
+  "@vehicleDetailsTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleSealedEnvelope": "مظروف مغلق وسري",
+  "@vehicleSealedEnvelope": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleEndsAt": "ينتهي استقبال السومات: {when}",
+  "@vehicleEndsAt": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleRemainingLabel": "متبقٍّ",
+  "@vehicleRemainingLabel": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleLiveNow": "نشط الآن",
+  "@vehicleLiveNow": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRulesTitle": "قواعد المزايدة المغلقة",
+  "@vehicleRulesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRulesSubtitle": "كما يطبّقها النظام على كلّ مزايدة",
+  "@vehicleRulesSubtitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleSealedTitle": "سرّية تامّة",
+  "@vehicleRuleSealedTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleSealedBody": "لا يرى أحدٌ مبلغك، ويُعرف الأعلى عند نهاية المزاد.",
+  "@vehicleRuleSealedBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleFeesTitle": "الرسوم الإدارية",
+  "@vehicleRuleFeesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleFeesBody": "تُضاف إلى فاتورة الفائز بالمركبة.",
+  "@vehicleRuleFeesBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleDepositTitle": "التأمين",
+  "@vehicleRuleDepositTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleRuleDepositBody": "محجوزٌ لهذا المزاد، ويُقفل على الفاتورة عند الترسية، ويُسترد بطلبك بعد السداد أو إن لم تفز.",
+  "@vehicleRuleDepositBody": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagesTitle": "مراحل المزاد",
+  "@vehicleStagesTitle": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageBids": "استقبال السومات المغلقة",
+  "@vehicleStageBids": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageBidsSub": "حتى {when}",
+  "@vehicleStageBidsSub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)",
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "vehicleStageAward": "الترسية وإصدار الفاتورة",
+  "@vehicleStageAward": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageAwardSub": "بعد نهاية المزاد يُرسّى على أعلى عرض",
+  "@vehicleStageAwardSub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagePay": "السداد واستلام المركبة",
+  "@vehicleStagePay": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStagePaySub": "حوالة بنكية، ثم أمر خروج من الساحة",
+  "@vehicleStagePaySub": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
+  },
+  "vehicleStageNow": "جارية الآن",
+  "@vehicleStageNow": {
+    "description": "صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)"
   }
 }

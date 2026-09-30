@@ -1628,4 +1628,73 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get signInDismissGuest => 'إغلاق والمتابعة كزائر';
+
+  @override
+  String get vehicleDetailsTitle => 'تفاصيل المركبة';
+
+  @override
+  String get vehicleSealedEnvelope => 'مظروف مغلق وسري';
+
+  @override
+  String vehicleEndsAt(String when) {
+    return 'ينتهي استقبال السومات: $when';
+  }
+
+  @override
+  String get vehicleRemainingLabel => 'متبقٍّ';
+
+  @override
+  String get vehicleLiveNow => 'نشط الآن';
+
+  @override
+  String get vehicleRulesTitle => 'قواعد المزايدة المغلقة';
+
+  @override
+  String get vehicleRulesSubtitle => 'كما يطبّقها النظام على كلّ مزايدة';
+
+  @override
+  String get vehicleRuleSealedTitle => 'سرّية تامّة';
+
+  @override
+  String get vehicleRuleSealedBody =>
+      'لا يرى أحدٌ مبلغك، ويُعرف الأعلى عند نهاية المزاد.';
+
+  @override
+  String get vehicleRuleFeesTitle => 'الرسوم الإدارية';
+
+  @override
+  String get vehicleRuleFeesBody => 'تُضاف إلى فاتورة الفائز بالمركبة.';
+
+  @override
+  String get vehicleRuleDepositTitle => 'التأمين';
+
+  @override
+  String get vehicleRuleDepositBody =>
+      'محجوزٌ لهذا المزاد، ويُقفل على الفاتورة عند الترسية، ويُسترد بطلبك بعد السداد أو إن لم تفز.';
+
+  @override
+  String get vehicleStagesTitle => 'مراحل المزاد';
+
+  @override
+  String get vehicleStageBids => 'استقبال السومات المغلقة';
+
+  @override
+  String vehicleStageBidsSub(String when) {
+    return 'حتى $when';
+  }
+
+  @override
+  String get vehicleStageAward => 'الترسية وإصدار الفاتورة';
+
+  @override
+  String get vehicleStageAwardSub => 'بعد نهاية المزاد يُرسّى على أعلى عرض';
+
+  @override
+  String get vehicleStagePay => 'السداد واستلام المركبة';
+
+  @override
+  String get vehicleStagePaySub => 'حوالة بنكية، ثم أمر خروج من الساحة';
+
+  @override
+  String get vehicleStageNow => 'جارية الآن';
 }

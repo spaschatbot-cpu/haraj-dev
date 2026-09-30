@@ -6,9 +6,9 @@ import '../../../domain/catalog/entities/auction_phase.dart';
 import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../favourites_controller.dart';
+import '../vehicle_details_screen.dart';
 import 'countdown_text.dart';
 import 'remote_image.dart';
-import 'vehicle_bid_sheet.dart';
 
 /// كرت المركبة — **مكوّن واحد، ولا رسم لكرت خارجه** (T708).
 ///
@@ -41,12 +41,12 @@ class VehicleCard extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: _maxWidth),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 7, 16, 7),
+          padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
           child: Material(
             color: palette.cardSurface,
             surfaceTintColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(18),
               side: BorderSide(
                 color: palette.navInactive.withValues(alpha: 0.55),
               ),
@@ -55,32 +55,32 @@ class VehicleCard extends StatelessWidget {
             elevation: 2,
             shadowColor: palette.ink.withValues(alpha: 0.12),
             child: InkWell(
-              // الكرتُ كلُّه يفتح صندوقَ المزايدة (٩ سبتمبر ٢٠٢٦)، والزرُّ يقول
-              // ماذا يحدث عند الضغط.
-              onTap: () => showVehicleBidSheet(context, vehicle: vehicle),
+              // الكرتُ كلُّه يفتح **صفحةَ التفاصيل** (٣٠ سبتمبر ٢٠٢٦) — حلّت
+              // محلَّ نافذة المزايدة، والمزايدةُ من زرّها السفليّ.
+              onTap: () => openVehicleDetails(context, vehicle: vehicle),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(9),
                 child: IntrinsicHeight(
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       // أوّلُ ابنٍ في الصفّ هو **اليمين** في العربية.
                       Expanded(
-                        flex: 44,
+                        flex: 40,
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 190),
+                          constraints: const BoxConstraints(minHeight: 128),
                           child: _Photo(vehicle: vehicle, l10n: l10n),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
-                        flex: 56,
+                        flex: 60,
                         child: _Details(
                           vehicle: vehicle,
                           palette: palette,
                           l10n: l10n,
                           onBid: () =>
-                              showVehicleBidSheet(context, vehicle: vehicle),
+                              openVehicleDetails(context, vehicle: vehicle),
                         ),
                       ),
                     ],
@@ -126,11 +126,11 @@ class _Details extends StatelessWidget {
             Expanded(
               child: Text(
                 vehicle.title,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: HarajTheme.fontFamily,
-                  fontSize: 15,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: palette.ink,
                   height: 1.3,
@@ -141,10 +141,10 @@ class _Details extends StatelessWidget {
             _StatusPill(phase: vehicle.phase, l10n: l10n, palette: palette),
           ],
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         Row(
           children: <Widget>[
-            Icon(Icons.location_on_rounded, size: 14, color: palette.gold),
+            Icon(Icons.location_on_rounded, size: 13, color: palette.gold),
             const SizedBox(width: 3),
             Expanded(
               child: Text(
@@ -153,7 +153,7 @@ class _Details extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontFamily: HarajTheme.fontFamily,
-                  fontSize: 12,
+                  fontSize: 11.5,
                   color: palette.inkMuted,
                   height: 1.3,
                 ),
@@ -161,9 +161,10 @@ class _Details extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        // أربعُ خاناتٍ في صفّين — الممشى قد يغيب، والغيابُ لا يُعرض صفراً:
-        // «٠ كم» ادّعاءٌ لم يقله أحد، فتأخذ السنةُ مكانه.
+        const SizedBox(height: 7),
+        // **صفُّ خاناتٍ واحد لا صفّان** — «أربع عربيات في الشاشة» (طلبُ المالك،
+        // ٣٠ سبتمبر). بقي ما يُقارَن به بين الكروت: الممشى وكم بقي؛ واللونُ
+        // والحالةُ في صفحة التفاصيل.
         Row(
           children: <Widget>[
             Expanded(
@@ -174,30 +175,10 @@ class _Details extends StatelessWidget {
                       palette: palette,
                     )
                   : _Fact(
-                      icon: Icons.calendar_today_rounded,
-                      text: '${vehicle.year}',
+                      icon: Icons.palette_outlined,
+                      text: vehicle.colourLabel,
                       palette: palette,
                     ),
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: _Fact(
-                icon: Icons.palette_outlined,
-                text: vehicle.colourLabel,
-                palette: palette,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Row(
-          children: <Widget>[
-            Expanded(
-              child: _Fact(
-                icon: Icons.directions_car_outlined,
-                text: vehicle.conditionLabel,
-                palette: palette,
-              ),
             ),
             const SizedBox(width: 6),
             Expanded(
@@ -205,9 +186,6 @@ class _Details extends StatelessWidget {
                 icon: Icons.timer_outlined,
                 palette: palette,
                 text: ended ? l10n.vehicleAuctionEnded : '',
-                // **`FittedBox` يصغّر العدّاد ولا يقصّه**: «يوم 20:39:55» أعرضُ
-                // من نصف عمود البيانات على هاتفٍ بعرض ٣٧٥ بعشرين بكسلاً —
-                // رُئي في كونسول المالك (RenderFlex overflowed by 20 pixels).
                 child: ended
                     ? null
                     : FittedBox(
@@ -224,7 +202,7 @@ class _Details extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         _BidButton(
           label: l10n.vehicleSealedBidAction,
           palette: palette,
@@ -327,9 +305,9 @@ class _Fact extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
     decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(9),
       border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
     ),
     child: Row(
@@ -370,12 +348,12 @@ class _BidButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(11),
     clipBehavior: Clip.antiAlias,
     color: Colors.transparent,
     child: Ink(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(11),
         gradient: LinearGradient(
           colors: <Color>[palette.gold, palette.goldDeep],
         ),
@@ -383,7 +361,7 @@ class _BidButton extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: 44,
+          height: 36,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -396,7 +374,7 @@ class _BidButton extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontFamily: HarajTheme.fontFamily,
-                    fontSize: 14,
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                     height: 1.2,
@@ -424,7 +402,7 @@ class _Photo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ClipRRect(
-    borderRadius: BorderRadius.circular(16),
+    borderRadius: BorderRadius.circular(13),
     child: Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -480,7 +458,7 @@ class _Photo extends StatelessWidget {
 
 const TextStyle _badgeText = TextStyle(
   fontFamily: HarajTheme.fontFamily,
-  fontSize: 11,
+  fontSize: 10,
   fontWeight: FontWeight.w700,
   color: Colors.white,
   height: 1.2,
@@ -556,10 +534,10 @@ class _FavouriteButtonState extends ConsumerState<_FavouriteButton> {
           customBorder: const CircleBorder(),
           onTap: _toggle,
           child: Padding(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(5),
             child: Icon(
               on ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-              size: 17,
+              size: 15,
               color: on ? const Color(0xFFF87171) : Colors.white,
             ),
           ),

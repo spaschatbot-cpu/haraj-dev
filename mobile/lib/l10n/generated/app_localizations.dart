@@ -2851,6 +2851,132 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إغلاق والمتابعة كزائر'**
   String get signInDismissGuest;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل المركبة'**
+  String get vehicleDetailsTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'مظروف مغلق وسري'**
+  String get vehicleSealedEnvelope;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'ينتهي استقبال السومات: {when}'**
+  String vehicleEndsAt(String when);
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'متبقٍّ'**
+  String get vehicleRemainingLabel;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'نشط الآن'**
+  String get vehicleLiveNow;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'قواعد المزايدة المغلقة'**
+  String get vehicleRulesTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'كما يطبّقها النظام على كلّ مزايدة'**
+  String get vehicleRulesSubtitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'سرّية تامّة'**
+  String get vehicleRuleSealedTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يرى أحدٌ مبلغك، ويُعرف الأعلى عند نهاية المزاد.'**
+  String get vehicleRuleSealedBody;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسوم الإدارية'**
+  String get vehicleRuleFeesTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'تُضاف إلى فاتورة الفائز بالمركبة.'**
+  String get vehicleRuleFeesBody;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'التأمين'**
+  String get vehicleRuleDepositTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'محجوزٌ لهذا المزاد، ويُقفل على الفاتورة عند الترسية، ويُسترد بطلبك بعد السداد أو إن لم تفز.'**
+  String get vehicleRuleDepositBody;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'مراحل المزاد'**
+  String get vehicleStagesTitle;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'استقبال السومات المغلقة'**
+  String get vehicleStageBids;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'حتى {when}'**
+  String vehicleStageBidsSub(String when);
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'الترسية وإصدار الفاتورة'**
+  String get vehicleStageAward;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد نهاية المزاد يُرسّى على أعلى عرض'**
+  String get vehicleStageAwardSub;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'السداد واستلام المركبة'**
+  String get vehicleStagePay;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'حوالة بنكية، ثم أمر خروج من الساحة'**
+  String get vehicleStagePaySub;
+
+  /// صفحة تفاصيل المركبة بتصميم المالك (٣٠ سبتمبر ٢٠٢٦)
+  ///
+  /// In ar, this message translates to:
+  /// **'جارية الآن'**
+  String get vehicleStageNow;
 }
 
 class _AppLocalizationsDelegate

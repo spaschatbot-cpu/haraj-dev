@@ -40,10 +40,27 @@ Future<void> showVehicleBidSheet(
   builder: (dialogContext) => _BidSheet(vehicle: vehicle),
 );
 
+/// لوحُ المزايدة وحدَه في ورقةٍ من أسفل — زرُّ «زايد الآن» في صفحة تفاصيل
+/// المركبة. **المنطقُ نفسُه لا نسخةٌ منه**: الحقلُ وسؤالُ الضريبة والإرسالُ
+/// وحوارُ خفض المبلغ في `_BidSheetState` واحدةٌ للنافذة وللورقة.
+Future<void> showVehicleBidEntry(
+  BuildContext context, {
+  required VehicleSummary vehicle,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  backgroundColor: Colors.transparent,
+  builder: (sheetContext) => _BidSheet(vehicle: vehicle, panelOnly: true),
+);
+
 class _BidSheet extends ConsumerStatefulWidget {
-  const _BidSheet({required this.vehicle});
+  const _BidSheet({required this.vehicle, this.panelOnly = false});
 
   final VehicleSummary vehicle;
+
+  /// اللوحُ وحدَه بلا رأسٍ ولا صورةٍ ولا مواصفات — الصفحةُ تعرضها فوقه.
+  final bool panelOnly;
 
   @override
   ConsumerState<_BidSheet> createState() => _BidSheetState();
@@ -242,6 +259,33 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
     final odometer = vehicle.odometerKm;
+
+    final panel = _BidPanel(
+      vehicle: vehicle,
+      palette: palette,
+      l10n: l10n,
+      priceController: _price,
+      quotedTotal: _quotedFor == _price.text.trim() ? _quotedTotal : null,
+      onPlaceBid: _price.text.trim().isEmpty ? null : _placeBid,
+      submitting:
+          ref.watch(placeBidControllerProvider(vehicle.id))
+              is PlaceBidSubmitting,
+    );
+    if (widget.panelOnly) {
+      return Padding(
+        // لوحةُ المفاتيح تدفع الورقةَ لا تغطّي حقلَ السعر.
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: SafeArea(top: false, child: panel),
+          ),
+        ),
+      );
+    }
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
