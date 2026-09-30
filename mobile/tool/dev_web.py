@@ -55,7 +55,15 @@ def snapshot(paths: tuple[Path, ...]) -> dict[Path, float]:
 STUCK_AFTER = 60.0
 
 #: ما يطبعه flutter حين ينتهي أمرٌ أُرسل إليه — نجاحاً أو بلا نافذةٍ متّصلة.
-DONE_MARKS = ("Reloaded application", "Restarted application", "Recompile complete", "Reloaded ")
+#: و«Try again after fixing» جوابٌ أيضاً: خطأُ ترجمةٍ ليس تعليقاً، وعدُّه عالقاً
+#: كان يُسقط flutter كلَّه ويعيد إقلاعه دقيقتين — وقع.
+DONE_MARKS = (
+    "Reloaded application",
+    "Restarted application",
+    "Recompile complete",
+    "Reloaded ",
+    "Try again after fixing",
+)
 
 
 class Runner:
