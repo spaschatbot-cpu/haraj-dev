@@ -50,8 +50,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const CARD = "rounded-3xl border border-outline-variant/60 bg-surface-lowest p-5 shadow-sm";
-
 export default async function SignInPage({
   searchParams,
 }: {
@@ -65,8 +63,7 @@ export default async function SignInPage({
   const sent = params.sent === "1";
   const flash = readFlash(store);
 
-  // المزادُ الجاري لكرت الرأس — **زينةٌ لا ركن**: فشلُه أو غيابُ مزادٍ جارٍ يُخفي
-  // الكرتَ ولا يُسقط شاشةَ الدخول.
+  // المزادُ الجاري لكرت المزاد — فشله أو غيابه لا يُسقط شاشة الدخول
   const live = sent
     ? null
     : await request(() =>
@@ -74,229 +71,287 @@ export default async function SignInPage({
       )
         .then((page) => page.results[0] ?? null)
         .catch(() => null);
-  // لحظةُ الردّ من `respondedAt` كبقيّة الصفحات — `Date.now()` في الرسم يرفضه
-  // `react-hooks/purity`، ويجعل الرسمين (الخادم والمتصفّح) يختلفان.
+
   const now = await respondedAt();
 
   return (
-    <main className="bg-gradient-to-b from-surface-low to-surface px-4 pt-3 pb-3">
-      <div className="mx-auto max-w-md">
-        {/* ── الشريطُ العلويّ ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
-          <span className="inline-flex items-center gap-2 rounded-full border border-outline-variant/60 bg-surface-lowest px-3.5 py-1.5 text-label-md shadow-sm">
-            <span aria-hidden="true" className="h-2 w-2 rounded-full bg-ok" />
-            حراج واحد <span className="tnum">v2</span>
-          </span>
-          <Link
-            href="/"
-            aria-label="إغلاق والعودة إلى المزادات"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant/60 bg-surface-lowest text-on-surface shadow-sm transition-colors hover:bg-surface-low"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </Link>
-        </div>
+    <main className="min-h-screen bg-surface px-3 py-4 md:px-6 md:py-8 lg:flex lg:items-center lg:justify-center">
+      <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-outline-variant/60 bg-surface-lowest shadow-2xl">
+        <div className="grid grid-cols-1 lg:grid-cols-12">
+          
+          {/* ── الجانب الأيمن: واجهة المزاد الحية وأجواء المنصة (Hero Side) ── */}
+          <div className="relative flex flex-col justify-between border-b border-outline-variant/40 bg-gradient-to-br from-primary via-primary to-[#13233f] p-6 text-on-primary md:p-8 lg:col-span-5 lg:border-b-0 lg:border-e lg:p-10">
+            {/* توهج خلفي جمالي */}
+            <div aria-hidden="true" className="pointer-events-none absolute -top-24 -end-24 h-64 w-64 rounded-full bg-secondary/20 blur-3xl" />
+            <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -start-24 h-64 w-64 rounded-full bg-ok/10 blur-3xl" />
 
-        {/* ── الشعار ───────────────────────────────────────────────────── */}
-        <div className="-mt-4 flex flex-col items-center text-center">
-          <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-primary shadow-xl shadow-primary/25 ring-4 ring-surface-lowest">
-            <span aria-hidden="true" className="absolute inset-2 rounded-full border border-on-primary/15" />
-            {/*
-              الشعارُ لا الحرف، أبيضُ على الكحليّ كما في رأس الموقع. و`alt=""`
-              لأن الاسم مكتوبٌ نصّاً تحته: بديلٌ يقوله ثانيةً يُقرأ مرّتين.
-            */}
-            <Image src="/brand/logo-light.png" alt="" width={507} height={455} className="h-10 w-10 object-contain" priority />
-            <span className="tnum absolute -bottom-2 rounded-full bg-secondary px-2.5 py-0.5 text-label-sm text-on-secondary ring-2 ring-surface-lowest">
-              V2
-            </span>
-          </span>
-          <h1 className="mt-4 text-headline-md">مزاد حراج واحد</h1>
-          <p className="text-body-sm text-on-surface-variant">مزايدة مغلقة على سيارات المزاد — من جوالك</p>
-        </div>
-
-        {/* ── المزادُ الجاري ───────────────────────────────────────────── */}
-        {live ? (
-          <section className="mt-3 rounded-2xl border border-outline-variant/60 bg-surface-lowest p-3.5 shadow-sm" aria-label="المزاد الجاري">
-            <div className="mb-2.5 flex items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 whitespace-nowrap text-label-md">
-                <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full bg-ok" />
-                المزاد الجاري · مزاد <span className="tnum">{live.number}</span>
-              </span>
-              {live.vehicle_count !== null ? (
-                <span className="rounded-lg bg-surface-container px-2.5 py-1 text-label-sm text-secondary">
-                  <span className="money">{count(live.vehicle_count)}</span> سيارة
+            {/* الهوية والشعار */}
+            <div className="relative z-10">
+              <div className="flex items-center gap-3">
+                <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-surface-lowest/10 backdrop-blur-md ring-1 ring-white/20">
+                  <Image
+                    src="/brand/logo-light.png"
+                    alt=""
+                    width={507}
+                    height={455}
+                    className="h-8 w-8 object-contain"
+                    priority
+                  />
+                  <span className="tnum absolute -bottom-1 -end-1 rounded-full bg-secondary px-1.5 py-0.2 text-[10px] font-bold text-on-secondary ring-1 ring-primary">
+                    V2
+                  </span>
                 </span>
-              ) : null}
-            </div>
-            <Countdown endsAt={live.ends_at} initial={remaining(live.ends_at, now)} now={now} label="ينتهي بعد" />
-          </section>
-        ) : null}
+                <div>
+                  <h1 className="text-headline-md font-bold tracking-tight text-white">مزاد حراج واحد</h1>
+                  <p className="text-body-sm text-slate-300">منصة المزايدة المغلقة على سيارات المزاد</p>
+                </div>
+              </div>
 
-        {/* ── الدخول ───────────────────────────────────────────────────── */}
-        <section className={`${CARD} mt-4`}>
-          <div className="mb-3 flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container text-secondary">
-              <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="5" y="11" width="14" height="10" rx="2" />
-                <path d="M8 11V8a4 4 0 0 1 8 0v3" />
-              </svg>
-            </span>
-            <h2 className="text-headline-sm">{sent ? "أدخل رمز التحقق" : "الدخول أو إنشاء حساب"}</h2>
+              {/* بطاقة المزاد الجاري الحي */}
+              {live ? (
+                <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4 backdrop-blur-md shadow-lg">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-2 text-label-md font-bold text-emerald-400">
+                      <span aria-hidden="true" className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                      </span>
+                      المزاد الجاري · مزاد <span className="tnum">{live.number}</span>
+                    </span>
+                    {live.vehicle_count !== null ? (
+                      <span className="rounded-lg bg-white/10 px-2.5 py-0.5 text-label-sm font-semibold text-slate-200">
+                        <span className="money font-bold">{count(live.vehicle_count)}</span> سيارة
+                      </span>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-2 rounded-xl bg-black/25 p-2.5">
+                    <Countdown
+                      endsAt={live.ends_at}
+                      initial={remaining(live.ends_at, now)}
+                      now={now}
+                      label="ينتهي بعد"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-body-sm text-slate-300">
+                  ⚡ مزادات دورية مستمرة — سجّل دخولك لتكون جاهزاً للمزايدة فور انطلاق المزاد القادم.
+                </div>
+              )}
+
+              {/* ركائز الأمان والثقة الثلاث */}
+              <div className="mt-8 space-y-3 hidden sm:block">
+                <div className="flex items-start gap-3 text-body-sm text-slate-200">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-emerald-400">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong className="block font-semibold text-white">مزايدة مغلقة ومحمية</strong>
+                    <span className="text-caption text-slate-300">لا أحد يرى مبلغ مزايدتك ولا يمكن لأحد منافستك بالاحتكار.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 text-body-sm text-slate-200">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-blue-400">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong className="block font-semibold text-white">دخول سريع بلا كلمة مرور</strong>
+                    <span className="text-caption text-slate-300">رمز تحقق فوري لمرة واحدة يُرسل إلى هاتفك المحمول.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 text-body-sm text-slate-200">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-amber-400">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <strong className="block font-semibold text-white">التأمين وديعة مستردة</strong>
+                    <span className="text-caption text-slate-300">مبلغ التأمين وديعة في محفظتك يُسترد بطلبك في أي وقت.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* تذييل قسم الهوية */}
+            <div className="relative z-10 mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-caption text-slate-400">
+              <span>المملكة العربية السعودية</span>
+              <span>منصة مرخصة ومعتمدة</span>
+            </div>
           </div>
 
-          <Notice message={flash?.message ?? ""} />
-
-          {sent ? (
-            <form action={verifyCode} className="space-y-4">
-              <input type="hidden" name="phone" value={phone} />
-
-              <p className="text-body-sm text-on-surface-variant">
-                أرسلنا رمزاً إلى <span className="money text-on-surface" dir="ltr">{phone}</span>.
-              </p>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-label-md text-on-surface-variant">الرمز</span>
-                <input
-                  type="text"
-                  name="code"
-                  inputMode="numeric"
-                  autoComplete="one-time-code"
-                  required
-                  dir="ltr"
-                  placeholder="••••••"
-                  className="money h-16 rounded-2xl border-2 border-outline-variant bg-surface-lowest px-4 text-center text-headline-md tracking-[0.5em] focus:border-secondary focus:outline-none focus:ring-4 focus:ring-secondary/15"
-                />
-              </label>
-
-              {/*
-                **لا اسمَ هنا.** كان حقلٌ «الاسم (للتسجيل الجديد فقط)» يُرسَل مع
-                الرمز، فيُتجاهَل لحسابٍ موجودٍ باسمٍ فارغ ولا يعرف العميلُ لماذا
-                لم يُحفظ. البياناتُ كلُّها — للجديد والناقص معاً — في «أكمل
-                تسجيلك» بعد الرمز (`verifyCode` → `/sign-in/complete`).
-              */}
-              <button
-                type="submit"
-                className="flex h-14 w-full items-center justify-center rounded-2xl bg-secondary text-headline-sm text-on-secondary shadow-lg shadow-secondary/25 transition-opacity hover:opacity-90"
-              >
-                تأكيد ودخول
-              </button>
-
-              <Link href="/sign-in" className="block text-center text-label-md text-secondary hover:underline">
-                تغيير الرقم
-              </Link>
-            </form>
-          ) : (
-            <form action={sendCode} className="space-y-3">
-              <p className="text-body-sm text-on-surface-variant">
-                أدخل رقم جوالك ونرسل لك رمز تحقق سريع بلا كلمة مرور.
-              </p>
-
-              {/*
-                **+966 مسبوقةٌ في الشكل، والرقمُ كما يُكتب.** الخادمُ يطبّع 05…
-                و5… و+966… و966… (`normalise_saudi_mobile`)، فالبادئةُ تذكيرٌ لا
-                جزءٌ من القيمة — ومن كتب 05 كاملةً لا يُرفض.
-              */}
-              <label className="flex h-14 items-stretch overflow-hidden rounded-2xl border-2 border-outline-variant bg-surface-lowest focus-within:border-secondary focus-within:ring-4 focus-within:ring-secondary/15" dir="ltr">
-                <span className="flex items-center gap-2 border-e border-outline-variant/60 bg-surface-low px-4 text-headline-sm">
-                  {/* العلمُ رسمٌ لا إيموجي: ويندوز لا يرسم أعلامَ الإيموجي فيكتب «SA»
-                      حرفين — قِيس في كروم على هذا الجهاز. */}
-                  <svg viewBox="0 0 30 20" aria-hidden="true" className="h-5 w-7 rounded-[3px]">
-                    <rect width="30" height="20" fill="#006c35" />
-                    <path d="M8 8.5h14M9.5 7c1-.6 2 .6 3 0s2 .6 3 0 2 .6 3 0 2 .6 3 0" stroke="#fff" strokeWidth="1" fill="none" strokeLinecap="round" />
-                    <path d="M8 13h13l1.5-1" stroke="#fff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
-                  </svg>
-                  <span className="money">+966</span>
+          {/* ── الجانب الأيسر: بطاقة المصادقة وإدخال البيانات (Auth Form) ── */}
+          <div className="flex flex-col justify-between p-6 md:p-8 lg:col-span-7 lg:p-10">
+            <div>
+              {/* شريط الإغلاق والتنقل */}
+              <div className="flex items-center justify-between pb-6">
+                <span className="inline-flex items-center gap-2 rounded-full border border-outline-variant/60 bg-surface-low px-3 py-1 text-label-sm text-on-surface-variant">
+                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-ok" />
+                  حراج واحد <span className="tnum">v2</span>
                 </span>
-                <span className="sr-only">رقم الجوال</span>
-                <input
-                  type="tel"
-                  name="phone"
-                  defaultValue={phone}
-                  inputMode="tel"
-                  autoComplete="tel"
-                  required
-                  placeholder="5X XXX XXXX"
-                  className="money min-w-0 flex-1 bg-transparent px-4 text-headline-sm tracking-wider placeholder:text-outline focus:outline-none"
-                />
-              </label>
-              <button
-                type="submit"
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-secondary text-headline-sm text-on-secondary shadow-lg shadow-secondary/25 transition-opacity hover:opacity-90"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
-                  <path d="M8.5 12h.01M12 12h.01M15.5 12h.01" />
-                </svg>
-                إرسال رمز التحقق
-              </button>
-              <p className="text-center text-caption text-on-surface-variant">
-                الحسابُ الجديد يُنشأ عند التحقق من الرمز، ثم تُكمل بياناتك.
-              </p>
-            </form>
-          )}
-        </section>
+                <Link
+                  href="/"
+                  aria-label="المتابعة كزائر والعودة للمزادات"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant/60 bg-surface-lowest px-3 py-1.5 text-label-sm text-on-surface-variant transition-colors hover:bg-surface-low hover:text-on-surface"
+                >
+                  <span>المتابعة كزائر</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </Link>
+              </div>
 
-        {sent ? (
-          /*
-            إعادةُ الإرسال — وكانت غائبة. v1 يعرض عدّاداً ينزل من ١٢٠ ثانيةً
-            ثمّ يُفعّل «إعادة الإرسال» (`log2/verify.php`)، وهنا لم يكن للعميل
-            بابٌ إلى رمزٍ ثانٍ إلا أن يعرف أن «تغيير الرقم» ثمّ إعادةَ كتابة
-            الرقم نفسِه تُرسله — وهو ما لا يخطر لأحد. والرسالةُ التي لا تصل
-            هي أوّلُ ما يحدث للعميل حين يُغلق الطريق.
+              {/* رأس النموذج */}
+              <div className="mb-6">
+                <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary-fixed text-on-secondary-fixed shadow-sm">
+                  {sent ? (
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                    </svg>
+                  )}
+                </div>
+                <h2 className="text-headline-md font-bold text-on-surface">
+                  {sent ? "أدخل رمز التحقق" : "الدخول أو إنشاء حساب"}
+                </h2>
+                <p className="mt-1 text-body-sm text-on-surface-variant">
+                  {sent ? (
+                    <>
+                      أرسلنا رمز تحقق سريع إلى الرقم{" "}
+                      <span className="money font-bold text-on-surface">{phone}</span>
+                    </>
+                  ) : (
+                    "أدخل رقم جوالك لتصلك رسالة نصية برمز التحقق لمرة واحدة."
+                  )}
+                </p>
+              </div>
 
-            واستمارةٌ ثانيةٌ لا زرٌّ في الأولى: زرّان في استمارةٍ واحدةٍ
-            يُرسلان إلى وجهةٍ واحدة، والفصلُ يُبقي الصفحةَ تعمل بلا جافاسكربت
-            كما هي.
+              {/* تنبيهات الخادم */}
+              <Notice message={flash?.message ?? ""} />
 
-            ولا عدّادَ ينزل: العدّادُ جافاسكربت، والخادمُ يحرس المهلةَ على أيّ
-            حال (`OtpResendTooSoon`) فيقول متى يُعاد. والمكتوبُ تحته يقول
-            المدّةَ سلفاً فلا يُضغط في فراغ.
-          */
-          <form action={sendCode} className={`${CARD} mt-4`}>
-            <input type="hidden" name="phone" value={phone} />
-            <button
-              type="submit"
-              className="h-12 w-full rounded-2xl border-2 border-outline-variant text-label-md transition-colors hover:bg-surface-low"
-            >
-              أعِد إرسال الرمز
-            </button>
-            <p className="mt-2 text-center text-caption text-on-surface-variant">
-              لم تصلك الرسالة؟ يمكن طلبُ رمزٍ جديد بعد دقيقة من إرسال السابق.
-            </p>
-          </form>
-        ) : (
-          <ul className="mt-3 space-y-1.5 px-1">
-            <Feature
-              title="مزايدة مغلقة: لا يرى أحد مبلغك"
-              icon="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c5 0 9 4.5 10 7a13 13 0 0 1-2.6 3.9M6.6 6.6A13 13 0 0 0 2 12c1 2.5 5 7 10 7a9.8 9.8 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"
-            />
-            <Feature
-              title="بلا كلمة مرور — رمز لمرة واحدة"
-              icon="M15 7a4 4 0 1 1-3.9 4.9L3 20v-3l2-2h2v-2h2l1.1-1.1A4 4 0 0 1 15 7zM16 9h.01"
-            />
-            <Feature
-              title="التأمين وديعة مستردة بطلبك"
-              icon="M12 3l8 4v5c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V7zM9 12l2 2 4-4"
-            />
-          </ul>
-        )}
+              {/* النموذج بحسب الخطوة */}
+              {sent ? (
+                /* ── الخطوة ٢: التحقق من رمز OTP ── */
+                <form action={verifyCode} className="space-y-5">
+                  <input type="hidden" name="phone" value={phone} />
 
-        <Link href="/" className="mt-3 block text-center text-label-md text-on-surface-variant hover:text-on-surface">
-          إغلاق والمتابعة كزائر
-        </Link>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-label-md font-semibold text-on-surface">الرمز المرسل</span>
+                    <input
+                      type="text"
+                      name="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      required
+                      placeholder="••••••"
+                      maxLength={6}
+                      className="money h-16 w-full rounded-2xl border-2 border-outline-variant bg-surface-lowest px-4 text-center text-hero tracking-[0.4em] text-on-surface shadow-xs transition-colors focus:border-secondary focus:outline-none focus:ring-4 focus:ring-secondary/15"
+                    />
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="flex h-14 w-full items-center justify-center rounded-2xl bg-secondary text-headline-sm font-bold text-on-secondary shadow-lg shadow-secondary/25 transition-all hover:opacity-95 active:scale-[0.99]"
+                  >
+                    تأكيد ودخول
+                  </button>
+
+                  <div className="flex items-center justify-center pt-1">
+                    <Link
+                      href="/sign-in"
+                      className="text-label-md font-semibold text-secondary hover:underline"
+                    >
+                      تغيير رقم الجوال
+                    </Link>
+                  </div>
+                </form>
+              ) : (
+                /* ── الخطوة ١: إدخال رقم الجوال ── */
+                <form action={sendCode} className="space-y-4">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-label-md font-semibold text-on-surface">رقم الجوال</span>
+                    <div className="flex h-14 items-stretch overflow-hidden rounded-2xl border-2 border-outline-variant bg-surface-lowest transition-colors focus-within:border-secondary focus-within:ring-4 focus-within:ring-secondary/15">
+                      <span className="flex items-center gap-2 border-e border-outline-variant/60 bg-surface-low px-3.5 text-headline-sm">
+                        {/* علم السعودية برسم SVG دقيق */}
+                        <svg viewBox="0 0 30 20" aria-hidden="true" className="h-5 w-7 shrink-0 rounded-[3px] shadow-xs">
+                          <rect width="30" height="20" fill="#006c35" />
+                          <path d="M8 8.5h14M9.5 7c1-.6 2 .6 3 0s2 .6 3 0 2 .6 3 0 2 .6 3 0" stroke="#fff" strokeWidth="1" fill="none" strokeLinecap="round" />
+                          <path d="M8 13h13l1.5-1" stroke="#fff" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+                        </svg>
+                        <span className="money text-label-md font-bold text-on-surface">+966</span>
+                      </span>
+                      <span className="sr-only">رقم الجوال</span>
+                      <input
+                        type="tel"
+                        name="phone"
+                        defaultValue={phone}
+                        inputMode="tel"
+                        autoComplete="tel"
+                        required
+                        placeholder="5X XXX XXXX"
+                        className="money min-w-0 flex-1 bg-transparent px-4 text-headline-sm tracking-wider placeholder:text-outline focus:outline-none"
+                      />
+                    </div>
+                  </label>
+
+                  <button
+                    type="submit"
+                    className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary text-headline-sm font-bold text-on-secondary shadow-lg shadow-secondary/25 transition-all hover:opacity-95 hover:shadow-xl active:scale-[0.99]"
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
+                      <path d="M8.5 12h.01M12 12h.01M15.5 12h.01" />
+                    </svg>
+                    إرسال رمز التحقق
+                  </button>
+
+                  <p className="text-center text-caption text-on-surface-variant">
+                    الحسابُ الجديد يُنشأ تلقائياً عند التحقق من الرمز، ثم تُكمل بياناتك.
+                  </p>
+                </form>
+              )}
+            </div>
+
+            {/* الجزء السفلي: إعادة الإرسال في الخطوة ٢ أو روابط المساعدة في الخطوة ١ */}
+            {sent ? (
+              <form action={sendCode} className="mt-6 rounded-2xl border border-outline-variant/60 bg-surface-low p-4">
+                <input type="hidden" name="phone" value={phone} />
+                <button
+                  type="submit"
+                  className="h-11 w-full rounded-xl border border-outline-variant bg-surface-lowest text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-low"
+                >
+                  أعِد إرسال الرمز
+                </button>
+                <p className="mt-2 text-center text-caption text-on-surface-variant">
+                  لم تصلك الرسالة؟ يمكن طلبُ رمزٍ جديد بعد دقيقة من إرسال السابق.
+                </p>
+              </form>
+            ) : (
+              <div className="mt-8 border-t border-outline-variant/40 pt-4 text-center">
+                <Link
+                  href="/"
+                  className="text-body-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface hover:underline"
+                >
+                  إغلاق والمتابعة كزائر في تصفح السيارات ←
+                </Link>
+              </div>
+            )}
+          </div>
+
+        </div>
       </div>
     </main>
-  );
-}
-
-function Feature({ title, icon }: { title: string; icon: string }) {
-  return (
-    <li className="flex items-center gap-2.5 text-body-sm text-on-surface-variant">
-      <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0 text-secondary" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d={icon} />
-      </svg>
-      {title}
-    </li>
   );
 }
