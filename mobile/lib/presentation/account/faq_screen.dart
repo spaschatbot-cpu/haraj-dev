@@ -100,6 +100,10 @@ class _FaqScreenState extends State<FaqScreen> {
 }
 
 /// بطاقةُ سؤال — يُفتح فيُظهر الجواب بصندوقٍ ذي استروكٍ ملوّن.
+///
+/// تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): كرتٌ زجاجيٌّ بحدٍّ فاتح
+/// على مقاس بقيّة التطبيق (٢٠ نصفَ قطر)، والأيقونةُ في مربّعٍ مدوَّر لا دائرة،
+/// والمفتوحُ يُعلَّم بحدٍّ أزرق ليُعرف أيُّ الأسئلة هو المقروء.
 class _FaqTile extends StatelessWidget {
   const _FaqTile({
     required this.faq,
@@ -120,18 +124,23 @@ class _FaqTile extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: palette.cardSurface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: expanded
+                ? palette.gold.withValues(alpha: 0.35)
+                : palette.navInactive.withValues(alpha: 0.7),
+          ),
           boxShadow: <BoxShadow>[
             BoxShadow(
               color: palette.ink.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: <Widget>[
@@ -141,7 +150,7 @@ class _FaqTile extends StatelessWidget {
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     children: <Widget>[
                       // الأيقونةُ يمينًا (بداية RTL).
@@ -150,8 +159,8 @@ class _FaqTile extends StatelessWidget {
                         height: 40,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: faq.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          color: faq.accent.withValues(alpha: 0.08),
                         ),
                         child: Icon(faq.icon, color: faq.accent, size: 20),
                       ),
@@ -161,7 +170,7 @@ class _FaqTile extends StatelessWidget {
                           faq.question,
                           style: TextStyle(
                             color: palette.ink,
-                            fontSize: 15,
+                            fontSize: 14.5,
                             fontWeight: FontWeight.w700,
                             height: 1.5,
                             fontFamily: HarajTheme.fontFamily,
@@ -174,7 +183,7 @@ class _FaqTile extends StatelessWidget {
                         duration: const Duration(milliseconds: 200),
                         child: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: palette.inkMuted,
+                          color: expanded ? palette.gold : palette.inkMuted,
                           size: 24,
                         ),
                       ),
@@ -221,11 +230,13 @@ class _Answer extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Container(
-            margin: const EdgeInsets.fromLTRB(0, 0, 14, 14),
+            margin: const EdgeInsets.fromLTRB(0, 0, 16, 16),
             padding: const EdgeInsets.all(14),
+            // صندوقُ الجواب زرقةٌ شفّافة لا `pageBackground` المصمت — المصمتُ
+            // داخل كرتٍ زجاجيّ يُقرأ رقعةً رماديّة.
             decoration: BoxDecoration(
-              color: palette.pageBackground,
-              borderRadius: BorderRadius.circular(12),
+              color: palette.gold.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,7 +247,7 @@ class _Answer extends StatelessWidget {
                     style: TextStyle(
                       color: palette.inkMuted,
                       fontSize: 13.5,
-                      height: 1.8,
+                      height: 1.6,
                       fontFamily: HarajTheme.fontFamily,
                     ),
                   ),
@@ -254,7 +265,7 @@ class _Answer extends StatelessWidget {
         // استروكٌ ملوّنٌ على الحافّة اليسرى للجواب.
         Container(
           width: 4,
-          margin: const EdgeInsets.only(bottom: 14),
+          margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: accent,
             borderRadius: BorderRadius.circular(4),

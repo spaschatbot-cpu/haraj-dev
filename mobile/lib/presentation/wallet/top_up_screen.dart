@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme.dart';
 import '../../domain/wallet/entities/top_up.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../common/failure_message.dart';
@@ -87,10 +88,27 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
     final controller = ref.read(topUpControllerProvider.notifier);
     final intent = state.intent;
 
+    final palette = HarajPalette.of(context);
+    final muted = TextStyle(
+      fontFamily: HarajTheme.fontFamily,
+      fontSize: 12.5,
+      color: palette.inkMuted,
+      height: 1.5,
+    );
+
+    // تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): شاشةٌ شفّافة فوق
+    // `GlassBackdrop`، والأزرارُ بالزرّ الأزرق الواحد، والنصوصُ السائبة كحليّةٌ
+    // باهتة بدل أسلوب Material الافتراضيّ.
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: HarajAppBar(title: l10n.topUpTitle),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.fromLTRB(
+          16,
+          16,
+          16,
+          16 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           if (intent == null)
             _StartCard(
@@ -101,22 +119,24 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
             _IntentCard(intent: intent, isBusy: state.isBusy),
           if (intent != null && !state.gatewayOpened) ...[
             const SizedBox(height: 16),
-            Text(l10n.topUpGatewayNotOpened),
-            const SizedBox(height: 8),
+            Text(l10n.topUpGatewayNotOpened, style: muted),
+            const SizedBox(height: 10),
             FilledButton(
               onPressed: controller.openGatewayAgain,
+              style: _primaryStyle(palette),
               child: Text(l10n.topUpOpenGateway),
             ),
           ],
           if (state.failure != null) ...[
             const SizedBox(height: 16),
             // رسالة الخادم كما جاءت، أو تصنيف الصمت حين لم يتكلّم.
-            Text(failureMessage(context, state.failure!)),
+            _FailureNote(text: failureMessage(context, state.failure!)),
           ],
           if (intent != null) ...[
             const SizedBox(height: 16),
             FilledButton(
               onPressed: state.isBusy ? null : controller.checkStatus,
+              style: _primaryStyle(palette),
               child: Text(l10n.topUpCheckStatus),
             ),
             // **والإلغاءُ للمعلّقة وحدَها.** نيّةٌ نجحت أو أُلغيت لا تُلغى
@@ -126,15 +146,145 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen>
               const SizedBox(height: 8),
               TextButton(
                 onPressed: state.isBusy ? null : () => _cancel(context, ref),
+                style: TextButton.styleFrom(
+                  foregroundColor: palette.inkMuted,
+                  minimumSize: const Size.fromHeight(44),
+                  textStyle: const TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
                 child: Text(l10n.topUpCancel),
               ),
             ],
             const SizedBox(height: 8),
             Text(
               l10n.topUpStatusFromServer,
-              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+              style: muted.copyWith(fontSize: 11.5),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// الزرُّ الأزرقُ الممتلئ — كزرّ الدخول، تصميمُ الزجاج (٣ أكتوبر ٢٠٢٦).
+ButtonStyle _primaryStyle(HarajPalette palette) => FilledButton.styleFrom(
+  backgroundColor: palette.gold,
+  foregroundColor: Colors.white,
+  disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
+  disabledForegroundColor: Colors.white,
+  minimumSize: const Size.fromHeight(50),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  textStyle: const TextStyle(
+    fontFamily: HarajTheme.fontFamily,
+    fontWeight: FontWeight.w700,
+    fontSize: 15,
+  ),
+);
+
+/// الكرتُ الزجاجيّ — أبيضُ شفّافٌ بحدٍّ رفيعٍ وظلٍّ ناعم.
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: palette.cardSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+/// مربّعُ الأيقونة الأزرق مع عنوان الكرت.
+class _CardTitle extends StatelessWidget {
+  const _CardTitle({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Row(
+      children: <Widget>[
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: palette.gold.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: palette.gold),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// سطرُ الفشل — لوحٌ أحمرُ شفيف لا نصٌّ سائب يضيع على الأرضيّة.
+class _FailureNote extends StatelessWidget {
+  const _FailureNote({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: error.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: error.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(Icons.error_outline_rounded, size: 18, color: error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: error,
+                height: 1.5,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -154,17 +304,34 @@ class _StartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(l10n.topUpAmountFromServer),
-        const SizedBox(height: 16),
-        if (isBusy)
-          const Center(child: CircularProgressIndicator())
-        else
-          FilledButton(onPressed: onStart, child: Text(l10n.topUpStart)),
-      ],
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _CardTitle(icon: Icons.credit_card_rounded, text: l10n.topUpTitle),
+          const SizedBox(height: 12),
+          Text(
+            l10n.topUpAmountFromServer,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 13,
+              color: palette.inkMuted,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 16),
+          if (isBusy)
+            const Center(child: CircularProgressIndicator())
+          else
+            FilledButton(
+              onPressed: onStart,
+              style: _primaryStyle(palette),
+              child: Text(l10n.topUpStart),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -179,33 +346,45 @@ class _IntentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final palette = HarajPalette.of(context);
+    final small = TextStyle(
+      fontFamily: HarajTheme.fontFamily,
+      fontSize: 12.5,
+      color: palette.inkMuted,
+      height: 1.5,
+    );
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // وصف الحالة من الخادم — لا خريطة حالات في التطبيق (المادة ٤-٥).
-            Text(intent.statusLabel, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            MoneyText(intent.money, style: theme.textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              l10n.movementReference(intent.reference),
-              style: theme.textTheme.bodySmall,
+    return _GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // وصف الحالة من الخادم — لا خريطة حالات في التطبيق (المادة ٤-٥).
+          _CardTitle(
+            icon: Icons.receipt_long_outlined,
+            text: intent.statusLabel,
+          ),
+          const SizedBox(height: 14),
+          MoneyText(
+            intent.money,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              color: palette.goldDeep,
+              height: 1.15,
             ),
-            if (intent.isPending) ...[
-              const SizedBox(height: 12),
-              Text(l10n.topUpWaiting),
-            ],
-            if (isBusy) ...[
-              const SizedBox(height: 12),
-              const Center(child: CircularProgressIndicator()),
-            ],
+          ),
+          const SizedBox(height: 8),
+          Text(l10n.movementReference(intent.reference), style: small),
+          if (intent.isPending) ...[
+            const SizedBox(height: 12),
+            Text(l10n.topUpWaiting, style: small.copyWith(color: palette.ink)),
           ],
-        ),
+          if (isBusy) ...[
+            const SizedBox(height: 12),
+            const Center(child: CircularProgressIndicator()),
+          ],
+        ],
       ),
     );
   }

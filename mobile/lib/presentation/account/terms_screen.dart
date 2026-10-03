@@ -399,6 +399,22 @@ class _TermsScreenState extends State<TermsScreen> {
   }
 }
 
+/// تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): الرأسُ كرتٌ زجاجيٌّ
+/// كبقيّة الكروت لا لوحٌ كحليٌّ — اللوحُ الداكن فوق التدرّج الفاتح كان يُقرأ
+/// بقيّةً من الثيم القديم ويقطع الصفحة.
+BoxDecoration _glassCard(HarajPalette palette) => BoxDecoration(
+  color: palette.cardSurface,
+  borderRadius: BorderRadius.circular(20),
+  border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+  boxShadow: <BoxShadow>[
+    BoxShadow(
+      color: palette.ink.withValues(alpha: 0.05),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ],
+);
+
 class _Header extends StatelessWidget {
   const _Header({required this.palette});
 
@@ -406,24 +422,21 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topRight,
-        end: Alignment.bottomLeft,
-        colors: <Color>[palette.heroTop, palette.heroBottom],
-      ),
-      borderRadius: BorderRadius.circular(18),
-      boxShadow: <BoxShadow>[
-        BoxShadow(
-          color: palette.ink.withValues(alpha: 0.12),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
-        ),
-      ],
-    ),
+    padding: const EdgeInsets.all(16),
+    decoration: _glassCard(palette),
     child: Row(
       children: <Widget>[
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: palette.gold.withValues(alpha: 0.08),
+          ),
+          child: Icon(Icons.gavel_rounded, color: palette.gold, size: 22),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,26 +447,14 @@ class _Header extends StatelessWidget {
                 'الأحكام العامة لاستخدام منصة حراج واحد للخدمات اللوجستية '
                 '— للمزادات الإلكترونية.',
                 style: TextStyle(
-                  color: palette.navInactive,
-                  fontSize: 13,
+                  color: palette.inkMuted,
+                  fontSize: 13.5,
                   height: 1.6,
                   fontFamily: HarajTheme.fontFamily,
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(width: 14),
-        Container(
-          width: 52,
-          height: 52,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: palette.goldOnDark.withValues(alpha: 0.14),
-            border: Border.all(color: palette.gold, width: 1.4),
-          ),
-          child: Icon(Icons.gavel_rounded, color: palette.goldOnDark, size: 26),
         ),
       ],
     ),
@@ -481,20 +482,10 @@ class _ArticleTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
-        decoration: BoxDecoration(
-          color: palette.cardSurface,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: palette.ink.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
+        decoration: _glassCard(palette),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: <Widget>[
@@ -504,7 +495,7 @@ class _ArticleTile extends StatelessWidget {
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   child: Row(
                     children: <Widget>[
                       // رقمُ المادة في شارةٍ ذهبيّة (يمين RTL).
@@ -538,7 +529,7 @@ class _ArticleTile extends StatelessWidget {
                           article.title,
                           style: TextStyle(
                             color: palette.ink,
-                            fontSize: 14.5,
+                            fontSize: 15,
                             fontWeight: FontWeight.w700,
                             height: 1.5,
                             fontFamily: HarajTheme.fontFamily,
@@ -565,11 +556,14 @@ class _ArticleTile extends StatelessWidget {
                     ? CrossFadeState.showFirst
                     : CrossFadeState.showSecond,
                 firstChild: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      const Divider(height: 1),
+                      Divider(
+                        height: 1,
+                        color: palette.navInactive.withValues(alpha: 0.7),
+                      ),
                       const SizedBox(height: 10),
                       for (final point in article.points)
                         Padding(
@@ -592,8 +586,8 @@ class _ArticleTile extends StatelessWidget {
                                   point,
                                   style: TextStyle(
                                     color: palette.inkMuted,
-                                    fontSize: 13,
-                                    height: 1.8,
+                                    fontSize: 13.5,
+                                    height: 1.7,
                                     fontFamily: HarajTheme.fontFamily,
                                   ),
                                 ),

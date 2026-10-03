@@ -54,12 +54,22 @@ class BankTransferSheet extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final account = ref.watch(bankAccountProvider);
 
+    // تصميمُ الزجاج الأبيض (٣ أكتوبر ٢٠٢٦) — **وأبيضُ أكثفُ من الكروت**: الورقةُ
+    // فوق ستارةٍ معتمة، و`cardSurface` الشفّافُ هناك يصير رماديّاً تضعف عليه
+    // أرقامُ الآيبان. فيُمزج فوق الأبيض: مصمتٌ في الفاتح، وكما هو في الداكن.
     return Container(
       decoration: BoxDecoration(
-        color: palette.cardSurface,
+        color: Color.alphaBlend(palette.cardSurface, Colors.white),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
       child: SafeArea(
         top: false,
         child: Column(
@@ -79,26 +89,34 @@ class BankTransferSheet extends ConsumerWidget {
             ),
             Row(
               children: <Widget>[
-                Icon(
-                  Icons.account_balance_outlined,
-                  size: 20,
-                  color: palette.goldDeep,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: palette.gold.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.account_balance_outlined,
+                    size: 19,
+                    color: palette.gold,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     l10n.bankTransferTitle,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,
                       fontSize: 16,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: palette.ink,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             switch (account) {
               AsyncData(value: final BankAccount row) when row.configured =>
                 _Details(row: row, reference: reference, palette: palette),
@@ -142,37 +160,58 @@ class _Details extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final purpose = reference;
 
+    // الصفوفُ في لوحٍ واحدٍ أزرقَ شفيف بحدٍّ فاتح — تصميمُ الزجاج (٣ أكتوبر
+    // ٢٠٢٦): بياناتُ الحساب كتلةٌ تُقرأ معاً، والملاحظةُ تحتها خارجها.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        _Row(
-          label: l10n.bankTransferBeneficiary,
-          value: row.beneficiary,
-          palette: palette,
-        ),
-        _Row(label: l10n.bankTransferBank, value: row.bank, palette: palette),
-        _Row(
-          label: l10n.bankTransferIban,
-          value: row.iban,
-          palette: palette,
-          latin: true,
-          grouped: true,
-        ),
-        if (row.account.isNotEmpty)
-          _Row(
-            label: l10n.bankTransferAccount,
-            value: row.account,
-            palette: palette,
-            latin: true,
+        Container(
+          padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 4, 6),
+          decoration: BoxDecoration(
+            color: palette.gold.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: palette.navInactive.withValues(alpha: 0.7),
+            ),
           ),
-        if (purpose != null)
-          _Row(
-            label: l10n.bankTransferPurpose,
-            value: purpose,
-            palette: palette,
-            latin: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _Row(
+                label: l10n.bankTransferBeneficiary,
+                value: row.beneficiary,
+                palette: palette,
+              ),
+              _Row(
+                label: l10n.bankTransferBank,
+                value: row.bank,
+                palette: palette,
+              ),
+              _Row(
+                label: l10n.bankTransferIban,
+                value: row.iban,
+                palette: palette,
+                latin: true,
+                grouped: true,
+              ),
+              if (row.account.isNotEmpty)
+                _Row(
+                  label: l10n.bankTransferAccount,
+                  value: row.account,
+                  palette: palette,
+                  latin: true,
+                ),
+              if (purpose != null)
+                _Row(
+                  label: l10n.bankTransferPurpose,
+                  value: purpose,
+                  palette: palette,
+                  latin: true,
+                ),
+            ],
           ),
+        ),
         const SizedBox(height: 12),
         _Note(
           text: purpose == null
@@ -261,7 +300,7 @@ class _Row extends StatelessWidget {
           IconButton(
             onPressed: () => _copy(context),
             icon: const Icon(Icons.copy_rounded, size: 17),
-            color: palette.goldDeep,
+            color: palette.gold,
             tooltip: l10n.bankTransferCopy,
             visualDensity: VisualDensity.compact,
           ),
@@ -279,15 +318,17 @@ class _Note extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(11),
+    // أزرقُ شفيف لا كحليّ (`pillTop`) — سقط الكحليُّ في تصميم الزجاج.
+    padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: palette.pillTop.withValues(alpha: 0.10),
-      borderRadius: BorderRadius.circular(12),
+      color: palette.gold.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: palette.gold.withValues(alpha: 0.18)),
     ),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Icon(Icons.info_outline_rounded, size: 16, color: palette.goldDeep),
+        Icon(Icons.info_outline_rounded, size: 17, color: palette.gold),
         const SizedBox(width: 8),
         Expanded(
           child: Text(

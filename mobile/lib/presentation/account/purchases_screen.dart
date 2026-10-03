@@ -10,6 +10,7 @@ import '../../domain/common/snapshot.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../activity/activity_providers.dart';
 import '../common/failure_view.dart';
+import '../common/glass.dart';
 import '../common/haraj_app_bar.dart';
 import '../common/riyal_text.dart';
 import '../wallet/bank_transfer_sheet.dart';
@@ -42,6 +43,9 @@ class _PurchasesScreenState extends ConsumerState<PurchasesScreen> {
     final state = ref.watch(myPurchasesProvider);
 
     return Scaffold(
+      // شفّافةٌ فوق `GlassBackdrop` — تصميمُ الزجاج الأبيض بطلب المالك
+      // (٣ أكتوبر ٢٠٢٦).
+      backgroundColor: Colors.transparent,
       appBar: HarajAppBar(title: l10n.accountMenuPurchases),
       body: switch (state) {
         AsyncData(value: final Snapshot<List<Purchase>> snapshot) => _Body(
@@ -154,10 +158,17 @@ class _EmptyState extends StatelessWidget {
             color: palette.cardSurface,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: palette.ink.withValues(alpha: 0.10),
-              // حدٌّ متقطّعٌ يُحاكى بحدٍّ رقيق: التقطيعُ يحتاج رسّاماً، والحدُّ
-              // الرقيقُ يعطي إحساسَ «مكانٌ فارغٌ ينتظر» نفسَه بلا تكلفة.
+              // حدُّ الزجاج الأبيض المزرقّ (٣ أكتوبر ٢٠٢٦) لا حدٌّ كحليٌّ
+              // شفّاف: الكحليُّ على أرضيّةٍ متدرّجة يُقرأ رماديّاً متّسخاً.
+              color: palette.navInactive.withValues(alpha: 0.7),
             ),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: palette.ink.withValues(alpha: 0.05),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -231,25 +242,37 @@ class _PurchaseCard extends StatelessWidget {
     final palette = HarajPalette.of(context);
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
+      // كرتُ الزجاج الأبيض (٣ أكتوبر ٢٠٢٦): حدٌّ مزرقٌّ رقيقٌ دائماً — كان
+      // شفّافاً فيذوب الكرتُ في الأرضيّة المتدرّجة — ويصير أزرقَ حين يُختار،
+      // ومعه وهجٌ خفيف يقول «مختار» قبل أن تُقرأ العلامة.
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: palette.cardSurface,
-          borderRadius: BorderRadius.circular(16),
+          color: selected
+              ? Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.05),
+                  palette.cardSurface,
+                )
+              : palette.cardSurface,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: selected ? palette.gold : Colors.transparent,
-            width: 1.5,
+            color: selected
+                ? palette.gold
+                : palette.navInactive.withValues(alpha: 0.7),
+            width: selected ? 1.5 : 1,
           ),
           boxShadow: <BoxShadow>[
             BoxShadow(
-              color: palette.ink.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 2),
+              color: selected
+                  ? palette.gold.withValues(alpha: 0.14)
+                  : palette.ink.withValues(alpha: 0.05),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
@@ -305,7 +328,12 @@ class _PurchaseCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  _StatePill(label: purchase.stateLabel, palette: palette),
+                  const SizedBox(width: 10),
+                  _StatePill(
+                    label: purchase.stateLabel,
+                    state: purchase.state,
+                    palette: palette,
+                  ),
                 ],
               ),
             ),
@@ -316,29 +344,54 @@ class _PurchaseCard extends StatelessWidget {
   }
 }
 
+/// شارةُ الحال — **النصُّ من الخادم كما هو، واللونُ وحده من الحال**: أخضرُ لما
+/// انتهى بخير (دُفع، سُلِّم)، وأزرقُ لما ما زال جارياً (رسا، فُوتر)، وباهتٌ
+/// لما أُلغي. ألوانُ شارات كرت المركبة نفسُها، بتصميم الزجاج الأبيض
+/// (٣ أكتوبر ٢٠٢٦) — كانت كلُّ الحالات بلونٍ واحد فلا يُفرَّق المدفوعُ من
+/// المنتظِر إلا بقراءة الكلمة.
 class _StatePill extends StatelessWidget {
-  const _StatePill({required this.label, required this.palette});
+  const _StatePill({
+    required this.label,
+    required this.state,
+    required this.palette,
+  });
 
   final String label;
+  final PurchaseState state;
   final HarajPalette palette;
 
+  static const Color _okInk = Color(0xFF047857);
+  static const Color _okSurface = Color(0xFFECFDF5);
+
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-    decoration: BoxDecoration(
-      color: palette.gold.withValues(alpha: 0.10),
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(
-        color: palette.goldDeep,
-        fontSize: 11.5,
-        fontWeight: FontWeight.w700,
-        fontFamily: HarajTheme.fontFamily,
+  Widget build(BuildContext context) {
+    final (ink, surface) = switch (state) {
+      PurchaseState.paid || PurchaseState.handedOver => (_okInk, _okSurface),
+      PurchaseState.cancelled => (palette.inkMuted, palette.pageBackground),
+      PurchaseState.awarded ||
+      PurchaseState.invoiced ||
+      PurchaseState.unknown => (
+        palette.gold,
+        palette.gold.withValues(alpha: 0.08),
       ),
-    ),
-  );
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: ink,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          fontFamily: HarajTheme.fontFamily,
+        ),
+      ),
+    );
+  }
 }
 
 /// شريطُ الدفع السفليّ — عددُ المختار وإجماليُّه، وزرّا الدفع والمسح.
@@ -413,84 +466,94 @@ class _PayBarState extends ConsumerState<_PayBar> {
       (sum, p) => sum + (double.tryParse(p.awardedPrice.amount) ?? 0),
     );
 
+    // **لوحٌ زجاجيٌّ مصنفرٌ عائمٌ مدوَّر** — تصميمُ الزجاج الأبيض بطلب المالك
+    // (٣ أكتوبر ٢٠٢٦)، على هيئة الشريط السفليّ العائم تحته. `GlassPanel` هنا
+    // جائز: الشريطُ ثابتٌ لا يُمرَّر، والقائمةُ تمرّ خلفه فيطمسها.
+    //
+    // **بلا حاشية `MediaQuery.bottom`**: الصفحة داخل قشرةٍ تدفع محتواها من
+    // فوق الشريط السفليّ أصلاً، فإضافتُها تحسب ارتفاعَه مرّتين وتترك فجوةً
+    // بين هذا الشريط والشريط السفليّ. حُذفت بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+    // والهامشُ ٨ تحته فراغُ عومٍ لا حاشيةٌ — ومعه يبقى دون `barSpace`.
+    const radius = BorderRadius.all(Radius.circular(22));
     return Container(
-      // **بلا حاشية `MediaQuery.bottom`**: الصفحة داخل قشرةٍ تدفع محتواها من
-      // فوق الشريط السفليّ أصلاً، فإضافتُها تحسب ارتفاعَه مرّتين وتترك فجوةً
-      // بين هذا الشريط والشريط السفليّ. حُذفت بطلب المالك (١٣ سبتمبر ٢٠٢٦).
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
       decoration: BoxDecoration(
-        color: palette.cardSurface,
+        borderRadius: radius,
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: palette.ink.withValues(alpha: 0.10),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Row(
+      child: GlassPanel(
+        borderRadius: radius,
+        tint: 0.72,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Expanded(
-                child: _Stat(
-                  label: l10n.purchasesSelectedCount,
-                  value: '${selected.length}',
-                  palette: palette,
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 32,
-                color: palette.ink.withValues(alpha: 0.10),
-              ),
-              Expanded(
-                child: _Stat(
-                  label: l10n.purchasesTotalDue,
-                  value: '${total.toStringAsFixed(2)} $currency',
-                  palette: palette,
-                  highlight: true,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: <Widget>[
-              // زرُّ الدفع أوسعُ (٣) من زرّ المسح (٢) ليتّسع اسمُه كاملاً بلا
-              // قصّ، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
-              Expanded(
-                flex: 3,
-                child: _DarkButton(
-                  label: l10n.purchasesTransferAll,
-                  icon: Icons.account_balance_outlined,
-                  palette: palette,
-                  onTap: selected.isEmpty ? null : () => _transfer(chosen),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: OutlinedButton.icon(
-                  onPressed: selected.isEmpty ? null : onClear,
-                  icon: const Icon(Icons.cancel_outlined, size: 18),
-                  label: Text(l10n.purchasesClear),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: palette.goldDeep,
-                    side: BorderSide(
-                      color: palette.gold.withValues(alpha: 0.6),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _Stat(
+                      label: l10n.purchasesSelectedCount,
+                      value: '${selected.length}',
+                      palette: palette,
                     ),
                   ),
-                ),
+                  Container(width: 1, height: 32, color: palette.navInactive),
+                  Expanded(
+                    child: _Stat(
+                      label: l10n.purchasesTotalDue,
+                      value: '${total.toStringAsFixed(2)} $currency',
+                      palette: palette,
+                      highlight: true,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: <Widget>[
+                  // زرُّ الدفع أوسعُ (٣) من زرّ المسح (٢) ليتّسع اسمُه كاملاً بلا
+                  // قصّ، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+                  Expanded(
+                    flex: 3,
+                    child: _DarkButton(
+                      label: l10n.purchasesTransferAll,
+                      icon: Icons.account_balance_outlined,
+                      palette: palette,
+                      onTap: selected.isEmpty ? null : () => _transfer(chosen),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      onPressed: selected.isEmpty ? null : onClear,
+                      icon: const Icon(Icons.cancel_outlined, size: 18),
+                      label: Text(l10n.purchasesClear),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: palette.gold,
+                        side: BorderSide(
+                          color: palette.gold.withValues(alpha: 0.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -526,7 +589,7 @@ class _Stat extends StatelessWidget {
         child: Text(
           value,
           style: TextStyle(
-            color: highlight ? palette.goldDeep : palette.ink,
+            color: highlight ? palette.gold : palette.ink,
             fontSize: 16,
             fontWeight: FontWeight.w700,
             fontFamily: HarajTheme.fontFamily,
@@ -537,7 +600,8 @@ class _Stat extends StatelessWidget {
   );
 }
 
-/// زرٌّ كحليٌّ ممتلئ — نظيرُ زرّ «تصفح المزادات» و«دفع».
+/// زرٌّ ممتلئٌ بأزرق العلامة — نظيرُ زرّ «تصفح المزادات» و«دفع». كان كحليّاً
+/// حتى الزجاج الأبيض (٣ أكتوبر ٢٠٢٦)، والاسمُ باقٍ لأنه خاصٌّ بهذا الملفّ.
 class _DarkButton extends StatelessWidget {
   const _DarkButton({
     required this.label,
@@ -568,14 +632,34 @@ class _DarkButton extends StatelessWidget {
             // يبدو مفعَّلاً تماماً، ولا يعرف الضاغطُ لماذا لا يستجيب. وكلّفني
             // ذلك ثلاثَ محاولاتٍ وأنا أظنّ الموضعَ خطأً والعطلُ في مكانٍ آخر
             // (١٦ سبتمبر ٢٠٢٦).
+            //
+            // **أزرقُ العلامة لا التدرّجُ الكحليّ** — تصميمُ الزجاج الأبيض بطلب
+            // المالك (٣ أكتوبر ٢٠٢٦)، كزرّ المزايدة في صفحة التفاصيل: لوحٌ
+            // كحليٌّ ثقيل فوق زجاجٍ أبيض يُقرأ بقيّةً من الثيم القديم. والتدرّجُ
+            // ما زال يُرفع عند التعطيل للسبب نفسه أعلاه.
             gradient: enabled
                 ? LinearGradient(
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
-                    colors: <Color>[palette.heroTop, palette.heroBottom],
+                    colors: <Color>[
+                      palette.gold,
+                      Color.alphaBlend(
+                        palette.ink.withValues(alpha: 0.12),
+                        palette.gold,
+                      ),
+                    ],
                   )
                 : null,
-            color: enabled ? null : palette.inkMuted,
+            color: enabled ? null : palette.inkMuted.withValues(alpha: 0.45),
+            boxShadow: enabled
+                ? <BoxShadow>[
+                    BoxShadow(
+                      color: palette.gold.withValues(alpha: 0.28),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

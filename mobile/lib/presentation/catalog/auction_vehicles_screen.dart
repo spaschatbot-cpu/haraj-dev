@@ -136,14 +136,19 @@ class _AuctionVehiclesScreenState extends ConsumerState<AuctionVehiclesScreen> {
     final l10n = AppLocalizations.of(context);
 
     return Scaffold(
+      // شفّافةٌ فوق `GlassBackdrop` — تصميمُ الزجاج الأبيض بطلب المالك
+      // (٣ أكتوبر ٢٠٢٦).
+      backgroundColor: Colors.transparent,
       appBar: HarajAppBar(title: l10n.vehiclesTitle),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           // البحث فوق الحالة لا داخلها: عميلٌ رشّح فأخطأ الخادم يجب أن يبقى
           // قادراً على إزالة الترشيح، لا أن يواجه شاشة خطأ بلا مخرج.
+          // حافّةُ ١٦ لا ٢٠: حافّةُ الشاشات في الزجاج الأبيض (٣ أكتوبر ٢٠٢٦)،
+          // وأقربُ إلى خطّ الكروت تحته — حقلٌ أضيقُ منها يُقرأ منفصلاً عنها.
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
             child: VehicleSearchField(
               search: _query.search,
               onSubmitted: (text) => _apply(

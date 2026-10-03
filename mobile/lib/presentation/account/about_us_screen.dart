@@ -11,6 +11,11 @@ import 'account_page_scaffold.dart';
 /// والتطبيقُ عربيٌّ فعليّاً (الإنجليزيّة «ليست لغة منتَج» — `l10n.yaml`). نقلُها
 /// إلى الترجمة يعني نحو أربعين مفتاحاً بترجمةٍ إنجليزيّةٍ لا تُعرَض؛ فإن صارت
 /// الإنجليزيّةُ لغةَ منتَجٍ يوماً نُقلت كتلةً واحدة.
+///
+/// **تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦)**: كلُّ كتلةٍ كرتٌ
+/// زجاجيٌّ واحد (`cardSurface` الشفّاف بحدٍّ فاتح)، وسقطت الأرضيّاتُ الملوّنة
+/// والاستروكاتُ الجانبيّة — فوق التدرّج تُقرأ ألوانُها بقعاً لا زجاجاً. وبقيت
+/// ألوانُ اللهجة في مربّعات الأيقونات وحدها، فتبقى لكلّ قيمةٍ هويّتُها.
 class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
 
@@ -34,7 +39,7 @@ class AboutUsScreen extends StatelessWidget {
           16,
           16,
           16,
-          16 + MediaQuery.paddingOf(context).bottom,
+          24 + MediaQuery.paddingOf(context).bottom,
         ),
         children: <Widget>[
           const _IntroBox(
@@ -45,30 +50,38 @@ class AboutUsScreen extends StatelessWidget {
                 'اللوجستية في المملكة.',
             icon: Icons.location_on,
           ),
-          const SizedBox(height: 20),
-          Text(
-            'شركة حراج واحد للخدمات اللوجستية',
-            style: TextStyle(
-              color: palette.gold,
-              fontSize: 19,
-              fontWeight: FontWeight.w800,
-              height: 1.5,
-              fontFamily: HarajTheme.fontFamily,
+          const SizedBox(height: 12),
+          _GlassCard(
+            palette: palette,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  'شركة حراج واحد للخدمات اللوجستية',
+                  style: TextStyle(
+                    color: palette.gold,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    height: 1.5,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'شركة حراج واحد للخدمات اللوجستية هي شركة سعودية تتيح خدمات '
+                  'البيع والشراء عبر مزادات إلكترونية موثوقة، وتقدّم حلولاً '
+                  'لوجستية متكاملة تخدم البائع والمشتري.',
+                  style: TextStyle(
+                    color: palette.inkMuted,
+                    fontSize: 13.5,
+                    height: 1.6,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            'شركة حراج واحد للخدمات اللوجستية هي شركة سعودية تتيح خدمات البيع '
-            'والشراء عبر مزادات إلكترونية موثوقة، وتقدّم حلولاً لوجستية متكاملة '
-            'تخدم البائع والمشتري.',
-            style: TextStyle(
-              color: palette.inkMuted,
-              fontSize: 14,
-              height: 1.8,
-              fontFamily: HarajTheme.fontFamily,
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _InfoTile(
             label: 'موقعنا',
             value: 'الرياض — طريق الحائر',
@@ -107,7 +120,7 @@ class AboutUsScreen extends StatelessWidget {
             icon: Icons.track_changes_rounded,
             palette: palette,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _StrokeCard(
             title: 'منصة إلكترونية متطورة',
             body:
@@ -144,43 +157,54 @@ class AboutUsScreen extends StatelessWidget {
             accent: _blue,
             palette: palette,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
           _SectionHeader(
             title: 'قيمنا',
             icon: Icons.diamond_outlined,
             palette: palette,
           ),
-          const SizedBox(height: 14),
-          _SoftCard(
-            text: 'الشفافية: في التعامل مع المستخدمين',
-            icon: Icons.verified_user_outlined,
-            accent: _amber,
+          const SizedBox(height: 12),
+          // القيمُ الخمس في كرتٍ واحدٍ بفواصل لا خمسِ بطاقاتٍ ملوّنة — قائمةٌ
+          // قصيرةُ الأسطر تُقرأ قائمةً، والكروتُ المتراكبة تُقرأ ضجيجاً.
+          _GlassCard(
             palette: palette,
-          ),
-          _SoftCard(
-            text: 'الموثوقية: تقديم الخدمة دون تلاعب',
-            icon: Icons.groups_2_outlined,
-            accent: _blue,
-            palette: palette,
-          ),
-          _SoftCard(
-            text: 'الابتكار: تطوير تقني مستمر',
-            icon: Icons.bolt_rounded,
-            accent: _pink,
-            palette: palette,
-          ),
-          _SoftCard(
-            text: 'خدمة العملاء: خدمة تليق بعملائنا',
-            icon: Icons.favorite_border_rounded,
-            accent: _green,
-            palette: palette,
-          ),
-          _SoftCard(
-            text: 'الالتزام: الالتزام بأنظمة المملكة',
-            icon: Icons.emoji_events_outlined,
-            accent: _purple,
-            palette: palette,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: _Rows(
+              palette: palette,
+              children: <Widget>[
+                _SoftCard(
+                  text: 'الشفافية: في التعامل مع المستخدمين',
+                  icon: Icons.verified_user_outlined,
+                  accent: _amber,
+                  palette: palette,
+                ),
+                _SoftCard(
+                  text: 'الموثوقية: تقديم الخدمة دون تلاعب',
+                  icon: Icons.groups_2_outlined,
+                  accent: _blue,
+                  palette: palette,
+                ),
+                _SoftCard(
+                  text: 'الابتكار: تطوير تقني مستمر',
+                  icon: Icons.bolt_rounded,
+                  accent: _pink,
+                  palette: palette,
+                ),
+                _SoftCard(
+                  text: 'خدمة العملاء: خدمة تليق بعملائنا',
+                  icon: Icons.favorite_border_rounded,
+                  accent: _green,
+                  palette: palette,
+                ),
+                _SoftCard(
+                  text: 'الالتزام: الالتزام بأنظمة المملكة',
+                  icon: Icons.emoji_events_outlined,
+                  accent: _purple,
+                  palette: palette,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -189,25 +213,110 @@ class AboutUsScreen extends StatelessWidget {
             icon: Icons.auto_awesome_rounded,
             palette: palette,
           ),
-          const SizedBox(height: 14),
-          for (final why in const <String>[
-            'لا رسوم خفية',
-            'خدمات لوجستية متكاملة',
-            'سرعة وكفاءة في إنهاء الإجراءات',
-            'سهولة الاستخدام: تطبيق ذكي وسهل',
-            'انتشار واسع في جميع أنحاء المملكة',
-            'أنظمة مراقبة لحماية المستخدمين',
-            'دعم فني عبر قنوات متعددة',
-            'خدمات إعلانية مميزة ومرفوعة',
-          ])
-            _CheckCard(text: why, palette: palette),
+          const SizedBox(height: 12),
+          _GlassCard(
+            palette: palette,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: _Rows(
+              palette: palette,
+              children: <Widget>[
+                for (final why in const <String>[
+                  'لا رسوم خفية',
+                  'خدمات لوجستية متكاملة',
+                  'سرعة وكفاءة في إنهاء الإجراءات',
+                  'سهولة الاستخدام: تطبيق ذكي وسهل',
+                  'انتشار واسع في جميع أنحاء المملكة',
+                  'أنظمة مراقبة لحماية المستخدمين',
+                  'دعم فني عبر قنوات متعددة',
+                  'خدمات إعلانية مميزة ومرفوعة',
+                ])
+                  _CheckCard(text: why, palette: palette),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// صندوقُ التعريف العلويّ — أزرقُ فاتحٌ هادئ، أيقونةٌ وعنوانٌ وسطران.
+/// الكرتُ الزجاجيّ — الوعاءُ الواحد لكلّ كتلةٍ في الصفحة، على مقاس كروت
+/// تفاصيل المركبة وشاشة الدخول (٢٠ نصفَ قطر، حدٌّ فاتح، ظلٌّ ناعم).
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({
+    required this.palette,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  final HarajPalette palette;
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: padding,
+    decoration: BoxDecoration(
+      color: palette.cardSurface,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+      boxShadow: <BoxShadow>[
+        BoxShadow(
+          color: palette.ink.withValues(alpha: 0.05),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: child,
+  );
+}
+
+/// أسطرٌ داخل كرتٍ واحد، بينها فاصلٌ شعريّ.
+class _Rows extends StatelessWidget {
+  const _Rows({required this.palette, required this.children});
+
+  final HarajPalette palette;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: <Widget>[
+      for (var i = 0; i < children.length; i++) ...<Widget>[
+        if (i > 0)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: palette.navInactive.withValues(alpha: 0.6),
+          ),
+        children[i],
+      ],
+    ],
+  );
+}
+
+/// مربّعُ الأيقونة — زرقةٌ شفّافة بزوايا ١٠، لغةُ أيقونات الزجاج كلِّها.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.color, this.size = 40});
+
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(10),
+      color: color.withValues(alpha: 0.08),
+    ),
+    child: Icon(icon, color: color, size: size * 0.52),
+  );
+}
+
+/// صندوقُ التعريف العلويّ — كرتٌ زجاجيٌّ، الشرحُ وبجانبه الدبّوس.
 class _IntroBox extends StatelessWidget {
   const _IntroBox({required this.body, required this.icon});
 
@@ -217,20 +326,17 @@ class _IntroBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: palette.heroGlow.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return _GlassCard(
+      palette: palette,
       child: Row(
         children: <Widget>[
           Expanded(
             child: Text(
               body,
               style: TextStyle(
-                color: palette.inkMuted,
-                fontSize: 13,
+                color: palette.ink,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 height: 1.6,
                 fontFamily: HarajTheme.fontFamily,
               ),
@@ -238,14 +344,14 @@ class _IntroBox extends StatelessWidget {
           ),
           const SizedBox(width: 14),
           Container(
-            width: 52,
-            height: 52,
+            width: 48,
+            height: 48,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: palette.cardSurface,
+              borderRadius: BorderRadius.circular(12),
+              color: palette.gold.withValues(alpha: 0.08),
             ),
-            child: const Text('📍', style: TextStyle(fontSize: 24)),
+            child: const Text('📍', style: TextStyle(fontSize: 22)),
           ),
         ],
       ),
@@ -253,7 +359,7 @@ class _IntroBox extends StatelessWidget {
   }
 }
 
-/// صفٌّ معلومةٍ في صندوقٍ خفيف — أيقونةٌ وتسميةٌ فوق قيمة.
+/// صفٌّ معلومةٍ في كرتٍ زجاجيّ — أيقونةٌ وتسميةٌ فوق قيمة.
 class _InfoTile extends StatelessWidget {
   const _InfoTile({
     required this.label,
@@ -268,21 +374,12 @@ class _InfoTile extends StatelessWidget {
   final HarajPalette palette;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: palette.cardSurface,
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: <BoxShadow>[
-        BoxShadow(
-          color: palette.ink.withValues(alpha: 0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => _GlassCard(
+    palette: palette,
     child: Row(
       children: <Widget>[
+        _IconTile(icon: icon, color: palette.gold, size: 44),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +392,7 @@ class _InfoTile extends StatelessWidget {
                   fontFamily: HarajTheme.fontFamily,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 value,
                 style: TextStyle(
@@ -308,7 +405,6 @@ class _InfoTile extends StatelessWidget {
             ],
           ),
         ),
-        Icon(icon, color: palette.gold, size: 26),
       ],
     ),
   );
@@ -330,21 +426,12 @@ class _StatBox extends StatelessWidget {
   final HarajPalette palette;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: palette.cardSurface,
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: <BoxShadow>[
-        BoxShadow(
-          color: palette.ink.withValues(alpha: 0.05),
-          blurRadius: 10,
-          offset: const Offset(0, 2),
-        ),
-      ],
-    ),
+  Widget build(BuildContext context) => _GlassCard(
+    palette: palette,
     child: Column(
       children: <Widget>[
+        _IconTile(icon: icon, color: palette.gold, size: 36),
+        const SizedBox(height: 10),
         Text(
           label,
           style: TextStyle(
@@ -353,25 +440,19 @@ class _StatBox extends StatelessWidget {
             fontFamily: HarajTheme.fontFamily,
           ),
         ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(
-                value,
-                style: TextStyle(
-                  color: palette.ink,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  fontFamily: HarajTheme.fontFamily,
-                ),
-              ),
+        const SizedBox(height: 2),
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(
+            value,
+            style: TextStyle(
+              color: palette.ink,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+              fontFamily: HarajTheme.fontFamily,
             ),
-            const SizedBox(width: 6),
-            Icon(icon, color: palette.gold, size: 20),
-          ],
+          ),
         ),
         const SizedBox(height: 4),
         Text(
@@ -387,7 +468,7 @@ class _StatBox extends StatelessWidget {
   );
 }
 
-/// عنوانُ قسمٍ — شارةٌ ذهبيّةٌ وعنوانٌ، وسطرُ شرحٍ اختياريّ.
+/// عنوانُ قسمٍ — مربّعُ أيقونةٍ أزرق وعنوانٌ، وسطرُ شرحٍ اختياريّ.
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
@@ -402,53 +483,48 @@ class _SectionHeader extends StatelessWidget {
   final HarajPalette palette;
 
   @override
-  Widget build(BuildContext context) => Row(
-    children: <Widget>[
-      // الشارةُ أوّلاً = يمينُ RTL، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
-      Container(
-        width: 46,
-        height: 46,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: palette.gold.withValues(alpha: 0.16),
-        ),
-        child: Icon(icon, color: palette.goldDeep, size: 24),
-      ),
-      const SizedBox(width: 12),
-      Expanded(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text(
-              title,
-              style: TextStyle(
-                color: palette.ink,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                fontFamily: HarajTheme.fontFamily,
-              ),
-            ),
-            if (subtitle case final String line) ...<Widget>[
-              const SizedBox(height: 4),
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 4),
+    child: Row(
+      children: <Widget>[
+        // الشارةُ أوّلاً = يمينُ RTL، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+        _IconTile(icon: icon, color: palette.gold, size: 36),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
               Text(
-                line,
+                title,
                 style: TextStyle(
-                  color: palette.inkMuted,
-                  fontSize: 12.5,
-                  height: 1.5,
+                  color: palette.ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
                   fontFamily: HarajTheme.fontFamily,
                 ),
               ),
+              if (subtitle case final String line) ...<Widget>[
+                const SizedBox(height: 2),
+                Text(
+                  line,
+                  style: TextStyle(
+                    color: palette.inkMuted,
+                    fontSize: 12.5,
+                    height: 1.5,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 
-/// بطاقةُ رؤيةٍ — استروكٌ جانبيٌّ ملوّن، أيقونةٌ فوق عنوانٍ وشرح.
+/// بطاقةُ رؤيةٍ — كرتٌ زجاجيّ: مربّعُ أيقونةٍ بلون لهجتها، وعنوانٌ وشرحٌ
+/// بجانبه. (كان استروكاً جانبيّاً ملوّناً قبل الزجاج.)
 class _StrokeCard extends StatelessWidget {
   const _StrokeCard({
     required this.title,
@@ -467,76 +543,50 @@ class _StrokeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.only(bottom: 12),
-    child: Container(
-      decoration: BoxDecoration(
-        color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Container(width: 5, color: accent),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: <Widget>[
-                      Container(
-                        width: 56,
-                        height: 56,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          color: accent.withValues(alpha: 0.12),
-                        ),
-                        child: Icon(icon, color: accent, size: 28),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        title,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: palette.ink,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w700,
-                          fontFamily: HarajTheme.fontFamily,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        body,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: palette.inkMuted,
-                          fontSize: 13,
-                          height: 1.6,
-                          fontFamily: HarajTheme.fontFamily,
-                        ),
-                      ),
-                    ],
+    child: _GlassCard(
+      palette: palette,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          _IconTile(icon: icon, color: accent, size: 44),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: palette.ink,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    height: 1.4,
+                    fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: TextStyle(
+                    color: palette.inkMuted,
+                    fontSize: 13.5,
+                    height: 1.6,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ),
     ),
   );
 }
 
-/// بطاقةُ قيمةٍ — أرضيّةٌ ملوّنةٌ خفيفة، نصٌّ وأيقونةٌ في دائرةٍ بيضاء.
+/// سطرُ قيمةٍ داخل كرت القيم — مربّعُ أيقونةٍ بلون لهجتها ونصٌّ بالحبر.
+///
+/// النصُّ بالحبر لا بلون اللهجة: الورديُّ والبنفسجيُّ على الزجاج الفاتح
+/// يضعفان قراءةً، واللونُ يكفيه المربّع.
 class _SoftCard extends StatelessWidget {
   const _SoftCard({
     required this.text,
@@ -552,46 +602,30 @@ class _SoftCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: <Widget>[
-          // الأيقونةُ أوّلاً = يمينُ RTL، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
-          Container(
-            width: 44,
-            height: 44,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: palette.cardSurface,
-            ),
-            child: Icon(icon, color: accent, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: accent,
-                fontSize: 14.5,
-                height: 1.5,
-                fontWeight: FontWeight.w700,
-                fontFamily: HarajTheme.fontFamily,
-              ),
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Row(
+      children: <Widget>[
+        // الأيقونةُ أوّلاً = يمينُ RTL، بطلب المالك (١٣ سبتمبر ٢٠٢٦).
+        _IconTile(icon: icon, color: accent, size: 38),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: palette.ink,
+              fontSize: 14,
+              height: 1.5,
+              fontWeight: FontWeight.w600,
+              fontFamily: HarajTheme.fontFamily,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     ),
   );
 }
 
-/// بطاقةُ «لماذا نحن» — استروكٌ ذهبيّ، شارةُ صحٍّ ذهبيّة، ونصّ.
+/// سطرُ «لماذا نحن» — علامةُ صحٍّ زرقاء ونصّ.
 class _CheckCard extends StatelessWidget {
   const _CheckCard({required this.text, required this.palette});
 
@@ -600,65 +634,33 @@ class _CheckCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Container(
-      decoration: BoxDecoration(
-        color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Row(
+      children: <Widget>[
+        Container(
+          width: 24,
+          height: 24,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: palette.gold.withValues(alpha: 0.12),
           ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Container(width: 4, color: palette.gold),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: Text(
-                          text,
-                          style: TextStyle(
-                            color: palette.ink,
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: HarajTheme.fontFamily,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: palette.gold,
-                        ),
-                        child: const Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          child: Icon(Icons.check_rounded, color: palette.gold, size: 16),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: palette.ink,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              height: 1.5,
+              fontFamily: HarajTheme.fontFamily,
+            ),
           ),
         ),
-      ),
+      ],
     ),
   );
 }

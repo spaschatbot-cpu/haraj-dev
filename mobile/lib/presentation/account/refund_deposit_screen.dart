@@ -194,7 +194,11 @@ class _RefundDepositScreenState extends ConsumerState<RefundDepositScreen> {
   }
 }
 
-/// بطاقةُ الرأس — كحليّةٌ متدرّجة بأيقونةٍ وعنوانٍ وشرح.
+/// بطاقةُ الرأس — زجاجٌ مصبوغٌ بأزرقَ خفيف، بأيقونةٍ وعنوانٍ وشرح.
+///
+/// **كانت كحليّةً متدرّجة** (`heroTop`→`heroBottom`) بنصٍّ أبيض، فسقط الكحليُّ
+/// في تصميم الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): لوحٌ داكنٌ فوق أرضيّةٍ
+/// فاتحة يقطع الشاشة. فصارت زجاجاً بصبغةٍ زرقاء تُقرأ رأساً، ونصُّها كحليّ.
 class _HeaderCard extends StatelessWidget {
   const _HeaderCard({required this.l10n});
 
@@ -204,17 +208,24 @@ class _HeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
-          colors: <Color>[palette.heroTop, palette.heroBottom],
+          colors: <Color>[
+            Color.alphaBlend(
+              palette.gold.withValues(alpha: 0.14),
+              palette.cardSurface,
+            ),
+            palette.cardSurface,
+          ],
         ),
+        border: Border.all(color: palette.gold.withValues(alpha: 0.22)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: palette.ink.withValues(alpha: 0.12),
+            color: palette.ink.withValues(alpha: 0.05),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -227,13 +238,12 @@ class _HeaderCard extends StatelessWidget {
             height: 48,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: palette.goldOnDark.withValues(alpha: 0.14),
-              border: Border.all(color: palette.gold, width: 1.6),
+              color: palette.gold.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.assignment_return_rounded,
-              color: palette.goldOnDark,
+              color: palette.gold,
               size: 24,
             ),
           ),
@@ -246,19 +256,19 @@ class _HeaderCard extends StatelessWidget {
                 Text(
                   l10n.refundHeaderTitle,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color: palette.ink,
+                    fontSize: 17,
                     fontWeight: FontWeight.w700,
                     fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   l10n.refundHeaderSubtitle,
                   style: TextStyle(
-                    color: palette.navInactive,
-                    fontSize: 13,
-                    height: 1.4,
+                    color: palette.inkMuted,
+                    fontSize: 12.5,
+                    height: 1.5,
                     fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
@@ -309,8 +319,11 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-/// تنسيقُ حقلٍ احترافيّ: أرضيّةٌ فاتحةٌ ممتلئة، زوايا مدوّرة، حدٌّ رقيقٌ يذهب
-/// إلى ذهبيٍّ عند التركيز — بدل الإطار الأسود التقليديّ لـ`OutlineInputBorder`.
+/// تنسيقُ حقلٍ احترافيّ: أرضيّةٌ زجاجيّةٌ ممتلئة، زوايا مدوّرة، حدٌّ رقيقٌ يذهب
+/// إلى الأزرق عند التركيز — بدل الإطار الأسود التقليديّ لـ`OutlineInputBorder`.
+///
+/// والأرضيّةُ `cardSurface` لا `pageBackground` منذ تصميم الزجاج (٣ أكتوبر
+/// ٢٠٢٦): الرماديُّ المصمت داخل كرتٍ شفّاف يُقرأ ثقباً لا حقلاً.
 InputDecoration _fieldDecoration(
   HarajPalette palette, {
   required String label,
@@ -319,7 +332,7 @@ InputDecoration _fieldDecoration(
   bool alignLabelWithHint = false,
 }) {
   OutlineInputBorder border(Color color, double width) => OutlineInputBorder(
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(14),
     borderSide: BorderSide(color: color, width: width),
   );
   return InputDecoration(
@@ -329,11 +342,11 @@ InputDecoration _fieldDecoration(
     hintText: hint,
     alignLabelWithHint: alignLabelWithHint,
     filled: true,
-    fillColor: palette.pageBackground,
-    floatingLabelStyle: TextStyle(color: palette.goldDeep),
-    enabledBorder: border(palette.ink.withValues(alpha: 0.10), 1),
+    fillColor: palette.cardSurface,
+    floatingLabelStyle: TextStyle(color: palette.gold),
+    enabledBorder: border(palette.navInactive, 1),
     focusedBorder: border(palette.gold, 1.6),
-    border: border(palette.ink.withValues(alpha: 0.10), 1),
+    border: border(palette.navInactive, 1),
   );
 }
 
@@ -461,35 +474,49 @@ class _FilePickerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // صفُّ الزجاج (٣ أكتوبر ٢٠٢٦): حدٌّ فاتحٌ كالحقول، والزرُّ أزرقُ شفيف
+    // بأيقونة — كان رماديّاً بحدٍّ كحليٍّ لا يشبه ما حوله.
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: palette.ink.withValues(alpha: 0.20)),
+        color: palette.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: palette.navInactive),
       ),
       child: Row(
         children: <Widget>[
           Material(
-            color: palette.ink.withValues(alpha: 0.06),
+            color: palette.gold.withValues(alpha: 0.08),
             borderRadius: const BorderRadius.horizontal(
-              right: Radius.circular(10),
+              right: Radius.circular(14),
             ),
             child: InkWell(
               borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(10),
+                right: Radius.circular(14),
               ),
               onTap: onTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 14,
-                  vertical: 12,
+                  vertical: 13,
                 ),
-                child: Text(
-                  l10n.refundChooseFile,
-                  style: TextStyle(
-                    color: palette.ink,
-                    fontWeight: FontWeight.w600,
-                    fontFamily: HarajTheme.fontFamily,
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Icon(
+                      Icons.upload_file_rounded,
+                      size: 18,
+                      color: palette.gold,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      l10n.refundChooseFile,
+                      style: TextStyle(
+                        color: palette.gold,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: HarajTheme.fontFamily,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -555,7 +582,8 @@ class _PreviousCard extends StatelessWidget {
 
 // ————— عناصرُ مشتركة —————
 
-/// بطاقةٌ بيضاء بظلٍّ خفيف — قشرةُ كل أقسام الصفحة.
+/// بطاقةٌ زجاجيّة بحدٍّ رفيعٍ وظلٍّ ناعم — قشرةُ كل أقسام الصفحة، بتصميم
+/// الزجاج الأبيض (٣ أكتوبر ٢٠٢٦).
 class _WhiteCard extends StatelessWidget {
   const _WhiteCard({required this.child});
 
@@ -568,12 +596,13 @@ class _WhiteCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
         boxShadow: <BoxShadow>[
           BoxShadow(
             color: palette.ink.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -593,13 +622,21 @@ class _SectionTitle extends StatelessWidget {
     final palette = HarajPalette.of(context);
     return Row(
       children: <Widget>[
-        Icon(icon, size: 18, color: palette.gold),
-        const SizedBox(width: 8),
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: palette.gold.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, size: 18, color: palette.gold),
+        ),
+        const SizedBox(width: 10),
         Text(
           text,
           style: TextStyle(
             color: palette.ink,
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             fontFamily: HarajTheme.fontFamily,
           ),
@@ -609,10 +646,10 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-/// صندوقٌ احترافيّ: أيقونةٌ ذهبيّةٌ دائريّة على اليمين، ثم تسميةٌ فوق قيمة.
+/// صندوقٌ احترافيّ: مربّعُ أيقونةٍ أزرق على اليمين، ثم تسميةٌ فوق قيمة.
 ///
 /// عنصرٌ واحد يخدم المبلغَ (`money`) والنصَّ (`text`) معاً — بحدٍّ رقيقٍ وأرضيّةٍ
-/// بيضاءَ لا رماديّة، فيُقرأ بطاقةً مرتّبة لا صندوقاً باهتاً.
+/// زرقاءَ شفيفة لا رماديّة، فيُقرأ بطاقةً مرتّبة لا صندوقاً باهتاً.
 class _AmountRow extends StatelessWidget {
   const _AmountRow({required this.label, required this.money})
     : text = null,
@@ -656,77 +693,47 @@ class _AmountRow extends StatelessWidget {
             ),
           );
 
+    // صفُّ الزجاج (٣ أكتوبر ٢٠٢٦): سقط الشريطُ الجانبيّ والظلّ — الصفُّ داخل
+    // كرتٍ زجاجيٍّ له ظلُّه، وظلٌّ ثانٍ وشريطٌ ملوّن كانا زخرفةً فوق زخرفة.
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: palette.cardSurface,
+        color: palette.gold.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.ink.withValues(alpha: 0.08)),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+      ),
+      child: Row(
+        children: <Widget>[
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: palette.gold.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: palette.gold),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: palette.inkMuted,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                value,
+              ],
+            ),
           ),
         ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: IntrinsicHeight(
-          child: Row(
-            children: <Widget>[
-              // استروكٌ جانبيٌّ ذهبيّ — شريطٌ رأسيٌّ على الحافّة (يمينُ RTL)
-              // يعطي البطاقةَ لهجةً بلا حدٍّ ثقيل.
-              Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: <Color>[palette.gold, palette.goldDeep],
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    children: <Widget>[
-                      Container(
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: palette.gold.withValues(alpha: 0.12),
-                        ),
-                        child: Icon(icon, size: 20, color: palette.goldDeep),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: <Widget>[
-                            Text(
-                              label,
-                              style: TextStyle(
-                                color: palette.inkMuted,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: HarajTheme.fontFamily,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            value,
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -744,8 +751,8 @@ class _WarningBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: danger.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        color: danger.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: danger.withValues(alpha: 0.30)),
       ),
       child: Row(
@@ -771,7 +778,11 @@ class _WarningBox extends StatelessWidget {
   }
 }
 
-/// زرٌّ ذهبيٌّ ممتدّ — نفسُ زرّ المحفظة في الرأس.
+/// الزرُّ الأزرقُ الممتلئ — كزرّ الدخول.
+///
+/// كان `InkWell` بتدرّجٍ لا يتغيّر حين يُعطَّل، فيبدو قابلاً للضغط أثناء
+/// الإرسال. وفي تصميم الزجاج (٣ أكتوبر ٢٠٢٦) صار `FilledButton` بلون الزرّ
+/// الواحد في التطبيق، ويَبهَت حين `onTap` فارغ — والسلوكُ هو هو.
 class _GoldButton extends StatelessWidget {
   const _GoldButton({
     required this.label,
@@ -785,34 +796,22 @@ class _GoldButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
-        child: Ink(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[palette.gold, palette.goldDeep],
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              fontFamily: HarajTheme.fontFamily,
-            ),
-          ),
+    return FilledButton(
+      onPressed: onTap,
+      style: FilledButton.styleFrom(
+        backgroundColor: palette.gold,
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
+        disabledForegroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(50),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(
+          fontFamily: HarajTheme.fontFamily,
+          fontWeight: FontWeight.w700,
+          fontSize: 15,
         ),
       ),
+      child: Text(label, textAlign: TextAlign.center),
     );
   }
 }

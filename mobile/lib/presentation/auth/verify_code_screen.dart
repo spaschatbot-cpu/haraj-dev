@@ -39,6 +39,10 @@ import 'session_controller.dart';
 /// فيظنّ أنه خرج من التطبيق. فالهيكلُ الآن **مشتركٌ في [auth_shell]** لا
 /// منسوخ: ما يظهر في إحداهما يظهر في الأخرى بحكم البناء.
 ///
+/// **ثمّ صار الزجاجَ الأبيض (٣ أكتوبر ٢٠٢٦)** حين بُنيت شاشةُ الدخول به
+/// داخل ملفّها: فبقي من [auth_shell] الحركاتُ وحدَها (`AuthEntrance`
+/// و`ShakeOnChange`)، والشعارُ والبطاقاتُ هنا على مثال شاشة الدخول.
+///
 /// وأربعُ حركاتٍ، **كلُّها تقول شيئاً**: دخولٌ متتابعٌ يقود العينَ من الشعار
 /// إلى الحقل، وهالةٌ تتنفّس تقول إن الشاشةَ حيّة، و**اهتزازٌ عند رفض الرمز**
 /// يُقرأ قبل أن تُقرأ الرسالة، وارتفاعٌ يتمدّد بهدوءٍ حين يظهر حقلُ الاسم.
@@ -171,54 +175,72 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
 
     if (pending == null) {
       // لا رمز مُرسَل: هذه الشاشة بلا معنى، والموجّه يعيد إلى الخطوة الأولى.
-      return const Scaffold(body: SizedBox.shrink());
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SizedBox.shrink(),
+      );
     }
 
     final palette = HarajPalette.of(context);
-    final theme = Theme.of(context);
     final expiresAt = SaudiTime.forDisplay(pending.delivery.expiresAt);
 
+    // **تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦)** — وجهُ الخطوة
+    // الأولى نفسُه: الشعارُ في دائرته ثمّ بطاقتان بيضاوان على أرضيّة
+    // `GlassBackdrop` العامّة. وسقطت اللوحةُ الداكنةُ بشريطها وهالتا
+    // `AuthBackdrop` — بابٌ واحدٌ بوجهٍ واحد.
+    //
+    // والفراغُ يُقسَم بـ`Spacer` كما في شاشة الدخول فلا تمريرَ على هاتفٍ
+    // عاديّ، و`IntrinsicHeight` لأن `Spacer` داخل غلافٍ قابلٍ للتمرير يحسب
+    // الباقي صفراً. والتمريرُ باقٍ لشاشةٍ أقصرَ من المحتوى أو لوحةِ مفاتيحَ
+    // مفتوحة.
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: AuthBackdrop(
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, box) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 400),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    AuthEntrance(
-                      child: AuthBrand(
-                        title: l10n.splashHeadline,
-                        subtitle: l10n.verifyTagline,
-                        size: 66,
+                constraints: BoxConstraints(
+                  minHeight: box.maxHeight,
+                  maxWidth: 440,
+                ),
+                child: IntrinsicHeight(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const Spacer(flex: 2),
+                      AuthEntrance(
+                        child: _BrandMark(
+                          title: l10n.splashHeadline,
+                          subtitle: l10n.verifyTagline,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    AuthEntrance(
-                      child: _SentTo(
-                        phone: pending.phone,
-                        expiresAt: expiresAt,
-                        l10n: l10n,
-                        onChangePhone: () {
-                          ref.read(pendingSignInProvider.notifier).clear();
-                          context.goNamed(Routes.signIn);
-                        },
+                      const Spacer(flex: 2),
+                      AuthEntrance(
+                        delay: const Duration(milliseconds: 90),
+                        child: _SentTo(
+                          phone: pending.phone,
+                          expiresAt: expiresAt,
+                          l10n: l10n,
+                          onChangePhone: () {
+                            ref.read(pendingSignInProvider.notifier).clear();
+                            context.goNamed(Routes.signIn);
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
-                    AuthEntrance(
-                      child: AuthPanel(
-                        title: l10n.verifyTitle,
-                        icon: Icons.mark_email_read_outlined,
-                        child: _form(l10n, palette, theme, pending.phone),
+                      const SizedBox(height: 16),
+                      AuthEntrance(
+                        delay: const Duration(milliseconds: 170),
+                        child: _Card(
+                          padding: const EdgeInsets.all(18),
+                          child: _form(l10n, palette, pending.phone),
+                        ),
                       ),
-                    ),
-                  ],
+                      const Spacer(flex: 3),
+                      const SizedBox(height: 16),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -228,16 +250,36 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     );
   }
 
-  Widget _form(
-    AppLocalizations l10n,
-    HarajPalette palette,
-    ThemeData theme,
-    String phone,
-  ) {
+  Widget _form(AppLocalizations l10n, HarajPalette palette, String phone) {
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: palette.navInactive),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        Row(
+          children: <Widget>[
+            _IconTile(icon: Icons.mark_email_read_outlined, palette: palette),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                l10n.verifyTitle,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Divider(height: 1, color: palette.navInactive),
+        ),
         // **الحقلُ يهتزّ حين يُرفض الرمز** — والاهتزازُ حول الحقل وحدَه لا
         // حول اللوحة: العينُ تُساق إلى ما يجب أن يُصحَّح.
         ShakeOnChange(
@@ -254,22 +296,40 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
             inputFormatters: <TextInputFormatter>[
               FilteringTextInputFormatter.digitsOnly,
             ],
-            style: theme.textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 22,
+              color: palette.ink,
               fontWeight: FontWeight.w700,
               // تباعدٌ يجعل الستّةَ أرقامٍ تُقرأ رقماً رقماً عند المراجعة.
               letterSpacing: 8,
             ),
             decoration: InputDecoration(
               labelText: l10n.verifyCodeLabel,
+              labelStyle: TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                color: palette.inkMuted,
+              ),
+              floatingLabelStyle: TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                color: palette.gold,
+                fontWeight: FontWeight.w600,
+              ),
               hintText: '••••••',
               hintStyle: TextStyle(
                 color: palette.inkMuted.withValues(alpha: 0.5),
                 letterSpacing: 8,
               ),
               filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+              fillColor: palette.cardSurface,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+              border: border,
+              enabledBorder: border,
+              focusedBorder: border.copyWith(
+                borderSide: BorderSide(color: palette.gold, width: 1.6),
               ),
             ),
             onChanged: (_) => setState(() {}),
@@ -281,25 +341,26 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
           child: _busy
-              ? const Padding(
+              ? const SizedBox(
                   key: ValueKey<String>('busy'),
-                  padding: EdgeInsets.symmetric(vertical: 8),
+                  height: 52,
                   child: Center(child: CircularProgressIndicator()),
                 )
               : FilledButton.icon(
                   key: const ValueKey<String>('submit'),
                   onPressed: _canSubmit ? () => _submit(phone) : null,
-                  icon: const Icon(Icons.login_rounded, size: 18),
+                  icon: const Icon(Icons.login_rounded, size: 19),
                   label: Text(l10n.verifySubmit),
                   style: FilledButton.styleFrom(
-                    backgroundColor: palette.goldDeep,
+                    backgroundColor: palette.gold,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: palette.navInactive.withValues(
-                      alpha: 0.45,
+                    disabledBackgroundColor: palette.gold.withValues(
+                      alpha: 0.35,
                     ),
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    disabledForegroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(52),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     textStyle: const TextStyle(
                       fontFamily: HarajTheme.fontFamily,
@@ -309,7 +370,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                   ),
                 ),
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         CooldownButton(
           label: l10n.verifyResend,
           seconds: _cooldownSeconds,
@@ -348,41 +409,43 @@ class _SentTo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
-    final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-      decoration: BoxDecoration(
-        color: palette.cardSurface.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: palette.navInactive.withValues(alpha: 0.3)),
-      ),
+    return _Card(
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.sms_outlined, size: 16, color: palette.goldOnDark),
-              const SizedBox(width: 8),
+              _IconTile(icon: Icons.sms_outlined, palette: palette),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   l10n.verifySentTo(phone),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.white,
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: palette.ink,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(0, 10, 4, 6),
+            child: Divider(height: 1, color: palette.navInactive),
+          ),
           Row(
             children: <Widget>[
-              Icon(Icons.timelapse_rounded, size: 15, color: palette.inkMuted),
+              Icon(Icons.timelapse_rounded, size: 16, color: palette.inkMuted),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   l10n.verifyExpiresAt(expiresAt),
-                  style: theme.textTheme.bodySmall?.copyWith(
+                  style: TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 12.5,
                     color: palette.inkMuted,
                   ),
                 ),
@@ -390,10 +453,15 @@ class _SentTo extends StatelessWidget {
               TextButton(
                 onPressed: onChangePhone,
                 style: TextButton.styleFrom(
-                  foregroundColor: palette.goldOnDark,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: const Size(0, 32),
+                  foregroundColor: palette.gold,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  minimumSize: const Size(0, 34),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle: const TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 child: Text(l10n.verifyChangePhone),
               ),
@@ -401,6 +469,126 @@ class _SentTo extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// بطاقةٌ بيضاء زجاجيّة بحدٍّ فاتح — وعاءُ شاشة الدخول نفسُه، مكرَّراً هنا
+/// لأن ذاك خاصٌّ بملفّه.
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: palette.cardSurface,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.palette});
+
+  final IconData icon;
+  final HarajPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 34,
+    height: 34,
+    decoration: BoxDecoration(
+      color: palette.gold.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(icon, size: 18, color: palette.gold),
+  );
+}
+
+/// الشعارُ في دائرةٍ داكنة بإطارٍ أبيض ثمّ الاسمُ وسطرُ الخطوة — علامةُ شاشة
+/// الدخول نفسُها، فيعبر العميلُ من الخطوة الأولى إلى الثانية بلا قفزة.
+class _BrandMark extends StatelessWidget {
+  const _BrandMark({required this.title, required this.subtitle});
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Column(
+      children: <Widget>[
+        Container(
+          width: 72,
+          height: 72,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+              colors: <Color>[
+                Color.alphaBlend(
+                  palette.gold.withValues(alpha: 0.25),
+                  palette.heroTop,
+                ),
+                palette.heroBottom,
+              ],
+            ),
+            border: Border.all(color: Colors.white, width: 3),
+            boxShadow: <BoxShadow>[
+              BoxShadow(
+                color: palette.ink.withValues(alpha: 0.22),
+                blurRadius: 14,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) =>
+                const Icon(Icons.gavel_rounded, color: Colors.white),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 21,
+            fontWeight: FontWeight.w700,
+            color: palette.ink,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 13.5,
+            color: palette.inkMuted,
+          ),
+        ),
+      ],
     );
   }
 }

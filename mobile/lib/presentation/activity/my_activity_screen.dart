@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/theme.dart';
 import '../../domain/bidding/entities/placed_bid.dart';
 import '../../domain/catalog/entities/vehicle_summary.dart';
 import '../../domain/common/failure.dart';
@@ -63,6 +64,9 @@ class MyActivityScreen extends ConsumerWidget {
     final bids = ref.watch(myBidsProvider);
 
     return Scaffold(
+      // شفّافةٌ فوق `GlassBackdrop` — تصميمُ الزجاج الأبيض بطلب المالك
+      // (٣ أكتوبر ٢٠٢٦): أرضيّةٌ مصمتة هنا تمحو التدرّجَ فيُقرأ الكرتُ رماديّاً.
+      backgroundColor: Colors.transparent,
       // **لا `appBar` هنا**: شريطُ العنوان يعيش **داخل القائمة** فينزلق
       // معها، بطلب المالك في ٩ سبتمبر ٢٠٢٦. الثابتُ فوقه هيدرُ العلامة في
       // القشرة، وشريطان ثابتان فوق قائمةٍ يأكلان من الشاشة القصيرة كرتاً.
@@ -122,10 +126,7 @@ class _BidVehicles extends StatelessWidget {
         // ومن فتح القسم قبل أول مزايدة سيعود إليه بعدها.
         children: <Widget>[
           header,
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(l10n.emptyParticipations, textAlign: TextAlign.center),
-          ),
+          _EmptyBids(message: l10n.emptyParticipations),
         ],
       );
     }
@@ -139,8 +140,57 @@ class _BidVehicles extends StatelessWidget {
       // **العنوانُ عنصرٌ في القائمة**: هو ما يجعله ينزلق. وفهرسُ المركبة
       // يُزاح واحداً لأجله.
       itemCount: cards.length + 1,
-      itemBuilder: (context, index) =>
-          index == 0 ? header : VehicleCard(vehicle: cards[index - 1]),
+      // حشوةٌ ٢ حول الكرت: حاشيتُه الداخليّة ١٤ أفقيّاً و٤ رأسيّاً، فتصير
+      // الحافّةُ ١٦ والفجوةُ بين كرتين ١٢ — إيقاعُ الزجاج الأبيض في بقيّة
+      // الشاشات (٣ أكتوبر ٢٠٢٦)، بلا لمسٍ لـ`VehicleCard` المشترك.
+      itemBuilder: (context, index) => index == 0
+          ? header
+          : Padding(
+              padding: const EdgeInsets.all(2),
+              child: VehicleCard(vehicle: cards[index - 1]),
+            ),
+    );
+  }
+}
+
+/// الحالةُ الفارغة — أيقونةٌ في دائرةٍ مزرقّة وسطرٌ تحتها، كبقيّة الشاشات
+/// بتصميم الزجاج الأبيض (٣ أكتوبر ٢٠٢٦). كانت سطراً عارياً على الأرضيّة.
+class _EmptyBids extends StatelessWidget {
+  const _EmptyBids({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(32, 64, 32, 24),
+      child: Column(
+        children: <Widget>[
+          Container(
+            width: 88,
+            height: 88,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.gold.withValues(alpha: 0.10),
+            ),
+            child: Icon(Icons.gavel_rounded, size: 40, color: palette.gold),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: palette.ink,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              height: 1.5,
+              fontFamily: HarajTheme.fontFamily,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

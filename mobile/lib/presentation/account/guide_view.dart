@@ -64,6 +64,45 @@ class GuideView extends StatelessWidget {
   }
 }
 
+/// تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): كلُّ صندوقٍ في الدليل
+/// كرتٌ زجاجيٌّ واحدُ المقاس (٢٠ نصفَ قطر، حدٌّ فاتح، ظلٌّ ناعم) — الصناديقُ
+/// المصبوغة بالأزرق كانت فوق التدرّج تُقرأ بقعاً لا زجاجاً.
+BoxDecoration _glassCard(HarajPalette palette) => BoxDecoration(
+  color: palette.cardSurface,
+  borderRadius: BorderRadius.circular(20),
+  border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+  boxShadow: <BoxShadow>[
+    BoxShadow(
+      color: palette.ink.withValues(alpha: 0.05),
+      blurRadius: 16,
+      offset: const Offset(0, 6),
+    ),
+  ],
+);
+
+/// مربّعُ الأيقونة — زرقةٌ شفّافة بزوايا ١٠، لغةُ أيقونات الزجاج.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.size});
+
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: palette.gold.withValues(alpha: 0.08),
+      ),
+      child: Icon(icon, size: size * 0.54, color: palette.gold),
+    );
+  }
+}
+
 class _GuideHeader extends StatelessWidget {
   const _GuideHeader({
     required this.title,
@@ -79,11 +118,8 @@ class _GuideHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
     return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: palette.heroGlow.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(18),
-      ),
+      padding: const EdgeInsets.all(16),
+      decoration: _glassCard(palette),
       child: Row(
         children: <Widget>[
           Expanded(
@@ -94,18 +130,19 @@ class _GuideHeader extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: palette.ink,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w700,
                     height: 1.4,
                     fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: TextStyle(
                     color: palette.inkMuted,
-                    fontSize: 13,
+                    fontSize: 13.5,
+                    height: 1.6,
                     fontFamily: HarajTheme.fontFamily,
                   ),
                 ),
@@ -113,16 +150,7 @@ class _GuideHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 14),
-          Container(
-            width: 56,
-            height: 56,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: palette.cardSurface,
-            ),
-            child: Icon(icon, size: 30, color: palette.gold),
-          ),
+          _IconTile(icon: icon, size: 48),
         ],
       ),
     );
@@ -165,7 +193,9 @@ class _StepRow extends StatelessWidget {
                     end: Alignment.bottomLeft,
                     colors: <Color>[palette.gold, palette.goldDeep],
                   ),
-                  border: Border.all(color: palette.cardSurface, width: 2.5),
+                  // حلقةٌ بيضاء مصمتة لا `cardSurface` — الشفّافُ يُظهر الخطَّ
+                  // تحته فتتّسخ حافّةُ الدائرة.
+                  border: Border.all(color: Colors.white, width: 2.5),
                   boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: palette.gold.withValues(alpha: 0.40),
@@ -207,20 +237,10 @@ class _StepRow extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: 12),
               child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: palette.cardSurface,
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: <BoxShadow>[
-                    BoxShadow(
-                      color: palette.ink.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
+                padding: const EdgeInsets.all(16),
+                decoration: _glassCard(palette),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
@@ -228,7 +248,7 @@ class _StepRow extends StatelessWidget {
                       title,
                       style: TextStyle(
                         color: palette.ink,
-                        fontSize: 15.5,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         fontFamily: HarajTheme.fontFamily,
                       ),
@@ -264,17 +284,7 @@ class _VideoCard extends StatelessWidget {
     final palette = HarajPalette.of(context);
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+      decoration: _glassCard(palette),
       child: Material(
         color: Colors.transparent,
         child: InkWell(

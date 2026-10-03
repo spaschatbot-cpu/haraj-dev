@@ -36,6 +36,44 @@ Future<void> showSubscribeFlow(BuildContext context) async {
   );
 }
 
+/// أرضيّةُ الحوار — `cardSurface` ممزوجاً فوق الأبيض (الشرحُ عند [_Sheet]).
+Color _sheetSurface(HarajPalette palette) =>
+    Color.alphaBlend(palette.cardSurface, Colors.white);
+
+/// الزرُّ الأزرقُ الممتلئ — كزرّ الدخول، تصميمُ الزجاج (٣ أكتوبر ٢٠٢٦).
+ButtonStyle _primaryStyle(HarajPalette palette) => FilledButton.styleFrom(
+  backgroundColor: palette.gold,
+  foregroundColor: Colors.white,
+  disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
+  disabledForegroundColor: Colors.white,
+  minimumSize: const Size.fromHeight(50),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  textStyle: const TextStyle(
+    fontFamily: HarajTheme.fontFamily,
+    fontWeight: FontWeight.w700,
+    fontSize: 15,
+  ),
+);
+
+/// مربّعُ الأيقونة — أزرقُ على أزرقَ شفيف.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, required this.palette});
+
+  final IconData icon;
+  final HarajPalette palette;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 36,
+    height: 36,
+    decoration: BoxDecoration(
+      color: palette.gold.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Icon(icon, size: 18, color: palette.gold),
+  );
+}
+
 /// إطارُ الحوارين: شريطٌ باسمٍ وزرّ إغلاق، ثم المحتوى، ثم «إلغاء».
 class _Sheet extends StatelessWidget {
   const _Sheet({required this.title, required this.child});
@@ -46,13 +84,17 @@ class _Sheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
-    final theme = Theme.of(context);
 
+    // تصميمُ الزجاج الأبيض (٣ أكتوبر ٢٠٢٦) — **وأبيضُ أكثفُ من الكروت**: الحوارُ
+    // فوق ستارةٍ معتمة لا فوق الأرضيّة المتدرّجة، و`cardSurface` الشفّافُ هناك
+    // يصير رماديّاً باهتاً تضعف عليه الحروف. فيُمزج فوق الأبيض فيصير مصمتاً
+    // في الفاتح، ويبقى كما هو في الداكن (مصمتٌ أصلاً).
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 40),
-      backgroundColor: palette.cardSurface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+      backgroundColor: _sheetSurface(palette),
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 440),
         child: Column(
@@ -60,19 +102,20 @@ class _Sheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Padding(
-              padding: const EdgeInsetsDirectional.fromSTEB(16, 10, 8, 8),
+              padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 8, 12),
               child: Row(
                 children: <Widget>[
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    size: 18,
-                    color: palette.goldDeep,
+                  _IconTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    palette: palette,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       title,
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      style: TextStyle(
+                        fontFamily: HarajTheme.fontFamily,
+                        fontSize: 16,
                         color: palette.ink,
                         fontWeight: FontWeight.w700,
                       ),
@@ -89,11 +132,11 @@ class _Sheet extends StatelessWidget {
                 ],
               ),
             ),
-            Divider(height: 1, color: palette.gold.withValues(alpha: 0.30)),
+            Divider(height: 1, color: palette.navInactive),
             Flexible(
               // قابلٌ للتمرير: خمسةُ حقولٍ ولوحةُ مفاتيح لا يسعها جوّالٌ قصير.
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                 child: child,
               ),
             ),
@@ -196,20 +239,20 @@ class _DetailsDialogState extends ConsumerState<_DetailsDialog> {
                   value: profile.accountType,
                   palette: palette,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _Field(
                   label: l10n.walletFullName,
                   controller: _name,
                   palette: palette,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _ReadOnlyField(
                   label: l10n.walletPhone,
                   value: profile.phone,
                   palette: palette,
                   ltr: true,
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 _Field(
                   label: l10n.walletNationalId,
                   controller: _nationalId,
@@ -233,14 +276,7 @@ class _DetailsDialogState extends ConsumerState<_DetailsDialog> {
                 const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _saving ? null : () => _save(profile),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: palette.goldDeep,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  style: _primaryStyle(palette),
                   child: _saving
                       ? const SizedBox.square(
                           dimension: 18,
@@ -289,9 +325,10 @@ class _PaymentDialog extends StatelessWidget {
       showDialog<void>(
         context: context,
         builder: (context) => AlertDialog(
-          backgroundColor: palette.cardSurface,
+          backgroundColor: _sheetSurface(palette),
+          surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
           ),
           content: Text(
             AppLocalizations.of(context).walletMethodSoon,
@@ -308,9 +345,8 @@ class _PaymentDialog extends StatelessWidget {
           actions: <Widget>[
             FilledButton(
               onPressed: () => Navigator.of(context).pop(),
-              style: FilledButton.styleFrom(
-                backgroundColor: palette.goldDeep,
-                foregroundColor: Colors.white,
+              style: _primaryStyle(palette).copyWith(
+                minimumSize: const WidgetStatePropertyAll(Size(120, 46)),
               ),
               child: Text(MaterialLocalizations.of(context).okButtonLabel),
             ),
@@ -339,7 +375,7 @@ class _PaymentDialog extends StatelessWidget {
               color: palette.inkMuted,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // **الحوالةُ تعمل الآن.** T954. كانت تردّ «قريباً» بلا رقم حساب،
           // وهي قناةٌ قائمةٌ عند الشركة — فالعميلُ الذي يريد التحويل كان لا
           // يجد إلى أين يحوّل. والحسابُ من الخادم (`bankAccountProvider`).
@@ -390,7 +426,7 @@ class _PaymentDialog extends StatelessWidget {
   }
 }
 
-/// لوحُ تنبيهٍ ذهبيّ فوق النموذج.
+/// لوحُ تنبيهٍ أزرقُ شفيف فوق النموذج.
 class _Notice extends StatelessWidget {
   const _Notice({
     required this.title,
@@ -405,22 +441,18 @@ class _Notice extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: palette.gold.withValues(alpha: 0.10),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: palette.gold.withValues(alpha: 0.45)),
+      color: palette.gold.withValues(alpha: 0.07),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: palette.gold.withValues(alpha: 0.22)),
     ),
-    padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Row(
           children: <Widget>[
-            Icon(
-              Icons.error_outline_rounded,
-              size: 16,
-              color: palette.goldDeep,
-            ),
-            const SizedBox(width: 6),
+            Icon(Icons.info_outline_rounded, size: 17, color: palette.gold),
+            const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
@@ -465,6 +497,12 @@ class _Field extends StatelessWidget {
   final bool digitsOnly;
   final bool enabled;
 
+  OutlineInputBorder _border(Color color, {double width = 1}) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: color, width: width),
+      );
+
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -473,12 +511,12 @@ class _Field extends StatelessWidget {
         label,
         style: TextStyle(
           fontFamily: HarajTheme.fontFamily,
-          fontSize: 11.5,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: palette.inkMuted,
         ),
       ),
-      const SizedBox(height: 5),
+      const SizedBox(height: 6),
       TextField(
         controller: controller,
         enabled: enabled,
@@ -487,22 +525,22 @@ class _Field extends StatelessWidget {
         inputFormatters: digitsOnly
             ? <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly]
             : null,
+        // حقلُ الزجاج (٣ أكتوبر ٢٠٢٦): حدٌّ فاتحٌ يصير أزرقَ عند التركيز، والمقفلُ
+        // أزرقُ شفيفٌ لا `pageBackground` الرماديّ.
         decoration: InputDecoration(
           isDense: true,
           filled: true,
-          fillColor: enabled ? palette.cardSurface : palette.pageBackground,
+          fillColor: enabled
+              ? palette.cardSurface
+              : palette.gold.withValues(alpha: 0.05),
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
+            horizontal: 14,
             vertical: 14,
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: palette.gold.withValues(alpha: 0.35)),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: palette.gold.withValues(alpha: 0.35)),
-          ),
+          border: _border(palette.navInactive),
+          enabledBorder: _border(palette.navInactive),
+          disabledBorder: _border(palette.navInactive.withValues(alpha: 0.7)),
+          focusedBorder: _border(palette.gold, width: 1.6),
         ),
         style: TextStyle(
           fontFamily: HarajTheme.fontFamily,
@@ -537,19 +575,20 @@ class _ReadOnlyField extends StatelessWidget {
         label,
         style: TextStyle(
           fontFamily: HarajTheme.fontFamily,
-          fontSize: 11.5,
+          fontSize: 12,
           fontWeight: FontWeight.w600,
           color: palette.inkMuted,
         ),
       ),
-      const SizedBox(height: 5),
+      const SizedBox(height: 6),
+      // للقراءة: أزرقُ شفيف بحدٍّ فاتح — كالحقل المقفل، لا رماديٌّ مصمت.
       Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: palette.pageBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: palette.gold.withValues(alpha: 0.22)),
+          color: palette.gold.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
         ),
         child: Text(
           value,
@@ -584,27 +623,30 @@ class _Method extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
+  // صفُّ الزجاج (٣ أكتوبر ٢٠٢٦): أبيضُ بحدٍّ فاتح بدل الحدّ الأزرق العريض —
+  // ثلاثةُ صفوفٍ بحدودٍ ملوّنة كانت تتزاحم، والأيقونةُ وحدها تحمل اللون.
   Widget build(BuildContext context) => Material(
     color: palette.cardSurface,
-    borderRadius: BorderRadius.circular(14),
+    borderRadius: BorderRadius.circular(16),
     child: InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: palette.gold.withValues(alpha: 0.55)),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: palette.navInactive),
         ),
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: <Widget>[
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: palette.gold.withValues(alpha: 0.16),
+                color: palette.gold.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, size: 20, color: palette.goldDeep),
+              child: Icon(icon, size: 20, color: palette.gold),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -615,7 +657,7 @@ class _Method extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,
-                      fontSize: 13.5,
+                      fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: palette.ink,
                     ),
@@ -625,7 +667,7 @@ class _Method extends StatelessWidget {
                     note,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,
-                      fontSize: 11,
+                      fontSize: 11.5,
                       color: palette.inkMuted,
                       height: 1.4,
                     ),

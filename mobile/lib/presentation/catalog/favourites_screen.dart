@@ -27,6 +27,9 @@ class FavouritesScreen extends ConsumerWidget {
     final state = ref.watch(favouritesProvider);
 
     return Scaffold(
+      // شفّافةٌ فوق `GlassBackdrop` — تصميمُ الزجاج الأبيض بطلب المالك
+      // (٣ أكتوبر ٢٠٢٦): الكروتُ زجاجُها شفافيّتُها، وأرضيّةٌ مصمتة تمحوه.
+      backgroundColor: Colors.transparent,
       // **لا `appBar`**: شريطُ العنوان داخل القائمة فينزلق معها، بطلب
       // المالك في ٩ سبتمبر ٢٠٢٦.
       body: switch (state) {

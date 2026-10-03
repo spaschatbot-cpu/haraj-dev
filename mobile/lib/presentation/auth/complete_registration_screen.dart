@@ -24,6 +24,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
+import '../../app/theme.dart';
 import '../../domain/common/failure.dart';
 import '../../domain/profile/entities/customer_profile.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -41,7 +42,11 @@ class CompleteRegistrationScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final profile = ref.watch(profileControllerProvider);
 
+    // **تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦)**: أرضيّةٌ شفّافة
+    // فوق `GlassBackdrop` العامّة، والخطوتان بطاقاتٌ بيضاء — لا ورقةٌ رماديّة
+    // وبطاقاتُ Material الافتراضيّة.
     return Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: HarajAppBar(title: l10n.registrationCompleteTitle),
       body: switch (profile) {
         AsyncData(:final value) => _Flow(profile: value.value),
@@ -108,14 +113,30 @@ class _TypeStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final palette = HarajPalette.of(context);
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
       children: <Widget>[
-        Text(l10n.registrationTypeTitle, style: theme.textTheme.headlineSmall),
+        Text(
+          l10n.registrationTypeTitle,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: palette.ink,
+          ),
+        ),
         const SizedBox(height: 6),
-        Text(l10n.registrationTypeSubtitle, style: theme.textTheme.bodyMedium),
-        const SizedBox(height: 20),
+        Text(
+          l10n.registrationTypeSubtitle,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 13.5,
+            height: 1.5,
+            color: palette.inkMuted,
+          ),
+        ),
+        const SizedBox(height: 16),
         _TypeCard(
           icon: Icons.person_outline,
           title: l10n.registrationIndividual,
@@ -149,32 +170,137 @@ class _TypeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Row(
-            children: <Widget>[
-              CircleAvatar(radius: 24, child: Icon(icon)),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(title, style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 2),
-                    Text(hint, style: theme.textTheme.bodySmall),
-                  ],
+    final palette = HarajPalette.of(context);
+    return _Card(
+      padding: EdgeInsets.zero,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_Card.radius),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: <Widget>[
+                _IconTile(icon: icon, size: 46),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: palette.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        hint,
+                        style: TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 12.5,
+                          height: 1.45,
+                          color: palette.inkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_left),
-            ],
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_left_rounded, color: palette.inkMuted),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// بطاقةٌ بيضاء زجاجيّة بحدٍّ فاتح — وعاءُ شاشة الدخول نفسُه.
+class _Card extends StatelessWidget {
+  const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
+
+  static const double radius = 20;
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: palette.cardSurface,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, this.size = 34});
+
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: palette.gold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(size > 40 ? 14 : 12),
+      ),
+      child: Icon(icon, size: size * 0.52, color: palette.gold),
+    );
+  }
+}
+
+/// عنوانُ بطاقةٍ: أيقونةٌ في مربّعها ثمّ الاسم — كرأس بطاقة الدخول.
+class _CardHeader extends StatelessWidget {
+  const _CardHeader({required this.icon, required this.title, this.trailing});
+
+  final IconData icon;
+  final String title;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Row(
+      children: <Widget>[
+        _IconTile(icon: icon),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
+            ),
+          ),
+        ),
+        ?trailing,
+      ],
     );
   }
 }
@@ -342,92 +468,156 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
+    final palette = HarajPalette.of(context);
     final missing = widget.profile.registrationMissing
         .map((gap) => gap.label)
         .join('، ');
 
+    // ثلاثُ بطاقات: ما ينقص ونوعُ الحساب، ثمّ بياناتُ الشخص، ثمّ المنشأة —
+    // كلُّ بابٍ في وعائه كما يُحفظ كلُّ بابٍ وحدَه في `_save`.
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: <Widget>[
-        Text(
-          l10n.registrationMissing(missing),
-          style: theme.textTheme.bodyMedium,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: ListTile(
-            title: Text(
-              l10n.registrationAccountType(
-                _company
-                    ? l10n.registrationCompany
-                    : l10n.registrationIndividual,
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _CardHeader(
+                icon: _company
+                    ? Icons.apartment_outlined
+                    : Icons.person_outline,
+                title: l10n.registrationAccountType(
+                  _company
+                      ? l10n.registrationCompany
+                      : l10n.registrationIndividual,
+                ),
+                trailing: widget.onChangeKind == null
+                    ? null
+                    : TextButton(
+                        onPressed: widget.onChangeKind,
+                        style: TextButton.styleFrom(
+                          foregroundColor: palette.gold,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          minimumSize: const Size(0, 34),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: const TextStyle(
+                            fontFamily: HarajTheme.fontFamily,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        child: Text(l10n.registrationChangeType),
+                      ),
               ),
-            ),
-            trailing: widget.onChangeKind == null
-                ? null
-                : TextButton(
-                    onPressed: widget.onChangeKind,
-                    child: Text(l10n.registrationChangeType),
-                  ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Divider(height: 1, color: palette.navInactive),
+              ),
+              Text(
+                l10n.registrationMissing(missing),
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 13,
+                  height: 1.55,
+                  color: palette.inkMuted,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 8),
-        _field(
-          'full_name',
-          _company
-              ? l10n.registrationRepresentative
-              : l10n.registrationFullName,
-          hint: l10n.registrationNameHint,
-        ),
-        if (_missing('national_id'))
-          _field(
-            'national_id',
-            l10n.registrationNationalId,
-            hint: l10n.registrationNationalIdHint,
-            digits: 10,
+        const SizedBox(height: 14),
+        _Card(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              _field(
+                'full_name',
+                _company
+                    ? l10n.registrationRepresentative
+                    : l10n.registrationFullName,
+                hint: l10n.registrationNameHint,
+              ),
+              if (_missing('national_id'))
+                _field(
+                  'national_id',
+                  l10n.registrationNationalId,
+                  hint: l10n.registrationNationalIdHint,
+                  digits: 10,
+                ),
+              if (!_company) _field('city', l10n.registrationCity),
+            ],
           ),
-        if (!_company) _field('city', l10n.registrationCity),
+        ),
         if (_company) ...<Widget>[
-          const SizedBox(height: 16),
-          Text(
-            l10n.registrationCompanySection,
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          if (!_companyLoaded)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          else ...<Widget>[
-            _field('name', l10n.registrationOrgName),
-            _field('commercial_register', l10n.companyRegister, digits: 10),
-            _field('vat_number', l10n.companyVatNumber, digits: 15),
-            _field('city', l10n.registrationCity),
-            _field('district', l10n.companyDistrict),
-            _field('street', l10n.companyStreet),
-            _field('building_number', l10n.companyBuildingNumber, digits: 4),
-            _field(
-              'additional_number',
-              l10n.registrationAdditionalNumber,
-              digits: 4,
+          const SizedBox(height: 14),
+          _Card(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                _CardHeader(
+                  icon: Icons.business_center_outlined,
+                  title: l10n.registrationCompanySection,
+                ),
+                const SizedBox(height: 8),
+                if (!_companyLoaded)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else ...<Widget>[
+                  _field('name', l10n.registrationOrgName),
+                  _field(
+                    'commercial_register',
+                    l10n.companyRegister,
+                    digits: 10,
+                  ),
+                  _field('vat_number', l10n.companyVatNumber, digits: 15),
+                  _field('city', l10n.registrationCity),
+                  _field('district', l10n.companyDistrict),
+                  _field('street', l10n.companyStreet),
+                  _field(
+                    'building_number',
+                    l10n.companyBuildingNumber,
+                    digits: 4,
+                  ),
+                  _field(
+                    'additional_number',
+                    l10n.registrationAdditionalNumber,
+                    digits: 4,
+                  ),
+                  _field('postal_code', l10n.companyPostalCode, digits: 5),
+                ],
+              ],
             ),
-            _field('postal_code', l10n.companyPostalCode, digits: 5),
-          ],
+          ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         if (_failure != null && _errors.isEmpty) ...<Widget>[
           FailureView(failure: _failure!),
           const SizedBox(height: 12),
         ],
         if (_busy)
-          const Center(child: CircularProgressIndicator())
+          const SizedBox(
+            height: 52,
+            child: Center(child: CircularProgressIndicator()),
+          )
         else
           FilledButton(
             onPressed: _save,
             style: FilledButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 15),
+              backgroundColor: palette.gold,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              textStyle: const TextStyle(
+                fontFamily: HarajTheme.fontFamily,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
             child: Text(l10n.registrationSave),
           ),
@@ -437,6 +627,11 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
 
   Widget _field(String name, String label, {String? hint, int? digits}) {
     final error = _errors[name];
+    final palette = HarajPalette.of(context);
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: palette.navInactive),
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextField(
@@ -449,11 +644,43 @@ class _DetailsStepState extends ConsumerState<_DetailsStep> {
         inputFormatters: digits == null
             ? null
             : <TextInputFormatter>[FilteringTextInputFormatter.digitsOnly],
+        style: TextStyle(
+          fontFamily: HarajTheme.fontFamily,
+          fontSize: 14.5,
+          color: palette.ink,
+        ),
         decoration: InputDecoration(
           labelText: label,
           helperText: error == null ? hint : null,
           errorText: error,
           counterText: '',
+          labelStyle: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            color: palette.inkMuted,
+          ),
+          floatingLabelStyle: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            color: palette.gold,
+            fontWeight: FontWeight.w600,
+          ),
+          helperStyle: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 11.5,
+            color: palette.inkMuted,
+          ),
+          helperMaxLines: 2,
+          errorMaxLines: 2,
+          filled: true,
+          fillColor: palette.cardSurface,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
+          ),
+          border: border,
+          enabledBorder: border,
+          focusedBorder: border.copyWith(
+            borderSide: BorderSide(color: palette.gold, width: 1.6),
+          ),
         ),
       ),
     );

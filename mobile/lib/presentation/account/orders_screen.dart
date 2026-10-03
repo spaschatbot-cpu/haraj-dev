@@ -33,8 +33,9 @@ class OrdersScreen extends StatelessWidget {
           16 + MediaQuery.paddingOf(context).bottom,
         ),
         crossAxisCount: 2,
-        mainAxisSpacing: 14,
-        crossAxisSpacing: 14,
+        // فجوةُ ١٢ — إيقاعُ القوائم في الزجاج الأبيض (٣ أكتوبر ٢٠٢٦).
+        mainAxisSpacing: 12,
+        crossAxisSpacing: 12,
         // نسبةٌ أطول: البطاقةُ بأيقونةٍ وعنوانٍ وشارةٍ كانت تفيض ١٧ بكسلاً
         // بنسبة ٠٫٩٥ (١٣ سبتمبر ٢٠٢٦). ٠٫٧٨ يعطي الارتفاعَ الذي يسعها.
         childAspectRatio: 0.78,
@@ -65,97 +66,78 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
+    // بطاقةٌ زجاجيّة بحدٍّ رقيق وظلٍّ ناعم — تصميمُ الزجاج الأبيض بطلب المالك
+    // (٣ أكتوبر ٢٠٢٦). سقط الاستروكُ الذهبيّ العلويّ: شريطٌ ملوّنٌ على حافّة
+    // كلّ بطاقة يُثقل الشبكةَ ويقطع شفافيّةَ الزجاج، والحدُّ يكفي حدّاً.
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: palette.ink.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: <Widget>[
-            // استروكٌ ذهبيٌّ علويّ — لهجةٌ على حافّة كل بطاقة.
-            Container(
-              height: 4,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: <Color>[palette.gold, palette.goldDeep],
-                ),
-              ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Container(
+            width: 64,
+            height: 64,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: palette.gold.withValues(alpha: 0.10),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Container(
-                      width: 60,
-                      height: 60,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        color: palette.gold.withValues(alpha: 0.12),
-                      ),
-                      child: Icon(icon, size: 28, color: palette.goldDeep),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: palette.ink,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: HarajTheme.fontFamily,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.gold.withValues(alpha: 0.10),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            Icons.hourglass_empty_rounded,
-                            size: 13,
-                            color: palette.goldDeep,
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            soon,
-                            style: TextStyle(
-                              color: palette.goldDeep,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: HarajTheme.fontFamily,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            child: Icon(icon, size: 28, color: palette.gold),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: palette.ink,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              fontFamily: HarajTheme.fontFamily,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: palette.gold.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.hourglass_empty_rounded,
+                  size: 13,
+                  color: palette.gold,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  soon,
+                  style: TextStyle(
+                    color: palette.gold,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: HarajTheme.fontFamily,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

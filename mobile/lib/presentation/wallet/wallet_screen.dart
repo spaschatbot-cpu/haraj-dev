@@ -35,6 +35,9 @@ class WalletScreen extends ConsumerWidget {
     final state = ref.watch(walletBalanceProvider);
 
     return Scaffold(
+      // شفّافةٌ فوق `GlassBackdrop` — تصميمُ الزجاج الأبيض بطلب المالك
+      // (٣ أكتوبر ٢٠٢٦)؛ أرضيّةٌ مصمتةٌ هنا تحجب التدرّجَ فيبطل الزجاج.
+      backgroundColor: Colors.transparent,
       // **لا `appBar`**: شريطُ العنوان عنصرٌ في القائمة فينزلق معها، بطلب
       // المالك في ٩ سبتمبر ٢٠٢٦. الثابتُ فوقه هيدرُ العلامة في القشرة.
       body: switch (state) {
@@ -88,9 +91,9 @@ class _Wallet extends StatelessWidget {
             const _TransfersCard(),
             const SizedBox(height: 14),
             _InsuranceCard(balance: snapshot.value),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             const _SubscriptionsLog(),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             const _InsuranceLog(),
           ],
         ),
@@ -99,65 +102,92 @@ class _Wallet extends StatelessWidget {
   );
 }
 
-/// إطارُ البطاقات الثلاث — **شريطٌ ذهبيٌّ على الحافّة، وحدٌّ رفيع**.
+/// إطارُ البطاقات الثلاث — **زجاجٌ أبيضُ مصنفر، وحدٌّ رفيع**.
 ///
 /// شكلٌ واحدٌ للثلاث لا ثلاثةُ أشكال: بطاقاتٌ متطابقةٌ إلا في محتواها تفترق
-/// عند أول تعديلٍ يُنسى في إحداها (المادة ٤-٥). والشريطُ في الحافّة الأولى —
-/// يمينُ الشاشة في العربية — هو ما يجعلها بطاقةً لا مستطيلاً.
+/// عند أول تعديلٍ يُنسى في إحداها (المادة ٤-٥).
+///
+/// تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦): سقط الشريطُ الذهبيّ على
+/// الحافّة والحدُّ الأزرق — على أرضيّةٍ متدرّجة يكفي الزجاجُ والظلُّ الناعم
+/// ليُقرأ الكرتُ كرتاً، والشريطُ صار زخرفةً تزاحم الأرقام. و`tinted` يصبغه
+/// بأزرقَ خفيف — لبطاقة الرصيد وحدها، فتُقرأ أوّلاً بلا كحليٍّ ثقيل.
 class _Card extends StatelessWidget {
-  const _Card({required this.child});
+  const _Card({required this.child, this.tinted = false});
 
   final Widget child;
+  final bool tinted;
 
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
 
     return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: palette.cardSurface,
+        color: tinted ? null : palette.cardSurface,
+        gradient: tinted
+            ? LinearGradient(
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                colors: <Color>[
+                  Color.alphaBlend(
+                    palette.gold.withValues(alpha: 0.12),
+                    palette.cardSurface,
+                  ),
+                  palette.cardSurface,
+                ],
+              )
+            : null,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: palette.gold.withValues(alpha: 0.26)),
+        border: Border.all(
+          color: tinted
+              ? palette.gold.withValues(alpha: 0.22)
+              : palette.navInactive.withValues(alpha: 0.7),
+        ),
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: palette.ink.withValues(alpha: 0.07),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            color: palette.ink.withValues(alpha: 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Container(
-              width: 6,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: <Color>[palette.gold, palette.goldDeep],
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-                child: child,
-              ),
-            ),
-          ],
-        ),
+      child: child,
+    );
+  }
+}
+
+/// مربّعُ الأيقونة — أزرقُ على أزرقَ شفيف، كما في شاشة الدخول.
+class _IconTile extends StatelessWidget {
+  const _IconTile({required this.icon, this.size = 36});
+
+  final IconData icon;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: palette.gold.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
       ),
+      child: Icon(icon, size: size * 0.5, color: palette.gold),
     );
   }
 }
 
 /// سطرُ عنوانٍ وعددٍ عريض في رأس البطاقة.
 class _Headline extends StatelessWidget {
-  const _Headline({required this.label, required this.value});
+  const _Headline({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
+  final IconData icon;
   final String label;
   final String value;
 
@@ -171,15 +201,16 @@ class _Headline extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
+            _IconTile(icon: icon),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
                   fontFamily: HarajTheme.fontFamily,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: palette.inkMuted,
-                  letterSpacing: 0.2,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: palette.ink,
                 ),
               ),
             ),
@@ -189,7 +220,7 @@ class _Headline extends StatelessWidget {
               textDirection: TextDirection.ltr,
               style: TextStyle(
                 fontFamily: HarajTheme.fontFamily,
-                fontSize: 28,
+                fontSize: 26,
                 fontWeight: FontWeight.w700,
                 color: palette.ink,
                 height: 1.05,
@@ -197,10 +228,7 @@ class _Headline extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        // خطٌّ يفصل الرأسَ عمّا تحته: بدونه يُقرأ الرقمُ والحوضُ كتلةً واحدة.
-        Divider(height: 1, color: palette.gold.withValues(alpha: 0.22)),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
       ],
     );
   }
@@ -225,16 +253,20 @@ class _RefundsCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _Headline(
+            icon: Icons.assignment_return_outlined,
             label: l10n.walletRefundRequests,
             // شرطةٌ ريثما يردّ الخادم: صفرٌ قبل الجواب خبرٌ لم يُقَل بعد.
             value: requests.hasValue ? '${rows.length}' : '—',
           ),
+          // حوضٌ أزرقُ شفيف لا `pageBackground` المصمت — تصميمُ الزجاج
+          // (٣ أكتوبر ٢٠٢٦): رماديٌّ مصمتٌ داخل كرتٍ زجاجيّ يُقرأ رقعة.
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: palette.pageBackground,
-              borderRadius: BorderRadius.circular(12),
+              color: palette.gold.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: palette.gold.withValues(alpha: 0.12)),
             ),
             child: Row(
               children: <Widget>[
@@ -307,6 +339,7 @@ class _TransfersCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           _Headline(
+            icon: Icons.swap_horiz_rounded,
             label: l10n.walletTransfers,
             value: movements.hasValue ? '${movements.value}' : '—',
           ),
@@ -316,14 +349,8 @@ class _TransfersCard extends ConsumerWidget {
               onPressed: () => context.pushNamed(Routes.walletStatement),
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
               label: Text(l10n.walletOpenTransfers),
-              style: FilledButton.styleFrom(
-                backgroundColor: palette.goldDeep,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+              // الزرُّ الأساسيّ في تصميم الزجاج (٣ أكتوبر ٢٠٢٦) — كزرّ الدخول.
+              style: _primaryButtonStyle(palette),
             ),
           ),
         ],
@@ -331,6 +358,19 @@ class _TransfersCard extends ConsumerWidget {
     );
   }
 }
+
+/// الزرُّ الأزرقُ الممتلئ — **واحدٌ للشاشة كلِّها** لا نسخةٌ في كل بطاقة.
+ButtonStyle _primaryButtonStyle(HarajPalette palette) => FilledButton.styleFrom(
+  backgroundColor: palette.gold,
+  foregroundColor: Colors.white,
+  minimumSize: const Size.fromHeight(50),
+  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+  textStyle: const TextStyle(
+    fontFamily: HarajTheme.fontFamily,
+    fontWeight: FontWeight.w700,
+    fontSize: 15,
+  ),
+);
 
 /// بطاقةُ التأمين: مبلغُه، وحالتُه، وحالةُ الاشتراك، وزرُّ الاشتراك.
 ///
@@ -399,10 +439,15 @@ class _InsuranceCard extends StatelessWidget {
         ? palette.goldDeep
         : (committed.isEmpty ? theme.colorScheme.error : palette.inkMuted);
 
+    // بطاقةُ الرصيد مصبوغةٌ بأزرقَ خفيف — تُقرأ أوّلاً في الشاشة بلا لوحٍ
+    // كحليّ، بتصميم الزجاج (٣ أكتوبر ٢٠٢٦).
     return _Card(
+      tinted: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
+          const Center(child: _IconTile(icon: Icons.shield_outlined, size: 42)),
+          const SizedBox(height: 10),
           Center(
             child: Text(
               l10n.walletInsuranceStatus,
@@ -431,7 +476,7 @@ class _InsuranceCard extends StatelessWidget {
                     deposit,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,
-                      fontSize: 30,
+                      fontSize: 32,
                       fontWeight: FontWeight.w700,
                       color: palette.goldDeep,
                       height: 1.15,
@@ -468,16 +513,16 @@ class _InsuranceCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           // لوحُ حالة الاشتراك — أرضيّتُه بلون الحالة، فيُقرأ قبل أن يُقرأ
           // نصُّه.
           Container(
             decoration: BoxDecoration(
-              color: tint.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: tint.withValues(alpha: 0.30)),
+              color: tint.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: tint.withValues(alpha: 0.22)),
             ),
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
@@ -528,9 +573,11 @@ class _InsuranceCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          // **زرٌّ داكن لا ذهبيّ**: الذهبيُّ في هذه الشاشة لزرّ «اضغط للعرض»،
-          // وزرّان ذهبيّان في صفحةٍ واحدة يتنازعان على النظر.
+          const SizedBox(height: 14),
+          // **زرٌّ أزرقُ شفيف لا ممتلئ**: الممتلئُ في هذه الشاشة لزرّ «اضغط
+          // للعرض»، وزرّان ممتلئان في صفحةٍ واحدة يتنازعان على النظر. وكان
+          // كحليّاً (`heroTop`) فسقط مع الكحليّ كلِّه في تصميم الزجاج الأبيض
+          // (٣ أكتوبر ٢٠٢٦).
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
@@ -539,11 +586,18 @@ class _InsuranceCard extends StatelessWidget {
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(l10n.walletSubscribeAction),
               style: FilledButton.styleFrom(
-                backgroundColor: palette.heroTop,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: palette.gold.withValues(alpha: 0.10),
+                foregroundColor: palette.gold,
+                iconColor: palette.gold,
+                side: BorderSide(color: palette.gold.withValues(alpha: 0.30)),
+                minimumSize: const Size.fromHeight(50),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
                 ),
               ),
             ),
@@ -560,7 +614,10 @@ class _InsuranceCard extends StatelessWidget {
       !money.amount.split('').any((digit) => '123456789'.contains(digit));
 }
 
-/// عنوانُ قسمٍ تحت البطاقات: أيقونةٌ واسمٌ وخيطٌ ذهبيٌّ تحته.
+/// عنوانُ قسمٍ تحت البطاقات: مربّعُ أيقونةٍ واسمٌ.
+///
+/// كان تحته خيطٌ ذهبيٌّ متدرّج يعنون القسم؛ وفي تصميم الزجاج الأبيض (٣ أكتوبر
+/// ٢٠٢٦) صار محتوى القسم في كرتٍ زجاجيّ تحته، والكرتُ يحدّه — فالخيطُ حدٌّ ثانٍ.
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle({required this.icon, required this.label});
 
@@ -571,45 +628,25 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
 
-    return Column(
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 4, bottom: 10),
       // **من اليمين**: `end` كانت تضعه يساراً في العربية، فيقف عنوانُ القسم
       // في جهةٍ والنصُّ تحته في الأخرى.
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Icon(icon, size: 17, color: palette.goldDeep),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: HarajTheme.fontFamily,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: palette.ink,
-              ),
+      child: Row(
+        children: <Widget>[
+          _IconTile(icon: icon, size: 30),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: palette.ink,
             ),
-          ],
-        ),
-        const SizedBox(height: 7),
-        // **خيطٌ تحت العنوان لا حول القسم**: القسمُ قد يكون فارغاً، وإطارٌ
-        // حول فراغٍ يُقرأ صندوقاً معطَّلاً؛ والخيطُ يعنون ولا يحبس.
-        Container(
-          height: 2,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerRight,
-              end: Alignment.centerLeft,
-              colors: <Color>[
-                palette.goldDeep,
-                palette.gold.withValues(alpha: 0),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(1),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -626,23 +663,23 @@ class _EmptyNote extends StatelessWidget {
     final palette = HarajPalette.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 26),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Column(
         children: <Widget>[
           if (icon case final IconData glyph) ...<Widget>[
             Icon(
               glyph,
-              size: 44,
+              size: 40,
               color: palette.inkMuted.withValues(alpha: 0.35),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
           ],
           Text(
             message,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: HarajTheme.fontFamily,
-              fontSize: 12.5,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
               color: palette.inkMuted,
             ),
@@ -672,7 +709,14 @@ class _SubscriptionsLog extends StatelessWidget {
           icon: Icons.assignment_outlined,
           label: l10n.walletSubscriptionsLog,
         ),
-        _EmptyNote(message: l10n.walletNoSubscriptions),
+        // المحتوى في كرتٍ زجاجيّ — تصميمُ الزجاج (٣ أكتوبر ٢٠٢٦): جملةٌ
+        // سائبةٌ على أرضيّةٍ متدرّجة تضيع، وفي كرتٍ تُقرأ حالةً لا فراغاً.
+        _Card(
+          child: _EmptyNote(
+            message: l10n.walletNoSubscriptions,
+            icon: Icons.assignment_outlined,
+          ),
+        ),
       ],
     );
   }
@@ -695,37 +739,48 @@ class _InsuranceLog extends ConsumerWidget {
           icon: Icons.verified_user_outlined,
           label: l10n.walletInsuranceLog,
         ),
-        switch (movements) {
-          AsyncData(value: final List<LedgerMovement> rows) when rows.isEmpty =>
-            _EmptyNote(
-              message: l10n.walletNoOperations,
-              icon: Icons.schedule_rounded,
+        _Card(
+          child: switch (movements) {
+            AsyncData(value: final List<LedgerMovement> rows)
+                when rows.isEmpty =>
+              _EmptyNote(
+                message: l10n.walletNoOperations,
+                icon: Icons.schedule_rounded,
+              ),
+            // خيطٌ رفيعٌ بين الحركات: صفوفٌ متلاصقةٌ في كرتٍ واحد تُقرأ فقرةً.
+            AsyncData(value: final List<LedgerMovement> rows) => Column(
+              children: <Widget>[
+                for (final (index, movement) in rows.indexed) ...<Widget>[
+                  if (index > 0)
+                    Divider(
+                      height: 20,
+                      color: palette.navInactive.withValues(alpha: 0.7),
+                    ),
+                  _MovementRow(movement: movement),
+                ],
+              ],
             ),
-          AsyncData(value: final List<LedgerMovement> rows) => Column(
-            children: <Widget>[
-              for (final movement in rows) _MovementRow(movement: movement),
-            ],
-          ),
-          // **فشلُ القسم لا يُسقط الشاشة**: المحفظةُ فوقه وصلت، وسطرٌ يشرح
-          // خيرٌ من شاشة خطأ تُخفي رصيداً قُرئ.
-          AsyncError(:final error) => _EmptyNote(
-            message: error is Failure
-                ? error.toString()
-                : l10n.walletNoOperations,
-          ),
-          _ => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 26),
-            child: Center(
-              child: SizedBox.square(
-                dimension: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: palette.gold,
+            // **فشلُ القسم لا يُسقط الشاشة**: المحفظةُ فوقه وصلت، وسطرٌ يشرح
+            // خيرٌ من شاشة خطأ تُخفي رصيداً قُرئ.
+            AsyncError(:final error) => _EmptyNote(
+              message: error is Failure
+                  ? error.toString()
+                  : l10n.walletNoOperations,
+            ),
+            _ => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Center(
+                child: SizedBox.square(
+                  dimension: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: palette.gold,
+                  ),
                 ),
               ),
             ),
-          ),
-        },
+          },
+        ),
       ],
     );
   }
@@ -741,49 +796,48 @@ class _MovementRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  // الوصفُ عربيٌّ من الخادم ويُعرض حرفياً.
-                  movement.description,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: palette.ink,
-                  ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        const _IconTile(icon: Icons.receipt_long_outlined, size: 34),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                // الوصفُ عربيٌّ من الخادم ويُعرض حرفياً.
+                movement.description,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: palette.ink,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  movement.bucketLabel,
-                  style: TextStyle(
-                    fontFamily: HarajTheme.fontFamily,
-                    fontSize: 10.5,
-                    color: palette.inkMuted,
-                  ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                movement.bucketLabel,
+                style: TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 11.5,
+                  color: palette.inkMuted,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          MoneyText(
-            movement.money,
-            style: TextStyle(
-              fontFamily: HarajTheme.fontFamily,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: palette.goldDeep,
-            ),
+        ),
+        const SizedBox(width: 10),
+        MoneyText(
+          movement.money,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: palette.goldDeep,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
