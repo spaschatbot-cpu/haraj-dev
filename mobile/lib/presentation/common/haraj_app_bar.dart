@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'glass.dart';
 
 /// شريطُ عنوان الشاشة — **تحت الهيدر لا بدلاً منه**.
 ///
@@ -56,147 +57,155 @@ class HarajAppBar extends StatelessWidget implements PreferredSizeWidget {
     final theme = Theme.of(context);
     final canPop = GoRouter.of(context).canPop();
 
-    return Material(
-      color: palette.pageBackground,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          // الخيط الذهبيّ يفصل الشريط عن الهيدر فوقه — نظيرُ الذي في أعلى
-          // الشريط السفليّ، فيُقفل التطبيق بين خطّين من لونٍ واحد.
-          Container(
-            height: 2,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[
-                  palette.gold.withValues(alpha: 0),
-                  palette.gold.withValues(alpha: 0.85),
-                  palette.gold.withValues(alpha: 0),
+    // **زجاجٌ مصنفر** (٣ أكتوبر ٢٠٢٦) كبقيّة التطبيق: المحتوى يمرّ تحته
+    // مطموساً، وأرضيّةُ `GlassBackdrop` تظهر من خلاله.
+    return GlassPanel(
+      tint: 0.55,
+      border: Border(
+        bottom: BorderSide(color: palette.navInactive.withValues(alpha: 0.6)),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // الخيط الذهبيّ يفصل الشريط عن الهيدر فوقه — نظيرُ الذي في أعلى
+            // الشريط السفليّ، فيُقفل التطبيق بين خطّين من لونٍ واحد.
+            Container(
+              height: 2,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: <Color>[
+                    palette.gold.withValues(alpha: 0),
+                    palette.gold.withValues(alpha: 0.85),
+                    palette.gold.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              height: _base,
+              child: Row(
+                children: <Widget>[
+                  if (canPop)
+                    IconButton(
+                      onPressed: () => GoRouter.of(context).pop(),
+                      // `arrow_back_rounded` (يشير يساراً) بطلب المالك في ١٣
+                      // سبتمبر ٢٠٢٦ — كان `arrow_forward_rounded` يشير يميناً.
+                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                      color: palette.ink,
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                    )
+                  else
+                    const SizedBox(width: 16),
+                  // **خيطٌ ذهبيٌّ قائم قبل الاسم**: الشريطُ فاتحٌ على ورقةٍ
+                  // فاتحة، فبلا علامةٍ في أوّله يُقرأ سطرَ نصٍّ سائباً لا
+                  // عنوانَ شاشة. وقائمٌ لا أفقيّ: الأفقيُّ يفصل، والقائمُ
+                  // يُعنون.
+                  Container(
+                    width: 3.5,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[palette.gold, palette.goldDeep],
+                      ),
+                      borderRadius: BorderRadius.circular(3),
+                      // وهجٌ خفيف تحت الخيط: يرفعه عن الورقة فيُقرأ علامةً
+                      // مقصودة لا خطّاً بقي من تخطيط.
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: palette.gold.withValues(alpha: 0.35),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: palette.ink,
+                            fontSize: 16.5,
+                            fontWeight: FontWeight.w800,
+                            // تباعدٌ خفيف: العربية بوزن ٨٠٠ تتراصّ، وحرفٌ يلمس
+                            // حرفاً يُقرأ ككلمةٍ واحدة.
+                            letterSpacing: 0.2,
+                            height: 1.2,
+                          ),
+                        ),
+                        if (subtitle case final String line)
+                          Text(
+                            line,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: palette.inkMuted,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (actions case final List<Widget> widgets) ...widgets,
+                  // **بيتٌ في الطرف الآخر حين لا يوجد ما يُرجَع إليه** — بطلب
+                  // المالك في ٩ سبتمبر ٢٠٢٦.
+                  //
+                  // أقسامُ الشريط السفليّ جذورُ مكدّساتها، فلا `pop` فيها ولا
+                  // زرَّ رجوع. والشريطُ السفليّ يعرف الطريق إلى الرئيسية،
+                  // لكنّ من دخل من إشعارٍ أو رابطٍ يفتح قسماً بعينه لا يعرف
+                  // أنّ تحته شريطاً — وهذه أيقونةٌ تقول ذلك في مكان النظر.
+                  //
+                  // **حوضٌ ذهبيٌّ خفيف لا أيقونةٌ عارية**: أيقونةٌ وحدها على
+                  // ورقةٍ فاتحة تُقرأ زخرفةً لا زرّاً، والحوضُ يقول «هذا
+                  // يُضغط». وهو نظيرُ حوضِ الجرس والحساب في الهيدر فوقه.
+                  //
+                  // **ودائرةٌ بحدٍّ لا مربّعٌ مدوَّر** (١٤ سبتمبر ٢٠٢٦): حوضا
+                  // الجرس والحساب في الهيدر دائرتان بحدٍّ ذهبيّ، ومربّعٌ هنا
+                  // يُقرأ زرّاً من عائلةٍ أخرى.
+                  if (!canPop)
+                    Semantics(
+                      button: true,
+                      label: AppLocalizations.of(context).navHome,
+                      child: Material(
+                        color: palette.gold.withValues(alpha: 0.10),
+                        shape: CircleBorder(
+                          side: BorderSide(
+                            color: palette.gold.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: InkWell(
+                          onTap: () => GoRouter.of(context).go(Routes.homePath),
+                          customBorder: const CircleBorder(),
+                          child: Padding(
+                            padding: const EdgeInsets.all(7),
+                            child: Icon(
+                              Icons.home_rounded,
+                              size: 18,
+                              color: palette.goldDeep,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 16),
                 ],
               ),
             ),
-          ),
-          SizedBox(
-            height: _base,
-            child: Row(
-              children: <Widget>[
-                if (canPop)
-                  IconButton(
-                    onPressed: () => GoRouter.of(context).pop(),
-                    // `arrow_back_rounded` (يشير يساراً) بطلب المالك في ١٣
-                    // سبتمبر ٢٠٢٦ — كان `arrow_forward_rounded` يشير يميناً.
-                    icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                    color: palette.ink,
-                    tooltip: MaterialLocalizations.of(
-                      context,
-                    ).backButtonTooltip,
-                  )
-                else
-                  const SizedBox(width: 16),
-                // **خيطٌ ذهبيٌّ قائم قبل الاسم**: الشريطُ فاتحٌ على ورقةٍ
-                // فاتحة، فبلا علامةٍ في أوّله يُقرأ سطرَ نصٍّ سائباً لا
-                // عنوانَ شاشة. وقائمٌ لا أفقيّ: الأفقيُّ يفصل، والقائمُ
-                // يُعنون.
-                Container(
-                  width: 3.5,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[palette.gold, palette.goldDeep],
-                    ),
-                    borderRadius: BorderRadius.circular(3),
-                    // وهجٌ خفيف تحت الخيط: يرفعه عن الورقة فيُقرأ علامةً
-                    // مقصودة لا خطّاً بقي من تخطيط.
-                    boxShadow: <BoxShadow>[
-                      BoxShadow(
-                        color: palette.gold.withValues(alpha: 0.35),
-                        blurRadius: 6,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: palette.ink,
-                          fontSize: 16.5,
-                          fontWeight: FontWeight.w800,
-                          // تباعدٌ خفيف: العربية بوزن ٨٠٠ تتراصّ، وحرفٌ يلمس
-                          // حرفاً يُقرأ ككلمةٍ واحدة.
-                          letterSpacing: 0.2,
-                          height: 1.2,
-                        ),
-                      ),
-                      if (subtitle case final String line)
-                        Text(
-                          line,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: palette.inkMuted,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (actions case final List<Widget> widgets) ...widgets,
-                // **بيتٌ في الطرف الآخر حين لا يوجد ما يُرجَع إليه** — بطلب
-                // المالك في ٩ سبتمبر ٢٠٢٦.
-                //
-                // أقسامُ الشريط السفليّ جذورُ مكدّساتها، فلا `pop` فيها ولا
-                // زرَّ رجوع. والشريطُ السفليّ يعرف الطريق إلى الرئيسية،
-                // لكنّ من دخل من إشعارٍ أو رابطٍ يفتح قسماً بعينه لا يعرف
-                // أنّ تحته شريطاً — وهذه أيقونةٌ تقول ذلك في مكان النظر.
-                //
-                // **حوضٌ ذهبيٌّ خفيف لا أيقونةٌ عارية**: أيقونةٌ وحدها على
-                // ورقةٍ فاتحة تُقرأ زخرفةً لا زرّاً، والحوضُ يقول «هذا
-                // يُضغط». وهو نظيرُ حوضِ الجرس والحساب في الهيدر فوقه.
-                //
-                // **ودائرةٌ بحدٍّ لا مربّعٌ مدوَّر** (١٤ سبتمبر ٢٠٢٦): حوضا
-                // الجرس والحساب في الهيدر دائرتان بحدٍّ ذهبيّ، ومربّعٌ هنا
-                // يُقرأ زرّاً من عائلةٍ أخرى.
-                if (!canPop)
-                  Semantics(
-                    button: true,
-                    label: AppLocalizations.of(context).navHome,
-                    child: Material(
-                      color: palette.gold.withValues(alpha: 0.10),
-                      shape: CircleBorder(
-                        side: BorderSide(
-                          color: palette.gold.withValues(alpha: 0.35),
-                        ),
-                      ),
-                      child: InkWell(
-                        onTap: () => GoRouter.of(context).go(Routes.homePath),
-                        customBorder: const CircleBorder(),
-                        child: Padding(
-                          padding: const EdgeInsets.all(7),
-                          child: Icon(
-                            Icons.home_rounded,
-                            size: 18,
-                            color: palette.goldDeep,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(width: 16),
-              ],
-            ),
-          ),
-          if (bottom case final PreferredSizeWidget widget) widget,
-        ],
+            if (bottom case final PreferredSizeWidget widget) widget,
+          ],
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/theme.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../common/glass.dart';
 
 /// هيدر التطبيق.
 ///
@@ -255,15 +256,16 @@ class _CompactHero extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: <Widget>[
+          // **زجاجٌ أبيض** كبقيّة التطبيق (٣ أكتوبر ٢٠٢٦) — كان بيبي بلو.
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topRight,
-                  end: Alignment.bottomLeft,
-                  colors: <Color>[HarajSky.top, HarajSky.bottom],
+            child: GlassPanel(
+              tint: 0.6,
+              border: Border(
+                bottom: BorderSide(
+                  color: palette.navInactive.withValues(alpha: 0.6),
                 ),
               ),
+              child: const SizedBox.expand(),
             ),
           ),
           Positioned.fill(
