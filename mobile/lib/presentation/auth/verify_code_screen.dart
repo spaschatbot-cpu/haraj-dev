@@ -179,7 +179,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     final expiresAt = SaudiTime.forDisplay(pending.delivery.expiresAt);
 
     return Scaffold(
-      backgroundColor: palette.pageBackground,
+      backgroundColor: Colors.transparent,
       body: AuthBackdrop(
         child: SafeArea(
           child: Center(

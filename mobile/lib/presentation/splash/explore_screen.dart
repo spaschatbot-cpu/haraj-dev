@@ -58,7 +58,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final strings = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: palette.pageBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) {

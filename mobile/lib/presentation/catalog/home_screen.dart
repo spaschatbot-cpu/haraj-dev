@@ -203,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       // الرأسُ أبيض: ساعةُ النظام وبطّاريّتُه داكنتان فوقه.
       value: SystemUiOverlayStyle.dark,
       child: Scaffold(
-        backgroundColor: palette.pageBackground,
+        backgroundColor: Colors.transparent,
         body: SnapshotView<VehicleFeed>(
           state: _first,
           onRetry: _reload,

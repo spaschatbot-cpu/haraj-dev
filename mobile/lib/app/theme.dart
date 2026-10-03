@@ -188,8 +188,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     goldOnDark: Color(0xFF8FC4F7),
     ink: Color(0xFF12263C),
     inkMuted: Color(0xFF5F7488),
-    pageBackground: Color(0xFFF3F5F8),
-    cardSurface: Color(0xFFFFFFFF),
+    pageBackground: Color(0xFFF1F5FA),
+    // **أبيضُ زجاجيّ لا أبيضُ مصمت** (طلبُ المالك، ٣ أكتوبر ٢٠٢٦): ٧٨٪ بياضاً
+    // فوق أرضيّة `GlassBackdrop` يعبره لونُها فيُقرأ زجاجاً مصنفراً.
+    cardSurface: Color(0xC7FFFFFF),
     heroTop: Color(0xFF0E2136),
     heroBottom: Color(0xFF050D17),
     heroGlow: Color(0xFF2E86E0),
@@ -269,7 +271,11 @@ abstract final class HarajTheme {
     return base.copyWith(
       // أرضيّةُ الصفحة كريميّة في كل شاشة، لا في الرئيسية وحدها: شاشتان
       // بأرضيّتين مختلفتين تُريان وميضاً أبيض عند كل انتقال بينهما.
-      scaffoldBackgroundColor: palette.pageBackground,
+      // **شفّافةٌ في الفاتح**: الأرضيّةُ `GlassBackdrop` تحت التنقّل كلِّه
+      // (`HarajApp.builder`)، والشاشةُ فوقها لا تغطّيها.
+      scaffoldBackgroundColor: brightness == Brightness.light
+          ? Colors.transparent
+          : palette.pageBackground,
       textTheme: base.textTheme.apply(
         fontFamily: fontFamily,
         fontFamilyFallback: _fallbacks,

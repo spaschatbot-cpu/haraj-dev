@@ -5,6 +5,7 @@ import '../../../domain/catalog/entities/vehicle_summary.dart';
 import '../../../domain/common/failure.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../common/failure_view.dart';
+import '../../common/glass.dart';
 import 'vehicle_card.dart';
 
 /// نتائج المركبات المرقَّمة — **مصفوفة الكروت وحدها**، لا جلبها.
@@ -137,7 +138,8 @@ class VehicleResults extends StatelessWidget {
               // وبلون الصفحة لا بيضاء: جُرِّبت البيضاء في ١٠ سبتمبر ٢٠٢٦
               // ورُدَّت — الشريحةُ ليست بطاقةً فوق الصفحة، هي الصفحةُ نفسها
               // ثابتةً.
-              child: ColoredBox(color: palette.pageBackground, child: widget),
+              // **زجاجٌ مصنفر لا شريطٌ مصمت**: الكروتُ تمرّ تحته مطموسةً.
+              child: GlassPanel(tint: 0.55, child: widget),
             ),
           ),
         if (listHeader case final Widget widget)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../presentation/common/glass.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -41,6 +42,8 @@ class HarajApp extends ConsumerWidget {
       theme: HarajTheme.light(),
       themeMode: ThemeMode.light,
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) =>
+          GlassBackdrop(child: child ?? const SizedBox.shrink()),
       debugShowCheckedModeBanner: false,
       // **لافتةُ البيئة مُطفأة بقرار المالك (٩ سبتمبر ٢٠٢٦).**
       //

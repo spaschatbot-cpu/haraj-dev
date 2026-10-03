@@ -83,6 +83,8 @@ class Runner:
         # يُعَدّ عالقاً فيُسقَط الإقلاعُ نفسُه — وقع أوّلَ مرّة.
         self.ready = False
         self.opened = False
+        # إعادةُ تشغيلٍ تنتظر انتهاءَ الأمر الجاري — انظر `relay`.
+        self.restart_pending = False
         self.lock = threading.Lock()
 
     def launch(self) -> None:
@@ -156,8 +158,11 @@ class Runner:
             if any(mark in line for mark in DONE_MARKS):
                 self.busy = False
             if "Hot reload rejected" in line or "Try performing a hot restart" in line:
-                print("[dev_web] التحميل الساخن رُفض ← إعادة تشغيل", flush=True)
-                self.send("R")
+                # **لا يُرسَل R فوراً**: flutter ما زال في التحميل المرفوض، فكان
+                # يبتلع الأمرَ ويطبع «Performing hot reload… Try again» وتبقى
+                # الشاشةُ قديمة — وقع مرّتين. فيُعلَّم، والمراقبُ يرسله حين ينتهي.
+                print("[dev_web] التحميل الساخن رُفض ← إعادة تشغيل بعد انتهائه", flush=True)
+                self.restart_pending = True
 
 
 def open_app() -> None:
@@ -202,6 +207,13 @@ def watch(runner: Runner) -> None:
             runner.kill()
             runner.launch()
             pending = ""
+            continue
+
+        if runner.restart_pending and runner.ready and not runner.busy:
+            runner.restart_pending = False
+            pending = ""
+            print("[dev_web] إعادة تشغيل", flush=True)
+            runner.send("R")
             continue
 
         if pending and runner.ready and not runner.busy and time.time() - quiet_since > 0.6:

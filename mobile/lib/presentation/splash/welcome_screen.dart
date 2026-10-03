@@ -72,7 +72,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final strings = AppLocalizations.of(context);
 
     return Scaffold(
-      backgroundColor: palette.pageBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, box) {

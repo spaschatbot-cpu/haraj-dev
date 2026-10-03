@@ -119,7 +119,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     // تقوله) و«الدعم الفني» و«موثّق عبر النفاذ الوطني» — لا صفحةَ دعمٍ ولا ربطَ
     // بالنفاذ في النظام، ووعدٌ في شاشة الدخول أوّلُ ما يُكذَّب.
     return Scaffold(
-      backgroundColor: palette.pageBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         // **موزَّعةٌ على طول الشاشة لا مكوَّمة** (طلبُ المالك الثالث، ٣٠
         // سبتمبر): «التوزيع مريح للعين، مش مضغوطة في بعضها». فالفراغُ يُقسَم

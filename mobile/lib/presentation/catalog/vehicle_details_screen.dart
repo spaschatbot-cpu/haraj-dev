@@ -72,9 +72,8 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
     return Scaffold(
-      backgroundColor: palette.pageBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: PageView.builder(
@@ -190,7 +189,7 @@ class _VehicleDetailsPageState extends ConsumerState<_VehicleDetailsPage> {
     final when = DateFormat('EEEE HH:mm', locale).format(endsAt);
 
     return ColoredBox(
-      color: palette.pageBackground,
+      color: Colors.transparent,
       child: Column(
         children: <Widget>[
           _TopBar(

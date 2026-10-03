@@ -402,7 +402,6 @@ final loadMyInvoicesProvider = Provider<LoadMyInvoices>(
   (ref) => LoadMyInvoices(ref.watch(activityRepositoryProvider)),
 );
 
-
 final cancelCardTopUpProvider = Provider<CancelCardTopUp>(
   (ref) => CancelCardTopUp(ref.watch(walletRepositoryProvider)),
 );

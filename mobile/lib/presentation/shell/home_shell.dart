@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -155,8 +157,12 @@ class _GoldNavigationBar extends StatelessWidget {
   /// يصلح للزجاج — يُظهر المحتوى من تحته فيبدو الطمس. والداكنُ الصُّلب العائم
   /// يترك شريطاً كريميّاً تحته يُقرأ فراغاً منسيّاً، والممتدُّ يقفل الصفحة من
   /// أسفلها كما يقفلها الهيدر من أعلاها.
-  // مسطّحٌ بحدٍّ علويّ رفيع — تصميمُ المالك (٣٠ سبتمبر ٢٠٢٦).
-  static const double _radius = 0;
+  // **عائمٌ مدوّرُ الأطراف** (طلبُ المالك، ٣ أكتوبر ٢٠٢٦): «مش مستوي… من
+  // الأطراف معمول زاوية… تحسّه عائم». كان مسطّحاً ممتدّاً من حافّةٍ لحافّة.
+  static const double _radius = 26;
+
+  /// الفراغُ تحت الشريط العائم وعلى جانبيه.
+  static const double _floatGap = 12;
 
   /// حشوةُ الشريط حول صفّه.
   static const double _padTop = 8;
@@ -173,104 +179,123 @@ class _GoldNavigationBar extends StatelessWidget {
 
   /// ما يقرؤه `_BarInset` ليدفع المحتوى — **نفس الأرقام التي يُبنى بها
   /// الشريط**، فلا ينفصل الرقمان.
-  static const double barHeight = _padTop + _rowHeight + _padBottom;
-
-  /// شفافيّةُ الأرضيّة — بطلب المالك في ٩ سبتمبر ٢٠٢٦.
-  ///
-  /// **٠٫٩٢ لا أقلّ**: النصُّ الكريميُّ والأيقوناتُ فوقها، ونسبةُ تباينها
-  /// محسوبةٌ على البنّيّ الصُّلب. وكلُّ نقطةِ شفافيّةٍ تُدخل لونَ ما يمرّ
-  /// تحت الشريط في الأرضيّة — وما يمرّ كروتٌ بيضاء، فتفتحُ الأرضيّةَ وتُنقص
-  /// التباين. عند هذا الحدّ يُرى المرورُ ويبقى النصُّ مقروءاً.
-  static const double _opacity = 0.92;
+  static const double barHeight = _padTop + _rowHeight + _padBottom + _floatGap;
 
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(_radius),
-        ),
-        boxShadow: <BoxShadow>[
-          // ظلٌّ صاعدٌ خافت: يرفع الشريط عن الورقة الكريميّة بلا خطٍّ يقطعها.
-          //
-          // وأضيقُ بعد القصّ: ظلٌّ بعشرين تحت شريطٍ بسبعين يصعد ثلثَ ارتفاعه
-          // فيُقرأ الشريط أطولَ ممّا هو، وهو عكسُ المطلوب.
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, -3),
-          ),
-        ],
+    // العائمُ يحمل حاشيةَ الجهاز في هامشه لا في داخله: الخطُّ السفليّ في
+    // الآيفون يقع تحت الشريط لا داخله.
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        _floatGap + MediaQuery.paddingOf(context).bottom,
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(_radius),
-        ),
+      child: MediaQuery.removePadding(
+        context: context,
+        removeBottom: true,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            // **نفس تدرّج الهيدر بعينه** — `heroTop`/`heroBottom` وقطريّاً
-            // من أعلى اليمين إلى أسفل اليسار، لا زوجاً خاصّاً بالشريط ولا
-            // اتّجاهاً رأسيّاً. لونان قريبان لا متطابقان جعلا الفوتر يُقرأ
-            // أعتم من الهيدر على الشاشة نفسها، واتّجاهان مختلفان يجعلان
-            // الحافّتين المتقابلتين تفترقان في الإضاءة.
-            // **أبيضُ** بتصميم المالك (٣٠ سبتمبر ٢٠٢٦) — كان بيبي بلو ثم كحليّاً.
-            color: palette.cardSurface.withValues(alpha: _opacity),
-          ),
-          child: Stack(
-            children: <Widget>[
-              // خيطٌ ذهبيّ على الحافّة العليا — نظيرُ الذي أسفل الهيدر، فيُقفل
-              // التطبيق بين خطّين من لونٍ واحد.
+            borderRadius: BorderRadius.circular(_radius),
+            boxShadow: <BoxShadow>[
+              // ظلٌّ صاعدٌ خافت: يرفع الشريط عن الورقة الكريميّة بلا خطٍّ يقطعها.
               //
-              // **`Positioned` لا `Align`:** ابنٌ غيرُ موضَّع في `Stack` هو ما
-              // يُقاس به الشريط، و`Align` بلا `heightFactor` يتمدّد إلى آخر
-              // القيود الواردة — وقيدُ `bottomNavigationBar` رخوٌ حتى ارتفاع
-              // الشاشة. فبلع الشريطُ الشاشة كلها وطلع محتواه في أعلاها.
-              Positioned(
-                top: 0,
-                // `left`/`right` لا `start`/`end`: الخيط متماثل، والاتجاه لا
-                // يعني له شيئاً.
-                left: 0,
-                right: 0,
-                child: Container(
-                  height: 1.5,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: <Color>[palette.navInactive, palette.navInactive],
-                    ),
-                  ),
-                ),
-              ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(4, _padTop, 4, _padBottom),
-                  child: SizedBox(
-                    height: _rowHeight,
-                    child: Row(
-                      children: <Widget>[
-                        for (final section in HomeSection.values)
-                          Expanded(
-                            child: _NavigationItem(
-                              section: section,
-                              selected: shell.currentIndex == section.index,
-                              onTap: () => shell.goBranch(
-                                section.index,
-                                // ضغطُ القسم المفتوح يعود إلى رأسه — سلوكٌ
-                                // يتوقّعه من اعتاد التطبيقات: «رجّعني لأول
-                                // الصفحة» بضغطةٍ على ما هو مفتوح أصلاً.
-                                initialLocation:
-                                    shell.currentIndex == section.index,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
+              // وأضيقُ بعد القصّ: ظلٌّ بعشرين تحت شريطٍ بسبعين يصعد ثلثَ ارتفاعه
+              // فيُقرأ الشريط أطولَ ممّا هو، وهو عكسُ المطلوب.
+              BoxShadow(
+                color: palette.ink.withValues(alpha: 0.14),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(_radius),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  // **نفس تدرّج الهيدر بعينه** — `heroTop`/`heroBottom` وقطريّاً
+                  // من أعلى اليمين إلى أسفل اليسار، لا زوجاً خاصّاً بالشريط ولا
+                  // اتّجاهاً رأسيّاً. لونان قريبان لا متطابقان جعلا الفوتر يُقرأ
+                  // أعتم من الهيدر على الشاشة نفسها، واتّجاهان مختلفان يجعلان
+                  // الحافّتين المتقابلتين تفترقان في الإضاءة.
+                  // **زجاجٌ أبيض مصنفر** (٣ أكتوبر ٢٠٢٦) — كان أبيضَ مصمتاً، وقبله
+                  // بيبي بلو ثم كحليّاً. الطمسُ من `BackdropFilter` فوقه.
+                  color: Colors.white.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(_radius),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.8),
+                  ),
+                ),
+                child: Stack(
+                  children: <Widget>[
+                    // خيطٌ ذهبيّ على الحافّة العليا — نظيرُ الذي أسفل الهيدر، فيُقفل
+                    // التطبيق بين خطّين من لونٍ واحد.
+                    //
+                    // **`Positioned` لا `Align`:** ابنٌ غيرُ موضَّع في `Stack` هو ما
+                    // يُقاس به الشريط، و`Align` بلا `heightFactor` يتمدّد إلى آخر
+                    // القيود الواردة — وقيدُ `bottomNavigationBar` رخوٌ حتى ارتفاع
+                    // الشاشة. فبلع الشريطُ الشاشة كلها وطلع محتواه في أعلاها.
+                    Positioned(
+                      top: 0,
+                      // `left`/`right` لا `start`/`end`: الخيط متماثل، والاتجاه لا
+                      // يعني له شيئاً.
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 1.5,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: <Color>[
+                              palette.navInactive,
+                              palette.navInactive,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          4,
+                          _padTop,
+                          4,
+                          _padBottom,
+                        ),
+                        child: SizedBox(
+                          height: _rowHeight,
+                          child: Row(
+                            children: <Widget>[
+                              for (final section in HomeSection.values)
+                                Expanded(
+                                  child: _NavigationItem(
+                                    section: section,
+                                    selected:
+                                        shell.currentIndex == section.index,
+                                    onTap: () => shell.goBranch(
+                                      section.index,
+                                      // ضغطُ القسم المفتوح يعود إلى رأسه — سلوكٌ
+                                      // يتوقّعه من اعتاد التطبيقات: «رجّعني لأول
+                                      // الصفحة» بضغطةٍ على ما هو مفتوح أصلاً.
+                                      initialLocation:
+                                          shell.currentIndex == section.index,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),
