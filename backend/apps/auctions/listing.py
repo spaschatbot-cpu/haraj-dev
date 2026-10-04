@@ -174,6 +174,15 @@ def vehicle_page(
             (name for name in ("active", "soon", "ended") if counts.get(name)),
             "",
         )
+        # **و`total` يتبع التبويبَ المختار.** `page_totals` حسبته قبل أن
+        # يُختار، أي على المركبات كلِّها — فقالت اللافتةُ «مركبات هذا
+        # التبويب **٦٬٩٩٢**» والبطاقةُ تحتها «منتهي **٤١**»: رقمان لشيءٍ
+        # واحدٍ على شاشةٍ واحدة. وقِيس على الصفحة الحيّة.
+        #
+        # و`counts[phase]` هو هو `total` حين يُطلب التبويبُ صراحةً (مقيس:
+        # `?phase=ended` يردّ ٤١ في الاثنين)، فيُؤخذ منه ولا يُعاد استعلام.
+        if phase:
+            total = counts[phase]
 
     if phase:
         queryset = queryset.filter(phase_q(phase))
