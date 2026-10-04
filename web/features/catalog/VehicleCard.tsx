@@ -283,12 +283,9 @@ export function VehicleGrid({
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {vehicles.map((vehicle, index) => (
-        <VehicleCard
-          key={vehicle.id}
-          vehicle={vehicle}
-          now={now}
-          priority={index === 0}
-        />
+        <div key={vehicle.id} className="card-in">
+          <VehicleCard vehicle={vehicle} now={now} priority={index === 0} />
+        </div>
       ))}
     </div>
   );

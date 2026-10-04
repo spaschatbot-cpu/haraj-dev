@@ -36,14 +36,14 @@ export function BrowseHero({
   total: number | null;
 }) {
   return (
-    <section className="relative mb-6 overflow-hidden rounded-xl bg-surface-lowest p-6 shadow-sm md:p-8">
+    <section className="hero-ink relative mb-6 overflow-hidden rounded-xl p-6 shadow-sm md:p-8">
       <HeroArt />
 
       <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-4">
           <span
             aria-hidden="true"
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-surface-highest text-secondary"
+            className="hero-chip flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
           >
             <svg
               viewBox="0 0 24 24"
@@ -62,11 +62,11 @@ export function BrowseHero({
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-headline-md">ساحة المزادات المغلقة</h1>
-              <span className="rounded-sm bg-secondary-fixed px-2 py-0.5 text-caption font-bold text-on-secondary-fixed">
+              <span className="hero-badge rounded-sm px-2 py-0.5 text-caption font-bold">
                 مزايدة مغلقة
               </span>
             </div>
-            <p className="mt-1 max-w-xl text-body-sm text-on-surface-variant">
+            <p className="hero-sub mt-1 max-w-xl text-body-sm">
               كل مزايدة سرّية: لا يرى أحدٌ مبلغك، ولا ترى مبلغ غيرك، ولا عدد
               المزايدين. تُفتح المظاريف عند الإغلاق.
             </p>
@@ -74,11 +74,11 @@ export function BrowseHero({
         </div>
 
         {total === null ? null : (
-          <div className="shrink-0 border-t border-outline-variant/60 pt-3 md:border-t-0 md:border-e md:pe-6 md:pt-0">
-            <p className="text-caption text-on-surface-variant">مركبات هذا التبويب</p>
+          <div className="hero-rule shrink-0 border-t pt-3 md:border-t-0 md:border-e md:pe-6 md:pt-0">
+            <p className="hero-sub text-caption">مركبات هذا التبويب</p>
             <p className="text-headline-md">
               <span className="tnum">{count(total)}</span>{" "}
-              <span className="text-label-sm font-normal text-on-surface-variant">
+              <span className="hero-sub text-label-sm font-normal">
                 مركبة
               </span>
             </p>
