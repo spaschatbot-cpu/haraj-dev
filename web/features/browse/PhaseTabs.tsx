@@ -31,6 +31,31 @@ import { count } from "@/lib/format";
 import { TABS, type Phase } from "./phase";
 import type { PhaseCounts } from "@/lib/api";
 
+//: **ولكلّ حالةٍ لونُها** — كما في v1: «قريباً» برتقاليّ (`#d97706`)
+//: و«نشط» ذهبيّ (`#a88118`) و«منتهي» محايد (`index.php:1612`). وعندنا
+//: تُقرأ من رموز المشروع لا بهيئةٍ مكتوبة: `warn` للقادم (انتظار)،
+//: و`ok` للجاري (مفتوحٌ الآن)، و`secondary` للمنتهي (أرشيف).
+//:
+//: واللونُ **لا يحمل المعنى وحده**: الرقمُ والاسمُ والرسمُ كلُّها مكتوبة،
+//: والمختارةُ لها إطارٌ أثخن و`aria-current` — فمن لا يميّز الألوان يقرأ.
+const TONE: Record<Phase, { ring: string; fill: string; ink: string }> = {
+  soon: {
+    ring: "border-warn-line",
+    fill: "bg-warn-surface",
+    ink: "text-warn",
+  },
+  active: {
+    ring: "border-ok-line",
+    fill: "bg-ok-surface",
+    ink: "text-ok",
+  },
+  ended: {
+    ring: "border-outline-variant",
+    fill: "bg-surface-low",
+    ink: "text-secondary",
+  },
+};
+
 //: رسمٌ لكل حالة — مضمَّنٌ لا محرف: المحرفَ يرسمه نظامُ التشغيل بأسلوبه،
 //: ملوّناً ومختلفاً بين ويندوز وأندرويد (قاعدةُ T837 في اللوحة).
 const ART: Record<Phase, React.ReactNode> = {
@@ -79,47 +104,52 @@ export function PhaseTabs({
   return (
     <nav aria-label="حالة المزاد" className="mb-6">
       <ul className="grid grid-cols-3 gap-3">
-        {TABS.map((tab) => {
+        {TABS.map((tab, index) => {
           const selected = tab.id === current;
+          const tone = TONE[tab.id];
+          const live = tab.id === "active" && (counts?.active ?? 0) > 0;
           return (
             <li key={tab.id}>
               <Link
                 href={href(tab.id)}
                 aria-current={selected ? "page" : undefined}
-                className={`flex h-full flex-col gap-1 rounded-xl p-4 transition-colors md:p-5 ${
+                /* التأخيرُ المتدرّج يجعل العينَ تقرأ الثلاثَ واحدةً بعد
+                   واحدة، لا هبوطاً واحداً لا يُقرأ منه شيء. */
+                style={{ animationDelay: `${index * 70}ms` }}
+                className={`phase-card flex h-full flex-col gap-1 rounded-xl p-4 md:p-5 ${tone.fill} ${
                   selected
-                    ? "border-2 border-secondary bg-surface-lowest"
-                    : "border border-outline-variant bg-surface-lowest hover:border-outline"
+                    ? `border-2 ${tone.ring.replace("border-", "border-")} ring-1 ring-inset ring-current ${tone.ink}`
+                    : `border ${tone.ring}`
                 }`}
               >
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className={`h-6 w-6 ${
-                    selected ? "text-secondary" : "text-on-surface-variant"
-                  }`}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  {ART[tab.id]}
-                </svg>
+                <span className="flex items-center gap-2">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className={`h-6 w-6 ${tone.ink}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    {ART[tab.id]}
+                  </svg>
+                  {live ? (
+                    <span
+                      aria-hidden="true"
+                      className="phase-live-dot h-2 w-2 rounded-full bg-ok"
+                    />
+                  ) : null}
+                </span>
 
                 {counts === null ? null : (
-                  <span className="tnum text-headline-md leading-none">
+                  <span className={`tnum text-headline-md leading-none ${tone.ink}`}>
                     {count(counts[tab.id])}
                   </span>
                 )}
 
-                <span
-                  className={`text-label-md ${
-                    selected ? "text-on-surface" : "text-on-surface-variant"
-                  }`}
-                >
-                  {tab.label}
-                </span>
+                <span className="text-label-md text-on-surface">{tab.label}</span>
               </Link>
             </li>
           );
