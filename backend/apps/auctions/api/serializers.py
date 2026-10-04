@@ -225,6 +225,10 @@ class VehiclePageSerializer(serializers.Serializer):
 
     total = serializers.IntegerField()
     counts = PhaseCountsSerializer()
+    #: التبويبُ الذي رُدَّ فعلاً — المطلوبُ إن طُلب، والذي اختاره الخادمُ إن
+    #: لم يُطلب (أوّلُ تبويبٍ فيه سيارات: نشط ← قريب ← منتهي، كما يفعل v1).
+    #: وبدونه تُعلّم الشاشةُ تبويباً وتعرض سياراتِ آخر.
+    phase = serializers.CharField(allow_blank=True)
     results = VehicleCardSerializer(many=True)
 
 

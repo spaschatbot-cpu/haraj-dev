@@ -1643,6 +1643,7 @@ export interface components {
         VehiclePage: {
             total: number;
             counts: components["schemas"]["PhaseCounts"];
+            phase: string;
             results: components["schemas"]["VehicleCard"][];
         };
         /** @description Prove the number. */

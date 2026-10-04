@@ -20,7 +20,8 @@
  * يُكتب فيها بحث.
  */
 
-import { api, request, type Phase, type PhaseCounts, type Vehicle, type VehiclePage } from "@/lib/api";
+import { DEFAULT_PHASE } from "@/features/browse/phase";
+import { PHASES, api, request, type Phase, type PhaseCounts, type Vehicle, type VehiclePage } from "@/lib/api";
 
 export interface Browse {
   vehicles: Vehicle[];
@@ -33,6 +34,8 @@ export interface Browse {
    * آخر تماماً. التبويب يُعرض بلا رقم حينها — انظر `PhaseTabs`.
    */
   counts: PhaseCounts | null;
+  /** التبويب الذي ردّه الخادم — المطلوب، أو الذي اختاره حين لم يُطلب. */
+  phase: Phase;
 }
 
 export async function browse({
@@ -41,7 +44,8 @@ export async function browse({
   limit,
   offset,
 }: {
-  phase: Phase;
+  /** التبويب المطلوب، أو فراغٌ ليختاره الخادم من حيث السيارات. */
+  phase: Phase | "";
   /** المرشِّحات كما وصلت من العنوان، بعد أن حُصرت في ما يعلنه العقد. */
   filters: Record<string, string>;
   limit: number;
@@ -50,7 +54,12 @@ export async function browse({
   //: التبويب مرشِّحٌ بين مرشِّحات على السلك، فيُبنى معها في خريطة واحدة —
   //: وترتيب المعاملات ثابت لأن ردّاً مخزَّناً بمفتاح مختلف لنفس السؤال هو نصف
   //: العطب الذي كان في v1.
-  const query: Record<string, string> = { phase, ...filters };
+  //: **ولا يُرسَل التبويبُ إن لم يطلبه الزائر.** حين يغيب، يختاره الخادمُ من
+  //: حيث السياراتُ فعلاً (نشط ← قريب ← منتهي) ويقوله في `phase` من الرد —
+  //: كما يفعل v1 («يحسبه السيرفر، ولا يعتمد على آخر تبويب محفوظ»). وثابتٌ في
+  //: الواجهة كان يفتح الرئيسيّةَ على «نشط ٠» وشبكةٍ فارغة و٤١ مركبةً بجانبها.
+  const query: Record<string, string> = { ...filters };
+  if (phase) query.phase = phase;
 
   const page = (await request(() =>
     api.GET("/api/v1/vehicles/", { params: { query: { limit, offset, ...query } } }),
@@ -60,5 +69,11 @@ export async function browse({
     vehicles: page.results ?? [],
     total: page.total,
     counts: page.counts ?? null,
+    //: ما ردّه الخادمُ فعلاً — فتُعلَّم البطاقةُ الصحيحة.
+    //: والعقدُ يعلنها نصّاً، فتُحصر في المراحل الثلاث: كلمةٌ لا نعرفها
+    //: تعود إلى المطلوب لا إلى نوعٍ يعد بغير ما فيه.
+    phase: PHASES.find((name) => name === page.phase)
+      ?? PHASES.find((name) => name === phase)
+      ?? DEFAULT_PHASE,
   };
 }

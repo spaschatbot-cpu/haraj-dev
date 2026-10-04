@@ -3203,12 +3203,15 @@ components:
           type: integer
         counts:
           $ref: '#/components/schemas/PhaseCounts'
+        phase:
+          type: string
         results:
           type: array
           items:
             $ref: '#/components/schemas/VehicleCard'
       required:
       - counts
+      - phase
       - results
       - total
     VerifyCode:

@@ -36,7 +36,7 @@ import type { Metadata } from "next";
 import { BrowseHero } from "@/features/browse/BrowseHero";
 import { browse } from "@/features/browse/browse";
 import { PhaseTabs } from "@/features/browse/PhaseTabs";
-import { readPhase, tabOf } from "@/features/browse/phase";
+import { DEFAULT_PHASE, readPhase, tabOf } from "@/features/browse/phase";
 import { Pagination } from "@/features/catalog/Pagination";
 import { VehicleGrid } from "@/features/catalog/VehicleCard";
 import { VehicleFilters, isFiltered, readFilters } from "@/features/catalog/VehicleFilters";
@@ -63,21 +63,28 @@ export default async function Home({
 }) {
   const query = toParams(await searchParams);
   const { limit, offset } = readPaging(query);
-  const phase = readPhase(query);
-  const tab = tabOf(phase);
+  //: المطلوبُ في العنوان، أو فراغٌ إن لم يُطلب — والفراغُ يعني «اختر لي».
+  const asked = readPhase(query);
   const now = await respondedAt();
 
   let page: Awaited<ReturnType<typeof browse>> | null = null;
   let refusal: string | null = null;
 
   try {
-    page = await browse({ phase, filters: readFilters(query), limit, offset });
+    page = await browse({ phase: asked, filters: readFilters(query), limit, offset });
   } catch (error) {
     // جملة الخادم كما كتبها — الويب لا يؤلّف نصّاً لرفضٍ يعرفه الخادم
     // (`lib/api/errors.ts`). وهي هنا لا في حدود الخطأ، لتبقى التبويبات
     // معروضة: زائرٌ أمام شاشة فارغة يعيد التحميل، وأمام تبويبات يجرّب غيرها.
     refusal = messageOf(error);
   }
+
+  //: **التبويبُ الذي رُدّ، لا الذي طُلب.** حين لا يطلب الزائرُ تبويباً يختاره
+  //: الخادمُ من حيث السياراتُ فعلاً (نشط ← قريب ← منتهي) — كما يفعل v1 —
+  //: ويقوله في الرد. فتُعلَّم البطاقةُ الصحيحةُ وتُقرأ جملةُ الفراغ الصحيحة.
+  //: وحين يفشل الطلبُ يبقى المطلوبُ أو الافتراضي، فالتبويباتُ تُعرض.
+  const phase = page?.phase ?? (asked || DEFAULT_PHASE);
+  const tab = tabOf(phase);
 
   return (
     /*

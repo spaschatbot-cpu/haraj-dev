@@ -154,6 +154,27 @@ def vehicle_page(
     # tabs still have to show a number — and after every other filter, so all
     # three answer the same question the visible page does.
     total, counts = page_totals(queryset, phase=phase)
+
+    # **وحين لا يُطلب تبويبٌ بعينه، يختاره الخادمُ من حيث السياراتُ فعلاً.**
+    #
+    # v1 يفعلها بالحرف: «التبويب الافتراضي حسب مكان السيارات (نشط ← قريب ←
+    # منتهي) — **يحسبه السيرفر**، ولا يعتمد على آخر تبويب محفوظ»
+    # (`index.php:3325`). وكان عندنا ثابتاً `DEFAULT_PHASE = "active"` في
+    # الويب، فتُفتح الرئيسيّةُ على «نشط ٠» وشبكةٍ فارغةٍ تقول «لا مزاد جارٍ
+    # الآن» — و**٤١ مركبةً** في «منتهي» بجانبها. وهي أوّلُ شاشةٍ يراها
+    # الزائر.
+    #
+    # والترتيبُ ترتيبُ v1: الجاري أولى بالنظر، ثمّ القادم، ثمّ المنتهي.
+    # ويبقى ثابتاً حين تكون الثلاثةُ صفراً — فلا شيءَ يُختار على أي حال.
+    #
+    # وهنا لا في الواجهة: الأعدادُ محسوبةٌ في هذا السطر أصلاً، واختيارٌ في
+    # المتصفّح يحتاج ردّاً أوّلَ ليقرأها ثمّ ردّاً ثانياً ليبني الصفحة.
+    if not phase:
+        phase = next(
+            (name for name in ("active", "soon", "ended") if counts.get(name)),
+            "",
+        )
+
     if phase:
         queryset = queryset.filter(phase_q(phase))
 
@@ -164,6 +185,10 @@ def vehicle_page(
     return {
         "total": total,
         "counts": counts,
+        # أيُّ تبويبٍ رُدَّ فعلاً — المطلوبُ إن طُلب، والمختارُ إن لم يُطلب.
+        # وبدونه لا تعرف الشاشةُ أيَّ بطاقةٍ تُعلّم، فتُعلّم واحدةً وتعرض
+        # سياراتِ أخرى.
+        "phase": phase,
         "results": vehicle_cards(page, favourite_of=user),
     }
 

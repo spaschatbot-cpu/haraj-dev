@@ -55,7 +55,12 @@ export function tabOf(phase: Phase): Tab {
 }
 
 /** التبويب المطلوب في العنوان. كلمةٌ لا نعرفها تعود إلى الافتراضي، لا إلى 404. */
-export function readPhase(params: URLSearchParams): Phase {
+export function readPhase(params: URLSearchParams): Phase | "" {
   const asked = params.get("phase");
+  //: **وفراغٌ حين لا يُطلب شيء** — ومعناه «اختر لي»: الخادمُ يختار من حيث
+  //: السياراتُ فعلاً (نشط ← قريب ← منتهي) كما يفعل v1، وكان الافتراضيُّ هنا
+  //: ثابتاً `active` فتُفتح الرئيسيّةُ على تبويبٍ فارغٍ و٤١ مركبةً بجانبه.
+  //: وكلمةٌ لا نعرفها تعود إلى الافتراضي لا إلى 404.
+  if (asked === null) return "";
   return PHASES.find((phase) => phase === asked) ?? DEFAULT_PHASE;
 }
