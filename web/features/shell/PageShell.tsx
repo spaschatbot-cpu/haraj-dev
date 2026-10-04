@@ -88,12 +88,26 @@ export function PageShell({
               منسدلة: ستّة روابط تمرّ أفقياً على ٣٧٥ بكسل، وزرّ يفتح قائمة هو
               نقرةٌ زائدة على كل انتقال.
             */}
-            <nav aria-label="الأقسام" className="hidden items-center gap-1 lg:flex">
+            {/*
+              **وعاءٌ ملوّنٌ فاتحٌ تحت الأقسام** (قرارُ المالكة، ٥ أكتوبر
+              ٢٠٢٦). كانت الروابطُ تطفو على خلفيّة الرأس نفسِها بلا حدّ، فلا
+              يُقرأ أين تبدأ المجموعةُ وأين تنتهي — ولا يُعرف أنها مجموعةٌ
+              واحدة أصلاً.
+
+              واللونُ من عائلة المشروع (`--color-surface-low`) بحدٍّ أوضح
+              منه، لا لونٌ يُخترع للشريط. و**الخطُّ أثقلُ وأوسعُ تباعداً** من
+              نصّ الصفحة (`nav-link`): الأقسامُ ليست كلاماً يُقرأ — هي
+              عناوينُ تُلتقط بالنظر.
+            */}
+            <nav
+              aria-label="الأقسام"
+              className="hidden items-center gap-1 rounded-full border border-surface-high bg-surface-low p-1 lg:flex"
+            >
               {NAVIGATION.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-md px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface"
+                  className="nav-link rounded-full px-4 py-1.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-highest hover:text-on-surface"
                 >
                   {item.label}
                 </Link>
@@ -120,13 +134,13 @@ export function PageShell({
 
         <nav
           aria-label="الأقسام"
-          className="flex gap-1 overflow-x-auto border-t border-outline-variant/60 px-4 py-2 lg:hidden"
+          className="flex gap-1 overflow-x-auto border-t border-outline-variant/60 bg-surface-low px-4 py-2 lg:hidden"
         >
           {NAVIGATION.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap rounded-md px-3 py-1.5 text-label-md text-on-surface-variant"
+              className="nav-link whitespace-nowrap rounded-full px-4 py-1.5 text-label-md text-on-surface-variant"
             >
               {item.label}
             </Link>

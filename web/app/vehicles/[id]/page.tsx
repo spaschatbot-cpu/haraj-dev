@@ -196,7 +196,19 @@ export default async function VehiclePage({ params }: Params) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structured) }}
       />
 
-      <nav className="mb-4 text-sm text-neutral-600">
+      {/*
+        **المسارُ في برواز مدوَّرٍ لبنيّ** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦).
+        كان سطراً رماديّاً عائماً فوق الصورة، يُقرأ هامشاً لا طريقاً — وهو
+        طريقُ الرجوع: «المزادات» و«مزاد ١٩١٤» رابطان يُضغطان.
+
+        و`inline-flex` لا `block`: البروازُ يلفّ الكلامَ وحدَه لا عرضَ
+        الصفحة — إطارٌ ممتدٌّ على فراغٍ يُقرأ شريطاً فارغاً.
+
+        واللونُ من عائلة المشروع (`--color-surface-low` و`--color-surface-high`)
+        لا لبنيٌّ يُخترع: الصفحةُ كلُّها على هذه العائلة، ولونٌ خامسٌ يجعل
+        الشاشةَ تقول خمسةَ أشياء.
+      */}
+      <nav className="mb-4 inline-flex items-center rounded-full border border-surface-high bg-surface-low px-4 py-1.5 text-sm text-on-surface-variant">
         <Link href="/" className="hover:underline">
           المزادات
         </Link>
