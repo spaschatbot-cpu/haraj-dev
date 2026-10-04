@@ -254,9 +254,25 @@ export default async function VehiclePage({ params }: Params) {
           الشبكة، فتتّفق الشاشتان.
         */}
         <div className="spec-panel rounded-xl border border-outline-variant bg-surface-lowest p-5 md:p-6">
-          <h1 className="text-3xl font-bold leading-tight md:text-4xl">{vehicle.title}</h1>
+          {/*
+            **الاسمُ في إطارٍ ملوّن** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦). وهو
+            أوّلُ ما تقع عليه العين في العمود، وكان نصّاً عارياً فوق سطورٍ
+            رماديّة: يُقرأ جزءاً من القائمة لا عنواناً لها.
 
-          <div className="mt-2 flex flex-wrap items-center gap-3">
+            والشريطُ الملوّن على الحافّة لا إطارٌ كامل: إطارٌ من أربع جهاتٍ
+            حول عنوانٍ داخل بطاقةٍ لها إطارُها يصير إطارين متداخلين. والشريطُ
+            يقول «هنا يبدأ» بخطٍّ واحد.
+
+            واللونُ أزرقُ المشروع الثانويّ نفسُه الذي في الرئيسيّة — لا لونٌ
+            يُخترع لهذه الصفحة.
+          */}
+          <div className="rounded-xl border border-surface-high bg-surface-low p-4 border-e-4 border-e-secondary">
+            <h1 className="text-3xl font-bold leading-tight md:text-4xl">
+              {vehicle.title}
+            </h1>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center gap-3">
             {/* الموقفُ شريحةٌ لا سطرٌ باهت: هو ما يُنادى به في الحوش. */}
             <p className="rounded-full bg-surface-container px-3 py-1 text-sm text-on-surface">
               الموقف <span className="tnum font-medium">{vehicle.lot_number}</span>
