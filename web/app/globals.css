@@ -251,7 +251,15 @@ body {
 }
 /* يُضيء عند المرور فيُتتبَّع بالعين إلى آخره — والفراغُ الممتدُّ بين الاسم
    والقيمة هو ما كان يُفقد التتبّع. */
-.spec-row:hover { background: var(--color-surface-low); }
+/* **صفوفٌ متناوبةُ التلوين** — والتنظيمُ لم يتغيّر: الاسمُ يميناً والقيمةُ
+   يساراً بالترتيب نفسِه. والتناوبُ يفعل ما يفعله السطرُ المسطَّر في جدولٍ
+   طويل: يمنع العينَ أن تنزلق من صفٍّ إلى الذي تحته. */
+.spec-row:nth-child(odd) { background: var(--color-surface-low); }
+.spec-row:hover { background: var(--color-surface-container); }
+
+/* وحافّةٌ ملوّنةٌ على كلّ صفّ تقول «هنا يبدأ» — خطٌّ واحدٌ لا إطار. */
+.spec-row { border-inline-start: 4px solid var(--color-surface-highest); }
+.spec-row:hover { border-inline-start-color: var(--color-secondary); }
 
 /* الاسمُ بحروفٍ متباعدةٍ قليلاً يُقرأ عنواناً لا جاراً للقيمة. */
 .spec-label { letter-spacing: 0.02em; }
@@ -270,4 +278,33 @@ body {
 .nav-link {
   font-weight: 500;
   letter-spacing: 0.035em;
+}
+
+/* ---- ألوانُ الحالات مشبعة — T1037 ------------------------------------ */
+/* **الدرجاتُ السابقةُ كانت أفتحَ من أن تُرى.** `--color-warn-surface`
+   (#fffbeb) و`--color-ok-surface` (#ecfdf5) درجاتُ خلفيّةٍ لتنبيهٍ داخل
+   نصّ — لا لبطاقةٍ هي نصفُ الشاشة. وقِيست على اللقطة: الثلاثُ تُقرأ بيضاءَ
+   متجاورة.
+   
+   فصارت الدرجةُ ٢٠٠ من كلّ عائلة سطحاً، و٦٠٠ حدّاً، و٩٠٠ حبراً — وهي
+   التركيبةُ التي تُقرأ ملوّنةً وتبقى فاتحة، ويبقى التباينُ فوق 7:1.
+   
+   وثلاثُ عائلاتٍ متجاورةٍ في العجلة (كهرمانيّ · زمرّديّ · نيليّ) بنفس
+   الدرجة ونفس الإشباع — فتُقرأ عائلةً واحدةً لا ألواناً اصطدمت. */
+.tone-soon   { background: #fde68a; border-color: #d97706; color: #78350f; }
+.tone-active { background: #a7f3d0; border-color: #059669; color: #064e3b; }
+.tone-ended  { background: #c7d2fe; border-color: #4338ca; color: #312e81; }
+
+.tone-soon .tone-ink   { color: #92400e; }
+.tone-active .tone-ink { color: #065f46; }
+.tone-ended .tone-ink  { color: #3730a3; }
+
+/* والمختارةُ تغمق حدَّها وتُظلَّل، فتُقرأ مختارةً بين ملوّناتٍ لا بينها
+   وبين بيضاء. */
+.tone-on { box-shadow: inset 0 0 0 2px currentColor; }
+
+/* وصدرُ الصفحة سطحٌ أزرقُ مشبعٌ من العائلة نفسِها، لا أبيضُ مائل. */
+.hero-ink {
+  background: #dbe6ff;
+  border: 2px solid #3755c3;
 }

@@ -38,22 +38,10 @@ import type { PhaseCounts } from "@/lib/api";
 //:
 //: واللونُ **لا يحمل المعنى وحده**: الرقمُ والاسمُ والرسمُ كلُّها مكتوبة،
 //: والمختارةُ لها إطارٌ أثخن و`aria-current` — فمن لا يميّز الألوان يقرأ.
-const TONE: Record<Phase, { ring: string; fill: string; ink: string }> = {
-  soon: {
-    ring: "border-warn-line",
-    fill: "bg-warn-surface",
-    ink: "text-warn",
-  },
-  active: {
-    ring: "border-ok-line",
-    fill: "bg-ok-surface",
-    ink: "text-ok",
-  },
-  ended: {
-    ring: "border-outline-variant",
-    fill: "bg-surface-low",
-    ink: "text-secondary",
-  },
+const TONE: Record<Phase, string> = {
+  soon: "tone-soon",
+  active: "tone-active",
+  ended: "tone-ended",
 };
 
 //: رسمٌ لكل حالة — مضمَّنٌ لا محرف: المحرفَ يرسمه نظامُ التشغيل بأسلوبه،
@@ -116,17 +104,15 @@ export function PhaseTabs({
                 /* التأخيرُ المتدرّج يجعل العينَ تقرأ الثلاثَ واحدةً بعد
                    واحدة، لا هبوطاً واحداً لا يُقرأ منه شيء. */
                 style={{ animationDelay: `${index * 70}ms` }}
-                className={`phase-card flex h-full flex-col gap-1 rounded-xl p-4 md:p-5 ${tone.fill} ${
-                  selected
-                    ? `border-2 ${tone.ring.replace("border-", "border-")} ring-1 ring-inset ring-current ${tone.ink}`
-                    : `border ${tone.ring}`
+                className={`phase-card ${tone} flex h-full flex-col gap-1 rounded-xl border-2 p-4 md:p-5 ${
+                  selected ? "tone-on" : ""
                 }`}
               >
                 <span className="flex items-center gap-2">
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 24 24"
-                    className={`h-6 w-6 ${tone.ink}`}
+                    className="tone-ink h-6 w-6"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.8"
@@ -138,18 +124,18 @@ export function PhaseTabs({
                   {live ? (
                     <span
                       aria-hidden="true"
-                      className="phase-live-dot h-2 w-2 rounded-full bg-ok"
+                      className="phase-live-dot h-2.5 w-2.5 rounded-full bg-current"
                     />
                   ) : null}
                 </span>
 
                 {counts === null ? null : (
-                  <span className={`tnum text-headline-md leading-none ${tone.ink}`}>
+                  <span className="tnum text-headline-md leading-none">
                     {count(counts[tab.id])}
                   </span>
                 )}
 
-                <span className="text-label-md text-on-surface">{tab.label}</span>
+                <span className="tone-ink text-label-md">{tab.label}</span>
               </Link>
             </li>
           );

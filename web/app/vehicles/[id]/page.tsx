@@ -211,7 +211,7 @@ export default async function VehiclePage({ params }: Params) {
         لا لبنيٌّ يُخترع: الصفحةُ كلُّها على هذه العائلة، ولونٌ خامسٌ يجعل
         الشاشةَ تقول خمسةَ أشياء.
       */}
-      <nav className="mb-4 inline-block rounded-full border border-surface-high bg-surface-container px-4 py-1.5 text-sm text-on-surface-variant">
+      <nav className="mb-4 inline-block rounded-full border border-outline-variant bg-surface-highest px-4 py-1.5 text-sm font-medium text-on-surface">
         <Link href="/" className="hover:underline">
           المزادات
         </Link>
@@ -242,7 +242,7 @@ export default async function VehiclePage({ params }: Params) {
           والإطارُ على الغلاف لا على الصورة نفسِها: `Gallery` يبني مصغّراتٍ
           تحتها، وإطارٌ داخلَه كان سيؤطّر كلَّ مصغَّرةٍ وحدَها.
         */}
-        <div className="spec-panel overflow-hidden rounded-xl border border-outline-variant bg-surface-lowest p-2">
+        <div className="spec-panel overflow-hidden rounded-2xl border-2 border-surface-highest bg-surface-lowest p-2.5">
         <Gallery
           shots={
             shots.length > 0
@@ -268,7 +268,7 @@ export default async function VehiclePage({ params }: Params) {
           وأين تنتهي. والبطاقةُ بيضاءُ بحدٍّ شعريّ — كبطاقات المركبات في
           الشبكة، فتتّفق الشاشتان.
         */}
-        <div className="spec-panel rounded-xl border border-outline-variant bg-surface-lowest p-5 md:p-6">
+        <div className="spec-panel rounded-2xl border-2 border-surface-highest bg-surface-lowest p-5 md:p-6">
           {/*
             **الاسمُ في إطارٍ ملوّن** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦). وهو
             أوّلُ ما تقع عليه العين في العمود، وكان نصّاً عارياً فوق سطورٍ
@@ -281,7 +281,7 @@ export default async function VehiclePage({ params }: Params) {
             واللونُ أزرقُ المشروع الثانويّ نفسُه الذي في الرئيسيّة — لا لونٌ
             يُخترع لهذه الصفحة.
           */}
-          <div className="rounded-xl border border-surface-high bg-surface-low p-4 border-e-4 border-e-secondary">
+          <div className="rounded-xl border border-secondary-fixed bg-secondary-fixed p-5 border-e-8 border-e-secondary">
             <h1 className="text-3xl font-bold leading-tight md:text-4xl">
               {vehicle.title}
             </h1>
@@ -289,7 +289,7 @@ export default async function VehiclePage({ params }: Params) {
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {/* الموقفُ شريحةٌ لا سطرٌ باهت: هو ما يُنادى به في الحوش. */}
-            <p className="rounded-full bg-surface-container px-3 py-1 text-sm text-on-surface">
+            <p className="rounded-full border border-outline-variant bg-surface-highest px-3.5 py-1 text-sm font-medium text-on-surface">
               الموقف <span className="tnum font-medium">{vehicle.lot_number}</span>
             </p>
             {signedIn ? (
@@ -351,7 +351,7 @@ export default async function VehiclePage({ params }: Params) {
               about them — so the page says what to do instead of showing a
               control that refuses.
             */
-            <p className="mt-8 rounded-xl border border-surface-high bg-surface-low p-4 text-base">
+            <p className="mt-8 rounded-xl border-2 border-surface-highest bg-surface-low p-4 text-base">
               <Link href="/sign-in" className="underline">
                 سجّل دخولك
               </Link>{" "}

@@ -101,13 +101,13 @@ export function PageShell({
             */}
             <nav
               aria-label="الأقسام"
-              className="hidden items-center gap-1 rounded-full border border-surface-high bg-surface-container p-1 lg:flex"
+              className="hidden items-center gap-1 rounded-full border border-outline-variant bg-surface-highest p-1 lg:flex"
             >
               {NAVIGATION.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="nav-link rounded-full px-4 py-1.5 text-label-md text-on-surface-variant transition-colors hover:bg-surface-lowest hover:text-on-surface"
+                  className="nav-link rounded-full px-4 py-1.5 text-label-md text-on-surface transition-colors hover:bg-surface-lowest hover:text-secondary"
                 >
                   {item.label}
                 </Link>
@@ -134,13 +134,13 @@ export function PageShell({
 
         <nav
           aria-label="الأقسام"
-          className="flex gap-1 overflow-x-auto border-t border-outline-variant/60 bg-surface-container px-4 py-2 lg:hidden"
+          className="flex gap-1 overflow-x-auto border-t border-outline-variant/60 bg-surface-highest px-4 py-2 lg:hidden"
         >
           {NAVIGATION.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="nav-link whitespace-nowrap rounded-full px-4 py-1.5 text-label-md text-on-surface-variant"
+              className="nav-link whitespace-nowrap rounded-full px-4 py-1.5 text-label-md text-on-surface"
             >
               {item.label}
             </Link>
