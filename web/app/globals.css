@@ -199,25 +199,27 @@ body {
 }
 
 /* ---- الصدرُ الملوّن وحركةُ الشبكة — T1035 ---------------------------- */
-/* **لوحةٌ واحدةٌ متّفقة، لا ألوانٌ متجاورة.** الصدرُ كحليٌّ غامقٌ هو لونُ
-   المشروع الأساسيّ (`--color-primary`)، والبطاقاتُ الثلاثُ أسطحٌ فاتحةٌ من
-   ثلاثة أنصاف (كهرمانيّ · زمرّديّ · نيليّ) بنفس درجة الإشباع ونفس الفاتح —
-   فتُقرأ عائلةً واحدةً لا ثلاثةَ ألوانٍ اصطدمت. والنصّ على كلٍّ من عائلته
-   نفسها لا أسودَ عاماً. */
+/* **فاتحٌ لا غامق** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦: «ديزاين فاتح»). جُرّب
+   كحليّاً غامقاً فصار أثقلَ ما في الشاشة، وصورةُ السيارة تحته تبهت.
+   فالسطحُ أزرقُ فاتحٌ من عائلة المشروع (`--color-surface-low`) بإطارٍ أوضح،
+   والرسمُ الخطّيُّ بالأزرق الثانويّ فوقه — لونٌ واحدٌ في درجتين، لا لونان.
+
+   والنصُّ يبقى على ألوانه الأصليّة: `--color-on-surface` للعنوان و
+   `--color-on-surface-variant` للشرح — فالتباينُ هو هو الذي قِيس. */
 .hero-ink {
-  background: var(--color-primary);
-  color: #ffffff;
+  background: var(--color-surface-low);
+  border: 1px solid var(--color-surface-high);
 }
-.hero-ink .hero-sub { color: #c9d4ee; }
+.hero-ink .hero-sub { color: var(--color-on-surface-variant); }
 .hero-ink .hero-chip {
-  background: rgb(255 255 255 / 0.14);
-  color: #ffffff;
+  background: var(--color-surface-highest);
+  color: var(--color-secondary);
 }
 .hero-ink .hero-badge {
-  background: rgb(255 255 255 / 0.1);
-  color: #ffffff;
+  background: var(--color-secondary-fixed);
+  color: var(--color-on-secondary-fixed);
 }
-.hero-ink .hero-rule { border-color: rgb(255 255 255 / 0.22); }
+.hero-ink .hero-rule { border-color: var(--color-outline-variant); }
 
 /* دخولُ بطاقات المركبات متدرّجاً — ستٌّ أولى وحدها، ثمّ تظهر البقيّةُ بلا
    تأخير: شبكةٌ من عشرين تنتظر ثانيتين قبل أن تكتمل تُقرأ بطيئةً لا حيّة. */
@@ -235,4 +237,26 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .card-in { animation: none; }
+}
+
+/* ---- صفحة المركبة: البرواز والسطور — T1036 --------------------------- */
+/* دخولٌ واحدٌ للّوحين، وسطورُ المواصفات بعدهما متدرّجة — فتُقرأ الصفحةُ من
+   أعلى إلى أسفل كما تُبنى. */
+.spec-panel { animation: card-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.spec-row {
+  animation: card-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition: background-color 140ms ease;
+  border-radius: 8px;
+}
+/* يُضيء عند المرور فيُتتبَّع بالعين إلى آخره — والفراغُ الممتدُّ بين الاسم
+   والقيمة هو ما كان يُفقد التتبّع. */
+.spec-row:hover { background: var(--color-surface-low); }
+
+/* الاسمُ بحروفٍ متباعدةٍ قليلاً يُقرأ عنواناً لا جاراً للقيمة. */
+.spec-label { letter-spacing: 0.02em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .spec-panel,
+  .spec-row { animation: none; transition: none; }
 }

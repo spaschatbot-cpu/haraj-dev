@@ -43,6 +43,7 @@ import { authHeader, hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
 import { count } from "@/lib/format";
+
 import { readNumber } from "@/lib/paging";
 
 export const dynamic = "force-dynamic";
@@ -217,6 +218,16 @@ export default async function VehiclePage({ params }: Params) {
           التي وصلت مع الكرت أصلاً — فالصفحة لا تفقد صورتها لأن نداءً ثانياً
           سقط.
         */}
+        {/*
+          **برواز حول الصورة** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦). كانت الصورةُ
+          تلتصق بخلفيّة الصفحة بلا حدّ، وأكثرُ صور المزاد داكنةٌ أو بيضاء —
+          فالداكنةُ تسيل في الصفحة والبيضاءُ تذوب فيها، وفي الحالتين لا
+          يُعرف أين تنتهي.
+
+          والإطارُ على الغلاف لا على الصورة نفسِها: `Gallery` يبني مصغّراتٍ
+          تحتها، وإطارٌ داخلَه كان سيؤطّر كلَّ مصغَّرةٍ وحدَها.
+        */}
+        <div className="spec-panel overflow-hidden rounded-xl border border-outline-variant bg-surface-lowest p-2">
         <Gallery
           shots={
             shots.length > 0
@@ -234,13 +245,21 @@ export default async function VehiclePage({ params }: Params) {
           }
           alt={vehicle.title}
         />
+        </div>
 
-        <div>
-          <h1 className="text-2xl font-bold">{vehicle.title}</h1>
+        {/*
+          **إطارٌ حول العمود الأيمن.** كان الاسمُ والمواصفاتُ وسطرُ المزايدة
+          عائمةً على خلفيّة الصفحة بلا حدّ، فلا يُقرأ أين تبدأ كتلةُ القرار
+          وأين تنتهي. والبطاقةُ بيضاءُ بحدٍّ شعريّ — كبطاقات المركبات في
+          الشبكة، فتتّفق الشاشتان.
+        */}
+        <div className="spec-panel rounded-xl border border-outline-variant bg-surface-lowest p-5 md:p-6">
+          <h1 className="text-3xl font-bold leading-tight md:text-4xl">{vehicle.title}</h1>
 
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <p className="text-sm text-neutral-600">
-              الموقف <span className="tnum">{vehicle.lot_number}</span>
+            {/* الموقفُ شريحةٌ لا سطرٌ باهت: هو ما يُنادى به في الحوش. */}
+            <p className="rounded-full bg-surface-container px-3 py-1 text-sm text-on-surface">
+              الموقف <span className="tnum font-medium">{vehicle.lot_number}</span>
             </p>
             {signedIn ? (
               <FavouriteButton
@@ -251,11 +270,30 @@ export default async function VehiclePage({ params }: Params) {
             ) : null}
           </div>
 
-          <dl className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200 text-sm">
-            {specifications.map(([label, value]) => (
-              <div key={label} className="flex justify-between gap-4 py-2">
-                <dt className="text-neutral-500">{label}</dt>
-                <dd className="text-neutral-900">{value}</dd>
+          {/*
+            **نفسُ التنظيم، وأوضحُ قراءةً** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦:
+            «نفس التنظيم بس نغيّر في فونت الكلام ونكبّر الكلام»). السطورُ
+            كما هي: الاسمُ يميناً والقيمةُ يساراً، بالترتيب نفسِه — ولا كلمةَ
+            تتغيّر.
+
+            والذي تغيّر ثلاثةٌ: **القيمةُ أكبرُ وأثقل** من اسمها فيُقرأ
+            «2022» قبل «سنة الصنع» — وهو ما تبحث عنه العين؛ و**الاسمُ
+            بحروفٍ متباعدة** قليلاً فيُقرأ عنواناً لا جاراً للقيمة؛ وصفٌّ
+            يُضيء عند المرور عليه فيُتتبَّع بالعين إلى آخره — والفراغُ
+            الممتدُّ بين الطرفين هو ما كان يُفقد التتبّع.
+
+            والخطُّ هو هو (`--font-arabic` في `globals.css`): خطٌّ ثانٍ على
+            صفحةٍ واحدةٍ يُحمَّل ملفّاً ويتأخّر فيقفز النصّ.
+          */}
+          <dl className="mt-6 divide-y divide-outline-variant border-y border-outline-variant">
+            {specifications.map(([label, value], index) => (
+              <div
+                key={label}
+                style={{ animationDelay: `${index * 55}ms` }}
+                className="spec-row flex items-baseline justify-between gap-4 px-2 py-3"
+              >
+                <dt className="spec-label text-sm text-on-surface-variant">{label}</dt>
+                <dd className="text-lg font-medium text-on-surface">{value}</dd>
               </div>
             ))}
           </dl>
@@ -282,7 +320,7 @@ export default async function VehiclePage({ params }: Params) {
               about them — so the page says what to do instead of showing a
               control that refuses.
             */
-            <p className="mt-8 rounded-lg border border-neutral-200 bg-white p-4 text-sm">
+            <p className="mt-8 rounded-xl border border-surface-high bg-surface-low p-4 text-base">
               <Link href="/sign-in" className="underline">
                 سجّل دخولك
               </Link>{" "}

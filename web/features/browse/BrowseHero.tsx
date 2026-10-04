@@ -36,7 +36,7 @@ export function BrowseHero({
   total: number | null;
 }) {
   return (
-    <section className="hero-ink relative mb-6 overflow-hidden rounded-xl p-6 shadow-sm md:p-8">
+    <section className="hero-ink relative mb-6 overflow-hidden rounded-xl p-6 md:p-8">
       <HeroArt />
 
       <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
