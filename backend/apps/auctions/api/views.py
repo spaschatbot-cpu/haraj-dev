@@ -14,7 +14,7 @@ these pages server-side for search engines (Phase 011). What an anonymous caller
 
 from __future__ import annotations
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Q, Subquery
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -39,6 +39,7 @@ from apps.auctions.listing import (
     with_vehicle_counts,
 )
 from apps.auctions.models import Auction, Vehicle
+from apps.auctions.states import AuctionState
 from apps.auctions.visibility import PUBLIC_AUCTION_STATES, visible_vehicles
 
 from .serializers import (
@@ -286,7 +287,19 @@ class FavouriteListView(APIView):
         marked = Favourite.objects.filter(user=request.user).values_list(
             "vehicle_id", flat=True
         )
-        queryset = visible_vehicles(request.user).filter(pk__in=marked)
+        # **وتختفي المفضّلةُ بانتهاء مزادها، إلا ما رُسي على صاحبها** — قاعدةُ
+        # v1 (`ajax_my_favorites.php`): «a favorite disappears once its auction
+        # ends UNLESS the user won it». وكان v2 يُبقيها أبداً، فتمتلئ الشاشةُ
+        # بسيّاراتٍ بيعت لغيره في مزاداتٍ مضت ولا يقدر على شيءٍ فيها. والصفُّ
+        # لا يُحذف: يعود ظاهراً لو أُعيد إدراجُ المركبة في مزادٍ قادم.
+        queryset = (
+            visible_vehicles(request.user)
+            .filter(pk__in=marked)
+            .filter(
+                Q(auction__state__in=[AuctionState.SCHEDULED, AuctionState.LIVE])
+                | Q(awarded_to=request.user)
+            )
+        )
 
         # The same page shape as every other list of cars, counters included —
         # `page_totals` costs one aggregate where a bare `.count()` cost one
