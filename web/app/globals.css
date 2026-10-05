@@ -305,22 +305,27 @@ body {
   --tone-indigo-fill:  #c7d2fe;
   --tone-indigo-line:  #4f46e5;
   --tone-indigo-ink:   #312e81;
+  --tone-indigo-ink2:  #3730a3;
 
   --tone-emerald-fill: #a7f3d0;
   --tone-emerald-line: #059669;
   --tone-emerald-ink:  #064e3b;
+  --tone-emerald-ink2: #065f46;
 
   --tone-amber-fill:   #fde68a;
   --tone-amber-line:   #d97706;
   --tone-amber-ink:    #78350f;
+  --tone-amber-ink2:   #92400e;
 
   --tone-rose-fill:    #fecdd3;
   --tone-rose-line:    #e11d48;
   --tone-rose-ink:     #881337;
+  --tone-rose-ink2:    #9f1239;
 
   --tone-slate-fill:   #e2e8f0;
   --tone-slate-line:   #475569;
   --tone-slate-ink:    #0f172a;
+  --tone-slate-ink2:   #334155;
 }
 
 /* الأصنافُ الجاهزة: `tone-*` تضع الثلاثةَ معاً، و`tone-ink` للنصّ الثانويّ
@@ -331,9 +336,17 @@ body {
 .tone-rose    { background: var(--tone-rose-fill);    border-color: var(--tone-rose-line);    color: var(--tone-rose-ink); }
 .tone-slate   { background: var(--tone-slate-fill);   border-color: var(--tone-slate-line);   color: var(--tone-slate-ink); }
 
-/* الحبرُ الثانويُّ داخل نغمةٍ هو لونُها نفسُه — يرثه من الأب، فلا يُكتب
-   لكلّ نغمةٍ سطرٌ ثانٍ ولا يُنسى واحدٌ منها. */
-.tone-ink { color: inherit; opacity: 0.82; }
+/* **الحبرُ الثانويُّ لونٌ لا شفافيّة.** `opacity` على نصٍّ يضربه في لون
+   الخلفيّة فيختلف فوق كلّ سطحٍ — ويفقد التباينَ حيث لا يُنتبَه. فلكلّ نغمةٍ
+   حبرٌ ثانٍ من الدرجة ٨٠٠: أفتحُ من الأوّل بدرجةٍ واحدةٍ ويبقى فوق 4.5:1. */
+.tone-indigo  .tone-ink { color: var(--tone-indigo-ink2); }
+.tone-emerald .tone-ink { color: var(--tone-emerald-ink2); }
+.tone-amber   .tone-ink { color: var(--tone-amber-ink2); }
+.tone-rose    .tone-ink { color: var(--tone-rose-ink2); }
+.tone-slate   .tone-ink { color: var(--tone-slate-ink2); }
+.tone-soon    .tone-ink { color: var(--tone-amber-ink2); }
+.tone-active  .tone-ink { color: var(--tone-emerald-ink2); }
+.tone-ended   .tone-ink { color: var(--tone-indigo-ink2); }
 
 /* **ونغمةُ كلّ حالةٍ بالمعنى لا بالترتيب.** */
 .tone-soon   { background: var(--tone-amber-fill);   border-color: var(--tone-amber-line);   color: var(--tone-amber-ink); }
@@ -351,7 +364,7 @@ body {
   border: 2px solid var(--tone-indigo-line);
   color: var(--tone-indigo-ink);
 }
-.hero-ink .hero-sub { color: var(--tone-indigo-ink); opacity: 0.82; }
+.hero-ink .hero-sub { color: var(--tone-indigo-ink2); }
 .hero-ink .hero-chip {
   background: #ffffff;
   color: var(--tone-indigo-line);
@@ -360,4 +373,4 @@ body {
   background: var(--tone-indigo-line);
   color: #ffffff;
 }
-.hero-ink .hero-rule { border-color: var(--tone-indigo-line); opacity: 0.45; }
+.hero-ink .hero-rule { border-color: #9aa7f0; }
