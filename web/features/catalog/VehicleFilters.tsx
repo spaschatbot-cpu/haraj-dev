@@ -82,10 +82,12 @@ export function VehicleFilters({
       action={action}
       /*
         شريطٌ في بطاقةٍ واحدة على اثنتي عشرة خانة — نظام التصميم (T1032).
+        ولونُه وحركتُه في `globals.css` (`.search-bar`) لا هنا: قيمةٌ تُكتب في
+        مكوّنٍ تُنسخ إلى الثاني ثمّ تفترق (`docs/palette.md` §٣-٢).
         والحقول في صفٍّ واحد على سطح المكتب لأن الترشيح فعلٌ واحد: أربعةُ
         حقولٍ متفرّقة تُقرأ أربعةَ قراراتٍ منفصلة.
       */
-      className="mb-6 grid grid-cols-1 items-end gap-3 rounded-xl bg-surface-lowest p-3 shadow-sm md:grid-cols-12"
+      className="search-bar mb-6 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 shadow-sm md:grid-cols-12"
     >
       {keep.map((name) => {
         const value = values.get(name);
@@ -93,13 +95,13 @@ export function VehicleFilters({
       })}
 
       <label className="flex flex-col gap-1 md:col-span-4">
-        <span className="text-caption text-on-surface-variant">بحث</span>
+        <span className="search-label text-caption font-semibold">بحث</span>
         <input
           type="search"
           name="search"
           defaultValue={values.get("search") ?? ""}
           placeholder="ماركة / طراز / رقم الموقف…"
-          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none"
+          className="search-field h-11 w-full rounded-lg px-3 text-body-md"
         />
       </label>
 
@@ -112,43 +114,55 @@ export function VehicleFilters({
         تُعيد الماركات المتاحة — يوم تُضاف، تصير القائمة صحيحة وتُبنى.
       */}
       <label className="flex flex-col gap-1 md:col-span-3">
-        <span className="text-caption text-on-surface-variant">الماركة</span>
+        <span className="search-label text-caption font-semibold">الماركة</span>
         <input
           type="text"
           name="make"
           defaultValue={values.get("make") ?? ""}
           placeholder="تويوتا…"
-          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none"
+          className="search-field h-11 w-full rounded-lg px-3 text-body-md"
         />
       </label>
 
       <label className="flex flex-col gap-1 md:col-span-2">
-        <span className="text-caption text-on-surface-variant">من سنة</span>
+        <span className="search-label text-caption font-semibold">من سنة</span>
         <input
           type="number"
           name="year_from"
           inputMode="numeric"
           defaultValue={values.get("year_from") ?? ""}
-          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none tnum"
+          className="search-field h-11 w-full rounded-lg px-3 text-body-md tnum"
         />
       </label>
 
       <label className="flex flex-col gap-1 md:col-span-2">
-        <span className="text-caption text-on-surface-variant">إلى سنة</span>
+        <span className="search-label text-caption font-semibold">إلى سنة</span>
         <input
           type="number"
           name="year_to"
           inputMode="numeric"
           defaultValue={values.get("year_to") ?? ""}
-          className="h-11 w-full rounded-lg bg-surface-low px-3 text-body-md text-on-surface transition-colors placeholder:text-outline focus:bg-surface-container focus:outline-none tnum"
+          className="search-field h-11 w-full rounded-lg px-3 text-body-md tnum"
         />
       </label>
 
       <div className="flex items-center gap-3 md:col-span-1">
         <button
           type="submit"
-          className="h-11 w-full rounded-lg bg-primary px-4 text-label-md text-on-primary transition-opacity hover:opacity-90"
+          className="search-submit flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-label-md"
         >
+          <svg
+            className="search-icon h-4 w-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m20 20-3.5-3.5" />
+          </svg>
           طبّق
         </button>
         {/*
@@ -159,7 +173,7 @@ export function VehicleFilters({
         {filtered ? (
           <a
             href={resetHref}
-            className="whitespace-nowrap text-label-md text-on-surface-variant underline"
+            className="search-label whitespace-nowrap text-label-md underline"
           >
             إزالة
           </a>

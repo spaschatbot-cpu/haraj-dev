@@ -374,3 +374,87 @@ body {
   color: #ffffff;
 }
 .hero-ink .hero-rule { border-color: #9aa7f0; }
+
+/* ---- صفُّ البحث — نيليٌّ متحرّك ------------------------------------------ */
+/* **نيليٌّ لأنه أداةُ المنصّة نفسِها** (`docs/palette.md` §٢): ليس حالةً
+   تنتظر ولا تُوقف، فلا أخضرَ ولا كهرمانيّ. وكان سطحاً أبيضَ فوق صفحةٍ بيضاء
+   فلا يُرى أنه شيءٌ يُكتب فيه.
+
+   ثلاثُ حركات، وكلٌّ تقول شيئاً:
+   `search-in` دخولٌ من فوق مع الصفحة؛ و`search-sheen` لمعةٌ تعبر الشريطَ
+   **مرّةً واحدة** فتدلّ العينَ عليه ثمّ تسكت — لمعةٌ دائمةٌ تصير ضجيجاً؛
+   والحقلُ يرتفع ويُطوَّق بالنيليّ حين يُكتب فيه، فيُعرف أين المؤشّر.
+
+   والحقولُ بيضاءُ داخل النيليّ: نصٌّ يُكتب فوق سطحٍ ملوّنٍ يُقرأ أصعب. */
+@keyframes search-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes search-sheen {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to   { transform: translateX(320%) skewX(-18deg); }
+}
+
+.search-bar {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, var(--tone-indigo-fill) 0%, #e0e7ff 55%, var(--tone-indigo-fill) 100%);
+  border: 2px solid var(--tone-indigo-line);
+  color: var(--tone-indigo-ink);
+  animation: search-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.search-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 30%;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: search-sheen 1400ms 380ms ease-in-out 1 both;
+}
+.search-bar .search-label { color: var(--tone-indigo-ink2); }
+
+.search-field {
+  background: #fff;
+  border: 1.5px solid #a5b4fc;
+  color: var(--tone-slate-ink);
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+.search-field::placeholder { color: var(--tone-slate-line); }
+.search-field:hover { border-color: var(--tone-indigo-line); }
+.search-field:focus {
+  outline: none;
+  border-color: var(--tone-indigo-line);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  transform: translateY(-1px);
+}
+
+.search-submit {
+  background: var(--tone-indigo-line);
+  color: #fff;
+  transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+.search-submit:hover {
+  background: var(--tone-indigo-ink2);
+  box-shadow: 0 6px 16px -6px rgba(49, 46, 129, 0.6);
+  transform: translateY(-1px);
+}
+.search-submit:active { transform: translateY(0); }
+.search-submit .search-icon { transition: transform 200ms ease; }
+.search-submit:hover .search-icon { transform: scale(1.15) rotate(-8deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .search-bar,
+  .search-bar::after { animation: none; }
+  .search-bar::after { display: none; }
+  .search-field,
+  .search-submit,
+  .search-submit .search-icon { transition: none; }
+  .search-field:focus,
+  .search-submit:hover { transform: none; }
+}
