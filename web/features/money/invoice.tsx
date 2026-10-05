@@ -48,7 +48,7 @@ export function InvoiceStateChip({ invoice }: { invoice: InvoiceView }) {
 function Row({ label, value, strong }: { label: string; value?: string; strong?: boolean }) {
   return (
     <div className="flex justify-between gap-4">
-      <dt className="text-neutral-500">{label}</dt>
+      <dt className="text-on-surface-variant">{label}</dt>
       <dd className={`money${strong ? " font-semibold" : ""}`}>{amount(value)}</dd>
     </div>
   );

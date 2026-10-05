@@ -19,11 +19,11 @@ export function TopupButton({ auctionId }: { auctionId?: number }) {
       )}
       <button
         type="submit"
-        className="rounded bg-neutral-900 px-4 py-2 text-sm text-white"
+        className="rounded bg-primary px-4 py-2 text-sm text-white"
       >
         شحن التأمين بالبطاقة
       </button>
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-on-surface-variant">
         المبلغ يحدّده النظام. يُفتح لك موقع الدفع، ويتحرّك رصيدك حين تؤكّد البوابة
         الدفع للخادم — لا عند عودتك من الرابط.
       </p>

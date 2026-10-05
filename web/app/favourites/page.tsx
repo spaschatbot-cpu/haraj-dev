@@ -59,7 +59,7 @@ export default async function FavouritesPage({
       <Notice message={flash?.message ?? ""} />
 
       {page.total === 0 ? (
-        <p className="py-12 text-center text-neutral-500">
+        <p className="py-12 text-center text-on-surface-variant">
           لم تحفظ مركبة بعد. علامة المفضّلة على أي مركبة تعيدك إليها من هنا.
         </p>
       ) : (

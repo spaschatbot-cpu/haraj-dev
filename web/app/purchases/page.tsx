@@ -58,9 +58,9 @@ export default async function PurchasesPage({
   return (
     <PageShell title="مشترياتي">
       {purchases.length === 0 ? (
-        <p className="py-12 text-center text-neutral-500">لا مشتريات بعد.</p>
+        <p className="py-12 text-center text-on-surface-variant">لا مشتريات بعد.</p>
       ) : (
-        <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+        <ul className="divide-y divide-outline-variant rounded-lg border border-outline-variant bg-white">
           {purchases.map((purchase) => {
             const invoice = purchase.invoice as InvoiceView | null;
             return (
@@ -69,7 +69,7 @@ export default async function PurchasesPage({
                   <p className="font-medium">
                     {purchase.make} {purchase.model} <span className="tnum">{purchase.year}</span>
                   </p>
-                  <p className="mt-1 text-sm text-neutral-600">
+                  <p className="mt-1 text-sm text-on-surface-variant">
                     لوت <span className="tnum">{purchase.lot_number}</span> · رست في{" "}
                     {dateTime(purchase.awarded_at)}
                   </p>
@@ -85,7 +85,7 @@ export default async function PurchasesPage({
                       <p className="mt-1">
                         <InvoiceStateChip invoice={invoice} />
                       </p>
-                      <p className="mt-1 text-sm text-neutral-600">
+                      <p className="mt-1 text-sm text-on-surface-variant">
                         المسدَّد <span className="money">{amount(invoice.amount_paid)}</span> ·
                         المتبقّي{" "}
                         <span className="money font-semibold">{amount(invoice.outstanding)}</span>
@@ -95,7 +95,7 @@ export default async function PurchasesPage({
                       </Link>
                     </>
                   ) : (
-                    <span className="text-sm text-neutral-500">لا فاتورة بعد</span>
+                    <span className="text-sm text-on-surface-variant">لا فاتورة بعد</span>
                   )}
                 </div>
               </li>

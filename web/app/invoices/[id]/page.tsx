@@ -76,10 +76,10 @@ export default async function InvoicePage({
         tone={flash?.code === "invoice_paid" ? "info" : "error"}
       />
 
-      <div className="max-w-md rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="max-w-md rounded-lg border border-outline-variant bg-white p-4">
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">الحالة</dt>
+            <dt className="text-on-surface-variant">الحالة</dt>
             <dd>
               <InvoiceStateChip invoice={invoice} />
             </dd>
@@ -88,12 +88,12 @@ export default async function InvoicePage({
               حقولُ الخادم كما هي، والمتبقّي `outstanding` لا طرحٌ هنا. */}
           <InvoiceBreakdown invoice={invoice} />
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">صدرت</dt>
+            <dt className="text-on-surface-variant">صدرت</dt>
             <dd>{dateTime(invoice.issued_at)}</dd>
           </div>
           {invoice.due_at ? (
             <div className="flex justify-between gap-4">
-              <dt className="text-neutral-500">تستحق</dt>
+              <dt className="text-on-surface-variant">تستحق</dt>
               <dd>{dateTime(invoice.due_at)}</dd>
             </div>
           ) : null}
@@ -112,50 +112,50 @@ export default async function InvoicePage({
         المعروض هو حقلُ الخادم `outstanding` كما هو.
       */}
       {owed ? (
-        <section className="mt-6 max-w-md rounded-lg border border-neutral-200 bg-white p-4">
+        <section className="mt-6 max-w-md rounded-lg border border-outline-variant bg-white p-4">
           <h2 className="mb-1 font-semibold">السداد بحوالة بنكية</h2>
-          <p className="mb-4 text-sm text-neutral-600">
+          <p className="mb-4 text-sm text-on-surface-variant">
             حوّل المتبقّي <span className="money font-semibold">{amount(invoice.outstanding)}</span>{" "}
             ريال إلى حساب الشركة، واكتب رقم الفاتورة <span className="money">{invoice.number}</span> في
             بيان الحوالة. يُسجَّل السداد حين يؤكّده البنك.
           </p>
           {bank?.configured ? (
-            <dl className="space-y-2 rounded bg-neutral-50 p-3 text-sm">
+            <dl className="space-y-2 rounded bg-surface-low p-3 text-sm">
               {bank.beneficiary ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-neutral-500">المستفيد</dt>
+                  <dt className="text-on-surface-variant">المستفيد</dt>
                   <dd>{bank.beneficiary}</dd>
                 </div>
               ) : null}
               {bank.bank ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-neutral-500">البنك</dt>
+                  <dt className="text-on-surface-variant">البنك</dt>
                   <dd>{bank.bank}</dd>
                 </div>
               ) : null}
               <div className="flex justify-between gap-4">
-                <dt className="text-neutral-500">الآيبان</dt>
+                <dt className="text-on-surface-variant">الآيبان</dt>
                 <dd className="money select-all" dir="ltr">{bank.iban}</dd>
               </div>
               {bank.account ? (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-neutral-500">رقم الحساب</dt>
+                  <dt className="text-on-surface-variant">رقم الحساب</dt>
                   <dd className="money select-all" dir="ltr">{bank.account}</dd>
                 </div>
               ) : null}
             </dl>
           ) : (
-            <p className="rounded bg-amber-50 p-3 text-sm text-amber-800">
+            <p className="tone-amber rounded-xl border p-3 text-sm">
               بيانات حساب الشركة غير متاحة الآن — تواصل مع الدعم للحصول عليها.
             </p>
           )}
-          <p className="mt-4 text-xs text-neutral-500">
+          <p className="mt-4 text-xs text-on-surface-variant">
             تأمين المزاد لا يُحتسب من ثمن المركبة. بعد سداد الفاتورة كاملةً يمكنك طلب
             استرداد تأمينك من «محفظتي».
           </p>
         </section>
       ) : (
-        <p className="mt-6 text-sm text-neutral-600">لا مبلغ متبقٍّ على هذه الفاتورة.</p>
+        <p className="mt-6 text-sm text-on-surface-variant">لا مبلغ متبقٍّ على هذه الفاتورة.</p>
       )}
     </PageShell>
   );

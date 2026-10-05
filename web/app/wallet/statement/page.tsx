@@ -63,7 +63,7 @@ export default async function StatementPage({
 
   return (
     <PageShell title="كشف الحركات">
-      <p className="-mt-4 mb-6 text-sm text-neutral-600">
+      <p className="-mt-4 mb-6 text-sm text-on-surface-variant">
         {bucket ? (
           <>
             مرشَّح على دلوٍ واحد ·{" "}
@@ -77,11 +77,11 @@ export default async function StatementPage({
       </p>
 
       {entries.length === 0 ? (
-        <p className="py-12 text-center text-neutral-500">لا حركات.</p>
+        <p className="py-12 text-center text-on-surface-variant">لا حركات.</p>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-outline-variant bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-neutral-50 text-neutral-600">
+            <thead className="bg-surface-low text-on-surface-variant">
               <tr>
                 <th className="p-3 text-start">التاريخ</th>
                 <th className="p-3 text-start">الحركة</th>
@@ -90,7 +90,7 @@ export default async function StatementPage({
                 <th className="p-3 text-start">البيان</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-200">
+            <tbody className="divide-y divide-outline-variant">
               {entries.map((entry) => (
                 <tr key={entry.id}>
                   <td className="p-3 whitespace-nowrap">{dateTime(entry.occurred_at)}</td>
@@ -116,7 +116,7 @@ export default async function StatementPage({
                     {entry.direction === "out" ? "−" : "+"}{" "}
                     {amount(entry.amount).replace(/^-/, "")}
                   </td>
-                  <td className="p-3 text-neutral-600">{entry.memo}</td>
+                  <td className="p-3 text-on-surface-variant">{entry.memo}</td>
                 </tr>
               ))}
             </tbody>

@@ -73,7 +73,7 @@ export default async function AuctionPage({ params, searchParams }: Params & Sea
 
   return (
     <PageShell title={auction.title}>
-      <p className="-mt-4 mb-6 text-sm text-neutral-600">
+      <p className="-mt-4 mb-6 text-sm text-on-surface-variant">
         مزاد رقم {count(auction.number)} · {auction.state_label} · ينتهي{" "}
         {dateTime(auction.ends_at)}
       </p>

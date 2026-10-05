@@ -90,7 +90,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
             priority={at === 0}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-neutral-500">
+          <div className="flex h-full items-center justify-center text-on-surface-variant">
             لا توجد صورة
           </div>
         )}
@@ -99,7 +99,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
           العدّاد `1 / 9` كما يعرضه v1، على الصورة أسفلها. ويُعرض حتى مع صورةٍ
           واحدة — «1 / 1» جوابٌ عن سؤال «هل في غيرها؟»، وغيابه ليس جواباً.
         */}
-        <span className="money absolute bottom-2 start-1/2 -translate-x-1/2 rounded bg-neutral-900/75 px-2 py-0.5 text-xs tabular-nums text-white">
+        <span className="money absolute bottom-2 start-1/2 -translate-x-1/2 rounded bg-primary/80 px-2 py-0.5 text-xs tabular-nums text-white">
           {at + 1} / {shots.length}
         </span>
 
@@ -113,7 +113,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
               type="button"
               onClick={() => go(-1)}
               aria-label="الصورة السابقة"
-              className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-neutral-900 shadow"
+              className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-on-surface shadow"
             >
               ›
             </button>
@@ -121,7 +121,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
               type="button"
               onClick={() => go(1)}
               aria-label="الصورة التالية"
-              className="absolute start-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-neutral-900 shadow"
+              className="absolute start-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-on-surface shadow"
             >
               ‹
             </button>

@@ -30,17 +30,26 @@
   --font-arabic: var(--font-plex-arabic), "Segoe UI", Tahoma, system-ui, sans-serif;
 
   /* ---------------------------------------------------------------- ألوان */
+  /* **العائلةُ كلُّها على الباليت «ج — بحري هادئ»** (٥ أكتوبر ٢٠٢٦: «طبّقي
+     الألوان على باقي الصفح»). القيمُ القديمة كانت لافندراً مائلاً إلى
+     البنفسجيّ وأزرقَ ثانويّاً صريحاً (#3755c3) وكحليّاً يكاد يكون أسود — فكانت
+     كلُّ صفحةٍ لم تُنقل باليد تقول لوناً غيرَ الرئيسيّة. ورسمُها هنا يجعل كلَّ
+     شاشةٍ تستعمل رموزَ المشروع تتبع الباليت بلا لمسها. والأسماءُ لم تتغيّر،
+     فلا صنفَ في مكوّنٍ يحتاج تعديلاً.
+
+     والتحذيرُ والخطأُ والنجاح (`warn` و`critical` و`ok`) صارت من نغمات
+     الباليت نفسِها، فلا يتجاور كهرمانيّان مختلفان في شاشة. */
   /* الأسطح: أربع درجات، من الخلفية إلى البطاقة الأعلى. */
   --color-surface: #f5f8fb;
   --color-surface-lowest: #ffffff;
-  --color-surface-low: #eff4ff;
-  --color-surface-container: #e6eeff;
-  --color-surface-high: #dde9ff;
-  --color-surface-highest: #d5e3fd;
+  --color-surface-low: #eef3f9;
+  --color-surface-container: #e6eef7;
+  --color-surface-high: #dbe6f3;
+  --color-surface-highest: #cfdcec;
 
   /* النصّ على الأسطح. */
-  --color-on-surface: #0d1c2f;
-  --color-on-surface-variant: #45474d;
+  --color-on-surface: #1a2b40;
+  --color-on-surface-variant: #4a5b70;
   /*
     ‏`#6e6f75` لا `#76777d` الذي جاءت به لوحة التصميم: ذاك نسبته **٤٫٤٦** على
     بطاقةٍ بيضاء، أي دون ٤٫٥ — وهو يحمل «السابق» و«التالي» المعطَّلَين ونصَّ
@@ -48,20 +57,20 @@
     `on-surface-variant` فيُقرأ معطَّلاً كما يجب. كشفه
     `web_colours_are_readable.mjs` حين صار يقيس بدل أن يمنع أسماءً.
   */
-  --color-outline: #6e6f75;
-  --color-outline-variant: #c6c6cd;
+  --color-outline: #64748b;
+  --color-outline-variant: #c9d6e5;
 
   /* المقلوب — للشارات فوق الصور. */
-  --color-inverse-surface: #233144;
-  --color-inverse-on-surface: #ebf1ff;
+  --color-inverse-surface: #1e3a5f;
+  --color-inverse-on-surface: #e6eef7;
 
   /* الفعل الأساسي (زرّ المزايدة، «طبّق»)، والثانوي (الروابط والتوثيق). */
-  --color-primary: #0b1528;
+  --color-primary: #1e3a5f;
   --color-on-primary: #ffffff;
-  --color-secondary: #3755c3;
+  --color-secondary: #35577f;
   --color-on-secondary: #ffffff;
-  --color-secondary-fixed: #dde1ff;
-  --color-on-secondary-fixed: #173bab;
+  --color-secondary-fixed: #e6eef7;
+  --color-on-secondary-fixed: #1e3a5f;
 
   /*
     دلالات دورة المزاد — ثلاث درجات، ولكلٍّ سببٌ زمنيّ لا ذوقيّ:
@@ -74,18 +83,18 @@
     الرموز نفسها ويحسب النسبة عند كل تشغيل. رقمٌ منسوخ في تعليقٍ يتقادم يوم
     يُعدَّل لون، ويُصدَّق وهو كاذب.
   */
-  --color-warn: #92400e;
-  --color-warn-surface: #fffbeb;
-  --color-warn-line: #fde68a;
-  --color-critical: #991b1b;
-  --color-critical-surface: #fef2f2;
-  --color-critical-line: #fecaca;
-  --color-error: #ba1a1a;
+  --color-warn: #6b4508;
+  --color-warn-surface: #fbecc8;
+  --color-warn-line: #e8c88a;
+  --color-critical: #7a1f2b;
+  --color-critical-surface: #fbe1e4;
+  --color-critical-line: #e7a3ad;
+  --color-error: #b42335;
   /* نجاحٌ تمّ — «تحقّقنا من رقمك» وأمثالُها. كان غائباً عن النظام، فكانت الجملةُ
      المطمئنةُ ستُكتب بالأزرق (لونِ الروابط) أو بقيمٍ خضراءَ صريحةٍ في الصفحة. */
-  --color-ok: #047857;
-  --color-ok-surface: #ecfdf5;
-  --color-ok-line: #a7f3d0;
+  --color-ok: #0b4a3b;
+  --color-ok-surface: #d4f1e7;
+  --color-ok-line: #8fd1bd;
 
   /* ------------------------------------------------------------ الحوافّ */
   /*
@@ -559,3 +568,14 @@ body {
   .vd-field, .vd-button, .vd-ghost { transition: none; }
   .vd-button:hover { transform: none; }
 }
+
+/* ---- نصٌّ فوق الكحليّ الصلب — صفحةُ الدخول وصدرُ «حسابي» ---------------- */
+/* الحبرُ الثانويُّ فوق `bg-primary` لونٌ لا شفافيّة (`palette.md` §٣-٣)،
+   والأيقوناتُ الثلاث من حدود النغمات الناعمة: فاتحةٌ بما يكفي لتُرى فوق
+   الكحليّ، ومن العائلة نفسِها التي تُلوّن بطاقاتِ الحالة. */
+.on-navy-muted { color: #c9d6e5; }
+.on-navy-faint { color: #9fb3cc; }
+.on-navy-ok    { color: var(--tone-emerald-line); }
+.on-navy-info  { color: var(--tone-navy-line); }
+.on-navy-warn  { color: var(--tone-amber-line); }
+.on-navy-ok-dot { background: var(--tone-emerald-line); }

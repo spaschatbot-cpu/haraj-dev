@@ -98,15 +98,15 @@ export default async function WalletPage() {
           ["محجوز لمزادات", wallet.held_for_auctions],
           ["مقفول على مستحقات", wallet.locked_for_dues],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-neutral-200 bg-white p-4">
-            <p className="text-sm text-neutral-500">{label}</p>
+          <div key={label} className="rounded-lg border border-outline-variant bg-white p-4">
+            <p className="text-sm text-on-surface-variant">{label}</p>
             <p className="money mt-1 text-2xl font-bold">{amount(value)}</p>
-            <p className="text-xs text-neutral-500">{wallet.currency}</p>
+            <p className="text-xs text-on-surface-variant">{wallet.currency}</p>
           </div>
         ))}
       </div>
 
-      <p className="mt-4 text-sm text-neutral-600">
+      <p className="mt-4 text-sm text-on-surface-variant">
         المجموع <span className="money font-semibold">{amount(wallet.total)}</span> ·
         بحسب الدفتر في {dateTime(wallet.as_of)}
       </p>
@@ -114,12 +114,12 @@ export default async function WalletPage() {
       <TopupButton />
 
       <h2 className="mt-10 mb-3 text-lg font-semibold">الدلاء</h2>
-      <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+      <ul className="divide-y divide-outline-variant rounded-lg border border-outline-variant bg-white">
         {wallet.buckets.map((bucket) => (
           <li key={bucket.kind} className="flex items-center justify-between gap-4 p-4">
             <div>
               <p className="font-medium">{bucket.label}</p>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-on-surface-variant">
                 {count(bucket.entry_count)} حركة
               </p>
             </div>
@@ -144,9 +144,9 @@ export default async function WalletPage() {
 
       <h2 className="mt-10 mb-3 text-lg font-semibold">الحجوزات القائمة</h2>
       {wallet.holds.length === 0 ? (
-        <p className="text-neutral-500">لا شيء محجوز.</p>
+        <p className="text-on-surface-variant">لا شيء محجوز.</p>
       ) : (
-        <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+        <ul className="divide-y divide-outline-variant rounded-lg border border-outline-variant bg-white">
           {wallet.holds.map((hold) => (
             <li key={hold.id} className="flex items-center justify-between gap-4 p-4">
               <div>
@@ -155,7 +155,7 @@ export default async function WalletPage() {
                   What this money is pinned to. In v1 the question had no stored
                   answer at all and support resolved it from memory.
                 */}
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-on-surface-variant">
                   {hold.auction
                     ? `مزاد ${(hold.auction as { number?: number }).number ?? ""}`
                     : hold.invoice

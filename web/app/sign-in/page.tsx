@@ -103,7 +103,7 @@ export default async function SignInPage({
                 </span>
                 <div>
                   <h1 className="text-headline-md font-bold tracking-tight text-white">مزاد حراج واحد</h1>
-                  <p className="text-body-sm text-slate-300">منصة المزايدة المغلقة على سيارات المزاد</p>
+                  <p className="text-body-sm on-navy-muted">منصة المزايدة المغلقة على سيارات المزاد</p>
                 </div>
               </div>
 
@@ -111,15 +111,15 @@ export default async function SignInPage({
               {live ? (
                 <div className="mt-6 rounded-2xl border border-white/15 bg-white/5 p-4 backdrop-blur-md shadow-lg">
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-2 text-label-md font-bold text-emerald-400">
+                    <span className="inline-flex items-center gap-2 text-label-md font-bold on-navy-ok">
                       <span aria-hidden="true" className="relative flex h-2.5 w-2.5">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full on-navy-ok-dot opacity-75" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full on-navy-ok-dot" />
                       </span>
                       المزاد الجاري · مزاد <span className="tnum">{live.number}</span>
                     </span>
                     {live.vehicle_count !== null ? (
-                      <span className="rounded-lg bg-white/10 px-2.5 py-0.5 text-label-sm font-semibold text-slate-200">
+                      <span className="rounded-lg bg-white/10 px-2.5 py-0.5 text-label-sm font-semibold text-inverse-on-surface">
                         <span className="money font-bold">{count(live.vehicle_count)}</span> سيارة
                       </span>
                     ) : null}
@@ -135,15 +135,15 @@ export default async function SignInPage({
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-body-sm text-slate-300">
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-body-sm on-navy-muted">
                   ⚡ مزادات دورية مستمرة — سجّل دخولك لتكون جاهزاً للمزايدة فور انطلاق المزاد القادم.
                 </div>
               )}
 
               {/* ركائز الأمان والثقة الثلاث */}
               <div className="mt-8 space-y-3 hidden sm:block">
-                <div className="flex items-start gap-3 text-body-sm text-slate-200">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-emerald-400">
+                <div className="flex items-start gap-3 text-body-sm text-inverse-on-surface">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 on-navy-ok">
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
@@ -151,38 +151,38 @@ export default async function SignInPage({
                   </span>
                   <div>
                     <strong className="block font-semibold text-white">مزايدة مغلقة ومحمية</strong>
-                    <span className="text-caption text-slate-300">لا أحد يرى مبلغ مزايدتك ولا يمكن لأحد منافستك بالاحتكار.</span>
+                    <span className="text-caption on-navy-muted">لا أحد يرى مبلغ مزايدتك ولا يمكن لأحد منافستك بالاحتكار.</span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 text-body-sm text-slate-200">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-blue-400">
+                <div className="flex items-start gap-3 text-body-sm text-inverse-on-surface">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 on-navy-info">
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                     </svg>
                   </span>
                   <div>
                     <strong className="block font-semibold text-white">دخول سريع بلا كلمة مرور</strong>
-                    <span className="text-caption text-slate-300">رمز تحقق فوري لمرة واحدة يُرسل إلى هاتفك المحمول.</span>
+                    <span className="text-caption on-navy-muted">رمز تحقق فوري لمرة واحدة يُرسل إلى هاتفك المحمول.</span>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 text-body-sm text-slate-200">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 text-amber-400">
+                <div className="flex items-start gap-3 text-body-sm text-inverse-on-surface">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white/10 on-navy-warn">
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                   </span>
                   <div>
                     <strong className="block font-semibold text-white">التأمين وديعة مستردة</strong>
-                    <span className="text-caption text-slate-300">مبلغ التأمين وديعة في محفظتك يُسترد بطلبك في أي وقت.</span>
+                    <span className="text-caption on-navy-muted">مبلغ التأمين وديعة في محفظتك يُسترد بطلبك في أي وقت.</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* تذييل قسم الهوية */}
-            <div className="relative z-10 mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-caption text-slate-400">
+            <div className="relative z-10 mt-6 pt-4 border-t border-white/10 flex items-center justify-between text-caption on-navy-faint">
               <span>المملكة العربية السعودية</span>
               <span>منصة مرخصة ومعتمدة</span>
             </div>

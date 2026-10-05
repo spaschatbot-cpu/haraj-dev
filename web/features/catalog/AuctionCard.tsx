@@ -21,28 +21,28 @@ export type Auction = components["schemas"]["AuctionCard"];
 
 export function AuctionCard({ auction }: { auction: Auction }) {
   return (
-    <article className="rounded-lg border border-neutral-200 bg-white p-4">
+    <article className="rounded-lg border border-outline-variant bg-white p-4">
       <Link href={`/auctions/${auction.id}`} className="block">
         <div className="flex items-baseline justify-between gap-2">
           <h3 className="font-semibold">{auction.title}</h3>
-          <span className="shrink-0 rounded bg-neutral-100 px-2 py-0.5 text-xs text-neutral-700">
+          <span className="shrink-0 rounded bg-surface-container px-2 py-0.5 text-xs text-on-surface-variant">
             {auction.state_label}
           </span>
         </div>
 
-        <p className="mt-1 text-sm text-neutral-600">مزاد رقم <span className="tnum">{auction.number}</span></p>
+        <p className="mt-1 text-sm text-on-surface-variant">مزاد رقم <span className="tnum">{auction.number}</span></p>
 
-        <dl className="mt-3 space-y-1 text-sm text-neutral-700">
+        <dl className="mt-3 space-y-1 text-sm text-on-surface-variant">
           <div className="flex gap-2">
-            <dt className="text-neutral-500">يبدأ</dt>
+            <dt className="text-on-surface-variant">يبدأ</dt>
             <dd>{dateTime(auction.starts_at)}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-neutral-500">ينتهي</dt>
+            <dt className="text-on-surface-variant">ينتهي</dt>
             <dd>{dateTime(auction.ends_at)}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-neutral-500">المركبات</dt>
+            <dt className="text-on-surface-variant">المركبات</dt>
             {/*
               Both numbers, because they answer different questions: how big is
               this auction, and how much of it can still be bid on. Showing only

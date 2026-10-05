@@ -64,34 +64,34 @@ export default async function TopupStatusPage({
 
   return (
     <PageShell title="حالة الشحن">
-      <div className="max-w-md rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="max-w-md rounded-lg border border-outline-variant bg-white p-4">
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">الحالة</dt>
+            <dt className="text-on-surface-variant">الحالة</dt>
             {/* The server's word for it, not a mapping kept here. */}
             <dd className="font-semibold">{intent.state_label}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">المبلغ</dt>
+            <dt className="text-on-surface-variant">المبلغ</dt>
             <dd className="money">
               {amount(intent.amount)} {intent.currency}
             </dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">الغرض</dt>
+            <dt className="text-on-surface-variant">الغرض</dt>
             <dd>{intent.purpose_label}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">المرجع</dt>
+            <dt className="text-on-surface-variant">المرجع</dt>
             <dd className="money">{intent.reference}</dd>
           </div>
           <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">آخر تحديث</dt>
+            <dt className="text-on-surface-variant">آخر تحديث</dt>
             <dd>{dateTime(intent.updated_at)}</dd>
           </div>
         </dl>
 
-        <p className="mt-4 text-xs text-neutral-500">
+        <p className="mt-4 text-xs text-on-surface-variant">
           هذه الحالة مقروءة من سجلّنا، لا من رابط العودة. الرصيد يتحرّك حين تؤكّد
           البوابة الدفع للخادم.
         </p>

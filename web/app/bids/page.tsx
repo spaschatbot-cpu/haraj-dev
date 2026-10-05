@@ -71,16 +71,16 @@ export default async function BidsPage({
       />
 
       {bids.length === 0 ? (
-        <p className="py-12 text-center text-neutral-500">لم تزايد على شيء بعد.</p>
+        <p className="py-12 text-center text-on-surface-variant">لم تزايد على شيء بعد.</p>
       ) : (
-        <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+        <ul className="divide-y divide-outline-variant rounded-lg border border-outline-variant bg-white">
           {bids.map((bid) => (
             <li key={bid.id} className="flex flex-wrap items-center gap-4 p-4">
               <div className="min-w-0 grow">
                 <Link href={`/vehicles/${bid.vehicle_id}`} className="font-medium hover:underline">
                   {bid.vehicle_title}
                 </Link>
-                <p className="mt-1 text-sm text-neutral-600">
+                <p className="mt-1 text-sm text-on-surface-variant">
                   لوت {count(bid.lot_number)} · {dateTime(bid.placed_at)}
                 </p>
               </div>
@@ -93,7 +93,7 @@ export default async function BidsPage({
                   own model, and inventing a third state here would be a fourth
                   opinion about what a live bid is.
                 */}
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-on-surface-variant">
                   {bid.is_withdrawn
                     ? "مسحوبة"
                     : bid.is_superseded
@@ -134,7 +134,7 @@ export default async function BidsPage({
                       inputMode="decimal"
                       defaultValue={bid.amount}
                       required
-                      className="money w-32 rounded border border-neutral-500 px-2 py-1 text-sm"
+                      className="money w-32 rounded border border-outline px-2 py-1 text-sm"
                     />
                     <button type="submit" className="text-sm underline">
                       تعديل
@@ -143,7 +143,7 @@ export default async function BidsPage({
 
                   <form action={withdrawBid}>
                     <input type="hidden" name="bid_id" value={bid.id} />
-                    <button type="submit" className="text-sm text-red-700 underline">
+                    <button type="submit" className="text-sm text-error underline">
                       سحب
                     </button>
                   </form>

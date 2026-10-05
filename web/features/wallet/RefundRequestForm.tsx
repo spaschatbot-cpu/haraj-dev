@@ -35,29 +35,29 @@ export function RefundRequestForm({
   iban?: string;
 }) {
   return (
-    <section id="refund" className="mt-12 scroll-mt-24 rounded-lg border border-neutral-200 bg-white p-4">
+    <section id="refund" className="mt-12 scroll-mt-24 rounded-lg border border-outline-variant bg-white p-4">
       <h2 className="mb-1 font-semibold">طلب استرداد</h2>
 
       {open ? (
-        <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
+        <div className="tone-amber mb-4 rounded-xl border p-3">
           <p className="text-sm">
             لديك طلبٌ قائم بمبلغ{" "}
             <span className="money font-semibold">{amount(open.amount)}</span>
             {open.state_label ? ` · ${open.state_label}` : null}.
           </p>
           {open.iban ? (
-            <p className="mt-1 text-xs text-neutral-700">
+            <p className="tone-ink mt-1 text-xs">
               إلى الآيبان <code dir="ltr">{open.iban}</code>
             </p>
           ) : null}
-          <p className="mt-1 text-xs text-neutral-700">
+          <p className="tone-ink mt-1 text-xs">
             وتأمينك محجوزٌ له فلا تُقبل منك مزايدةٌ حتى يُنفَّذ أو يُلغى.
           </p>
           <form action={cancelRefund} className="mt-3">
             <input type="hidden" name="reference" value={open.reference} />
             <button
               type="submit"
-              className="rounded border border-neutral-500 px-3 py-1.5 text-sm"
+              className="rounded border border-outline px-3 py-1.5 text-sm"
             >
               ألغِ الطلب
             </button>
@@ -65,11 +65,11 @@ export function RefundRequestForm({
         </div>
       ) : (
         <>
-          <p className="mb-1 text-sm text-neutral-600">
+          <p className="mb-1 text-sm text-on-surface-variant">
             المتاح الآن <span className="money">{amount(available)}</span>. الطلب لا
             يحرّك رصيدك؛ المحاسبة تنفّذه ويظهر في حركاتك عند التنفيذ.
           </p>
-          <p className="mb-4 text-sm text-neutral-600">
+          <p className="mb-4 text-sm text-on-surface-variant">
             وديعة التأمين وحدةٌ لا تُجزَّأ:{" "}
             <span className="money">{amount(unit)}</span> للوديعة الواحدة —
             يُسترَدّ مضاعفُها كاملاً لا مبلغٌ جزئيّ.
@@ -77,14 +77,14 @@ export function RefundRequestForm({
 
           <form action={requestRefund} className="flex flex-wrap items-end gap-3">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600">المبلغ</span>
+              <span className="text-on-surface-variant">المبلغ</span>
               <input
                 type="text"
                 name="amount"
                 inputMode="decimal"
                 defaultValue={unit}
                 required
-                className="money rounded border border-neutral-500 px-3 py-2"
+                className="money rounded border border-outline px-3 py-2"
               />
             </label>
 
@@ -99,7 +99,7 @@ export function RefundRequestForm({
               البنوكُ تعرضه مجزّأً بمسافاتٍ كلَّ أربعة وهو ما يُنسَخ فعلاً.
             */}
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-neutral-600">رقم الآيبان</span>
+              <span className="text-on-surface-variant">رقم الآيبان</span>
               <input
                 type="text"
                 name="iban"
@@ -107,11 +107,11 @@ export function RefundRequestForm({
                 placeholder="SA00 0000 0000 0000 0000 0000"
                 required
                 dir="ltr"
-                className="money w-72 rounded border border-neutral-500 px-3 py-2 text-left"
+                className="money w-72 rounded border border-outline px-3 py-2 text-left"
               />
             </label>
 
-            <button type="submit" className="rounded bg-neutral-900 px-4 py-2 text-white">
+            <button type="submit" className="rounded bg-primary px-4 py-2 text-white">
               أرسل الطلب
             </button>
           </form>
