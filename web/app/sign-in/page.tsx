@@ -308,7 +308,7 @@ export default async function SignInPage({
 
                   <button
                     type="submit"
-                    className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-secondary text-headline-sm font-bold text-on-secondary shadow-lg shadow-secondary/25 transition-all hover:opacity-95 hover:shadow-xl active:scale-[0.99]"
+                    className="flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-primary text-headline-sm font-bold text-on-primary shadow-lg shadow-primary/25 transition-all hover:opacity-95 hover:shadow-xl active:scale-[0.99]"
                   >
                     <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z" />
