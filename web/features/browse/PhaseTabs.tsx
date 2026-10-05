@@ -108,9 +108,12 @@ export function PhaseTabs({
                 /* التأخيرُ المتدرّج يجعل العينَ تقرأ الثلاثَ واحدةً بعد
                    واحدة، لا هبوطاً واحداً لا يُقرأ منه شيء. */
                 style={{ animationDelay: `${index * 70}ms` }}
-                className={`phase-card phase-pill ${tone} flex h-full items-center gap-3 p-2 pe-4 md:gap-4 md:p-2.5 md:pe-6`}
+                className={`phase-card phase-pill ${tone} flex h-full flex-col items-center justify-center gap-2 px-2 py-3 text-center md:flex-row md:justify-start md:gap-4 md:p-2.5 md:pe-6 md:text-start`}
               >
-                {/* الأيقونةُ في دائرةٍ من سطح نغمتها — اللونُ فيها وحدَها. */}
+                {/* الأيقونةُ في دائرةٍ من سطح نغمتها — اللونُ فيها وحدَها.
+                    وعلى الجوّال تقف الكبسولةُ قائمةً، الدائرةُ فوق النصّ: ثلثُ
+                    شاشةٍ عرضُها ٣٧٥ لا يسع الدائرةَ والاسمَ متجاورين، فقُصّ
+                    «منتهي» إلى «منت…» (قِيس على الإنتاج). */}
                 <span
                   aria-hidden="true"
                   className="phase-icon relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-14 md:w-14"
@@ -131,13 +134,13 @@ export function PhaseTabs({
                   ) : null}
                 </span>
 
-                <span className="flex min-w-0 flex-col">
+                <span className="flex min-w-0 flex-col items-center md:items-start">
                   {counts === null ? null : (
                     <span className="tnum text-headline-sm leading-none md:text-headline-md">
                       {count(counts[tab.id])}
                     </span>
                   )}
-                  <span className="tone-ink truncate text-label-md">{tab.label}</span>
+                  <span className="tone-ink text-label-md">{tab.label}</span>
                 </span>
               </Link>
             </li>
