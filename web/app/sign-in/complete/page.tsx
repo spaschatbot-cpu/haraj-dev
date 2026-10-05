@@ -112,7 +112,7 @@ export default async function CompleteRegistrationPage({
         <form method="get" action="/sign-in/complete" className="mx-auto flex w-full max-w-md flex-col">
           <Steps current={3} />
 
-          <p className="mb-3 inline-flex items-center gap-2 self-start rounded-full border border-ok-line bg-ok-surface px-3 py-1 text-label-sm text-ok">
+          <p className="tone-emerald mb-3 inline-flex items-center gap-2 self-start rounded-full border px-3 py-1 text-label-sm">
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor">
               <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4-7 7z" />
             </svg>

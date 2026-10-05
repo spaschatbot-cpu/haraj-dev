@@ -116,10 +116,10 @@ export default async function Home({
       ) : (
         <div
           role="status"
-          className="rounded-xl border border-warn-line bg-warn-surface p-6 text-center"
+          className="tone-amber rounded-xl border-2 p-6 text-center"
         >
-          <p className="text-warn">{refusal}</p>
-          <p className="mt-2 text-body-sm text-warn">
+          <p>{refusal}</p>
+          <p className="tone-ink mt-2 text-body-sm">
             لم تصل قائمة المركبات. جرّب تحديث الصفحة أو تبويباً آخر.
           </p>
         </div>

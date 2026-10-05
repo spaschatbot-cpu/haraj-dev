@@ -78,6 +78,6 @@ export function Pill({ tone, children }: { tone: "ok" | "warn"; children: React.
   return tone === "ok" ? (
     <span className="rounded-full bg-secondary-fixed px-3 py-1 text-label-sm text-on-secondary-fixed">{children}</span>
   ) : (
-    <span className="rounded-full border border-warn-line bg-warn-surface px-3 py-1 text-label-sm text-warn">{children}</span>
+    <span className="tone-amber rounded-full border px-3 py-1 text-label-sm">{children}</span>
   );
 }

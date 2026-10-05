@@ -87,11 +87,11 @@ const TONES: Record<Tone, { band: string; digits: string }> = {
     digits: "text-headline-sm font-bold",
   },
   soon: {
-    band: "bg-warn-surface text-warn",
+    band: "tone-amber",
     digits: "text-headline-sm font-bold",
   },
   urgent: {
-    band: "bg-critical-surface text-critical",
+    band: "tone-rose",
     digits: "text-headline-sm font-extrabold",
   },
   past: {

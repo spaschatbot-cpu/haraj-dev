@@ -130,7 +130,7 @@ export default async function AccountPage() {
         {profile.registration_missing.length > 0 ? (
           <Link
             href="/sign-in/complete"
-            className="mb-4 flex items-center justify-between gap-4 rounded-2xl border border-warn-line bg-warn-surface px-5 py-4 text-warn transition-opacity hover:opacity-90"
+            className="tone-amber mb-4 flex items-center justify-between gap-4 rounded-2xl border-2 px-5 py-4 transition-opacity hover:opacity-90"
           >
             <span>
               <span className="block text-label-md">أكمل تسجيلك</span>
@@ -214,7 +214,7 @@ export default async function AccountPage() {
         <form action={signOut} className="mt-6">
           <button
             type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-critical-line bg-critical-surface py-3.5 text-label-md text-critical transition-colors hover:bg-critical-line/40"
+            className="tone-rose flex w-full items-center justify-center gap-2 rounded-2xl border-2 py-3.5 text-label-md transition-opacity hover:opacity-90"
           >
             <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0" />
@@ -232,7 +232,7 @@ function Row({ href, title, detail, icon, tone }: Entry) {
     tone === "accent"
       ? "bg-secondary text-on-secondary"
       : tone === "danger"
-        ? "bg-critical-surface text-critical"
+        ? "tone-rose"
         : "bg-surface-container text-secondary";
   return (
     <Link href={href} className="flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-surface-low">
@@ -259,7 +259,7 @@ function Fact({ tone, children }: { tone: "ok" | "warn" | "plain"; children: Rea
     tone === "ok"
       ? "bg-on-primary/10 text-on-primary ring-on-primary/25"
       : tone === "warn"
-        ? "bg-warn-surface text-warn ring-warn-line"
+        ? "tone-amber"
         : "bg-transparent text-on-primary/80 ring-on-primary/25";
   return (
     <li className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-label-sm ring-1 ${look}`}>

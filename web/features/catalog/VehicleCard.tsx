@@ -62,19 +62,25 @@ export type { Vehicle };
  */
 const DAMAGE = new Set(["accident", "fire", "flood"]);
 
-/** شارةُ الطور فوق الصورة — كلمةٌ ولون، من `phase` وحده. */
+/** شارةُ الطور فوق الصورة — كلمةٌ ولون، من `phase` وحده.
+ *
+ * **والنغمةُ من الباليت** (`docs/palette.md`): كهرمانيٌّ لما ينتظر،
+ * وزمرّديٌّ لما هو مفتوحٌ الآن، ونيليٌّ لما استقرّ — وهي نغماتُ بطاقات
+ * الحالة في الرئيسيّة بعينها، فيُقرأ الكرتُ والتبويبُ لغةً واحدة. وكانت
+ * درجاتٍ متفرّقةً (`warn-surface` و`secondary-fixed` و`surface-container`)
+ * يفترق بها الكرتُ عن تبويبه. */
 const PHASE_BADGE: Record<string, { label: string; className: string }> = {
   soon: {
     label: "قريباً",
-    className: "bg-warn-surface text-warn",
+    className: "tone-soon border",
   },
   active: {
     label: "مفتوح للمزايدة",
-    className: "bg-secondary-fixed text-on-secondary-fixed",
+    className: "tone-active border",
   },
   ended: {
     label: "منتهي",
-    className: "bg-surface-container text-on-surface-variant",
+    className: "tone-ended border",
   },
 };
 
