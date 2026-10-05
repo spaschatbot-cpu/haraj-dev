@@ -280,31 +280,84 @@ body {
   letter-spacing: 0.035em;
 }
 
-/* ---- ألوانُ الحالات مشبعة — T1037 ------------------------------------ */
-/* **الدرجاتُ السابقةُ كانت أفتحَ من أن تُرى.** `--color-warn-surface`
-   (#fffbeb) و`--color-ok-surface` (#ecfdf5) درجاتُ خلفيّةٍ لتنبيهٍ داخل
-   نصّ — لا لبطاقةٍ هي نصفُ الشاشة. وقِيست على اللقطة: الثلاثُ تُقرأ بيضاءَ
-   متجاورة.
-   
-   فصارت الدرجةُ ٢٠٠ من كلّ عائلة سطحاً، و٦٠٠ حدّاً، و٩٠٠ حبراً — وهي
-   التركيبةُ التي تُقرأ ملوّنةً وتبقى فاتحة، ويبقى التباينُ فوق 7:1.
-   
-   وثلاثُ عائلاتٍ متجاورةٍ في العجلة (كهرمانيّ · زمرّديّ · نيليّ) بنفس
-   الدرجة ونفس الإشباع — فتُقرأ عائلةً واحدةً لا ألواناً اصطدمت. */
-.tone-soon   { background: #fde68a; border-color: #d97706; color: #78350f; }
-.tone-active { background: #a7f3d0; border-color: #059669; color: #064e3b; }
-.tone-ended  { background: #c7d2fe; border-color: #4338ca; color: #312e81; }
+/* ══════ نظامُ ألوان الحالات — T1037 ═══════════════════════════════════
+   **خمسُ نغماتٍ من درجةٍ واحدة، لا خمسةُ ألوانٍ اختيرت واحداً واحداً.**
 
-.tone-soon .tone-ink   { color: #92400e; }
-.tone-active .tone-ink { color: #065f46; }
-.tone-ended .tone-ink  { color: #3730a3; }
+   وهذا هو الفرق: لونان يُختاران على حدة يتفقان بالصدفة، وخمسةٌ لا تتفق
+   أبداً. فالنغماتُ هنا مأخوذةٌ من **الخطوة نفسِها** في خمس عائلات: السطحُ
+   من الدرجة ٢٠٠، والحدُّ من ٦٠٠، والحبرُ من ٩٠٠. أي أن الخمسةَ على نفس
+   الفاتح ونفس الإشباع ويختلفن في الصبغة وحدها — وهو تعريفُ «ألوانٌ تليق
+   ببعضها».
 
-/* والمختارةُ تغمق حدَّها وتُظلَّل، فتُقرأ مختارةً بين ملوّناتٍ لا بينها
-   وبين بيضاء. */
+   **ولماذا تُكتب هنا لا في المكوّنات.** لأن بقيّة الصفحات ستُبنى عليها
+   (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦: «علشان حنعمل بيها باقي الصفح والنظام»).
+   وقيمةٌ مكتوبةٌ في مكوّنٍ تُنسخ إلى الثاني ثم تُعدَّل في أحدهما — وهو كيف
+   تفترق الشاشات.
+
+   **والمعنى قبل اللون.** كلُّ نغمةٍ لها شغلُها، ولا تُستعمل لأنها جميلة:
+   نيليٌّ للمنصّة وما استقرّ (الأرشيف)، وزمرّديٌّ لما هو مفتوحٌ الآن،
+   وكهرمانيٌّ لما ينتظر، ووَرديٌّ لما يُوقف، ورماديٌّ لما لا حالةَ له.
+   ولونٌ يُختار لجماله يصير زينةً، وزينةٌ تتكرّر تصير بلا معنى.
+
+   **واللونُ لا يحمل المعنى وحده أبداً**: كلُّ حالةٍ مكتوبةٌ باسمها ولها
+   رسمُها، والمختارُ له حدٌّ داخليٌّ — فمن لا يميّز الألوان يقرأ. */
+:root {
+  --tone-indigo-fill:  #c7d2fe;
+  --tone-indigo-line:  #4f46e5;
+  --tone-indigo-ink:   #312e81;
+
+  --tone-emerald-fill: #a7f3d0;
+  --tone-emerald-line: #059669;
+  --tone-emerald-ink:  #064e3b;
+
+  --tone-amber-fill:   #fde68a;
+  --tone-amber-line:   #d97706;
+  --tone-amber-ink:    #78350f;
+
+  --tone-rose-fill:    #fecdd3;
+  --tone-rose-line:    #e11d48;
+  --tone-rose-ink:     #881337;
+
+  --tone-slate-fill:   #e2e8f0;
+  --tone-slate-line:   #475569;
+  --tone-slate-ink:    #0f172a;
+}
+
+/* الأصنافُ الجاهزة: `tone-*` تضع الثلاثةَ معاً، و`tone-ink` للنصّ الثانويّ
+   داخلها. وصنفٌ واحدٌ على العنصر بدل ثلاثة أصنافٍ تُكتب في كل موضع. */
+.tone-indigo  { background: var(--tone-indigo-fill);  border-color: var(--tone-indigo-line);  color: var(--tone-indigo-ink); }
+.tone-emerald { background: var(--tone-emerald-fill); border-color: var(--tone-emerald-line); color: var(--tone-emerald-ink); }
+.tone-amber   { background: var(--tone-amber-fill);   border-color: var(--tone-amber-line);   color: var(--tone-amber-ink); }
+.tone-rose    { background: var(--tone-rose-fill);    border-color: var(--tone-rose-line);    color: var(--tone-rose-ink); }
+.tone-slate   { background: var(--tone-slate-fill);   border-color: var(--tone-slate-line);   color: var(--tone-slate-ink); }
+
+/* الحبرُ الثانويُّ داخل نغمةٍ هو لونُها نفسُه — يرثه من الأب، فلا يُكتب
+   لكلّ نغمةٍ سطرٌ ثانٍ ولا يُنسى واحدٌ منها. */
+.tone-ink { color: inherit; opacity: 0.82; }
+
+/* **ونغمةُ كلّ حالةٍ بالمعنى لا بالترتيب.** */
+.tone-soon   { background: var(--tone-amber-fill);   border-color: var(--tone-amber-line);   color: var(--tone-amber-ink); }
+.tone-active { background: var(--tone-emerald-fill); border-color: var(--tone-emerald-line); color: var(--tone-emerald-ink); }
+.tone-ended  { background: var(--tone-indigo-fill);  border-color: var(--tone-indigo-line);  color: var(--tone-indigo-ink); }
+
+/* والمختارةُ تُظلَّل بحدٍّ داخليٍّ من لونها هي، فتُقرأ مختارةً بين ملوّناتٍ
+   لا بينها وبين بيضاء. */
 .tone-on { box-shadow: inset 0 0 0 2px currentColor; }
 
-/* وصدرُ الصفحة سطحٌ أزرقُ مشبعٌ من العائلة نفسِها، لا أبيضُ مائل. */
+/* وصدرُ الصفحة من النغمة النيليّة نفسِها — سطحُها وحدُّها، لا أزرقُ رابعٌ
+   يُخترع للصدر وحده. */
 .hero-ink {
-  background: #dbe6ff;
-  border: 2px solid #3755c3;
+  background: var(--tone-indigo-fill);
+  border: 2px solid var(--tone-indigo-line);
+  color: var(--tone-indigo-ink);
 }
+.hero-ink .hero-sub { color: var(--tone-indigo-ink); opacity: 0.82; }
+.hero-ink .hero-chip {
+  background: #ffffff;
+  color: var(--tone-indigo-line);
+}
+.hero-ink .hero-badge {
+  background: var(--tone-indigo-line);
+  color: #ffffff;
+}
+.hero-ink .hero-rule { border-color: var(--tone-indigo-line); opacity: 0.45; }

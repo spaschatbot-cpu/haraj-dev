@@ -22,7 +22,7 @@ export function HeroArt() {
       aria-hidden="true"
       viewBox="0 0 800 220"
       preserveAspectRatio="xMidYMid slice"
-      className="pointer-events-none absolute inset-0 h-full w-full text-secondary opacity-[0.17]"
+      className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.22]"
       fill="none"
       stroke="currentColor"
       strokeWidth="5"
