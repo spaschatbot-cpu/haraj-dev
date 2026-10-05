@@ -66,14 +66,26 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
 
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-neutral-100">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-slate-100">
         {large(shown) ? (
           <Image
             src={large(shown) as string}
             alt={alt}
             fill
             sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-cover"
+            /*
+              **`contain` لا `cover` في الصورة الكبيرة.** `cover` يملأ الإطار
+              بالقصّ — ومقيسٌ على المركبة 13069: صورةٌ طويلةٌ في إطارٍ 4:3
+              فظهر **وسطُها الرماديُّ وحدَه** والسيّارةُ خارج الكادر.
+
+              والقصُّ ليس عيباً في الكرت — هناك الصورةُ تلميحٌ. وهنا هي
+              **سببُ الصفحة**: من يقرّر أن يزايد بعشرات الآلاف ينظر إلى
+              السيّارة، وإطارٌ يقصّ مقدّمتَها أو بابَها يُخفي ما جاء يراه.
+
+              والمصغّراتُ تبقى `cover`: مربّعاتٌ صغيرةٌ تدلّ على الترتيب لا
+              تُفحص فيها المركبة.
+            */
+            className="object-contain"
             //: الصورة الأولى وحدها: هي أكبر ما يُرسم في هذه الصفحة (LCP).
             priority={at === 0}
           />
