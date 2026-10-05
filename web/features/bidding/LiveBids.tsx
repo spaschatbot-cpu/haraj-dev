@@ -87,10 +87,10 @@ export function LiveBids({
   }, [vehicleId]);
 
   return (
-    <div className="mt-4 rounded border border-neutral-200 bg-neutral-50 p-3 text-sm">
+    <div className="tone-navy mt-4 rounded-xl border p-3 text-sm">
       <p
         className={
-          connection === "lost" ? "font-medium text-amber-800" : "text-neutral-500"
+          connection === "lost" ? "vd-warn font-medium" : "tone-ink"
         }
       >
         {LABELS[connection]}
@@ -101,7 +101,7 @@ export function LiveBids({
           مزايدتك القائمة <span className="money font-semibold">{bid.amount}</span> ريال
         </p>
       ) : (
-        <p className="mt-1 text-neutral-600">لا مزايدة قائمة لك على هذه المركبة.</p>
+        <p className="tone-ink mt-1">لا مزايدة قائمة لك على هذه المركبة.</p>
       )}
     </div>
   );

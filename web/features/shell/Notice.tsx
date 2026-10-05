@@ -10,11 +10,11 @@ export function Notice({ message, tone = "error" }: { message: string; tone?: "e
 
   const classes =
     tone === "error"
-      ? "border-red-300 bg-red-50 text-red-900"
-      : "border-blue-300 bg-blue-50 text-blue-900";
+      ? "tone-rose"
+      : "tone-navy";
 
   return (
-    <p role="alert" className={`mb-4 rounded border px-4 py-3 text-sm ${classes}`}>
+    <p role="alert" className={`mb-4 rounded-xl border px-4 py-3 text-sm ${classes}`}>
       {message}
     </p>
   );

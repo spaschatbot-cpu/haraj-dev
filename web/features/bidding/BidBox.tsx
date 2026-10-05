@@ -134,25 +134,25 @@ export function BidBox({
   return (
     <form
       action={placeBid}
-      className="mt-8 rounded-lg border border-neutral-200 bg-white p-4"
+      className="vd-panel mt-8 rounded-2xl p-4"
     >
       <input type="hidden" name="vehicle_id" value={vehicleId} />
 
       <h2 className="mb-3 font-semibold">تفاصيل المزايدة</h2>
 
-      <dl className="mb-4 divide-y divide-neutral-200 border-y border-neutral-200 text-sm">
+      <dl className="vd-specs mb-4 divide-y border-y text-sm">
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-500">رسوم إدارية</dt>
+          <dt className="vd-muted">رسوم إدارية</dt>
           <dd className="money tabular-nums">{adminFee} ر.س</dd>
         </div>
         <div className="flex justify-between gap-4 py-2">
-          <dt className="text-neutral-500">الرسوم + الضريبة (15%)</dt>
+          <dt className="vd-muted">الرسوم + الضريبة (15%)</dt>
           <dd className="money tabular-nums">{adminFeeWithVat} ر.س</dd>
         </div>
       </dl>
 
       <label className="flex flex-col gap-1 text-sm">
-        <span className="text-neutral-600">السعر</span>
+        <span className="vd-muted">السعر</span>
         <input
           type="text"
           name="amount"
@@ -160,12 +160,12 @@ export function BidBox({
           required
           value={typed}
           onChange={(event) => setTyped(event.target.value)}
-          className="money rounded border border-neutral-500 px-3 py-2 text-lg"
+          className="vd-field money rounded-xl px-3 py-2 text-lg"
         />
       </label>
 
       <p className="mt-3 flex justify-between gap-4 text-sm">
-        <span className="text-neutral-500">السعر + الضريبة (15%)</span>
+        <span className="vd-muted">السعر + الضريبة (15%)</span>
         {/*
           `aria-live` لأن الرقم يتغيّر بلا أن يضغط أحد شيئاً: من لا يرى الشاشة
           لا يعرف أن سطراً تحت الحقل تحرّك.
@@ -176,8 +176,8 @@ export function BidBox({
       </p>
 
       {needsConfirmation ? (
-        <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="mb-2 text-amber-900">
+        <div className="tone-amber mt-4 rounded-xl border p-3 text-sm">
+          <p className="mb-2">
             مزايدتك القائمة <span className="money">{standing}</span> ريال، والمبلغ
             الجديد أقل منها.
           </p>
@@ -186,7 +186,7 @@ export function BidBox({
             confirmation — it is the first attempt with an extra field, which is
             precisely the accident the two-step exists to stop (F3).
           */}
-          <label className="flex items-center gap-2 text-amber-900">
+          <label className="flex items-center gap-2">
             <input type="checkbox" name="confirm_lower" value="1" required />
             <span>نعم، أريد خفض مزايدتي.</span>
           </label>
@@ -195,12 +195,12 @@ export function BidBox({
 
       <button
         type="submit"
-        className="mt-4 w-full rounded bg-neutral-900 px-4 py-2 text-white"
+        className="vd-button mt-4 w-full rounded-full px-4 py-2.5"
       >
         {needsConfirmation ? "تأكيد الخفض" : "دخول المزاد"}
       </button>
 
-      <p className="mt-3 text-xs text-neutral-500">
+      <p className="vd-muted mt-3 text-xs">
         المزايدة تحجز تأميناً على المزاد. الخادم يقرّر الأهلية والحد الأدنى.
       </p>
     </form>

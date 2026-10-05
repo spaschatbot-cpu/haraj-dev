@@ -50,7 +50,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
 
   if (shots.length === 0) {
     return (
-      <div className="flex aspect-[4/3] items-center justify-center rounded-lg bg-neutral-100 text-neutral-500">
+      <div className="vd-frame vd-muted flex aspect-[4/3] items-center justify-center rounded-2xl">
         لا توجد صورة
       </div>
     );
@@ -66,7 +66,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
 
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-lg bg-slate-100">
+      <div className="vd-frame relative aspect-[4/3] overflow-hidden rounded-2xl">
         {large(shown) ? (
           <Image
             src={large(shown) as string}
@@ -140,8 +140,8 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
                 aria-current={index === at}
                 //: الحدّ لا اللون وحده: المختارة تُميَّز بإطارٍ أثخن، فيُقرأ
                 //: التمييز على شاشةٍ رماديةٍ وعلى عينٍ لا تفرّق الألوان.
-                className={`relative block h-16 w-24 overflow-hidden rounded border-2 ${
-                  index === at ? "border-neutral-900" : "border-transparent opacity-70"
+                className={`relative block h-16 w-24 overflow-hidden rounded-xl border-2 ${
+                  index === at ? "vd-thumb-on" : "vd-thumb opacity-70"
                 }`}
               >
                 {shot.thumbnail_url ? (

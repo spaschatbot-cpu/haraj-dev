@@ -211,7 +211,7 @@ export default async function VehiclePage({ params }: Params) {
         لا لبنيٌّ يُخترع: الصفحةُ كلُّها على هذه العائلة، ولونٌ خامسٌ يجعل
         الشاشةَ تقول خمسةَ أشياء.
       */}
-      <nav className="mb-4 inline-block rounded-full border border-outline-variant bg-surface-highest px-4 py-1.5 text-sm font-medium text-on-surface">
+      <nav className="tone-navy mb-4 inline-block rounded-full border px-4 py-1.5 text-sm font-medium">
         <Link href="/" className="hover:underline">
           المزادات
         </Link>
@@ -242,7 +242,7 @@ export default async function VehiclePage({ params }: Params) {
           والإطارُ على الغلاف لا على الصورة نفسِها: `Gallery` يبني مصغّراتٍ
           تحتها، وإطارٌ داخلَه كان سيؤطّر كلَّ مصغَّرةٍ وحدَها.
         */}
-        <div className="spec-panel overflow-hidden rounded-2xl border-2 border-surface-highest bg-surface-lowest p-2.5">
+        <div className="spec-panel vd-panel overflow-hidden rounded-3xl p-2.5">
         <Gallery
           shots={
             shots.length > 0
@@ -268,7 +268,7 @@ export default async function VehiclePage({ params }: Params) {
           وأين تنتهي. والبطاقةُ بيضاءُ بحدٍّ شعريّ — كبطاقات المركبات في
           الشبكة، فتتّفق الشاشتان.
         */}
-        <div className="spec-panel rounded-2xl border-2 border-surface-highest bg-surface-lowest p-5 md:p-6">
+        <div className="spec-panel vd-panel rounded-3xl p-5 md:p-6">
           {/*
             **الاسمُ في إطارٍ ملوّن** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦). وهو
             أوّلُ ما تقع عليه العين في العمود، وكان نصّاً عارياً فوق سطورٍ
@@ -278,10 +278,11 @@ export default async function VehiclePage({ params }: Params) {
             حول عنوانٍ داخل بطاقةٍ لها إطارُها يصير إطارين متداخلين. والشريطُ
             يقول «هنا يبدأ» بخطٍّ واحد.
 
-            واللونُ أزرقُ المشروع الثانويّ نفسُه الذي في الرئيسيّة — لا لونٌ
-            يُخترع لهذه الصفحة.
+            واللونُ كحليُّ الباليت «ج» نفسُه الذي في الرئيسيّة (٥ أكتوبر ٢٠٢٦:
+            «طبّقي نفس الألوان على صفحة المركبة») — لا لونٌ يُخترع لهذه الصفحة.
+            والألوانُ كلُّها في `globals.css` (`.vd-*` و`tone-navy`).
           */}
-          <div className="rounded-xl border border-secondary-fixed bg-secondary-fixed p-5 border-e-8 border-e-secondary">
+          <div className="tone-navy vd-title rounded-2xl border p-5">
             <h1 className="text-3xl font-bold leading-tight md:text-4xl">
               {vehicle.title}
             </h1>
@@ -289,7 +290,7 @@ export default async function VehiclePage({ params }: Params) {
 
           <div className="mt-3 flex flex-wrap items-center gap-3">
             {/* الموقفُ شريحةٌ لا سطرٌ باهت: هو ما يُنادى به في الحوش. */}
-            <p className="rounded-full border border-outline-variant bg-surface-highest px-3.5 py-1 text-sm font-medium text-on-surface">
+            <p className="tone-navy rounded-full border px-3.5 py-1 text-sm font-medium">
               الموقف <span className="tnum font-medium">{vehicle.lot_number}</span>
             </p>
             {signedIn ? (
@@ -316,15 +317,15 @@ export default async function VehiclePage({ params }: Params) {
             والخطُّ هو هو (`--font-arabic` في `globals.css`): خطٌّ ثانٍ على
             صفحةٍ واحدةٍ يُحمَّل ملفّاً ويتأخّر فيقفز النصّ.
           */}
-          <dl className="mt-6 divide-y divide-outline-variant border-y border-outline-variant">
+          <dl className="vd-specs mt-6 divide-y border-y">
             {specifications.map(([label, value], index) => (
               <div
                 key={label}
                 style={{ animationDelay: `${index * 55}ms` }}
                 className="spec-row flex items-baseline justify-between gap-4 px-2 py-3"
               >
-                <dt className="spec-label text-sm text-on-surface-variant">{label}</dt>
-                <dd className="text-lg font-medium text-on-surface">{value}</dd>
+                <dt className="spec-label text-sm">{label}</dt>
+                <dd className="text-lg font-medium">{value}</dd>
               </div>
             ))}
           </dl>
@@ -351,7 +352,7 @@ export default async function VehiclePage({ params }: Params) {
               about them — so the page says what to do instead of showing a
               control that refuses.
             */
-            <p className="mt-8 rounded-xl border-2 border-surface-highest bg-surface-low p-4 text-base">
+            <p className="tone-navy mt-8 rounded-2xl border p-4 text-base">
               <Link href="/sign-in" className="underline">
                 سجّل دخولك
               </Link>{" "}

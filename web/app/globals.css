@@ -254,12 +254,12 @@ body {
 /* **صفوفٌ متناوبةُ التلوين** — والتنظيمُ لم يتغيّر: الاسمُ يميناً والقيمةُ
    يساراً بالترتيب نفسِه. والتناوبُ يفعل ما يفعله السطرُ المسطَّر في جدولٍ
    طويل: يمنع العينَ أن تنزلق من صفٍّ إلى الذي تحته. */
-.spec-row:nth-child(odd) { background: var(--color-surface-low); }
-.spec-row:hover { background: var(--color-surface-container); }
+.spec-row:nth-child(odd) { background: var(--tone-navy-fill); }
+.spec-row:hover { background: #dbe6f3; }
 
 /* وحافّةٌ ملوّنةٌ على كلّ صفّ تقول «هنا يبدأ» — خطٌّ واحدٌ لا إطار. */
-.spec-row { border-inline-start: 4px solid var(--color-surface-highest); }
-.spec-row:hover { border-inline-start-color: var(--color-secondary); }
+.spec-row { border-inline-start: 4px solid var(--tone-navy-line); }
+.spec-row:hover { border-inline-start-color: var(--tone-navy-solid); }
 
 /* الاسمُ بحروفٍ متباعدةٍ قليلاً يُقرأ عنواناً لا جاراً للقيمة. */
 .spec-label { letter-spacing: 0.02em; }
@@ -503,4 +503,59 @@ body {
   .search-submit .search-icon { transition: none; }
   .search-field:focus,
   .search-submit:hover { transform: none; }
+}
+
+/* ---- صفحةُ المركبة على الباليت «ج» ------------------------------------- */
+/* «طبّقي نفس الألوان على صفحة المركبة» (٥ أكتوبر ٢٠٢٦). اللوحان أبيضان بحدٍّ
+   كحليٍّ ناعم، والاسمُ والمسارُ والموقفُ شرائحُ من سطح الكحليّ، والزرُّ
+   الوحيدُ صلبُه. والقيمُ هنا لا في المكوّنات (`palette.md` §٣-٢). */
+.vd-panel {
+  background: var(--color-surface-lowest);
+  border: 1px solid var(--tone-navy-line);
+}
+.vd-title { border-inline-end: 8px solid var(--tone-navy-solid); }
+.vd-specs, .vd-specs > * { border-color: var(--tone-navy-line); }
+.vd-specs dt, .vd-muted { color: var(--tone-navy-ink2); }
+.vd-specs dd { color: var(--tone-slate-ink); }
+.vd-warn { color: var(--tone-amber-ink); }
+
+.vd-frame { background: var(--tone-navy-fill); color: var(--tone-navy-ink2); }
+.vd-thumb { border-color: var(--tone-navy-line); }
+.vd-thumb-on { border-color: var(--tone-navy-solid); }
+
+.vd-field {
+  background: #ffffff;
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-slate-ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.vd-field:hover { border-color: var(--tone-navy-ink2); }
+.vd-field:focus {
+  outline: none;
+  border-color: var(--tone-navy-solid);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.18);
+}
+
+.vd-button {
+  background: var(--tone-navy-solid);
+  color: #ffffff;
+  transition: background-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+.vd-button:hover {
+  background: var(--tone-navy-ink2);
+  box-shadow: 0 6px 16px -6px rgba(30, 58, 95, 0.55);
+  transform: translateY(-1px);
+}
+
+.vd-ghost {
+  background: #ffffff;
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-navy-ink);
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.vd-ghost:hover { background: var(--tone-navy-fill); border-color: var(--tone-navy-ink2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .vd-field, .vd-button, .vd-ghost { transition: none; }
+  .vd-button:hover { transform: none; }
 }

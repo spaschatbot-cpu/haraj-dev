@@ -25,7 +25,7 @@ export function FavouriteButton({
       <button
         type="submit"
         aria-pressed={marked}
-        className="rounded border border-neutral-500 px-3 py-1.5 text-sm hover:bg-neutral-50"
+        className="vd-ghost rounded-full px-3 py-1.5 text-sm"
       >
         {marked ? "★ في المفضّلة" : "☆ أضف للمفضّلة"}
       </button>
