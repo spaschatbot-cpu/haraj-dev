@@ -1228,6 +1228,12 @@ export interface components {
             readonly amount_paid: string;
             /** Format: decimal */
             readonly outstanding: string;
+            /** Format: decimal */
+            readonly net_amount: string;
+            /** Format: decimal */
+            readonly admin_fee: string;
+            /** Format: decimal */
+            readonly tax_amount: string;
             state?: components["schemas"]["InvoiceStateEnum"];
             readonly state_label: string;
             /** Format: date-time */

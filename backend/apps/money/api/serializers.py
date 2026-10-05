@@ -322,6 +322,13 @@ class InvoiceSerializer(serializers.ModelSerializer):
     amount = MoneyField(read_only=True)
     amount_paid = MoneyField(read_only=True)
     outstanding = MoneyField(read_only=True)
+    #: مكوّناتُ المبلغ كما خُتمت عند الإصدار — v1 يعرضها في كرت المشتريات
+    #: (سعرُ المركبة، الرسوم، الضريبة). وأصفارٌ ثلاثةٌ تعني فاتورةً مرآةً من
+    #: أودو بلا تفصيل (قيد `invoice_parts_add_up_to_its_total`)، فيُخفي العميلُ
+    #: التفصيلَ ولا يعرض «سعر المركبة ٠».
+    net_amount = MoneyField(read_only=True)
+    admin_fee = MoneyField(read_only=True)
+    tax_amount = MoneyField(read_only=True)
     state_label = serializers.SerializerMethodField()
     payment_methods = serializers.SerializerMethodField()
 
@@ -333,6 +340,9 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "amount",
             "amount_paid",
             "outstanding",
+            "net_amount",
+            "admin_fee",
+            "tax_amount",
             "state",
             "state_label",
             "issued_at",

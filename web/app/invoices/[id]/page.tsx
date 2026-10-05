@@ -18,6 +18,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { InvoiceBreakdown, InvoiceStateChip } from "@/features/money/invoice";
 import { Notice } from "@/features/shell/Notice";
 import { PageShell } from "@/features/shell/PageShell";
 import { ApiError, api, request } from "@/lib/api";
@@ -79,21 +80,13 @@ export default async function InvoicePage({
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">
             <dt className="text-neutral-500">الحالة</dt>
-            <dd className="font-semibold">{invoice.state_label}</dd>
+            <dd>
+              <InvoiceStateChip invoice={invoice} />
+            </dd>
           </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">المبلغ</dt>
-            <dd className="money">{amount(invoice.amount)}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">المسدَّد</dt>
-            <dd className="money">{amount(invoice.amount_paid)}</dd>
-          </div>
-          <div className="flex justify-between gap-4">
-            <dt className="text-neutral-500">المتبقّي</dt>
-            {/* The server's field. Not `amount - amount_paid`. */}
-            <dd className="money font-semibold">{amount(invoice.outstanding)}</dd>
-          </div>
+          {/* سعرُ المركبة والرسوم والضريبة ثمّ الإجمالي — بنودُ v1. وكلُّها
+              حقولُ الخادم كما هي، والمتبقّي `outstanding` لا طرحٌ هنا. */}
+          <InvoiceBreakdown invoice={invoice} />
           <div className="flex justify-between gap-4">
             <dt className="text-neutral-500">صدرت</dt>
             <dd>{dateTime(invoice.issued_at)}</dd>

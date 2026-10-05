@@ -2336,6 +2336,21 @@ components:
           format: decimal
           pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
           readOnly: true
+        net_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        admin_fee:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        tax_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
         state:
           $ref: '#/components/schemas/InvoiceStateEnum'
         state_label:
@@ -2357,14 +2372,17 @@ components:
             one.
           readOnly: true
       required:
+      - admin_fee
       - amount
       - amount_paid
       - id
       - issued_at
+      - net_amount
       - number
       - outstanding
       - payment_methods
       - state_label
+      - tax_amount
     InvoiceStateEnum:
       enum:
       - draft
