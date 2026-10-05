@@ -375,17 +375,31 @@ body {
 }
 .hero-ink .hero-rule { border-color: #9aa7f0; }
 
-/* ---- صفُّ البحث — نيليٌّ متحرّك ------------------------------------------ */
-/* **نيليٌّ لأنه أداةُ المنصّة نفسِها** (`docs/palette.md` §٢): ليس حالةً
+/* ---- صفُّ البحث — أزرقُ متحرّك ------------------------------------------ */
+/* **أزرقُ لأنه أداةُ المنصّة نفسِها** (`docs/palette.md` §٢): ليس حالةً
    تنتظر ولا تُوقف، فلا أخضرَ ولا كهرمانيّ. وكان سطحاً أبيضَ فوق صفحةٍ بيضاء
    فلا يُرى أنه شيءٌ يُكتب فيه.
 
    ثلاثُ حركات، وكلٌّ تقول شيئاً:
    `search-in` دخولٌ من فوق مع الصفحة؛ و`search-sheen` لمعةٌ تعبر الشريطَ
    **مرّةً واحدة** فتدلّ العينَ عليه ثمّ تسكت — لمعةٌ دائمةٌ تصير ضجيجاً؛
-   والحقلُ يرتفع ويُطوَّق بالنيليّ حين يُكتب فيه، فيُعرف أين المؤشّر.
+   والحقلُ يرتفع ويُطوَّق بالأزرق حين يُكتب فيه، فيُعرف أين المؤشّر.
 
-   والحقولُ بيضاءُ داخل النيليّ: نصٌّ يُكتب فوق سطحٍ ملوّنٍ يُقرأ أصعب. */
+   والحقولُ بيضاءُ داخل الأزرق: نصٌّ يُكتب فوق سطحٍ ملوّنٍ يُقرأ أصعب. */
+/* **أزرقُ صريحٌ لا نيليّ** — طلبُ المالكة (٥ أكتوبر ٢٠٢٦): «غيّر درجة الأزرق».
+   النيليُّ (`--tone-indigo-*`) يميل إلى البنفسجيّ فقُرئ الصفُّ لافندراً.
+   والدرجاتُ من الخطوات نفسِها التي تُبنى منها الباليت (٢٠٠ سطحاً، ٦٠٠ حدّاً،
+   ٩٠٠ حبراً) فيبقى من العائلة، وهي هنا وحدها لا في مكوّن. */
+:root {
+  --search-fill:   #bfdbfe;
+  --search-fill2:  #dbeafe;
+  --search-soft:   #93c5fd;
+  --search-line:   #2563eb;
+  --search-deep:   #1d4ed8;
+  --search-ink:    #1e3a8a;
+  --search-ink2:   #1e40af;
+}
+
 @keyframes search-in {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: none; }
@@ -401,9 +415,9 @@ body {
   overflow: hidden;
   isolation: isolate;
   background:
-    linear-gradient(135deg, var(--tone-indigo-fill) 0%, #e0e7ff 55%, var(--tone-indigo-fill) 100%);
-  border: 2px solid var(--tone-indigo-line);
-  color: var(--tone-indigo-ink);
+    linear-gradient(135deg, var(--search-fill) 0%, var(--search-fill2) 55%, var(--search-fill) 100%);
+  border: 2px solid var(--search-line);
+  color: var(--search-ink);
   animation: search-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .search-bar::after {
@@ -417,31 +431,31 @@ body {
   transform: translateX(-120%) skewX(-18deg);
   animation: search-sheen 1400ms 380ms ease-in-out 1 both;
 }
-.search-bar .search-label { color: var(--tone-indigo-ink2); }
+.search-bar .search-label { color: var(--search-ink2); }
 
 .search-field {
   background: #fff;
-  border: 1.5px solid #a5b4fc;
+  border: 1.5px solid var(--search-soft);
   color: var(--tone-slate-ink);
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 .search-field::placeholder { color: var(--tone-slate-line); }
-.search-field:hover { border-color: var(--tone-indigo-line); }
+.search-field:hover { border-color: var(--search-line); }
 .search-field:focus {
   outline: none;
-  border-color: var(--tone-indigo-line);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+  border-color: var(--search-line);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
   transform: translateY(-1px);
 }
 
 .search-submit {
-  background: var(--tone-indigo-line);
+  background: var(--search-line);
   color: #fff;
   transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 .search-submit:hover {
-  background: var(--tone-indigo-ink2);
-  box-shadow: 0 6px 16px -6px rgba(49, 46, 129, 0.6);
+  background: var(--search-deep);
+  box-shadow: 0 6px 16px -6px rgba(30, 58, 138, 0.6);
   transform: translateY(-1px);
 }
 .search-submit:active { transform: translateY(0); }
