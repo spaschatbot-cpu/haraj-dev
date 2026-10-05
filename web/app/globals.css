@@ -31,7 +31,7 @@
 
   /* ---------------------------------------------------------------- ألوان */
   /* الأسطح: أربع درجات، من الخلفية إلى البطاقة الأعلى. */
-  --color-surface: #f8f9ff;
+  --color-surface: #f5f8fb;
   --color-surface-lowest: #ffffff;
   --color-surface-low: #eff4ff;
   --color-surface-container: #e6eeff;
@@ -280,126 +280,157 @@ body {
   letter-spacing: 0.035em;
 }
 
-/* ══════ نظامُ ألوان الحالات — T1037 ═══════════════════════════════════
+/* ══════ نظامُ ألوان الحالات — T1037، والباليت «بحريٌّ هادئ» ═════════════
    **خمسُ نغماتٍ من درجةٍ واحدة، لا خمسةُ ألوانٍ اختيرت واحداً واحداً.**
+   لونان يُختاران على حدة يتفقان بالصدفة، وخمسةٌ لا تتفق أبداً.
 
-   وهذا هو الفرق: لونان يُختاران على حدة يتفقان بالصدفة، وخمسةٌ لا تتفق
-   أبداً. فالنغماتُ هنا مأخوذةٌ من **الخطوة نفسِها** في خمس عائلات: السطحُ
-   من الدرجة ٢٠٠، والحدُّ من ٦٠٠، والحبرُ من ٩٠٠. أي أن الخمسةَ على نفس
-   الفاتح ونفس الإشباع ويختلفن في الصبغة وحدها — وهو تعريفُ «ألوانٌ تليق
-   ببعضها».
+   **والباليتُ الثانية (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦: الاقتراح «ج — بحري
+   هادئ»).** الأولى أخذت السطحَ من الدرجة ٢٠٠ مشبعاً، فصارت ثلاثُ بطاقاتٍ
+   ملوّنةٍ متجاورةٍ تتنافس على العين — وطلبت المالكة «ألواناً مريحةً للعين».
+   فالسطحُ الآن من الدرجة ١٠٠ وأقلُّ إشباعاً، والحدُّ ناعمٌ (٣٠٠)، ولكلّ
+   نغمةٍ طبقةٌ خامسة `solid` للأشياء التي تُضغط أو تُميَّز (زرّ، شارة،
+   المختار) — فلا يُستعار الحدُّ الناعمُ لزرٍّ فيبهت.
 
-   **ولماذا تُكتب هنا لا في المكوّنات.** لأن بقيّة الصفحات ستُبنى عليها
-   (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦: «علشان حنعمل بيها باقي الصفح والنظام»).
-   وقيمةٌ مكتوبةٌ في مكوّنٍ تُنسخ إلى الثاني ثم تُعدَّل في أحدهما — وهو كيف
-   تفترق الشاشات.
+     fill        سطحُ الشريحة ودائرةُ الأيقونة
+     line        حدٌّ ناعم
+     solid       زرٌّ أو شارةٌ أو المختارُ مملوءاً
+     ink / ink2  النصّ، والثانويُّ منه — لونٌ لا شفافيّة
 
-   **والمعنى قبل اللون.** كلُّ نغمةٍ لها شغلُها، ولا تُستعمل لأنها جميلة:
-   نيليٌّ للمنصّة وما استقرّ (الأرشيف)، وزمرّديٌّ لما هو مفتوحٌ الآن،
-   وكهرمانيٌّ لما ينتظر، ووَرديٌّ لما يُوقف، ورماديٌّ لما لا حالةَ له.
-   ولونٌ يُختار لجماله يصير زينةً، وزينةٌ تتكرّر تصير بلا معنى.
+   ولم تتغيّر قاعدةُ المعنى: كحليٌّ للمنصّة وما استقرّ (كان نيليّاً، فقُرئ
+   بنفسجيّاً)، وأخضرُ لما هو مفتوحٌ الآن، وكهرمانيٌّ لما ينتظر، ووَرديٌّ
+   لما يُوقف، ورماديٌّ لما لا حالةَ له.
 
    **واللونُ لا يحمل المعنى وحده أبداً**: كلُّ حالةٍ مكتوبةٌ باسمها ولها
-   رسمُها، والمختارُ له حدٌّ داخليٌّ — فمن لا يميّز الألوان يقرأ. */
+   رسمُها — فمن لا يميّز الألوان يقرأ. وكلُّ حبرٍ هنا فوق 4.5:1 على سطحه. */
 :root {
-  --tone-indigo-fill:  #c7d2fe;
-  --tone-indigo-line:  #4f46e5;
-  --tone-indigo-ink:   #312e81;
-  --tone-indigo-ink2:  #3730a3;
+  --tone-navy-fill:     #e6eef7;
+  --tone-navy-line:     #b9cde4;
+  --tone-navy-solid:    #1e3a5f;
+  --tone-navy-ink:      #1e3a5f;
+  --tone-navy-ink2:     #35577f;
 
-  --tone-emerald-fill: #a7f3d0;
-  --tone-emerald-line: #059669;
-  --tone-emerald-ink:  #064e3b;
-  --tone-emerald-ink2: #065f46;
+  --tone-emerald-fill:  #d4f1e7;
+  --tone-emerald-line:  #8fd1bd;
+  --tone-emerald-solid: #13795f;
+  --tone-emerald-ink:   #0b4a3b;
+  --tone-emerald-ink2:  #11624f;
 
-  --tone-amber-fill:   #fde68a;
-  --tone-amber-line:   #d97706;
-  --tone-amber-ink:    #78350f;
-  --tone-amber-ink2:   #92400e;
+  --tone-amber-fill:    #fbecc8;
+  --tone-amber-line:    #e8c88a;
+  --tone-amber-solid:   #b7791f;
+  --tone-amber-ink:     #6b4508;
+  --tone-amber-ink2:    #84560c;
 
-  --tone-rose-fill:    #fecdd3;
-  --tone-rose-line:    #e11d48;
-  --tone-rose-ink:     #881337;
-  --tone-rose-ink2:    #9f1239;
+  --tone-rose-fill:     #fbe1e4;
+  --tone-rose-line:     #e7a3ad;
+  --tone-rose-solid:    #b42335;
+  --tone-rose-ink:      #7a1f2b;
+  --tone-rose-ink2:     #8f2a37;
 
-  --tone-slate-fill:   #e2e8f0;
-  --tone-slate-line:   #475569;
-  --tone-slate-ink:    #0f172a;
-  --tone-slate-ink2:   #334155;
+  --tone-slate-fill:    #eef2f6;
+  --tone-slate-line:    #c3ccd8;
+  --tone-slate-solid:   #475569;
+  --tone-slate-ink:     #1f2937;
+  --tone-slate-ink2:    #374151;
 }
 
-/* الأصنافُ الجاهزة: `tone-*` تضع الثلاثةَ معاً، و`tone-ink` للنصّ الثانويّ
-   داخلها. وصنفٌ واحدٌ على العنصر بدل ثلاثة أصنافٍ تُكتب في كل موضع. */
-.tone-indigo  { background: var(--tone-indigo-fill);  border-color: var(--tone-indigo-line);  color: var(--tone-indigo-ink); }
-.tone-emerald { background: var(--tone-emerald-fill); border-color: var(--tone-emerald-line); color: var(--tone-emerald-ink); }
-.tone-amber   { background: var(--tone-amber-fill);   border-color: var(--tone-amber-line);   color: var(--tone-amber-ink); }
-.tone-rose    { background: var(--tone-rose-fill);    border-color: var(--tone-rose-line);    color: var(--tone-rose-ink); }
-.tone-slate   { background: var(--tone-slate-fill);   border-color: var(--tone-slate-line);   color: var(--tone-slate-ink); }
+/* الأصنافُ الجاهزة: `tone-*` تضع السطحَ والحدَّ والحبرَ معاً، وتُعلن نغمتَها
+   في متغيّراتٍ (`--t-*`) فيقرؤها ما بداخلها — دائرةُ الأيقونة في الكبسولة
+   تأخذ سطحَ نغمتها بلا صنفٍ لكلّ نغمة. */
+.tone-navy, .tone-ended {
+  --t-fill: var(--tone-navy-fill); --t-line: var(--tone-navy-line); --t-solid: var(--tone-navy-solid);
+  --t-ink: var(--tone-navy-ink); --t-ink2: var(--tone-navy-ink2);
+}
+.tone-emerald, .tone-active {
+  --t-fill: var(--tone-emerald-fill); --t-line: var(--tone-emerald-line); --t-solid: var(--tone-emerald-solid);
+  --t-ink: var(--tone-emerald-ink); --t-ink2: var(--tone-emerald-ink2);
+}
+.tone-amber, .tone-soon {
+  --t-fill: var(--tone-amber-fill); --t-line: var(--tone-amber-line); --t-solid: var(--tone-amber-solid);
+  --t-ink: var(--tone-amber-ink); --t-ink2: var(--tone-amber-ink2);
+}
+.tone-rose {
+  --t-fill: var(--tone-rose-fill); --t-line: var(--tone-rose-line); --t-solid: var(--tone-rose-solid);
+  --t-ink: var(--tone-rose-ink); --t-ink2: var(--tone-rose-ink2);
+}
+.tone-slate {
+  --t-fill: var(--tone-slate-fill); --t-line: var(--tone-slate-line); --t-solid: var(--tone-slate-solid);
+  --t-ink: var(--tone-slate-ink); --t-ink2: var(--tone-slate-ink2);
+}
+.tone-navy, .tone-ended, .tone-emerald, .tone-active, .tone-amber, .tone-soon, .tone-rose, .tone-slate {
+  background: var(--t-fill);
+  border-color: var(--t-line);
+  color: var(--t-ink);
+}
+.tone-navy .tone-ink, .tone-ended .tone-ink, .tone-emerald .tone-ink, .tone-active .tone-ink,
+.tone-amber .tone-ink, .tone-soon .tone-ink, .tone-rose .tone-ink, .tone-slate .tone-ink {
+  color: var(--t-ink2);
+}
 
-/* **الحبرُ الثانويُّ لونٌ لا شفافيّة.** `opacity` على نصٍّ يضربه في لون
-   الخلفيّة فيختلف فوق كلّ سطحٍ — ويفقد التباينَ حيث لا يُنتبَه. فلكلّ نغمةٍ
-   حبرٌ ثانٍ من الدرجة ٨٠٠: أفتحُ من الأوّل بدرجةٍ واحدةٍ ويبقى فوق 4.5:1. */
-.tone-indigo  .tone-ink { color: var(--tone-indigo-ink2); }
-.tone-emerald .tone-ink { color: var(--tone-emerald-ink2); }
-.tone-amber   .tone-ink { color: var(--tone-amber-ink2); }
-.tone-rose    .tone-ink { color: var(--tone-rose-ink2); }
-.tone-slate   .tone-ink { color: var(--tone-slate-ink2); }
-.tone-soon    .tone-ink { color: var(--tone-amber-ink2); }
-.tone-active  .tone-ink { color: var(--tone-emerald-ink2); }
-.tone-ended   .tone-ink { color: var(--tone-indigo-ink2); }
+/* والمختارُ بحدٍّ داخليٍّ من صلب نغمته — الحدُّ الناعمُ لا يُرى تمييزاً. */
+.tone-on { box-shadow: inset 0 0 0 2px var(--t-solid, currentColor); }
 
-/* **ونغمةُ كلّ حالةٍ بالمعنى لا بالترتيب.** */
-.tone-soon   { background: var(--tone-amber-fill);   border-color: var(--tone-amber-line);   color: var(--tone-amber-ink); }
-.tone-active { background: var(--tone-emerald-fill); border-color: var(--tone-emerald-line); color: var(--tone-emerald-ink); }
-.tone-ended  { background: var(--tone-indigo-fill);  border-color: var(--tone-indigo-line);  color: var(--tone-indigo-ink); }
-
-/* والمختارةُ تُظلَّل بحدٍّ داخليٍّ من لونها هي، فتُقرأ مختارةً بين ملوّناتٍ
-   لا بينها وبين بيضاء. */
-.tone-on { box-shadow: inset 0 0 0 2px currentColor; }
-
-/* وصدرُ الصفحة من النغمة النيليّة نفسِها — سطحُها وحدُّها، لا أزرقُ رابعٌ
-   يُخترع للصدر وحده. */
+/* ---- صدرُ الصفحة — كحليٌّ فاتح ----------------------------------------- */
+/* **فاتحٌ لا غامق** («ديزاين فاتح»، ٥ أكتوبر ٢٠٢٦). سطحُ الكحليّ وحدُّه
+   الناعم، والشارةُ وحدَها مملوءة. */
 .hero-ink {
-  background: var(--tone-indigo-fill);
-  border: 2px solid var(--tone-indigo-line);
-  color: var(--tone-indigo-ink);
+  background: var(--tone-navy-fill);
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-navy-ink);
 }
-.hero-ink .hero-sub { color: var(--tone-indigo-ink2); }
+.hero-ink .hero-sub { color: var(--tone-navy-ink2); }
 .hero-ink .hero-chip {
   background: #ffffff;
-  color: var(--tone-indigo-line);
+  color: var(--tone-navy-solid);
 }
 .hero-ink .hero-badge {
-  background: var(--tone-indigo-line);
+  background: var(--tone-navy-solid);
   color: #ffffff;
 }
-.hero-ink .hero-rule { border-color: #9aa7f0; }
+.hero-ink .hero-rule { border-color: var(--tone-navy-line); }
 
-/* ---- صفُّ البحث — أزرقُ متحرّك ------------------------------------------ */
-/* **أزرقُ لأنه أداةُ المنصّة نفسِها** (`docs/palette.md` §٢): ليس حالةً
-   تنتظر ولا تُوقف، فلا أخضرَ ولا كهرمانيّ. وكان سطحاً أبيضَ فوق صفحةٍ بيضاء
-   فلا يُرى أنه شيءٌ يُكتب فيه.
+/* ---- بطاقاتُ الحالة كبسولات — الاقتراح «ج» ------------------------------ */
+/* كبسولةٌ بيضاءُ بحدٍّ ناعمٍ من نغمتها، والأيقونةُ في دائرةٍ من سطح النغمة —
+   فاللونُ في الدائرة وحدَها لا في البطاقة كلِّها، وهو ما يُريح العين.
+
+   **والمختارةُ مملوءةٌ بالكحليّ** أيّاً كانت نغمتُها: الكحليُّ لونُ المنصّة،
+   ومعناه هنا «أنت هنا». ودائرتُها تحتفظ بلون نغمتها، فيبقى «نشط» أخضرَ وهو
+   مختار. وتُعرف المختارةُ كذلك بـ`aria-current` لمن لا يرى. */
+.phase-pill {
+  background: var(--color-surface-lowest);
+  border: 1.5px solid var(--t-line);
+  border-radius: 9999px;
+}
+.phase-pill:hover { border-color: var(--t-solid); }
+.phase-pill .phase-icon {
+  background: var(--t-fill);
+  color: var(--t-ink);
+  transition: transform 200ms ease;
+}
+.phase-pill:hover .phase-icon { transform: scale(1.06) rotate(-6deg); }
+.phase-pill[aria-current="page"] {
+  background: var(--tone-navy-solid);
+  border-color: var(--tone-navy-solid);
+  color: #ffffff;
+}
+.phase-pill[aria-current="page"] .tone-ink { color: #dbe6f3; }
+.phase-pill[aria-current="page"] .phase-icon { box-shadow: 0 0 0 2px #ffffff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .phase-pill .phase-icon { transition: none; }
+  .phase-pill:hover .phase-icon { transform: none; }
+}
+
+/* ---- صفُّ البحث — كحليٌّ هادئٌ متحرّك ----------------------------------- */
+/* **سطحُ الكحليّ لأنه أداةُ المنصّة نفسِها**، لا حالةٌ تنتظر ولا تُوقف. وكان
+   أبيضَ فوق صفحةٍ بيضاء فلا يُرى أنه شيءٌ يُكتب فيه، ثمّ أزرقَ صريحاً،
+   ثمّ صار من الباليت «ج». والحقولُ كبسولاتٌ بيضاء: نصٌّ يُكتب فوق سطحٍ
+   ملوّنٍ يُقرأ أصعب.
 
    ثلاثُ حركات، وكلٌّ تقول شيئاً:
    `search-in` دخولٌ من فوق مع الصفحة؛ و`search-sheen` لمعةٌ تعبر الشريطَ
    **مرّةً واحدة** فتدلّ العينَ عليه ثمّ تسكت — لمعةٌ دائمةٌ تصير ضجيجاً؛
-   والحقلُ يرتفع ويُطوَّق بالأزرق حين يُكتب فيه، فيُعرف أين المؤشّر.
-
-   والحقولُ بيضاءُ داخل الأزرق: نصٌّ يُكتب فوق سطحٍ ملوّنٍ يُقرأ أصعب. */
-/* **أزرقُ صريحٌ لا نيليّ** — طلبُ المالكة (٥ أكتوبر ٢٠٢٦): «غيّر درجة الأزرق».
-   النيليُّ (`--tone-indigo-*`) يميل إلى البنفسجيّ فقُرئ الصفُّ لافندراً.
-   والدرجاتُ من الخطوات نفسِها التي تُبنى منها الباليت (٢٠٠ سطحاً، ٦٠٠ حدّاً،
-   ٩٠٠ حبراً) فيبقى من العائلة، وهي هنا وحدها لا في مكوّن. */
-:root {
-  --search-fill:   #bfdbfe;
-  --search-fill2:  #dbeafe;
-  --search-soft:   #93c5fd;
-  --search-line:   #2563eb;
-  --search-deep:   #1d4ed8;
-  --search-ink:    #1e3a8a;
-  --search-ink2:   #1e40af;
-}
-
+   والحقلُ يرتفع ويُطوَّق حين يُكتب فيه، فيُعرف أين المؤشّر. */
 @keyframes search-in {
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: none; }
@@ -414,10 +445,9 @@ body {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  background:
-    linear-gradient(135deg, var(--search-fill) 0%, var(--search-fill2) 55%, var(--search-fill) 100%);
-  border: 2px solid var(--search-line);
-  color: var(--search-ink);
+  background: var(--tone-navy-fill);
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-navy-ink);
   animation: search-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .search-bar::after {
@@ -427,35 +457,37 @@ body {
   width: 30%;
   z-index: -1;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.65), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.7), transparent);
   transform: translateX(-120%) skewX(-18deg);
   animation: search-sheen 1400ms 380ms ease-in-out 1 both;
 }
-.search-bar .search-label { color: var(--search-ink2); }
+.search-bar .search-label { color: var(--tone-navy-ink2); }
 
 .search-field {
-  background: #fff;
-  border: 1.5px solid var(--search-soft);
+  background: #ffffff;
+  border: 1px solid var(--tone-navy-line);
+  border-radius: 9999px;
   color: var(--tone-slate-ink);
   transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
-.search-field::placeholder { color: var(--tone-slate-line); }
-.search-field:hover { border-color: var(--search-line); }
+.search-field::placeholder { color: #64748b; }
+.search-field:hover { border-color: var(--tone-navy-ink2); }
 .search-field:focus {
   outline: none;
-  border-color: var(--search-line);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  border-color: var(--tone-navy-solid);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.18);
   transform: translateY(-1px);
 }
 
 .search-submit {
-  background: var(--search-line);
-  color: #fff;
+  background: var(--tone-navy-solid);
+  color: #ffffff;
+  border-radius: 9999px;
   transition: transform 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 .search-submit:hover {
-  background: var(--search-deep);
-  box-shadow: 0 6px 16px -6px rgba(30, 58, 138, 0.6);
+  background: var(--tone-navy-ink2);
+  box-shadow: 0 6px 16px -6px rgba(30, 58, 95, 0.55);
   transform: translateY(-1px);
 }
 .search-submit:active { transform: translateY(0); }

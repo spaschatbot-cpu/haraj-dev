@@ -87,7 +87,7 @@ export function VehicleFilters({
         والحقول في صفٍّ واحد على سطح المكتب لأن الترشيح فعلٌ واحد: أربعةُ
         حقولٍ متفرّقة تُقرأ أربعةَ قراراتٍ منفصلة.
       */
-      className="search-bar mb-6 grid grid-cols-1 items-end gap-3 rounded-2xl p-4 shadow-sm md:grid-cols-12"
+      className="search-bar mb-6 grid grid-cols-1 items-end gap-3 rounded-3xl p-4 md:grid-cols-12"
     >
       {keep.map((name) => {
         const value = values.get(name);
@@ -101,7 +101,7 @@ export function VehicleFilters({
           name="search"
           defaultValue={values.get("search") ?? ""}
           placeholder="ماركة / طراز / رقم الموقف…"
-          className="search-field h-11 w-full rounded-lg px-3 text-body-md"
+          className="search-field h-11 w-full px-4 text-body-md"
         />
       </label>
 
@@ -120,7 +120,7 @@ export function VehicleFilters({
           name="make"
           defaultValue={values.get("make") ?? ""}
           placeholder="تويوتا…"
-          className="search-field h-11 w-full rounded-lg px-3 text-body-md"
+          className="search-field h-11 w-full px-4 text-body-md"
         />
       </label>
 
@@ -131,7 +131,7 @@ export function VehicleFilters({
           name="year_from"
           inputMode="numeric"
           defaultValue={values.get("year_from") ?? ""}
-          className="search-field h-11 w-full rounded-lg px-3 text-body-md tnum"
+          className="search-field h-11 w-full px-4 text-body-md tnum"
         />
       </label>
 
@@ -142,14 +142,14 @@ export function VehicleFilters({
           name="year_to"
           inputMode="numeric"
           defaultValue={values.get("year_to") ?? ""}
-          className="search-field h-11 w-full rounded-lg px-3 text-body-md tnum"
+          className="search-field h-11 w-full px-4 text-body-md tnum"
         />
       </label>
 
       <div className="flex items-center gap-3 md:col-span-1">
         <button
           type="submit"
-          className="search-submit flex h-11 w-full items-center justify-center gap-1.5 rounded-lg px-4 text-label-md"
+          className="search-submit flex h-11 w-full items-center justify-center gap-1.5 px-4 text-label-md"
         >
           <svg
             className="search-icon h-4 w-4 shrink-0"

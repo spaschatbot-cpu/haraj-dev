@@ -19,9 +19,13 @@
  * والعدّاد يُعرض إن قاله الخادم، ويُترك إن لم يقله. لا صفر يُكتب هنا: البطاقةُ
  * التي تقول «٠» تقول «لا مزاد قادم»، وذلك ادّعاءٌ عن العالم لا عن الرد.
  *
- * **والمختارةُ تُميَّز بثلاثة أشياء لا باللون وحده**: إطارٌ أثخن، وخلفيّةٌ
- * أفتح، و`aria-current` — فمن لا يميّز الألوان يقرأها، ومن يقرأ بالصوت
- * يسمعها.
+ * **والمختارةُ تُميَّز بأكثر من اللون**: تمتلئ كبسولتُها بالكحليّ وتُطوَّق
+ * دائرتُها بالأبيض، ولها `aria-current` — فمن لا يميّز الألوان يراها، ومن
+ * يقرأ بالصوت يسمعها.
+ *
+ * **وكبسولاتٌ لا مستطيلات** (الاقتراح «ج»، ٥ أكتوبر ٢٠٢٦): ثلاثُ بطاقاتٍ
+ * مملوءةٍ بألوانٍ مشبعةٍ متجاورة كانت تتنافس على العين، فصار اللونُ في دائرة
+ * الأيقونة وحدَها والكبسولةُ بيضاء. والشكلُ في `globals.css` (`.phase-pill`).
  */
 
 import Link from "next/link";
@@ -104,15 +108,16 @@ export function PhaseTabs({
                 /* التأخيرُ المتدرّج يجعل العينَ تقرأ الثلاثَ واحدةً بعد
                    واحدة، لا هبوطاً واحداً لا يُقرأ منه شيء. */
                 style={{ animationDelay: `${index * 70}ms` }}
-                className={`phase-card ${tone} flex h-full flex-col gap-1 rounded-xl border-2 p-4 md:p-5 ${
-                  selected ? "tone-on" : ""
-                }`}
+                className={`phase-card phase-pill ${tone} flex h-full items-center gap-3 p-2 pe-4 md:gap-4 md:p-2.5 md:pe-6`}
               >
-                <span className="flex items-center gap-2">
+                {/* الأيقونةُ في دائرةٍ من سطح نغمتها — اللونُ فيها وحدَها. */}
+                <span
+                  aria-hidden="true"
+                  className="phase-icon relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-14 md:w-14"
+                >
                   <svg
-                    aria-hidden="true"
                     viewBox="0 0 24 24"
-                    className="tone-ink h-6 w-6"
+                    className="h-5 w-5 md:h-7 md:w-7"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="1.8"
@@ -122,20 +127,18 @@ export function PhaseTabs({
                     {ART[tab.id]}
                   </svg>
                   {live ? (
-                    <span
-                      aria-hidden="true"
-                      className="phase-live-dot h-2.5 w-2.5 rounded-full bg-current"
-                    />
+                    <span className="phase-live-dot absolute -top-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-white bg-current" />
                   ) : null}
                 </span>
 
-                {counts === null ? null : (
-                  <span className="tnum text-headline-md leading-none">
-                    {count(counts[tab.id])}
-                  </span>
-                )}
-
-                <span className="tone-ink text-label-md">{tab.label}</span>
+                <span className="flex min-w-0 flex-col">
+                  {counts === null ? null : (
+                    <span className="tnum text-headline-sm leading-none md:text-headline-md">
+                      {count(counts[tab.id])}
+                    </span>
+                  )}
+                  <span className="tone-ink truncate text-label-md">{tab.label}</span>
+                </span>
               </Link>
             </li>
           );
