@@ -1,0 +1,53 @@
+name: mobile-apk
+
+# APK قابلٌ للتثبيت يُنزَّل من صفحة الـrun (Artifacts).
+#
+# وظيفة `android-build` في mobile.yml تبني على `api.example.invalid` لتثبت أن
+# البناء ينجح فقط — حزمتُها لا تفتح شيئاً على جوّال. وهذه تبني على
+# `haraj.spas.sa` لأن المالك يراجع العمل هناك. وطورُ staging لا prod: لا مفتاح
+# توقيع في المستودع، وprod بلا مفتاح يفشل عمداً (build.gradle.kts). فالحزمة
+# موقَّعةٌ بمفتاح التصحيح، تُثبَّت للتجربة وتحمل لافتة «تجريب»، ولا تُرفع لمتجر.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-apk.yml"
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - name: بناء APK على haraj.spas.sa
+        run: |
+          version=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          flutter build apk --release --flavor staging \
+            --build-number ${{ github.run_number }} \
+            --dart-define=HARAJ_ENV=staging \
+            --dart-define=HARAJ_API_BASE_URL=https://haraj.spas.sa \
+            --dart-define=HARAJ_APP_VERSION=$version
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haraj-staging-apk-${{ github.run_number }}
+          path: mobile/build/app/outputs/flutter-apk/app-staging-release.apk
+          retention-days: 30
