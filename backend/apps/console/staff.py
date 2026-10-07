@@ -637,6 +637,22 @@ def role_delete(request, slug: str):
 # كل قيدٍ كتبه، فحذفُه محوُ التدقيق. والبديلُ `is_active`.
 
 
+def _staff_phone(value) -> str:
+    """جوّالُ الموظّف بصيغة القاعدة، أو رفضٌ بجانب الخانة — لا صفحة ٥٠٠.
+
+    كانت الخانتان بلا مصادِق: `0551234567` يصل إلى `full_clean` في الإنشاء
+    فيرمي `ValidationError` لا يلتقطه أحد، وإلى قيد القاعدة
+    `user_phone_is_saudi_mobile` في التعديل فيرمي `IntegrityError` — والصفحتان
+    ٥٠٠. فالرقمُ يُطبَّع كما يُطبَّع رقمُ العميل (`normalise_saudi_mobile`)
+    ثمّ يُفحص بالمصادِق الذي يقف خلفه القيدُ نفسُه.
+    """
+    from apps.accounts.models import normalise_saudi_mobile, saudi_mobile
+
+    phone = normalise_saudi_mobile(value or "")
+    saudi_mobile(phone)
+    return phone
+
+
 class NewAdminForm(forms.Form):
     """مشرفٌ جديد: اسمُ دخولٍ واسمٌ كاملٌ وجوّالٌ ودورٌ وكلمةٌ مؤقّتة."""
 
@@ -675,7 +691,7 @@ class NewAdminForm(forms.Form):
         ويسقط الطلب كلَّه — وهو عطل T808 بعينه في شكلٍ آخر: قيمةٌ واحدة تُسقط
         ما أدخله الموظّف كلَّه.
         """
-        phone = (self.cleaned_data.get("phone") or "").strip()
+        phone = _staff_phone(self.cleaned_data.get("phone"))
         if User.objects.filter(phone=phone).exists():
             raise forms.ValidationError("هذا الجوّال لحسابٍ قائم — افتحه بدل إنشاء ثانٍ.")
         return phone
@@ -822,7 +838,7 @@ class AdminEditForm(forms.Form):
 
     def clean_phone(self) -> str:
         """جوّالٌ لحسابٍ آخر يُرفض بالاسم لا بـ`IntegrityError` يُسقط الحفظ."""
-        phone = (self.cleaned_data.get("phone") or "").strip()
+        phone = _staff_phone(self.cleaned_data.get("phone"))
         clash = User.objects.filter(phone=phone)
         if self.person is not None:
             clash = clash.exclude(pk=self.person.pk)
@@ -932,8 +948,15 @@ def admin_password_reset(request, pk: int):
 
     v1 يدع مشرفاً يكتب كلمة مرور آخر في خانةٍ ويمضي. والأثر ليس حساباً مكشوفاً:
     كلُّ قيدٍ يتركه الثاني يصير قابلاً للإنكار («فلانٌ يعرف كلمتي»)، فيُبطل
-    السجلُّ كلُّه (T848). فالزرُّ هنا يرفع `must_change_password` وحده:
+    السجلُّ كلُّه (T848). فالزرُّ هنا يرفع `must_change_password`:
     الكلمةُ الحالية تبقى صالحةً لدخولٍ واحد، وأوّلُ شاشةٍ تُطلب هي التغيير.
+
+    **وكلمةٌ مؤقّتةٌ اختياريّة لمن نسي كلمته** (مراجعةُ التكافؤ مع v1، ٧ أكتوبر
+    ٢٠٢٦). رفعُ العلم وحده لا يُعين من لا يذكر كلمتَه أصلاً: الدخولُ باسمٍ
+    وكلمةٍ فقط ولا بابَ «نسيت كلمتي»، فيبقى موظّفٌ خارجَ اللوحة. وv1 يكتب له
+    كلمةً جديدة (`AdminUserController.php:232-235`). والكلمةُ هنا **مؤقّتةٌ
+    بحكم البناء** كما في `admin_new`: العلمُ يُرفع معها فتبطل عند أوّل دخول،
+    فلا يعرف المنشئُ كلمةً يعمل بها صاحبُها — وهي حجّةُ T848 نفسُها محفوظة.
     """
     person = get_object_or_404(User.objects.filter(is_staff=True), pk=pk)
 
@@ -943,13 +966,25 @@ def admin_password_reset(request, pk: int):
             messages.error(request, "السبب مطلوب — إعادةُ التعيين تُسأل عنها لاحقاً.")
             return redirect("console:admin-password-reset", pk=pk)
 
+        temporary = request.POST.get("temporary_password") or ""
+        fields = ["must_change_password"]
+        if temporary:
+            try:
+                validate_password(temporary, user=person)
+            except forms.ValidationError as weak:
+                for line in weak.messages:
+                    messages.error(request, line)
+                return redirect("console:admin-password-reset", pk=pk)
+            person.set_password(temporary)
+            fields.append("password")
         person.must_change_password = True
-        person.save(update_fields=["must_change_password"])
+        person.save(update_fields=fields)
         audit.record(
             action="console.force_password_change",
             entity=person,
             actor=request.user,
-            after={"must_change_password": True},
+            # **أنّ** كلمةً مؤقّتةً كُتبت يدخل القيد، لا الكلمةُ نفسُها.
+            after={"must_change_password": True, "temporary_password_set": bool(temporary)},
             note=reason,
         )
         messages.success(request, f"«{person.full_name}» سيغيّر كلمته عند أوّل دخول.")

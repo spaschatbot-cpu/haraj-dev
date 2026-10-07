@@ -94,7 +94,11 @@ def _rounded(value: Decimal | None) -> Decimal | None:
 # المركبة». والمفقودُ حقّاً: **أكثرُ المزايدين نشاطاً** على المنصّة كلِّها،
 # و«كم رسا لكلّ مزايد» — وكانت شاشةُ `bids-report` تجيبه وحُذفت معها.
 
-def report_for(*, phone: str = "", name: str = "") -> dict | None:
+#: كم مطابَقاً يُعرض حين يطابق البحثُ أكثرَ من واحد — رقمُ v1 نفسُه.
+MATCHES_SHOWN = 50
+
+
+def report_for(*, phone: str = "", name: str = "", user_id: str = "") -> dict | None:
     """تقريرُ مزايدات شخصٍ واحد، أو  حين لا يُسمّى أحد.
 
      لا قاموسٌ بأصفار: شاشةٌ تفتح على «إجمالي ٠» قبل أن يُبحث تقول
@@ -107,20 +111,33 @@ def report_for(*, phone: str = "", name: str = "") -> dict | None:
     """
     phone = (phone or "").strip()
     name = (name or "").strip()
-    if not phone and not name:
+    user_id = (user_id or "").strip()
+    if not phone and not name and not user_id.isdigit():
         return None
 
     people = User.objects.filter(is_staff=False)
-    if phone:
+    # **وبالمعرّف بعد الاختيار** — كما في v1 (`UserController::bidsReport`،
+    # `?user_id=`). كان v2 يردّ «N يطابق، ضيّق البحث» ولا يعرض المطابَقين، فعميلان
+    # بالاسم نفسِه بلا جوّالٍ في اليد طريقٌ مسدود. الآن تُعرض القائمةُ ويُضغط
+    # الشخص، فيُفتح تقريرُه بمعرّفه لا بنصٍّ يطابق اثنين ثانيةً.
+    if user_id.isdigit():
+        people = people.filter(pk=int(user_id))
+    elif phone:
         people = people.filter(search_q(phone, "phone"))
     if name:
         people = people.filter(search_q(name, "full_name"))
 
-    matches = list(people.order_by("full_name", "id")[:2])
+    matches = list(people.order_by("full_name", "id")[:MATCHES_SHOWN])
     if not matches:
         return {"person": None, "ambiguous": False}
     if len(matches) > 1:
-        return {"person": None, "ambiguous": True, "count": people.count()}
+        return {
+            "person": None,
+            "ambiguous": True,
+            "count": people.count(),
+            # خمسون كما في v1 (`LIMIT 50`) — وما بعدها يُضيَّق بالبحث.
+            "matches": matches,
+        }
 
     person = matches[0]
     bids = Bid.objects.filter(bidder=person).select_related("vehicle", "vehicle__auction")
@@ -184,6 +201,7 @@ def user_bids(request):
             "report": report_for(
                 phone=request.GET.get("phone", ""),
                 name=request.GET.get("name", ""),
+                user_id=request.GET.get("user", ""),
             ),
             "phone": request.GET.get("phone", ""),
             "name": request.GET.get("name", ""),

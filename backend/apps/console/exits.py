@@ -15,6 +15,8 @@
 
 from __future__ import annotations
 
+import re
+
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -22,6 +24,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.timezone import localtime
+from django.views.decorators.http import require_POST
 
 from apps.auctions import exits as exit_services
 from apps.auctions.exits import ExitReason, ExitStage, ExitType, VehicleExit
@@ -254,8 +257,16 @@ def vehicle_exit(request):
     )
 
 
+@require_POST
 def exit_create(request, pk: int):
-    """أنشئ أمرَ خروجٍ لمركبةٍ مسدَّدة — نظيرُ «إنشاء الخروج» في v1."""
+    """أنشئ أمرَ خروجٍ لمركبةٍ مسدَّدة — نظيرُ «إنشاء الخروج» في v1.
+
+    **و`POST` وحده للأفعال السبعة هنا.** كانت تقبل `GET`، فلا يمرّ عليها فحصُ
+    CSRF أصلاً (Django لا يفحص `GET`): رابطٌ أو صورةٌ في أيّ صفحةٍ تشير إلى
+    `…/transfer/` كانت تؤرشف أمراً على أنه نُقلت ملكيّتُه، وإلى `…/edit/` تمحو
+    اسمَ المستلِم وهويّتَه. وv1 يفحص رمزَ الحماية في كلّ فعلٍ منها
+    (`AfterSalesController.php:960`، `1037`، `1109`، `1160`، `1176`، `1208`).
+    """
     if not _guard(request):
         return redirect("console:vehicle-exit")
     vehicle = get_object_or_404(Vehicle.objects.select_related("auction"), pk=pk)
@@ -361,6 +372,7 @@ def exit_gate_lookup(request):
     )
 
 
+@require_POST
 def exit_gate(request):
     """البوابة: باركودٌ يُمسَح → يُؤكَّد خروجُ السيارة من الساحة."""
     if not _guard(request):
@@ -405,6 +417,7 @@ def exit_gate(request):
     return redirect(_back(request))
 
 
+@require_POST
 def exit_transfer(request, pk: int):
     """تأكيدُ نقل الملكية — يُؤرشَف الأمرُ، مع إثباتٍ إن رُفع."""
     if not _guard(request):
@@ -422,6 +435,7 @@ def exit_transfer(request, pk: int):
     return redirect(_back(request))
 
 
+@require_POST
 def exit_lift_ban(request, pk: int):
     """رفعُ الحظر عن خروجٍ بلا لوحات — يُؤرَّخ فيُتابَع النقلُ بعده."""
     if not _guard(request):
@@ -438,6 +452,7 @@ def exit_lift_ban(request, pk: int):
     return redirect(_back(request))
 
 
+@require_POST
 def exit_upload(request, pk: int):
     """أوراقُ الخروج: نوعٌ وسببٌ وإقرارٌ موقّع — ثم إلى البوابة. نظيرُ «رفع الموقّع».
 
@@ -475,16 +490,32 @@ def exit_upload(request, pk: int):
     return redirect(_back(request))
 
 
+@require_POST
 def exit_edit(request, pk: int):
     """تعديلُ بيانات المستلِم — الاسم والهوية والجوّال. نظيرُ «✏️ تعديل» في v1."""
     if not _guard(request):
         return redirect("console:vehicle-exit")
     order = get_object_or_404(VehicleExit.objects.select_related("vehicle"), pk=pk)
-    order.recipient_name = (request.POST.get("recipient_name", "") or "").strip()
-    order.recipient_id = (request.POST.get("recipient_id", "") or "").strip()
+    # **المؤرشَفُ سجلٌّ قانونيٌّ مكتمل لا يُعدَّل** — v1 يردّ ٤٠٩
+    # (`AfterSalesController.php:1221-1226`). وشروطُ المستلِم شروطُ الإنشاء
+    # نفسُها، فطلبٌ فارغٌ لا يمحو الاسمَ والهويّة.
+    if order.stage == ExitStage.ARCHIVED:
+        messages.error(request, "لا يمكن تعديل خروج مؤرشف.")
+        return redirect(_back(request))
+    name = (request.POST.get("recipient_name", "") or "").strip()
+    recipient_id = (request.POST.get("recipient_id", "") or "").strip()
+    decl = (request.POST.get("declaration_date", "") or "").strip()
+    try:
+        exit_services.recipient_problem(name, recipient_id)
+        if decl and not re.match(r"^\d{4}-\d{2}-\d{2}$", decl):
+            raise ValueError("صيغة التاريخ غير صحيحة.")
+    except ValueError as why:
+        messages.error(request, str(why))
+        return redirect(_back(request))
+    order.recipient_name = name
+    order.recipient_id = recipient_id
     order.recipient_phone = (request.POST.get("recipient_phone", "") or "").strip()
     fields = ["recipient_name", "recipient_id", "recipient_phone", "updated_at"]
-    decl = (request.POST.get("declaration_date", "") or "").strip()
     order.declaration_date = decl or None
     fields.append("declaration_date")
     # صورةُ تفويض/هوية جديدة للاستبدال — اختياريّة.
@@ -503,6 +534,7 @@ def exit_edit(request, pk: int):
     return redirect(_back(request))
 
 
+@require_POST
 def exit_note(request, pk: int):
     """حفظُ ملاحظةِ متابعةٍ على أمر الخروج."""
     if not _guard(request):

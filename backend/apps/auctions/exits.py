@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 import secrets
 
 from django.conf import settings
@@ -199,6 +200,22 @@ class VehicleExit(models.Model):
 # ---------------------------------------------------------------------------
 
 
+#: رقمُ الهويّة أو الإقامة — عشرةُ أرقامٍ كما في v1 (`/^\d{10}$/`).
+_RECIPIENT_ID = re.compile(r"^\d{10}$")
+
+
+def recipient_problem(name: str, recipient_id: str) -> None:
+    """ارفض مستلِماً بلا اسمٍ أو بهويّةٍ ليست عشرةَ أرقام — شرطا v1 نفساهما.
+
+    دالّةٌ واحدة يقرؤها الإنشاءُ والتعديل: كان التعديلُ في v2 يكتب ما وصله
+    بلا فحصٍ، فطلبٌ فارغٌ يمحو اسمَ المستلِم وهويّتَه من سجلٍّ قانونيّ.
+    """
+    if not (name or "").strip():
+        raise ValueError("اسم المستلم مطلوب.")
+    if not _RECIPIENT_ID.match((recipient_id or "").strip()):
+        raise ValueError("رقم الهوية يجب أن يكون 10 أرقام.")
+
+
 def create_exit(
     vehicle,
     *,
@@ -225,6 +242,14 @@ def create_exit(
 
     if vehicle.state not in (VehicleState.PAID, VehicleState.RELEASED):
         raise ValueError("لا يُنشأ أمرُ خروجٍ لمركبةٍ لم تُسدَّد فاتورتُها.")
+
+    recipient_problem(recipient_name, recipient_id)
+    # **صورةُ هويّة المستلِم إلزاميّة** — v1 يرفض بدونها
+    # (`AfterSalesController.php:974-987`: «صورة هوية المستلم مطلوبة لإنشاء
+    # الخروج»). وكان v2 يقبل أمراً بلا اسمٍ ولا هويّةٍ ولا صورة، فتخرج سيارةٌ
+    # لمستلِمٍ لا يُعرف من هو.
+    if not recipient_id_image:
+        raise ValueError("صورة هوية المستلم مطلوبة لإنشاء الخروج.")
 
     return VehicleExit.objects.create(
         vehicle=vehicle,

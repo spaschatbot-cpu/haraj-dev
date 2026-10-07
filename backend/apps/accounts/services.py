@@ -861,6 +861,22 @@ def set_capability(
     if not text:
         raise ValueError("سبب المنح أو السحب مطلوب")
 
+    # **صلاحيتا العودة لا تُسحبان ممّن يُغلق بسحبهما الباب.** v1 يجعل
+    # «لوحة التحكّم» و«إدارة المشرفين» غيرَ قابلتين للإخفاء أصلاً
+    # (`AdminUserController.php:344`، `:403`) فيبقى طريقٌ إلى الداخل دائماً.
+    # وفي v2 كان السحبُ يعلو الدورَ (`capabilities_of`)، فمن سحب من نفسه
+    # «دخول اللوحة» أو «منح الصلاحيات» — أو سُحبتا من آخر مالكٍ فاعل — أُقفلت
+    # اللوحةُ ولا شاشةَ تفتحها، وهو ما يحرسه `is_last_active_owner` في تعديل
+    # المشرف ويتخطّاه هذا الباب. فالقيدُ في الكاتب الوحيد لا في شاشة.
+    from apps.core.permissions import Capability, is_last_active_owner
+
+    lifelines = {Capability.CONSOLE_ACCESS, Capability.STAFF_GRANT}
+    if not granted and capability in lifelines:
+        if actor is not None and user.pk == actor.pk:
+            raise ValueError("لا تُسحب هذه الصلاحية منك أنت — تُقفل اللوحة عليك.")
+        if is_last_active_owner(user):
+            raise ValueError("لا تُسحب هذه الصلاحية من آخر مالكٍ فاعل — تُقفل اللوحة.")
+
     before = None
     existing = StaffGrant.objects.filter(user=user, capability=capability).first()
     if existing is not None:

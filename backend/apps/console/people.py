@@ -85,8 +85,14 @@ class CustomerForm(ReasonMixin, forms.ModelForm):
         exactly how v1's identity column ended up with two people's numbers.
         """
         from apps.accounts import identity
+        from apps.accounts.models import ARABIC_DIGITS
 
-        incoming = (self.cleaned_data.get("national_id") or "").strip()
+        # **الأرقامُ العربيّةُ إلى لاتينيّة قبل الفحص والحفظ** — كما في v1
+        # (`ClientProfileGuard.php:139`). كان `١٠١…` يُحفظ كما كُتب، و`isdigit`
+        # يقبله، فيمرّ من قيد التفرّد على أنه غيرُ `101…` — هويّةٌ واحدةٌ لعميلين.
+        incoming = (self.cleaned_data.get("national_id") or "").strip().translate(
+            ARABIC_DIGITS
+        )
         current = self.instance.national_id or ""
 
         if current and identity.is_valid(current) and incoming != current:
@@ -97,6 +103,30 @@ class CustomerForm(ReasonMixin, forms.ModelForm):
             raise forms.ValidationError("رقم الهوية غير صحيح.")
         return incoming
 
+    def clean(self):
+        """قاعدةُ v1 للاسم على حفظ الموظّف أيضاً (`ClientProfileGuard::validate`،
+        تُطبَّق في `UserController.php:472`).
+
+        كانت شاشةُ العميل وحدها تفرضها، فيحفظ الموظّفُ اسماً فارغاً أو فيه
+        جوّال — والاسمُ الفارغُ يمنع المزايدةَ بعدها (`eligibility`). والطولُ
+        (أكثرُ من ١٢ حرفاً) للأفراد وحدهم كما في v1: اسمُ الشركة غيرُ اسم شخص.
+        """
+        import re
+
+        data = super().clean()
+        name = (data.get("full_name") or "").strip()
+        if not name:
+            self.add_error("full_name", "الاسم مطلوب.")
+        elif re.search(r"[0-9٠-٩۰-۹]", name):
+            self.add_error("full_name", "الاسم لا يجوز أن يحتوي أرقاماً.")
+        elif data.get("account_type") == AccountType.INDIVIDUAL and len(name) <= 12:
+            self.add_error(
+                "full_name", "اكتب الاسم الكامل — أكثر من ١٢ حرفاً مع المسافات."
+            )
+        else:
+            data["full_name"] = name
+        return data
+
 
 class CompanyForm(ReasonMixin, forms.ModelForm):
     # حقول العنوان الوطني تُحفظ على NationalAddress التابع لـ User (T850).
@@ -105,6 +135,11 @@ class CompanyForm(ReasonMixin, forms.ModelForm):
     district = forms.CharField(label="الحي", max_length=255, required=False)
     city = forms.CharField(label="المدينة", max_length=100, required=False)
     postal_code = forms.CharField(label="الرمز البريدي", max_length=5, required=False)
+    # كان غائباً من الاستمارة و`registration_gaps` يطلبه للشركات — فلا يُكمَّل
+    # ملفُّ شركةٍ من اللوحة أبداً. وv1 يحمله (`UserController.php:495`).
+    additional_number = forms.CharField(
+        label="الرقم الإضافي", max_length=4, required=False
+    )
 
     class Meta:
         model = Company
@@ -131,6 +166,7 @@ class CompanyForm(ReasonMixin, forms.ModelForm):
                 self.fields["district"].initial = addr.district
                 self.fields["city"].initial = addr.city
                 self.fields["postal_code"].initial = addr.postal_code
+                self.fields["additional_number"].initial = addr.additional_number
 
     def clean_postal_code(self):
         val = (self.cleaned_data.get("postal_code") or "").strip()
@@ -143,6 +179,28 @@ class CompanyForm(ReasonMixin, forms.ModelForm):
         if val and (len(val) != 4 or not val.isdigit()):
             raise forms.ValidationError("رقم المبنى يجب أن يتكون من 4 أرقام")
         return val
+
+    def clean(self):
+        """صيغُ الفاتورة الضريبيّة على حفظ الموظّف — قواعدُ شاشة العميل نفسُها.
+
+        v1 يفرضها على حفظ الموظّف أيضاً (`ClientProfileGuard.php:164-177`،
+        `UserController.php:472`): سجلٌّ تجاريٌّ عشرةُ أرقام، ورقمٌ ضريبيٌّ ١٥
+        رقماً يبدأ وينتهي بـ3. وكانت هنا تمرّ بلا فحصٍ إلى الفاتورة وأودو.
+        والقواعدُ تُقرأ من `_COMPANY_FORMATS` لا تُكتب ثانيةً، والفارغُ مسموحٌ
+        (الإعفاءُ للشركات القديمة مكتوبٌ في `company_edit`).
+        """
+        import re
+
+        from apps.accounts.api.serializers import _COMPANY_FORMATS, _DIGITS
+
+        data = super().clean()
+        for field in ("commercial_register", "vat_number", "additional_number"):
+            value = (data.get(field) or "").translate(_DIGITS).strip()
+            data[field] = value
+            pattern, message = _COMPANY_FORMATS[field]
+            if value and not re.match(pattern, value):
+                self.add_error(field, message)
+        return data
 
 
 # ---------------------------------------------------------------------------
@@ -191,10 +249,23 @@ def customer_rows(*, text: str = "", kind: str = "", status: str = ""):
 
     text = (text or "").strip()
     if text:
-        digits = "".join(character for character in text if character.isdigit())
+        from apps.accounts.models import ARABIC_DIGITS
+        from apps.accounts.services import PHONE_MATCH_DIGITS
+
+        digits = "".join(
+            character for character in text.translate(ARABIC_DIGITS) if character.isdigit()
+        )
         terms = search_q(text, "full_name")
         if digits:
-            terms = terms | Q(phone__contains=digits) | Q(national_id=digits)
+            # **الجوّالُ يُطابَق بآخر تسعة أرقام** كما في v1 (`UserController.php:
+            # 787-798`) وكما يفعل `find_by_phone`. الأرقامُ مخزَّنةٌ `9665…`، فكان
+            # `0551234567` — وهو ما يكتبه الموظّفُ — لا يطابق أحداً.
+            phone_q = (
+                Q(phone__endswith=digits[-PHONE_MATCH_DIGITS:])
+                if len(digits) >= PHONE_MATCH_DIGITS
+                else Q(phone__contains=digits)
+            )
+            terms = terms | phone_q | Q(national_id=digits)
         rows = rows.filter(terms)
 
     if kind in AccountType.values:
@@ -424,7 +495,14 @@ def customer_edit(request, pk: int):
 
 #: حقولُ العنوان التي تدخل القيد. مكتوبةٌ مرّةً ويقرؤها الطرفان (قبلُ وبعد)،
 #: فلا يقارن القيدُ مفتاحاً بغير نظيره.
-ADDRESS_FIELDS = ("city", "district", "street", "building_number", "postal_code")
+ADDRESS_FIELDS = (
+    "city",
+    "district",
+    "street",
+    "building_number",
+    "additional_number",
+    "postal_code",
+)
 
 
 def _address_snapshot(customer) -> dict:
@@ -471,6 +549,7 @@ def company_edit(request, pk: int):
             "street": form.cleaned_data.get("street", ""),
             "building_number": form.cleaned_data.get("building_number", ""),
             "postal_code": form.cleaned_data.get("postal_code", ""),
+            "additional_number": form.cleaned_data.get("additional_number", ""),
         }
         if any(addr_data.values()) or getattr(customer, "national_address", None):
             from apps.accounts.models import NationalAddress
@@ -548,15 +627,20 @@ def staff_grants(request, pk: int):
     form = GrantForm(request.POST or None)
 
     if request.method == "POST" and form.is_valid():
-        accounts_services.set_capability(
-            user=member,
-            capability=form.cleaned_data["capability"],
-            granted=form.cleaned_data["granted"],
-            reason=form.cleaned_data["reason"],
-            actor=request.user,
-        )
-        messages.success(request, "حُدِّثت الصلاحية.")
-        return redirect("console:staff-grants", pk=pk)
+        try:
+            accounts_services.set_capability(
+                user=member,
+                capability=form.cleaned_data["capability"],
+                granted=form.cleaned_data["granted"],
+                reason=form.cleaned_data["reason"],
+                actor=request.user,
+            )
+        except ValueError as refusal:
+            # رفضُ الخدمة جملةٌ بجانب الاستمارة لا صفحةُ خطأ.
+            form.add_error(None, str(refusal))
+        else:
+            messages.success(request, "حُدِّثت الصلاحية.")
+            return redirect("console:staff-grants", pk=pk)
 
     effective = sorted(capabilities_of(member))
     grants_qs = (

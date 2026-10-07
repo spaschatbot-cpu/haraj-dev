@@ -46,8 +46,22 @@
     <div class="blank blank--warn">
       <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
       <p class="blank__say">{{ report.count|unlocalize }} مستخدماً يطابق ما كتبت</p>
-      <p class="blank__hint">ضيّق البحث — الجوّال مفتاحٌ فريد والاسم يتكرّر.</p>
+      <p class="blank__hint">اختر الشخصَ من القائمة، أو ضيّق البحث — الجوّال مفتاحٌ فريد والاسم يتكرّر.</p>
     </div>
+    {% comment %} المطابَقون أنفسُهم، وكلٌّ رابطٌ إلى تقريره بمعرّفه — كما في v1
+       (حتى خمسين). والجوّالُ بجوار الاسم هو ما يفرّق بين اسمين متطابقين. {% endcomment %}
+    <table>
+      <thead><tr><th>الاسم</th><th>الجوّال</th><th></th></tr></thead>
+      <tbody>
+        {% for person in report.matches %}
+          <tr>
+            <td>{{ person.full_name|default:"—" }}</td>
+            <td class="money">{{ person.phone|default:"—"|unlocalize }}</td>
+            <td><a href="?user={{ person.pk|unlocalize }}">عرض التقرير</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
 
   {% elif not report.person %}
     <div class="blank">
