@@ -222,7 +222,7 @@
 
             {% if may_act %}
               <td class="rf-act">
-                {% if row.may_send or row.may_reject %}
+                {% if row.may_send or row.may_reject or row.may_execute %}
                   <form method="post" class="rowact">
                     {% csrf_token %}
                     <input type="hidden" name="refund" value="{{ row.pk }}">
@@ -242,6 +242,13 @@
                     {% endif %}
                     {% if row.may_reject %}
                       <button type="submit" name="op" value="reject" class="btn-danger-sm">ارفضه</button>
+                    {% endif %}
+                    {% if row.may_execute %}
+                      {% comment %} تنفيذُ الصرف من اللوحة — نظيرُ «استرداد كاش» في v1.
+                         مرجعُ الحوالة إلزاميٌّ في الخدمة لا هنا. {% endcomment %}
+                      <input type="text" name="transfer_reference" maxlength="120"
+                             placeholder="مرجع الحوالة" aria-label="مرجع الحوالة">
+                      <button type="submit" name="op" value="execute" class="btn-sm">نفِّذ الصرف</button>
                     {% endif %}
                   </form>
                 {% else %}

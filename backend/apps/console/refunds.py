@@ -233,10 +233,28 @@ def _decide(request):
         messages.error(request, "لم يُختَر طلبُ استرداد.")
         return redirect(back)
 
+    op = (request.POST.get("op") or "").strip()
+    if op == "execute":
+        # التنفيذُ قيدٌ في الدفتر لا نقلةُ حالة — بابُه `money.execute_refund`.
+        try:
+            money.execute_refund(
+                refund=refund,
+                by=request.user,
+                transfer_reference=request.POST.get("transfer_reference", ""),
+                reason=request.POST.get("reason", ""),
+            )
+        except Exception as refusal:  # noqa: BLE001
+            messages.error(request, getattr(refusal, "user_message", "") or str(refusal))
+            return redirect(back)
+        messages.success(
+            request, f"نُفِّذ استردادُ {refund.amount} ريال وقُيّد في الدفتر باسمك."
+        )
+        return redirect(back)
+
     target = {
         "send": RefundRequestState.SENT.value,
         "reject": RefundRequestState.REJECTED.value,
-    }.get((request.POST.get("op") or "").strip())
+    }.get(op)
     if target is None:
         messages.error(request, "فعلٌ غير معروف.")
         return redirect(back)
@@ -401,6 +419,11 @@ def refunds(request):
         moves = money.STAFF_REFUND_MOVES.get(row.state, ())
         row.may_send = RefundRequestState.SENT.value in moves
         row.may_reject = RefundRequestState.REJECTED.value in moves
+        # والتنفيذُ للمفتوح وحده ولمن يملك الأفعالَ الماليّة.
+        row.may_execute = can(request.user, Capability.MONEY_ACT) and row.state in (
+            RefundRequestState.REQUESTED.value,
+            RefundRequestState.SENT.value,
+        )
 
     return render(
         request,

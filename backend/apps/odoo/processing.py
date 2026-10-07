@@ -484,6 +484,21 @@ def _handle_refund(message: InboundMessage) -> Outcome:
             InboundState.FAILED, f"استرداد {refund_id} لعميل غير مربوط — {link_note}"
         )
 
+    # **طلبٌ نُفِّذ من اللوحة لا يُصرف ثانيةً.** `execute_refund` تقيّده بمفتاح
+    # `refund:staff:…` وهذا بـ`refund:odoo:…` — مفتاحان، فلا يمنع التكرارَ
+    # تفرّدُ المفتاح. فيُسأل الطلبُ نفسُه بمرجعه قبل أيّ قيد.
+    reference = str(payload.get("reference") or "")
+    if (
+        reference
+        and RefundRequest.objects.filter(
+            user=user, reference=reference, state=RefundRequestState.CONFIRMED
+        ).exists()
+    ):
+        return Outcome(
+            InboundState.IGNORED,
+            f"استرداد {refund_id}: الطلب {reference} منفَّذٌ من اللوحة سلفاً — لم يُخصم ثانيةً",
+        )
+
     shortfall = _shortfall_if_pledged(message, user, amount, refund_id)
     if shortfall is not None:
         return shortfall

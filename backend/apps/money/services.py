@@ -1782,6 +1782,79 @@ def decide_refund(*, refund: RefundRequest, to: str, by=None, reason: str = ""):
 
 
 @db_transaction.atomic
+def execute_refund(*, refund, by, transfer_reference: str, reason: str = ""):
+    """نفّذ استرداداً من اللوحة: صُرف المبلغُ للعميل، فيُقيَّد ويُغلق الطلب.
+
+    نظيرُ «خصم التأمين / استرداد كاش» في v1 (`RefundController.php:276-415`).
+    وكان v2 لا يملك إلا الإرسالَ للمحاسبة والرفض، والدفترُ لا يتحرّك إلا حين
+    يؤكّد أودو (`refund.confirmed`) — وأودو معطَّل، فلا يُنفَّذ استردادٌ أبداً.
+
+    **المتاحُ وحده يخرج**، كما في كلّ استرداد (`refund_insurance` تأخذ من
+    `insurance_free`): ما كان محجوزاً لمزادٍ أو مرهوناً لفاتورةٍ يرفضه الدفتر
+    بالحساب لا بشرط. ويُقال ذلك بجملةٍ قبل أن يرفضه.
+
+    **ومرجعُ الحوالة إلزاميّ**: هو ما يُراجَع به الصرفُ مع كشف البنك، ومعه لا
+    يُقيَّد الاستردادُ الواحدُ مرّتين (`refund:staff:{مرجع الطلب}`). ورسالةُ
+    أودو التي تؤكّد الطلبَ نفسَه لاحقاً **لا تصرفه ثانيةً** — `_handle_refund`
+    يرى الطلبَ منفَّذاً فيتركه.
+    """
+    locked = RefundRequest.objects.select_for_update().get(pk=refund.pk)
+    if locked.state not in (RefundRequestState.REQUESTED, RefundRequestState.SENT):
+        raise MoneyError(
+            f"refund {locked.pk} is {locked.state}, not open",
+            user_message=f"الطلب «{locked.get_state_display()}» — لا يُنفَّذ إلا المفتوح.",
+        )
+    text = (transfer_reference or "").strip()
+    if not text:
+        raise MoneyError(
+            f"refund {locked.pk}: no transfer reference",
+            user_message="مرجعُ الحوالة أو الصرف مطلوب — يُطابَق به كشفُ البنك.",
+        )
+    free = account_for(locked.user, AccountKind.INSURANCE_FREE).balance
+    if free < locked.amount:
+        raise MoneyError(
+            f"refund {locked.pk}: free {free} < {locked.amount}",
+            user_message=(
+                f"المتاحُ للعميل {free} ريال والطلب {locked.amount} — المحجوزُ لمزادٍ "
+                "أو المرهونُ لفاتورةٍ لا يُصرف."
+            ),
+        )
+
+    audited = ("state", "decided_by_id", "decided_at", "decision_note")
+    before = audit.snapshot(locked, audited)
+    txn = refund_insurance(
+        user=locked.user,
+        amount=locked.amount,
+        reference=f"staff:{locked.reference}",
+        memo=f"استرداد منفَّذ من اللوحة · {locked.reference} · حوالة {text}",
+    )
+    locked.state = RefundRequestState.CONFIRMED
+    locked.resulting_transaction = txn
+    locked.decided_by = by
+    locked.decided_at = timezone.now()
+    locked.decision_note = (f"حوالة {text}" + (f" · {reason}" if reason else ""))[:500]
+    locked.save(
+        update_fields=[
+            "state",
+            "resulting_transaction",
+            "decided_by",
+            "decided_at",
+            "decision_note",
+            "updated_at",
+        ]
+    )
+    audit.record(
+        action="money.refund_executed_by_staff",
+        entity=locked,
+        actor=by,
+        before=before,
+        after=audit.snapshot(locked, audited),
+        note=f"{locked.amount} ريال · {locked.reference} · حوالة {text}",
+    )
+    return locked
+
+
+@db_transaction.atomic
 def start_bank_topup(*, user, amount: Decimal, receipt) -> BankTopupRequest:
     """افتح طلبَ شحن تأمينٍ بتحويلٍ بنكيّ مع إيصال. لا يحرّك الدفتر.
 
