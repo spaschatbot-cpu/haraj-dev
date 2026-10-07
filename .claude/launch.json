@@ -26,6 +26,18 @@
       "cwd": "backend"
     },
     {
+      "name": "backend-local-test",
+      "runtimeExecutable": ".venv/Scripts/python.exe",
+      "runtimeArgs": ["manage.py", "runserver", "localhost:8002"],
+      "env": {
+        "DATABASE_URL": "sqlite:///C:/Users/ALFAZA~1/AppData/Local/Temp/claude/D--taskss-harajj-dev/d6aa8fc0-636b-43a7-a793-6af2e7ab9419/scratchpad/db/console.sqlite3",
+        "DJANGO_SETTINGS_MODULE": "config.settings.dev",
+        "PYTHONIOENCODING": "utf-8"
+      },
+      "port": 8002,
+      "cwd": "backend"
+    },
+    {
       "name": "web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
