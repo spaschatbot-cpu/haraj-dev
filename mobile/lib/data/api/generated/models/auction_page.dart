@@ -10,13 +10,11 @@ part 'auction_page.g.dart';
 
 @JsonSerializable()
 class AuctionPage {
-  const AuctionPage({
-    required this.total,
-    required this.results,
-  });
-  
-  factory AuctionPage.fromJson(Map<String, Object?> json) => _$AuctionPageFromJson(json);
-  
+  const AuctionPage({required this.total, required this.results});
+
+  factory AuctionPage.fromJson(Map<String, Object?> json) =>
+      _$AuctionPageFromJson(json);
+
   final int total;
   final List<AuctionCard> results;
 

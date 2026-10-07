@@ -17,9 +17,10 @@ class TokenPair {
     required this.expiresAt,
     this.user,
   });
-  
-  factory TokenPair.fromJson(Map<String, Object?> json) => _$TokenPairFromJson(json);
-  
+
+  factory TokenPair.fromJson(Map<String, Object?> json) =>
+      _$TokenPairFromJson(json);
+
   final String access;
   final String refresh;
 

@@ -16,21 +16,31 @@ class Invoice {
     required this.amount,
     required this.amountPaid,
     required this.outstanding,
+    required this.netAmount,
+    required this.adminFee,
+    required this.taxAmount,
     required this.stateLabel,
     required this.issuedAt,
     required this.paymentMethods,
     this.state,
     this.dueAt,
   });
-  
-  factory Invoice.fromJson(Map<String, Object?> json) => _$InvoiceFromJson(json);
-  
+
+  factory Invoice.fromJson(Map<String, Object?> json) =>
+      _$InvoiceFromJson(json);
+
   final int id;
   final String number;
   final String amount;
   @JsonKey(name: 'amount_paid')
   final String amountPaid;
   final String outstanding;
+  @JsonKey(name: 'net_amount')
+  final String netAmount;
+  @JsonKey(name: 'admin_fee')
+  final String adminFee;
+  @JsonKey(name: 'tax_amount')
+  final String taxAmount;
   final InvoiceStateEnum? state;
   @JsonKey(name: 'state_label')
   final String stateLabel;

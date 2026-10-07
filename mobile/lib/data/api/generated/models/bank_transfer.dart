@@ -23,9 +23,10 @@ class BankTransfer {
     required this.iban,
     required this.account,
   });
-  
-  factory BankTransfer.fromJson(Map<String, Object?> json) => _$BankTransferFromJson(json);
-  
+
+  factory BankTransfer.fromJson(Map<String, Object?> json) =>
+      _$BankTransferFromJson(json);
+
   final bool configured;
   final String beneficiary;
   final String bank;

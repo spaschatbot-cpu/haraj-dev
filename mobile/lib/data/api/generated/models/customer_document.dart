@@ -20,9 +20,10 @@ class CustomerDocument {
     required this.note,
     required this.uploadedByStaff,
   });
-  
-  factory CustomerDocument.fromJson(Map<String, Object?> json) => _$CustomerDocumentFromJson(json);
-  
+
+  factory CustomerDocument.fromJson(Map<String, Object?> json) =>
+      _$CustomerDocumentFromJson(json);
+
   final String kind;
   final String label;
   @JsonKey(name: 'uploaded_at')

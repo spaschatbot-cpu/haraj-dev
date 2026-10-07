@@ -24,20 +24,21 @@ enum RefundRequestStateEnum {
   cancelled('cancelled'),
   @JsonValue('v1_paid')
   v1Paid('v1_paid'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const RefundRequestStateEnum(this.json);
 
-  factory RefundRequestStateEnum.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory RefundRequestStateEnum.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<RefundRequestStateEnum> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<RefundRequestStateEnum> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

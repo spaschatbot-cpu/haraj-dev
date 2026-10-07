@@ -24,9 +24,7 @@ abstract class InvoicesApi {
   });
 
   @GET('/api/v1/invoices/{id}/')
-  Future<Invoice> v1InvoicesRetrieve({
-    @Path('id') required int id,
-  });
+  Future<Invoice> v1InvoicesRetrieve({@Path('id') required int id});
 
   /// سداد فاتورة من الرصيد (مغلق).
   ///
@@ -56,7 +54,5 @@ abstract class InvoicesApi {
   /// منه. ويُحذف المسارُ يوم لا يبقى إصدارٌ يعرفه.
   @Deprecated('This method is marked as deprecated')
   @POST('/api/v1/invoices/{id}/pay/')
-  Future<void> v1InvoicesPayCreate({
-    @Path('id') required int id,
-  });
+  Future<void> v1InvoicesPayCreate({@Path('id') required int id});
 }

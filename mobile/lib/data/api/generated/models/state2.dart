@@ -30,20 +30,21 @@ enum State2 {
   relisted('relisted'),
   @JsonValue('')
   empty(''),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const State2(this.json);
 
-  factory State2.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory State2.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<State2> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<State2> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

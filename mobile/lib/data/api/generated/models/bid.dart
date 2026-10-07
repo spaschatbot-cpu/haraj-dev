@@ -28,9 +28,9 @@ class Bid {
     required this.canChange,
     this.vehicle,
   });
-  
+
   factory Bid.fromJson(Map<String, Object?> json) => _$BidFromJson(json);
-  
+
   final int id;
   @JsonKey(name: 'vehicle_id')
   final int vehicleId;

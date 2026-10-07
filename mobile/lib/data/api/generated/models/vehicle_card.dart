@@ -47,9 +47,10 @@ class VehicleCard {
     required this.state,
     required this.thumbnailUrl,
   });
-  
-  factory VehicleCard.fromJson(Map<String, Object?> json) => _$VehicleCardFromJson(json);
-  
+
+  factory VehicleCard.fromJson(Map<String, Object?> json) =>
+      _$VehicleCardFromJson(json);
+
   final int id;
   @JsonKey(name: 'auction_id')
   final int auctionId;

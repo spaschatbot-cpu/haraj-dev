@@ -16,9 +16,10 @@ class PaginatedInvoiceList {
     this.next,
     this.previous,
   });
-  
-  factory PaginatedInvoiceList.fromJson(Map<String, Object?> json) => _$PaginatedInvoiceListFromJson(json);
-  
+
+  factory PaginatedInvoiceList.fromJson(Map<String, Object?> json) =>
+      _$PaginatedInvoiceListFromJson(json);
+
   final int count;
   final String? next;
   final String? previous;

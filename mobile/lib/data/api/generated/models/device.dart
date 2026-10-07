@@ -15,9 +15,9 @@ class Device {
     required this.createdAt,
     required this.tokenTail,
   });
-  
+
   factory Device.fromJson(Map<String, Object?> json) => _$DeviceFromJson(json);
-  
+
   final int id;
   final String platform;
   @JsonKey(name: 'created_at')

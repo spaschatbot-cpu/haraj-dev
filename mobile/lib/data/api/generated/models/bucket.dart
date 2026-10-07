@@ -16,9 +16,9 @@ class Bucket {
     required this.entryCount,
     required this.statement,
   });
-  
+
   factory Bucket.fromJson(Map<String, Object?> json) => _$BucketFromJson(json);
-  
+
   final String kind;
   final String label;
   final String amount;

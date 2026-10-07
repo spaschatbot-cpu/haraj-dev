@@ -45,9 +45,7 @@ abstract class AuctionsApi {
   /// would confirm it exists, which is enough to enumerate auctions before they.
   /// open.
   @GET('/api/v1/auctions/{id}/')
-  Future<AuctionCard> auctionsRetrieve({
-    @Path('id') required int id,
-  });
+  Future<AuctionCard> auctionsRetrieve({@Path('id') required int id});
 
   /// مركبات المزاد.
   ///

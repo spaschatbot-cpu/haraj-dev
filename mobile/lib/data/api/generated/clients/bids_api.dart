@@ -25,9 +25,7 @@ abstract class BidsApi {
   /// refuses it a second time anyway (`NotYourBid`) — the two guards are not.
   /// redundant: this one decides what a stranger learns, that one is the rule.
   @POST('/api/v1/bids/{id}/withdraw/')
-  Future<Bid> bidsWithdraw({
-    @Path('id') required int id,
-  });
+  Future<Bid> bidsWithdraw({@Path('id') required int id});
 
   /// مزايداتي.
   ///
@@ -60,7 +58,5 @@ abstract class BidsApi {
   /// الشاشة التي فيها صندوق المزايدة، ولا تُعرَض لزائرٍ غير داخل.
   @MultiPart()
   @POST('/api/v1/bids/quote/')
-  Future<BidQuote> bidsQuote({
-    @Part(name: 'amount') required String amount,
-  });
+  Future<BidQuote> bidsQuote({@Part(name: 'amount') required String amount});
 }

@@ -16,9 +16,10 @@ class PaginatedPurchaseList {
     this.next,
     this.previous,
   });
-  
-  factory PaginatedPurchaseList.fromJson(Map<String, Object?> json) => _$PaginatedPurchaseListFromJson(json);
-  
+
+  factory PaginatedPurchaseList.fromJson(Map<String, Object?> json) =>
+      _$PaginatedPurchaseListFromJson(json);
+
   final int count;
   final String? next;
   final String? previous;

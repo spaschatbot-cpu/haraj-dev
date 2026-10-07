@@ -63,9 +63,7 @@ abstract class VehiclesApi {
   /// A car the caller may not see is a 404, not a 403. A 403 confirms the row.
   /// exists, which is enough to enumerate an auction before it opens.
   @GET('/api/v1/vehicles/{id}/')
-  Future<VehicleCard> vehiclesRetrieve({
-    @Path('id') required int id,
-  });
+  Future<VehicleCard> vehiclesRetrieve({@Path('id') required int id});
 
   /// وضع مزايدة.
   ///
@@ -106,7 +104,5 @@ abstract class VehiclesApi {
   /// المتصل **404** لا 403 — تأكيدُ وجود الصفّ وحده يكفي لعدّ مزادٍ قبل أن.
   /// يُفتح.
   @GET('/api/v1/vehicles/{id}/images/')
-  Future<VehicleImages> vehiclesImagesList({
-    @Path('id') required int id,
-  });
+  Future<VehicleImages> vehiclesImagesList({@Path('id') required int id});
 }

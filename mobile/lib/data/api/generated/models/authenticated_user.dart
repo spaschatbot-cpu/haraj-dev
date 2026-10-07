@@ -17,9 +17,10 @@ class AuthenticatedUser {
     required this.accountType,
     required this.isNew,
   });
-  
-  factory AuthenticatedUser.fromJson(Map<String, Object?> json) => _$AuthenticatedUserFromJson(json);
-  
+
+  factory AuthenticatedUser.fromJson(Map<String, Object?> json) =>
+      _$AuthenticatedUserFromJson(json);
+
   final int id;
   final String phone;
   @JsonKey(name: 'display_name')

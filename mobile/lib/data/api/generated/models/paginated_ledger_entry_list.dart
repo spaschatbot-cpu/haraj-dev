@@ -16,9 +16,10 @@ class PaginatedLedgerEntryList {
     this.next,
     this.previous,
   });
-  
-  factory PaginatedLedgerEntryList.fromJson(Map<String, Object?> json) => _$PaginatedLedgerEntryListFromJson(json);
-  
+
+  factory PaginatedLedgerEntryList.fromJson(Map<String, Object?> json) =>
+      _$PaginatedLedgerEntryListFromJson(json);
+
   final int count;
   final String? next;
   final String? previous;

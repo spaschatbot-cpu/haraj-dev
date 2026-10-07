@@ -21,9 +21,10 @@ class VehicleImage {
     required this.previewUrl,
     required this.isCover,
   });
-  
-  factory VehicleImage.fromJson(Map<String, Object?> json) => _$VehicleImageFromJson(json);
-  
+
+  factory VehicleImage.fromJson(Map<String, Object?> json) =>
+      _$VehicleImageFromJson(json);
+
   final int id;
   @JsonKey(name: 'thumbnail_url')
   final String? thumbnailUrl;

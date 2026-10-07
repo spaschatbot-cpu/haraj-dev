@@ -46,7 +46,5 @@ abstract class DevicesApi {
   /// proxy cache on the way.
   @MultiPart()
   @POST('/api/v1/devices/unregister/')
-  Future<void> devicesUnregister({
-    @Part(name: 'token') required String token,
-  });
+  Future<void> devicesUnregister({@Part(name: 'token') required String token});
 }

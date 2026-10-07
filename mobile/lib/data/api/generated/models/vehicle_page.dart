@@ -20,13 +20,16 @@ class VehiclePage {
   const VehiclePage({
     required this.total,
     required this.counts,
+    required this.phase,
     required this.results,
   });
-  
-  factory VehiclePage.fromJson(Map<String, Object?> json) => _$VehiclePageFromJson(json);
-  
+
+  factory VehiclePage.fromJson(Map<String, Object?> json) =>
+      _$VehiclePageFromJson(json);
+
   final int total;
   final PhaseCounts counts;
+  final String phase;
   final List<VehicleCard> results;
 
   Map<String, Object?> toJson() => _$VehiclePageToJson(this);

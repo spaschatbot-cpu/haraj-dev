@@ -33,9 +33,10 @@ class Profile {
     required this.registrationMissing,
     this.email,
   });
-  
-  factory Profile.fromJson(Map<String, Object?> json) => _$ProfileFromJson(json);
-  
+
+  factory Profile.fromJson(Map<String, Object?> json) =>
+      _$ProfileFromJson(json);
+
   final int id;
 
   /// يتغيّر عبر مسار خاص

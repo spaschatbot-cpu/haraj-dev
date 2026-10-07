@@ -25,9 +25,10 @@ class PaymentIntent {
     this.gateway,
     this.gatewayStatusRaw,
   });
-  
-  factory PaymentIntent.fromJson(Map<String, Object?> json) => _$PaymentIntentFromJson(json);
-  
+
+  factory PaymentIntent.fromJson(Map<String, Object?> json) =>
+      _$PaymentIntentFromJson(json);
+
   final String reference;
 
   /// Where to send this customer to pay, or `""` when nowhere.

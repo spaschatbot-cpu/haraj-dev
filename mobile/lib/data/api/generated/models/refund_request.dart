@@ -19,9 +19,10 @@ class RefundRequest {
     this.iban,
     this.state,
   });
-  
-  factory RefundRequest.fromJson(Map<String, Object?> json) => _$RefundRequestFromJson(json);
-  
+
+  factory RefundRequest.fromJson(Map<String, Object?> json) =>
+      _$RefundRequestFromJson(json);
+
   final int id;
   final String reference;
   final String amount;

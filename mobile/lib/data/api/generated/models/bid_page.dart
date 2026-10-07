@@ -10,13 +10,11 @@ part 'bid_page.g.dart';
 
 @JsonSerializable()
 class BidPage {
-  const BidPage({
-    required this.total,
-    required this.results,
-  });
-  
-  factory BidPage.fromJson(Map<String, Object?> json) => _$BidPageFromJson(json);
-  
+  const BidPage({required this.total, required this.results});
+
+  factory BidPage.fromJson(Map<String, Object?> json) =>
+      _$BidPageFromJson(json);
+
   final int total;
   final List<Bid> results;
 

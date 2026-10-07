@@ -39,10 +39,7 @@ Future<void> main() async {
   // و`signedOut`/`expired` وحدَهما لا `unknown`: الانتقالُ من `unknown` هو
   // استرجاعُ جلسةٍ محفوظةٍ عند الإقلاع، و[PushCoordinator.start] يغطّيه —
   // فإدراجُه هنا طلبٌ ثانٍ بالتوكن نفسِه في كلّ إقلاع.
-  container.listen<SessionState>(sessionControllerProvider, (
-    previous,
-    next,
-  ) {
+  container.listen<SessionState>(sessionControllerProvider, (previous, next) {
     final justSignedIn =
         next == SessionState.signedIn &&
         (previous == SessionState.signedOut ||

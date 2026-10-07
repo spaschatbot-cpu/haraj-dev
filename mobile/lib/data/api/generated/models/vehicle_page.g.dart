@@ -9,6 +9,7 @@ part of 'vehicle_page.dart';
 VehiclePage _$VehiclePageFromJson(Map<String, dynamic> json) => VehiclePage(
   total: (json['total'] as num).toInt(),
   counts: PhaseCounts.fromJson(json['counts'] as Map<String, dynamic>),
+  phase: json['phase'] as String,
   results: (json['results'] as List<dynamic>)
       .map((e) => VehicleCard.fromJson(e as Map<String, dynamic>))
       .toList(),
@@ -18,5 +19,6 @@ Map<String, dynamic> _$VehiclePageToJson(VehiclePage instance) =>
     <String, dynamic>{
       'total': instance.total,
       'counts': instance.counts,
+      'phase': instance.phase,
       'results': instance.results,
     };

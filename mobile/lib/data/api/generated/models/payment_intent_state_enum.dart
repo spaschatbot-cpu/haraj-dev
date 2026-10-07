@@ -24,20 +24,21 @@ enum PaymentIntentStateEnum {
   expired('expired'),
   @JsonValue('disputed')
   disputed('disputed'),
+
   /// Default value for all unparsed values, allows backward compatibility when adding new values on the backend.
   $unknown(null);
 
   const PaymentIntentStateEnum(this.json);
 
-  factory PaymentIntentStateEnum.fromJson(String json) => values.firstWhere(
-        (e) => e.json == json,
-        orElse: () => $unknown,
-      );
+  factory PaymentIntentStateEnum.fromJson(String json) =>
+      values.firstWhere((e) => e.json == json, orElse: () => $unknown);
 
   final String? json;
 
   @override
   String toString() => json?.toString() ?? super.toString();
+
   /// Returns all defined enum values excluding the $unknown value.
-  static List<PaymentIntentStateEnum> get $valuesDefined => values.where((value) => value != $unknown).toList();
+  static List<PaymentIntentStateEnum> get $valuesDefined =>
+      values.where((value) => value != $unknown).toList();
 }

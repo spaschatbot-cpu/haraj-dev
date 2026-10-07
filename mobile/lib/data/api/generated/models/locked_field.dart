@@ -13,13 +13,11 @@ part 'locked_field.g.dart';
 /// the field closed and prints this beside it.
 @JsonSerializable()
 class LockedField {
-  const LockedField({
-    required this.field,
-    required this.reason,
-  });
-  
-  factory LockedField.fromJson(Map<String, Object?> json) => _$LockedFieldFromJson(json);
-  
+  const LockedField({required this.field, required this.reason});
+
+  factory LockedField.fromJson(Map<String, Object?> json) =>
+      _$LockedFieldFromJson(json);
+
   final String field;
 
   /// سبب عربي جاهز للعرض

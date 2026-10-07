@@ -18,9 +18,10 @@ class StartPhoneChangeResponse {
     required this.expiresAt,
     required this.resendAfter,
   });
-  
-  factory StartPhoneChangeResponse.fromJson(Map<String, Object?> json) => _$StartPhoneChangeResponseFromJson(json);
-  
+
+  factory StartPhoneChangeResponse.fromJson(Map<String, Object?> json) =>
+      _$StartPhoneChangeResponseFromJson(json);
+
   @JsonKey(name: 'sent_to_current')
   final bool sentToCurrent;
   @JsonKey(name: 'sent_to_new')
