@@ -668,6 +668,27 @@ def replace_winner(
         locked.state = VehicleState.AWARDED
         locked.save(update_fields=["awarded_to", "awarded_price", "awarded_at", "state"])
 
+        # **وتأمينُ الفائز الأوّل يُحرَّر إن لم يبقَ له ما يحرسه.** قبل الفوترة
+        # هو رهنُ مزايدةٍ (`BIDDING`) أبقته `settle_holds` لأنه فائز — و
+        # `_undo_award` أعلاه لا تراه: تحرّر ما يسمّي فاتورةً أو رهنَ المزاد
+        # الذي تُنشئه الفوترة. والتسويةُ لا تعود إلى مزادٍ سُوّي، فكان يبقى
+        # محجوزاً أبداً ولا يملك الموظّفُ إلا المصادرة. وv1 يردّه في
+        # `rejectWinner` (`AuctionBidsAdminController.php:383-442`).
+        #
+        # وبالشرطين نفسيهما اللذين تقرأهما `settle_holds`: لا يُحرَّر ما دام
+        # فائزاً بمركبةٍ أخرى في المزاد، أو منافساً على مركبةٍ لم تُحسم.
+        auction = locked.auction
+        if previous_id not in winners_in(auction) and previous_id not in competitors_in(
+            auction
+        ):
+            for hold in Hold.objects.filter(
+                auction=auction,
+                owner_id=previous_id,
+                reason=HoldReason.BIDDING,
+                state=HoldState.ACTIVE,
+            ):
+                money.release_hold(hold, memo=f"نُقلت الترسية: {reason}")
+
     log.info(
         "vehicle %s: award moved from %s to %s (%s)",
         vehicle.pk,
