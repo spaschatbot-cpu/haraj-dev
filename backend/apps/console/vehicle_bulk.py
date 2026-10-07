@@ -122,19 +122,38 @@ def _move_state(request, auction: Auction, rows: list[Vehicle], reason: str) -> 
 
 
 def _marketing(request, auction: Auction, rows: list[Vehicle], reason: str) -> None:
-    on = request.POST.get("marketing") == "on"
-    changed = Vehicle.objects.filter(pk__in=[v.pk for v in rows]).update(
-        is_marketing=on
-    )
+    """اقلب التسويقَ على ما اختير — أو اكتبه صريحاً إن أُرسل `marketing`.
+
+    **الزرُّ اسمُه «اقلب التسويق» ولا يرسل `marketing`.** فكان الشرطُ
+    `== "on"` كاذباً دائماً، وكلُّ ضغطةٍ تُطفئ التسويقَ على كلّ ما اختير — أي أن
+    التشغيلَ الجماعيّ لم يكن ممكناً أصلاً. وv1 يأخذ ١ أو ٠ (`AuctionController.
+    php:4906`). فالقلبُ هو ما يقوله الزرّ: كلُّ مركبةٍ إلى عكس حالها؛ والقيمةُ
+    الصريحةُ (`on`/`off`) تبقى لمن يرسلها.
+    """
+    ids = [v.pk for v in rows]
+    explicit = request.POST.get("marketing", "")
+    if explicit in ("on", "off"):
+        on = explicit == "on"
+        turned_on = Vehicle.objects.filter(pk__in=ids).update(is_marketing=on) if on else 0
+        turned_off = 0 if on else Vehicle.objects.filter(pk__in=ids).update(is_marketing=False)
+    else:
+        was_on = list(
+            Vehicle.objects.filter(pk__in=ids, is_marketing=True).values_list("pk", flat=True)
+        )
+        turned_off = Vehicle.objects.filter(pk__in=was_on).update(is_marketing=False)
+        turned_on = (
+            Vehicle.objects.filter(pk__in=ids).exclude(pk__in=was_on).update(is_marketing=True)
+        )
     audit.record(
         action="console.vehicles_bulk_marketing",
         entity=auction,
         actor=request.user,
-        after={"is_marketing": on, "count": changed},
+        after={"turned_on": turned_on, "turned_off": turned_off},
         note=reason,
     )
-    word = "شُغِّل" if on else "أُطفئ"
-    messages.success(request, f"{word} التسويق على {changed} مركبة.")
+    messages.success(
+        request, f"شُغِّل التسويق على {turned_on} مركبة وأُطفئ على {turned_off}."
+    )
 
 
 def _move_auction(request, auction: Auction, rows: list[Vehicle], reason: str) -> None:
@@ -172,11 +191,51 @@ def _move_auction(request, auction: Auction, rows: list[Vehicle], reason: str) -
     free = [v for v in rows if v.pk not in locked_ids]
     locked = [v for v in rows if v.pk in locked_ids]
 
+    # **كلُّ مركبةٍ بالمسار الشرعيّ لا `update(auction=…)` خام.** كان النقلُ
+    # الجماعيّ يغيّر المزادَ وحده، فتسافر المزايداتُ الحيّة والفائزُ وسعرُ
+    # الرسوّ والحالةُ إلى المزاد الوجهة — و`Bid` تشير إلى المركبة لا إلى
+    # المزاد، فتُحسَب أعلى مزايدةٍ من الدورة السابقة في الدورة الجديدة. وv1
+    # يمسح الفائزَ والمزايدات عند النقل (`AuctionController.php:4456-4516`).
+    # فما لم يُعرَض بعد (مسودّة/معروضة بلا مزايدات) يُنقَل كما هو، والباقي عبر
+    # `relist_vehicle` التي تسحب المزايدات وتمسح الترسية.
+    #
+    # **واللوتُ المشغول في الوجهة يأخذ التالي الفارغ** — كان يُبقي رقمه
+    # فيصطدم بقيد `one_lot_number_per_auction` ويُسقط الدفعةَ كلَّها بـ500.
+    from django.db import IntegrityError, transaction
+    from django.db.models import Max
+
+    from apps.bidding import settlement
+    from apps.bidding.models import Bid
+
+    taken = set(target.vehicles.values_list("lot_number", flat=True))
+    next_lot = (target.vehicles.aggregate(top=Max("lot_number"))["top"] or 0) + 1
+
     moved = 0
-    if free:
-        moved = Vehicle.objects.filter(pk__in=[v.pk for v in free]).update(
-            auction=target
-        )
+    failed: list[tuple[Vehicle, str]] = []
+    for vehicle in free:
+        lot = vehicle.lot_number
+        if lot in taken:
+            lot, next_lot = next_lot, next_lot + 1
+        taken.add(lot)
+        has_bids = Bid.objects.filter(
+            vehicle=vehicle, is_superseded=False, is_withdrawn=False
+        ).exists()
+        try:
+            with transaction.atomic():
+                if vehicle.state in (VehicleState.DRAFT, VehicleState.LISTED) and not has_bids:
+                    Vehicle.objects.filter(pk=vehicle.pk).update(auction=target, lot_number=lot)
+                else:
+                    settlement.relist_vehicle(vehicle, into=target, lot_number=lot)
+        except IntegrityError:
+            failed.append((vehicle, f"رقم الشاصي أو اللوت مستعمل في مزاد {target.number}."))
+            continue
+        except Exception as refusal:  # noqa: BLE001
+            failed.append((vehicle, str(refusal)))
+            continue
+        moved += 1
+    _say_refusals(request, failed)
+
+    if moved:
         audit.record(
             action="console.vehicles_bulk_move",
             entity=auction,
@@ -190,7 +249,7 @@ def _move_auction(request, auction: Auction, rows: list[Vehicle], reason: str) -
         messages.error(
             request,
             f"{len(locked)} مركبة لم تُنقَل — عليها فاتورةٌ حيّة ({names}). "
-            "استرجِعها أولاً: الاسترجاعُ يعكس الفاتورةَ ويحرّر التأمين، ثم تُنقَل.",
+            "ألغِ فاتورتَها أولاً (يُعكَس معها التأمين)، ثمّ تُنقَل.",
         )
 
 

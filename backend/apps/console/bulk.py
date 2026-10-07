@@ -41,6 +41,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from apps.auctions import services as auctions
 from apps.auctions.models import (
@@ -137,7 +138,24 @@ def _end_selected(request):
         try:
             # الخدمةُ وحدها تكتب الحالة، وهي التي تُغلق المزايدات في
             # المعاملة نفسها — فلا زرَّ ثانياً يفعل نصفَ ذلك.
-            auctions.end(auction)
+            #
+            # **والنهايةُ تُثبَّت على هذه اللحظة أوّلاً** كما يفعل «إنهاء فوري»
+            # (`auction_quick.auction_end_now`). كان الإيقافُ الجماعيُّ ينادي
+            # `end` مباشرةً، وحارسُها `_auction_end_time_reached` يرفض كلَّ مزادٍ
+            # حيٍّ لم يحن موعدُه — أي كلَّ ما يُراد إيقافُه. وv1 يوقفها فوراً
+            # (`AuctionController.php:2173-2190`). ومزادٌ لم يبدأ لا تُثبَّت
+            # نهايتُه قبل بدايته: يُترك ليرفضه الحارسُ بجملته.
+            with transaction.atomic():
+                now = timezone.now()
+                if (
+                    auction.state == AuctionState.LIVE
+                    and auction.ends_at is not None
+                    and auction.ends_at > now
+                    and (auction.starts_at is None or auction.starts_at <= now)
+                ):
+                    auction.ends_at = now
+                    auction.save(update_fields=["ends_at"])
+                auctions.end(auction)
         except AuctionError as refusal:
             refused.append((auction, str(refusal)))
             continue

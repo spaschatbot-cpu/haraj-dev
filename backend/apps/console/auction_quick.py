@@ -327,6 +327,20 @@ def auction_reschedule(request, pk: int):
 
     reason = _reason(request)
 
+    # **مزادٌ انتهى لا يُعاد جدولتُه من هنا.** v1 يعيد حسابَ الحالة من الموعد
+    # الجديد فيُعيد فتحَه (`AuctionController.php:1631-1638`)، وv2 لا نقلةَ فيه
+    # من «منتهٍ» إلى «جارٍ» (`states.py`) — فكانت الجدولةُ تكتب موعداً في
+    # المستقبل على مزادٍ يبقى منتهياً، فتقول الشارةُ «شغّال» والمزايدةُ مغلقة.
+    # ومع «إعادة المزايدة» تُمسح عروضُ ما لم يُبَع، ومنها عروضٌ تنتظر قرارَ
+    # المالك، على مزادٍ لا يجري ثانيةً. فالرفضُ بجملةٍ تقول ما العمل.
+    if auction.state in (AuctionState.ENDED, AuctionState.SETTLED, AuctionState.CANCELLED):
+        messages.error(
+            request,
+            f"مزاد {auction.number} {auction.get_state_display()} — لا يُعاد جدولتُه. "
+            "انقل ما لم يُبَع إلى مزادٍ قادم.",
+        )
+        return _back(request, auction)
+
     # **و`before` تُلتقط هنا، قبل `_read_window`، للعلّة نفسِها.** كانت تُلتقط
     # بعدها — و`_read_window` تكتب الموعدين على الكائن — فيُبصَم «قبلُ» على ما
     # أرسله الموظّف لا على ما في القاعدة. والأثرُ مقيسٌ في `haraj2_t307`:
@@ -355,11 +369,17 @@ def auction_reschedule(request, pk: int):
         with transaction.atomic():
             auction.save(update_fields=fields)
             if reset:
+                # **سحبٌ لا حذف.** كان `doomed.delete()` يصطدم بـPROTECT على
+                # `Bid.supersedes` و`Vehicle.partner_decision_bid` فيسقط بـ500
+                # (لا يلتقطه `IntegrityError`) — والحذفُ نفسُه محوٌ للتاريخ الذي
+                # لا يُحذف في v2. فتُسحَب الحيّةُ كما يفعل النقلُ والاستيراد.
                 doomed = Bid.objects.filter(
-                    vehicle__auction=auction, vehicle__awarded_to__isnull=True
+                    vehicle__auction=auction,
+                    vehicle__awarded_to__isnull=True,
+                    is_superseded=False,
+                    is_withdrawn=False,
                 )
-                cleared = doomed.count()
-                doomed.delete()
+                cleared = doomed.update(is_withdrawn=True, withdrawn_at=timezone.now())
     except IntegrityError:
         messages.error(request, "وقت النهاية يجب أن يكون بعد وقت البداية.")
         return _back(request, auction)
@@ -370,12 +390,12 @@ def auction_reschedule(request, pk: int):
         actor=request.user,
         before=before,
         after=audit.snapshot(auction, fields),
-        note=f"{reason} · مزايدات محذوفة: {cleared}",
+        note=f"{reason} · مزايدات مسحوبة: {cleared}",
     )
     messages.success(
         request,
         f"أُعيدت جدولة مزاد {auction.number}."
-        + (f" وحُذفت {cleared} مزايدة لمركبات لم تُبَع." if reset else ""),
+        + (f" وسُحبت {cleared} مزايدة لمركبات لم تُبَع." if reset else ""),
     )
     return _back(request, auction)
 

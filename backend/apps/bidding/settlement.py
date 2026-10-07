@@ -863,15 +863,35 @@ def relist_vehicle(vehicle: Vehicle, *, into: Auction, lot_number: int) -> Vehic
     both of which name the auction they belonged to, and a relisted car is a new
     row in a new auction as far as every rule is concerned.
 
-    The old bids stay where they are, attached to the old auction. They are the
-    record of what happened in March, not a claim on April.
+    The old bids stay as the record of what happened in March, not a claim on
+    April — **and they are withdrawn, because they are not attached to the old
+    auction.** `Bid` points at the vehicle alone (`bidding/models.py`), so a bid
+    left live travelled with the car: the March top bid stood in April, and
+    `settle_auction` could award April's auction to a March bidder who never
+    passed April's deposit check. v1 always clears the bids on a move
+    (`AuctionController.php:4278`). Withdrawn, not deleted — the history stays
+    and nothing hits `PROTECT` on `Bid.supersedes` (as `importexport._transfer`).
+
+    **And a car with a live invoice is refused.** The invoice names the car,
+    its buyer has a pledged deposit against it, and relisting left an open debt
+    in one auction for a car on sale in another — re-invoicing it then hit
+    `one_live_invoice_per_vehicle`. The invoice is cancelled first, by the screen
+    that reverses its deposit with it.
     """
     if vehicle.auction_id == into.pk:
         raise ValueError("a car cannot be relisted into the auction it is already in")
 
+    if Invoice.objects.filter(vehicle=vehicle).exclude(state=InvoiceState.CANCELLED).exists():
+        raise ValueError(
+            "على المركبة فاتورةٌ حيّة — ألغِ الفاتورة أوّلاً (يُعكَس معها التأمين)، ثمّ أعِد عرضها."
+        )
+
     from apps.auctions.services import list_for_sale, relist
 
     with transaction.atomic():
+        Bid.objects.filter(
+            vehicle=vehicle, is_superseded=False, is_withdrawn=False
+        ).update(is_withdrawn=True, withdrawn_at=timezone.now())
         if vehicle.state != VehicleState.RELISTED:
             relist(vehicle)
 

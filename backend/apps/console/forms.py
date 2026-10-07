@@ -410,6 +410,18 @@ class VehicleForm(ReasonMixin, forms.ModelForm):
             "is_marketing": forms.Select(choices=[(False, "لا"), (True, "تسويق")]),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # **المزادُ لا يُغيَّر من التعديل.** v1 يُسقط `auction_id` من التعديل
+        # (`AuctionController.php:817`) فلا يُنقَل سيارةٌ بتعديلها. وكان الحقلُ
+        # هنا قابلاً للتغيير، فتنتقل مركبةٌ عليها مزايداتٌ أو ترسيةٌ أو فاتورة
+        # إلى مزادٍ جارٍ بلا شيءٍ من قواعد النقل. والنقلُ له بابُه
+        # (`vehicle-relist`). و`disabled` يجعل جانغو يأخذ القيمةَ القائمة ولو
+        # أُرسل غيرُها.
+        if self.instance.pk and "auction" in self.fields:
+            self.fields["auction"].disabled = True
+            self.fields["auction"].help_text = "يُنقَل من «أعِد العرض في مزادٍ آخر»."
+
     def clean(self):
         cleaned = super().clean()
         auction = cleaned.get("auction")
