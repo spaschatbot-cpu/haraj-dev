@@ -118,6 +118,20 @@ def find_invoices(text: str):
     )
 
 
+#: نوعُ الدفع ورمزُه عند أودو — قائمةُ v1 بنصّها (`payments/create.php:171-176`).
+#:
+#: كان v2 يرسل كلَّ دفعةٍ يدويّةٍ برمزٍ واحد (`ODOO_PAYMENT_CODE`)، فتقع المدى
+#: والحوالةُ والنقدُ في دفترٍ واحدٍ عند أودو ولا تُطابَق كلٌّ مع حسابها البنكيّ.
+#: والدفترُ عندنا لا يتغيّر: المصدرُ `CASH` («نقداً أو تحويلاً بنكياً») للثلاثة
+#: — المدى هنا جهازُ نقاط البيع في المكتب لا بوّابةُ البطاقة التي يمنعها
+#: `InvoicePaymentSource` عن المركبات. الفرقُ في أيّ دفترٍ تُقيَّد عند أودو.
+PAYMENT_CODES = {
+    "0004/01": "مدى",
+    "0004/02": "حوالة بنكية",
+    "0004/03": "نقدي",
+}
+
+
 def _amount(raw: str) -> Decimal | None:
     """المبلغ كما كُتب، أو `None` لما ليس مبلغاً موجباً.
 
@@ -198,6 +212,7 @@ def record_payment(request):
     amount = _amount(request.POST.get("amount", ""))
     reference = (request.POST.get("reference") or "").strip()
     reason = (request.POST.get("reason") or "").strip()
+    payment_code = (request.POST.get("payment_code") or "").strip()
 
     if invoice is None:
         messages.error(request, "لم تُختَر فاتورة.")
@@ -214,6 +229,9 @@ def record_payment(request):
         return redirect(back)
     if not reason:
         messages.error(request, "سببُ القيد مطلوب — ويدخل سجلَّ التدقيق.")
+        return redirect(back)
+    if payment_code not in PAYMENT_CODES:
+        messages.error(request, "اختر نوعَ الدفع: مدى أو حوالة بنكية أو نقدي.")
         return redirect(back)
 
     already = money.find_transaction(f"payment:{invoice.pk}:{reference}")
@@ -256,12 +274,12 @@ def record_payment(request):
         before=before,
         after=audit.snapshot(invoice, ["amount_paid", "state"]),
         note=(
-            f"{amount} نقداً على الفاتورة {invoice.number} — {reason} — "
+            f"{amount} ({PAYMENT_CODES[payment_code]}) على الفاتورة {invoice.number} — {reason} — "
             f"مرجع {reference} — حركة {txn.pk}"
         ),
     )
 
-    _tell_odoo(invoice, amount, txn)
+    _tell_odoo(invoice, amount, txn, payment_code=payment_code)
 
     messages.success(
         request,
@@ -271,7 +289,7 @@ def record_payment(request):
     return redirect(back)
 
 
-def _tell_odoo(invoice: Invoice, amount: Decimal, txn) -> None:
+def _tell_odoo(invoice: Invoice, amount: Decimal, txn, *, payment_code: str = "") -> None:
     """أدرِج الدفعةَ في صندوق صادر أودو — **كتابةٌ لا إرسال**.
 
     هي هنا لا في `money.record_payment` لأن تلك يناديها معالجُ الويبهوك: دفعةٌ
@@ -299,7 +317,9 @@ def _tell_odoo(invoice: Invoice, amount: Decimal, txn) -> None:
         ).exists():
             return
 
-        outbox.queue_payment(invoice, amount, source_transaction=txn)
+        outbox.queue_payment(
+            invoice, amount, source_transaction=txn, payment_code=payment_code
+        )
     except Exception as exc:  # noqa: BLE001
         log.warning("could not queue odoo payment for %s: %s", invoice.number, exc)
 

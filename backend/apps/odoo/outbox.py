@@ -263,7 +263,7 @@ def _payment_params(message: OutboxMessage) -> dict:
             "تُرسَل الفاتورة أولاً ثم دفعتُها"
         )
     return {
-        "payment_code": settings.ODOO_PAYMENT_CODE,
+        "payment_code": message.payload.get("payment_code") or settings.ODOO_PAYMENT_CODE,
         "customer_id": odoo_id,
         "partner_id": odoo_id,
         "invoice_id": invoice.odoo_invoice_id,
@@ -495,7 +495,13 @@ def _apply_invoice(message: OutboxMessage, response: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
-def queue_payment(invoice: Invoice, amount: Decimal, *, source_transaction: Transaction):
+def queue_payment(
+    invoice: Invoice,
+    amount: Decimal,
+    *,
+    source_transaction: Transaction,
+    payment_code: str = "",
+):
     """Tell Odoo about a payment we recorded, with its own reference.
 
     ``source_transaction`` has no default on purpose: it is what the reference
@@ -509,6 +515,9 @@ def queue_payment(invoice: Invoice, amount: Decimal, *, source_transaction: Tran
             # A string, not a float. Article 3-2 does not stop at our boundary.
             "amount": str(amount),
             "currency": settings.CURRENCY,
+            # نوعُ الدفع الذي اختاره الموظّف (مدى/حوالة/نقدي) — فارغٌ لما لم
+            # يُختر له نوع، فيُرسَل بالرمز العامّ كما كان.
+            "payment_code": payment_code,
         },
         reference=payment_reference(invoice, source_transaction),
         source_transaction=source_transaction,

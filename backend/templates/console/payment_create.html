@@ -83,6 +83,15 @@ v1 هنا: حارسُها `invoices_list` (صلاحيةُ **عرض**)، وبلا
           <small>لا يتجاوز الباقي — والدفترُ يرفض الزائد، لا القالب.</small>
         </p>
         <p>
+          <label for="code-{{ row.invoice.pk }}">نوع الدفع</label>
+          <select id="code-{{ row.invoice.pk }}" name="payment_code" required>
+            <option value="">— اختر النوع —</option>
+            <option value="0004/01">مدى</option>
+            <option value="0004/02">حوالة بنكية</option>
+            <option value="0004/03">نقدي</option>
+          </select>
+        </p>
+        <p>
           <label for="ref-{{ row.invoice.pk }}">مرجع الإيصال أو الحوالة</label>
           <input id="ref-{{ row.invoice.pk }}" type="text" name="reference" required>
           <small>مفتاحُ التفرُّد: المرجعُ نفسُه لا يُقيَّد مرّتين مهما ضُغط الزرّ.</small>
