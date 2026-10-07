@@ -26,6 +26,8 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { PageArt, type PageArtName } from "./PageArt";
+
 //: المسارات كما هي في `app/`. مصفوفةٌ لا ستّة أسطر متكرّرة: صفٌّ يُنسى في
 //: النسخة السادسة هو رابطٌ بصيغةٍ مختلفة عن أخواته.
 const NAVIGATION: ReadonlyArray<{ href: string; label: string }> = [
@@ -49,10 +51,13 @@ export function PageShell({
    * تجعلها تحت العنوان: مكانٌ آخر، وترتيبٌ يختلف من صفحة لأخرى.
    */
   banner,
+  /** رسمةُ الصفحة في زاويتها — اختياريّة، ولا تمسّ المحتوى (`PageArt`). */
+  art,
   children,
 }: {
   title?: string;
   banner?: React.ReactNode;
+  art?: PageArtName;
   children: React.ReactNode;
 }) {
   return (
@@ -148,7 +153,9 @@ export function PageShell({
         </nav>
       </header>
 
-      <main className="mx-auto w-full max-w-[1380px] px-4 py-8 md:px-8 lg:px-12">
+      {art ? <PageArt name={art} /> : null}
+
+      <main className="relative z-[1] mx-auto w-full max-w-[1380px] px-4 py-8 md:px-8 lg:px-12">
         {banner}
         {title ? <h1 className="mb-6 text-headline-lg">{title}</h1> : null}
         {children}

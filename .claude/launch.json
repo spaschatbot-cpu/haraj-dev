@@ -37,6 +37,19 @@
       "cwd": "web"
     },
     {
+      "name": "web-live-data",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "3001"],
+      "env": {
+        "BACKEND_URL": "https://haraj.spas.sa",
+        "NEXT_PUBLIC_MEDIA_HOST": "https://haraj.spas.sa",
+        "ENVIRONMENT_NAME": "development"
+      },
+      "port": 3001,
+      "autoPort": false,
+      "cwd": "web"
+    },
+    {
       "name": "web-attach",
       "url": "http://localhost:3000",
       "port": 3000

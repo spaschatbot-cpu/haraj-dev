@@ -188,7 +188,7 @@ export default async function VehiclePage({ params }: Params) {
   ];
 
   return (
-    <PageShell>
+    <PageShell art="car">
       <script
         type="application/ld+json"
         // The object is built above from typed fields, so there is no user text
