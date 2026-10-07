@@ -13456,3 +13456,166 @@ a.pager__num:hover, a.pager__step:hover {
   letter-spacing: .02em;
   white-space: nowrap;
 }
+
+/* ===========================================================================
+   الباليت «ج — بحريٌّ هادئ» على اللوحة — الطبقةُ الأخيرة، وتعلو ما قبلها
+   ---------------------------------------------------------------------------
+   «حنعمل كل الصفح بنفس باليت الألوان وأنميشن، واللي فيها كروت تبقى ملوّنة
+   … ومتغيّرش لا داتا ولا شكل الحاجة» (المالكة، ٧ أكتوبر ٢٠٢٦).
+
+   فهي **ألوانٌ وحركةٌ لا غير**: لا قالبَ لُمس، ولا مقاسٌ ولا ترتيبٌ ولا
+   نصّ. والقيمُ هي قيمُ الويب نفسُها (`web/app/globals.css`، و`docs/palette.md`)
+   — كحليٌّ للمنصّة وما استقرّ، وأخضرُ لما تمّ، وكهرمانيٌّ لما ينتظر، ووَرديٌّ
+   لما يُوقف — فالموظّفُ والعميلُ يريان لغةً لونيّةً واحدة.
+
+   **وهذا يعلو ثلاثةَ قراراتٍ سابقةٍ مكتوبةٍ أعلاه، والثمنُ يُقال:**
+   ١) «البطاقاتُ كلُّها تتبع اللونَ الأساسيّ» — صارت ملوّنةً بنغمتها ثانيةً،
+      بطلب المالكة نفسِها اليوم. والتصنيفُ باللون يعود: المالُ أخضر، والمزادُ
+      كحليّ، والناسُ كهرمانيّ.
+   ٢) «الذهبيُّ إلى ورديٍّ هادئ» للتنبيه — صار كهرمانيَّ الباليت الهادئ
+      (#fbecc8 سطحاً) لا الذهبيَّ المشبع الذي رُفض. والنصُّ في الحبّة باقٍ
+      يحمل المعنى.
+   ٣) الأزرقُ الافتراضيّ (`azure`) صار كحليَّ الباليت. والألوانُ الأخرى في
+      درج المظهر باقيةٌ اختياراً لمن يريد — **ومن اختار غيرَ الافتراضيّ في
+      متصفّحه لا يرى الكحليّ حتى يعود إليه.**
+
+   والداكنُ لم يُمسّ: الباليتُ فاتحةٌ («ديزاين فاتح»)، ودرجاتُها على أرضيّةٍ
+   كحليّةٍ غامقة لا تُقرأ. فكلُّ قاعدةٍ هنا تحت
+   `:root:not([data-scheme="dark"])` إلا درجاتِ الأساسيّ.
+
+   والتباين: كلُّ حبرٍ على سطحه فوق 4.5:1 — `#11624f` على `#d4f1e7` 6.1،
+   و`#84560c` على `#fbecc8` 5.6، و`#1e3a5f` على `#e6eef7` 10.1، و`#8f2a37`
+   على `#fbe1e4` 7.0. والأبيضُ على الأزرار الصلبة فوق 5.
+   ======================================================================== */
+
+:root, :root[data-accent="azure"] {
+  --a050: #e6eef7; --a300: #b9cde4; --a500: #35577f; --a700: #1e3a5f; --a-dim: #13233f;
+}
+.themer__swatch[data-accent="azure"] { --swatch: #1e3a5f; }
+
+:root:not([data-scheme="dark"]) {
+  --ground: #f5f8fb;
+  --raised: #eef3f9;
+  --ink: #1a2b40;
+  --ink-soft: #2f4a6b;
+  --muted: #4a5b70;
+  --line: #dbe6f3;
+  --line-soft: #e9f0f8;
+  --field-border: #7a8ea8;
+
+  --ok: #11624f;      --ok-soft: #d4f1e7;     --ok-line: #8fd1bd;
+  --warn: #84560c;    --warn-soft: #fbecc8;   --warn-line: #e8c88a;
+  --danger: #b42335;  --danger-soft: #fbe1e4; --danger-line: #e7a3ad;
+  --info: #1e3a5f;    --info-soft: #e6eef7;   --info-line: #b9cde4;
+  --halt: #8f2a37;    --halt-soft: #fbe1e4;   --halt-line: #e7a3ad;
+
+  /* البطاقات ملوّنةٌ بتصنيفها — ولكلٍّ حدُّها الناعمُ وصلبُها للزرّ. */
+  --money: #11624f;   --money-soft: #d4f1e7;   --money-line: #8fd1bd;   --money-solid: #13795f;
+  --auction: #1e3a5f; --auction-soft: #e6eef7; --auction-line: #b9cde4; --auction-solid: #1e3a5f;
+  --people: #84560c;  --people-soft: #fbecc8;  --people-line: #e8c88a;  --people-solid: #84560c;
+
+  /* الشريطُ الجانبيُّ كحليُّ الباليت الصلب — كان #0b1e3d يكاد يكون أسود. */
+  --side: #1e3a5f;
+  --side-ink: #ffffff;
+  --side-dim: #c9d6e5;
+  --side-line: #2d4b70;
+  --side-hover: rgb(255 255 255 / .1);
+  --side-accent: #8fd1bd;
+}
+:root:not([data-scheme="dark"])[data-sidebar="light"] {
+  --side: #ffffff;
+  --side-ink: #1a2b40;
+  --side-dim: #4a5b70;
+  --side-line: #dbe6f3;
+  --side-hover: #e6eef7;
+  --side-accent: #1e3a5f;
+}
+
+/* ---- البطاقاتُ ملوّنة ------------------------------------------------------
+   سطحُ النغمة وحدُّها الناعم، والرمزُ في دائرةٍ بيضاء بلونها، والرقمُ بحبرها،
+   والزرُّ صلبُها. والمعنى في الكلمات كما كان — العنوانُ والوحدةُ والزرّ —
+   فاللونُ يُعين ولا يحمل وحده. */
+:root:not([data-scheme="dark"]) .stat {
+  --t-soft: var(--auction-soft); --t-line: var(--auction-line);
+  --t-ink: var(--auction);       --t-solid: var(--auction-solid);
+  background: var(--t-soft);
+  border-color: var(--t-line);
+}
+:root:not([data-scheme="dark"]) .stat--money {
+  --t-soft: var(--money-soft); --t-line: var(--money-line); --t-ink: var(--money); --t-solid: var(--money-solid);
+}
+:root:not([data-scheme="dark"]) .stat--people {
+  --t-soft: var(--people-soft); --t-line: var(--people-line); --t-ink: var(--people); --t-solid: var(--people-solid);
+}
+:root:not([data-scheme="dark"]) .stat--ok {
+  --t-soft: var(--ok-soft); --t-line: var(--ok-line); --t-ink: var(--ok); --t-solid: var(--ok);
+}
+:root:not([data-scheme="dark"]) .stat--warn {
+  --t-soft: var(--warn-soft); --t-line: var(--warn-line); --t-ink: var(--warn); --t-solid: var(--warn);
+}
+:root:not([data-scheme="dark"]) .stat--alarm {
+  --t-soft: var(--danger-soft); --t-line: var(--danger-line); --t-ink: var(--danger); --t-solid: var(--danger);
+}
+:root:not([data-scheme="dark"]) .stat,
+:root:not([data-scheme="dark"]) .stat--warn,
+:root:not([data-scheme="dark"]) .stat--alarm {
+  background: var(--t-soft);
+  border-color: var(--t-line);
+  border-inline-start-color: var(--t-solid);
+}
+:root:not([data-scheme="dark"]) .stat .stat__icon {
+  background: #ffffff;
+  color: var(--t-ink);
+  box-shadow: 0 0 0 1px var(--t-line);
+}
+:root:not([data-scheme="dark"]) .stat .stat__value { color: var(--t-ink); }
+:root:not([data-scheme="dark"]) .stat .stat__label,
+:root:not([data-scheme="dark"]) .stat .stat__detail,
+:root:not([data-scheme="dark"]) .stat .stat__delta-note { color: var(--ink); }
+:root:not([data-scheme="dark"]) .stat .stat__unit { background: #ffffff; color: var(--t-ink); }
+:root:not([data-scheme="dark"]) .stat .stat__chart { color: var(--t-ink); }
+:root:not([data-scheme="dark"]) .stat .stat__action { border-block-start-color: var(--t-line); }
+:root:not([data-scheme="dark"]) .stat .stat__btn,
+:root:not([data-scheme="dark"]) .stat--money .stat__btn,
+:root:not([data-scheme="dark"]) .stat--auction .stat__btn,
+:root:not([data-scheme="dark"]) .stat--people .stat__btn,
+:root:not([data-scheme="dark"]) .stat--ok .stat__btn,
+:root:not([data-scheme="dark"]) .stat--brand .stat__btn,
+:root:not([data-scheme="dark"]) .stat--warn .stat__btn,
+:root:not([data-scheme="dark"]) .stat--alarm .stat__btn {
+  background: var(--t-solid);
+  color: #ffffff;
+}
+:root:not([data-scheme="dark"]) a.stat:hover .stat__btn,
+:root:not([data-scheme="dark"]) a.stat:focus-visible .stat__btn {
+  background: color-mix(in srgb, var(--t-solid) 84%, #000);
+  color: #ffffff;
+}
+
+/* ---- الحركة ---------------------------------------------------------------
+   ثلاثٌ لا غير، وكلُّها `transform` و`opacity`: البطاقاتُ تدخل متدرّجةً فتُقرأ
+   واحدةً بعد واحدة؛ وترتفع عند المرور ويميل رمزُها فتقول «تُضغط»؛ ورأسُ
+   الجدول وصفوفُه تدخل مرّةً واحدة مع الصفحة. ويُطفئها كلَّها ما أطفأ غيرَها:
+   `prefers-reduced-motion` و`data-motion="off"` في درج المظهر (أعلاه بـ
+   `!important`). */
+@keyframes palette-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.stat { animation: palette-rise 380ms cubic-bezier(.22, 1, .36, 1) both; }
+.stat:nth-child(1) { animation-delay: 0ms; }
+.stat:nth-child(2) { animation-delay: 45ms; }
+.stat:nth-child(3) { animation-delay: 90ms; }
+.stat:nth-child(4) { animation-delay: 135ms; }
+.stat:nth-child(5) { animation-delay: 180ms; }
+.stat:nth-child(6) { animation-delay: 225ms; }
+.stat:nth-child(7) { animation-delay: 270ms; }
+.stat:nth-child(n+8) { animation-delay: 300ms; }
+.stat--alarm { animation: palette-rise 380ms cubic-bezier(.22, 1, .36, 1) both, alarm-once 1.1s ease-out .3s 1; }
+
+a.stat { transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease; }
+a.stat:hover, a.stat:focus-visible { transform: translateY(-3px); }
+.stat .stat__icon { transition: transform 220ms ease; }
+a.stat:hover .stat__icon, a.stat:focus-visible .stat__icon { transform: scale(1.08) rotate(-6deg); }
+
+main table { animation: palette-rise 360ms cubic-bezier(.22, 1, .36, 1) both; }

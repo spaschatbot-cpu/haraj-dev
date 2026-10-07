@@ -215,6 +215,9 @@ html = render_to_string(
         "request": FakeRequest(),
         "board": board,
         "messages": [],
+        # الإطارُ يُختار في `context.py` (نافذةٌ أم صفحة) — والمعاينةُ صفحة.
+        # كان غائباً فسقط `{% extends console_base %}` على اسمٍ فارغ.
+        "console_base": "console/base.html",
     },
 )
 
