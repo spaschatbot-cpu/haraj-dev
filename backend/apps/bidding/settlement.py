@@ -376,8 +376,49 @@ def invoice_award(vehicle: Vehicle, *, due_at: datetime | None = None):
             # secured by whatever is free rather than by nothing.
             money.lock_for_invoice(user=vehicle.awarded_to, invoice=invoice)
 
+        _tell_the_winner(vehicle, invoice)
+
     mark_invoiced(vehicle)
     return invoice
+
+
+def _tell_the_winner(vehicle: Vehicle, invoice) -> None:
+    """رسالةُ الترسية والفاتورة للفائز — نظيرُ v1 (`BillController.php:753-783`).
+
+    كان v2 يُصدر الفاتورةَ ويسكت: لا شيءَ يقول للعميل إنه فاز ولا كم عليه ولا
+    متى. وv1 يرسل مع كلّ فاتورة: التهنئة، ومبلغَ العرض، والرسوم، والضريبة،
+    والإجمالي، ومهلةَ ٧٢ ساعة. والأرقامُ هنا **من الفاتورة المختومة** لا محسوبةً
+    ثانيةً — v1 كان يحسبها في الرسالة بـ٨٠٠ ثابتة، فتختلف عن فاتورةِ مزادٍ
+    رسومُه غيرُ ذلك.
+
+    في المعاملة نفسها: فاتورةٌ صدرت بلا رسالتها، أو رسالةٌ عن فاتورةٍ رجعت،
+    كلاهما كذب. والإرسالُ نفسُه لعامل التسليم (`notifications.delivery`).
+    """
+    from apps.notifications.models import Channel, Notification
+
+    def riyal(value) -> str:
+        return f"{value:,.2f}"
+
+    lines = [
+        f"تهانينا، رسا عليك عرضُك على السيارة ({vehicle}).",
+        f"• مبلغ العرض الأساسي: {riyal(invoice.net_amount or vehicle.awarded_price)} ريال",
+    ]
+    if invoice.admin_fee:
+        lines.append(f"• الرسوم الإدارية: {riyal(invoice.admin_fee)} ريال")
+    if invoice.tax_amount:
+        lines.append(f"• ضريبة القيمة المضافة: {riyal(invoice.tax_amount)} ريال")
+    lines += [
+        f"• الإجمالي النهائي: {riyal(invoice.amount)} ريال — فاتورة {invoice.number}",
+        "نأمل سداد قيمة العرض خلال 72 ساعة.",
+        "- فريق حراج واحد",
+    ]
+    Notification.objects.create(
+        user=vehicle.awarded_to,
+        channel=Channel.SMS,
+        template="award_invoice",
+        body="\n".join(lines),
+        data={"invoice": invoice.number, "vehicle_id": vehicle.pk},
+    )
 
 
 # ---------------------------------------------------------------------------
