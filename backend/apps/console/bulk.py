@@ -156,6 +156,13 @@ def _end_selected(request):
                     auction.ends_at = now
                     auction.save(update_fields=["ends_at"])
                 auctions.end(auction)
+                # والإنهاءُ يسوّي كما في «إنهاء فوري» (`auction_moves._end_and_settle`)
+                # — قرارُ المالكة، وv1 يفعل ذلك لحظةَ الإنهاء.
+                from apps.bidding import settlement
+
+                auction.refresh_from_db()
+                settlement.settle_auction(auction)
+                settlement.try_close(auction)
         except AuctionError as refusal:
             refused.append((auction, str(refusal)))
             continue

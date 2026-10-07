@@ -53,9 +53,45 @@ def _mover(auction, target: str):
 
     if target == AuctionState.CANCELLED and auction.state == AuctionState.ENDED:
         return lambda reason: settlement.cancel_auction(auction, reason=reason)
+    if target == AuctionState.ENDED:
+        return lambda reason: _end_and_settle(auction)
     if target == AuctionState.SETTLED:
-        return lambda reason: settlement.close_auction(auction)
+        return lambda reason: _settle_and_close(auction)
     return lambda reason: auction_services.move_auction(auction, target)
+
+
+# **إنهاءُ المزاد يسوّيه** — قرارُ المالكة (٧ أكتوبر ٢٠٢٦: «حلّ كل المشاكل دي»)،
+# بأقرب الخيارات إلى v1: v1 يحسم الفائزين ويحرّر تأميناتِ الخاسرين لحظةَ
+# الإنهاء (`AuctionController.php:367-379`). وكان «إنهاء فوري» في v2 يغلق
+# المزايدةَ وحدها، ومهمّةُ التسوية غيرُ مجدولةٍ عمداً (`bidding/tasks.py`) —
+# فتبقى تأميناتُ الخاسرين محجوزةً بعد كلّ مزادٍ يُنهى ولا يحرّرها شيء.
+#
+# **وهو فعلُ موظّفٍ لا مؤقّت:** قرارُ «لا جدولةَ للتسوية» في `tasks.py` باقٍ —
+# يخافُ كرون v1 الذي أصدر ٣٨ فاتورةً لم يقرّرها أحد. وهنا إنسانٌ ضغط «إنهاء»
+# بسببٍ مكتوب. والتسويةُ idempotent: مركبةٌ حُسمت تُتخطّى، ورهنٌ غيرُ فاعلٍ
+# لا يُمسّ — فإعادةُ الضغط لا تُحرّك مالاً مرّتين.
+#
+# والإغلاقُ (`settled`) يُحاوَل بعدها ولا يُفرض: مركبةٌ تنتظر قرارَ مالكها تُبقي
+# المزادَ «منتهياً» حتى يُقرَّر فيها، كما يقول `try_close`.
+def _end_and_settle(auction) -> None:
+    from apps.bidding import settlement
+
+    auction_services.move_auction(auction, AuctionState.ENDED)
+    auction.refresh_from_db()
+    settlement.settle_auction(auction)
+    settlement.try_close(auction)
+
+
+def _settle_and_close(auction) -> None:
+    """«مُسوّى» من نافذة الحالة: سوِّ ما لم يُسوَّ ثمّ أغلق.
+
+    كان يمرّ إلى `close_auction` وحدها، فيرفض كلَّ مزادٍ انتهى بساعته ولم
+    يُسوَّ — أي كلَّ مزادٍ لم يُنهِه موظّفٌ بزرّ. فصار هو زرَّ التسوية لتلك.
+    """
+    from apps.bidding import settlement
+
+    settlement.settle_auction(auction)
+    settlement.close_auction(auction)
 
 
 @console_page("console:auction-state")
