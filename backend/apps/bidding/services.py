@@ -448,6 +448,77 @@ def withdraw_bid(*, user, bid: Bid, now: datetime | None = None) -> Bid:
     return locked_bid
 
 
+def void_bid(*, bid: Bid, by, reason: str, now: datetime | None = None) -> Bid:
+    """رفضُ موظّفٍ لمزايدةٍ بعينها والمزادُ جارٍ — نظيرُ «رفض المزايدة» في v1.
+
+    v1 يرفض المزايدةَ فيُعاد ترتيبُ المركبة فتصير التاليةُ هي الأعلى
+    (`OwnersAuctionBidsController.php:346-389`). وv2 لم يكن فيه بابٌ لموظّف:
+    مزايدةٌ خاطئةٌ أو احتياليّةٌ على القمّة تبقى حتى الإغلاق، فتُرسي عليها
+    التسوية. واختيارُ فائزٍ آخر بعد الإغلاق له بابُه (`partner-award`).
+
+    **سحبٌ لا حذف**، بأقفال `withdraw_bid` نفسِها وترتيبها، ومثلُها لا يقع بعد
+    إغلاق المزاد. والفرقُ اثنان: الفاعلُ موظّفٌ لا صاحبُ المزايدة، والسببُ
+    إلزاميّ — مزايدةٌ رُفعت عن صاحبها بلا سببٍ مكتوب هي الصفُّ الذي لا يُشرح
+    للعميل. والتأمينُ يُحرَّر بشرط السحب نفسِه: ليس منافساً على شيءٍ آخر.
+    والترتيبُ لا يحتاج كتابة: «الأعلى القائم» يُقرأ من المزايدات الحيّة.
+    """
+    now = now or timezone.now()
+    text = (reason or "").strip()
+    if not text:
+        raise BiddingError(
+            "a staff void needs a reason", user_message="سببُ رفض المزايدة مطلوب."
+        )
+
+    locked_vehicle = (
+        Vehicle.objects.select_for_update(of=("self",))
+        .select_related("auction")
+        .get(pk=bid.vehicle_id)
+    )
+    locked_bid = Bid.objects.select_for_update().get(pk=bid.pk)
+    if locked_bid.is_withdrawn:
+        return locked_bid
+    if locked_bid.is_superseded:
+        raise BiddingError(
+            f"bid {bid.pk} was already replaced",
+            user_message="هذه المزايدة استُبدلت بمزايدة أحدث — لا يُرفض إلا القائم.",
+        )
+    current = engine.phase(locked_vehicle.auction, now=now)
+    if current in ENDED_PHASES or current not in engine.BIDDABLE_PHASES:
+        raise BiddingError(
+            f"auction {locked_vehicle.auction_id} is {current}, not open",
+            user_message=(
+                "المزادُ ليس جارياً — بعد الإغلاق يُختار الفائزُ من «قرارات الشريك»."
+            ),
+        )
+
+    before = _bid_state(locked_bid)
+    locked_bid.is_withdrawn = True
+    locked_bid.withdrawn_at = now
+    locked_bid.save(update_fields=["is_withdrawn", "withdrawn_at"])
+    audit.record(
+        action="console.bid_voided",
+        entity=locked_bid,
+        actor=by,
+        before=before,
+        after=_bid_state(locked_bid),
+        at=now,
+        note=f"رفضُ موظّفٍ للمزايدة على المركبة {locked_vehicle.pk}: {text}",
+    )
+
+    bidder = locked_bid.bidder
+    auction = locked_vehicle.auction
+    if not is_competing_in(bidder, auction):
+        hold = Hold.objects.filter(
+            owner=bidder,
+            auction=auction,
+            reason=HoldReason.BIDDING,
+            state=HoldState.ACTIVE,
+        ).first()
+        if hold is not None:
+            money.release_hold(hold, memo=f"رُفضت المزايدة {locked_bid.pk}: {text}")
+    return locked_bid
+
+
 # ---------------------------------------------------------------------------
 # T515 — the owner's exception
 # ---------------------------------------------------------------------------

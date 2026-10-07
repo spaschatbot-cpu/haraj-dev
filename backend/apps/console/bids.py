@@ -25,6 +25,7 @@ from apps.auctions.models import Auction, Vehicle
 from apps.auctions.states import AuctionState
 from apps.bidding.models import Bid
 from apps.core.arabic import search_q
+from apps.core.permissions import Capability, can
 
 from .analytics import live_shape
 from .archive import _bid_state
@@ -245,6 +246,32 @@ def vehicle_bids(request):
     })
 
 
+@console_page("console:bid-void")
+def bid_void(request, pk: int):
+    """ارفض مزايدةً قائمةً بسببٍ مكتوب — والمزادُ جارٍ. `bidding.void_bid` تقرّر."""
+    from django.contrib import messages
+    from django.db import transaction
+    from django.shortcuts import get_object_or_404, redirect
+
+    from apps.bidding import services as bidding
+
+    bid = get_object_or_404(Bid.objects.select_related("vehicle"), pk=pk)
+    back = request.POST.get("next") or "console:live-bids"
+    if request.method != "POST":
+        return redirect(back)
+    try:
+        with transaction.atomic():
+            bidding.void_bid(bid=bid, by=request.user, reason=request.POST.get("reason", ""))
+    except bidding.BiddingError as refusal:
+        messages.error(request, getattr(refusal, "user_message", "") or str(refusal))
+        return redirect(back)
+    messages.success(
+        request,
+        f"رُفضت المزايدة على لوت {bid.vehicle.lot_number} — صارت التاليةُ هي الأعلى القائم.",
+    )
+    return redirect(back)
+
+
 @console_page("console:vehicle-bid-list")
 def vehicle_bid_list(request, pk: int):
     """مزايداتُ مركبةٍ واحدة — قِطعةٌ تُحقَن في نافذة، لا صفحةٌ كاملة.
@@ -299,5 +326,9 @@ def vehicle_bid_list(request, pk: int):
             # هذه المركبة» و«لا يحقُّ لك الرقم». والقالبُ يقول أيَّهما، فلا
             # يُقرأ الحجبُ فراغاً في القاعدة.
             "hide_top": not seen.money and sold(vehicle),
+            # زرُّ «ارفض» للقائمة وحدها والمزادُ جارٍ، ولمن يدير المزادات —
+            # والخدمةُ ترفض ما عدا ذلك على أيّ حال.
+            "can_void": can(request.user, Capability.AUCTIONS_MANAGE)
+            and engine.phase(vehicle.auction) in engine.BIDDABLE_PHASES,
         },
     )

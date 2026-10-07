@@ -387,6 +387,15 @@ PAGES: tuple[Page, ...] = (
         "",
         parent="console:vehicle-bids",
     ),
+    #: فعلٌ لا شاشة — رفضُ مزايدةٍ قائمة. `AUCTIONS_MANAGE` لأنه يغيّر من
+    #: يُرسى عليه، و`AUCTIONS_VIEW` تقرأ ولا تقرّر.
+    Page(
+        "console:bid-void",
+        "رفض مزايدة",
+        Capability.AUCTIONS_MANAGE,
+        "",
+        parent="console:vehicle-bids",
+    ),
     Page(
         "console:owners-console",
         # **والاسمُ اسمُ الفعل** — قرارُ المالك (٢١ سبتمبر ٢٠٢٦): «خلي اسمها

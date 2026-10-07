@@ -23,7 +23,7 @@
 <div class="scroller">
   <table>
     <thead>
-      <tr><th>#</th><th>المزايد</th><th>الجوال</th><th>المبلغ</th><th>الحالة</th><th>الوقت</th></tr>
+      <tr><th>#</th><th>المزايد</th><th>الجوال</th><th>المبلغ</th><th>الحالة</th><th>الوقت</th>{% if can_void %}<th></th>{% endif %}</tr>
     </thead>
     <tbody>
       {% for bid in rows %}
@@ -55,9 +55,23 @@
             {% else %}<span class="pill" data-tone="good">قائمة</span>{% endif %}
           </td>
           <td>{{ bid.placed_at|date:"Y-m-d H:i" }}</td>
+          {% if can_void %}
+            <td>
+              {% comment %} رفضُ موظّفٍ لمزايدةٍ قائمة — نظيرُ v1. سحبٌ لا حذف،
+                 وبسببٍ مكتوب يدخل سجلَّ التدقيق. {% endcomment %}
+              {% if not bid.is_withdrawn and not bid.is_superseded %}
+                <form method="post" action="{% url 'console:bid-void' bid.pk %}" class="plain-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.META.HTTP_REFERER }}">
+                  <input type="text" name="reason" required placeholder="سبب الرفض" aria-label="سبب رفض المزايدة">
+                  <button type="submit" class="btn-danger-sm">ارفض</button>
+                </form>
+              {% endif %}
+            </td>
+          {% endif %}
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="empty">لا مزايدات على هذه المركبة.</td></tr>
+        <tr><td colspan="{% if can_void %}7{% else %}6{% endif %}" class="empty">لا مزايدات على هذه المركبة.</td></tr>
       {% endfor %}
     </tbody>
   </table>
