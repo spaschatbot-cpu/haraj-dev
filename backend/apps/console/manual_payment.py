@@ -284,10 +284,20 @@ def _tell_odoo(invoice: Invoice, amount: Decimal, txn) -> None:
     ويفشل بهدوء: صندوقُ الصادر ليس شرطاً لصحّة القيد، وقيدٌ صحيحٌ يُلغى لأن
     كتابةً في صندوقٍ تعثّرت هو أسوأُ من رسالةٍ ناقصةٍ تُعاد يدوياً.
     """
-    if not invoice.odoo_invoice_id:
-        return
     try:
         from apps.odoo import outbox
+        from apps.odoo.models import OutboxMessage
+
+        # **فاتورةٌ في الطريق إلى أودو تُدرَج دفعتُها ولا تُسقَط.** كان الشرطُ
+        # `odoo_invoice_id` فارغاً ⇐ لا شيء، فدفعةٌ تُقيَّد على فاتورةٍ أصدرناها
+        # قبل أن يردّ أودو برقمها لا تصلهم أبداً، وتبقى الفاتورةُ عندهم «غير
+        # مسدَّدة». والصندوقُ نفسُه يحبسها حتى تصل الفاتورة (`NotReadyToSend`
+        # في `_payment_params`) ثمّ يرسلها. أمّا فاتورةٌ لا رسالةَ لها في الصندوق
+        # ولا رقمَ عندهم فليست عندهم ولن تكون — وتلك وحدها تُترك.
+        if not invoice.odoo_invoice_id and not OutboxMessage.objects.filter(
+            reference=f"invoice:{invoice.number}"
+        ).exists():
+            return
 
         outbox.queue_payment(invoice, amount, source_transaction=txn)
     except Exception as exc:  # noqa: BLE001

@@ -24,6 +24,7 @@ from decimal import Decimal
 from django import forms
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -764,7 +765,12 @@ def customer_delete(request, pk: int):
     والرفضُ هو الحالة الشائعة عمداً: حسابٌ زايد أو صدرت له فاتورة يبقى، لأن
     صفوفه تشير إليه. والشاشة تقول **كلَّ** ما يمنع لا أوّلَه.
     """
-    customer = row_for_write(request, User.objects.select_related("company"), pk=pk)
+    # **بلا `select_related("company")`.** الشركةُ علاقةٌ عكسيّةٌ تُضمّ بـLEFT JOIN،
+    # و`row_for_write` يقفل الصفَّ بـ`select_for_update` في الـPOST — وPostgreSQL
+    # يرفض القفلَ على الطرف القابل للفراغ من ضمٍّ خارجيّ («FOR UPDATE cannot be
+    # applied to the nullable side of an outer join»). فكان كلُّ حذفٍ يسقط قبل
+    # أن يبدأ. والشركةُ تُقرأ عند الحاجة باستعلامٍ واحد.
+    customer = row_for_write(request, User.objects.all(), pk=pk)
     holds = what_holds(customer)
 
     # نفسُك ليست صفّاً تحذفه: من يحذف حسابه يخرج من اللوحة في منتصف الفعل،
@@ -790,7 +796,23 @@ def customer_delete(request, pk: int):
             ),
             note=form.cleaned_data["reason"],
         )
-        customer.delete()
+        # `what_holds` تعدّ الروابطَ الشائعة لا كلَّها (إشعارات، مستندات، روابط
+        # أودو، حسابات الدفتر…). وما فاتها يرفضه PROTECT — فيُقال باسمه بدل
+        # صفحة ٥٠٠. والرفضُ يقع قبل أيّ حذف (يجمعه `Collector` أوّلاً)، فلا
+        # يُكتب شيءٌ ولا يبقى القيدُ وحده: المعاملةُ كلُّها تُرَدّ.
+        from django.db.models import ProtectedError
+
+        try:
+            with transaction.atomic():
+                customer.delete()
+        except ProtectedError as held:
+            kinds = sorted({row._meta.verbose_name for row in held.protected_objects})
+            messages.error(
+                request,
+                "لا يُحذف — له سجلّاتٌ مرتبطة: " + "، ".join(str(k) for k in kinds) + ".",
+            )
+            transaction.set_rollback(True)
+            return redirect("console:customer-delete", pk=pk)
         messages.success(request, "حُذف الحساب، والقيد مكتوبٌ بجوّاله واسمه.")
         return redirect("console:customers")
 
