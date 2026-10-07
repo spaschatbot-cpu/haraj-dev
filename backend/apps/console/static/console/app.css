@@ -13638,17 +13638,18 @@ main table { animation: palette-rise 360ms cubic-bezier(.22, 1, .36, 1) both; }
      الرسمةَ كلَّها (قِيس على الرئيسيّة: لم يظهر منها شيءٌ ولو بنصف شفافيّة). */
   top: calc(var(--topbar-h) + .75rem);
   z-index: -1;
-  inline-size: min(20rem, 30vw);
+  /* أكبرُ وأوضحُ قليلاً بطلب المالك: «كبّرها شويّة». */
+  inline-size: min(30rem, 40vw);
   block-size: auto;
   color: var(--a700);
-  opacity: .06;
+  opacity: .09;
   pointer-events: none;
   animation: page-art-in 900ms cubic-bezier(.22, 1, .36, 1) both;
 }
-:root[data-scheme="dark"] .page-art { color: var(--a300); opacity: .05; }
+:root[data-scheme="dark"] .page-art { color: var(--a300); opacity: .07; }
 @keyframes page-art-in {
   from { opacity: 0; transform: translateY(14px); }
 }
 @media (max-width: 40rem) {
-  .page-art { inline-size: 45vw; }
+  .page-art { inline-size: 60vw; }
 }
