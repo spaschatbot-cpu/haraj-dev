@@ -1,0 +1,64 @@
+name: mobile-regenerate
+
+# يعيد توليدَ عميل الـAPI من المخطط ويوحّد تنسيقَ Dart، ثم يرفعهما إلى main.
+#
+# **لماذا وُجد (٧ أكتوبر ٢٠٢٦):** بوّابةُ `mobile` تسقط منذ ٢٨ سبتمبر على خطوتين
+# — «تنسيق» و«العميلُ المولَّد يطابق المخطط» — والإصلاحُ كلُّه أمران يحتاجان
+# Flutter: `tool/regenerate_api_client.sh` ثم `dart format`. وFlutter غيرُ
+# مثبَّتٍ على جهاز التطوير، فكلُّ تعديلٍ في المخطط من هناك كان يُبقي العميلَ
+# متأخّراً ويزيد الفرق. فالأداةُ التي تملك Flutter هي التي تُصلح.
+#
+# ويعمل حين يُدفع هذا الملفُّ نفسُه أو يُطلب يدويّاً — لا على كلّ دفعة: التوليدُ
+# قرارٌ يُتّخذ بعد تغيير المخطط، وتشغيلُه صامتاً على كلّ دفعةٍ يُخفي فرقاً كان
+# يجب أن يُرى في مراجعة. والدفعةُ التي يكتبها لا تُشغّل البوّابات (رمزُ
+# `GITHUB_TOKEN` لا يُطلق سيرَ عمل)، فلا حلقة.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/mobile-regenerate.yml"
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.44.8
+          channel: stable
+          cache: true
+
+      - name: إعادة التوليد من المخطط
+        run: bash tool/regenerate_api_client.sh
+
+      - name: توحيد التنسيق
+        run: dart format .
+
+      - name: تحليل ساكن (للقراءة — لا يوقف الرفع)
+        run: flutter analyze || true
+
+      - name: الرفع إن تغيّر شيء
+        run: |
+          if git diff --quiet; then
+            echo "لا فرق — العميلُ والتنسيقُ مطابقان."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .
+          git commit -m "chore(mobile): إعادةُ توليد عميل الـAPI وتوحيدُ تنسيق Dart
+
+          بوّابةُ mobile تسقط منذ ٢٨ سبتمبر على التنسيق وعلى عميلٍ متأخّرٍ عن
+          المخطط. وُلِّد هنا لأن جهاز التطوير بلا Flutter."
+          git push
