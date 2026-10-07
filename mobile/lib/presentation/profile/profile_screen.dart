@@ -618,7 +618,7 @@ class _AccountMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
-    const dangerColour = Color(0xFFC0392B);
+    const dangerColour = Color(0xFFB42335);
     final accent = danger ? dangerColour : palette.gold;
     return InkWell(
       onTap: onTap,

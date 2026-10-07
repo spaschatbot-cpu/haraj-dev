@@ -59,6 +59,7 @@
       "runtimeArgs": [
         "mobile/tool/dev_web.py"
       ],
+      "env": { "PYTHONIOENCODING": "utf-8" },
       "port": 8090
     }
   ]

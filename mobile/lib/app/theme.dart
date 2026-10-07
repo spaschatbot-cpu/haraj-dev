@@ -181,24 +181,29 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   static HarajPalette of(BuildContext context) =>
       Theme.of(context).extension<HarajPalette>() ?? _light;
 
+  /// **الباليت «ج — بحريٌّ هادئ»** — نفسُ قيم الويب واللوحة (٧ أكتوبر ٢٠٢٦:
+  /// «كل الصفح بنفس باليت الألوان»؛ `docs/palette.md`). كان الأزرقُ هنا
+  /// صريحاً (`#1C6FD6`) والكحليُّ يكاد يكون أسود (`#050D17`)، فكان التطبيقُ
+  /// يقول لوناً غيرَ الموقع. والأسماءُ لم تتغيّر — `gold` اسمٌ تاريخيّ
+  /// لـ«اللون المميِّز» — فلا ودجت يحتاج تعديلاً.
   static const HarajPalette _light = HarajPalette(
-    gold: Color(0xFF1C6FD6),
-    goldDeep: Color(0xFF124F9E),
-    goldMuted: Color(0x241C6FD6),
-    goldOnDark: Color(0xFF8FC4F7),
-    ink: Color(0xFF12263C),
-    inkMuted: Color(0xFF5F7488),
-    pageBackground: Color(0xFFF1F5FA),
+    gold: Color(0xFF1E3A5F),
+    goldDeep: Color(0xFF13233F),
+    goldMuted: Color(0x241E3A5F),
+    goldOnDark: Color(0xFFB9CDE4),
+    ink: Color(0xFF1A2B40),
+    inkMuted: Color(0xFF4A5B70),
+    pageBackground: Color(0xFFF5F8FB),
     // **أبيضُ زجاجيّ لا أبيضُ مصمت** (طلبُ المالك، ٣ أكتوبر ٢٠٢٦): ٧٨٪ بياضاً
     // فوق أرضيّة `GlassBackdrop` يعبره لونُها فيُقرأ زجاجاً مصنفراً.
     cardSurface: Color(0xC7FFFFFF),
-    heroTop: Color(0xFF0E2136),
-    heroBottom: Color(0xFF050D17),
-    heroGlow: Color(0xFF2E86E0),
-    navInactive: Color(0xFFC9D8E8),
-    timerBadge: Color(0xFF1F5F46),
-    pillTop: Color(0xFF1D3A5C),
-    pillBottom: Color(0xFF102336),
+    heroTop: Color(0xFF1E3A5F),
+    heroBottom: Color(0xFF13233F),
+    heroGlow: Color(0xFF4F74A0),
+    navInactive: Color(0xFFC9D6E5),
+    timerBadge: Color(0xFF11624F),
+    pillTop: Color(0xFF1E3A5F),
+    pillBottom: Color(0xFF13233F),
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -234,8 +239,10 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
 /// **والنصُّ فوقه كحليٌّ لا أبيض**: الأبيضُ على `#BBDEFB` نسبتُه ١٫٤:١ فلا
 /// يُقرأ، و`ink` عليه ١١:١.
 abstract final class HarajSky {
-  static const Color top = Color(0xFFE3F2FD);
-  static const Color bottom = Color(0xFFBBDEFB);
+  // من سطح الكحليّ في الباليت «ج» — ما زال سماويّاً فاتحاً كما طلب المالك،
+  // لكنه من عائلة الويب واللوحة لا أزرقُ Material منفرد.
+  static const Color top = Color(0xFFEEF3F9);
+  static const Color bottom = Color(0xFFCFDCEC);
 }
 
 abstract final class HarajTheme {
@@ -258,7 +265,7 @@ abstract final class HarajTheme {
     final base = ThemeData(
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1C6FD6),
+        seedColor: const Color(0xFF1E3A5F),
         brightness: brightness,
       ),
       useMaterial3: true,

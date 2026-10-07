@@ -497,7 +497,7 @@ class _SquareAction extends StatelessWidget {
                 height: 9,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE53935),
+                  color: const Color(0xFFB42335),
                   border: Border.all(color: palette.cardSurface, width: 1.5),
                 ),
               ),

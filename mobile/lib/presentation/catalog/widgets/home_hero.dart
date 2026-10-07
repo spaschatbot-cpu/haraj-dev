@@ -504,7 +504,7 @@ class _CircleAction extends StatelessWidget {
                 height: 10,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE53935),
+                  color: const Color(0xFFB42335),
                   border: Border.all(color: Colors.white, width: 1.5),
                 ),
               ),

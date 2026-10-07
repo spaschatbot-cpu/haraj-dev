@@ -508,7 +508,7 @@ class _LiveAuctionCard extends ConsumerWidget {
                 height: 9,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: live ? const Color(0xFF10B981) : palette.gold,
+                  color: live ? const Color(0xFF13795F) : palette.gold,
                 ),
               ),
               const SizedBox(width: 8),
@@ -587,9 +587,9 @@ class _LiveAuctionCard extends ConsumerWidget {
                   vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBEB),
+                  color: const Color(0xFFFBECC8),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFFDE68A)),
+                  border: Border.all(color: const Color(0xFFE8C88A)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -597,7 +597,7 @@ class _LiveAuctionCard extends ConsumerWidget {
                     const Icon(
                       Icons.schedule_rounded,
                       size: 15,
-                      color: Color(0xFFB45309),
+                      color: Color(0xFF84560C),
                     ),
                     const SizedBox(width: 5),
                     Text(
@@ -605,7 +605,7 @@ class _LiveAuctionCard extends ConsumerWidget {
                       style: const TextStyle(
                         fontFamily: HarajTheme.fontFamily,
                         fontSize: 12,
-                        color: Color(0xFFB45309),
+                        color: Color(0xFF84560C),
                       ),
                     ),
                     // العدّادُ نفسُه الذي على كروت الرئيسيّة — لا نسخةٌ ثانية.
@@ -619,7 +619,7 @@ class _LiveAuctionCard extends ConsumerWidget {
                         fontFamily: HarajTheme.fontFamily,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF92400E),
+                        color: Color(0xFF6B4508),
                       ),
                     ),
                   ],

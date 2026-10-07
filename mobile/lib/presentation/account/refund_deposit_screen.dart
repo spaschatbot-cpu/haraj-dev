@@ -747,7 +747,7 @@ class _WarningBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const danger = Color(0xFFC0392B);
+    const danger = Color(0xFFB42335);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

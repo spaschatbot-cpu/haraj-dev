@@ -244,9 +244,9 @@ class _StatusPill extends StatelessWidget {
   final AppLocalizations l10n;
   final HarajPalette palette;
 
-  static const Color _okInk = Color(0xFF047857);
-  static const Color _okSurface = Color(0xFFECFDF5);
-  static const Color _okLine = Color(0xFFA7F3D0);
+  static const Color _okInk = Color(0xFF11624F);
+  static const Color _okSurface = Color(0xFFD4F1E7);
+  static const Color _okLine = Color(0xFF8FD1BD);
 
   @override
   Widget build(BuildContext context) {
@@ -447,13 +447,13 @@ class _Photo extends StatelessWidget {
               const Icon(
                 Icons.shield_rounded,
                 size: 14,
-                color: Color(0xFF34D399),
+                color: Color(0xFF8FD1BD),
               ),
               const SizedBox(width: 3),
               Text(
                 l10n.vehicleSealedBadge,
                 style: _badgeText.copyWith(
-                  color: const Color(0xFF34D399),
+                  color: const Color(0xFF8FD1BD),
                   shadows: const <Shadow>[
                     Shadow(color: Colors.black54, blurRadius: 6),
                   ],
@@ -484,7 +484,7 @@ class _DarkBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: const Color(0xFF0E2136).withValues(alpha: 0.82),
+      color: const Color(0xFF13233F).withValues(alpha: 0.82),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Padding(
@@ -549,7 +549,7 @@ class _FavouriteButtonState extends ConsumerState<_FavouriteButton> {
             child: Icon(
               on ? Icons.favorite_rounded : Icons.favorite_border_rounded,
               size: 15,
-              color: on ? const Color(0xFFF87171) : Colors.white,
+              color: on ? const Color(0xFFE7A3AD) : Colors.white,
             ),
           ),
         ),

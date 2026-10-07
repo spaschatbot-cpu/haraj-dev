@@ -18,7 +18,7 @@ import '../../l10n/generated/app_localizations.dart';
 
 /// أحمرُ البثّ الحيّ. ليس دوراً في [HarajPalette] فلا رمزَ له فيها، وهو
 /// مكتوبٌ هنا مرّةً واحدةً تقرؤها الشاشتان.
-const Color kLiveRed = Color(0xFFE5484D);
+const Color kLiveRed = Color(0xFFB42335);
 
 /// مقاساتُ الشاشة الواحدة، محسوبةً من ارتفاعها المتاح.
 ///

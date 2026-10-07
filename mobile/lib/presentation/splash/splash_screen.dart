@@ -337,9 +337,9 @@ class _Layout extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 /// نجاحٌ تمّ — حبّةُ «جاهز». قيمُ `--color-ok` في الموقع نفسُها.
-const Color _okInk = Color(0xFF047857);
-const Color _okSurface = Color(0xFFECFDF5);
-const Color _okLine = Color(0xFFA7F3D0);
+const Color _okInk = Color(0xFF11624F);
+const Color _okSurface = Color(0xFFD4F1E7);
+const Color _okLine = Color(0xFF8FD1BD);
 
 /// الشعارُ في قرصٍ داكنٍ بإطارٍ أبيض، وحلقتان حوله — الداخليّةُ متقطّعة.
 ///
@@ -515,9 +515,9 @@ class _Progress extends StatelessWidget {
           )
         : syncFailed
         ? (
-            const Color(0xFFB45309),
-            const Color(0xFFFFFBEB),
-            const Color(0xFFFDE68A),
+            const Color(0xFF84560C),
+            const Color(0xFFFBECC8),
+            const Color(0xFFE8C88A),
           )
         : (_okInk, _okSurface, _okLine);
 

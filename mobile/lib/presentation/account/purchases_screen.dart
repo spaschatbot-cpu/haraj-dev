@@ -360,8 +360,8 @@ class _StatePill extends StatelessWidget {
   final PurchaseState state;
   final HarajPalette palette;
 
-  static const Color _okInk = Color(0xFF047857);
-  static const Color _okSurface = Color(0xFFECFDF5);
+  static const Color _okInk = Color(0xFF11624F);
+  static const Color _okSurface = Color(0xFFD4F1E7);
 
   @override
   Widget build(BuildContext context) {

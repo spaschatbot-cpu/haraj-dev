@@ -20,12 +20,12 @@ class AboutUsScreen extends StatelessWidget {
   const AboutUsScreen({super.key});
 
   // ألوانُ لهجةٍ للبطاقات — لكلٍّ معناه في التصميم.
-  static const _amber = Color(0xFFB8860B);
-  static const _blue = Color(0xFF1C6FD6);
-  static const _pink = Color(0xFFC2185B);
-  static const _green = Color(0xFF2E7D5B);
-  static const _purple = Color(0xFF6A4CB0);
-  static const _orange = Color(0xFFE07A2F);
+  static const _amber = Color(0xFF84560C);
+  static const _blue = Color(0xFF1E3A5F);
+  static const _pink = Color(0xFFB42335);
+  static const _green = Color(0xFF13795F);
+  static const _purple = Color(0xFF35577F);
+  static const _orange = Color(0xFFB7791F);
 
   @override
   Widget build(BuildContext context) {

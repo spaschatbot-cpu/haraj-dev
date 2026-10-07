@@ -26,10 +26,10 @@ class FaqScreen extends StatefulWidget {
 }
 
 class _FaqScreenState extends State<FaqScreen> {
-  static const _gold = Color(0xFFB8860B);
-  static const _blue = Color(0xFF1C6FD6);
-  static const _green = Color(0xFF2E7D5B);
-  static const _orange = Color(0xFFE07A2F);
+  static const _gold = Color(0xFF84560C);
+  static const _blue = Color(0xFF1E3A5F);
+  static const _green = Color(0xFF13795F);
+  static const _orange = Color(0xFFB7791F);
 
   static const List<_Faq> _faqs = <_Faq>[
     _Faq(

@@ -324,7 +324,7 @@ class _TopBar extends StatelessWidget {
               isFavourite
                   ? Icons.favorite_rounded
                   : Icons.favorite_border_rounded,
-              color: isFavourite ? const Color(0xFFEF4444) : palette.ink,
+              color: isFavourite ? const Color(0xFFB42335) : palette.ink,
               size: 22,
             ),
           ),
@@ -359,7 +359,7 @@ class _Gallery extends StatelessWidget {
         fit: StackFit.expand,
         children: <Widget>[
           if (images.isEmpty)
-            const ColoredBox(color: Color(0xFF0E2136))
+            const ColoredBox(color: Color(0xFF13233F))
           else
             PageView.builder(
               controller: controller,
@@ -400,7 +400,7 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => DecoratedBox(
     decoration: BoxDecoration(
-      color: const Color(0xFF0E2136).withValues(alpha: 0.8),
+      color: const Color(0xFF13233F).withValues(alpha: 0.8),
       borderRadius: BorderRadius.circular(9),
     ),
     child: Padding(

@@ -34,7 +34,7 @@ class GlassBackdrop extends StatelessWidget {
             ),
             palette.pageBackground,
             Color.alphaBlend(
-              const Color(0xFF8B5CF6).withValues(alpha: 0.06),
+              const Color(0xFF35577F).withValues(alpha: 0.06),
               palette.pageBackground,
             ),
           ],
@@ -57,7 +57,7 @@ class GlassBackdrop extends StatelessWidget {
             bottom: -140,
             left: -120,
             child: _Halo(
-              color: const Color(0xFF38BDF8).withValues(alpha: 0.14),
+              color: const Color(0xFF8FD1BD).withValues(alpha: 0.14),
               size: 380,
             ),
           ),
