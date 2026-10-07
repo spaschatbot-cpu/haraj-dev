@@ -33,7 +33,7 @@ export default async function PhonePage() {
   const flash = readFlash(store);
 
   return (
-    <PageShell>
+    <PageShell art="identity">
       <div className="mx-auto max-w-2xl">
         <SubpageHead title="تغيير رقم الجوال" hint="يصل رمزٌ إلى رقمك الحالي وآخرُ إلى الجديد، وتُدخلهما معاً." />
         <Notice message={flash?.message ?? ""} tone={flash?.code === "saved" ? "info" : "error"} />

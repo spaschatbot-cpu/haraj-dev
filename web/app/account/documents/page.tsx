@@ -44,7 +44,7 @@ export default async function DocumentsPage() {
   const documents = await request(() => api.GET("/api/v1/profile/documents/", { headers }));
 
   return (
-    <PageShell>
+    <PageShell art="identity">
       <div className="mx-auto max-w-3xl">
         <SubpageHead title="المستندات" hint="صورة واضحة (JPG أو PNG)، حتى ١٠ ميجابايت." />
         <Notice message={flash?.message ?? ""} tone={flash?.code === "saved" ? "info" : "error"} />

@@ -55,7 +55,7 @@ export default async function FavouritesPage({
   }
 
   return (
-    <PageShell title="مفضّلتي">
+    <PageShell title="مفضّلتي" art="heart">
       <Notice message={flash?.message ?? ""} />
 
       {page.total === 0 ? (

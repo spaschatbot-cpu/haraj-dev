@@ -64,7 +64,7 @@ export default async function BidsPage({
   const bids = page.results ?? [];
 
   return (
-    <PageShell title="مزايداتي">
+    <PageShell title="مزايداتي" art="bids">
       <Notice
         message={flash?.message ?? ""}
         tone={flash?.code === "bid_withdrawn" ? "info" : "error"}

@@ -62,7 +62,7 @@ export default async function StatementPage({
   const entries = page.results ?? [];
 
   return (
-    <PageShell title="كشف الحركات">
+    <PageShell title="كشف الحركات" art="wallet">
       <p className="-mt-4 mb-6 text-sm text-on-surface-variant">
         {bucket ? (
           <>

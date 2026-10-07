@@ -63,7 +63,7 @@ export default async function ProfilePage() {
   const isCompany = profile.account_type === "company";
 
   return (
-    <PageShell>
+    <PageShell art="identity">
       <div className="mx-auto max-w-3xl">
         <SubpageHead title="تعديل البيانات" />
         <Notice message={flash?.message ?? ""} tone={flash?.code === "saved" ? "info" : "error"} />

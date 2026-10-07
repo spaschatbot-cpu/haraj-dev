@@ -56,7 +56,7 @@ export default async function PurchasesPage({
   const purchases = page.results ?? [];
 
   return (
-    <PageShell title="مشترياتي">
+    <PageShell title="مشترياتي" art="receipt">
       {purchases.length === 0 ? (
         <p className="py-12 text-center text-on-surface-variant">لا مشتريات بعد.</p>
       ) : (

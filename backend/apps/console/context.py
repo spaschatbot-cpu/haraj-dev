@@ -72,6 +72,9 @@ def navigation(request) -> dict:
         # رسمُ الشاشة الحالية لرأسها — من السجلّ نفسِه الذي يرسم سطرَها في
         # الشريط، فلا يفترقان.
         "page_icon": _page_icon(request),
+        # قسمُ الشاشة لرسمة الزاوية — طلبُ المالك (٧ أكتوبر ٢٠٢٦): «رسمة ورا
+        # في الخلفية تعبّر عن الصفحة». من السجلّ كرسمِ الرأس.
+        "page_art": _page_section(request),
         # **أيُّ شاشةٍ تُقرأ في نافذة** — T970.
         #
         # طلبُ المالك: «المركبة لما أضغط عليها، هي والفاتورة والمشتري وكل
@@ -121,6 +124,16 @@ def _page_icon(request) -> str:
     if match is None or not match.view_name:
         return ""
     return icon_for(match.view_name)
+
+
+def _page_section(request) -> str:
+    """قسمُ الشاشة الحالية في الشريط، أو الفراغ."""
+    from .navigation import section_for
+
+    match = getattr(request, "resolver_match", None)
+    if match is None or not match.view_name:
+        return ""
+    return section_for(match.view_name)
 
 
 def _back_to(request):

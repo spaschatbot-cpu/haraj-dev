@@ -1,0 +1,46 @@
+{% comment %}
+رسمةُ القسم في زاوية الشاشة — الأسلوب «أ» نفسُه الذي في الموقع
+(`web/features/shell/PageArt.tsx`). اقتراحُ المالك (٧ أكتوبر ٢٠٢٦): رسمةٌ في
+الخلفيّة تعبّر عن الصفحة وشغلها، **بلا مساسٍ بالمحتوى**.
+
+رسمةٌ لكلّ **قسم** في الشريط لا لكلّ شاشة: سبعٌ وسبعون رسمةً ضجيجٌ لا يُتعرَّف
+عليه، وعشرٌ تُحفظ — فيعرف الموظّفُ في أيّ قسمٍ هو من زاوية عينه. والقسمُ من
+السجلّ (`navigation.section_for`) لا مكتوبٌ في كلّ قالب.
+
+`aria-hidden` و`pointer-events: none` في الورقة: زينةٌ لا تُقرأ ولا تُنقر.
+{% endcomment %}
+{% if page_art %}
+<svg class="page-art" aria-hidden="true" focusable="false" viewBox="0 0 300 220" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  {% if page_art == "home" %}
+    {# أعمدةٌ ومنحنى — أرقامُ المنصّة #}
+    <path d="M40 190h230"/><rect x="60" y="120" width="30" height="70" rx="4"/><rect x="115" y="90" width="30" height="100" rx="4"/><rect x="170" y="130" width="30" height="60" rx="4"/><rect x="225" y="70" width="30" height="120" rx="4"/><path d="M60 80l55-30 55 25 70-45"/>
+  {% elif page_art == "members" %}
+    {# شخصان متجاوران — المستخدمون والمشرفون #}
+    <circle cx="110" cy="80" r="28"/><path d="M50 185a60 60 0 0 1 120 0"/><circle cx="200" cy="95" r="22"/><path d="M160 185a48 48 0 0 1 100 0"/>
+  {% elif page_art == "auctions" %}
+    {# تقويمٌ ومطرقة — المزادُ الأسبوعيّ #}
+    <rect x="35" y="55" width="140" height="125" rx="10"/><path d="M35 90h140M70 40v30M140 40v30M65 120h20M105 120h20M65 150h20"/><path d="M200 190l45-45"/><rect x="222" y="75" width="56" height="28" rx="6" transform="rotate(45 250 89)"/>
+  {% elif page_art == "decisions" %}
+    {# مطرقةٌ وعلامةُ قبول — قراراتُ المزايدات #}
+    <path d="M60 175l60-60"/><rect x="95" y="50" width="70" height="34" rx="7" transform="rotate(45 130 67)"/><path d="M40 195h110"/><circle cx="225" cy="110" r="45"/><path d="M203 110l16 16 30-32"/>
+  {% elif page_art == "finance" %}
+    {# بطاقةٌ وعملات — المدفوعات #}
+    <rect x="35" y="60" width="160" height="100" rx="12"/><path d="M35 90h160M60 135h40"/><ellipse cx="235" cy="160" rx="35" ry="12"/><path d="M200 160v-22M270 160v-22"/><ellipse cx="235" cy="138" rx="35" ry="12"/><path d="M200 138v-22M270 138v-22"/><ellipse cx="235" cy="116" rx="35" ry="12"/>
+  {% elif page_art == "wallet" %}
+    {# درعٌ وسهمٌ عائد — التأمينُ واسترداده #}
+    <path d="M110 35l65 25v50c0 45-30 75-65 90-35-15-65-45-65-90V60z"/><path d="M85 115l18 18 34-36"/><path d="M215 80a45 45 0 1 1-8 70"/><path d="M200 140l8 12 13-6"/>
+  {% elif page_art == "invoices" %}
+    {# فواتيرُ مكدّسة #}
+    <path d="M90 40h110v150l-18-12-18 12-18-12-18 12-18-12-20 12z"/><path d="M110 75h70M110 100h70M110 125h45"/><path d="M60 60v140h120"/>
+  {% elif page_art == "support" %}
+    {# جرسٌ وفقاعةُ كلام — الإشعاراتُ والدعم #}
+    <path d="M75 150h90l-12-20v-40a33 33 0 0 0-66 0v40z"/><path d="M108 165a12 12 0 0 0 24 0"/><path d="M190 60h80v55h-45l-25 22v-22h-10z"/><path d="M205 80h50M205 97h30"/>
+  {% elif page_art == "system" %}
+    {# ترسٌ ومفتاح — النظامُ والصلاحيات #}
+    <circle cx="105" cy="110" r="28"/><path d="M105 52v18M105 150v18M47 110h18M145 110h18M64 69l13 13M133 138l13 13M64 151l13-13M133 82l13-13"/><circle cx="215" cy="85" r="24"/><path d="M215 109v80M215 150h22M215 172h16"/>
+  {% elif page_art == "partner" %}
+    {# مبنى الشريك وسيّارتُه #}
+    <path d="M40 190V70l60-30v150M100 190V90h50v100M55 90h20M55 120h20M55 150h20"/><path d="M165 175h12a14 14 0 0 1 28 0h50a14 14 0 0 1 28 0h7v-22l-18-6-26-24h-50l-24 26-7 4z"/><path d="M30 195h250"/>
+  {% endif %}
+</svg>
+{% endif %}

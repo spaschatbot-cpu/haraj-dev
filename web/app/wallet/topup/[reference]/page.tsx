@@ -63,7 +63,7 @@ export default async function TopupStatusPage({
   }
 
   return (
-    <PageShell title="حالة الشحن">
+    <PageShell title="حالة الشحن" art="wallet">
       <div className="max-w-md rounded-lg border border-outline-variant bg-white p-4">
         <dl className="space-y-3 text-sm">
           <div className="flex justify-between gap-4">

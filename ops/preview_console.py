@@ -218,6 +218,8 @@ html = render_to_string(
         # الإطارُ يُختار في `context.py` (نافذةٌ أم صفحة) — والمعاينةُ صفحة.
         # كان غائباً فسقط `{% extends console_base %}` على اسمٍ فارغ.
         "console_base": "console/base.html",
+        # رسمةُ القسم (`_page_art.html`) — المعالجُ لا يعمل هنا، فتُمرَّر بيد.
+        "page_art": "home",
     },
 )
 

@@ -118,7 +118,7 @@ export default async function AccountPage() {
   ];
 
   return (
-    <PageShell>
+    <PageShell art="identity">
       <Notice message={flash?.message ?? ""} tone={flash?.code === "saved" ? "info" : "error"} />
 
       <div className="mx-auto max-w-3xl">

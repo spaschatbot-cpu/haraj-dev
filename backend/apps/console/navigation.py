@@ -1380,6 +1380,18 @@ def back_for(url_name: str) -> Page | None:
     return None
 
 
+def section_for(url_name: str) -> str:
+    """قسمُ الشاشة في الشريط — مفتاحُه، أو الفراغ لما ليس شاشةً في السجلّ.
+
+    صفحةُ التفصيل لها قسمُها في صفّها كصفحة الشريط، فالسؤالُ واحدٌ للنوعين.
+    تقرؤه رسمةُ الزاوية (`_page_art.html`): رسمةٌ لكلّ قسمٍ لا لكلّ شاشة.
+    """
+    for page in (*PAGES, *DETAIL_PAGES):
+        if page.url_name == url_name:
+            return page.section
+    return ""
+
+
 def icon_for(url_name: str) -> str:
     """مسارُ رسم الشاشة، أو الفراغ لما ليس شاشةً في السجلّ.
 

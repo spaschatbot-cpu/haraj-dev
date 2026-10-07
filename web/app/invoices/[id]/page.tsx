@@ -70,7 +70,7 @@ export default async function InvoicePage({
   const owed = Number(invoice.outstanding) > 0;
 
   return (
-    <PageShell title={`فاتورة ${invoice.number}`}>
+    <PageShell title={`فاتورة ${invoice.number}`} art="receipt">
       <Notice
         message={flash?.message ?? ""}
         tone={flash?.code === "invoice_paid" ? "info" : "error"}

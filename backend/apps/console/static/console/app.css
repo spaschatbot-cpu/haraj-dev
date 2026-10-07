@@ -13619,3 +13619,36 @@ a.stat:hover, a.stat:focus-visible { transform: translateY(-3px); }
 a.stat:hover .stat__icon, a.stat:focus-visible .stat__icon { transform: scale(1.08) rotate(-6deg); }
 
 main table { animation: palette-rise 360ms cubic-bezier(.22, 1, .36, 1) both; }
+
+/* ===========================================================================
+   رسمةُ القسم في زاوية الشاشة — الأسلوب «أ»
+   ---------------------------------------------------------------------------
+   اقتراحُ المالك (٧ أكتوبر ٢٠٢٦): رسمةٌ في الخلفيّة تعبّر عن الصفحة، بلا
+   مساسٍ بالمحتوى. ثابتةٌ في الزاوية المقابلة للشريط (يسارُ الشاشة في RTL)،
+   خلف كلّ شيءٍ بطبقةٍ سالبة — فلا يُمسّ ترتيبُ طبقات اللوحة ولا نوافذُها —
+   ولا تأخذ نقرةً ولا تُقرأ بالصوت. والشفافيّةُ
+   على رسمةٍ لا على نصّ. وفي الداكن تُخفَّف أكثر: الخطُّ الفاتحُ على أرضيّةٍ
+   غامقة يُرى أوضح من نظيره. ويُطفئ حركتَها ما يطفئ غيرَها.
+   ======================================================================== */
+.page-art {
+  position: fixed;
+  inset-inline-end: 1.5rem;
+  /* أعلى الصفحة لا أسفلها: العناوينُ في اللوحة على اليمين، وما يقابلها تحت
+     الشريط العلويّ فارغٌ في أكثر الشاشات — وأسفلُها بطاقاتٌ وجداولُ تغطّي
+     الرسمةَ كلَّها (قِيس على الرئيسيّة: لم يظهر منها شيءٌ ولو بنصف شفافيّة). */
+  top: calc(var(--topbar-h) + .75rem);
+  z-index: -1;
+  inline-size: min(20rem, 30vw);
+  block-size: auto;
+  color: var(--a700);
+  opacity: .06;
+  pointer-events: none;
+  animation: page-art-in 900ms cubic-bezier(.22, 1, .36, 1) both;
+}
+:root[data-scheme="dark"] .page-art { color: var(--a300); opacity: .05; }
+@keyframes page-art-in {
+  from { opacity: 0; transform: translateY(14px); }
+}
+@media (max-width: 40rem) {
+  .page-art { inline-size: 45vw; }
+}

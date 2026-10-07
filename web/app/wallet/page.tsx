@@ -82,7 +82,7 @@ export default async function WalletPage() {
   }
 
   return (
-    <PageShell title="محفظتي">
+    <PageShell title="محفظتي" art="wallet">
       <Notice
         message={flash?.message ?? ""}
         tone={flash?.code?.startsWith("refund_") || flash?.code === "saved" ? "info" : "error"}

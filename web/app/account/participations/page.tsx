@@ -27,7 +27,7 @@ export default async function ParticipationsPage() {
   const page = await request(() => api.GET("/api/v1/participations/", { headers }));
 
   return (
-    <PageShell>
+    <PageShell art="bids">
       <div className="mx-auto max-w-3xl">
         <SubpageHead
           title="مشاركاتي في المزادات"
