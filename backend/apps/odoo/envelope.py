@@ -44,6 +44,9 @@ __all__ = ["ACCEPTED_STATES", "ENDPOINTS", "accepted", "path_and_method", "read"
 #: هجرةِ بيانات. والاسمُ المنطقيّ لا يُرسَل إلى أحد — المرسَلُ هو القيمة.
 ENDPOINTS: dict[str, tuple[str, str]] = {
     "customer": ("create/customer", "create_customer"),
+    # تعديلُ شريكٍ قائم — `OdooService::updateCustomerInOdoo` في v1 بنصّه:
+    # `{BASE}/update/customer` بـ`method: call`.
+    "customer.update": ("update/customer", "call"),
     "invoice": ("create/invoice", "create_invoice"),
     "payments": ("create/payments", "create_payment"),
     "refund.request": ("create/refunds", "create_refund"),

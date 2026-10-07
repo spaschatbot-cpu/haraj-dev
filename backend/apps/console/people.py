@@ -486,12 +486,32 @@ def customer_edit(request, pk: int):
             ),
             note=form.cleaned_data["reason"],
         )
+        _tell_odoo_profile(customer)
         messages.success(request, "حُفظت التعديلات.")
         return redirect("console:customer-detail", pk=pk)
 
     return render(
         request, "console/customer_form.html", {"form": form, "customer": customer}
     )
+
+
+def _tell_odoo_profile(customer) -> None:
+    """أدرِج تعديلَ الملفّ في صندوق صادر أودو — كتابةٌ لا إرسال.
+
+    v1 يدفعه بعد كلّ حفظٍ من اللوحة؛ وبدونه تبقى بياناتُ الزكاة عند أودو قديمة.
+    ويفشل بهدوء كأخيه في الدفعة اليدويّة: الحفظُ عندنا تمّ، وصندوقٌ تعثّر لا
+    يُلغي تعديلاً صحيحاً — ويظهر في «صحّة المحفظة» ليُعاد.
+    """
+    import logging
+
+    try:
+        from apps.odoo import outbox
+
+        outbox.queue_customer_update(customer)
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).warning(
+            "could not queue odoo profile update for %s: %s", customer.pk, exc
+        )
 
 
 #: حقولُ العنوان التي تدخل القيد. مكتوبةٌ مرّةً ويقرؤها الطرفان (قبلُ وبعد)،
@@ -568,6 +588,7 @@ def company_edit(request, pk: int):
             after={**audit.snapshot(saved, fields), **_address_snapshot(customer)},
             note=form.cleaned_data["reason"],
         )
+        _tell_odoo_profile(customer)
         messages.success(request, "حُفظت بيانات الشركة.")
         return redirect("console:customer-detail", pk=pk)
 

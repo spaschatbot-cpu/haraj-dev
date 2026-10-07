@@ -396,7 +396,28 @@ def _invoice_params(message: OutboxMessage) -> dict:
     return params
 
 
+def _customer_update_params(message: OutboxMessage) -> dict:
+    """تعديلُ شريكٍ في أودو بما عدّله الموظّف — نظيرُ `pushCustomerProfileToOdoo`.
+
+    v1 يدفع الملفَّ بعد كلّ حفظٍ من اللوحة (`UserController.php:592-609`)
+    فيبقى أودو على الاسم والرقم الضريبيّ والعنوان الجديدة؛ وكان v2 يحفظ عنده
+    وحده، فتصدر فواتيرُ أودو ببيانات الزكاة القديمة.
+
+    الحقولُ حقولُ الإنشاء نفسُها (`_customer_params`) لا قائمةٌ ثانية، والفارغُ
+    يُسقط كما يُسقطه v1: لا يُكتب فراغٌ فوق حقلٍ حقيقيٍّ عندهم. و
+    `operation_code` معها لأنه تعديلٌ مقصودٌ من موظّف (`includeIdentity` في v1).
+    """
+    created = _customer_params(message)
+    fields = {k: v for k, v in created["customer_data"].items() if v not in (None, "")}
+    return {
+        "customer_id": _odoo_customer_id(_user_of(message)),
+        "operation_code": created["operation_code"],
+        **fields,
+    }
+
+
 _BUILDERS = {
+    "customer.update": _customer_update_params,
     "payments": _payment_params,
     "refund.request": _refund_params,
     "banktopup.submit": _banktopup_params,
@@ -505,6 +526,26 @@ def queue_customer(user):
         endpoint="customer",
         payload={"user": user.pk},
         reference=f"customer:{user.pk}",
+    )
+
+
+def queue_customer_update(user):
+    """أخبر أودو بتعديل ملفّ عميلٍ — أو أنشئ شريكه إن لم يكن مربوطاً.
+
+    مرجعٌ لكلّ تعديلٍ لا لكلّ عميل: تعديلان في يومٍ رسالتان، والثانيةُ تحمل
+    آخرَ ما في الصفّ لأن الجسمَ يُبنى لحظةَ الإرسال (`compose`). والعميلُ غيرُ
+    المربوط يُنشأ له شريكٌ بحقوله الحاليّة — وهو ما يفعله v1 في الحالة نفسها.
+    """
+    import uuid
+
+    from .models import CustomerLink
+
+    if not CustomerLink.objects.filter(user=user, is_primary=True).exists():
+        return queue_customer(user)
+    return enqueue(
+        endpoint="customer.update",
+        payload={"user": user.pk},
+        reference=f"customer-update:{user.pk}:{uuid.uuid4().hex[:12]}",
     )
 
 
