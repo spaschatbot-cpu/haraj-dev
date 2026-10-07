@@ -198,7 +198,11 @@ class Command(BaseCommand):
                 "deposit_required": (
                     money(row.get("insurance_amount")) or Decimal("10000.00")
                 ),
-                "admin_fee": money(row.get("fees")) or Decimal("0.00"),
+                # **صفرُ v1 ليس صفراً:** `BillController.php:643-652` يبدأ بـ٨٠٠
+                # ولا يستبدلها إلا برسومٍ أكبر من صفر. وكان هنا `0.00`، فسقطت
+                # الرسومُ وضريبتُها من كلّ فاتورةٍ على ٢٥ مزاداً منقولاً
+                # (وتُصحَّح القائمةُ منها بالهجرة `auctions.0019`).
+                "admin_fee": money(row.get("fees")) or Decimal("800.00"),
                 "sms_reminder_at": moment(row.get("sms_reminder_time")),
             }
             if self.dry:
