@@ -598,8 +598,12 @@ class BankTransferView(APIView):
 
     @extend_schema(responses=BankTransferSerializer, summary="حساب الحوالة البنكية")
     def get(self, request):
-        iban = (settings.BANK_TRANSFER_IBAN or "").strip()
-        account = (settings.BANK_TRANSFER_ACCOUNT or "").strip()
+        # من اللوحة أوّلاً، ومن متغيّرات الخادم قبل أوّل حفظ (`company_bank_account`).
+        from apps.money.services import company_bank_account
+
+        held = company_bank_account()
+        iban = held["iban"]
+        account = held["account"]
         return Response(
             BankTransferSerializer(
                 {
@@ -607,8 +611,8 @@ class BankTransferView(APIView):
                     # الحساب مكمّلٌ تعرضه بعضُ البنوك. فحسابٌ بلا آيبان ليس
                     # حساباً صالحاً للعرض.
                     "configured": bool(iban),
-                    "beneficiary": (settings.BANK_TRANSFER_BENEFICIARY or "").strip(),
-                    "bank": (settings.BANK_TRANSFER_BANK or "").strip(),
+                    "beneficiary": held["beneficiary"],
+                    "bank": held["bank"],
                     "iban": iban,
                     "account": account,
                 }

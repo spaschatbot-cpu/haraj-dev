@@ -1108,3 +1108,40 @@ class PaymentSheet(models.Model):
 
     def __str__(self) -> str:
         return f"{self.filename or self.digest[:12]} — {self.rows_posted} صفّاً"
+
+
+class CompanyBankAccount(models.Model):
+    """حسابُ الشركة الذي يحوّل إليه العملاء — صفٌّ واحدٌ يُحرَّر من اللوحة.
+
+    v1 يخزّنه في `account_page_settings` ويحرّره المالكُ من اللوحة
+    (`AccountController.php:121-130`، `:438-471`). وكان v2 يقرؤه من متغيّرات
+    بيئة الخادم (`BANK_TRANSFER_*`)، فتغييرُ الآيبان الذي تصل إليه أموالُ
+    العملاء يحتاج دخولاً للخادم وإعادةَ تشغيل.
+
+    **صفٌّ واحد** (`singleton`) لا جدولُ حسابات: الشركةُ تعلن حساباً واحداً
+    للحوالة، وصفّان يعنيان سؤالاً «أيّهما يُعرض؟» بلا جواب. والمتغيّراتُ تبقى
+    احتياطاً لما قبل أوّل حفظ — `company_bank_account()` تقرأ الصفَّ أوّلاً.
+    """
+
+    singleton = models.BooleanField(default=True, unique=True, editable=False)
+    beneficiary = models.CharField("المستفيد", max_length=200, blank=True)
+    bank = models.CharField("البنك", max_length=120, blank=True)
+    iban = models.CharField("الآيبان", max_length=34)
+    account = models.CharField("رقم الحساب", max_length=40, blank=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            # الآيبانُ السعوديّ بصيغته في القاعدة نفسِها، لا في الاستمارة وحدها:
+            # حسابٌ تُحوَّل إليه أموالٌ لا يُكتب بلا تحقّقٍ من أيّ باب.
+            models.CheckConstraint(
+                condition=Q(iban__regex=r"^SA[0-9]{22}$"),
+                name="company_bank_iban_is_saudi",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.bank} {self.iban}"

@@ -148,6 +148,7 @@ urlpatterns = [
         name="vehicle-bid-list",
     ),
     path("bids/<int:pk>/void/", bids.bid_void, name="bid-void"),
+    path("settings/bank-account/", staff.bank_account, name="bank-account"),
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
     path(
         "bids/accepted/<int:pk>/invoice/",

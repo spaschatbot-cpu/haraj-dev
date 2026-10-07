@@ -654,6 +654,14 @@ PAGES: tuple[Page, ...] = (
         "حسابُك وما تملكه من قدرات، والمظهر — وما لكلٍّ منها من شاشة.",
         "sliders",
     ),
+    #: لسانُ «الحساب البنكي» في إعدادات v1 — يُفتح من «الإعدادات».
+    Page(
+        "console:bank-account",
+        "الحساب البنكي للشركة",
+        Capability.STAFF_GRANT,
+        "",
+        parent="console:settings",
+    ),
     # ---- شريك التسويق — بترتيب v1 وأسمائه ----------------------------------
     Page(
         "console:partner-console",

@@ -2790,3 +2790,29 @@ def confiscate(hold: Hold, *, reason: str, by, memo: str = "") -> Transaction:
         note=f"{reason.strip()}" + (f" — {memo}" if memo else ""),
     )
     return txn
+
+
+def company_bank_account() -> dict:
+    """حسابُ الحوالة كما يُعرض: الصفُّ المحرَّر من اللوحة، أو متغيّراتُ الخادم.
+
+    موضعٌ واحدٌ يقرؤه التطبيقُ والموقع (`BankTransferView`) — فلا يرى أحدُهما
+    آيباناً والآخرُ غيرَه.
+    """
+    from django.conf import settings as conf
+
+    from .models import CompanyBankAccount
+
+    row = CompanyBankAccount.objects.first()
+    if row is not None:
+        return {
+            "beneficiary": row.beneficiary,
+            "bank": row.bank,
+            "iban": row.iban,
+            "account": row.account,
+        }
+    return {
+        "beneficiary": (conf.BANK_TRANSFER_BENEFICIARY or "").strip(),
+        "bank": (conf.BANK_TRANSFER_BANK or "").strip(),
+        "iban": (conf.BANK_TRANSFER_IBAN or "").strip(),
+        "account": (conf.BANK_TRANSFER_ACCOUNT or "").strip(),
+    }

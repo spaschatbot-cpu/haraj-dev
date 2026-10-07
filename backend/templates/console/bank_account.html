@@ -1,0 +1,29 @@
+{% extends console_base %}
+{% comment %}
+حسابُ الشركة البنكيّ — الذي يحوّل إليه العملاءُ ثمنَ السيارة وتأمينَهم.
+لسانُ «الحساب البنكي» في إعدادات v1، بآيبانٍ يُفحص بصيغته السعوديّة.
+{% endcomment %}
+{% block title %}الحساب البنكي للشركة{% endblock %}
+{% block heading %}الحساب البنكي للشركة{% endblock %}
+
+{% block content %}
+  <p class="lede">ما يُعرض للعميل في الموقع والتطبيق حين يدفع بحوالة. يُحفظ فيظهر فوراً.</p>
+
+  {% if current.iban %}
+    <p class="notice notice--soft">
+      المعروضُ الآن: <strong dir="ltr">{{ current.iban }}</strong>
+      {% if current.bank %} · {{ current.bank }}{% endif %}
+      {% if current.beneficiary %} · {{ current.beneficiary }}{% endif %}
+    </p>
+  {% else %}
+    <p class="alarm">لا حسابَ معروضٌ للعملاء — يرون «بيانات الحساب غير متاحة».</p>
+  {% endif %}
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {% include "console/_form.html" %}
+    <button type="submit">احفظ الحساب</button>
+  </form>
+
+  <p><a href="{% url 'console:settings' %}">← الإعدادات</a></p>
+{% endblock %}

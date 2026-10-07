@@ -1173,3 +1173,65 @@ def role_edit(request, slug: str):
             "holders": holders.order_by("full_name"),
         },
     )
+
+
+class BankAccountForm(forms.Form):
+    """حسابُ الشركة للحوالة — الآيبانُ بصيغته السعوديّة، والسببُ إلزاميّ."""
+
+    beneficiary = forms.CharField(label="المستفيد", max_length=200, required=False)
+    bank = forms.CharField(label="البنك", max_length=120, required=False)
+    iban = forms.CharField(
+        label="الآيبان",
+        max_length=40,
+        widget=forms.TextInput(attrs={"dir": "ltr", "placeholder": "SA0000000000000000000000"}),
+    )
+    account = forms.CharField(label="رقم الحساب", max_length=40, required=False)
+    reason = forms.CharField(
+        label="السبب",
+        max_length=500,
+        help_text="يدخل سجلَّ التدقيق — تغييرُ الحساب الذي تصل إليه أموالُ العملاء يُسأل عنه.",
+    )
+
+    def clean_iban(self) -> str:
+        from apps.accounts.models import normalise_saudi_iban, saudi_iban
+
+        value = normalise_saudi_iban(self.cleaned_data.get("iban", ""))
+        saudi_iban(value)
+        return value
+
+
+@console_page("console:bank-account")
+def bank_account(request):
+    """حسابُ الشركة البنكيّ — لسانُ «الحساب البنكي» في إعدادات v1.
+
+    خلف «منح صلاحيات الموظفين» لا «الأفعال الماليّة»: من يغيّر الآيبانَ يحوّل
+    أموالَ كلّ عميلٍ يدفع بعده إلى حيث يشاء — وهو قرارُ مالكٍ لا عملُ يومٍ.
+    والقيدُ في السجلّ بالقيمتين قبلُ وبعد.
+    """
+    from apps.money.models import CompanyBankAccount
+    from apps.money.services import company_bank_account
+
+    current = company_bank_account()
+    form = BankAccountForm(request.POST or None, initial=current)
+    if request.method == "POST" and form.is_valid():
+        data = {k: form.cleaned_data[k] for k in ("beneficiary", "bank", "iban", "account")}
+        row = CompanyBankAccount.objects.first()
+        if row is None:
+            row = CompanyBankAccount(**data)
+        else:
+            for key, value in data.items():
+                setattr(row, key, value)
+        row.updated_by = request.user
+        row.save()
+        audit.record(
+            action="console.bank_account",
+            entity=row,
+            actor=request.user,
+            before=current,
+            after=data,
+            note=form.cleaned_data["reason"],
+        )
+        messages.success(request, "حُفظ حسابُ الشركة — ويظهر للعملاء من الآن.")
+        return redirect("console:bank-account")
+
+    return render(request, "console/bank_account.html", {"form": form, "current": current})
