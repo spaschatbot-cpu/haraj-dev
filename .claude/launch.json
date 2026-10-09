@@ -84,7 +84,7 @@
       "runtimeArgs": [
         "mobile/tool/dev_web.py"
       ],
-      "env": { "PYTHONIOENCODING": "utf-8" },
+      "env": { "PYTHONIOENCODING": "utf-8", "FLUTTER": "D:/flutter/bin/flutter.bat" },
       "port": 8090
     }
   ]

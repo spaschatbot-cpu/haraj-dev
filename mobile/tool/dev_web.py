@@ -95,7 +95,9 @@ class Runner:
                 # أُغلقت أو فُتح التطبيقُ في تبويبٍ عاديّ طبع «No client
                 # connected» وبقيت الشاشةُ قديمة — وقع. ومع `web-server` كلُّ
                 # تبويبٍ يفتح المنفذَ يتّصل ويصله التحميل.
-                "flutter", "run", "-d", "web-server",
+                # `FLUTTER` يسمّي الأداة حين لا تكون على `PATH` — جهازُ التطوير
+                # ثُبّت عليه Flutter في `D:\flutter` بلا إضافةٍ إلى المسار.
+                os.environ.get("FLUTTER", "flutter"), "run", "-d", "web-server",
                 "--web-port", str(APP_PORT),
                 "--web-hostname", "localhost",
                 f"--dart-define=HARAJ_API_BASE_URL=http://localhost:{APP_PORT}",
