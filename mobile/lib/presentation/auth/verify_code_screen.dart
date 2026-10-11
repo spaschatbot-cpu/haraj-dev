@@ -184,68 +184,100 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
     final palette = HarajPalette.of(context);
     final expiresAt = SaudiTime.forDisplay(pending.delivery.expiresAt);
 
-    // **تصميمُ الزجاج الأبيض بطلب المالك (٣ أكتوبر ٢٠٢٦)** — وجهُ الخطوة
-    // الأولى نفسُه: الشعارُ في دائرته ثمّ بطاقتان بيضاوان على أرضيّة
-    // `GlassBackdrop` العامّة. وسقطت اللوحةُ الداكنةُ بشريطها وهالتا
-    // `AuthBackdrop` — بابٌ واحدٌ بوجهٍ واحد.
-    //
-    // والفراغُ يُقسَم بـ`Spacer` كما في شاشة الدخول فلا تمريرَ على هاتفٍ
-    // عاديّ، و`IntrinsicHeight` لأن `Spacer` داخل غلافٍ قابلٍ للتمرير يحسب
-    // الباقي صفراً. والتمريرُ باقٍ لشاشةٍ أقصرَ من المحتوى أو لوحةِ مفاتيحَ
-    // مفتوحة.
+    // **«مضربُ المزايد» كالخطوة الأولى** (اختيارُ المالك، ١١ أكتوبر ٢٠٢٦):
+    // الكحليُّ والمضربُ والاسمُ فوق، والورقةُ الفاتحةُ تحمل «أرسلنا رمزاً» والحقل.
+    // والمضربُ يرتفع والرمزُ في طريقه إلى الخادم — `_busy` نفسُه الذي يُظهر
+    // الدوّار. وكان قبلها «الزجاجَ الأبيض» (٣ أكتوبر) على مثال شاشة الدخول
+    // يومَها، فتبعها حين تبدّلت: بابٌ واحدٌ بوجهٍ واحد.
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, box) => SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: box.maxHeight,
-                  maxWidth: 440,
-                ),
-                child: IntrinsicHeight(
+      backgroundColor: palette.gold,
+      body: Stack(
+        children: <Widget>[
+          const Positioned.fill(child: AuthStripes()),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const SizedBox(height: 16),
+                AuthEntrance(child: AuthPaddle(raised: _busy)),
+                const SizedBox(height: 12),
+                AuthEntrance(
+                  delay: const Duration(milliseconds: 80),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
-                      const Spacer(flex: 2),
-                      AuthEntrance(
-                        child: _BrandMark(
-                          title: l10n.splashHeadline,
-                          subtitle: l10n.verifyTagline,
+                      Text(
+                        l10n.splashHeadline,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
                         ),
                       ),
-                      const Spacer(flex: 2),
-                      AuthEntrance(
-                        delay: const Duration(milliseconds: 90),
-                        child: _SentTo(
-                          phone: pending.phone,
-                          expiresAt: expiresAt,
-                          l10n: l10n,
-                          onChangePhone: () {
-                            ref.read(pendingSignInProvider.notifier).clear();
-                            context.goNamed(Routes.signIn);
-                          },
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.verifyTagline,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 13,
+                          color: Color(0xFFC9D6E5),
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      AuthEntrance(
-                        delay: const Duration(milliseconds: 170),
-                        child: _Card(
-                          padding: const EdgeInsets.all(18),
-                          child: _form(l10n, palette, pending.phone),
-                        ),
-                      ),
-                      const Spacer(flex: 3),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: AuthEntrance(
+                    delay: const Duration(milliseconds: 160),
+                    child: AuthSheet(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          12,
+                          20,
+                          16 + MediaQuery.paddingOf(context).bottom,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            Center(
+                              child: Container(
+                                width: 44,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: palette.navInactive,
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            _SentTo(
+                              phone: pending.phone,
+                              expiresAt: expiresAt,
+                              l10n: l10n,
+                              onChangePhone: () {
+                                ref
+                                    .read(pendingSignInProvider.notifier)
+                                    .clear();
+                                context.goNamed(Routes.signIn);
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                            _form(l10n, palette, pending.phone),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -259,27 +291,16 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            _IconTile(icon: Icons.mark_email_read_outlined, palette: palette),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.verifyTitle,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: palette.ink,
-                ),
-              ),
-            ),
-          ],
+        Text(
+          l10n.verifyTitle,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: palette.gold,
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Divider(height: 1, color: palette.navInactive),
-        ),
+        const SizedBox(height: 12),
         // **الحقلُ يهتزّ حين يُرفض الرمز** — والاهتزازُ حول الحقل وحدَه لا
         // حول اللوحة: العينُ تُساق إلى ما يجب أن يُصحَّح.
         ShakeOnChange(
@@ -321,7 +342,7 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                 letterSpacing: 8,
               ),
               filled: true,
-              fillColor: palette.cardSurface,
+              fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,
@@ -359,13 +380,11 @@ class _VerifyCodeScreenState extends ConsumerState<VerifyCodeScreen> {
                     ),
                     disabledForegroundColor: Colors.white,
                     minimumSize: const Size.fromHeight(52),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    shape: const StadiumBorder(),
                     textStyle: const TextStyle(
                       fontFamily: HarajTheme.fontFamily,
                       fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontSize: 16,
                     ),
                   ),
                 ),
@@ -473,8 +492,7 @@ class _SentTo extends StatelessWidget {
   }
 }
 
-/// بطاقةٌ بيضاء زجاجيّة بحدٍّ فاتح — وعاءُ شاشة الدخول نفسُه، مكرَّراً هنا
-/// لأن ذاك خاصٌّ بملفّه.
+/// بطاقةٌ بيضاء بحدٍّ فاتح — وعاءُ «أرسلنا رمزاً» داخل الورقة.
 class _Card extends StatelessWidget {
   const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
 
@@ -487,8 +505,8 @@ class _Card extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(22),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
         boxShadow: <BoxShadow>[
           BoxShadow(
@@ -519,76 +537,4 @@ class _IconTile extends StatelessWidget {
     ),
     child: Icon(icon, size: 18, color: palette.gold),
   );
-}
-
-/// الشعارُ في دائرةٍ داكنة بإطارٍ أبيض ثمّ الاسمُ وسطرُ الخطوة — علامةُ شاشة
-/// الدخول نفسُها، فيعبر العميلُ من الخطوة الأولى إلى الثانية بلا قفزة.
-class _BrandMark extends StatelessWidget {
-  const _BrandMark({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Column(
-      children: <Widget>[
-        Container(
-          width: 72,
-          height: 72,
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[
-                Color.alphaBlend(
-                  palette.gold.withValues(alpha: 0.25),
-                  palette.heroTop,
-                ),
-                palette.heroBottom,
-              ],
-            ),
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: palette.ink.withValues(alpha: 0.22),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/logo.png',
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) =>
-                const Icon(Icons.gavel_rounded, color: Colors.white),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: HarajTheme.fontFamily,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            color: palette.ink,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: HarajTheme.fontFamily,
-            fontSize: 13.5,
-            color: palette.inkMuted,
-          ),
-        ),
-      ],
-    );
-  }
 }

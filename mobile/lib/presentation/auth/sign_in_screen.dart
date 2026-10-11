@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -122,7 +121,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       backgroundColor: palette.gold,
       body: Stack(
         children: <Widget>[
-          const Positioned.fill(child: _Stripes()),
+          const Positioned.fill(child: AuthStripes()),
           SafeArea(
             bottom: false,
             child: Column(
@@ -142,7 +141,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                AuthEntrance(child: _Paddle(raised: _sending)),
+                AuthEntrance(child: AuthPaddle(raised: _sending)),
                 const SizedBox(height: 12),
                 AuthEntrance(
                   delay: const Duration(milliseconds: 80),
@@ -175,7 +174,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                 Expanded(
                   child: AuthEntrance(
                     delay: const Duration(milliseconds: 160),
-                    child: _Sheet(
+                    child: AuthSheet(
                       child: _sheetContent(l10n, palette, expired: expired),
                     ),
                   ),
@@ -357,198 +356,6 @@ const Color _amberInk = Color(0xFF6B4508);
   return null;
 }
 
-/// خطوطٌ مائلةٌ خافتة على الكحليّ — تزيينٌ صريح، فلا تلتقط نقرة.
-class _Stripes extends StatelessWidget {
-  const _Stripes();
-
-  @override
-  Widget build(BuildContext context) =>
-      IgnorePointer(child: CustomPaint(painter: _StripesPainter()));
-}
-
-class _StripesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.035)
-      ..strokeWidth = 2;
-    for (var x = -size.height; x < size.width; x += 22) {
-      canvas.drawLine(
-        Offset(x, size.height * 0.55),
-        Offset(x + size.height * 0.55, 0),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(_StripesPainter oldDelegate) => false;
-}
-
-/// **مضربُ المزايد** — الشعارُ في دائرةٍ بيضاءِ الإطار ومقبضٌ خشبيّ، يطفو
-/// مائلاً، وخلفه حلقتان تتّسعان. وحين `raised` يرتفع ويستقيم: الطلبُ ذهب.
-///
-/// والحركةُ تُطفأ لمن أطفأها في جهازه — المضربُ يبقى ساكناً مائلاً.
-class _Paddle extends StatefulWidget {
-  const _Paddle({required this.raised});
-
-  final bool raised;
-
-  @override
-  State<_Paddle> createState() => _PaddleState();
-}
-
-class _PaddleState extends State<_Paddle> with TickerProviderStateMixin {
-  late final AnimationController _float = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 3200),
-  );
-  late final AnimationController _halo = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 2400),
-  );
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _float
-        ..stop()
-        ..value = 0;
-      _halo
-        ..stop()
-        ..value = 0;
-    } else {
-      if (!_float.isAnimating) _float.repeat(reverse: true);
-      if (!_halo.isAnimating) _halo.repeat();
-    }
-  }
-
-  @override
-  void dispose() {
-    _float.dispose();
-    _halo.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final still = MediaQuery.disableAnimationsOf(context);
-    return SizedBox(
-      height: 230,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: <Widget>[
-          if (!still)
-            for (final phase in const <double>[0, 0.5])
-              Positioned(
-                top: 6,
-                child: AnimatedBuilder(
-                  animation: _halo,
-                  builder: (context, _) {
-                    final t = (_halo.value + phase) % 1;
-                    return Opacity(
-                      opacity: (1 - t) * 0.5,
-                      child: Transform.scale(
-                        scale: 0.8 + t * 0.8,
-                        child: Container(
-                          width: 140,
-                          height: 140,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: _emeraldSoft, width: 2),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-          AnimatedBuilder(
-            animation: _float,
-            builder: (context, child) {
-              final wave = Curves.easeInOut.transform(_float.value);
-              return TweenAnimationBuilder<double>(
-                tween: Tween<double>(end: widget.raised ? 1 : 0),
-                duration: const Duration(milliseconds: 420),
-                curve: Curves.easeOutBack,
-                builder: (context, lift, _) {
-                  final tilt = (-10 + wave * 4) * (1 - lift);
-                  return Transform.translate(
-                    offset: Offset(0, -wave * 10 - lift * 22),
-                    child: Transform.rotate(
-                      angle: tilt * math.pi / 180,
-                      alignment: const Alignment(0, 0.8),
-                      child: child,
-                    ),
-                  );
-                },
-              );
-            },
-            child: const _PaddleShape(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaddleShape extends StatelessWidget {
-  const _PaddleShape();
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Container(
-          width: 140,
-          height: 140,
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: palette.goldDeep,
-            border: Border.all(color: Colors.white, width: 6),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(
-                color: Color(0x59000000),
-                blurRadius: 30,
-                offset: Offset(0, 16),
-              ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/logo.png',
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) =>
-                const Icon(Icons.gavel_rounded, color: Colors.white, size: 48),
-          ),
-        ),
-        Transform.translate(
-          offset: const Offset(0, -4),
-          child: Container(
-            width: 24,
-            height: 74,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-              gradient: LinearGradient(
-                colors: <Color>[
-                  _amberLine,
-                  _amberLine,
-                  _amberSolid,
-                  _amberSolid,
-                ],
-                stops: <double>[0, 0.74, 0.74, 1],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// زرُّ الإغلاق على الكحليّ — يرجع إلى الرئيسية.
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onClose, required this.tooltip});
@@ -679,25 +486,6 @@ class _PulseDotState extends State<_PulseDot>
       ),
     ),
   );
-}
-
-/// الورقةُ الفاتحة التي تصعد من أسفل، بزاويتين علويّتين مستديرتين.
-class _Sheet extends StatelessWidget {
-  const _Sheet({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: palette.pageBackground,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: child,
-    );
-  }
 }
 
 /// سطرُ «انتهت جلستك» داخل النموذج.
