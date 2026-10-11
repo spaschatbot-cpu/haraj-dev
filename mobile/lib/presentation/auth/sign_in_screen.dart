@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
+import '../../domain/catalog/entities/auction_summary.dart';
 import '../../domain/common/failure.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../catalog/widgets/countdown_text.dart';
@@ -35,15 +39,19 @@ import 'session_controller.dart';
 /// الذي وراءَ الباب. فصارت تقول ثلاثةَ أشياءَ **كلُّها صحيحةٌ وقابلةٌ
 /// للتحقّق**:
 ///
-/// * **أرقامُ المنصّة الآن** — ما يُزايَد عليه، وما هو قريب، وكم مزاداً مضى.
-///   تُقرأ من نقطة الكتالوج نفسِها التي تقرؤها الرئيسيّة (`PhaseCounts`)، فلا
-///   تقول هذه رقماً وتقول تلك غيرَه. ولا تُخترَع ولا تُكتب في الشيفرة: تُجلب،
-///   وإن تعذّر الجلبُ **لا يُعرَض شيء** — رقمٌ تزيينيٌّ في شاشةِ دخولٍ هو
-///   أوّلُ كذبةٍ يقرؤها العميل.
-/// * **كيف يدخل** — برمزٍ لمرّة، لا بكلمة مرور. وهو ما يُسقط سؤالَ «نسيت كلمة
-///   السرّ» من التطبيق كلِّه.
+/// * **المزادُ الجاري** — اسمُه وكم سيّارةً فيه وكم بقي عليه. يُقرأ من
+///   `homeAuctionsProvider` الذي تقرؤه الرئيسيّة، فلا تقول هذه رقماً وتلك
+///   غيرَه. وإن تعذّر الجلبُ **لا يُعرَض شيء** — رقمٌ تزيينيٌّ في شاشةِ دخولٍ
+///   هو أوّلُ كذبةٍ يقرؤها العميل.
+/// * **كيف يدخل** — برمزٍ لمرّة، لا بكلمة مرور.
 /// * **ما يحكم المزايدة** — سرّيّةُ المظروف، ووديعةٌ تُسترَدّ بطلبٍ منه.
-///   وكلاهما قاعدةٌ مبنيّةٌ في الخادم لا وعدٌ تسويقيّ.
+///
+/// ## «مضربُ المزايد» — تصميمُ المالك (١١ أكتوبر ٢٠٢٦)
+///
+/// اختار من أربعة اقتراحاتٍ على لوحة التصميم الثاني: الشعارُ في **مضرب
+/// مزايدة** يطفو على الكحليّ، وتحته ورقةٌ فاتحةٌ تصعد فيها العدّادُ والنموذج.
+/// وشرطُه: «خلّي كلام الصفحة زي ما هو» — فلم يتغيّر نصٌّ واحد، تغيّر المكانُ
+/// والشكل. وحين يُضغط «إرسال رمز التحقق» يرتفع المضرب كمن رفعه في القاعة.
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
 
@@ -107,92 +115,133 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
         ref.watch(sessionControllerProvider) == SessionState.expired;
     final palette = HarajPalette.of(context);
 
-    // **تصميمُ المالك** (٣٠ سبتمبر ٢٠٢٦): شريطٌ علويّ (اسمُ المنظومة وزرُّ
-    // الإغلاق)، والشعارُ في دائرةٍ بشارة V2، وكرتُ المزاد الجاري، وبطاقةُ
-    // الدخول، وثلاثُ ميزات، و«المتابعة كزائر».
-    //
-    // **وبلا تمرير** (طلبُه الثاني في اليوم نفسه): أحجامٌ أصغر، وسقط الشريطُ
-    // العلويّ وشارةُ V2 وسطرُ الحاشية تحت الزرّ.
-    //
-    // **وبقدرٍ وسط** بطلبه: «لا داتا كتير قوي تخلّي العميل يعمل سكرول، ولا
-    // قليلة قوي». فالميزاتُ عناوينُ بلا شرح، وسقط من التصميم «مثال: 5…» (الخانةُ
-    // تقوله) و«الدعم الفني» و«موثّق عبر النفاذ الوطني» — لا صفحةَ دعمٍ ولا ربطَ
-    // بالنفاذ في النظام، ووعدٌ في شاشة الدخول أوّلُ ما يُكذَّب.
+    // **الكحليُّ فوق والورقةُ تحت**: الهويّةُ (المضربُ والاسم) على الكحليّ،
+    // وكلُّ ما يُقرأ ويُكتب في ورقةٍ فاتحة — الحقلُ لا يقع على خلفيّةٍ داكنة.
+    // والورقةُ تمرَّر وحدَها على الهاتف القصير، والمضربُ ثابت.
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: SafeArea(
-        // **موزَّعةٌ على طول الشاشة لا مكوَّمة** (طلبُ المالك الثالث، ٣٠
-        // سبتمبر): «التوزيع مريح للعين، مش مضغوطة في بعضها». فالفراغُ يُقسَم
-        // بـ`Spacer` بين الكتل — أوسعُه فوق الشعار وتحت الميزات — ويتّسع مع
-        // الهاتف الطويل ويضيق مع القصير، وتمريرٌ لا يقع إلا على شاشةٍ أقصرَ من
-        // المحتوى نفسه.
-        //
-        // و`IntrinsicHeight` لأن `Spacer` داخل غلافٍ قابلٍ للتمرير يحسب الباقي
-        // صفراً — الحيلةُ نفسُها التي في شاشة البدء.
-        child: LayoutBuilder(
-          builder: (context, box) => SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: box.maxHeight,
-                  maxWidth: 440,
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+      backgroundColor: palette.gold,
+      body: Stack(
+        children: <Widget>[
+          const Positioned.fill(child: _Stripes()),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                  child: Row(
                     children: <Widget>[
-                      const SizedBox(height: 8),
-                      // **بلا «منظومة المزادات v2»** بطلب المالك: زرُّ الإغلاق وحده.
-                      Align(
-                        alignment: AlignmentDirectional.centerEnd,
-                        child: _CloseButton(
-                          onClose: () => context.go(Routes.homePath),
-                          tooltip: l10n.signInDismiss,
-                        ),
+                      const _LivePill(),
+                      const Spacer(),
+                      _CloseButton(
+                        onClose: () => context.go(Routes.homePath),
+                        tooltip: l10n.signInDismiss,
                       ),
-                      const Spacer(flex: 2),
-                      AuthEntrance(
-                        child: _BrandMark(
-                          title: l10n.splashHeadline,
-                          subtitle: l10n.signInTagline,
-                        ),
-                      ),
-                      const Spacer(flex: 2),
-                      const AuthEntrance(
-                        delay: Duration(milliseconds: 90),
-                        child: _LiveAuctionCard(),
-                      ),
-                      const SizedBox(height: 16),
-                      AuthEntrance(
-                        delay: const Duration(milliseconds: 170),
-                        child: _Card(
-                          padding: const EdgeInsets.all(18),
-                          child: _form(l10n, palette, expired: expired),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      const AuthEntrance(
-                        delay: Duration(milliseconds: 240),
-                        child: _Assurances(),
-                      ),
-                      const Spacer(flex: 3),
-                      // «إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق.
-                      TextButton(
-                        onPressed: () => context.go(Routes.homePath),
-                        style: TextButton.styleFrom(
-                          foregroundColor: palette.ink,
-                        ),
-                        child: Text(
-                          l10n.signInDismissGuest,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                AuthEntrance(child: _Paddle(raised: _sending)),
+                const SizedBox(height: 12),
+                AuthEntrance(
+                  delay: const Duration(milliseconds: 80),
+                  child: Column(
+                    children: <Widget>[
+                      Text(
+                        l10n.splashHeadline,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.signInTagline,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontFamily: HarajTheme.fontFamily,
+                          fontSize: 13,
+                          color: Color(0xFFC9D6E5),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Expanded(
+                  child: AuthEntrance(
+                    delay: const Duration(milliseconds: 160),
+                    child: _Sheet(
+                      child: _sheetContent(l10n, palette, expired: expired),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sheetContent(
+    AppLocalizations l10n,
+    HarajPalette palette, {
+    required bool expired,
+  }) {
+    return LayoutBuilder(
+      builder: (context, box) => SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          12,
+          20,
+          12 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: box.maxHeight - 24),
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: palette.navInactive,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const _AuctionRow(),
+                _form(l10n, palette, expired: expired),
+                const SizedBox(height: 14),
+                const _Assurances(),
+                const Spacer(),
+                const SizedBox(height: 12),
+                // «إغلاق» يرجع إلى الرئيسية لا يُغلق التطبيق.
+                OutlinedButton(
+                  onPressed: () => context.go(Routes.homePath),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: palette.gold,
+                    minimumSize: const Size.fromHeight(46),
+                    side: BorderSide(color: palette.navInactive, width: 1.5),
+                    shape: const StadiumBorder(),
+                  ),
+                  child: Text(
+                    l10n.signInDismissGuest,
+                    style: const TextStyle(
+                      fontFamily: HarajTheme.fontFamily,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -209,50 +258,43 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        Row(
-          children: <Widget>[
-            _IconTile(icon: Icons.lock_outline_rounded, palette: palette),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.signInTitle,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: palette.ink,
-                ),
-              ),
-            ),
-          ],
+        Text(
+          l10n.signInTitle,
+          style: TextStyle(
+            fontFamily: HarajTheme.fontFamily,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: palette.gold,
+          ),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Divider(height: 1, color: palette.navInactive),
-        ),
+        const SizedBox(height: 4),
         if (expired) ...<Widget>[
+          const SizedBox(height: 6),
           _ExpiredNotice(text: l10n.sessionExpiredNotice, palette: palette),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
         ],
         Text(
           l10n.signInIntroFull,
           style: TextStyle(
             fontFamily: HarajTheme.fontFamily,
-            fontSize: 12.5,
+            fontSize: 13,
             color: palette.inkMuted,
-            height: 1.5,
+            height: 1.55,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         SaudiPhoneField(
           controller: _phone,
           label: l10n.signInPhoneLabel,
           boxed: true,
           onChanged: (_) => setState(() {}),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (_sending)
-          const Center(child: CircularProgressIndicator())
+          const SizedBox(
+            height: 52,
+            child: Center(child: CircularProgressIndicator()),
+          )
         else if (_cooldownSeconds > 0)
           CooldownButton(
             label: l10n.signInSendCode,
@@ -271,9 +313,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               disabledBackgroundColor: palette.gold.withValues(alpha: 0.35),
               disabledForegroundColor: Colors.white,
               minimumSize: const Size.fromHeight(52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              shape: const StadiumBorder(),
               textStyle: const TextStyle(
                 fontFamily: HarajTheme.fontFamily,
                 fontWeight: FontWeight.w700,
@@ -294,54 +334,222 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 // أجزاءُ الشاشة.
 // ---------------------------------------------------------------------------
 
-/// بطاقةٌ بيضاء بحدٍّ فاتح — الوعاءُ الواحد لكرت المزاد والدخول والميزات.
-class _Card extends StatelessWidget {
-  const _Card({required this.child, this.padding = const EdgeInsets.all(14)});
+/// ألوانُ التصميم خارج الباليت: الأخضرُ والكهرمانيّ بدرجاتهما في `docs/palette.md`.
+const Color _emerald = Color(0xFF13795F);
+const Color _emeraldSoft = Color(0xFF8FD1BD);
+const Color _emeraldInk = Color(0xFF0B4A3B);
+const Color _amberFill = Color(0xFFFBECC8);
+const Color _amberLine = Color(0xFFE8C88A);
+const Color _amberSolid = Color(0xFFB7791F);
+const Color _amberInk = Color(0xFF6B4508);
 
-  final Widget child;
-  final EdgeInsets padding;
+/// المزادُ المعروض: الجاري إن وُجد، وإلّا القادم، وإلّا لا شيء.
+({AuctionSummary auction, bool live})? _shownAuction(WidgetRef ref) {
+  // `asData` لا `when`: يظهر حين تصل البيانات ويغيب قبلها وعند الفشل.
+  final auctions = ref.watch(homeAuctionsProvider).asData?.value.value;
+  if (auctions == null) return null;
+  if (auctions.running.isNotEmpty) {
+    return (auction: auctions.running.first, live: true);
+  }
+  if (auctions.upcoming.isNotEmpty) {
+    return (auction: auctions.upcoming.first, live: false);
+  }
+  return null;
+}
+
+/// خطوطٌ مائلةٌ خافتة على الكحليّ — تزيينٌ صريح، فلا تلتقط نقرة.
+class _Stripes extends StatelessWidget {
+  const _Stripes();
+
+  @override
+  Widget build(BuildContext context) =>
+      IgnorePointer(child: CustomPaint(painter: _StripesPainter()));
+}
+
+class _StripesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.035)
+      ..strokeWidth = 2;
+    for (var x = -size.height; x < size.width; x += 22) {
+      canvas.drawLine(
+        Offset(x, size.height * 0.55),
+        Offset(x + size.height * 0.55, 0),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StripesPainter oldDelegate) => false;
+}
+
+/// **مضربُ المزايد** — الشعارُ في دائرةٍ بيضاءِ الإطار ومقبضٌ خشبيّ، يطفو
+/// مائلاً، وخلفه حلقتان تتّسعان. وحين `raised` يرتفع ويستقيم: الطلبُ ذهب.
+///
+/// والحركةُ تُطفأ لمن أطفأها في جهازه — المضربُ يبقى ساكناً مائلاً.
+class _Paddle extends StatefulWidget {
+  const _Paddle({required this.raised});
+
+  final bool raised;
+
+  @override
+  State<_Paddle> createState() => _PaddleState();
+}
+
+class _PaddleState extends State<_Paddle> with TickerProviderStateMixin {
+  late final AnimationController _float = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 3200),
+  );
+  late final AnimationController _halo = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _float
+        ..stop()
+        ..value = 0;
+      _halo
+        ..stop()
+        ..value = 0;
+    } else {
+      if (!_float.isAnimating) _float.repeat(reverse: true);
+      if (!_halo.isAnimating) _halo.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _float.dispose();
+    _halo.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Container(
-      padding: padding,
-      decoration: BoxDecoration(
-        color: palette.cardSurface,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: palette.navInactive.withValues(alpha: 0.7)),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: palette.ink.withValues(alpha: 0.05),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
+    final still = MediaQuery.disableAnimationsOf(context);
+    return SizedBox(
+      height: 230,
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: <Widget>[
+          if (!still)
+            for (final phase in const <double>[0, 0.5])
+              Positioned(
+                top: 6,
+                child: AnimatedBuilder(
+                  animation: _halo,
+                  builder: (context, _) {
+                    final t = (_halo.value + phase) % 1;
+                    return Opacity(
+                      opacity: (1 - t) * 0.5,
+                      child: Transform.scale(
+                        scale: 0.8 + t * 0.8,
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: _emeraldSoft, width: 2),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          AnimatedBuilder(
+            animation: _float,
+            builder: (context, child) {
+              final wave = Curves.easeInOut.transform(_float.value);
+              return TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: widget.raised ? 1 : 0),
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutBack,
+                builder: (context, lift, _) {
+                  final tilt = (-10 + wave * 4) * (1 - lift);
+                  return Transform.translate(
+                    offset: Offset(0, -wave * 10 - lift * 22),
+                    child: Transform.rotate(
+                      angle: tilt * math.pi / 180,
+                      alignment: const Alignment(0, 0.8),
+                      child: child,
+                    ),
+                  );
+                },
+              );
+            },
+            child: const _PaddleShape(),
           ),
         ],
       ),
-      child: child,
     );
   }
 }
 
-class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon, required this.palette});
-
-  final IconData icon;
-  final HarajPalette palette;
+class _PaddleShape extends StatelessWidget {
+  const _PaddleShape();
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 34,
-    height: 34,
-    decoration: BoxDecoration(
-      color: palette.gold.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(12),
-    ),
-    child: Icon(icon, size: 18, color: palette.gold),
-  );
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Container(
+          width: 140,
+          height: 140,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: palette.goldDeep,
+            border: Border.all(color: Colors.white, width: 6),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(
+                color: Color(0x59000000),
+                blurRadius: 30,
+                offset: Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/logo.png',
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) =>
+                const Icon(Icons.gavel_rounded, color: Colors.white, size: 48),
+          ),
+        ),
+        Transform.translate(
+          offset: const Offset(0, -4),
+          child: Container(
+            width: 24,
+            height: 74,
+            decoration: const BoxDecoration(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
+              gradient: LinearGradient(
+                colors: <Color>[
+                  _amberLine,
+                  _amberLine,
+                  _amberSolid,
+                  _amberSolid,
+                ],
+                stops: <double>[0, 0.74, 0.74, 1],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-/// زرُّ الإغلاق — يرجع إلى الرئيسية.
+/// زرُّ الإغلاق على الكحليّ — يرجع إلى الرئيسية.
 class _CloseButton extends StatelessWidget {
   const _CloseButton({required this.onClose, required this.tooltip});
 
@@ -350,93 +558,149 @@ class _CloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
     return Material(
-      color: palette.cardSurface,
-      shape: CircleBorder(side: BorderSide(color: palette.navInactive)),
+      color: Colors.white.withValues(alpha: 0.08),
+      shape: CircleBorder(
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.25)),
+      ),
       child: IconButton(
         tooltip: tooltip,
         onPressed: onClose,
-        visualDensity: VisualDensity.compact,
-        icon: Icon(Icons.close_rounded, color: palette.ink, size: 20),
+        icon: const Icon(Icons.close_rounded, color: Colors.white, size: 20),
       ),
     );
   }
 }
 
-/// الشعارُ في دائرةٍ داكنة بإطارٍ أبيض، ثم الاسمُ وسطرُ التعريف — بلا شارة V2
-/// بطلب المالك.
-class _BrandMark extends StatelessWidget {
-  const _BrandMark({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
+/// «المزاد الجاري» وعددُ سيّاراته على الكحليّ، بنقطةٍ تنبض.
+class _LivePill extends ConsumerWidget {
+  const _LivePill();
 
   @override
-  Widget build(BuildContext context) {
-    final palette = HarajPalette.of(context);
-    return Column(
-      children: <Widget>[
-        Container(
-          width: 72,
-          height: 72,
-          padding: const EdgeInsets.all(15),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: <Color>[
-                Color.alphaBlend(
-                  palette.gold.withValues(alpha: 0.25),
-                  palette.heroTop,
-                ),
-                palette.heroBottom,
-              ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final shown = _shownAuction(ref);
+    if (shown == null) return const SizedBox.shrink();
+    final count = shown.auction.vehiclesCount;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          _PulseDot(color: shown.live ? _emeraldSoft : _amberLine),
+          const SizedBox(width: 8),
+          Text(
+            shown.live ? l10n.signInLiveAuction : l10n.signInNextAuction,
+            style: const TextStyle(
+              fontFamily: HarajTheme.fontFamily,
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: <BoxShadow>[
-              BoxShadow(
-                color: palette.ink.withValues(alpha: 0.22),
-                blurRadius: 14,
-                offset: const Offset(0, 6),
+          ),
+          if (count != null) ...<Widget>[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+              decoration: BoxDecoration(
+                color: _emeraldSoft,
+                borderRadius: BorderRadius.circular(999),
               ),
-            ],
-          ),
-          child: Image.asset(
-            'assets/images/logo.png',
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) =>
-                const Icon(Icons.gavel_rounded, color: Colors.white),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: HarajTheme.fontFamily,
-            fontSize: 21,
-            fontWeight: FontWeight.w700,
-            color: palette.ink,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: HarajTheme.fontFamily,
-            fontSize: 13.5,
-            color: palette.inkMuted,
-          ),
-        ),
-      ],
+              child: Text(
+                l10n.signInVehicleCount('$count'),
+                style: const TextStyle(
+                  fontFamily: HarajTheme.fontFamily,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: _emeraldInk,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 
-/// سطرُ «انتهت جلستك» داخل بطاقة الدخول.
+/// نقطةٌ تنبض بحلقةٍ تتّسع وتخبو — وتسكن لمن أطفأ الحركة.
+class _PulseDot extends StatefulWidget {
+  const _PulseDot({required this.color});
+
+  final Color color;
+
+  @override
+  State<_PulseDot> createState() => _PulseDotState();
+}
+
+class _PulseDotState extends State<_PulseDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pulse.stop();
+    } else if (!_pulse.isAnimating) {
+      _pulse.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _pulse,
+    builder: (context, _) => Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: widget.color,
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: widget.color.withValues(alpha: 0.6 * (1 - _pulse.value)),
+            spreadRadius: 6 * _pulse.value,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// الورقةُ الفاتحة التي تصعد من أسفل، بزاويتين علويّتين مستديرتين.
+class _Sheet extends StatelessWidget {
+  const _Sheet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = HarajPalette.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: palette.pageBackground,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// سطرُ «انتهت جلستك» داخل النموذج.
 class _ExpiredNotice extends StatelessWidget {
   const _ExpiredNotice({required this.text, required this.palette});
 
@@ -447,7 +711,7 @@ class _ExpiredNotice extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
-      color: palette.pageBackground,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: palette.navInactive),
     ),
@@ -470,163 +734,162 @@ class _ExpiredNotice extends StatelessWidget {
   );
 }
 
-/// **المزادُ الجاري** — اسمُه وكم سيّارةً فيه وكم بقي على إغلاقه. T947
+/// **المزادُ** باسمه، و«ينتهي بعد:» بخاناتٍ للساعات والدقائق والثواني. T947
 ///
 /// وحين لا مزادَ جارياً يقول متى يبدأ القادم، وحين لا هذا ولا ذاك **لا يُعرَض
-/// شيء**: كرتٌ فارغٌ في بابِ الدخول أسوأُ من لا كرت. والمصدرُ
-/// `homeAuctionsProvider` نفسُه الذي تقرؤه الرئيسيّة.
-///
-/// والتصميمُ يكتب «رقم الجلسة: مزاد 54»، والكرتُ لا يحمل رقمَ المزاد — يحمل
-/// اسمَه («مزاد 54» أصلاً في بيانات v1 المنقولة)، فيُعرض الاسم.
-class _LiveAuctionCard extends ConsumerWidget {
-  const _LiveAuctionCard();
+/// شيء** ولا الفاصلُ تحته: صفٌّ فارغٌ في بابِ الدخول أسوأُ من لا صفّ.
+class _AuctionRow extends ConsumerWidget {
+  const _AuctionRow();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = HarajPalette.of(context);
     final l10n = AppLocalizations.of(context);
-
-    // `asData` لا `when`: الكرتُ يظهر حين تصل البيانات ويغيب قبلها وعند الفشل.
-    final auctions = ref.watch(homeAuctionsProvider).asData?.value.value;
-    if (auctions == null) return const SizedBox.shrink();
-
-    final running = auctions.running.isEmpty ? null : auctions.running.first;
-    final next = auctions.upcoming.isEmpty ? null : auctions.upcoming.first;
-    final shown = running ?? next;
+    final shown = _shownAuction(ref);
     if (shown == null) return const SizedBox.shrink();
-    final live = running != null;
+    final live = shown.live;
+    final at = live ? shown.auction.endsAt : shown.auction.startsAt;
 
-    return _Card(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: live ? const Color(0xFF13795F) : palette.gold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                live ? l10n.signInLiveAuction : l10n.signInNextAuction,
-                style: TextStyle(
-                  fontFamily: HarajTheme.fontFamily,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: palette.ink,
-                ),
-              ),
-              const Spacer(),
-              if (shown.vehiclesCount != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: palette.gold.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: palette.gold.withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: Text(
-                    l10n.signInVehicleCount('${shown.vehiclesCount}'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    l10n.signInSessionLabel,
                     style: TextStyle(
                       fontFamily: HarajTheme.fontFamily,
-                      fontSize: 13,
+                      fontSize: 11.5,
+                      color: palette.inkMuted,
+                    ),
+                  ),
+                  Text(
+                    shown.auction.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: HarajTheme.fontFamily,
+                      fontSize: 15.5,
                       fontWeight: FontWeight.w700,
                       color: palette.gold,
                     ),
                   ),
-                ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Divider(height: 1, color: palette.navInactive),
-          ),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l10n.signInSessionLabel,
-                      style: TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 12,
-                        color: palette.inkMuted,
-                      ),
-                    ),
-                    Text(
-                      shown.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: palette.ink,
-                      ),
-                    ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: <Widget>[
+                Text(
+                  '${live ? l10n.signInEndsIn : l10n.signInStartsIn}:',
+                  style: const TextStyle(
+                    fontFamily: HarajTheme.fontFamily,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF84560C),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFBECC8),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE8C88A)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(
-                      Icons.schedule_rounded,
-                      size: 15,
-                      color: Color(0xFF84560C),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${live ? l10n.signInEndsIn : l10n.signInStartsIn}: ',
-                      style: const TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 12,
-                        color: Color(0xFF84560C),
-                      ),
-                    ),
-                    // العدّادُ نفسُه الذي على كروت الرئيسيّة — لا نسخةٌ ثانية.
-                    CountdownText(
-                      at: live ? shown.endsAt : shown.startsAt,
-                      target: live
-                          ? CountdownTarget.end
-                          : CountdownTarget.start,
-                      digital: true,
-                      style: const TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF6B4508),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 4),
+                _CountdownBoxes(at: at),
+              ],
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Divider(height: 1, color: palette.navInactive),
+        ),
+      ],
+    );
+  }
+}
+
+/// العدّادُ خاناتٍ: الأيّامُ كهرمانيّة، والساعاتُ والدقائقُ كحليّة، والثواني
+/// خضراء. **والحسابُ حسابُ [CountdownText] نفسُه** (`remainingWholeDays`
+/// و`remainingDigits`) — العدُّ لا يُنسخ، الشكلُ وحده يختلف.
+class _CountdownBoxes extends ConsumerStatefulWidget {
+  const _CountdownBoxes({required this.at});
+
+  final DateTime at;
+
+  @override
+  ConsumerState<_CountdownBoxes> createState() => _CountdownBoxesState();
+}
+
+class _CountdownBoxesState extends ConsumerState<_CountdownBoxes> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    final tick = ref.read(countdownTickProvider);
+    if (tick != null) {
+      _ticker = Timer.periodic(tick, (_) => setState(() {}));
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final palette = HarajPalette.of(context);
+    final now = ref.watch(nowProvider)();
+    final remaining = widget.at.toUtc().difference(now.toUtc());
+    final days = remainingWholeDays(remaining);
+    final parts = remainingDigits(remaining).split(':');
+
+    Widget box(String text, Color fill, Color ink) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: HarajTheme.fontFamily,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          color: ink,
+        ),
+      ),
+    );
+    Widget colon() => Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Text(
+        ':',
+        style: TextStyle(fontWeight: FontWeight.w700, color: palette.gold),
+      ),
+    );
+
+    // **`ltr` صراحةً** كما في [CountdownText]: الساعةُ تُقرأ من اليسار.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          if (days != null) ...<Widget>[
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: box(l10n.countdownDaysOnly(days), _amberFill, _amberInk),
+            ),
+            const SizedBox(width: 4),
+          ],
+          box(parts[0], palette.gold, Colors.white),
+          colon(),
+          box(parts[1], palette.gold, Colors.white),
+          colon(),
+          box(parts[2], _emerald, Colors.white),
         ],
       ),
     );
@@ -635,7 +898,8 @@ class _LiveAuctionCard extends ConsumerWidget {
 
 /// ثلاثةُ أسطرٍ تقول ما وراء الباب — **وكلُّها قواعدُ مبنيّةٌ في الخادم**:
 /// المزايدةُ مغلقة، والدخولُ برمزٍ لمرّة (`apps/accounts/otp.py`)، والوديعةُ
-/// تُسترَدّ بطلب (`money.RefundRequest`). عناوينُ بلا شرح — القدرُ الوسط.
+/// تُسترَدّ بطلب (`money.RefundRequest`). لكلٍّ لونُه: الكحليّ والأخضر
+/// والكهرمانيّ.
 class _Assurances extends StatelessWidget {
   const _Assurances();
 
@@ -643,38 +907,43 @@ class _Assurances extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
-    final items = <(IconData, String)>[
-      (Icons.visibility_off_outlined, strings.signInAssuranceSealed),
-      (Icons.key_rounded, strings.signInAssuranceOtp),
-      (Icons.verified_user_outlined, strings.signInAssuranceDeposit),
+    final items = <(IconData, Color, String)>[
+      (
+        Icons.visibility_off_outlined,
+        palette.gold,
+        strings.signInAssuranceSealed,
+      ),
+      (Icons.key_rounded, _emerald, strings.signInAssuranceOtp),
+      (
+        Icons.verified_user_outlined,
+        _amberSolid,
+        strings.signInAssuranceDeposit,
+      ),
     ];
-    return _Card(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Column(
-        children: <Widget>[
-          for (final (icon, text) in items)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                children: <Widget>[
-                  Icon(icon, size: 18, color: palette.gold),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      text,
-                      style: TextStyle(
-                        fontFamily: HarajTheme.fontFamily,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: palette.ink,
-                      ),
+    return Column(
+      children: <Widget>[
+        for (final (icon, colour, text) in items)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: <Widget>[
+                Icon(icon, size: 18, color: colour),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontFamily: HarajTheme.fontFamily,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF35577F),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
