@@ -1034,5 +1034,21 @@
   "vehicleSpecPlateType": "Plate type",
   "@vehicleSpecPlateType": {
     "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
-  }
+  },
+  "appearanceSection": "Appearance",
+  "appearanceLighting": "Lighting",
+  "appearanceLightingHint": "“Auto” follows the device setting, switching with it at night.",
+  "appearanceAuto": "Auto",
+  "appearanceLight": "Light",
+  "appearanceDark": "Dark",
+  "appearanceAccent": "Main color",
+  "appearanceAccentHint": "Colors navigation, buttons and links.",
+  "accentAzure": "Blue",
+  "accentSea": "Sea blue",
+  "accentGold": "Gold",
+  "accentViolet": "Violet",
+  "accentTeal": "Teal",
+  "accentEmerald": "Green",
+  "accentAmber": "Amber",
+  "accentRose": "Rose"
 }

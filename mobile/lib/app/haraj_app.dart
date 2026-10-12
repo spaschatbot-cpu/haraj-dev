@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../presentation/common/glass.dart';
+import 'appearance.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -29,18 +30,20 @@ class HarajApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final appearance = ref.watch(appearanceProvider);
     return MaterialApp.router(
       scaffoldMessengerKey: messengerKey,
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       locale: locale,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      // **فاتحٌ دائماً** بأمر المالك (٢٩ سبتمبر ٢٠٢٦): «الثيم بتاع التطبيق كله
-      // نفس الثيم الفاتح والألوان». كان يتبع الجهاز، فيراه صاحبُ هاتفٍ داكنٍ
-      // بلونٍ غير الذي صُمّم. و`HarajTheme.dark()` باقٍ بلا مستعمل — رجوعُه
-      // سطرٌ واحد هنا.
-      theme: HarajTheme.light(),
-      themeMode: ThemeMode.light,
+      // **من «المظهر» في حسابي** (طلبُ المالك، ١٢ أكتوبر ٢٠٢٦): الإضاءةُ
+      // واللونُ كدرج المظهر في لوحة الموظّفين. والافتراضُ فاتحٌ كحليّ — كان
+      // «فاتحاً دائماً» بأمره (٢٩ سبتمبر) لأن التطبيق كان يتبع الجهاز فيراه
+      // صاحبُ هاتفٍ داكنٍ بلونٍ غير الذي صُمّم؛ فالداكنُ الآن لمن يختاره بيده.
+      theme: HarajTheme.light(appearance.accent),
+      darkTheme: HarajTheme.dark(appearance.accent),
+      themeMode: appearance.mode,
       routerConfig: ref.watch(routerProvider),
       builder: (context, child) =>
           GlassBackdrop(child: child ?? const SizedBox.shrink()),

@@ -1721,4 +1721,53 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vehicleSpecPlateType => 'Plate type';
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get appearanceLighting => 'Lighting';
+
+  @override
+  String get appearanceLightingHint =>
+      '“Auto” follows the device setting, switching with it at night.';
+
+  @override
+  String get appearanceAuto => 'Auto';
+
+  @override
+  String get appearanceLight => 'Light';
+
+  @override
+  String get appearanceDark => 'Dark';
+
+  @override
+  String get appearanceAccent => 'Main color';
+
+  @override
+  String get appearanceAccentHint => 'Colors navigation, buttons and links.';
+
+  @override
+  String get accentAzure => 'Blue';
+
+  @override
+  String get accentSea => 'Sea blue';
+
+  @override
+  String get accentGold => 'Gold';
+
+  @override
+  String get accentViolet => 'Violet';
+
+  @override
+  String get accentTeal => 'Teal';
+
+  @override
+  String get accentEmerald => 'Green';
+
+  @override
+  String get accentAmber => 'Amber';
+
+  @override
+  String get accentRose => 'Rose';
 }

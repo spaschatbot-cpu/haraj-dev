@@ -184,6 +184,7 @@ class _GoldNavigationBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = HarajPalette.of(context);
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     // العائمُ يحمل حاشيةَ الجهاز في هامشه لا في داخله: الخطُّ السفليّ في
     // الآيفون يقع تحت الشريط لا داخله.
@@ -225,10 +226,15 @@ class _GoldNavigationBar extends StatelessWidget {
                   // الحافّتين المتقابلتين تفترقان في الإضاءة.
                   // **زجاجٌ أبيض مصنفر** (٣ أكتوبر ٢٠٢٦) — كان أبيضَ مصمتاً، وقبله
                   // بيبي بلو ثم كحليّاً. الطمسُ من `BackdropFilter` فوقه.
-                  color: Colors.white.withValues(alpha: 0.6),
+                  // وفي الداكن زجاجٌ داكن — انظر [GlassPanel].
+                  color: dark
+                      ? palette.cardSurface.withValues(alpha: 0.86)
+                      : Colors.white.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(_radius),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.8),
+                    color: dark
+                        ? palette.navInactive.withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 child: Stack(

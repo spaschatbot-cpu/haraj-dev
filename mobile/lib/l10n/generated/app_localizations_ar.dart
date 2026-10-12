@@ -1718,4 +1718,53 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get vehicleSpecPlateType => 'نوع اللوحة';
+
+  @override
+  String get appearanceSection => 'المظهر';
+
+  @override
+  String get appearanceLighting => 'الإضاءة';
+
+  @override
+  String get appearanceLightingHint =>
+      '«تلقائي» يتبع إعداد الجهاز، فيقلب معه في الليل.';
+
+  @override
+  String get appearanceAuto => 'تلقائي';
+
+  @override
+  String get appearanceLight => 'فاتح';
+
+  @override
+  String get appearanceDark => 'داكن';
+
+  @override
+  String get appearanceAccent => 'اللون الأساسي';
+
+  @override
+  String get appearanceAccentHint => 'يلوّن التنقّل والأزرار والروابط.';
+
+  @override
+  String get accentAzure => 'أزرق';
+
+  @override
+  String get accentSea => 'أزرق بحري';
+
+  @override
+  String get accentGold => 'ذهبي';
+
+  @override
+  String get accentViolet => 'بنفسجي';
+
+  @override
+  String get accentTeal => 'فيروزي';
+
+  @override
+  String get accentEmerald => 'أخضر';
+
+  @override
+  String get accentAmber => 'كهرماني';
+
+  @override
+  String get accentRose => 'وردي';
 }

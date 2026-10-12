@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/appearance.dart';
 import '../../app/router.dart';
 import '../../app/theme.dart';
 import '../../domain/common/failure.dart';
@@ -180,7 +181,9 @@ class _ProfileBody extends ConsumerWidget {
 
         const SizedBox(height: 20),
 
-        // محدّد اللغة ثم مواقع التواصل — فوتر الصفحة على موكاب المالك.
+        // «المظهر» ثمّ محدّدُ اللغة ثمّ مواقعُ التواصل — فوتر الصفحة.
+        _AppearanceCard(l10n: l10n),
+        const SizedBox(height: 16),
         _LanguageSelector(l10n: l10n),
         const SizedBox(height: 24),
         const _SocialRow(),
@@ -907,6 +910,163 @@ class _SocialRow extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// **«المظهر»** — الإضاءةُ واللونُ الأساسيّ، كدرج المظهر في لوحة الموظّفين
+/// بعناوينه وخياراته وألوانه الثمانية (طلبُ المالك، ١٢ أكتوبر ٢٠٢٦). يُحفظ
+/// على الجهاز ويتبدّل التطبيقُ كلُّه في الحال.
+class _AppearanceCard extends ConsumerWidget {
+  const _AppearanceCard({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = HarajPalette.of(context);
+    final look = ref.watch(appearanceProvider);
+    final controller = ref.read(appearanceProvider.notifier);
+
+    TextStyle heading(double size) => TextStyle(
+      fontFamily: HarajTheme.fontFamily,
+      fontSize: size,
+      fontWeight: FontWeight.w700,
+      color: palette.ink,
+    );
+    final hint = TextStyle(
+      fontFamily: HarajTheme.fontFamily,
+      fontSize: 12,
+      color: palette.inkMuted,
+      height: 1.5,
+    );
+
+    final modes = <(ThemeMode, String)>[
+      (ThemeMode.system, l10n.appearanceAuto),
+      (ThemeMode.light, l10n.appearanceLight),
+      (ThemeMode.dark, l10n.appearanceDark),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _glassCard(palette),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(l10n.appearanceSection, style: heading(16)),
+          const SizedBox(height: 14),
+          Text(l10n.appearanceLighting, style: heading(14)),
+          const SizedBox(height: 2),
+          Text(l10n.appearanceLightingHint, style: hint),
+          const SizedBox(height: 10),
+          Row(
+            children: <Widget>[
+              for (var i = 0; i < modes.length; i++) ...<Widget>[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: _LanguageChip(
+                    name: modes[i].$2,
+                    active: look.mode == modes[i].$1,
+                    palette: palette,
+                    onTap: () => controller.setMode(modes[i].$1),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(l10n.appearanceAccent, style: heading(14)),
+          const SizedBox(height: 2),
+          Text(l10n.appearanceAccentHint, style: hint),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: <Widget>[
+              for (final accent in HarajAccent.values)
+                _AccentSwatch(
+                  accent: accent,
+                  label: _accentName(l10n, accent),
+                  selected: look.accent == accent,
+                  ring: palette.ink,
+                  onTap: () => controller.setAccent(accent),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _accentName(AppLocalizations l10n, HarajAccent accent) =>
+      switch (accent) {
+        HarajAccent.azure => l10n.accentAzure,
+        HarajAccent.sea => l10n.accentSea,
+        HarajAccent.gold => l10n.accentGold,
+        HarajAccent.violet => l10n.accentViolet,
+        HarajAccent.teal => l10n.accentTeal,
+        HarajAccent.emerald => l10n.accentEmerald,
+        HarajAccent.amber => l10n.accentAmber,
+        HarajAccent.rose => l10n.accentRose,
+      };
+}
+
+/// عيّنةُ لون: دائرةٌ بلونها، والمختارةُ بحلقةٍ حولها وعلامةِ صحّ — والاسمُ
+/// للقارئ الآليّ ولمن يضغط مطوّلاً، كـ`title` في اللوحة.
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    required this.accent,
+    required this.label,
+    required this.selected,
+    required this.ring,
+    required this.onTap,
+  });
+
+  final HarajAccent accent;
+  final String label;
+  final bool selected;
+  final Color ring;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // الكحليُّ عيّنتُه درجتُه الغامقة كما في اللوحة (`#1e3a5f`)، والبقيّةُ
+    // درجتُها الوسطى — الغامقةُ منها تتشابه في دائرةٍ صغيرة.
+    final colour = accent == HarajAccent.azure ? accent.a700 : accent.a500;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: Tooltip(
+        message: label,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 26,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 44,
+            height: 44,
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected ? ring : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(shape: BoxShape.circle, color: colour),
+              child: selected
+                  ? const Icon(
+                      Icons.check_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -79,7 +79,7 @@ class _RichHero extends StatelessWidget {
 
     return DecoratedBox(
       // خلفٌ فاتحٌ يظهر لو تعذّرت الصورة، وتحت حوافّها الشفّافة.
-      decoration: const BoxDecoration(color: HarajSky.top),
+      decoration: BoxDecoration(color: palette.sky),
       child: Stack(
         children: <Widget>[
           // الصورةُ خلفيّةً كاملة.
@@ -101,9 +101,9 @@ class _RichHero extends StatelessWidget {
                   begin: Alignment.centerRight,
                   end: Alignment.centerLeft,
                   colors: <Color>[
-                    HarajSky.top.withValues(alpha: 0.94),
-                    HarajSky.top.withValues(alpha: 0.7),
-                    HarajSky.top.withValues(alpha: 0.05),
+                    palette.sky.withValues(alpha: 0.94),
+                    palette.sky.withValues(alpha: 0.7),
+                    palette.sky.withValues(alpha: 0.05),
                   ],
                   stops: const <double>[0, 0.5, 0.95],
                 ),
@@ -117,8 +117,8 @@ class _RichHero extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: <Color>[
-                    HarajSky.top.withValues(alpha: 0.75),
-                    HarajSky.top.withValues(alpha: 0),
+                    palette.sky.withValues(alpha: 0.75),
+                    palette.sky.withValues(alpha: 0),
                   ],
                   stops: const <double>[0, 0.4],
                 ),

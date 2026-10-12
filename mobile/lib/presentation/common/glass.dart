@@ -116,13 +116,20 @@ class GlassPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // **في الداكن زجاجٌ داكن** لا أبيض: بياضٌ فوق صفحةٍ سوداء يصير شريطاً
+    // رماديّاً ساطعاً تذوب عليه أسماءُ الأقسام الفاتحة — قِيس حين أُضيف
+    // «المظهر» (١٢ أكتوبر ٢٠٢٦). ولونُه سطحُ البطاقة الداكن، بعتمةٍ أكبر.
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final glass = dark
+        ? HarajPalette.of(context).cardSurface.withValues(alpha: 0.82)
+        : Colors.white.withValues(alpha: tint);
     return ClipRRect(
       borderRadius: borderRadius,
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: tint),
+            color: glass,
             borderRadius: borderRadius,
             border: border,
           ),

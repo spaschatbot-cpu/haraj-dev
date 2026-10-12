@@ -29,6 +29,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     required this.timerBadge,
     required this.pillTop,
     required this.pillBottom,
+    required this.sky,
   });
 
   /// الذهبيّ: لونُ الأيقونة المختارة، والحدُّ حول ما هو تفاعليّ.
@@ -117,6 +118,11 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
   final Color pillTop;
   final Color pillBottom;
 
+  /// أرضيّةُ رأس الرئيسية الفاتحة («البيبي بلو») — من اللون الأساسيّ المختار،
+  /// وفي الداكن كحليٌّ عميقٌ لا سماءٌ ساطعةٌ فوق صفحةٍ سوداء. كانت ثابتاً في
+  /// [HarajSky] فبقيت زرقاءَ حين يختار العميلُ لوناً آخر.
+  final Color sky;
+
   @override
   HarajPalette copyWith({
     Color? gold,
@@ -134,6 +140,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     Color? timerBadge,
     Color? pillTop,
     Color? pillBottom,
+    Color? sky,
   }) => HarajPalette(
     gold: gold ?? this.gold,
     goldDeep: goldDeep ?? this.goldDeep,
@@ -150,6 +157,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     timerBadge: timerBadge ?? this.timerBadge,
     pillTop: pillTop ?? this.pillTop,
     pillBottom: pillBottom ?? this.pillBottom,
+    sky: sky ?? this.sky,
   );
 
   @override
@@ -171,6 +179,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
       timerBadge: Color.lerp(timerBadge, other.timerBadge, t)!,
       pillTop: Color.lerp(pillTop, other.pillTop, t)!,
       pillBottom: Color.lerp(pillBottom, other.pillBottom, t)!,
+      sky: Color.lerp(sky, other.sky, t)!,
     );
   }
 
@@ -204,6 +213,7 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     timerBadge: Color(0xFF11624F),
     pillTop: Color(0xFF1E3A5F),
     pillBottom: Color(0xFF13233F),
+    sky: HarajSky.top,
   );
 
   /// في الوضع الداكن تنقلب الأرضيّة ويُرفع الذهبيّ: نفس النسبة على خلفيّةٍ
@@ -227,7 +237,127 @@ class HarajPalette extends ThemeExtension<HarajPalette> {
     timerBadge: Color(0xFF1B5540),
     pillTop: Color(0xFF27466B),
     pillBottom: Color(0xFF15293D),
+    sky: Color(0xFF0B1826),
   );
+}
+
+/// **اللونُ الأساسيّ** — الثمانيةُ نفسُها التي في درج «المظهر» بلوحة
+/// الموظّفين (`theme.js` و`app.css`، كتلُ `data-accent`)، بقيمها: طلبُ المالك
+/// (١٢ أكتوبر ٢٠٢٦) «نفس الحتّة اللي في الويب». والافتراضُ `azure`، وقيمُه
+/// في اللوحة هي الباليت «ج» نفسُها — فمن لم يختر شيئاً يرى التطبيقَ كما كان.
+///
+/// خمسُ درجاتٍ لكلّ لون، أسماؤها أسماءُ اللوحة: `a700` نصٌّ وزرٌّ على الأبيض،
+/// و`dim` طرفُ التدرّج الداكن، و`a500` حدٌّ ووهج، و`a300` اللونُ على الداكن،
+/// و`a050` أرضيّةٌ فاتحة.
+enum HarajAccent {
+  azure(
+    Color(0xFF1E3A5F),
+    Color(0xFF13233F),
+    Color(0xFF4F74A0),
+    Color(0xFFB9CDE4),
+    Color(0xFFEEF3F9),
+  ),
+  sea(
+    Color(0xFF0B6F97),
+    Color(0xFF0C2836),
+    Color(0xFF1F97C4),
+    Color(0xFF7ECFE9),
+    Color(0xFFE2F3FB),
+  ),
+  gold(
+    Color(0xFF6D5209),
+    Color(0xFF2B2308),
+    Color(0xFFA88118),
+    Color(0xFFD9B45C),
+    Color(0xFFFAF2DD),
+  ),
+  violet(
+    Color(0xFF6127C4),
+    Color(0xFF221A3D),
+    Color(0xFF8B5CF6),
+    Color(0xFFBDA6F4),
+    Color(0xFFF1ECFD),
+  ),
+  teal(
+    Color(0xFF0C766E),
+    Color(0xFF0B2C2A),
+    Color(0xFF159E95),
+    Color(0xFF6ED2CA),
+    Color(0xFFE2F5F3),
+  ),
+  emerald(
+    Color(0xFF077547),
+    Color(0xFF0A2C1E),
+    Color(0xFF109D5F),
+    Color(0xFF74D5A7),
+    Color(0xFFE6F6EE),
+  ),
+  amber(
+    Color(0xFF8F5D09),
+    Color(0xFF2E2410),
+    Color(0xFFBC7A0D),
+    Color(0xFFF2C96F),
+    Color(0xFFFDF2DA),
+  ),
+  rose(
+    Color(0xFFB0113A),
+    Color(0xFF2E1119),
+    Color(0xFFEF4463),
+    Color(0xFFF5A0AF),
+    Color(0xFFFDEAEE),
+  );
+
+  const HarajAccent(this.a700, this.dim, this.a500, this.a300, this.a050);
+
+  final Color a700;
+  final Color dim;
+  final Color a500;
+  final Color a300;
+  final Color a050;
+
+  /// قيمةٌ مخزَّنة لا تطابق لوناً تسقط إلى الافتراض — كـ`ALLOWED` في `theme.js`.
+  static HarajAccent parse(String? name) => HarajAccent.values.firstWhere(
+    (accent) => accent.name == name,
+    orElse: () => HarajAccent.azure,
+  );
+
+  /// الباليتُ بهذا اللون: يتبدّل **اللونُ المميِّز وحدَه** — الأيقونةُ المختارة
+  /// والأزرارُ والهيدرُ والتدرّج. والحبرُ والأرضيّةُ والبطاقاتُ وأخضرُ العدّاد
+  /// تبقى، كما في اللوحة: «ألوانُ البطاقات… تصنيفٌ لا زينة».
+  HarajPalette palette(Brightness brightness) {
+    if (brightness == Brightness.dark) {
+      // **الدرجةُ الوسطى لا الفاتحة** على الداكن: `gold` لونُ الأزرار بنصٍّ
+      // أبيض كما هو لونُ الأيقونة المختارة، والفاتحةُ تحت الأبيض لا تُقرأ —
+      // قِيس في «المظهر» نفسه. والوسطى ما تستعمله اللوحةُ في داكنها. والكحليُّ
+      // وسطُه غامقٌ على الأسود، فيأخذ أزرقَ الداكن الأصليّ الأوسط (`#3E8BD8`).
+      final mid = this == HarajAccent.azure ? const Color(0xFF3E8BD8) : a500;
+      return HarajPalette._dark.copyWith(
+        gold: mid,
+        goldDeep: a300,
+        goldMuted: mid.withValues(alpha: 0.18),
+        goldOnDark: Color.lerp(a300, Colors.white, 0.35),
+        heroTop: Color.lerp(dim, const Color(0xFF0B1826), 0.4),
+        heroBottom: const Color(0xFF040A11),
+        heroGlow: a500,
+        pillTop: a700,
+        pillBottom: dim,
+        sky: Color.lerp(dim, const Color(0xFF0B1826), 0.4),
+      );
+    }
+    if (this == HarajAccent.azure) return HarajPalette._light;
+    return HarajPalette._light.copyWith(
+      gold: a700,
+      goldDeep: dim,
+      goldMuted: a700.withValues(alpha: 0.14),
+      goldOnDark: a300,
+      heroTop: a700,
+      heroBottom: dim,
+      heroGlow: a500,
+      pillTop: a700,
+      pillBottom: dim,
+      sky: a050,
+    );
+  }
 }
 
 /// **البيبي بلو** — أرضيّةُ رأس الرئيسية وشريطِ الأقسام السفليّ.
@@ -257,23 +387,25 @@ abstract final class HarajTheme {
     'Arial',
   ];
 
-  static ThemeData light() => _build(Brightness.light);
+  static ThemeData light([HarajAccent accent = HarajAccent.azure]) =>
+      _build(Brightness.light, accent);
 
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData dark([HarajAccent accent = HarajAccent.azure]) =>
+      _build(Brightness.dark, accent);
 
-  static ThemeData _build(Brightness brightness) {
+  static ThemeData _build(Brightness brightness, HarajAccent accent) {
+    // **البذرةُ من اللون المختار** لا كحليٌّ ثابت: أزرارُ Material ومؤشّراتُها
+    // ومفاتيحُها تُشتقّ منها، فتتبع اللونَ مع بقيّة التطبيق.
     final base = ThemeData(
       brightness: brightness,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1E3A5F),
+        seedColor: accent.a700,
         brightness: brightness,
       ),
       useMaterial3: true,
     );
 
-    final palette = brightness == Brightness.dark
-        ? HarajPalette._dark
-        : HarajPalette._light;
+    final palette = accent.palette(brightness);
 
     return base.copyWith(
       // أرضيّةُ الصفحة كريميّة في كل شاشة، لا في الرئيسية وحدها: شاشتان

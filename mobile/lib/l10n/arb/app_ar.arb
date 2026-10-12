@@ -1675,5 +1675,21 @@
   "vehicleSpecPlateType": "نوع اللوحة",
   "@vehicleSpecPlateType": {
     "description": "مواصفات المركبة كما في نافذة v1 (specsModal)"
-  }
+  },
+  "appearanceSection": "المظهر",
+  "appearanceLighting": "الإضاءة",
+  "appearanceLightingHint": "«تلقائي» يتبع إعداد الجهاز، فيقلب معه في الليل.",
+  "appearanceAuto": "تلقائي",
+  "appearanceLight": "فاتح",
+  "appearanceDark": "داكن",
+  "appearanceAccent": "اللون الأساسي",
+  "appearanceAccentHint": "يلوّن التنقّل والأزرار والروابط.",
+  "accentAzure": "أزرق",
+  "accentSea": "أزرق بحري",
+  "accentGold": "ذهبي",
+  "accentViolet": "بنفسجي",
+  "accentTeal": "فيروزي",
+  "accentEmerald": "أخضر",
+  "accentAmber": "كهرماني",
+  "accentRose": "وردي"
 }

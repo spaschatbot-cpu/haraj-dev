@@ -3019,6 +3019,102 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'نوع اللوحة'**
   String get vehicleSpecPlateType;
+
+  /// No description provided for @appearanceSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'المظهر'**
+  String get appearanceSection;
+
+  /// No description provided for @appearanceLighting.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإضاءة'**
+  String get appearanceLighting;
+
+  /// No description provided for @appearanceLightingHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'«تلقائي» يتبع إعداد الجهاز، فيقلب معه في الليل.'**
+  String get appearanceLightingHint;
+
+  /// No description provided for @appearanceAuto.
+  ///
+  /// In ar, this message translates to:
+  /// **'تلقائي'**
+  String get appearanceAuto;
+
+  /// No description provided for @appearanceLight.
+  ///
+  /// In ar, this message translates to:
+  /// **'فاتح'**
+  String get appearanceLight;
+
+  /// No description provided for @appearanceDark.
+  ///
+  /// In ar, this message translates to:
+  /// **'داكن'**
+  String get appearanceDark;
+
+  /// No description provided for @appearanceAccent.
+  ///
+  /// In ar, this message translates to:
+  /// **'اللون الأساسي'**
+  String get appearanceAccent;
+
+  /// No description provided for @appearanceAccentHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يلوّن التنقّل والأزرار والروابط.'**
+  String get appearanceAccentHint;
+
+  /// No description provided for @accentAzure.
+  ///
+  /// In ar, this message translates to:
+  /// **'أزرق'**
+  String get accentAzure;
+
+  /// No description provided for @accentSea.
+  ///
+  /// In ar, this message translates to:
+  /// **'أزرق بحري'**
+  String get accentSea;
+
+  /// No description provided for @accentGold.
+  ///
+  /// In ar, this message translates to:
+  /// **'ذهبي'**
+  String get accentGold;
+
+  /// No description provided for @accentViolet.
+  ///
+  /// In ar, this message translates to:
+  /// **'بنفسجي'**
+  String get accentViolet;
+
+  /// No description provided for @accentTeal.
+  ///
+  /// In ar, this message translates to:
+  /// **'فيروزي'**
+  String get accentTeal;
+
+  /// No description provided for @accentEmerald.
+  ///
+  /// In ar, this message translates to:
+  /// **'أخضر'**
+  String get accentEmerald;
+
+  /// No description provided for @accentAmber.
+  ///
+  /// In ar, this message translates to:
+  /// **'كهرماني'**
+  String get accentAmber;
+
+  /// No description provided for @accentRose.
+  ///
+  /// In ar, this message translates to:
+  /// **'وردي'**
+  String get accentRose;
 }
 
 class _AppLocalizationsDelegate
