@@ -662,6 +662,15 @@ PAGES: tuple[Page, ...] = (
         "",
         parent="console:settings",
     ),
+    #: مظهرُ تطبيق الجوّال لكلّ العملاء — يُفتح من «الإعدادات». خلف «إدارة
+    #: المحتوى» كشريط الأخبار: كتابةٌ تخرج إلى كلّ عميل.
+    Page(
+        "console:app-look",
+        "مظهر التطبيق",
+        Capability.CONTENT_MANAGE,
+        "",
+        parent="console:settings",
+    ),
     # ---- شريك التسويق — بترتيب v1 وأسمائه ----------------------------------
     Page(
         "console:partner-console",

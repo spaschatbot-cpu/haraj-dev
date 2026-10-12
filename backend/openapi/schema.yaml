@@ -3,6 +3,32 @@ info:
   title: Haraj One API
   version: 2.0.0
 paths:
+  /api/v1/appearance/:
+    get:
+      operationId: appearance_retrieve
+      description: |-
+        `GET /api/v1/appearance/` — اللونُ والإضاءةُ وهل يغيّرهما العميل.
+
+        **بلا دخول**: شاشةُ البدء والترحيب تُرسَمان قبل أن يدخل أحد، ومظهرُهما
+        من هنا. ولا شيءَ فيه يخصّ عميلاً — إعدادٌ واحدٌ للجميع.
+      summary: مظهر التطبيق
+      tags:
+      - appearance
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppAppearance'
+          description: ''
+        default:
+          description: رفضٌ أو خطأ، بالغلاف الموحَّد.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorEnvelope'
   /api/v1/auctions/:
     get:
       operationId: auctions_list
@@ -1855,6 +1881,39 @@ paths:
                 $ref: '#/components/schemas/ApiErrorEnvelope'
 components:
   schemas:
+    AccentEnum:
+      enum:
+      - azure
+      - sea
+      - gold
+      - violet
+      - teal
+      - emerald
+      - amber
+      - rose
+      type: string
+      description: |-
+        * `azure` - أزرق
+        * `sea` - أزرق بحري
+        * `gold` - ذهبي
+        * `violet` - بنفسجي
+        * `teal` - فيروزي
+        * `emerald` - أخضر
+        * `amber` - كهرماني
+        * `rose` - وردي
+    AppAppearance:
+      type: object
+      properties:
+        accent:
+          $ref: '#/components/schemas/AccentEnum'
+        mode:
+          $ref: '#/components/schemas/ModeEnum'
+        customers_choose:
+          type: boolean
+      required:
+      - accent
+      - customers_choose
+      - mode
     AuctionCard:
       type: object
       description: The auction row, as `cards.auction_card` builds it.
@@ -2468,6 +2527,16 @@ components:
       required:
       - field
       - reason
+    ModeEnum:
+      enum:
+      - light
+      - dark
+      - auto
+      type: string
+      description: |-
+        * `light` - فاتح
+        * `dark` - داكن
+        * `auto` - تلقائي — يتبع الجهاز
     NationalId:
       type: object
       description: |-

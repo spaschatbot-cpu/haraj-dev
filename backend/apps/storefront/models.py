@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Coalesce
@@ -300,3 +301,71 @@ class Package(models.Model):
         في نصفه.
         """
         return cls.objects.filter(is_active=True)
+
+
+class AppAppearance(models.Model):
+    """مظهرُ تطبيق الجوّال لكلّ العملاء — صفٌّ واحدٌ يُحرَّر من اللوحة.
+
+    طلبُ المالك (١٣ أكتوبر ٢٠٢٦): بعد أن صار في «حسابي» قسمُ «المظهر» يختار
+    منه كلُّ عميلٍ لونَه وإضاءتَه على هاتفه، سأل «ومين يقدر يتحكّم فيها؟» —
+    فالإدارةُ تحدّد **اللونَ والإضاءةَ الافتراضيّين** لمن لم يختر، وتقرّر هل
+    يُسمح للعميل أن يغيّرهما أصلاً.
+
+    **صفٌّ واحد** كحساب الشركة البنكيّ (`CompanyBankAccount`): مظهرٌ واحدٌ
+    للتطبيق، وصفّان سؤالٌ «أيّهما؟» بلا جواب. وقبل أوّل حفظٍ لا صفّ، و
+    `app_appearance()` تُرجع ما كان التطبيقُ عليه: فاتحٌ كحليّ والعميلُ يختار.
+
+    والقيمُ أسماءُ درج «المظهر» في اللوحة (`theme.js`) نفسُها، والتطبيقُ يقرؤها
+    بها (`HarajAccent.parse`) — اسمٌ لا يعرفه يسقط فيه إلى الكحليّ.
+    """
+
+    class Accent(models.TextChoices):
+        AZURE = "azure", "أزرق"
+        SEA = "sea", "أزرق بحري"
+        GOLD = "gold", "ذهبي"
+        VIOLET = "violet", "بنفسجي"
+        TEAL = "teal", "فيروزي"
+        EMERALD = "emerald", "أخضر"
+        AMBER = "amber", "كهرماني"
+        ROSE = "rose", "وردي"
+
+    class Mode(models.TextChoices):
+        LIGHT = "light", "فاتح"
+        DARK = "dark", "داكن"
+        AUTO = "auto", "تلقائي — يتبع الجهاز"
+
+    singleton = models.BooleanField(default=True, unique=True, editable=False)
+    accent = models.CharField(
+        "اللون الأساسي", max_length=16, choices=Accent.choices, default=Accent.AZURE
+    )
+    mode = models.CharField(
+        "الإضاءة", max_length=8, choices=Mode.choices, default=Mode.LIGHT
+    )
+    customers_choose = models.BooleanField(
+        "العميل يغيّر المظهر من حسابه",
+        default=True,
+        help_text="إن أُطفئ غاب قسمُ «المظهر» من التطبيق، ورأى الجميعُ ما يُختار هنا.",
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "مظهر التطبيق"
+        verbose_name_plural = "مظهر التطبيق"
+
+    def __str__(self) -> str:
+        return f"{self.accent} · {self.mode}"
+
+
+def app_appearance() -> dict:
+    """ما يعرضه التطبيق: الصفُّ إن حُفظ، وإلّا ما كان عليه قبل هذه الشاشة."""
+    row = AppAppearance.objects.first()
+    if row is None:
+        return {"accent": "azure", "mode": "light", "customers_choose": True}
+    return {
+        "accent": row.accent,
+        "mode": row.mode,
+        "customers_choose": row.customers_choose,
+    }

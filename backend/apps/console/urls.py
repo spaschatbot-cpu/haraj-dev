@@ -12,6 +12,7 @@ from . import (
     after_sales,
     alerts,
     analytics,
+    app_look,
     archive,
     auction_moves,
     auction_quick,
@@ -149,6 +150,7 @@ urlpatterns = [
     ),
     path("bids/<int:pk>/void/", bids.bid_void, name="bid-void"),
     path("settings/bank-account/", staff.bank_account, name="bank-account"),
+    path("settings/app-look/", app_look.app_look, name="app-look"),
     path("bids/accepted/", decisions.accepted_bids, name="accepted-bids"),
     path(
         "bids/accepted/<int:pk>/invoice/",

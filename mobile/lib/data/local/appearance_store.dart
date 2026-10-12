@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// اختيارُ «المظهر» على هذا الجهاز: الإضاءةُ واللونُ الأساسيّ.
+/// «المظهر» على هذا الجهاز: ما اختاره العميل، وآخرُ ما قالته الإدارة.
 ///
-/// **تفضيلُ جهازٍ لا تفضيلُ حساب** — حجّةُ لوحة الموظّفين نفسُها (`theme.js`):
-/// العميلُ يريد الداكنَ على هاتفه ليلاً ولا يريده على جهازٍ آخر، وحفظُه في
-/// الخادم حقلٌ وهجرةٌ وطلبُ كتابةٍ عند كلّ نقرةٍ على عيّنة لون. ويبقى بعد
+/// **اختيارُ العميل تفضيلُ جهازٍ لا تفضيلُ حساب** — حجّةُ لوحة الموظّفين نفسُها
+/// (`theme.js`): يريد الداكنَ على هاتفه ليلاً ولا يريده على جهازٍ آخر. ويبقى بعد
 /// الخروج من الحساب، كما يبقى في اللوحة.
+///
+/// **ومظهرُ الإدارة يُحفظ هنا أيضاً** (`GET /api/v1/appearance/`): التطبيقُ
+/// يُفتح بلا شبكةٍ أحياناً، وبلا نسخةٍ محفوظةٍ كان سيُرسم كحليّاً ثمّ يقلب إلى
+/// لون الإدارة حين يصل الجواب — أو يبقى كحليّاً حتى تعود الشبكة.
 ///
 /// **في التخزين الآمن** لأنه التخزينُ الدائم الوحيد في التبعيّات — كعلم
 /// الترحيب في [OnboardingStore]، وبالمساحة نفسِها.
@@ -21,28 +24,39 @@ final class AppearanceStore {
 
   static const String _schemeKey = 'haraj.look.scheme';
   static const String _accentKey = 'haraj.look.accent';
+  static const String _serverKey = 'haraj.look.server';
 
   final FlutterSecureStorage _storage;
 
-  /// تخزينٌ لا يجيب يُقرأ «لم يُختَر شيء» — التطبيقُ بمظهره الافتراضيّ أهونُ
-  /// من شاشة بدءٍ معلّقة.
-  Future<({String? scheme, String? accent})> read() async {
+  /// اختيارُ العميل — كلُّ مفتاحٍ وحدَه: من غيّر اللونَ ولم يلمس الإضاءة تبقى
+  /// إضاءتُه ما تقوله الإدارة.
+  Future<({String? scheme, String? accent})> readChoice() async =>
+      (scheme: await _read(_schemeKey), accent: await _read(_accentKey));
+
+  Future<void> writeScheme(String scheme) => _write(_schemeKey, scheme);
+
+  Future<void> writeAccent(String accent) => _write(_accentKey, accent);
+
+  /// آخرُ مظهرٍ قالته الإدارة، سطراً واحداً: `accent|mode|1` أو `…|0`.
+  Future<String?> readServer() => _read(_serverKey);
+
+  Future<void> writeServer(String line) => _write(_serverKey, line);
+
+  /// تخزينٌ لا يجيب يُقرأ «لا شيء محفوظ» — التطبيقُ بمظهره الافتراضيّ أهونُ من
+  /// شاشة بدءٍ معلّقة.
+  Future<String?> _read(String key) async {
     try {
-      return (
-        scheme: await _storage.read(key: _schemeKey),
-        accent: await _storage.read(key: _accentKey),
-      );
+      return await _storage.read(key: key);
     } on Object {
-      return (scheme: null, accent: null);
+      return null;
     }
   }
 
-  Future<void> write({required String scheme, required String accent}) async {
+  Future<void> _write(String key, String value) async {
     try {
-      await _storage.write(key: _schemeKey, value: scheme);
-      await _storage.write(key: _accentKey, value: accent);
+      await _storage.write(key: key, value: value);
     } on Object {
-      // فشلُ الحفظ لا يُلغي الاختيار: يبقى حتى يُغلق التطبيق ويرجع بعدها.
+      // فشلُ الحفظ لا يُلغي الاختيار: يبقى حتى يُغلق التطبيق.
     }
   }
 }

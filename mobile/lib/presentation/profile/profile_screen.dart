@@ -183,7 +183,6 @@ class _ProfileBody extends ConsumerWidget {
 
         // «المظهر» ثمّ محدّدُ اللغة ثمّ مواقعُ التواصل — فوتر الصفحة.
         _AppearanceCard(l10n: l10n),
-        const SizedBox(height: 16),
         _LanguageSelector(l10n: l10n),
         const SizedBox(height: 24),
         const _SocialRow(),
@@ -927,6 +926,9 @@ class _AppearanceCard extends ConsumerWidget {
     final palette = HarajPalette.of(context);
     final look = ref.watch(appearanceProvider);
     final controller = ref.read(appearanceProvider.notifier);
+    // **الإدارةُ أطفأت اختيارَ العميل** («مظهر التطبيق» في اللوحة): القسمُ
+    // يغيب ولا يُعرض معطَّلاً — خياراتٌ لا تُضغط تقول «عطل» لا «قرار».
+    if (!look.customersChoose) return const SizedBox.shrink();
 
     TextStyle heading(double size) => TextStyle(
       fontFamily: HarajTheme.fontFamily,
@@ -948,6 +950,7 @@ class _AppearanceCard extends ConsumerWidget {
     ];
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: _glassCard(palette),
       child: Column(

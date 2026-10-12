@@ -13653,3 +13653,31 @@ main table { animation: palette-rise 360ms cubic-bezier(.22, 1, .36, 1) both; }
 @media (max-width: 40rem) {
   .page-art { inline-size: 60vw; }
 }
+
+/* ---- «مظهر التطبيق» — settings/app-look/ ---------------------------------
+   العيّناتُ دوائرُ درج «المظهر» نفسُها (`--swatch`)، والمختارةُ بحلقة. والإدخالُ
+   الحقيقيُّ زرُّ اختيارٍ مخفيٌّ بصريّاً لا محذوف: لوحةُ المفاتيح تصله بالأسهم،
+   والقارئُ الآليّ يقرأ اسمَ اللون. */
+.app-look__group { border: 0; padding: 0; margin: 0 0 1.25rem; }
+.app-look__group legend { font-weight: 700; margin-bottom: .25rem; }
+.app-look__swatches { display: flex; flex-wrap: wrap; gap: .75rem 1rem; margin-top: .5rem; }
+.app-look__swatch { display: flex; flex-direction: column; align-items: center; gap: .35rem; cursor: pointer; }
+.app-look__swatch input, .app-look__opt input {
+  position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; pointer-events: none;
+}
+.app-look__dot {
+  inline-size: 2.5rem; block-size: 2.5rem; border-radius: 50%;
+  background: var(--swatch); box-shadow: 0 0 0 3px var(--surface, #fff), 0 0 0 4px transparent;
+  transition: box-shadow .15s ease;
+}
+.app-look__swatch input:checked + .app-look__dot { box-shadow: 0 0 0 3px var(--surface, #fff), 0 0 0 5px var(--a700); }
+.app-look__swatch input:focus-visible + .app-look__dot { outline: 2px solid var(--a500); outline-offset: 5px; }
+.app-look__name { font-size: .8rem; color: var(--ink-2, #475569); }
+.app-look__opt { position: relative; }
+.app-look__opt span {
+  display: inline-block; padding: .45rem 1rem; border-radius: 999px;
+  border: 1px solid var(--line, #c3ccd8); cursor: pointer;
+}
+.app-look__opt input:checked + span { background: var(--a700); border-color: var(--a700); color: #fff; }
+.app-look__opt input:focus-visible + span { outline: 2px solid var(--a500); outline-offset: 2px; }
+.app-look__check { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
