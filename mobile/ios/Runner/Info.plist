@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Haraj Mobile</string>
+	<string>حراج واحد</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,6 +26,20 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- التطبيقُ لا يشفّر إلا بـHTTPS الذي يوفّره النظام، وهو معفى من قيود
+	     التصدير. بلا هذا المفتاح يقف كلُّ بناءٍ في TestFlight على سؤال
+	     «Export Compliance» حتى يُجاب يدوياً، فلا يصل المختبِرين. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- رفعُ المستندات يفتح معرض الصور وحده (gallery_image_picker.dart)، لكن
+	     image_picker يربط واجهتَي الكاميرا والميكروفون أيضاً، وApple ترفض
+	     الرفعَ (ITMS-90683) إن رأت الواجهة بلا سببٍ مكتوب للمستخدم. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>لاختيار صور المستندات المطلوبة لحسابك من معرض الصور.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>لتصوير المستندات المطلوبة لحسابك.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>لا يسجّل التطبيقُ صوتاً؛ يطلبه نظامُ التصوير عند تصوير الفيديو فقط.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
