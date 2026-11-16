@@ -3,6 +3,7 @@
 // ignore_for_file: type=lint, unused_import, invalid_annotation_target, unnecessary_import
 
 // Clients
+export 'clients/appearance_api.dart';
 export 'clients/auctions_api.dart';
 export 'clients/auth_api.dart';
 export 'clients/bank_transfer_api.dart';
@@ -18,6 +19,8 @@ export 'clients/purchases_api.dart';
 export 'clients/vehicles_api.dart';
 export 'clients/wallet_api.dart';
 // Data classes
+export 'models/accent_enum.dart';
+export 'models/app_appearance.dart';
 export 'models/auction_card.dart';
 export 'models/auction_page.dart';
 export 'models/authenticated_user.dart';
@@ -35,6 +38,7 @@ export 'models/invoice_state_enum.dart';
 export 'models/kind_enum.dart';
 export 'models/ledger_entry.dart';
 export 'models/locked_field.dart';
+export 'models/mode_enum.dart';
 export 'models/paginated_invoice_list.dart';
 export 'models/paginated_ledger_entry_list.dart';
 export 'models/paginated_purchase_list.dart';

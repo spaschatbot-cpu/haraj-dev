@@ -4,6 +4,7 @@
 
 import 'package:dio/dio.dart';
 
+import 'clients/appearance_api.dart';
 import 'clients/auctions_api.dart';
 import 'clients/auth_api.dart';
 import 'clients/bank_transfer_api.dart';
@@ -28,6 +29,7 @@ class HarajApiClient {
 
   static String get version => '2.0.0';
 
+  AppearanceApi? _appearance;
   AuctionsApi? _auctions;
   AuthApi? _auth;
   BankTransferApi? _bankTransfer;
@@ -42,6 +44,9 @@ class HarajApiClient {
   PurchasesApi? _purchases;
   VehiclesApi? _vehicles;
   WalletApi? _wallet;
+
+  AppearanceApi get appearance =>
+      _appearance ??= AppearanceApi(_dio, baseUrl: _baseUrl);
 
   AuctionsApi get auctions =>
       _auctions ??= AuctionsApi(_dio, baseUrl: _baseUrl);
