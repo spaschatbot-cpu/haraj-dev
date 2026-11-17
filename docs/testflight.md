@@ -19,6 +19,23 @@
 | الإصدار | من `pubspec.yaml` (اليوم `1.0.0`)، ورقمُ البناء رقمُ تشغيل السير |
 | الإشعارات | 🟡 **مطفأةٌ في هذا البناء**: لا `GoogleService-Info.plist` ولا مفتاح APNs بعد، والتطبيقُ يعمل بدونها (`push_service_factory.dart`) |
 
+## الحالة — قِيست ١٧ نوفمبر ٢٠٢٦
+
+أوّلُ بناءٍ رُفع: **`1.0.0 (1)`** من [mobile-release #1](https://github.com/spaschatbot-cpu/haraj-dev/actions/runs/44096408374)
+(بلا Shorebird — لا يقبل ترقيعاً)، وظهر في App Store Connect بحالة *Processing*.
+
+| | |
+|---|---|
+| الفريق | ESTABLISHMENT HALOUL BERMJAH AL-DHAKIA — `CT8MCW29LT` |
+| سجلُّ التطبيق | «حراج واحد - تجريبي» (`6835886391`). **«حراج واحد» محجوزٌ في المتجر**، والاسمُ على الشاشة يبقى «حراج واحد» من `CFBundleDisplayName` |
+| المختبِرون | مجموعةٌ داخليّة «الفريق»، توزيعٌ آليّ — كلُّ بناءٍ يصلها وحده |
+| مفتاح API | `55DWR8TJK6` (Admin)، والأسرارُ الأربعة في GitHub |
+
+**ولماذا لا يُرفع من ماك المكتب**: Xcode عليه 16.4، وApple ترفض الرفعَ بأقلّ
+من iOS 26 SDK — رفضته فعلاً بهذا النصّ: *«This app was built with the iOS 18.5
+SDK…»*. والمساحةُ الحرّة ٢٠ جيجا لا تسع Xcode 26. فالرفعُ من GitHub
+(`macos-26`) وحده.
+
 ## من جهة Apple — مرّةً واحدة
 
 1. **حسابُ مطوّر Apple مدفوع** (Apple Developer Program). ومنه
