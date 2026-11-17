@@ -68,7 +68,6 @@ def _reserve_for(year: int | None) -> Decimal:
     return Decimal(min(base, 95_000))
 
 
-
 class Command(BaseCommand):
     help = "مزادٌ حيٌّ بنافذةٍ طويلة، لفحص الشاشات (DEBUG وحده)"
 
@@ -196,7 +195,19 @@ class Command(BaseCommand):
         movable = Vehicle.objects.filter(
             auction=source, state__in=(VehicleState.LISTED, VehicleState.BIDDING)
         )
-        return movable.update(auction=auction)
+        # **ومزايداتُها تُسحب قبل النقل** — كما في `relist_vehicle`. `Bid` يشير
+        # إلى المركبة لا إلى المزاد، فالنقلُ الخامُ كان يحمل مزايدةَ الدورة
+        # السابقة حيّةً إلى الجديدة. قِيس على الإنتاج (١٧ نوفمبر ٢٠٢٦): مزايدةُ
+        # ٢٩ سبتمبر بـ١٠٠٠ على المركبة 13070 سافرت إلى المزاد 72، فتعادلت مع
+        # مزايدة المشية بـ١٠٠٠ وفازت بأقدميّتها — لعميلٍ لا تأمينَ له في المزاد،
+        # فرُدّت الفاتورة ووقعت خمسُ خطواتٍ بعدها. سحبٌ لا حذف: التاريخُ يبقى.
+        from apps.bidding.models import Bid
+
+        with transaction.atomic():
+            Bid.objects.live().filter(vehicle__in=movable).update(
+                is_withdrawn=True, withdrawn_at=timezone.now()
+            )
+            return movable.update(auction=auction)
 
     def _stock(self, auction: Auction, count: int) -> int:
         """انسخ مركباتٍ حقيقيّةً إلى المزاد **معروضةً** وبكامل بياناتها. T946.

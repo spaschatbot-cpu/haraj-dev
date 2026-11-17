@@ -24,7 +24,9 @@ from __future__ import annotations
 
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.auctions import cards, engine
@@ -483,9 +485,7 @@ def auction_detail(request, pk: int):
             "bulk_states": vehicle_bulk.BULK_STATES,
             "move_targets": [
                 row
-                for row in Auction.objects.exclude(pk=auction.pk).order_by("-number")[
-                    :50
-                ]
+                for row in Auction.objects.exclude(pk=auction.pk).order_by("-number")[:50]
                 if not engine.has_started(row)
             ],
             "action_icons": {
@@ -689,9 +689,7 @@ def vehicle_detail(request, pk: int):
             # حركةُ المزايدة على هذه السيارة — سيارةٌ بدأت بـ٥٠ وانتهت بـ٥٢
             # لم يتنافس عليها أحد، وبـ١٢٠ تنافس عليها كثيرون.
             "top_bid": max((bid.amount for bid in standing), default=None),
-            "first_bid": min(
-                (bid.placed_at for bid in bids), default=None
-            ),
+            "first_bid": min((bid.placed_at for bid in bids), default=None),
             "first_amount": next(
                 (bid.amount for bid in sorted(bids, key=lambda b: b.placed_at)), None
             ),
@@ -739,7 +737,6 @@ def vehicle_state(request, pk: int):
             "العروض» — يُتَّخذ من شاشة العروض.",
         )
         return redirect("console:vehicle-detail", pk=vehicle.pk)
-
 
     before = audit.snapshot(vehicle, ["state", "auction_id", "lot_number"])
 
@@ -801,9 +798,15 @@ def _save(request, form, *, action: str, fields: list[str], instance=None):
 
 
 AUCTION_FIELDS = [
-    "number", "title", "location", "showcase",
-    "starts_at", "ends_at", "sms_reminder_at",
-    "deposit_required", "admin_fee",
+    "number",
+    "title",
+    "location",
+    "showcase",
+    "starts_at",
+    "ends_at",
+    "sms_reminder_at",
+    "deposit_required",
+    "admin_fee",
 ]
 
 #: ما تكتبه نافذةُ التعديل — هويّةُ المزاد وحدها. T859.
@@ -852,7 +855,18 @@ def _absorb_selected(request, auction: Auction) -> int:
             )
         return 0
 
-    moved = Vehicle.objects.filter(pk__in=free).update(auction=auction)
+    # **ومزايداتُ الدورة السابقة تُسحب مع النقل** — كما في `relist_vehicle`
+    # و`vehicle_bulk`. `Bid` يشير إلى المركبة لا إلى المزاد، فالنقلُ الخامُ
+    # يحمل أعلى مزايدةٍ قديمةٍ حيّةً إلى المزاد الوليد، فتُرسي عليها التسويةُ
+    # لعميلٍ لم يمرّ بفحص تأمينه هنا ثمّ تُردّ فاتورتُه. وقع في الإنتاج
+    # (١٧ نوفمبر ٢٠٢٦، المركبة 13070) من أداة الاختبار بالخطأ نفسه.
+    from apps.bidding.models import Bid
+
+    with transaction.atomic():
+        Bid.objects.live().filter(vehicle_id__in=free).update(
+            is_withdrawn=True, withdrawn_at=timezone.now()
+        )
+        moved = Vehicle.objects.filter(pk__in=free).update(auction=auction)
     audit.record(
         action="console.auction_absorb_selected",
         entity=auction,
@@ -944,9 +958,7 @@ def auction_new(request):
     raw_ids = request.GET.get("vehicle_ids", "")
     ids = [int(part) for part in raw_ids.split(",") if part.strip().isdigit()]
     selected_vehicles = (
-        list(Vehicle.objects.filter(pk__in=ids).select_related("auction"))
-        if ids
-        else []
+        list(Vehicle.objects.filter(pk__in=ids).select_related("auction")) if ids else []
     )
 
     return render(
