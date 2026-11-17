@@ -1,8 +1,9 @@
 # رفعُ التطبيق إلى TestFlight
 
 البناءُ والتوقيعُ والرفعُ آليّةٌ في `.github/workflows/mobile-release.yml`
-(ماك GitHub). وما يبقى بيد المالك **مرّةً واحدة** أربعُ خطواتٍ عند Apple،
-وحسابُ Shorebird، ثمّ خمسةُ أسرارٍ في GitHub.
+(ماك GitHub). وما يبقى بيد المالك **مرّةً واحدة** أربعُ خطواتٍ عند Apple
+ثمّ أربعةُ أسرارٍ في GitHub. وحسابُ Shorebird **اختياريّ**: بدونه تُرفع
+النسخةُ إلى TestFlight عاديّةً، لكنّها لا تقبل تحديثاً داخليّاً.
 
 > **منذ ١٧ نوفمبر ٢٠٢٦ يُبنى عبر Shorebird** (كان `mobile-testflight.yml`):
 > كي تصل التعديلاتُ الصغيرة إلى نسخة TestFlight ترقيعاً بلا بناءٍ جديد — انظر
@@ -43,7 +44,7 @@
 
 | السرّ | القيمة |
 |---|---|
-| `SHOREBIRD_TOKEN` | من `docs/code-push.md` |
+| `SHOREBIRD_TOKEN` | **اختياريّ** — من `docs/code-push.md` |
 | `APPLE_TEAM_ID` | Team ID |
 | `APP_STORE_CONNECT_KEY_ID` | Key ID |
 | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID |
