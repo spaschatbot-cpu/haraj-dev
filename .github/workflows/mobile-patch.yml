@@ -41,7 +41,10 @@ env:
 jobs:
   ios:
     if: inputs.platforms != 'android'
-    runs-on: macos-15
+    # macos-26 لا 15: منذ ٢٨ أبريل ٢٠٢٦ لا تقبل App Store Connect رفعاً مبنيّاً
+    # بأقلّ من Xcode 26 / iOS 26 SDK، وXcode الافتراضيّ على macos-15 هو 16.x.
+    # والترقيعُ على الصورة نفسها: يُبنى بـXcode الذي بُني به إصدارُه.
+    runs-on: macos-26
     timeout-minutes: 60
     env:
       BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'sa.harajwahed.harajMobile' }}
