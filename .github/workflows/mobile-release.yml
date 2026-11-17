@@ -12,8 +12,16 @@ name: mobile-release
 # **ومتى يلزم إصدارٌ جديد لا ترقيع**: الترقيعُ يغيّر كودَ دارت وحده. مكتبةٌ
 # أصليّةٌ جديدة، أو إذنٌ، أو أيقونة، أو ترقيةُ Flutter = إصدارٌ من هنا.
 #
-# **ويُشغَّل باليد وحده** (Actions ← mobile-release ← Run workflow): دقيقةُ ماك
-# بعشر دقائق لينكس، وكلُّ تشغيلٍ رقمُ بناءٍ جديد في TestFlight.
+# **ويُشغَّل مع كلّ دفعٍ يمسّ `mobile/`** (iOS وحده)، وباليد لأيّ منصّة. طلبُ
+# المالك (١٧ نوفمبر ٢٠٢٦): أن يصل كلُّ تعديلٍ إلى المختبِرين بلا أن يضغط أحد.
+# ومختبِرو TestFlight الداخليّون لا يمرّ عليهم مراجعةُ Apple، والمجموعةُ «الفريق»
+# بتوزيعٍ آليّ — فالبناءُ وحده يكفي. وثمنُه رقمُ بناءٍ في TestFlight لكلّ دفعة؛
+# والمستودعُ عامّ فدقائقُ الماك بلا حساب. وأندرويد لا يُبنى هنا مع الدفع:
+# mobile-apk يبنيه أصلاً، فلا تُبنى الحزمةُ مرّتين.
+#
+# والدفعتان المتقاربتان لا تُبنيان كلتاهما: concurrency يُبقي الجاريةَ تكمل
+# ويستبدل المنتظرةَ بالأحدث. ولا يُلغى الجاري — إلغاؤه في منتصف الرفع يترك
+# في App Store Connect رقمَ بناءٍ محروقاً.
 #
 # **Flutter 3.44.9 لا 3.44.8** كبقيّة السيور: Shorebird يقول إن إصدارات iOS
 # المبنيّة بـ3.44.0–3.44.8 قد تنهار حين يُثبَّت عليها ترقيع، ولا يُصلحها ترقيع.
@@ -43,6 +51,11 @@ name: mobile-release
 # الخطوات كاملةً في docs/testflight.md وdocs/code-push.md.
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-release.yml"
   workflow_dispatch:
     inputs:
       platforms:
@@ -124,7 +137,7 @@ jobs:
 
   ios:
     needs: init
-    if: inputs.platforms != 'android'
+    if: github.event_name == 'push' || inputs.platforms != 'android'
     # macos-26 لا 15: منذ ٢٨ أبريل ٢٠٢٦ لا تقبل App Store Connect رفعاً مبنيّاً
     # بأقلّ من Xcode 26 / iOS 26 SDK، وXcode الافتراضيّ على macos-15 هو 16.x.
     # والترقيعُ على الصورة نفسها: يُبنى بـXcode الذي بُني به إصدارُه.
@@ -261,7 +274,7 @@ jobs:
   # يتأثّر: لا يُعاد توقيعه. ولا متجرَ Google قبل مفتاح إصدار.
   android:
     needs: init
-    if: inputs.platforms != 'ios'
+    if: github.event_name != 'push' && inputs.platforms != 'ios'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
