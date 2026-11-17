@@ -427,6 +427,10 @@ def _walk(out):
                 "amount": str(inv.amount - inv.amount_paid),
                 "reference": "walk-" + PHONE,
                 "reason": "حوالةٌ بنكيّة في مشية دورة العميل",
+                # نوعُ الدفع إلزاميٌّ منذ 961eb61 (أودو يقيّده بدفترٍ لكلّ نوع)،
+                # وبدونه تردّ الشاشةُ بجملةٍ ولا تُقيِّد — فوقعت هذه الخطوة
+                # وما بعدها في مشية ١٧ نوفمبر والنظامُ سليم.
+                "payment_code": "0004/02",
             })
             inv.refresh_from_db()
             car.refresh_from_db()
