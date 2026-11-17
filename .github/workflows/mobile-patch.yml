@@ -1,0 +1,121 @@
+name: mobile-patch
+
+# ترقيعٌ عبر Shorebird: تعديلُ كود دارت يصل التطبيقَ المثبَّت — من TestFlight
+# أو من APK أصدره mobile-release — بلا إصدارٍ جديدٍ ولا مراجعة متجر.
+#
+# **كيف يصل**: التطبيقُ يسأل Shorebird عند فتحه، فينزّل الترقيعَ في الخلفيّة،
+# **ويسري في الفتحة التالية** لا في الحاليّة. فالمختبِرُ يغلق التطبيقَ ويفتحه
+# مرّتين ليرى التعديل.
+#
+# **وما لا يصل ترقيعاً** (يحتاج mobile-release): مكتبةٌ أصليّةٌ جديدة، إذنٌ في
+# Info.plist أو المانيفست، أيقونةٌ أو شاشةُ إقلاع، ترقيةُ Flutter. وShorebird
+# يقول ذلك ويرفض حين يجد فرقاً أصليّاً — فلا يُمرَّر --allow-native-diffs
+# هنا: فرقٌ أصليٌّ في ترقيعٍ = تطبيقٌ ينهار عند المستخدم.
+#
+# **ويُشغَّل باليد**: ترقيعٌ مع كلّ دفعٍ إلى main يرسل للأجهزة ما لم يُراجَع،
+# ودقيقةُ ماك بعشر دقائق لينكس.
+#
+# الأسرار: SHOREBIRD_TOKEN (ومتغيّر IOS_BUNDLE_ID إن وُضع لـmobile-release).
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "المنصّات"
+        type: choice
+        options: [both, ios, android]
+        default: both
+      release_version:
+        description: "الإصدار المرقَّع كما في Shorebird (مثل 1.0.0+3). latest = آخرُ إصدار."
+        required: false
+        default: latest
+
+concurrency:
+  group: mobile-patch
+  cancel-in-progress: false
+
+env:
+  SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+  RELEASE_VERSION: ${{ inputs.release_version }}
+
+jobs:
+  ios:
+    if: inputs.platforms != 'android'
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'sa.harajwahed.harajMobile' }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: الشروط
+        run: |
+          [ -n "$SHOREBIRD_TOKEN" ] || { echo "::error::السرّ SHOREBIRD_TOKEN غائب — docs/code-push.md" >&2; exit 1; }
+          [ -f shorebird.yaml ] || { echo "::error::لا shorebird.yaml — شغّل mobile-release أوّلاً" >&2; exit 1; }
+
+      - uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: معرّف التطبيق
+        # حرفيّاً كما في mobile-release.yml: الترقيعُ يُقارَن بالإصدار، فالمشروعُ
+        # يُبنى كما بُني ذاك.
+        run: |
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = sa\.harajwahed\.harajMobile;/PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};/" \
+            ios/Runner.xcodeproj/project.pbxproj
+          grep -c "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};" ios/Runner.xcodeproj/project.pbxproj
+
+      - name: ترقيع Shorebird
+        # تعريفاتُ دارت كما في الإصدار حرفاً بحرف. والاسمُ من الإصدار المرقَّع
+        # إن سُمّي، وإلا من pubspec (وهو اسمُ آخر إصدارٍ ما لم يُرفَع بعده).
+        run: |
+          version="${RELEASE_VERSION%%+*}"
+          [ "$RELEASE_VERSION" != "latest" ] || version=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          shorebird patch ios \
+            --release-version="$RELEASE_VERSION" \
+            --no-codesign \
+            -- \
+            --dart-define=HARAJ_ENV=staging \
+            --dart-define=HARAJ_API_BASE_URL=https://haraj.spas.sa \
+            --dart-define=HARAJ_APP_VERSION=$version
+          echo "### iOS: ترقيعٌ على الإصدار ${RELEASE_VERSION} — يسري في الفتحة الثانية للتطبيق" >> "$GITHUB_STEP_SUMMARY"
+
+  android:
+    if: inputs.platforms != 'ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: الشروط
+        run: |
+          [ -n "$SHOREBIRD_TOKEN" ] || { echo "::error::السرّ SHOREBIRD_TOKEN غائب — docs/code-push.md" >&2; exit 1; }
+          [ -f shorebird.yaml ] || { echo "::error::لا shorebird.yaml — شغّل mobile-release أوّلاً" >&2; exit 1; }
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: ترقيع Shorebird
+        run: |
+          version="${RELEASE_VERSION%%+*}"
+          [ "$RELEASE_VERSION" != "latest" ] || version=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          shorebird patch android \
+            --flavor staging \
+            --release-version="$RELEASE_VERSION" \
+            -- \
+            --dart-define=HARAJ_ENV=staging \
+            --dart-define=HARAJ_API_BASE_URL=https://haraj.spas.sa \
+            --dart-define=HARAJ_APP_VERSION=$version
+          echo "### أندرويد: ترقيعٌ على الإصدار ${RELEASE_VERSION} — يسري في الفتحة الثانية للتطبيق" >> "$GITHUB_STEP_SUMMARY"

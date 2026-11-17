@@ -1,0 +1,281 @@
+name: mobile-release
+
+# إصدارٌ جديدٌ من التطبيق يُبنى عبر Shorebird: iOS يُرفع إلى TestFlight،
+# وأندرويد APK يُنزَّل من صفحة الـrun.
+#
+# **لماذا Shorebird**: التعديلاتُ بعده تصل الأجهزةَ «ترقيعاً» من
+# `mobile-patch.yml` في دقائق، بلا رقم إصدارٍ جديدٍ ولا مراجعةِ Apple أو Google
+# (طلبُ المالك، ١٧ نوفمبر ٢٠٢٦). **والترقيعُ لا يصل إلا بناءً أصدره Shorebird**
+# — فبناءٌ من `flutter build` لا يقبل ترقيعاً أبداً، ولذلك صار هذا السيرُ هو
+# طريقَ TestFlight الوحيد بدلَ mobile-testflight.
+#
+# **ومتى يلزم إصدارٌ جديد لا ترقيع**: الترقيعُ يغيّر كودَ دارت وحده. مكتبةٌ
+# أصليّةٌ جديدة، أو إذنٌ، أو أيقونة، أو ترقيةُ Flutter = إصدارٌ من هنا.
+#
+# **ويُشغَّل باليد وحده** (Actions ← mobile-release ← Run workflow): دقيقةُ ماك
+# بعشر دقائق لينكس، وكلُّ تشغيلٍ رقمُ بناءٍ جديد في TestFlight.
+#
+# **Flutter 3.44.9 لا 3.44.8** كبقيّة السيور: Shorebird يقول إن إصدارات iOS
+# المبنيّة بـ3.44.0–3.44.8 قد تنهار حين يُثبَّت عليها ترقيع، ولا يُصلحها ترقيع.
+# والترقيعاتُ كلُّها تُبنى بنسخة Flutter التي بُني بها إصدارُها.
+#
+# **والتوقيعُ سحابيّ** بمفتاح App Store Connect API: Shorebird يبني أرشيفاً بلا
+# توقيع (--no-codesign، الطريقُ الذي يوثّقه للـCI)، ثمّ xcodebuild يوقّعه
+# ويرفعه، ويُنشئ الشهادةَ وملفَّ التزويد بنفسه — فلا ‎.p12 في الأسرار يُجدَّد
+# كلَّ سنة. وثمنُه أن المفتاح يحتاج دور **Admin**.
+#
+# الأسرار (Settings ← Secrets and variables ← Actions):
+#   SHOREBIRD_TOKEN               مفتاحُ حساب خدمةٍ من console.shorebird.dev،
+#                                 بدور App Manager (أوّلُ تشغيلٍ ينشئ التطبيق)
+#   APPLE_TEAM_ID                 معرّفُ الفريق (عشرةُ محارف)
+#   APP_STORE_CONNECT_KEY_ID      معرّفُ المفتاح
+#   APP_STORE_CONNECT_ISSUER_ID   معرّفُ المُصدِر (UUID)
+#   APP_STORE_CONNECT_KEY_P8      محتوى ملفّ AuthKey_XXXX.p8 كاملاً
+# ومتغيّراتٌ اختياريّة (Variables، لا Secrets):
+#   IOS_BUNDLE_ID                 إن كان سجلُّ التطبيق في App Store Connect
+#                                 بمعرّفٍ غير sa.harajwahed.harajMobile
+#   SHOREBIRD_ORG_ID              إن كان لحساب Shorebird أكثرُ من منظّمة
+#
+# الخطوات كاملةً في docs/testflight.md وdocs/code-push.md.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "المنصّات"
+        type: choice
+        options: [both, ios, android]
+        default: both
+      version:
+        description: "رقم الإصدار (فارغ = من pubspec.yaml). يلزم أكبرَ من الإصدار المنشور إن كان للسجلّ إصدارٌ في المتجر."
+        required: false
+        default: ""
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.44.9
+  SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
+
+jobs:
+  # أوّلُ تشغيلٍ فقط: لا `shorebird.yaml` في المستودع بعد، فيُنشأ التطبيقُ في
+  # حساب Shorebird ويُدفَع الملفُّ إلى main. وما بعده يجده فيمرّ في ثوانٍ.
+  #
+  # **ولا يُعاد بـ--force أبداً**: ذلك ينشئ تطبيقاتٍ جديدة فتنقطع الترقيعاتُ عن
+  # كلّ نسخةٍ مثبَّتة. وعلى ماك لا لينكس: init يقرأ مخطّطات Xcode ليعرف النكهات.
+  init:
+    runs-on: macos-15
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: مفتاح Shorebird حاضر
+        run: |
+          if [ -z "$SHOREBIRD_TOKEN" ]; then
+            echo "::error::السرّ SHOREBIRD_TOKEN غائب — انظر docs/code-push.md" >&2
+            exit 1
+          fi
+
+      - id: need
+        run: |
+          if [ -f shorebird.yaml ]; then echo "init=false" >> "$GITHUB_OUTPUT"
+          else echo "init=true" >> "$GITHUB_OUTPUT"; fi
+
+      - if: steps.need.outputs.init == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - if: steps.need.outputs.init == 'true'
+        uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: shorebird init ودفعُ الملفّ
+        if: steps.need.outputs.init == 'true'
+        env:
+          ORG_ID: ${{ vars.SHOREBIRD_ORG_ID }}
+        run: |
+          shorebird init --display-name "حراج واحد" ${ORG_ID:+--org-id "$ORG_ID"}
+          cat shorebird.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A .
+          git commit -m "chore(mobile): shorebird init — معرّفُ التطبيق في Shorebird" \
+                     -m "أنشأه أوّلُ تشغيلٍ لـmobile-release. لا يُعاد بـ--force: ذلك يقطع الترقيعات عن كلّ نسخةٍ مثبَّتة."
+          git push origin HEAD:${{ github.ref_name }}
+
+      - id: ref
+        run: echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  ios:
+    needs: init
+    if: inputs.platforms != 'android'
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+      BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID || 'sa.harajwahed.harajMobile' }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.init.outputs.ref }}
+
+      # قبل دقائق الماك كلِّها: سرٌّ غائبٌ يُقال باسمه في أوّل ثانية، لا في
+      # رسالة توقيعٍ مبهمة بعد عشرين دقيقة.
+      - name: الأسرار حاضرة
+        run: |
+          missing=""
+          for name in TEAM_ID KEY_ID ISSUER_ID KEY_P8; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::أسرارٌ غائبة:$missing — انظر docs/testflight.md" >&2
+            exit 1
+          fi
+
+      - uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: مفتاح App Store Connect
+        # المسارُ الذي يبحث فيه xcodebuild بلا خيار. ويُحذف في آخر خطوة.
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          key=~/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8
+          printf '%s\n' "$KEY_P8" > "$key"
+          chmod 600 "$key"
+          echo "KEY_PATH=$key" >> "$GITHUB_ENV"
+
+      - name: معرّف التطبيق
+        # يُكتب في المشروع لا في سطر xcodebuild: الخيارُ في السطر يسري على
+        # أهداف Pods أيضاً، فتحمل كلُّ مكتبةٍ مضمَّنةٍ معرّفَ التطبيق نفسَه
+        # وترفض Apple الحزمة (تصادمُ CFBundleIdentifier). والسطورُ المطابقة
+        # هي هدفُ Runner وحده؛ هدفُ الاختبار ينتهي بـ.RunnerTests.
+        # ويتكرّر حرفيّاً في mobile-patch.yml: الترقيعُ يُبنى من المشروع نفسه.
+        run: |
+          sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = sa\.harajwahed\.harajMobile;/PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};/" \
+            ios/Runner.xcodeproj/project.pbxproj
+          grep -c "PRODUCT_BUNDLE_IDENTIFIER = ${BUNDLE_ID};" ios/Runner.xcodeproj/project.pbxproj
+
+      - name: إصدار Shorebird (أرشيفٌ بلا توقيع)
+        # ورقمُ البناء رقمُ هذا السير: يزيد مع كلّ تشغيل، وTestFlight يرفض
+        # المكرَّر. والإصدارُ في Shorebird = «الاسم+الرقم»، وبه يُستهدَف الترقيع.
+        # وتعريفاتُ دارت هنا تُكرَّر في الترقيع حرفاً بحرف، وإلا اختلف الكود.
+        run: |
+          version="${{ inputs.version }}"
+          [ -n "$version" ] || version=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          shorebird release ios \
+            --flutter-version="$FLUTTER_VERSION" \
+            --no-codesign \
+            -- \
+            --build-name "$version" \
+            --build-number ${{ github.run_number }} \
+            --dart-define=HARAJ_ENV=staging \
+            --dart-define=HARAJ_API_BASE_URL=https://haraj.spas.sa \
+            --dart-define=HARAJ_APP_VERSION=$version
+          ls -d build/ios/archive/Runner.xcarchive
+
+      - name: التوقيع والرفع إلى App Store Connect
+        # destination=upload: التصديرُ نفسُه يوقّع ويرفع، فلا ipa على القرص.
+        # **manageAppVersionAndBuildNumber = false شرطٌ لا ذوق**: لو غيّرت Apple
+        # الرقمَ عند الرفع لما طابق الإصدارَ المسجَّل في Shorebird، ولما وصله
+        # ترقيعٌ أبداً.
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>${TEAM_ID}</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath build/ios/archive/Runner.xcarchive \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$KEY_ID" \
+            -authenticationKeyIssuerID "$ISSUER_ID"
+          {
+            echo "### iOS: رُفع ${BUNDLE_ID} ${VERSION} (${{ github.run_number }})"
+            echo "يظهر في TestFlight بعد معالجة Apple (١٠–٣٠ دقيقة عادةً)."
+            echo "إصدارُ Shorebird: \`${VERSION}+${{ github.run_number }}\` — $(xcodebuild -version | head -1)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: حذف المفتاح
+        if: always()
+        run: rm -rf ~/.appstoreconnect
+
+  # أندرويد: نكهةُ staging على haraj.spas.sa كـmobile-apk، لكن من Shorebird كي
+  # يقبل الترقيع. **فهذه الحزمةُ هي التي تُوزَّع**، لا حزمةُ mobile-apk.
+  # 🟡 موقَّعةٌ بمفتاح تصحيح الماكينة (لا مفتاحَ إصدارٍ في الأسرار بعد)، فحزمةُ
+  # إصدارٍ جديد لا تُثبَّت فوق القديمة — تُحذف القديمةُ أوّلاً. والترقيعُ لا
+  # يتأثّر: لا يُعاد توقيعه. ولا متجرَ Google قبل مفتاح إصدار.
+  android:
+    needs: init
+    if: inputs.platforms != 'ios'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.init.outputs.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: shorebirdtech/setup-shorebird@v1
+        with:
+          cache: true
+
+      - name: إصدار Shorebird (APK)
+        run: |
+          version="${{ inputs.version }}"
+          [ -n "$version" ] || version=$(grep '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
+          shorebird release android \
+            --flutter-version="$FLUTTER_VERSION" \
+            --flavor staging \
+            --artifact apk \
+            -- \
+            --build-name "$version" \
+            --build-number ${{ github.run_number }} \
+            --dart-define=HARAJ_ENV=staging \
+            --dart-define=HARAJ_API_BASE_URL=https://haraj.spas.sa \
+            --dart-define=HARAJ_APP_VERSION=$version
+          echo "### أندرويد: إصدارُ Shorebird \`${version}+${{ github.run_number }}\` — الحزمة في Artifacts" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: haraj-staging-shorebird-apk-${{ github.run_number }}
+          path: mobile/build/app/outputs/flutter-apk/app-staging-release.apk
+          retention-days: 90

@@ -1,8 +1,12 @@
 # رفعُ التطبيق إلى TestFlight
 
-البناءُ والتوقيعُ والرفعُ آليّةٌ في `.github/workflows/mobile-testflight.yml`
-(ماك GitHub، لأن جهاز التطوير ويندوز). وما يبقى بيد المالك **مرّةً واحدة**
-أربعُ خطواتٍ عند Apple ثمّ أربعةُ أسرارٍ في GitHub.
+البناءُ والتوقيعُ والرفعُ آليّةٌ في `.github/workflows/mobile-release.yml`
+(ماك GitHub). وما يبقى بيد المالك **مرّةً واحدة** أربعُ خطواتٍ عند Apple،
+وحسابُ Shorebird، ثمّ خمسةُ أسرارٍ في GitHub.
+
+> **منذ ١٧ نوفمبر ٢٠٢٦ يُبنى عبر Shorebird** (كان `mobile-testflight.yml`):
+> كي تصل التعديلاتُ الصغيرة إلى نسخة TestFlight ترقيعاً بلا بناءٍ جديد — انظر
+> `docs/code-push.md`. وبناءٌ لم يُصدره Shorebird لا يقبل ترقيعاً أبداً.
 
 ## ما في البناء
 
@@ -39,6 +43,7 @@
 
 | السرّ | القيمة |
 |---|---|
+| `SHOREBIRD_TOKEN` | من `docs/code-push.md` |
 | `APPLE_TEAM_ID` | Team ID |
 | `APP_STORE_CONNECT_KEY_ID` | Key ID |
 | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID |
@@ -46,14 +51,21 @@
 
 ## كلَّ مرّةٍ يُراد بناءٌ جديد
 
-Actions ← **mobile-testflight** ← Run workflow. نحو ٢٠ دقيقةً للبناء، ثمّ
-١٠–٣٠ دقيقةً لمعالجة Apple، فيظهر للمختبِرين في تطبيق TestFlight.
+Actions ← **mobile-release** ← Run workflow (المنصّات: `ios` أو `both`).
+نحو ٢٥ دقيقةً للبناء، ثمّ ١٠–٣٠ دقيقةً لمعالجة Apple، فيظهر للمختبِرين في
+تطبيق TestFlight. **والتعديلاتُ بعده لا تحتاج هذا** — `mobile-patch` يكفي ما
+لم يتغيّر شيءٌ أصليّ (`docs/code-push.md`).
 
 **وما قد يقع في أوّل تشغيل:**
 
-- «الأسرار حاضرة» يسقط ← سرٌّ غائبٌ واسمُه في الرسالة.
+- «الأسرار حاضرة» أو «مفتاح Shorebird حاضر» يسقط ← سرٌّ غائبٌ واسمُه في الرسالة.
+- 🟡 «التوقيع والرفع» يسقط على أرشيفٍ بلا توقيع ← لم يُجرَّب هذا المسارُ بعدُ
+  على حسابنا. البديلُ الموثَّق: شهادةُ توزيعٍ ‎.p12 وملفُّ تزويدٍ في الأسرار،
+  و`--export-options-plist` بتوقيعٍ يدويّ بدلَ `--no-codesign`.
 - `No profiles for '…' were found` ← المفتاح ليس Admin، أو المعرّف غير
   مسجَّل (الخطوة ٢).
 - `The bundle version must be higher` ← بناءٌ بالرقم نفسه رُفع؛ يُعاد التشغيل.
+  **ولا يُترك لـApple أن تغيّر الرقمَ عند الرفع** (`manageAppVersionAndBuildNumber`
+  مطفأ): لو تغيّر لما طابق إصدارَ Shorebird ولما وصله ترقيع.
 - `This bundle is invalid. The value for key CFBundleShortVersionString…` ←
   الإصدار أصغرُ من المنشور؛ يُكتب أكبرُ منه في خانة «version» عند التشغيل.
