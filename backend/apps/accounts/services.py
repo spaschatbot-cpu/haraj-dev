@@ -197,7 +197,12 @@ def _send_verification_code(
         outstanding.voided_at = now
         outstanding.save(update_fields=["voided_at"])
 
-    code = otp_module.generate_code()
+    # رقمُ مراجع Apple وحده: رمزٌ ثابتٌ من `.env` ولا رسالة — انظر REVIEW_PHONE
+    # في الإعدادات. والتحقّقُ بعده هو هو (بصمةٌ ومهلةٌ وخمسُ محاولات).
+    reviewer = bool(
+        settings.REVIEW_PHONE and settings.REVIEW_OTP and phone == settings.REVIEW_PHONE
+    )
+    code = settings.REVIEW_OTP if reviewer else otp_module.generate_code()
     ttl = timedelta(seconds=settings.OTP_TTL_SECONDS)
     verification = PhoneVerification.objects.create(
         phone=phone,
@@ -211,6 +216,8 @@ def _send_verification_code(
     # code recorded that nobody was ever told. `SmsSendFailed` propagates to the
     # wrapper above, which records the failure *after* this block has rolled
     # back and turns it into `VerificationCodeUndeliverable`.
+    if reviewer:
+        return verification
     send_sms(
         phone=phone,
         body=OTP_MESSAGE.format(code=code, minutes=settings.OTP_TTL_SECONDS // 60),

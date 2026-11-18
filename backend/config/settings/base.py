@@ -496,6 +496,15 @@ OTP_MAX_ATTEMPTS = env.int("OTP_MAX_ATTEMPTS", default=5)
 # bill — OTP_THROTTLE_RATES below is.
 OTP_RESEND_COOLDOWN_SECONDS = env.int("OTP_RESEND_COOLDOWN_SECONDS", default=60)
 
+# **حسابُ مراجع Apple** (١٨ نوفمبر ٢٠٢٦). اختبارُ TestFlight الخارجيّ والمتجرُ
+# بعده يمرّان على مراجعٍ يطلب «اسم مستخدمٍ وكلمة مرور»، والدخولُ هنا برمزٍ
+# يصل جوّالاً سعوديّاً لا يملكه. فرقمٌ واحدٌ بعينه يأخذ رمزاً ثابتاً ولا تُرسل
+# له رسالة — وكلُّ ما عداه (المهلة والمحاولات والتبريد) يمرّ عليه كما يمرّ على
+# غيره. **فارغان افتراضياً = لا رقمَ كهذا**؛ والقيمتان في `.env` الخادم وحده،
+# والرمزُ ستّةُ أرقامٍ عشوائيّة لا «123456».
+REVIEW_PHONE = env("REVIEW_PHONE", default="")
+REVIEW_OTP = env("REVIEW_OTP", default="")
+
 # How often a code may be *sent*, and how often codes may be *tried*. Read by
 # `apps.accounts.throttling`, deliberately not by DRF's DEFAULT_THROTTLE_RATES:
 # `settings/test.py` empties DRF's throttle configuration so the suite is not
