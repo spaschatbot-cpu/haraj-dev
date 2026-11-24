@@ -635,3 +635,39 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .signin-bg, .signin-card { animation: none; }
 }
+
+/* ---- المعرضُ بملء الشاشة — ٢٤ نوفمبر ٢٠٢٦ ------------------------------ */
+.lightbox {
+  background: rgba(8, 14, 24, 0.96);
+  animation: lightbox-in 180ms ease-out both;
+}
+@keyframes lightbox-in { from { opacity: 0; } to { opacity: 1; } }
+.lightbox-img { animation: lightbox-img-in 220ms ease-out both; }
+@keyframes lightbox-img-in { from { opacity: 0; scale: 0.98; } to { opacity: 1; scale: 1; } }
+.lightbox-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transition: background-color 150ms ease, scale 150ms ease;
+}
+.lightbox-btn:hover { background: rgba(255, 255, 255, 0.24); scale: 1.06; }
+.lightbox-btn:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox, .lightbox-img { animation: none; }
+  .lightbox-btn { transition: none; }
+}
+
+/* أزرارُ شريط صفحة المركبة — رجوع والسابقة والتالية. بيضاءُ بحدٍّ كحليّ،
+   وتمتلئ بالكحليّ عند المرور: أفعالٌ لا شاراتُ معلومات. */
+.vd-nav-btn {
+  background: #ffffff;
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-navy-ink);
+  font-weight: 600;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.vd-nav-btn:hover {
+  background: var(--tone-navy-solid);
+  border-color: var(--tone-navy-solid);
+  color: #ffffff;
+}
+@media (prefers-reduced-motion: reduce) { .vd-nav-btn { transition: none; } }

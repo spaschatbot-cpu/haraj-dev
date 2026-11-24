@@ -86,6 +86,68 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   };
 }
 
+type Neighbour = { id: number; lot_number: number; title: string };
+
+/**
+ * السيّارةُ قبلها وبعدها في المزاد نفسه، بترتيب الموقف — لسهمَي «السابقة»
+ * و«التالية» (المالك، ٢٤ نوفمبر ٢٠٢٦: «سهمين تحرّك بين السيارات… للمزاد
+ * الواحد»).
+ *
+ * **ولا حقلَ جديدٌ في العقد لهذا.** قائمةُ المركبات مرتّبةٌ في الخادم
+ * بـ`(auction_id, lot_number)` (`apps/auctions/listing.py`) وتُصفّى بالمزاد،
+ * فالجارتان هما ما قبلها وما بعدها في تلك القائمة نفسِها — بالتصفية نفسِها
+ * التي يراها العميل، فلا يقود السهمُ إلى مركبةٍ لا تُعرض.
+ *
+ * والمواقفُ في v1 متتالية في الغالب (١، ٢، ٣…)، فالمحاولةُ الأولى نافذةٌ من
+ * ثلاثٍ حول `lot - 1`: طلبٌ واحد. وحين تكون فيها فجوةٌ (موقفٌ سُحب) لا تقع
+ * السيّارةُ في الوسط، فتُقرأ القائمةُ صفحاتٍ من مئة حتى تُوجد — والمزادُ
+ * الأكبرُ ٤٠٦ سيّارات، أي خمسُ طلباتٍ في أسوأ حال.
+ */
+async function neighboursOf(
+  vehicle: Vehicle,
+): Promise<{ previous: Neighbour | null; next: Neighbour | null }> {
+  type Card = { id: number; lot_number: number; title: string };
+  const slice = async (offset: number, limit: number): Promise<{ rows: Card[]; total: number }> => {
+    const page = await request(() =>
+      api.GET("/api/v1/vehicles/", {
+        // ‏والطورُ صراحةً: بلاه يختار الخادمُ تبويباً بنفسه (نشط ← قريب ←
+        // منتهي)، فقد تُقرأ قائمةٌ غيرُ التي فيها هذه السيّارة.
+        params: {
+          query: {
+            auction: vehicle.auction_id,
+            phase: (vehicle.phase ?? "") as "soon" | "active" | "ended" | "",
+            offset,
+            limit,
+          },
+        },
+      }),
+    );
+    return { rows: (page.results ?? []) as Card[], total: page.total ?? 0 };
+  };
+  const around = (rows: Card[], index: number) => ({
+    previous: rows[index - 1] ?? null,
+    next: rows[index + 1] ?? null,
+  });
+
+  try {
+    const offset = Math.max(0, vehicle.lot_number - 2);
+    const first = await slice(offset, 3);
+    const index = first.rows.findIndex((row) => row.id === vehicle.id);
+    // في الوسط، أو أوّلُ القائمة كلِّها، أو آخرُها — فالنافذةُ تكفي.
+    if (index === 1 || (index === 0 && offset === 0) || (index >= 0 && offset + index === first.total - 1)) {
+      return around(first.rows, index);
+    }
+    for (let start = 0; start < Math.min(first.total, 1000); start += 100) {
+      const { rows } = await slice(Math.max(0, start - 1), 102);
+      const at = rows.findIndex((row) => row.id === vehicle.id);
+      if (at >= 0) return around(rows, at);
+    }
+  } catch {
+    // السهمان راحةٌ لا شرط: صفحةُ المركبة تُعرض بلاهما.
+  }
+  return { previous: null, next: null };
+}
+
 export default async function VehiclePage({ params }: Params) {
   const { id } = await params;
   const vehicle = await vehicleOr404(readNumber(id, 0));
@@ -107,6 +169,8 @@ export default async function VehiclePage({ params }: Params) {
   // Read here rather than inside the box: a server component reads cookies, and
   // pulling the flash once at the top is what keeps it a *one-shot* message —
   // two readers would consume it twice and show it in one place only, at random.
+  const neighbours = await neighboursOf(vehicle);
+
   const store = await cookies();
   const signedIn = hasSession(store);
   const flash = readFlash(store);
@@ -246,7 +310,24 @@ export default async function VehiclePage({ params }: Params) {
         لا لبنيٌّ يُخترع: الصفحةُ كلُّها على هذه العائلة، ولونٌ خامسٌ يجعل
         الشاشةَ تقول خمسةَ أشياء.
       */}
-      <nav className="tone-navy mb-4 inline-block rounded-full border px-4 py-1.5 text-sm font-medium">
+      {/*
+        شريطُ الصفحة: «رجوع» يخرج إلى القائمة، والمسارُ في الوسط، وسهمان إلى
+        السيّارة السابقة والتالية في المزاد نفسه (المالك، ٢٤ نوفمبر ٢٠٢٦).
+
+        و«رجوع» رابطٌ إلى تبويب حالتها لا `history.back()`: من تنقّل بين عشر
+        سيّاراتٍ بالسهمين يعني بـ«رجوع» الخروجَ من التفاصيل، لا السيّارةَ
+        التاسعة. والسهمان `replace` للسبب نفسِه — لا يُراكمان التاريخ، فزرُّ
+        الرجوع في المتصفّح يخرج كذلك.
+      */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <Link href={`/?phase=${vehicle.phase ?? "active"}`} className="vd-nav-btn inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-label-md">
+          <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+          رجوع
+        </Link>
+
+      <nav className="tone-navy inline-block rounded-full border px-4 py-1.5 text-sm font-medium">
         <Link href="/" className="hover:underline">
           المزادات
         </Link>
@@ -261,6 +342,42 @@ export default async function VehiclePage({ params }: Params) {
           مزاد <span className="tnum">{vehicle.auction_number}</span>
         </Link>
       </nav>
+
+        {neighbours.previous || neighbours.next ? (
+          <div className="ms-auto flex items-center gap-2">
+            {neighbours.previous ? (
+              <Link
+                href={`/vehicles/${neighbours.previous.id}`}
+                replace
+                title={neighbours.previous.title}
+                aria-label={`السيّارة السابقة: ${neighbours.previous.title}`}
+                className="vd-nav-btn inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-label-md"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 6l6 6-6 6" />
+                </svg>
+                السابقة
+                <span className="tnum text-caption opacity-70">#{neighbours.previous.lot_number}</span>
+              </Link>
+            ) : null}
+            {neighbours.next ? (
+              <Link
+                href={`/vehicles/${neighbours.next.id}`}
+                replace
+                title={neighbours.next.title}
+                aria-label={`السيّارة التالية: ${neighbours.next.title}`}
+                className="vd-nav-btn inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-label-md"
+              >
+                <span className="tnum text-caption opacity-70">#{neighbours.next.lot_number}</span>
+                التالية
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 6l-6 6 6 6" />
+                </svg>
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         {/*
