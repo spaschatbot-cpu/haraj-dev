@@ -576,3 +576,30 @@ body {
 .on-navy-info  { color: var(--tone-navy-line); }
 .on-navy-warn  { color: var(--tone-amber-line); }
 .on-navy-ok-dot { background: var(--tone-emerald-line); }
+
+/* ---- صفحةُ الدخول: سيّارةٌ حقيقيّةٌ خلف الصفحة — ٢٤ نوفمبر ٢٠٢٦ -------- */
+/* الصورةُ تقترب ببطءٍ عند الفتح (تكبيرٌ من 1.08 إلى 1) — حركةٌ واحدةٌ هادئة
+   تقول «هنا شيءٌ حقيقيّ» بلا أن تسحب العينَ عن النموذج. */
+.signin-bg { animation: signin-zoom 2.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes signin-zoom {
+  from { transform: scale(1.08); opacity: 0.4; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.signin-veil {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(11, 22, 38, 0.2), transparent 60%),
+    linear-gradient(90deg, rgba(11, 22, 38, 0.55) 0%, rgba(11, 22, 38, 0.35) 45%, rgba(11, 22, 38, 0.82) 100%);
+}
+/* لوحُ الهويّة زجاجٌ كحليٌّ فوق الصورة: تُرى السيّارةُ من خلفه ضبابيّةً،
+   والنصُّ الأبيضُ عليه بتباينِ سطحٍ صلب. */
+.signin-glass {
+  background: linear-gradient(160deg, rgba(30, 58, 95, 0.78), rgba(12, 27, 46, 0.86));
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+.signin-card {
+  animation: card-in 600ms 150ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .signin-bg, .signin-card { animation: none; }
+}

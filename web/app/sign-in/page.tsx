@@ -75,12 +75,32 @@ export default async function SignInPage({
   const now = await respondedAt();
 
   return (
-    <main className="min-h-screen bg-surface px-3 py-4 md:px-6 md:py-8 lg:flex lg:items-center lg:justify-center">
-      <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-outline-variant/60 bg-surface-lowest shadow-2xl">
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#0b1626] px-3 py-4 md:px-6 md:py-8 lg:flex lg:items-center lg:justify-center">
+      {/*
+        صورةُ سيّارةٍ حقيقيّة خلف الصفحة (٢٤ نوفمبر ٢٠٢٦، المالك: «نزّل عربية
+        من النت شكلها حلو وحطّها في الباكجراوند… جرّبها الأوّل في صفحة تسجيل
+        الدخول»). الصورةُ من Unsplash برخصته (استعمالٌ تجاريٌّ بلا نسبة):
+        unsplash.com/photos/ypimi8FVDjI — 2000 بكسل WebP، 73 ك.ب.
+
+        وفوقها تدرّجٌ كحليّ من لون المنصّة لا سوادٌ صرف: يُبقي السيّارةَ
+        مقروءةً في جهة النموذج ويُغرقها خلف لوح الهويّة، فالنصُّ الأبيض هناك
+        يبقى بتباينه.
+      */}
+      <Image
+        src="/backgrounds/sign-in-suv.webp"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="signin-bg -z-20 object-cover object-center"
+      />
+      <div aria-hidden="true" className="signin-veil absolute inset-0 -z-10" />
+
+      <div className="signin-card mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-white/15 bg-surface-lowest shadow-2xl">
         <div className="grid grid-cols-1 lg:grid-cols-12">
           
           {/* ── الجانب الأيمن: واجهة المزاد الحية وأجواء المنصة (Hero Side) ── */}
-          <div className="relative flex flex-col justify-between border-b border-outline-variant/40 bg-gradient-to-br from-primary via-primary to-[#13233f] p-6 text-on-primary md:p-8 lg:col-span-5 lg:border-b-0 lg:border-e lg:p-10">
+          <div className="signin-glass relative flex flex-col justify-between border-b border-white/10 p-6 text-on-primary md:p-8 lg:col-span-5 lg:border-b-0 lg:border-e lg:p-10">
             {/* توهج خلفي جمالي */}
             <div aria-hidden="true" className="pointer-events-none absolute -top-24 -end-24 h-64 w-64 rounded-full bg-secondary/20 blur-3xl" />
             <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -start-24 h-64 w-64 rounded-full bg-ok/10 blur-3xl" />
