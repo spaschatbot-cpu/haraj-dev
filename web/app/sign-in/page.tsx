@@ -75,7 +75,7 @@ export default async function SignInPage({
   const now = await respondedAt();
 
   return (
-    <main className="relative isolate min-h-screen overflow-hidden bg-[#0b1626] px-3 py-4 md:px-6 md:py-8 lg:flex lg:items-center lg:justify-center">
+    <main className="relative isolate min-h-screen overflow-hidden bg-[#0b1626] px-3 py-4 md:px-6 md:py-8 lg:flex lg:items-center lg:justify-end lg:px-[4vw]">
       {/*
         صورةُ سيّارةٍ حقيقيّة خلف الصفحة (٢٤ نوفمبر ٢٠٢٦، المالك: «نزّل عربية
         من النت شكلها حلو وحطّها في الباكجراوند… جرّبها الأوّل في صفحة تسجيل
@@ -86,17 +86,26 @@ export default async function SignInPage({
         مقروءةً في جهة النموذج ويُغرقها خلف لوح الهويّة، فالنصُّ الأبيض هناك
         يبقى بتباينه.
       */}
-      <Image
-        src="/backgrounds/sign-in-suv.webp"
-        alt=""
-        fill
-        priority
-        sizes="100vw"
-        className="signin-bg -z-20 object-cover object-center"
-      />
+      {/*
+        السيّارةُ في النصف الأيمن والبطاقةُ في الأيسر — في المحاولة الأولى
+        كانت الصورةُ بعرض الشاشة والبطاقةُ في وسطها، فغطّت السيّارةَ ولم يظهر
+        منها إلا العجلات (قِيس بلقطةٍ على 1440×900). فالصورةُ في إطارٍ يبدأ من
+        ٣٨٪ من اليسار ويتخطّى الحافّة، فيقع مركزُها عند ~٧٨٪، وحافّتُها
+        اليسرى تذوب في الخلفيّة بقناع. وتحت `lg` تعود بعرض الشاشة خلف البطاقة.
+      */}
+      <div aria-hidden="true" className="signin-photo absolute inset-0 -z-20 lg:left-[38%] lg:right-[-22%]">
+        <Image
+          src="/backgrounds/sign-in-suv.webp"
+          alt=""
+          fill
+          priority
+          sizes="(max-width: 1024px) 100vw, 85vw"
+          className="signin-bg object-cover object-center"
+        />
+      </div>
       <div aria-hidden="true" className="signin-veil absolute inset-0 -z-10" />
 
-      <div className="signin-card mx-auto w-full max-w-5xl overflow-hidden rounded-3xl border border-white/15 bg-surface-lowest shadow-2xl">
+      <div className="signin-card mx-auto w-full max-w-5xl overflow-hidden lg:mx-0 lg:max-w-[min(860px,58vw)] rounded-3xl border border-white/15 bg-surface-lowest shadow-2xl">
         <div className="grid grid-cols-1 lg:grid-cols-12">
           
           {/* ── الجانب الأيمن: واجهة المزاد الحية وأجواء المنصة (Hero Side) ── */}

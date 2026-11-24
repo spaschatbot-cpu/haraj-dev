@@ -586,9 +586,19 @@ body {
   to   { transform: scale(1); opacity: 1; }
 }
 .signin-veil {
-  background:
-    radial-gradient(120% 80% at 50% 110%, rgba(11, 22, 38, 0.2), transparent 60%),
-    linear-gradient(90deg, rgba(11, 22, 38, 0.55) 0%, rgba(11, 22, 38, 0.35) 45%, rgba(11, 22, 38, 0.82) 100%);
+  background: linear-gradient(180deg, rgba(11, 22, 38, 0.35), rgba(11, 22, 38, 0.75));
+}
+@media (min-width: 1024px) {
+  /* اليسارُ كحليٌّ عميقٌ تقف عليه البطاقة، واليمينُ يكشف السيّارة. */
+  .signin-veil {
+    background:
+      linear-gradient(90deg, rgba(11, 22, 38, 0.92) 0%, rgba(11, 22, 38, 0.55) 45%, rgba(11, 22, 38, 0.05) 75%, rgba(11, 22, 38, 0.25) 100%),
+      linear-gradient(0deg, rgba(11, 22, 38, 0.55) 0%, transparent 35%);
+  }
+  .signin-photo {
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 22%);
+  }
 }
 /* لوحُ الهويّة زجاجٌ كحليٌّ فوق الصورة: تُرى السيّارةُ من خلفه ضبابيّةً،
    والنصُّ الأبيضُ عليه بتباينِ سطحٍ صلب. */
