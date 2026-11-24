@@ -88,6 +88,14 @@ class Command(BaseCommand):
             action="store_true",
             help="يقول ماذا سيجلب ولا يجلب.",
         )
+        # خادمُ التيست لا يملك مفتاحَ v1 — ولا يُنسخ إليه مفتاحُ إنتاج. فالصورُ
+        # تُبثّ إليه مرّةً واحدةً (`tar` من v1 عبر جهاز المطوّر) إلى مجلّدٍ محلّيّ،
+        # ويقرأ منه هذا الأمر. (٢٤ نوفمبر ٢٠٢٦: ٩٣٬٥٤٩ ملفاً، ١٣ جيجا.)
+        parser.add_argument(
+            "--source-dir",
+            default="",
+            help="مجلّدٌ محلّيٌّ فيه نسخةُ uploads من v1 — بدل الجلب بـSSH.",
+        )
 
     def handle(self, *args, **options):
         manifest = self._manifest(options["manifest"])
@@ -104,6 +112,11 @@ class Command(BaseCommand):
         if options["dry_run"]:
             for vehicle, names in wanted[:10]:
                 self.stdout.write(f"  {vehicle.id} ← {len(names)}: {names[0]}")
+            return
+
+        if options["source_dir"]:
+            # المجلّدُ نسخةٌ دائمةٌ لا مرحلةٌ مؤقّتة: لا يُحذف بعد الإلصاق.
+            self._attach(wanted, Path(options["source_dir"]), options["per_vehicle"])
             return
 
         staging = Path(tempfile.mkdtemp(prefix="v1-images-"))
