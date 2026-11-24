@@ -8,10 +8,11 @@
  * backend answers with a 400 that the visitor cannot act on.
  */
 
-//: What a page holds when the url does not say. Twelve rather than the API's
-//: twenty: three columns on a desktop grid divide into it, and a partial last
-//: row on every page reads as a rendering bug.
-export const PAGE_SIZE = 12;
+//: What a page holds when the url does not say. Twenty-four: the grid is now
+//: four columns on a desktop (the owner, 24 Nov 2026: «انت عارض 3 سيارات بس…
+//: عايز يظهر اكتر من كده»), and 24 divides into four, three and two — so no
+//: breakpoint ends a page on a partial row, which reads as a rendering bug.
+export const PAGE_SIZE = 24;
 
 export function readNumber(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? "", 10);

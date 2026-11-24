@@ -187,48 +187,46 @@ body {
   50%      { opacity: 0.55; }
 }
 
-.phase-card {
-  animation: phase-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease;
+/* ---- شريطُ الحالات المقسَّم — ٢٤ نوفمبر ٢٠٢٦ ------------------------- */
+/* بديلُ الكبسولات الثلاث. وعاءٌ رماديٌّ فاتحٌ واحد، والتبويبُ المختارُ يمتلئ
+   بصلب نغمته — فاللونُ يقول الحالةَ وموضعُ الامتلاء يقول «أنت هنا». */
+.phase-seg {
+  background: var(--tone-slate-fill);
+  border-color: var(--tone-slate-line);
+  animation: phase-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.phase-card:hover { transform: translateY(-3px); }
-.phase-card:active { transform: translateY(-1px); }
+.phase-tab {
+  color: var(--t-ink2);
+  background: transparent;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+.phase-tab:hover { background: #ffffff; color: var(--t-ink); }
+.phase-tab[aria-current="page"] {
+  background: var(--t-solid);
+  color: #ffffff;
+  box-shadow: 0 6px 16px -8px var(--t-solid);
+}
+.phase-tab .phase-count { background: var(--t-fill); color: var(--t-ink); }
+.phase-tab[aria-current="page"] .phase-count { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
 
-/* نبضةٌ على نقطة «الجاري» وحدها، لا على البطاقة: بطاقةٌ كاملةٌ تنبض تسحب
-   العينَ عن كلّ ما حولها. */
-.phase-live-dot { animation: phase-pulse 2.4s ease-in-out infinite; }
+/* نبضةٌ على نقطة «يجري الآن» وحدها — شريطٌ كاملٌ ينبض يسحب العينَ عن كلّ شيء. */
+.phase-live {
+  background: var(--tone-emerald-solid);
+  box-shadow: 0 0 0 2px #ffffff;
+  animation: phase-pulse 2.4s ease-in-out infinite;
+}
+
+/* الشارةُ في شريط الصدر: السرّيةُ حقيقةٌ لا زينة، فتُقرأ بسطحٍ كحليٍّ ناعم. */
+.browse-secret {
+  background: var(--tone-navy-fill);
+  border: 1px solid var(--tone-navy-line);
+  color: var(--tone-navy-ink);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .phase-card,
-  .phase-live-dot {
-    animation: none;
-    transition: none;
-  }
-  .phase-card:hover { transform: none; }
+  .phase-seg, .phase-live { animation: none; }
+  .phase-tab { transition: none; }
 }
-
-/* ---- الصدرُ الملوّن وحركةُ الشبكة — T1035 ---------------------------- */
-/* **فاتحٌ لا غامق** (قرارُ المالكة، ٥ أكتوبر ٢٠٢٦: «ديزاين فاتح»). جُرّب
-   كحليّاً غامقاً فصار أثقلَ ما في الشاشة، وصورةُ السيارة تحته تبهت.
-   فالسطحُ أزرقُ فاتحٌ من عائلة المشروع (`--color-surface-low`) بإطارٍ أوضح،
-   والرسمُ الخطّيُّ بالأزرق الثانويّ فوقه — لونٌ واحدٌ في درجتين، لا لونان.
-
-   والنصُّ يبقى على ألوانه الأصليّة: `--color-on-surface` للعنوان و
-   `--color-on-surface-variant` للشرح — فالتباينُ هو هو الذي قِيس. */
-.hero-ink {
-  background: var(--color-surface-low);
-  border: 1px solid var(--color-surface-high);
-}
-.hero-ink .hero-sub { color: var(--color-on-surface-variant); }
-.hero-ink .hero-chip {
-  background: var(--color-surface-highest);
-  color: var(--color-secondary);
-}
-.hero-ink .hero-badge {
-  background: var(--color-secondary-fixed);
-  color: var(--color-on-secondary-fixed);
-}
-.hero-ink .hero-rule { border-color: var(--color-outline-variant); }
 
 /* دخولُ بطاقات المركبات متدرّجاً — ستٌّ أولى وحدها، ثمّ تظهر البقيّةُ بلا
    تأخير: شبكةٌ من عشرين تنتظر ثانيتين قبل أن تكتمل تُقرأ بطيئةً لا حيّة. */
@@ -253,29 +251,43 @@ body {
    أعلى إلى أسفل كما تُبنى. */
 .spec-panel { animation: card-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-.spec-row {
+/* بلاطاتُ المواصفات — ٢٤ نوفمبر ٢٠٢٦. سطحُ الكحليّ الناعم بحدٍّ منه، والأيقونةُ
+   في مربّعٍ أبيض: كلُّ بلاطةٍ وحدةٌ مقفلةٌ لا تلتصق بجارتها. */
+.spec-tile {
+  background: var(--tone-navy-fill);
+  border: 1px solid var(--tone-navy-line);
   animation: card-in 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  transition: background-color 140ms ease;
-  border-radius: 8px;
+  transition: border-color 140ms ease, transform 140ms ease;
 }
-/* يُضيء عند المرور فيُتتبَّع بالعين إلى آخره — والفراغُ الممتدُّ بين الاسم
-   والقيمة هو ما كان يُفقد التتبّع. */
-/* **صفوفٌ متناوبةُ التلوين** — والتنظيمُ لم يتغيّر: الاسمُ يميناً والقيمةُ
-   يساراً بالترتيب نفسِه. والتناوبُ يفعل ما يفعله السطرُ المسطَّر في جدولٍ
-   طويل: يمنع العينَ أن تنزلق من صفٍّ إلى الذي تحته. */
-.spec-row:nth-child(odd) { background: var(--tone-navy-fill); }
-.spec-row:hover { background: #dbe6f3; }
+.spec-tile:hover { border-color: var(--tone-navy-solid); transform: translateY(-1px); }
+.spec-tile-icon { background: #ffffff; color: var(--tone-navy-solid); }
+.spec-tile dt { color: var(--tone-navy-ink2); }
+.spec-tile dd { color: var(--tone-slate-ink); }
 
-/* وحافّةٌ ملوّنةٌ على كلّ صفّ تقول «هنا يبدأ» — خطٌّ واحدٌ لا إطار. */
-.spec-row { border-inline-start: 4px solid var(--tone-navy-line); }
-.spec-row:hover { border-inline-start-color: var(--tone-navy-solid); }
+/* أزرارُ المعرض: دائرةٌ بيضاءُ بظلّ، تظهر كاملةً عند المرور على الصورة. */
+.gallery-nav {
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--tone-navy-solid);
+  box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.35);
+  opacity: 0.85;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.group:hover .gallery-nav { opacity: 1; }
+.gallery-nav:hover { transform: translateY(-50%) scale(1.06); }
+.gallery-strip { scrollbar-width: thin; scroll-snap-type: x proximity; }
+.gallery-strip > li { scroll-snap-align: start; }
 
-/* الاسمُ بحروفٍ متباعدةٍ قليلاً يُقرأ عنواناً لا جاراً للقيمة. */
 .spec-label { letter-spacing: 0.02em; }
 
 @media (prefers-reduced-motion: reduce) {
   .spec-panel,
-  .spec-row { animation: none; transition: none; }
+  .spec-tile, .gallery-nav { animation: none; transition: none; }
 }
 
 /* ---- خطُّ الأقسام في الشريط — T1036 ---------------------------------- */
@@ -378,57 +390,6 @@ body {
 
 /* والمختارُ بحدٍّ داخليٍّ من صلب نغمته — الحدُّ الناعمُ لا يُرى تمييزاً. */
 .tone-on { box-shadow: inset 0 0 0 2px var(--t-solid, currentColor); }
-
-/* ---- صدرُ الصفحة — كحليٌّ فاتح ----------------------------------------- */
-/* **فاتحٌ لا غامق** («ديزاين فاتح»، ٥ أكتوبر ٢٠٢٦). سطحُ الكحليّ وحدُّه
-   الناعم، والشارةُ وحدَها مملوءة. */
-.hero-ink {
-  background: var(--tone-navy-fill);
-  border: 1px solid var(--tone-navy-line);
-  color: var(--tone-navy-ink);
-}
-.hero-ink .hero-sub { color: var(--tone-navy-ink2); }
-.hero-ink .hero-chip {
-  background: #ffffff;
-  color: var(--tone-navy-solid);
-}
-.hero-ink .hero-badge {
-  background: var(--tone-navy-solid);
-  color: #ffffff;
-}
-.hero-ink .hero-rule { border-color: var(--tone-navy-line); }
-
-/* ---- بطاقاتُ الحالة كبسولات — الاقتراح «ج» ------------------------------ */
-/* كبسولةٌ بيضاءُ بحدٍّ ناعمٍ من نغمتها، والأيقونةُ في دائرةٍ من سطح النغمة —
-   فاللونُ في الدائرة وحدَها لا في البطاقة كلِّها، وهو ما يُريح العين.
-
-   **والمختارةُ مملوءةٌ بالكحليّ** أيّاً كانت نغمتُها: الكحليُّ لونُ المنصّة،
-   ومعناه هنا «أنت هنا». ودائرتُها تحتفظ بلون نغمتها، فيبقى «نشط» أخضرَ وهو
-   مختار. وتُعرف المختارةُ كذلك بـ`aria-current` لمن لا يرى. */
-.phase-pill {
-  background: var(--color-surface-lowest);
-  border: 1.5px solid var(--t-line);
-  border-radius: 9999px;
-}
-.phase-pill:hover { border-color: var(--t-solid); }
-.phase-pill .phase-icon {
-  background: var(--t-fill);
-  color: var(--t-ink);
-  transition: transform 200ms ease;
-}
-.phase-pill:hover .phase-icon { transform: scale(1.06) rotate(-6deg); }
-.phase-pill[aria-current="page"] {
-  background: var(--tone-navy-solid);
-  border-color: var(--tone-navy-solid);
-  color: #ffffff;
-}
-.phase-pill[aria-current="page"] .tone-ink { color: #dbe6f3; }
-.phase-pill[aria-current="page"] .phase-icon { box-shadow: 0 0 0 2px #ffffff; }
-
-@media (prefers-reduced-motion: reduce) {
-  .phase-pill .phase-icon { transition: none; }
-  .phase-pill:hover .phase-icon { transform: none; }
-}
 
 /* ---- صفُّ البحث — كحليٌّ هادئٌ متحرّك ----------------------------------- */
 /* **سطحُ الكحليّ لأنه أداةُ المنصّة نفسِها**، لا حالةٌ تنتظر ولا تُوقف. وكان

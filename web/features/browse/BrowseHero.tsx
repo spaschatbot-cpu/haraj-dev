@@ -23,68 +23,48 @@
  *
  * والأيقونةُ رسمٌ مضمَّنٌ لا محرف `🔒`: المحرفَ يرسمه نظامُ التشغيل بأسلوبه،
  * ملوّناً ومختلفاً بين ويندوز وأندرويد — وهي قاعدةُ T837 نفسُها في اللوحة.
+ *
+ * **وصار شريطاً لا لافتة** (٢٤ نوفمبر ٢٠٢٦، المالك: «ساحة المزادات المغلقة
+ * … واخدة مساحة كبيرة من الشاشة فمخلية عربيات أقل تظهر»). كانت كتلةً بارتفاع
+ * ~١٤٠ بكسل فوق التبويبات تدفع الصفَّ الأوّلَ من السيّارات تحت الطيّة. والحقيقتان
+ * باقيتان كما هما — السرّيةُ شارةٌ بقفل، والعددُ رقمٌ بجانب العنوان — في سطرٍ
+ * واحد. والرسمُ الخلفيّ (`HeroArt`) خرج معها: زينةٌ لا تسع سطراً.
  */
 
 import { count } from "@/lib/format";
 
-import { HeroArt } from "./HeroArt";
-
-export function BrowseHero({
-  /** كم مركبة في التبويب المعروض — `total` كما قاله الخادم، أو `null` إن لم يردّ. */
-  total,
-}: {
-  total: number | null;
-}) {
+export function BrowseHero({ total }: { total: number | null }) {
   return (
-    <section className="hero-ink relative mb-6 overflow-hidden rounded-xl p-6 md:p-8">
-      <HeroArt />
-
-      <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-start gap-4">
-          <span
-            aria-hidden="true"
-            className="hero-chip flex h-12 w-12 shrink-0 items-center justify-center rounded-lg"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-6 w-6"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect x="4" y="10.5" width="16" height="10" rx="2" />
-              <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
-            </svg>
-          </span>
-
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-headline-md">ساحة المزادات المغلقة</h1>
-              <span className="hero-badge rounded-sm px-2 py-0.5 text-caption font-bold">
-                مزايدة مغلقة
-              </span>
-            </div>
-            <p className="hero-sub mt-1 max-w-xl text-body-sm">
-              كل مزايدة سرّية: لا يرى أحدٌ مبلغك، ولا ترى مبلغ غيرك، ولا عدد
-              المزايدين. تُفتح المظاريف عند الإغلاق.
-            </p>
-          </div>
-        </div>
-
+    <section className="browse-strip mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-headline-md">المزادات</h1>
         {total === null ? null : (
-          <div className="hero-rule shrink-0 border-t pt-3 md:border-t-0 md:border-e md:pe-6 md:pt-0">
-            <p className="hero-sub text-caption">مركبات هذا التبويب</p>
-            <p className="text-headline-md">
-              <span className="tnum">{count(total)}</span>{" "}
-              <span className="hero-sub text-label-sm font-normal">
-                مركبة
-              </span>
-            </p>
-          </div>
+          <p className="text-body-sm text-on-surface-variant">
+            <span className="tnum font-semibold text-on-surface">{count(total)}</span> مركبة في
+            هذا التبويب
+          </p>
         )}
       </div>
+
+      <p className="browse-secret flex items-center gap-2 rounded-full px-3 py-1.5 text-caption">
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className="h-4 w-4 shrink-0"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="4" y="10.5" width="16" height="10" rx="2" />
+          <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+        </svg>
+        <span>
+          <strong className="font-bold">مزايدة مغلقة:</strong> لا يرى أحدٌ مبلغك ولا ترى مبلغ
+          غيرك، وتُفتح المظاريف عند الإغلاق.
+        </span>
+      </p>
     </section>
   );
 }

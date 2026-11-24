@@ -179,16 +179,28 @@ export default async function VehiclePage({ params }: Params) {
   // مقروءةٌ من الإنتاج الحيّ (`specs/011-customer-web/v1-card-parity.md`).
   // والممشى الفارغ شرطةٌ لا صفر، كما يفعل v1 حرفياً: مركبةٌ لم يُقَس ممشاها
   // ليست مركبةً ممشاها صفر.
-  const specifications: Array<[string, string]> = [
-    ["الموديل", `${vehicle.make} ${vehicle.model}`],
-    ["سنة الصنع", String(vehicle.year)],
-    ["اللون", vehicle.colour_label],
-    ["الممشى", vehicle.odometer_km === null ? "—" : `${count(vehicle.odometer_km)} كم`],
-    ["المدينة", vehicle.location || "—"],
+  //: ‏بيانات v1 تكتب الاسمَ كاملاً في الصانع والطراز معاً («بكب جمس سيرا»
+  //: في الاثنين)، فكان السطرُ «بكب جمس سيرا بكب جمس سيرا». يُعرض الطرازُ
+  //: وحده حين يحمل الصانعَ في أوّله، أو حين يتطابقان.
+  const model = vehicle.model.trim();
+  const make = vehicle.make.trim();
+  const modelLine = !make || model === make || model.startsWith(make) ? model || make : `${make} ${model}`;
+
+  const specifications: Array<{ label: string; value: string; icon: SpecIcon }> = [
+    { label: "الموديل", value: modelLine, icon: "car" },
+    { label: "سنة الصنع", value: String(vehicle.year), icon: "calendar" },
+    { label: "اللون", value: vehicle.colour_label, icon: "palette" },
+    {
+      label: "الممشى",
+      value: vehicle.odometer_km === null ? "—" : `${count(vehicle.odometer_km)} كم`,
+      icon: "gauge",
+    },
+    { label: "الحالة", value: vehicle.condition_label, icon: "shield" },
+    { label: "المدينة", value: vehicle.location || "—", icon: "pin" },
   ];
 
   return (
-    <PageShell art="car">
+    <PageShell>
       <script
         type="application/ld+json"
         // The object is built above from typed fields, so there is no user text
@@ -227,7 +239,7 @@ export default async function VehiclePage({ params }: Params) {
         </Link>
       </nav>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
         {/*
           المعرض لا صورةً واحدة. وحين لا يجيب نداءُ الصور تُعرض صورة الغلاف
           التي وصلت مع الكرت أصلاً — فالصفحة لا تفقد صورتها لأن نداءً ثانياً
@@ -317,15 +329,31 @@ export default async function VehiclePage({ params }: Params) {
             والخطُّ هو هو (`--font-arabic` في `globals.css`): خطٌّ ثانٍ على
             صفحةٍ واحدةٍ يُحمَّل ملفّاً ويتأخّر فيقفز النصّ.
           */}
-          <dl className="vd-specs mt-6 divide-y border-y">
-            {specifications.map(([label, value], index) => (
+          {/*
+            بلاطاتٌ لا سطورٌ مخطّطة (٢٤ نوفمبر ٢٠٢٦، المالك: «الموديل وسنة
+            الصنع واللون والممشى… داخلة في بعضها»). كانت صفوفاً متناوبةَ
+            اللون بحافّةٍ ملوّنة، فتلتصق القيمةُ الطويلة بالاسم ويُقرأ صفّان
+            واحداً. وكلُّ بلاطةٍ الآن وحدةٌ مقفلة: أيقونة، ثم الاسمُ صغيراً،
+            ثم القيمةُ كبيرة — والعينُ تبحث عن القيمة.
+          */}
+          <dl className="mt-5 grid grid-cols-2 gap-2.5">
+            {specifications.map(({ label, value, icon }, index) => (
               <div
                 key={label}
-                style={{ animationDelay: `${index * 55}ms` }}
-                className="spec-row flex items-baseline justify-between gap-4 px-2 py-3"
+                style={{ animationDelay: `${index * 45}ms` }}
+                className={`spec-tile flex items-center gap-3 rounded-xl p-3 ${
+                  label === "الموديل" ? "col-span-2" : ""
+                }`}
               >
-                <dt className="spec-label text-sm">{label}</dt>
-                <dd className="text-lg font-medium">{value}</dd>
+                <span aria-hidden="true" className="spec-tile-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
+                  <SpecGlyph name={icon} />
+                </span>
+                <div className="min-w-0">
+                  <dt className="spec-label text-caption">{label}</dt>
+                  <dd className="truncate text-base font-semibold" title={value}>
+                    {value}
+                  </dd>
+                </div>
               </div>
             ))}
           </dl>
@@ -362,5 +390,66 @@ export default async function VehiclePage({ params }: Params) {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+type SpecIcon = "car" | "calendar" | "palette" | "gauge" | "shield" | "pin";
+
+const GLYPHS: Record<SpecIcon, React.ReactNode> = {
+  car: (
+    <>
+      <path d="M5 16.5h14M5 16.5V13l1.8-4.2A2 2 0 0 1 8.6 7.5h6.8a2 2 0 0 1 1.8 1.3L19 13v3.5" />
+      <circle cx="8" cy="16.5" r="1.6" />
+      <circle cx="16" cy="16.5" r="1.6" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="4" y="5.5" width="16" height="14" rx="2" />
+      <path d="M4 10h16M8.5 3.5v4M15.5 3.5v4" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 4a8 8 0 1 0 0 16c1.2 0 1.6-.9 1.2-1.8-.5-1-.1-2.2 1.2-2.2H17a3 3 0 0 0 3-3c0-5-3.6-9-8-9Z" />
+      <circle cx="8.5" cy="11" r="1" />
+      <circle cx="11.5" cy="8" r="1" />
+      <circle cx="15" cy="9.5" r="1" />
+    </>
+  ),
+  gauge: (
+    <>
+      <path d="M4.5 16a7.5 7.5 0 1 1 15 0" />
+      <path d="m12 16 3.5-4.5" />
+      <circle cx="12" cy="16" r="1.2" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3.5 5 6v5.5c0 4.2 3 7.3 7 8.5 4-1.2 7-4.3 7-8.5V6z" />
+      <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 20s6-5.6 6-10.5a6 6 0 0 0-12 0C6 14.4 12 20 12 20Z" />
+      <circle cx="12" cy="9.5" r="2.2" />
+    </>
+  ),
+};
+
+function SpecGlyph({ name }: { name: SpecIcon }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {GLYPHS[name]}
+    </svg>
   );
 }

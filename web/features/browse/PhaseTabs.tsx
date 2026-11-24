@@ -25,7 +25,7 @@
  *
  * **وكبسولاتٌ لا مستطيلات** (الاقتراح «ج»، ٥ أكتوبر ٢٠٢٦): ثلاثُ بطاقاتٍ
  * مملوءةٍ بألوانٍ مشبعةٍ متجاورة كانت تتنافس على العين، فصار اللونُ في دائرة
- * الأيقونة وحدَها والكبسولةُ بيضاء. والشكلُ في `globals.css` (`.phase-pill`).
+ * الأيقونة وحدَها والكبسولةُ بيضاء. والشكلُ في `globals.css` (`.phase-seg` و`.phase-tab`).
  */
 
 import Link from "next/link";
@@ -94,54 +94,45 @@ export function PhaseTabs({
   }
 
   return (
-    <nav aria-label="حالة المزاد" className="mb-6">
-      <ul className="grid grid-cols-3 gap-3">
-        {TABS.map((tab, index) => {
+    /*
+      شريطٌ مقسَّمٌ واحد لا ثلاثُ بطاقات (٢٤ نوفمبر ٢٠٢٦، المالك: «الشكل
+      بتاع قريبا ونشط ومنتهي ده مش احسن حاجة»). كانت كبسولاتٍ بارتفاع ~٧٥
+      بكسل بدوائرَ كبيرة تأكل صفّاً من السيّارات. والمعلومةُ هي هي — الحالةُ
+      وعدّادُها ونقطةُ «يجري الآن» — في ارتفاعٍ أقلّ من نصفه. والمختارُ يمتلئ
+      بصلب نغمته (كهرمانيّ · أخضر · كحليّ) فيُقرأ «أين أنا» باللون قبل الكلمة.
+    */
+    <nav aria-label="حالة المزاد" className="mb-5">
+      <ul className="phase-seg grid grid-cols-3 gap-1 rounded-2xl border p-1">
+        {TABS.map((tab) => {
           const selected = tab.id === current;
-          const tone = TONE[tab.id];
           const live = tab.id === "active" && (counts?.active ?? 0) > 0;
           return (
             <li key={tab.id}>
               <Link
                 href={href(tab.id)}
                 aria-current={selected ? "page" : undefined}
-                /* التأخيرُ المتدرّج يجعل العينَ تقرأ الثلاثَ واحدةً بعد
-                   واحدة، لا هبوطاً واحداً لا يُقرأ منه شيء. */
-                style={{ animationDelay: `${index * 70}ms` }}
-                className={`phase-card phase-pill ${tone} flex h-full flex-col items-center justify-center gap-2 px-2 py-3 text-center md:flex-row md:justify-start md:gap-4 md:p-2.5 md:pe-6 md:text-start`}
+                className={`phase-tab ${TONE[tab.id]} flex h-full items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-label-md md:gap-2.5`}
               >
-                {/* الأيقونةُ في دائرةٍ من سطح نغمتها — اللونُ فيها وحدَها.
-                    وعلى الجوّال تقف الكبسولةُ قائمةً، الدائرةُ فوق النصّ: ثلثُ
-                    شاشةٍ عرضُها ٣٧٥ لا يسع الدائرةَ والاسمَ متجاورين، فقُصّ
-                    «منتهي» إلى «منت…» (قِيس على الإنتاج). */}
-                <span
-                  aria-hidden="true"
-                  className="phase-icon relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full md:h-14 md:w-14"
-                >
+                <span aria-hidden="true" className="relative hidden sm:inline-flex">
                   <svg
                     viewBox="0 0 24 24"
-                    className="h-5 w-5 md:h-7 md:w-7"
+                    className="h-5 w-5"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth="1.8"
+                    strokeWidth="1.9"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   >
                     {ART[tab.id]}
                   </svg>
-                  {live ? (
-                    <span className="phase-live-dot absolute -top-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-white bg-current" />
-                  ) : null}
+                  {live ? <span className="phase-live absolute -top-1 -end-1 h-2.5 w-2.5 rounded-full" /> : null}
                 </span>
-
-                <span className="flex min-w-0 flex-col items-center md:items-start">
-                  {counts === null ? null : (
-                    <span className="tnum text-headline-sm leading-none md:text-headline-md">
-                      {count(counts[tab.id])}
-                    </span>
-                  )}
-                  <span className="tone-ink text-label-md">{tab.label}</span>
-                </span>
+                <span className="whitespace-nowrap font-semibold">{tab.label}</span>
+                {counts === null ? null : (
+                  <span className="phase-count tnum rounded-full px-2 py-0.5 text-caption font-bold">
+                    {count(counts[tab.id])}
+                  </span>
+                )}
               </Link>
             </li>
           );

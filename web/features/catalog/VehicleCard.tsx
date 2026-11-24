@@ -108,9 +108,9 @@ export function VehicleCard({
   const damaged = DAMAGE.has(vehicle.condition);
 
   return (
-    <article className="flex flex-col justify-between overflow-hidden rounded-xl bg-surface-lowest shadow-sm transition-transform duration-200 hover:-translate-y-1">
+    <article className="group flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-outline-variant/50 bg-surface-lowest shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg">
       <Link href={`/vehicles/${vehicle.id}`} className="block">
-        <div className="relative aspect-[4/3] bg-surface-container">
+        <div className="relative aspect-[4/3] overflow-hidden bg-surface-container">
           {/*
             الرقم المرجعي على الصورة، كما يضعه v1 (`#10565`). يذكره العميل حين
             يسأل الدعم، فموضعه حيث تقع العين أولاً لا في سطرٍ أسفل.
@@ -137,8 +137,11 @@ export function VehicleCard({
               alt={vehicle.title}
               fill
               priority={priority}
-              sizes="(max-width: 768px) 100vw, 33vw"
-              className="object-cover"
+              /* المصغّرةُ مولَّدةٌ في الخادم (400×300) — مُحسِّنُ Next يعيد
+                 ترميزَ ملفٍّ صغيرٍ أصلاً ويؤخّر الشبكة على خادمٍ ضعيف. */
+              unoptimized
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 33vw, 25vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-on-surface-variant">
@@ -150,9 +153,9 @@ export function VehicleCard({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 p-6">
+        <div className="flex flex-col gap-2.5 p-4">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="text-headline-sm">{vehicle.title}</h3>
+            <h3 className="line-clamp-2 text-base font-bold leading-snug">{vehicle.title}</h3>
             {/* «الموقف» وحده. رقم المزاد لا يظهر على كرت v1. */}
             <span className="shrink-0 rounded-sm bg-surface-container px-2 py-0.5 text-label-sm font-medium">
               الموقف <span className="tnum">{vehicle.lot_number}</span>
@@ -164,7 +167,7 @@ export function VehicleCard({
             جدولُ ترجمةٍ في هذا الملفّ يعني تعريفاً ثانياً لما تعنيه القيمة،
             ويوم تُضاف حالةٌ يعرضها التطبيقُ ويعرض الويبُ الرمز الخام.
           */}
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg bg-surface-low p-3 text-body-sm">
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 rounded-lg bg-surface-low p-2.5 text-caption">
             <div className="flex items-center justify-between gap-2">
               <dt className="text-caption text-on-surface-variant">سنة الصنع:</dt>
               {/* بلا فاصل آلاف: السنة اسمٌ لا كمّية، و«2,022» خطأٌ يُقرأ. */}
@@ -201,7 +204,7 @@ export function VehicleCard({
         </div>
       </Link>
 
-      <div className="flex flex-col gap-2 p-6 pt-0">
+      <div className="flex flex-col gap-2 p-4 pt-0">
         {/*
           العدّاد على الكرت لأن السؤال يُسأل عند الكرت: «كم بقي لهذه؟». وهو
           هنا لا في الصفحة، فيظهر في كل قائمة تعرض مركبة — شبكة الجذر وصفحة
@@ -240,14 +243,14 @@ export function VehicleCard({
         {vehicle.phase === "active" ? (
           <Link
             href={`/vehicles/${vehicle.id}`}
-            className="flex h-11 items-center justify-center rounded-lg bg-primary text-label-md text-on-primary transition-opacity hover:opacity-90"
+            className="flex h-10 items-center justify-center rounded-lg bg-primary text-label-md text-on-primary transition-opacity hover:opacity-90"
           >
             مزايدة
           </Link>
         ) : (
           <span
             aria-disabled="true"
-            className="flex h-11 cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-surface-container text-label-md text-on-surface-variant"
+            className="flex h-10 cursor-not-allowed items-center justify-center gap-2 rounded-lg bg-surface-container text-label-md text-on-surface-variant"
           >
             <span aria-hidden="true">🔒</span>
             {vehicle.phase === "ended" ? "المزاد مغلق" : "المزاد لم يبدأ بعد"}
@@ -287,7 +290,7 @@ export function VehicleGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {vehicles.map((vehicle, index) => (
         <div key={vehicle.id} className="card-in">
           <VehicleCard vehicle={vehicle} now={now} priority={index === 0} />

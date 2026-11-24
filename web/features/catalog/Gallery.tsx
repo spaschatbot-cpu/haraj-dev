@@ -28,10 +28,25 @@
  * ينتظره. أول صورةٍ وعدّادُها في الـHTML قبل أن يُحمَّل أي سكربت (معيار J5)،
  * وزائرٌ بلا جافاسكربت يرى الصورة الأولى وعددَ ما بعدها؛ لا يتنقّل، ولا يرى
  * هيكلاً رمادياً ينتظر.
+  *
+ * لماذا كان التنقّل بطيئاً (٢٤ نوفمبر ٢٠٢٦)
+ * ==========================================
+ * المالك: «الحركة بين الصور بطيئة جداً وبايظة». وسببان:
+ *
+ * ١. **كلُّ نقرةٍ طلبٌ جديد يمرّ بمُحسِّن Next** (`/_next/image`) فيعيد ترميزَ
+ *    معاينةٍ بعرض 1280 على خادم الويب — وهي مولَّدةٌ بمقاسها في الخلفيّة
+ *    أصلاً. فالصورُ هنا `unoptimized`: تُطلب كما هي من الوسائط.
+ * ٢. **لا صورةَ تُجهَّز قبل أن تُطلب**: كانت الصورةُ الكبيرة تُستبدل، فيبقى
+ *    الإطارُ فارغاً حتى تصل التالية. فالصورُ الآن مكدّسةٌ والظاهرةُ وحدها
+ *    مرئيّة، والتي قبلها وبعدها محمَّلةٌ مسبقاً — فالانتقالُ تلاشٍ فوريّ.
+ *
+ * ومعها: الأسهمُ في لوحة المفاتيح، والسحبُ باللمس، والشريطُ يلحق الصورةَ
+ * الظاهرة فلا تختفي مصغّرتُها خارج الإطار، والعدّادُ في المنتصف فعلاً (كان
+ * `start-1/2` مع إزاحةٍ فيزيائيّة، فمال في RTL).
  */
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface Shot {
   id: number;
@@ -40,15 +55,41 @@ export interface Shot {
   is_cover: boolean;
 }
 
-/** الأكبر المتاح لهذه الصورة. طبقةٌ ناقصة على القرص لا تعني إطاراً فارغاً. */
 function large(shot: Shot): string | null {
   return shot.preview_url ?? shot.thumbnail_url;
 }
 
+function Chevron({ flip }: { flip?: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className={`h-5 w-5 ${flip ? "rotate-180" : ""}`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="m9 6 6 6-6 6" />
+    </svg>
+  );
+}
+
 export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
   const [at, setAt] = useState(0);
+  //: ما رُئي يبقى محمَّلاً — الرجوعُ إليه لا يُعيد طلبه.
+  const [seen, setSeen] = useState<Set<number>>(() => new Set([0, 1, shots.length - 1]));
+  const strip = useRef<HTMLUListElement>(null);
+  const touch = useRef<number | null>(null);
+  const total = shots.length;
 
-  if (shots.length === 0) {
+  useEffect(() => {
+    const thumb = strip.current?.children[at] as HTMLElement | undefined;
+    thumb?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+  }, [at, total]);
+
+  if (total === 0) {
     return (
       <div className="vd-frame vd-muted flex aspect-[4/3] items-center justify-center rounded-2xl">
         لا توجد صورة
@@ -56,92 +97,97 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
     );
   }
 
-  //: `?? shots[0]` لأن `noUncheckedIndexedAccess` محقّ: الفهرس مقيَّد بالطول
-  //: في السطر نفسه، لكن السلامة تأتي من النوع لا من قراءةِ من يمرّ.
-  const shown = shots[Math.min(at, shots.length - 1)] ?? shots[0]!;
-
-  //: بالباقي لا بحدٍّ عند الطرف: الدوران هو ما يتوقّعه من يضغط «التالي» على
-  //: آخر صورة، وزرٌّ لا يفعل شيئاً يُقرأ عطلاً.
-  const go = (step: number) => setAt((i) => (i + step + shots.length) % shots.length);
+  //: الانتقالُ يضمّ الصورةَ وجارتيها إلى ما يُحمَّل في الحدث نفسه — لا في
+  //: أثرٍ بعده يعيد الرسم مرّةً ثانية.
+  const show = (index: number) => {
+    const target = (index + total) % total;
+    setAt(target);
+    setSeen((old) => {
+      const next = new Set(old);
+      [target - 1, target, target + 1].forEach((i) => next.add((i + total) % total));
+      return next.size === old.size ? old : next;
+    });
+  };
+  const go = (step: number) => show(at + step);
 
   return (
     <div>
-      <div className="vd-frame relative aspect-[4/3] overflow-hidden rounded-2xl">
-        {large(shown) ? (
-          <Image
-            src={large(shown) as string}
-            alt={alt}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            /*
-              **`contain` لا `cover` في الصورة الكبيرة.** `cover` يملأ الإطار
-              بالقصّ — ومقيسٌ على المركبة 13069: صورةٌ طويلةٌ في إطارٍ 4:3
-              فظهر **وسطُها الرماديُّ وحدَه** والسيّارةُ خارج الكادر.
+      <div
+        className="vd-frame group relative aspect-[4/3] overflow-hidden rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+        tabIndex={total > 1 ? 0 : -1}
+        aria-roledescription="معرض صور"
+        onKeyDown={(event) => {
+          // الصفحةُ RTL: السهمُ الأيسرُ «إلى الأمام» كما يُقرأ الكلام.
+          if (event.key === "ArrowLeft") go(1);
+          if (event.key === "ArrowRight") go(-1);
+        }}
+        onTouchStart={(event) => {
+          touch.current = event.touches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={(event) => {
+          const start = touch.current;
+          const end = event.changedTouches[0]?.clientX;
+          touch.current = null;
+          if (start === null || end === undefined || Math.abs(end - start) < 40) return;
+          go(end < start ? 1 : -1);
+        }}
+      >
+        {shots.map((shot, index) => {
+          const src = large(shot);
+          if (!src || !seen.has(index)) return null;
+          return (
+            <Image
+              key={shot.id}
+              src={src}
+              alt={index === at ? alt : ""}
+              fill
+              unoptimized
+              priority={index === 0}
+              sizes="(max-width: 1024px) 100vw, 60vw"
+              className={`object-contain transition-opacity duration-200 ${
+                index === at ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          );
+        })}
 
-              والقصُّ ليس عيباً في الكرت — هناك الصورةُ تلميحٌ. وهنا هي
-              **سببُ الصفحة**: من يقرّر أن يزايد بعشرات الآلاف ينظر إلى
-              السيّارة، وإطارٌ يقصّ مقدّمتَها أو بابَها يُخفي ما جاء يراه.
-
-              والمصغّراتُ تبقى `cover`: مربّعاتٌ صغيرةٌ تدلّ على الترتيب لا
-              تُفحص فيها المركبة.
-            */
-            className="object-contain"
-            //: الصورة الأولى وحدها: هي أكبر ما يُرسم في هذه الصفحة (LCP).
-            priority={at === 0}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-on-surface-variant">
-            لا توجد صورة
-          </div>
-        )}
-
-        {/*
-          العدّاد `1 / 9` كما يعرضه v1، على الصورة أسفلها. ويُعرض حتى مع صورةٍ
-          واحدة — «1 / 1» جوابٌ عن سؤال «هل في غيرها؟»، وغيابه ليس جواباً.
-        */}
-        <span className="money absolute bottom-2 start-1/2 -translate-x-1/2 rounded bg-primary/80 px-2 py-0.5 text-xs tabular-nums text-white">
-          {at + 1} / {shots.length}
+        <span className="tnum absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-caption font-semibold text-white backdrop-blur-sm">
+          {at + 1} / {total}
         </span>
 
-        {shots.length > 1 ? (
+        {total > 1 ? (
           <>
-            {/*
-              زرّان حقيقيان لا `div` عليه `onClick`: التنقّل بلوحة المفاتيح
-              ونطقُ الاسم على قارئ الشاشة يأتيان من الوسم، لا من سمةٍ تُضاف.
-            */}
             <button
               type="button"
               onClick={() => go(-1)}
               aria-label="الصورة السابقة"
-              className="absolute end-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-on-surface shadow"
+              className="gallery-nav absolute right-3 top-1/2 -translate-y-1/2"
             >
-              ›
+              <Chevron />
             </button>
             <button
               type="button"
               onClick={() => go(1)}
               aria-label="الصورة التالية"
-              className="absolute start-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 px-3 py-2 text-on-surface shadow"
+              className="gallery-nav absolute left-3 top-1/2 -translate-y-1/2"
             >
-              ‹
+              <Chevron flip />
             </button>
           </>
         ) : null}
       </div>
 
-      {shots.length > 1 ? (
-        <ul className="mt-3 flex gap-2 overflow-x-auto pb-1">
+      {total > 1 ? (
+        <ul ref={strip} className="gallery-strip mt-3 flex gap-2 overflow-x-auto pb-1">
           {shots.map((shot, index) => (
-            <li key={shot.id}>
+            <li key={shot.id} className="shrink-0">
               <button
                 type="button"
-                onClick={() => setAt(index)}
+                onClick={() => show(index)}
                 aria-label={`صورة ${index + 1}`}
                 aria-current={index === at}
-                //: الحدّ لا اللون وحده: المختارة تُميَّز بإطارٍ أثخن، فيُقرأ
-                //: التمييز على شاشةٍ رماديةٍ وعلى عينٍ لا تفرّق الألوان.
-                className={`relative block h-16 w-24 overflow-hidden rounded-xl border-2 ${
-                  index === at ? "vd-thumb-on" : "vd-thumb opacity-70"
+                className={`relative block h-16 w-24 overflow-hidden rounded-xl border-2 transition ${
+                  index === at ? "vd-thumb-on" : "vd-thumb opacity-60 hover:opacity-100"
                 }`}
               >
                 {shot.thumbnail_url ? (
@@ -149,6 +195,7 @@ export function Gallery({ shots, alt }: { shots: Shot[]; alt: string }) {
                     src={shot.thumbnail_url}
                     alt=""
                     fill
+                    unoptimized
                     sizes="96px"
                     className="object-cover"
                   />

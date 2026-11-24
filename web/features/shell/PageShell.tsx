@@ -61,7 +61,13 @@ export function PageShell({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    /*
+      عمودٌ بطول الشاشة على الأقلّ، والمحتوى يتمدّد فيه — فيقعد الذيلُ في
+      القاع مهما قصرت الصفحة. كان الذيلُ يتبع المحتوى مباشرةً، فصفحةُ مركبةٍ
+      قصيرةٌ تتركه في منتصف الشاشة وتحته فراغ (المالك، ٢٤ نوفمبر ٢٠٢٦: «الفوتر
+      طالع فوق في الصفحة»).
+    */
+    <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 w-full border-b border-outline-variant/60 bg-surface/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-[1380px] items-center justify-between gap-6 px-4 md:px-8 lg:px-12">
           <div className="flex items-center gap-8">
@@ -155,14 +161,14 @@ export function PageShell({
 
       {art ? <PageArt name={art} /> : null}
 
-      <main className="relative z-[1] mx-auto w-full max-w-[1380px] px-4 py-8 md:px-8 lg:px-12">
+      <main className="relative z-[1] mx-auto w-full max-w-[1380px] flex-1 px-4 py-6 md:px-8 lg:px-12">
         {banner}
         {title ? <h1 className="mb-6 text-headline-lg">{title}</h1> : null}
         {children}
       </main>
 
       <SiteFooter />
-    </>
+    </div>
   );
 }
 
@@ -175,7 +181,7 @@ export function PageShell({
  */
 function SiteFooter() {
   return (
-    <footer className="mt-16 w-full border-t border-outline-variant/60 bg-surface-low">
+    <footer className="mt-12 w-full border-t border-outline-variant/60 bg-surface-low">
       <div className="mx-auto flex max-w-[1380px] flex-col gap-3 px-4 py-10 text-body-sm text-on-surface-variant md:flex-row md:items-center md:justify-between md:px-8 lg:px-12">
         <p>
           © 2026 منصة حراج واحد <span className="tnum">v2</span> للمزادات. جميع
