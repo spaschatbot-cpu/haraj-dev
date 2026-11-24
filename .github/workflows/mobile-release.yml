@@ -82,7 +82,30 @@ jobs:
   #
   # **ولا يُعاد بـ--force أبداً**: ذلك ينشئ تطبيقاتٍ جديدة فتنقطع الترقيعاتُ عن
   # كلّ نسخةٍ مثبَّتة. وعلى ماك لا لينكس: init يقرأ مخطّطات Xcode ليعرف النكهات.
+  #
+  # **ومع الدفع لا يُصدَر لكلّ تعديل** متى عمل Shorebird: الدفعةُ التي تمسّ
+  # دارت وحدَه تذهب ترقيعاً من mobile-patch، وهنا يُصدَر ما فيه فرقٌ أصليّ فقط
+  # (المالك، ٢٤ نوفمبر ٢٠٢٦: «التحديثات تنزل من جوّه… مش لازم أثبّت نسخة
+  # جديدة»). والقسمةُ في `mobile/tool/change_kind.sh`، يقرؤها السيران معاً.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.kind.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: kind
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            bash mobile/tool/change_kind.sh "${{ github.event.before }}" "${{ github.sha }}" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   init:
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
     runs-on: macos-15
     timeout-minutes: 20
     permissions:
@@ -274,7 +297,12 @@ jobs:
   # يتأثّر: لا يُعاد توقيعه. ولا متجرَ Google قبل مفتاح إصدار.
   android:
     needs: init
-    if: github.event_name != 'push' && inputs.platforms != 'ios'
+    # مع الدفع لا يُبنى أندرويد بلا Shorebird: mobile-apk يبنيه أصلاً. ومع
+    # Shorebird يُبنى، لأن حزمةَ mobile-apk لا تقبل ترقيعاً — والإصدارُ مع الدفع
+    # لا يقع إلا لفرقٍ أصليّ، فلا بدّ لأندرويد من حزمةٍ جديدةٍ يُرقَّع عليها.
+    if: >-
+      (github.event_name != 'push' && inputs.platforms != 'ios') ||
+      (github.event_name == 'push' && needs.init.outputs.shorebird == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:

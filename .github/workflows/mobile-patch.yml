@@ -12,12 +12,21 @@ name: mobile-patch
 # يقول ذلك ويرفض حين يجد فرقاً أصليّاً — فلا يُمرَّر --allow-native-diffs
 # هنا: فرقٌ أصليٌّ في ترقيعٍ = تطبيقٌ ينهار عند المستخدم.
 #
-# **ويُشغَّل باليد**: ترقيعٌ مع كلّ دفعٍ إلى main يرسل للأجهزة ما لم يُراجَع،
-# ودقيقةُ ماك بعشر دقائق لينكس.
+# **ويُشغَّل مع كلّ دفعٍ يمسّ `mobile/lib` أو `mobile/assets`** (المالك، ٢٤
+# نوفمبر ٢٠٢٦: «عايز التحديثات تنزل من جوّه على طول… تحديثات صغيّرة في
+# صغيّرة»). كان باليد خشيةَ أن يصل الأجهزةَ ما لم يُراجَع — لكنّ المالكَ هو
+# المختبِر، ويراجع على جهازه. والدفعةُ التي فيها فرقٌ أصليّ لا تُرقَّع: يُصدرها
+# mobile-release، والقسمةُ بينهما في `mobile/tool/change_kind.sh`. وبلا
+# Shorebird (لا سرّ أو لا shorebird.yaml) يمرّ السيرُ صامتاً ولا يفشل.
 #
 # الأسرار: SHOREBIRD_TOKEN (ومتغيّر IOS_BUNDLE_ID إن وُضع لـmobile-release).
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/lib/**"
+      - "mobile/assets/**"
   workflow_dispatch:
     inputs:
       platforms:
@@ -36,11 +45,28 @@ concurrency:
 
 env:
   SHOREBIRD_TOKEN: ${{ secrets.SHOREBIRD_TOKEN }}
-  RELEASE_VERSION: ${{ inputs.release_version }}
+  RELEASE_VERSION: ${{ inputs.release_version || 'latest' }}
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      patch: ${{ steps.kind.outputs.patch }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: kind
+        run: |
+          if [ "${{ github.event_name }}" != "push" ]; then
+            echo "patch=true" >> "$GITHUB_OUTPUT"
+          else
+            bash mobile/tool/change_kind.sh "${{ github.event.before }}" "${{ github.sha }}" | tee -a "$GITHUB_OUTPUT"
+          fi
+
   ios:
-    if: inputs.platforms != 'android'
+    needs: gate
+    if: needs.gate.outputs.patch == 'true' && inputs.platforms != 'android'
     # macos-26 لا 15: منذ ٢٨ أبريل ٢٠٢٦ لا تقبل App Store Connect رفعاً مبنيّاً
     # بأقلّ من Xcode 26 / iOS 26 SDK، وXcode الافتراضيّ على macos-15 هو 16.x.
     # والترقيعُ على الصورة نفسها: يُبنى بـXcode الذي بُني به إصدارُه.
@@ -87,7 +113,8 @@ jobs:
           echo "### iOS: ترقيعٌ على الإصدار ${RELEASE_VERSION} — يسري في الفتحة الثانية للتطبيق" >> "$GITHUB_STEP_SUMMARY"
 
   android:
-    if: inputs.platforms != 'ios'
+    needs: gate
+    if: needs.gate.outputs.patch == 'true' && inputs.platforms != 'ios'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     defaults:
