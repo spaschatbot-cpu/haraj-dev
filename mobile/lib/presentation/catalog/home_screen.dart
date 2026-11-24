@@ -199,47 +199,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l10n = AppLocalizations.of(context);
     final palette = HarajPalette.of(context);
 
+    final statusBar = MediaQuery.paddingOf(context).top;
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      // الرأسُ أبيض: ساعةُ النظام وبطّاريّتُه داكنتان فوقه.
-      value: SystemUiOverlayStyle.dark,
+      // الرأسُ أبيض: ساعةُ النظام وبطّاريّتُه داكنتان فوقه. و`statusBarColor`
+      // شفّافٌ صراحةً: بلاه يرسم أندرويد فوق الشريط ستارةً سوداءَ نصفَ شفّافة،
+      // فيبدو أغمقَ من الرأس تحته.
+      value: SystemUiOverlayStyle.dark.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SnapshotView<VehicleFeed>(
-          state: _first,
-          onRetry: _reload,
-          builder: (context, snapshot) => VehicleResults(
-            vehicles: _vehicles,
-            totalCount: _totalCount,
-            hasMore: _hasMore,
-            loadingMore: _loadingMore,
-            moreFailure: _moreFailure,
-            onLoadMore: _loadMore,
-            onRetryMore: () {
-              setState(() => _moreFailure = null);
-              _loadMore();
-            },
-            emptyMessage: _emptyMessage(l10n),
-            showCount: false,
-            // **الرأسُ ينزلق، والبحثُ والشرائحُ تثبت** — هما مقبضا القائمة،
-            // ومن نزل عشرين كرتاً ثم أراد ماركةً أخرى لا يصعد كلَّها.
-            header: _BrandBar(
-              onOpenNotifications: () => context.go(Routes.myActivityPath),
-              onOpenAccount: () => context.go(Routes.profilePath),
+        // **شريطُ الحالة أرضٌ ثابتة لا تمرّ القائمةُ تحتها** (المالك، ٢٤
+        // نوفمبر ٢٠٢٦، على أندرويد: «شريط الإشعارات لمّا بعمل scroll بيغطّي
+        // على البحث… وظاهر بلون مختلف»). كانت القائمةُ تبدأ من حافّة الشاشة،
+        // فيثبت حقلُ البحث عند الصفر — تحت الساعة والبطّارية — وتمرّ الكروتُ
+        // خلفهما بألوانها. فصار للشريط شريطٌ بلون الرأس فوق القائمة، والقائمةُ
+        // تبدأ تحته: البحثُ يثبت تحت الساعة لا خلفها.
+        body: Column(
+          children: <Widget>[
+            ColoredBox(
+              color: palette.cardSurface,
+              child: SizedBox(height: statusBar, width: double.infinity),
             ),
-            pinnedHeader: _searchAndMakes(l10n, palette),
-            pinnedHeaderExtent: _pinnedExtent,
-            listHeader: _SectionTitle(
-              phase: widget.phase,
-              count: _totalCount,
-              counts: _counts,
-              onPhase: (phase) => Routes.goToPhase(context, phase),
+            Expanded(
+              // الحشوةُ العليا صُرفت في الشريط أعلاه، فلا يُضيفها الرأسُ ثانيةً.
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: _feed(l10n, palette),
+              ),
             ),
-            listFooter: const _SealedNote(),
-          ),
+          ],
         ),
       ),
     );
   }
+
+  Widget _feed(AppLocalizations l10n, HarajPalette palette) =>
+      SnapshotView<VehicleFeed>(
+        state: _first,
+        onRetry: _reload,
+        builder: (context, snapshot) => VehicleResults(
+          vehicles: _vehicles,
+          totalCount: _totalCount,
+          hasMore: _hasMore,
+          loadingMore: _loadingMore,
+          moreFailure: _moreFailure,
+          onLoadMore: _loadMore,
+          onRetryMore: () {
+            setState(() => _moreFailure = null);
+            _loadMore();
+          },
+          emptyMessage: _emptyMessage(l10n),
+          showCount: false,
+          // **الرأسُ ينزلق، والبحثُ والشرائحُ تثبت** — هما مقبضا القائمة،
+          // ومن نزل عشرين كرتاً ثم أراد ماركةً أخرى لا يصعد كلَّها.
+          header: _BrandBar(
+            onOpenNotifications: () => context.go(Routes.myActivityPath),
+            onOpenAccount: () => context.go(Routes.profilePath),
+          ),
+          pinnedHeader: _searchAndMakes(l10n, palette),
+          pinnedHeaderExtent: _pinnedExtent,
+          listHeader: _SectionTitle(
+            phase: widget.phase,
+            count: _totalCount,
+            counts: _counts,
+            onPhase: (phase) => Routes.goToPhase(context, phase),
+          ),
+          listFooter: const _SealedNote(),
+        ),
+      );
 
   Widget _searchAndMakes(AppLocalizations l10n, HarajPalette palette) {
     final selected = (_query.make ?? '').trim();
