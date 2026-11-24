@@ -195,19 +195,22 @@ body {
   border-color: var(--tone-slate-line);
   animation: phase-in 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.phase-tab {
+/* `.phase-seg` قبلها عمداً: `.tone-*` تُعرَّف بعدها وتضع سطحَ نغمتها، فبلا
+   الوعاء تغلب وتملأ كلَّ تبويبٍ بلونه (قِيس: «قريباً» كهرمانيٌّ غيرُ مختار). */
+.phase-seg .phase-tab {
   color: var(--t-ink2);
   background: transparent;
+  border: 0;
   transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
-.phase-tab:hover { background: #ffffff; color: var(--t-ink); }
-.phase-tab[aria-current="page"] {
+.phase-seg .phase-tab:hover { background: #ffffff; color: var(--t-ink); }
+.phase-seg .phase-tab[aria-current="page"] {
   background: var(--t-solid);
   color: #ffffff;
   box-shadow: 0 6px 16px -8px var(--t-solid);
 }
-.phase-tab .phase-count { background: var(--t-fill); color: var(--t-ink); }
-.phase-tab[aria-current="page"] .phase-count { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
+.phase-seg .phase-tab .phase-count { background: var(--t-fill); color: var(--t-ink); }
+.phase-seg .phase-tab[aria-current="page"] .phase-count { background: rgba(255, 255, 255, 0.22); color: #ffffff; }
 
 /* نبضةٌ على نقطة «يجري الآن» وحدها — شريطٌ كاملٌ ينبض يسحب العينَ عن كلّ شيء. */
 .phase-live {
