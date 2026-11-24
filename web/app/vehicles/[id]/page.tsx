@@ -42,7 +42,7 @@ import { readFlash } from "@/lib/flash";
 import { authHeader, hasSession } from "@/lib/session";
 import type { Vehicle } from "@/features/catalog/VehicleCard";
 import { ApiError, api, request } from "@/lib/api";
-import { count } from "@/lib/format";
+import { amount, count } from "@/lib/format";
 
 import { readNumber } from "@/lib/paging";
 
@@ -196,12 +196,28 @@ export default async function VehiclePage({ params }: Params) {
       icon: "gauge",
     },
     { label: "الحالة", value: vehicle.condition_label, icon: "shield" },
-    //: المدينةُ تُحذف حين تكون فارغة: بلاطةٌ بشرطةٍ وحدَها في صفّها تُقرأ
-    //: خانةً معطوبة لا معلومةً غائبة (قِيس على المركبة 16134).
-    ...(vehicle.location
-      ? [{ label: "المدينة", value: vehicle.location, icon: "pin" as const }]
+    //: الوقودُ وناقلُ الحركة يُحذفان حين لا يعرفهما الخادم («غير محدد»):
+    //: بلاطةٌ تقول «لا نعرف» تأخذ مكانَ معلومةٍ ولا تعطي شيئاً. ونقلُ v1 لا
+    //: يحملهما في أغلب السيّارات.
+    ...(known(vehicle.fuel_type_label)
+      ? [{ label: "الوقود", value: vehicle.fuel_type_label, icon: "fuel" as const }]
+      : []),
+    ...(known(vehicle.transmission_label)
+      ? [{ label: "ناقل الحركة", value: vehicle.transmission_label, icon: "gear" as const }]
       : []),
   ];
+
+  //: ‏ما يعرضه v1 في نافذة «مواصفات المركبة» (`index.php` ‏`#specsModal`) ولم
+  //: تكن الصفحةُ تقوله وهو عندنا: رقمُ الهيكل وحالةُ المحرّك والمفاتيح ونوعُ
+  //: اللوحة والموقع (المالك، ٢٤ نوفمبر ٢٠٢٦: «بيانات السيارة مش كاملة»).
+  const registration: Array<{ label: string; value: string; mono?: boolean }> = [
+    { label: "رقم الهيكل", value: vehicle.vin, mono: true },
+    { label: "حالة المحرّك", value: vehicle.runs_status },
+    { label: "المفاتيح", value: vehicle.key_status },
+    { label: "نوع اللوحة", value: vehicle.plate_type_label },
+    { label: "الموقع", value: vehicle.location },
+    { label: "الرقم المرجعي", value: vehicle.reference, mono: true },
+  ].filter((row) => known(row.value));
   //: الموديلُ بعرض السطر، وما بعده زوجان زوجان — والأخيرُ يمتدّ إن بقي فرداً.
   const wide = (index: number) =>
     index === 0 || (index === specifications.length - 1 && (specifications.length - 1) % 2 === 1);
@@ -365,6 +381,45 @@ export default async function VehiclePage({ params }: Params) {
             ))}
           </dl>
 
+          {registration.length > 0 ? (
+            <section className="mt-5" aria-labelledby="reg-title">
+              <h2 id="reg-title" className="mb-2 text-label-md font-bold text-on-surface-variant">
+                بيانات المركبة
+              </h2>
+              <dl className="reg-list divide-y overflow-hidden rounded-xl border">
+                {registration.map(({ label, value, mono }) => (
+                  <div key={label} className="flex items-center justify-between gap-4 px-4 py-2.5">
+                    <dt className="text-body-sm">{label}</dt>
+                    <dd
+                      dir={mono ? "ltr" : undefined}
+                      className={`text-end font-semibold ${mono ? "tnum tracking-wide" : ""}`}
+                    >
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ) : null}
+
+          {/*
+            «تفاصيل المزايدة» في v1: الرسومُ الإداريّة ومعها الضريبة، قبل أن
+            يُسأل الزائرُ أن يدخل. والمسجّلُ يراها داخل صندوق المزايدة
+            (`BidBox`)، فهنا لمن لم يدخل وحده — ولا تُكتب مرّتين.
+          */}
+          {signedIn ? null : (
+            <div className="fee-card mt-5 grid grid-cols-2 gap-3 rounded-xl p-4">
+              <div>
+                <p className="text-caption">الرسوم الإداريّة</p>
+                <p className="money tnum text-lg font-bold">{amount(vehicle.admin_fee)} ر.س</p>
+              </div>
+              <div>
+                <p className="text-caption">مع الضريبة (15%)</p>
+                <p className="money tnum text-lg font-bold">{amount(vehicle.admin_fee_with_vat)} ر.س</p>
+              </div>
+            </div>
+          )}
+
           <Notice
             message={flash?.message ?? ""}
             tone={flash?.code === "bid_placed" ? "info" : "error"}
@@ -400,7 +455,13 @@ export default async function VehiclePage({ params }: Params) {
   );
 }
 
-type SpecIcon = "car" | "calendar" | "palette" | "gauge" | "shield" | "pin";
+//: ‏قيمةٌ تُعرض: لا فراغ ولا «غير محدد» — الخادمُ يكتبها لما لا يعرفه.
+function known(value: string | null | undefined): value is string {
+  const v = (value ?? "").trim();
+  return v !== "" && v !== "—" && v !== "غير محدد";
+}
+
+type SpecIcon = "car" | "calendar" | "palette" | "gauge" | "shield" | "pin" | "fuel" | "gear";
 
 const GLYPHS: Record<SpecIcon, React.ReactNode> = {
   car: (
@@ -435,6 +496,22 @@ const GLYPHS: Record<SpecIcon, React.ReactNode> = {
     <>
       <path d="M12 3.5 5 6v5.5c0 4.2 3 7.3 7 8.5 4-1.2 7-4.3 7-8.5V6z" />
       <path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  fuel: (
+    <>
+      <path d="M6 20V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v14M5 20h11M6 10h9" />
+      <path d="M15 8h1.5a1.5 1.5 0 0 1 1.5 1.5V15a1.5 1.5 0 0 0 3 0V8l-2.5-2.5" />
+    </>
+  ),
+  gear: (
+    <>
+      <circle cx="6" cy="6" r="1.8" />
+      <circle cx="12" cy="6" r="1.8" />
+      <circle cx="18" cy="6" r="1.8" />
+      <circle cx="6" cy="18" r="1.8" />
+      <circle cx="12" cy="18" r="1.8" />
+      <path d="M6 8v8M12 8v8M18 8v4H6" />
     </>
   ),
   pin: (
