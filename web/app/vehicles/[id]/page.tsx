@@ -196,8 +196,15 @@ export default async function VehiclePage({ params }: Params) {
       icon: "gauge",
     },
     { label: "الحالة", value: vehicle.condition_label, icon: "shield" },
-    { label: "المدينة", value: vehicle.location || "—", icon: "pin" },
+    //: المدينةُ تُحذف حين تكون فارغة: بلاطةٌ بشرطةٍ وحدَها في صفّها تُقرأ
+    //: خانةً معطوبة لا معلومةً غائبة (قِيس على المركبة 16134).
+    ...(vehicle.location
+      ? [{ label: "المدينة", value: vehicle.location, icon: "pin" as const }]
+      : []),
   ];
+  //: الموديلُ بعرض السطر، وما بعده زوجان زوجان — والأخيرُ يمتدّ إن بقي فرداً.
+  const wide = (index: number) =>
+    index === 0 || (index === specifications.length - 1 && (specifications.length - 1) % 2 === 1);
 
   return (
     <PageShell>
@@ -342,7 +349,7 @@ export default async function VehiclePage({ params }: Params) {
                 key={label}
                 style={{ animationDelay: `${index * 45}ms` }}
                 className={`spec-tile flex items-center gap-3 rounded-xl p-3 ${
-                  label === "الموديل" ? "col-span-2" : ""
+                  wide(index) ? "col-span-2" : ""
                 }`}
               >
                 <span aria-hidden="true" className="spec-tile-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
